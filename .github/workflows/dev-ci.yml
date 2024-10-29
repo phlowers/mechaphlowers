@@ -38,9 +38,9 @@ jobs:
         run: |
           poetry run poe typing
 
-      - name: Run tests
+      - name: Run tests and generate coverage report
         run: |
-          poetry run poe test
+          poetry run poe test-coverage
 
       - name: Build wheel
         run: |

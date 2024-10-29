@@ -43,6 +43,7 @@ lint = "poetry run ruff check"
 lint-fix = "poetry run ruff check --fix"
 typing = "poetry run mypy ."
 test = "poetry run pytest"
+test-coverage = "poetry run pytest --cov-report xml --cov=mechaphlowers test/"
 checks = [
     "check-format",
     "lint",
