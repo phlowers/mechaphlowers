@@ -7,7 +7,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
-poethepoet = "^0.28.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.1"
@@ -17,6 +16,7 @@ ipykernel = "^6.29.5"
 pytest = "^8.3.2"
 pytest-cov = "^5.0.0"
 unittest-xml-reporting = "^3.2.0"
+poethepoet = "^0.29.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.2"
