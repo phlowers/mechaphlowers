@@ -1,0 +1,47 @@
+name: Dev CI
+
+on:
+  pull_request:
+
+jobs:
+  manylinux_build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.11"
+
+      - name: Install poetry
+        run: |
+          sudo apt install pipx  
+          pipx install poetry
+          poetry --version
+
+      - name: Install dependencies
+        run: |
+          poetry install
+
+      - name: Check code style
+        run: |
+          poetry run poe check-format
+
+      - name: Lint code
+        run: |
+          poetry run poe lint
+
+      - name: Check typing
+        run: |
+          poetry run poe typing
+
+      - name: Run tests
+        run: |
+          poetry run poe test
+
+      - name: Build wheel
+        run: |
+          poetry build
