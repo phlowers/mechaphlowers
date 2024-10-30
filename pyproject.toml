@@ -55,6 +55,10 @@ checks = [
 [tool.pytest.ini_options]
 junit_family = "xunit2"
 
+[tool.coverage.run]
+source = ['src']
+relative_files = true
+
 ## Task configurator
 [tool.poe]
 verbosity = -1
