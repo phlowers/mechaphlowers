@@ -70,29 +70,21 @@ In order to build the library (wheel and tar.gz archive):
 
 You may test your pyodide package using pyodide console in a browser.
 
-## Clone pyodide
+## Download pyodide
 
-Clone pyodide project:
+Download a version of Pyodide from the [releases page](https://github.com/pyodide/pyodide/releases/), extract it and serve it with a web server:
 
-    git clone https://github.com/pyodide/pyodide
+    wget https://github.com/pyodide/pyodide/releases/download/0.25.0/pyodide-0.25.0.tar.bz2
+    tar -xvf pyodide-0.25.0.tar.bz2
     cd pyodide
-    git checkout 0.25.0
-
-## Start a server
-
-In pyodide folder:
-
-    python3 -m http.server --directory dist
+    python3 -m http.server
 
 Pyodide console is then available at http://localhost:8000/console.html
 
-## Copy needed wheels in pyodide's dist folder
-
-Copy your wheel to pyodide's dist folder.
-
 ## Test in pyodide console
 
-In the console:
+Copy needed wheels to pyodide folder.
+Then, in pyodide console:
 
     import micropip
     # load your wheel
