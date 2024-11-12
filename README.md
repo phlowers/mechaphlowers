@@ -63,10 +63,7 @@ In order to build the library (wheel and tar.gz archive):
 
 ## How to serve the documentation
 
-```{bash}
-cd ./docs
-mkdocs serve -a localhost:8001
-```
+    poetry run poe doc
 
 # Using mechaphlowers
 
