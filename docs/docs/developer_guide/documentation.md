@@ -4,11 +4,7 @@
 
 ### Serving documnentation
 
-From inside docs folder : 
-```{bash}
-cd ./docs
-mkdocs serve -a 0.0.0.0:8001
-```
+cf. README
 
 ### Building documentation
 
