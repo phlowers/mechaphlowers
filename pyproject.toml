@@ -55,6 +55,13 @@ checks = [
     "test",
 ]
 
+[tool.poe.tasks.doc]
+help = "serve the library documentation"
+shell = """
+cd ./docs
+mkdocs serve -a localhost:8001
+"""
+
 ## Test framework
 [tool.pytest.ini_options]
 junit_family = "xunit2"
