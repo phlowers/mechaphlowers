@@ -23,7 +23,7 @@ Use the docs/docs folder to organize where the documentation can be added :
 
 - Getting started for installation and first steps
 - User guide for user documentation
-- Developer guide for technique documentation
+- Developer guide for technical documentation
 - _static is for images, figures
 - docstring is for automatic docstring generation (see below)
 - javascript is only for addons or extra plugins of mkddocs
