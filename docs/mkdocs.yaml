@@ -5,7 +5,7 @@ repo_url: https://github.com/phlowers/mechaphlowers
 theme:
   name: "material"
   logo: _static/logos/mecaphlowers_logotxt-white1.png
-  favicon: _static/mecaphlowers_logotxt-white1.png
+  favicon: _static/logos/mecaphlowers_logotxt-white1.png
   features:
     - toc.integrate
   language: en
