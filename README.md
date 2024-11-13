@@ -63,6 +63,7 @@ In order to build the library (wheel and tar.gz archive):
 
 ## How to serve the documentation
 
+    poetry install --with docs  # install documentation related dependencies
     poetry run poe doc
 
 # Using mechaphlowers
