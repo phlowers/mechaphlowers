@@ -61,6 +61,10 @@ In order to build the library (wheel and tar.gz archive):
 
     poetry build
 
+## How to serve the documentation
+
+    poetry run poe doc
+
 # Using mechaphlowers
 
     from mechaphlowers import welcome
@@ -89,3 +93,4 @@ Then, in pyodide console:
     import micropip
     # load your wheel
     await micropip.install("http://localhost:8000/<wheel_name>.whl", keep_going=True)
+

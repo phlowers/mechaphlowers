@@ -17,6 +17,10 @@ pytest = "^8.3.2"
 pytest-cov = "^5.0.0"
 unittest-xml-reporting = "^3.2.0"
 poethepoet = "^0.29.0"
+mkdocs = "^1.6.1"
+mkdocstrings = {extras = ["python"], version = "^0.26.2"}
+mkdocs-material = "^9.5.43"
+mkdocs-jupyter = "^0.25.1"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.2"
@@ -50,6 +54,13 @@ checks = [
     "typing",
     "test",
 ]
+
+[tool.poe.tasks.doc]
+help = "serve the library documentation"
+shell = """
+cd ./docs
+mkdocs serve -a localhost:8001
+"""
 
 ## Test framework
 [tool.pytest.ini_options]
