@@ -8,6 +8,4 @@ $$
 
 ## Try to include some plotly figure
 
-
-{ % include_relative test_figure_potly.html % }
-
+--8<-- "docs/test_figure_plotly.html"
