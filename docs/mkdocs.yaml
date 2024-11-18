@@ -1,0 +1,71 @@
+site_name: mechaphlowers
+site_url : http://mechaphlowers.readthedocs.com
+repo_url: https://github.com/phlowers/mechaphlowers
+
+theme:
+  name: "material"
+  logo: _static/logos/mecaphlowers_logotxt-white1.png
+  favicon: _static/logos/mecaphlowers_logotxt-white1.png
+  features:
+    - toc.integrate
+  language: en
+  icon:
+    repo: fontawesome/brands/github
+  highlightjs: true
+  hljs_languages:
+    - yaml
+    - python
+    - bash
+  palette: 
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-7 
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+nav:
+  - Home: 
+    - Home : index.md
+  - Getting Started: home/home.md
+  - User Guide: 
+      - Introduction : user_guide/ug_general_concepts.md
+  - Developer guide:
+    - Overview : docstring/welcome.md
+    - Documentation : developer_guide/documentation.md
+
+
+
+plugins:
+  - search
+  - offline
+  - mkdocs-jupyter:
+      ignore_h1_titles: True
+      execute: False
+  - mkdocstrings:
+      handlers:
+        # See: https://mkdocstrings.github.io/python/usage/
+        python:
+          paths: [../src]
+
+markdown_extensions:
+  # - tables
+  - pymdownx.snippets:
+      base_path: 
+        - ".."
+      check_paths: true
+  - pymdownx.arithmatex:
+      generic: true
+
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+# extra:
+#   version:
+#     provider: mike
