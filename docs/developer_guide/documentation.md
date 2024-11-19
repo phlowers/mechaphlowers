@@ -32,7 +32,7 @@ You have to complete the folder docstring with the subrepositories you want. At 
 
 ## Configuration
 
-The configuration can be found in docs/mkdocs.yaml :
+The configuration can be found in mkdocs.yaml :
 
 - plugins for docstrings generation, jupyter, search, and offline mode
 - markdown extension

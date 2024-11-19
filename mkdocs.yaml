@@ -55,8 +55,6 @@ plugins:
 markdown_extensions:
   # - tables
   - pymdownx.snippets:
-      base_path: 
-        - ".."
       check_paths: true
   - pymdownx.arithmatex:
       generic: true
