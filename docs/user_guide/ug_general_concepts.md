@@ -55,6 +55,10 @@ Those frames are oriented with z axis up and x axis along the crossarm, pointing
 
 ![Image not available](./assets/support_frame.drawio.png "Support frame")
 
+!!! important
+
+    In mechaphlowers, the _arm length_ is not the distance between the center and the end of the support, but between the center and the insulator attachment point.
+
 ### Cable frame / Span frame
 
 The reference support frame for a span is the left support depending on line direction evolution.
@@ -63,30 +67,12 @@ The cable frame $\mathcal{R}_{cable}$ is defined as described in the figure belo
 
 ![Image not available](./assets/cable_frame.drawio.png "Cable frame")
 
-### Change between different frames
 
-In this section the rotational and translational mapping of the frames are defined.
+### Strategy
 
-Definition of rotation of an angle $\theta$ matrix for a frame $\mathcal{R}(O,x,y,z)$ regarding the 3 different axis:
-
-$${\displaystyle R_{{x} }(\theta )={\begin{pmatrix}1&0&0\\0&\cos \theta &-\sin \theta \\0&\sin \theta &\cos \theta \end{pmatrix}}\qquad R_{ {y} }(\theta )={\begin{pmatrix}\cos \theta &0&\sin \theta \\0&1&0\\-\sin \theta &0&\cos \theta \end{pmatrix}}\qquad R_{ {z} }(\theta )={\begin{pmatrix}\cos \theta &-\sin \theta &0\\\sin \theta &\cos \theta &0\\0&0&1\end{pmatrix}}}$$
-
-The transformation from one frames to another is composed of a rotation and a translation $(R,T)$.
-
-- From $\mathcal{R}_{earth}$ to $\mathcal{R}_{towerbody}$: 
-
-    - $T=\begin{pmatrix}x_{support GPS}\\y_{support GPS}\\h_{crossarm}\end{pmatrix}_{\mathcal{R}_{earth}}$
-    - $R=R_z(\theta_{support})$
-
-- From $\mathcal{R}_{towerbody}$ to $\mathcal{R}_{crossarm}$: 
-
-    - $T=\begin{pmatrix}L_{arm}\\y_{support GPS}\\0\end{pmatrix}_{\mathcal{R}_{towerbody}}$
-    - $R=R_z(\gamma)$ 
-
-- From $\mathcal{R}_{crossarm}$ to $\mathcal{R}_{cable}$:
-
-    - $T=\begin{pmatrix}x_{O_{low}}\\y_{O_{low}}\\0\end{pmatrix}_{\mathcal{R}_{crossarm}}$
-    - $R=R_x(\beta)\cdot R_z(\alpha)$ 
+- State changes, unstrained length are performed in the cable plane
+- The equilibrium of moment is performed in the crossarm frame
+- The 2D visualisation "span-oriented" is a projection on the span frame.
 
 
 
