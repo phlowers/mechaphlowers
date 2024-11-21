@@ -36,6 +36,7 @@ nav:
       - Introduction : user_guide/ug_general_concepts.md
   - Developer guide:
     - Overview : docstring/welcome.md
+    - Guidelines : developer_guide/guidelines.md
     - Documentation : developer_guide/documentation.md
 
 
