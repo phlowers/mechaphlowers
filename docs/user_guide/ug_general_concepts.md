@@ -67,12 +67,23 @@ The cable frame $\mathcal{R}_{cable}$ is defined as described in the figure belo
 
 ![Image not available](./assets/cable_frame.drawio.png "Cable frame")
 
+Below a figure to help seeing the cable plane
+
+--8<-- "docs/user_guide/assets/moving_projection_and_cable.html"
+
 
 ### Strategy
 
 - State changes, unstrained length are performed in the cable plane
 - The equilibrium of moment is performed in the crossarm frame
 - The 2D visualisation "span-oriented" is a projection on the span frame.
+- The 3D visualisation is performed using line frame and could be done with local earth frame too
+
+### Changing frames
+
+![Image not available](./assets/changing_frames.drawio.png "Cable frame")
+
+
 
 
 
