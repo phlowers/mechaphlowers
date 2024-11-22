@@ -2,9 +2,8 @@
 
 MechaPhlowers is a library specialized to perform mechanical and geometrical calculus for powerlines. The models are designed to be the simplest and most accurate possible : when possible, calculus are performed in 2D planes.
 
-The granularity is important : the line is composed by several section. For each section, there are several cables. Each cable can be divided into spans, which is the lowest scale of calculus.
+The granularity is important : the line is composed by several section. For each section, there are several cables. Each cable can be divided into spans, which is the lowest scale.
 
-The algorithms are switching between the different levels during the resolution.
 
 ## Definition
 
@@ -16,10 +15,8 @@ Occasionnaly, some line angles can be found into a section. In this case, we are
 
 ## Frames
 
-Depending on the physical models used in the algorithms, the 3D objects, coordinates, forces and moments are projected onto different planes.
-
-Understanding these planes is not required to use the package, but it is necessary if you wish to explore the various physical models employed.
-
+Depending on the physical models used in the algorithms, the 3D objects, coordinates, forces and moments are projected onto different planes.  
+Understanding these planes is not required to use the package, but it is necessary if you wish to explore the various physical models employed.  
 However, the different frames defined below are necessary to display the results. Therefore, we are outlining the transformation operations to transition between them.
 
 ### Earth frame
@@ -57,7 +54,8 @@ Those frames are oriented with z axis up and x axis along the crossarm, pointing
 
 !!! important
 
-    In mechaphlowers, the _arm length_ is not the distance between the center and the end of the support, but between the center and the insulator attachment point.
+    - In mechaphlowers, the __crossarm length__ is not the distance between the center and the end of the support, but between the center and the insulator attachment point.
+    - The __conductor's attachment altitude__ might not be immediately obvious: it refers to the height of the attachment point above sea level  
 
 ### Cable frame / Span frame
 
