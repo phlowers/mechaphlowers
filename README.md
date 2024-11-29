@@ -66,11 +66,6 @@ In order to build the library (wheel and tar.gz archive):
     poetry install --with docs  # install documentation related dependencies
     poetry run poe doc
 
-# Using mechaphlowers
-
-    from mechaphlowers import welcome
-    welcome()
-
 # Testing in a browser via pyodide
 
 You may test your pyodide package using pyodide console in a browser.
