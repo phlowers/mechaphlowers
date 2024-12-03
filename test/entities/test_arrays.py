@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pydantic
 import pytest
 from pandas.testing import assert_frame_equal
 
@@ -24,3 +25,71 @@ def test_create_section_array(section_array_input_data: dict) -> None:
     section = SectionArray(input_df)
 
     assert_frame_equal(section.data, input_df, rtol=1e-07)
+
+
+def test_create_section_array__missing_name(section_array_input_data: dict) -> None:
+    del section_array_input_data["name"]
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__missing_suspension(
+    section_array_input_data: dict,
+) -> None:
+    del section_array_input_data["suspension"]
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__missing_conductor_attachment_altitude(
+    section_array_input_data: dict,
+) -> None:
+    del section_array_input_data["conductor_attachment_altitude"]
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__missing_crossarm_length(
+    section_array_input_data: dict,
+) -> None:
+    del section_array_input_data["crossarm_length"]
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__missing_line_angle(
+    section_array_input_data: dict,
+) -> None:
+    del section_array_input_data["line_angle"]
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__missing_insulator_length(
+    section_array_input_data: dict,
+) -> None:
+    del section_array_input_data["insulator_length"]
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__missing_span_length(
+    section_array_input_data: dict,
+) -> None:
+    del section_array_input_data["span_length"]
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
