@@ -37,6 +37,19 @@ class SectionArray(ElementArray):
 
     @classmethod
     def validate_input_data(cls, input_data) -> pd.DataFrame:
-        records = input_data.to_dict("records")
+        columns = [
+            "name",
+            "suspension",
+            "conductor_attachment_altitude",
+            "crossarm_length",
+            "line_angle",
+            "insulator_length",
+            "span_length",
+        ]
+        extra_columns = [
+            column for column in input_data.columns if column not in columns
+        ]
+        data = input_data.drop(columns=extra_columns)
+        records = data.to_dict("records")
         SectionInputData.model_validate(records)
-        return input_data
+        return data

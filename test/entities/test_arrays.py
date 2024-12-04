@@ -93,3 +93,15 @@ def test_create_section_array__missing_span_length(
 
     with pytest.raises(pydantic.ValidationError):
         SectionArray(input_df)
+
+
+def test_create_section_array__extra_column(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["extra column"] = [0] * 4
+
+    input_df = pd.DataFrame(section_array_input_data)
+
+    section = SectionArray(input_df)
+
+    assert "extra column" not in section.data.columns
