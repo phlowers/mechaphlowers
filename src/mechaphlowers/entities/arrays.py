@@ -6,36 +6,34 @@ from pydantic import BaseModel, RootModel
 
 class ElementArray(ABC):
     def __init__(self, data: pd.DataFrame) -> None:
-        input_data = data.copy()
-        data = self.drop_extra_columns(input_data)
-        self.validate_input_data(data)
+        data = self.drop_extra_columns(data)
+        self.check_data(data)
         self.data = data
 
-    @staticmethod
+    @property
     @abstractmethod
-    def get_input_columns() -> list[str]: ...
+    def _input_columns(self) -> list[str]: ...
 
-    @staticmethod
+    @property
     @abstractmethod
-    def get_input_data_model(): ...
+    def _input_data_model(self): ...
 
-    @classmethod
-    def compute_extra_columns(cls, input_data: pd.DataFrame) -> list[str]:
+    def _compute_extra_columns(self, input_data: pd.DataFrame) -> list[str]:
         return [
-            column
-            for column in input_data.columns
-            if column not in cls.get_input_columns()
+            column for column in input_data.columns if column not in self._input_columns
         ]
 
-    @classmethod
-    def drop_extra_columns(cls, input_data) -> pd.DataFrame:
-        extra_columns = cls.compute_extra_columns(input_data)
+    def drop_extra_columns(self, input_data: pd.DataFrame) -> pd.DataFrame:
+        """Return a copy of the input DataFrame, without irrelevant columns.
+
+        Note: This doesn't change the input DataFrame.
+        """
+        extra_columns = self._compute_extra_columns(input_data)
         return input_data.drop(columns=extra_columns)
 
-    @classmethod
-    def validate_input_data(cls, data):
+    def check_data(self, data: pd.DataFrame) -> None:
         records = data.to_dict("records")
-        cls.get_input_data_model().model_validate(records)
+        self._input_data_model.model_validate(records)
 
     def __str__(self) -> str:
         return self.data.to_string()
@@ -56,10 +54,14 @@ class SectionInputData(RootModel):
 
 
 class SectionArray(ElementArray):
-    """Description of an overhead line section"""
+    """Description of an overhead line section."""
 
-    @staticmethod
-    def get_input_columns():
+    @property
+    def _input_data_model(self):
+        return SectionInputData
+
+    @property
+    def _input_columns(self) -> list[str]:
         return [
             "name",
             "suspension",
@@ -69,7 +71,3 @@ class SectionArray(ElementArray):
             "insulator_length",
             "span_length",
         ]
-
-    @staticmethod
-    def get_input_data_model():
-        return SectionInputData
