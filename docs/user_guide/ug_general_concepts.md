@@ -1,54 +1,54 @@
 # General concepts
 
-MechaPhlowers is a library specialized to perform mechanical and geometrical calculus for powerlines. The models are designed to be the simplest and most accurate possible : when possible, calculus are performed in 2D planes.
+MechaPhlowers is a library specialized in performing mechanical and geometrical calculations for power lines. The models are designed to be as simple and accurate as possible: whenever appropriate, calculations are performed in 2D planes.
 
-The granularity is important : the line is composed by several section. For each section, there are several cables. Each cable can be divided into spans, which is the lowest scale.
+Granularity is important: the power line is divided into sections, which are further divided into spans, considered as the smallest units for calculations. Only one phase is studied at a time. A phase consists of a single conductor, a bundle of wires, or an earth wire. Henceforth, the generic term cable will be used to refer to such objects.
 
 
 ## Definition
 
 ![Image not available](./assets/powerline_definitions.drawio.png "Powerlines definitions")
 
-As described below, the study cable is hanging to different suspension strings and start/stopping to a tension support.
+As shown in the figure, the cable under study is suspended from suspension insulators and anchored to dead-end insulators.
 
-Occasionnaly, some line angles can be found into a section. In this case, we are considering the axe of the pylone (i.e. the arm direction) as the angle bisector.
+There may be some angle point in each section. In such cases, the axis of the angle support arm aligns with the bisector of the line's angle.
 
 ## Frames
 
 Depending on the physical models used in the algorithms, the 3D objects, coordinates, forces and moments are projected onto different planes.  
 Understanding these planes is not required to use the package, but it is necessary if you wish to explore the various physical models employed.  
-However, the different frames defined below are necessary to display the results. Therefore, we are outlining the transformation operations to transition between them.
+Since the different frames described in the figure are necessary to display the results of the calculations, it is important to explain how to transition from one frame to another.
 
 ### Earth frame
 
 #### Base frame
 
-The Earth frame  $\mathcal{R}_{earth}$ is defined as the GPS coordinates system :
+The Earth frame $\mathcal{R}_{earth}$ is defined as in the GPS coordinate system :
 
 - x along the west-east axis, facing east
 - y along the north-south axis, facing north
-- x and y in the plan, z is orthogonal to this plan
+- x and y in the plan, z orthogonal to this plan
 - the origin of the frame is the crossing of equator and prime meridian.
 
 !!! important
 
-    For now, only the local frame is considered (in blue in the figure), with the hypotheses that the origin is a plane translation relative to the O point in the figure.
+    For now, only the local frame (in blue in the figure) is considered, with the assumption that the origin is a plane translation relative to point O in the figure.
 
 ![Image not available](./assets/earth_frame.drawio.png "Earth frame")
 
 
 #### Georeferencing
 
-Other coordinates system may be added in the future.
+Other coordinate systems may be added in the future.
 
 ### Support frame
 
 There are two frames associated with the support:
 
-- The tower body frame: $\mathcal{R}_{towerbody}$
+- The span frame: $\mathcal{R}_{span}$
 - The crossarm frame: $\mathcal{R}_{crossarm}$
 
-Those frames are oriented with z axis up and x axis along the crossarm, pointing outwards from the pylon.
+Those frames are oriented with the z-axis up and the y-axis along the crossarm, pointing inward from the pylon.
 
 ![Image not available](./assets/support_frame.drawio.png "Support frame")
 
@@ -61,7 +61,7 @@ Those frames are oriented with z axis up and x axis along the crossarm, pointing
 
 The reference support frame for a span is the left support depending on line direction evolution.
 
-The cable frame $\mathcal{R}_{cable}$ is defined as described in the figure below. This frame is then moving depending on cable loads.
+The cable frame $\mathcal{R}_{cable}$ is defined as described in the figure below. This frame can move depending on the cable loads.
 
 ![Image not available](./assets/cable_frame.drawio.png "Cable frame")
 
