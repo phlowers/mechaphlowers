@@ -72,10 +72,10 @@ The figure below is designed to help understand the cable plane.
 
 ### Strategy
 
-- State changes, unstrained length are performed in the cable plane
-- The equilibrium of moment is performed in the crossarm frame
+- Changes of state and unstrained length calculations are performed in the cable plane
+- The equilibrium of moments is performed in the crossarm frame
 - The 2D visualisation "span-oriented" is a projection on the span frame.
-- The 3D visualisation is performed using line frame and could be done with local earth frame too
+- The 3D visualisation is performed using the line frame or the local earth frame
 
 ### Changing frames
 
