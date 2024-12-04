@@ -7,7 +7,7 @@ Granularity is important: the power line is divided into sections, which are fur
 
 ## Definition
 
-![Image not available](./assets/powerline_definitions.drawio.png "Powerlines definitions")
+![Image not available](./assets/powerline_definitions.drawio.png "Overhead line definitions")
 
 As shown in the figure, the cable under study is suspended from suspension insulators and anchored to dead-end insulators.
 
