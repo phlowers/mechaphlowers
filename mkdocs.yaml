@@ -53,6 +53,8 @@ plugins:
           paths: [../src]
 
 markdown_extensions:
+  - admonition
+
   # - tables
   - pymdownx.snippets:
       check_paths: true
