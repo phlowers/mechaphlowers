@@ -7,12 +7,35 @@ from pydantic import BaseModel, RootModel
 class ElementArray(ABC):
     def __init__(self, data: pd.DataFrame) -> None:
         input_data = data.copy()
-        self.data = self.validate_input_data(input_data)
+        data = self.drop_extra_columns(input_data)
+        self.validate_input_data(data)
+        self.data = data
+
+    @staticmethod
+    @abstractmethod
+    def get_input_columns() -> list[str]: ...
+
+    @staticmethod
+    @abstractmethod
+    def get_input_data_model(): ...
 
     @classmethod
-    @abstractmethod
-    def validate_input_data(cls, input_data: pd.DataFrame) -> pd.DataFrame:
-        pass
+    def compute_extra_columns(cls, input_data: pd.DataFrame) -> list[str]:
+        return [
+            column
+            for column in input_data.columns
+            if column not in cls.get_input_columns()
+        ]
+
+    @classmethod
+    def drop_extra_columns(cls, input_data) -> pd.DataFrame:
+        extra_columns = cls.compute_extra_columns(input_data)
+        return input_data.drop(columns=extra_columns)
+
+    @classmethod
+    def validate_input_data(cls, data):
+        records = data.to_dict("records")
+        cls.get_input_data_model().model_validate(records)
 
     def __str__(self) -> str:
         return self.data.to_string()
@@ -35,9 +58,9 @@ class SectionInputData(RootModel):
 class SectionArray(ElementArray):
     """Description of an overhead line section"""
 
-    @classmethod
-    def validate_input_data(cls, input_data) -> pd.DataFrame:
-        columns = [
+    @staticmethod
+    def get_input_columns():
+        return [
             "name",
             "suspension",
             "conductor_attachment_altitude",
@@ -46,10 +69,7 @@ class SectionArray(ElementArray):
             "insulator_length",
             "span_length",
         ]
-        extra_columns = [
-            column for column in input_data.columns if column not in columns
-        ]
-        data = input_data.drop(columns=extra_columns)
-        records = data.to_dict("records")
-        SectionInputData.model_validate(records)
-        return data
+
+    @staticmethod
+    def get_input_data_model():
+        return SectionInputData
