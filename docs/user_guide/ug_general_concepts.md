@@ -15,8 +15,8 @@ There may be some angle point in each section. In such cases, the axis of the an
 
 ## Frames
 
-Depending on the physical models used in the algorithms, the 3D objects, coordinates, forces and moments are projected onto different planes.  
-Understanding these planes is not required to use the package, but it is necessary if you wish to explore the various physical models employed.  
+Depending on the mathematical models used in the algorithms, 3D objects, coordinates, forces and moments are projected onto different planes. 
+It isn't necessary to understand those different planes in order to use the package, unless a deeper understanding of the mathematical models is desired.
 Since the different frames described in the figure are necessary to display the results of the calculations, it is important to explain how to transition from one frame to another.
 
 ### Earth frame
