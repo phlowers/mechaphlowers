@@ -59,7 +59,7 @@ Those frames are oriented with the z-axis up and the y-axis along the crossarm, 
 
 ### Cable frame / Span frame
 
-The reference support frame for a span is the left support depending on line direction evolution.
+The reference support frame for a span is the left support depending on support numbering.
 
 The cable frame $\mathcal{R}_{cable}$ is defined as described in the figure below. This frame can move depending on the cable loads.
 
