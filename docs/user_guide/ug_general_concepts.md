@@ -65,7 +65,7 @@ The cable frame $\mathcal{R}_{cable}$ is defined as described in the figure belo
 
 ![Image not available](./assets/cable_frame.drawio.png "Cable frame")
 
-Below a figure to help seeing the cable plane
+The figure below is designed to help understand the cable plane.
 
 --8<-- "docs/user_guide/assets/moving_projection_and_cable.html"
 
