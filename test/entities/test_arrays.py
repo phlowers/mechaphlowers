@@ -24,7 +24,7 @@ def test_create_section_array(section_array_input_data: dict) -> None:
     input_df = pd.DataFrame(section_array_input_data)
     section = SectionArray(input_df)
 
-    assert_frame_equal(section.data, input_df, rtol=1e-07)
+    assert_frame_equal(section.data, input_df, check_dtype=False, rtol=1e-07)
 
 
 def test_create_section_array__missing_name(section_array_input_data: dict) -> None:
@@ -105,3 +105,73 @@ def test_create_section_array__extra_column(
     section = SectionArray(input_df)
 
     assert "extra column" not in section.data.columns
+
+
+def test_create_section_array__wrong_name_type(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["name"] = [1, 2, 3, 4]
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__wrong_suspension_type(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["suspension"] = [1, 2, 3, 4]
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__wrong_conductor_attachment_altitude_type(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["conductor_attachment_altitude"] = ["1,2"] * 4
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__wrong_crossarm_length_type(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["crossarm_length"] = ["1,2"] * 4
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__wrong_line_angle_type(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["line_angle"] = ["1,2"] * 4
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__wrong_insulator_length_type(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["insulator_length"] = ["1,2"] * 4
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
+
+
+def test_create_section_array__wrong_span_length_type(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["span_length"] = ["1,2"] * 4
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pydantic.ValidationError):
+        SectionArray(input_df)
