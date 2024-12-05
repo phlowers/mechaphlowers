@@ -1,4 +1,19 @@
+<img src="_static/logos/mechaphlowers_fullsize.png" width="200" height="200" alt="Phlowers logo" style="float: right; display: block; margin: 0 auto"/>
+
 # Mechaphlowers
+
+
+Welcome to the Mechaphlowers package
+
+..
+
+.. 
+
+.. 
+
+.. 
+
+
 
 ## Try some maths
 
