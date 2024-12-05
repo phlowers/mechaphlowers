@@ -6,7 +6,7 @@ from pydantic import BaseModel, RootModel
 
 class ElementArray(ABC):
     def __init__(self, data: pd.DataFrame) -> None:
-        data = self.drop_extra_columns(data)
+        data = self._drop_extra_columns(data)
         self.check_data(data)
         self.data = data
 
@@ -23,7 +23,7 @@ class ElementArray(ABC):
             column for column in input_data.columns if column not in self._input_columns
         ]
 
-    def drop_extra_columns(self, input_data: pd.DataFrame) -> pd.DataFrame:
+    def _drop_extra_columns(self, input_data: pd.DataFrame) -> pd.DataFrame:
         """Return a copy of the input DataFrame, without irrelevant columns.
 
         Note: This doesn't change the input DataFrame.
