@@ -9,6 +9,7 @@ from mechaphlowers.entities.arrays import SectionArray, SectionInputDataFrame
 # FIXME: fix or ignore "DeprecationWarning: use `parametric(<base>, <func>)` as a type instead
 #   warnings.warn("use `parametric(<base>, <func>)` as a type instead", DeprecationWarning)"?
 
+
 @pytest.fixture
 def section_array_input_data() -> dict[str, list]:
     return {
@@ -173,6 +174,17 @@ def test_create_section_array__wrong_span_length_type(
     section_array_input_data: dict,
 ) -> None:
     section_array_input_data["span_length"] = ["1,2"] * 4
+    input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
+
+    with pytest.raises(pa.errors.SchemaErrors):
+        SectionArray(input_df)
+
+
+def test_create_section_array__insulator_length_for_tension_support(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["suspension"] = [False, False, True, False]
+    section_array_input_data["insulator_length"] = [0.5, 0.5, 0.5, 0.5]
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):

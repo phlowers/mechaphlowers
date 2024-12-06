@@ -39,6 +39,15 @@ class SectionInputDataFrame(pa.DataFrameModel):  # TODO: rename
     insulator_length: Series[float]
     span_length: Series[float] = pa.Field(nullable=True)
 
+    @pa.dataframe_check
+    def insulators_only_for_suspension_supports(cls, df: DataFrame) -> Series[bool]:
+        # though this doesn't reflect reality
+        # for now we don't take into account insulator lengths
+        # for the tension supports so we don't want to mislead the users.
+        # Taking into account insulator lengths for tension supports
+        # might be implemented later.
+        return (df["suspension"] | (df["insulator_length"] == 0)).pipe(Series[bool])
+
 
 class SectionArray(ElementArray):
     """Description of one or several overhead line sections."""
