@@ -6,6 +6,8 @@ from pandera.typing import DataFrame
 
 from mechaphlowers.entities.arrays import SectionArray, SectionInputDataFrame
 
+# FIXME: fix or ignore "DeprecationWarning: use `parametric(<base>, <func>)` as a type instead
+#   warnings.warn("use `parametric(<base>, <func>)` as a type instead", DeprecationWarning)"?
 
 @pytest.fixture
 def section_array_input_data() -> dict:
