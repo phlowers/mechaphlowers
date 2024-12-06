@@ -48,6 +48,10 @@ class SectionInputDataFrame(pa.DataFrameModel):  # TODO: rename
         # might be implemented later.
         return (df["suspension"] | (df["insulator_length"] == 0)).pipe(Series[bool])
 
+    @pa.dataframe_check
+    def no_span_length_for_last_row(cls, df: DataFrame) -> bool:
+        return df.tail(1)["span_length"].isna().all()
+
 
 class SectionArray(ElementArray):
     """Description of one or several overhead line sections."""

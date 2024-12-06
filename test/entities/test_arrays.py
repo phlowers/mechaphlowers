@@ -30,6 +30,26 @@ def test_create_section_array(section_array_input_data: dict) -> None:
     assert_frame_equal(input_df, section.data, check_dtype=False, rtol=1e-07)
 
 
+def test_create_section_array__span_length_for_last_support(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["span_length"][-1] = 300
+    input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
+
+    with pytest.raises(pa.errors.SchemaErrors):
+        SectionArray(input_df)
+
+
+def test_create_section_array__span_length_for_last_support_is_zero(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["span_length"][-1] = 0
+    input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
+
+    with pytest.raises(pa.errors.SchemaErrors):
+        SectionArray(input_df)
+
+
 def test_create_section_array__missing_name(section_array_input_data: dict) -> None:
     del section_array_input_data["name"]
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
