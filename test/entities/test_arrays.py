@@ -10,7 +10,7 @@ from mechaphlowers.entities.arrays import SectionArray, SectionInputDataFrame
 #   warnings.warn("use `parametric(<base>, <func>)` as a type instead", DeprecationWarning)"?
 
 @pytest.fixture
-def section_array_input_data() -> dict:
+def section_array_input_data() -> dict[str, list]:
     return {
         "name": ["support 1", "2", "three", "support 4"],
         "suspension": [False, True, True, False],
