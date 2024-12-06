@@ -22,6 +22,7 @@ Some guidelines:
 - Propose a modeler/solver separation
 - Separate models with solvers from the rest of the code to facilitate the addition of other models or solvers in the future.
 - Whenever possible, use classes that depend on table-based data structures, such as dataframes, to reduce mapping steps and enhance performance.
+- For the sake of clarity, the variables names are explicit in the api part of the package but Iin internal equations, mathematical abbreviations are used for variables. These will be explained in the docstring.
 
 
 ## Framework
@@ -47,4 +48,4 @@ To monitor the library consumption, the possibility to set metrics with [codecar
 
 ## Installation options
 
-In the same idea of reduction of the packages dependencies, the project targets to offer different installation options function of usage (for example user-local, offline, server...). For example `pip install mechaphlowers[offline]` is not installing numba requirements whereas `pip install mechaphlowers[server]` does.
+In the same idea of reduction of the packages dependencies, the project targets to offer different installation options function of usage (for example user-local, offline, server...). For example, in the future `pip install mechaphlowers[offline]` may install all requirements except numba.`
