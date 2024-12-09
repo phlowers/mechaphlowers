@@ -71,6 +71,12 @@ mkdocs serve -a localhost:8001
 ## Test framework
 [tool.pytest.ini_options]
 junit_family = "xunit2"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    # Following warning seems to come from an issue in pandera,
+    # see https://github.com/unionai-oss/pandera/issues/1845
+    'ignore:use `parametric(<base>, <func>)` as a type instead',
+]
 
 [tool.coverage.run]
 source = ['src']
