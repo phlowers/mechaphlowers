@@ -62,8 +62,15 @@ class SectionArray(ElementArray):
     """Description of one or several overhead line sections."""
 
     @pa.check_types(lazy=True)
-    def __init__(self, data: DataFrame[SectionInputDataFrame]) -> None:
+    def __init__(
+        self,
+        data: DataFrame[SectionInputDataFrame],
+        sagging_parameter: float,
+        sagging_temperature: float,
+    ) -> None:
         super().__init__(data)
+        self.sagging_parameter = sagging_parameter
+        self.sagging_temperature = sagging_temperature
 
     @property
     def _input_columns(self) -> list[str]:  # TODO: derive from SectionInputDataFrame?
@@ -80,6 +87,8 @@ class SectionArray(ElementArray):
     def export_data(self) -> pd.DataFrame:
         return self.data.assign(
             elevation_difference=self.compute_elevation_difference(),
+            sagging_parameter=self.sagging_parameter,
+            sagging_temperature=self.sagging_temperature,
         )
 
     def compute_elevation_difference(self) -> np.ndarray:

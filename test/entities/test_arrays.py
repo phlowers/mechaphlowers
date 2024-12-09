@@ -25,9 +25,15 @@ def section_array_input_data() -> dict[str, list]:
     }
 
 
+@pytest.fixture
+def section_array(section_array_input_data: dict[str, list]) -> SectionArray:
+    df = DataFrame[SectionInputDataFrame](section_array_input_data)
+    return SectionArray(data=df, sagging_parameter=2_000, sagging_temperature=15)
+
+
 def test_create_section_array(section_array_input_data: dict) -> None:
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
-    section = SectionArray(input_df)
+    section = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
     assert_frame_equal(input_df, section.data, check_dtype=False, rtol=1e-07)
 
@@ -39,7 +45,7 @@ def test_create_section_array__span_length_for_last_support(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__span_length_for_last_support_is_zero(
@@ -49,7 +55,7 @@ def test_create_section_array__span_length_for_last_support_is_zero(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__missing_name(section_array_input_data: dict) -> None:
@@ -57,7 +63,7 @@ def test_create_section_array__missing_name(section_array_input_data: dict) -> N
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__missing_suspension(
@@ -67,7 +73,7 @@ def test_create_section_array__missing_suspension(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__missing_conductor_attachment_altitude(
@@ -77,7 +83,7 @@ def test_create_section_array__missing_conductor_attachment_altitude(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__missing_crossarm_length(
@@ -87,7 +93,7 @@ def test_create_section_array__missing_crossarm_length(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__missing_line_angle(
@@ -97,7 +103,7 @@ def test_create_section_array__missing_line_angle(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__missing_insulator_length(
@@ -107,7 +113,7 @@ def test_create_section_array__missing_insulator_length(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__missing_span_length(
@@ -117,7 +123,7 @@ def test_create_section_array__missing_span_length(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__extra_column(
@@ -127,7 +133,7 @@ def test_create_section_array__extra_column(
 
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
-    section = SectionArray(input_df)
+    section = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
     assert "extra column" not in section.data.columns
 
@@ -139,7 +145,7 @@ def test_create_section_array__wrong_name_type(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__wrong_suspension_type(
@@ -149,7 +155,7 @@ def test_create_section_array__wrong_suspension_type(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__wrong_conductor_attachment_altitude_type(
@@ -159,7 +165,7 @@ def test_create_section_array__wrong_conductor_attachment_altitude_type(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__wrong_crossarm_length_type(
@@ -169,7 +175,7 @@ def test_create_section_array__wrong_crossarm_length_type(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__wrong_line_angle_type(
@@ -179,7 +185,7 @@ def test_create_section_array__wrong_line_angle_type(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__wrong_insulator_length_type(
@@ -189,7 +195,7 @@ def test_create_section_array__wrong_insulator_length_type(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__wrong_span_length_type(
@@ -199,7 +205,7 @@ def test_create_section_array__wrong_span_length_type(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__insulator_length_for_tension_support(
@@ -210,13 +216,13 @@ def test_create_section_array__insulator_length_for_tension_support(
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df)
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_compute_elevation_difference(section_array_input_data: dict) -> None:
     df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
 
-    section_array = SectionArray(df)
+    section_array = SectionArray(df, sagging_parameter=2_000, sagging_temperature=15)
 
     elevation_difference = section_array.compute_elevation_difference()
 
@@ -225,7 +231,9 @@ def test_compute_elevation_difference(section_array_input_data: dict) -> None:
 
 def test_export_section_array(section_array_input_data: dict) -> None:
     df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
-    section_array = SectionArray(data=df)
+    section_array = SectionArray(
+        data=df, sagging_parameter=2_000, sagging_temperature=15
+    )
     inner_data = section_array.data.copy()
 
     exported_data = section_array.export_data()
@@ -240,6 +248,8 @@ def test_export_section_array(section_array_input_data: dict) -> None:
             "insulator_length": [0, 4, 3.2, 0],
             "span_length": [1, 500.2, 500.05, np.nan],
             "elevation_difference": [-2.8, 5.12, -0.12, np.nan],
+            "sagging_parameter": [2_000] * 4,
+            "sagging_temperature": [15] * 4,
         },
     )
 
