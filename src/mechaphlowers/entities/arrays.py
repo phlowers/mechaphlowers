@@ -52,6 +52,7 @@ class SectionInputDataFrame(pa.DataFrameModel):  # TODO: rename
 
     @pa.dataframe_check
     def no_span_length_for_last_row(cls, df: DataFrame) -> bool:
+        # TODO: more explicit error message?
         return df.tail(1)["span_length"].isna().all()
 
 
