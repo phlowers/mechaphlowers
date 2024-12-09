@@ -41,10 +41,12 @@ class SectionInputDataFrame(pa.DataFrameModel):  # TODO: rename
 
     @pa.dataframe_check
     def insulators_only_for_suspension_supports(cls, df: DataFrame) -> Series[bool]:
-        # though this doesn't reflect reality
+        # Though this doesn't reflect reality,
         # for now we don't take into account insulator lengths
-        # for the tension supports so we don't want to mislead the users.
-        # Taking into account insulator lengths for tension supports
+        # for the tension supports so we don't want to mislead the users
+        # by accepting input data with positive insulator length
+        # for tension supports.
+        # Calculation with insulator lengths for tension supports
         # might be implemented later.
         return (df["suspension"] | (df["insulator_length"] == 0)).pipe(Series[bool])
 
