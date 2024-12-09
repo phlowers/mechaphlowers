@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 import pandera as pa
 import pytest
+from numpy.testing import assert_allclose
 from pandas.testing import assert_frame_equal
 from pandera.typing import DataFrame
 
@@ -209,3 +211,38 @@ def test_create_section_array__insulator_length_for_tension_support(
 
     with pytest.raises(pa.errors.SchemaErrors):
         SectionArray(input_df)
+
+
+def test_compute_elevation_difference(section_array_input_data: dict) -> None:
+    df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
+
+    section_array = SectionArray(df)
+
+    elevation_difference = section_array.compute_elevation_difference()
+
+    assert_allclose(elevation_difference, np.array([-2.8, 5.12, -0.12, np.nan]))
+
+
+def test_export_section_array(section_array_input_data: dict) -> None:
+    df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
+    section_array = SectionArray(data=df)
+    inner_data = section_array.data.copy()
+
+    exported_data = section_array.export_data()
+
+    expected_data = pd.DataFrame(
+        {
+            "name": ["support 1", "2", "three", "support 4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
+            "crossarm_length": [10, 12.1, 10, 10.1],
+            "line_angle": [0, 360, 90.1, -90.2],
+            "insulator_length": [0, 4, 3.2, 0],
+            "span_length": [1, 500.2, 500.05, np.nan],
+            "elevation_difference": [-2.8, 5.12, -0.12, np.nan],
+        },
+    )
+
+    assert_frame_equal(exported_data, expected_data, rtol=1e-07)
+    # section_array inner data shouldn't have been modified
+    assert_frame_equal(section_array.data, inner_data)

@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+import numpy as np
+import pandas as pd
 import pandera as pa
 from pandera.typing import DataFrame, Series
 
@@ -74,3 +76,15 @@ class SectionArray(ElementArray):
             "insulator_length",
             "span_length",
         ]
+
+    def export_data(self) -> pd.DataFrame:
+        return self.data.assign(
+            elevation_difference=self.compute_elevation_difference(),
+        )
+
+    def compute_elevation_difference(self) -> np.ndarray:
+        left_support_height = self.data["conductor_attachment_altitude"]
+        right_support_height = self.data["conductor_attachment_altitude"].shift(
+            periods=-1
+        )
+        return (left_support_height - right_support_height).to_numpy()
