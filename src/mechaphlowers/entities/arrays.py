@@ -73,16 +73,9 @@ class SectionArray(ElementArray):
         self.sagging_temperature = sagging_temperature
 
     @property
-    def _input_columns(self) -> list[str]:  # TODO: derive from SectionInputDataFrame?
-        return [
-            "name",
-            "suspension",
-            "conductor_attachment_altitude",
-            "crossarm_length",
-            "line_angle",
-            "insulator_length",
-            "span_length",
-        ]
+    def _input_columns(self) -> list[str]:
+        metadata = SectionInputDataFrame.get_metadata()
+        return metadata["SectionInputDataFrame"]["columns"].keys()  # type: ignore
 
     def export_data(self) -> pd.DataFrame:
         return self.data.assign(
