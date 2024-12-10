@@ -44,7 +44,6 @@ extend-select = ["I"]
 exclude = [
     "virtualenv",
 ]
-#plugins = "pandera.mypy"  # TODO: remove?
 
 [tool.poe.tasks]
 check-format = "poetry run ruff format --check"
