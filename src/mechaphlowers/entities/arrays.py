@@ -61,7 +61,7 @@ class SectionInputDataFrame(pa.DataFrameModel):
 
 
 class SectionArray(ElementArray):
-    """Description of one or several overhead line sections."""
+    """Description of an overhead line section."""
 
     @pa.check_types(lazy=True)
     def __init__(
