@@ -1652,7 +1652,6 @@ multimethod = "*"
 numpy = ">=1.19.0"
 packaging = ">=20.0"
 pandas = ">=1.2.0"
-pandas-stubs = {version = "*", optional = true, markers = "extra == \"mypy\""}
 pydantic = "*"
 typeguard = "*"
 typing_inspect = ">=0.6.0"
@@ -2925,4 +2924,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "0b1c113a52df891470b7d76e1762b40fdf77fdf83e53406734a0a6931a15781c"
+content-hash = "19cb484abfd832f06e4fe384a0662e01f225bdb56ac69eee9362dd569e05d811"
