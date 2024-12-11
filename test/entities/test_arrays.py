@@ -35,6 +35,13 @@ def test_create_section_array(section_array_input_data: dict) -> None:
     assert_frame_equal(input_df, section.data, check_dtype=False, rtol=1e-07)
 
 
+def test_create_section_array__int(section_array_input_data: dict) -> None:  # TODO
+    input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
+    section = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
+
+    assert_frame_equal(input_df, section.data, check_dtype=False, rtol=1e-07)
+
+
 def test_create_section_array__span_length_for_last_support(
     section_array_input_data: dict,
 ) -> None:

@@ -33,6 +33,20 @@ class ElementArray(ABC):
 
 
 class SectionInputDataFrame(pa.DataFrameModel):
+    """Schema for the data expected for a dataframe used to instantiate a SectionArray.
+
+    Each row describes a support and the following span (except the last row which "only" describes the last support).
+
+    Notes:
+        Line angles are expressed in degrees.
+
+        insulator_length should be zero for the first and last supports, since for now mechaphlowers
+        ignores them when computing the state of a span or section.
+        Taking them into account might be implemented later.
+
+        span_length should be numpy.nan for the last row.
+    """
+
     name: Series[str]
     suspension: Series[bool]
     conductor_attachment_altitude: Series[float]
@@ -61,7 +75,13 @@ class SectionInputDataFrame(pa.DataFrameModel):
 
 
 class SectionArray(ElementArray):
-    """Description of an overhead line section."""
+    """Description of an overhead line section.
+
+    Args:
+        data: Input data
+        sagging_parameter: Sagging parameter
+        sagging_temperature: Sagging temperature, in Celsius degrees
+    """
 
     @pa.check_types(lazy=True)
     def __init__(

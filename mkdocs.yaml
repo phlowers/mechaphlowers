@@ -34,6 +34,7 @@ nav:
   - Getting Started: home/home.md
   - User Guide: 
       - Introduction : user_guide/ug_general_concepts.md
+      - Input data format: user_guide/ug_input.md
   - Developer guide:
     - Overview : docstring/welcome.md
     - Guidelines : developer_guide/guidelines.md
