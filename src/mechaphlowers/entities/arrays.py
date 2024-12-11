@@ -49,11 +49,11 @@ class SectionInputDataFrame(pa.DataFrameModel):
 
     name: Series[str]
     suspension: Series[bool]
-    conductor_attachment_altitude: Series[float]
-    crossarm_length: Series[float]
-    line_angle: Series[float]
-    insulator_length: Series[float]
-    span_length: Series[float] = pa.Field(nullable=True)
+    conductor_attachment_altitude: Series[float] = pa.Field(coerce=True)
+    crossarm_length: Series[float] = pa.Field(coerce=True)
+    line_angle: Series[float] = pa.Field(coerce=True)
+    insulator_length: Series[float] = pa.Field(coerce=True)
+    span_length: Series[float] = pa.Field(nullable=True, coerce=True)
 
     @pa.dataframe_check(
         description="""Though tension supports also have insulators,

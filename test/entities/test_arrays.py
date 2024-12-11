@@ -28,15 +28,23 @@ def section_array(section_array_input_data: dict[str, list]) -> SectionArray:
     return SectionArray(data=df, sagging_parameter=2_000, sagging_temperature=15)
 
 
-def test_create_section_array(section_array_input_data: dict) -> None:
+def test_create_section_array__with_floats(section_array_input_data: dict) -> None:
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
     section = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
     assert_frame_equal(input_df, section.data, check_dtype=False, rtol=1e-07)
 
 
-def test_create_section_array__int(section_array_input_data: dict) -> None:  # TODO
-    input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
+def test_create_section_array__only_ints() -> None:
+    input_df: DataFrame[SectionInputDataFrame] = DataFrame({
+        "name": ["support 1", "2", "three", "support 4"],
+        "suspension": [False, True, True, False],
+        "conductor_attachment_altitude": [2, 5, 0, 0],
+        "crossarm_length": [10, 12, 10, 10],
+        "line_angle": [0, 360, 90, -90],
+        "insulator_length": [0, 4, 3, 0],
+        "span_length": [1, 500, 500, np.nan],
+    })
     section = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
     assert_frame_equal(input_df, section.data, check_dtype=False, rtol=1e-07)
