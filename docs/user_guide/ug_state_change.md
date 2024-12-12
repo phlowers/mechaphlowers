@@ -1,4 +1,4 @@
-# State change for dead head span
+# Sag-tension calculations for dead-end span
 
 ## External loads
 
@@ -7,11 +7,12 @@
 There are 3 external loads:
 
 - $Q_w$ the wind load:  
-    - $Q_w = P_w (D + 2 \cdot e)$
+    - $Q_w = P_w \cdot (D + 2 \cdot e)$
     - Depending on cable diameter $D$, ice thickness $e$ and wind pressure $P_w$
 - $Q_{ice}$ the ice weight:  
-    - $Q_{ice} = 6000 \cdot \pi \cdot e (e+D)$
+    - $Q_{ice} = \rho_{ice} \cdot \pi \cdot e  \cdot (e+D)$
     - Depending on the cable diameter $D$ and ice thickness $e$
+    - $\rho_{ice}$ is the ice density and can vary from 2000 to 9500 $N/m^2$. The default value is set to 6000 $N/m^2$
 - $\lambda$ the cable linear weight
 
 The resultant of forces, R is equal to: $R = \sqrt{(Q_{ice}+\lambda)^2+ Q_w^2}$
@@ -20,7 +21,7 @@ The resultant of forces, R is equal to: $R = \sqrt{(Q_{ice}+\lambda)^2+ Q_w^2}$
 
 The load coefficient is then defined as: $m = R/\lambda$
 
-Which has been already defined for the relation between the sagging parameter, $\lambda$ and the horizontal tension:
+Which has been already defined in the cable model part for the relation between the sagging parameter, $\lambda$ and the horizontal tension:
 
 $$p = \frac{T_h}{m \cdot \lambda}$$
 
@@ -31,7 +32,6 @@ The load angle $\beta$ can be calculated as:
 $$ \beta = \arctan \frac{Q_w}{Q_{ice} + \lambda}$$
 
 ## Sag-tension calculation algorithm
-
 
 The problem to solve is to calculate the new horizontal tension when additional loads and/or thermal changes are applied on the cable.
 
