@@ -3,7 +3,7 @@ The cable modelisation is divided in two parts:
 - The space positioning part: the model used for plotting the 3D curve.
 - The physic part: the model used for physics calculations.
 
-This division is only for the sake of clarity. Indeed, the space positioning model is linked with physic part through the parameter p.
+This division is only for the sake of clarity. Indeed, the space positioning part is linked to the physic part through the parameter p.
 
 # Space positioning cable model
 
@@ -23,7 +23,7 @@ $$
     \alpha = \arctan \left( \frac{b \cdot \sin \beta}{a} \right) = \arccos \left( \frac{a}{\sqrt{a^2 + ( b \cdot \sin \beta)^2}} \right)
 $$
 
-A transformation has to be applied from the $a$ and $b$:
+in the new cable plane, a and b become respectively a' and b'
 
 $$
     a' = \sqrt{a^2+(b \cdot \sin\beta)^2} 
@@ -33,10 +33,10 @@ $$
     b' = b \cdot \cos \beta
 $$  
 
-For the implementation, there is another way to see the cable plane:
-- after elevation correction (M and N have to have the same elevation after correction).
-- rotation of $\beta$ angle around MN. 
-- reapply back elevation correction.
+Another way to see the cable plane is to rotate the cable plane:
+- correct elevation difference
+- rotation of $\beta$ angle around MN which is horizontal with the correction 
+- reapply the elevation correction.
 
 
 ## Catenary model
@@ -61,7 +61,7 @@ $$
     x_n = a' + x_m
 $$
 
-The cable length can be divided in to parts:
+The cable length can be divided into two parts:
 
 $$
     L = L_m + L_n
@@ -126,15 +126,15 @@ $$
 
 ## Extension and natural lenght
 
-The cable is extended when subject of external loads. The extension is caused by:
+The cable is strained when subjected to mechanical tensions or thermal changes.
 
 - mechanical part due to tension $T_{mean}$ :
 $\varepsilon_{mecha} = \frac{T_{mean}}{E\cdot S}$
 
-- thermic part due to temperature $\theta$ :
+- thermal part due to temperature $\theta$ :
 $\varepsilon_{therm} = \theta \cdot \alpha_{th}$
 
-The total extension is : 
+The total strain is : 
 
 $$\varepsilon_{total} = \varepsilon_{mecha} + \varepsilon_{therm} = \frac{\Delta L}{L_0} = \frac{L - L_0}{L_0}$$
 
