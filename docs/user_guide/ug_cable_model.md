@@ -33,10 +33,7 @@ $$
     b' = b \cdot \cos \beta
 $$  
 
-Another way to see the cable plane is to rotate the cable plane:
-- correct elevation difference
-- rotation of $\beta$ angle around MN which is horizontal with the correction 
-- reapply the elevation correction.
+Another way to see the cable plane is to rotate the cable plane.
 
 
 ## Catenary model
