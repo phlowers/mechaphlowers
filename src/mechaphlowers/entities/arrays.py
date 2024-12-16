@@ -9,7 +9,7 @@ from pandera.typing import DataFrame, Series
 class ElementArray(ABC):
     def __init__(self, data: DataFrame) -> None:
         data = self._drop_extra_columns(data)
-        self.data = data
+        self._data = data
 
     @property
     @abstractmethod
@@ -29,7 +29,7 @@ class ElementArray(ABC):
         return input_data.drop(columns=extra_columns)
 
     def __str__(self) -> str:
-        return self.data.to_string()
+        return self._data.to_string()
 
 
 class SectionInputDataFrame(pa.DataFrameModel):
@@ -100,14 +100,15 @@ class SectionArray(ElementArray):
         return metadata["SectionInputDataFrame"]["columns"].keys()  # type: ignore
 
     def compute_elevation_difference(self) -> np.ndarray:
-        left_support_height = self.data["conductor_attachment_altitude"]
-        right_support_height = self.data["conductor_attachment_altitude"].shift(
+        left_support_height = self._data["conductor_attachment_altitude"]
+        right_support_height = self._data["conductor_attachment_altitude"].shift(
             periods=-1
         )
         return (left_support_height - right_support_height).to_numpy()
 
-    def export_data(self) -> pd.DataFrame:
-        return self.data.assign(
+    @property
+    def data(self) -> pd.DataFrame:
+        return self._data.assign(
             elevation_difference=self.compute_elevation_difference(),
             sagging_parameter=self.sagging_parameter,
             sagging_temperature=self.sagging_temperature,

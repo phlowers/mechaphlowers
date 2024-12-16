@@ -32,7 +32,7 @@ def test_create_section_array__with_floats(section_array_input_data: dict) -> No
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
     section = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
-    assert_frame_equal(input_df, section.data, check_dtype=False, rtol=1e-07)
+    assert_frame_equal(input_df, section._data, check_dtype=False, rtol=1e-07)
 
 
 def test_create_section_array__only_ints() -> None:
@@ -49,7 +49,7 @@ def test_create_section_array__only_ints() -> None:
     )
     section = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
-    assert_frame_equal(input_df, section.data, check_dtype=False, rtol=1e-07)
+    assert_frame_equal(input_df, section._data, check_dtype=False, rtol=1e-07)
 
 
 def test_create_section_array__span_length_for_last_support(
@@ -149,7 +149,7 @@ def test_create_section_array__extra_column(
 
     section = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
-    assert "extra column" not in section.data.columns
+    assert "extra column" not in section._data.columns
 
 
 def test_create_section_array__wrong_name_type(
@@ -243,14 +243,14 @@ def test_compute_elevation_difference(section_array_input_data: dict) -> None:
     assert_allclose(elevation_difference, np.array([-2.8, 5.12, -0.12, np.nan]))
 
 
-def test_export_section_array(section_array_input_data: dict) -> None:
+def test_section_array__data(section_array_input_data: dict) -> None:
     df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
     section_array = SectionArray(
         data=df, sagging_parameter=2_000, sagging_temperature=15
     )
-    inner_data = section_array.data.copy()
+    inner_data = section_array._data.copy()
 
-    exported_data = section_array.export_data()
+    exported_data = section_array.data
 
     expected_data = pd.DataFrame(
         {
@@ -269,4 +269,4 @@ def test_export_section_array(section_array_input_data: dict) -> None:
 
     assert_frame_equal(exported_data, expected_data, rtol=1e-07)
     # section_array inner data shouldn't have been modified
-    assert_frame_equal(section_array.data, inner_data)
+    assert_frame_equal(section_array._data, inner_data)
