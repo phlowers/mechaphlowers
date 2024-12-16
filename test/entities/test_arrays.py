@@ -62,16 +62,6 @@ def test_create_section_array__span_length_for_last_support(
         SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
-def test_create_section_array__span_length_for_last_support_is_zero(
-    section_array_input_data: dict,
-) -> None:
-    section_array_input_data["span_length"][-1] = 0
-    input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)
-
-    with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
 def test_create_section_array__missing_name(section_array_input_data: dict) -> None:
     del section_array_input_data["name"]
     input_df: DataFrame[SectionInputDataFrame] = DataFrame(section_array_input_data)

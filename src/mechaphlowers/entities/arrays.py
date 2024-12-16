@@ -44,7 +44,7 @@ class SectionInputDataFrame(pa.DataFrameModel):
         ignores them when computing the state of a span or section.
         Taking them into account might be implemented later.
 
-        span_length should be numpy.nan for the last row.
+        span_length should be zero or numpy.nan for the last row.
     """
 
     name: Series[str]
@@ -71,7 +71,7 @@ class SectionInputDataFrame(pa.DataFrameModel):
         Please set span_length to "not a number" (numpy.nan) to suppress this error.""",
     )
     def no_span_length_for_last_row(cls, df: DataFrame) -> bool:
-        return df.tail(1)["span_length"].isna().all()
+        return df.tail(1)["span_length"].isin([0, np.nan]).all()
 
 
 class SectionArray(ElementArray):
