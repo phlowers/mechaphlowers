@@ -91,8 +91,8 @@ class SectionArray(ElementArray):
         sagging_temperature: float | None = None,
     ) -> None:
         super().__init__(data)
-        self._sagging_parameter = sagging_parameter
-        self._sagging_temperature = sagging_temperature
+        self.sagging_parameter = sagging_parameter
+        self.sagging_temperature = sagging_temperature
 
     @property
     def _input_columns(self) -> list[str]:
@@ -109,6 +109,6 @@ class SectionArray(ElementArray):
     def export_data(self) -> pd.DataFrame:
         return self.data.assign(
             elevation_difference=self.compute_elevation_difference(),
-            sagging_parameter=self._sagging_parameter,
-            sagging_temperature=self._sagging_temperature,
+            sagging_parameter=self.sagging_parameter,
+            sagging_temperature=self.sagging_temperature,
         )
