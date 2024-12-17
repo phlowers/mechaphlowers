@@ -121,7 +121,7 @@ $$
 
 
 
-## Extension and natural lenght
+## Extension and unstressed cable length
 
 The cable is strained when subjected to mechanical tensions or thermal changes.
 
@@ -135,7 +135,7 @@ The total strain is :
 
 $$\varepsilon_{total} = \varepsilon_{mecha} + \varepsilon_{therm} = \frac{\Delta L}{L_0} = \frac{L - L_0}{L_0}$$
 
-The natural length $L_0$ can be then expressed as the following: 
+The unstressed cable length $L_0$ can be then expressed as the following: 
 
 $$L_0 = \frac{L}{1+\varepsilon_{total}}$$
 
