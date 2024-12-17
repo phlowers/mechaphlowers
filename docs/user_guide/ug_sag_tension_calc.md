@@ -39,7 +39,7 @@ The problem to solve is to calculate the new horizontal tension when additional 
 2. calculate $a'$ and $b'$ and then calculate $L'$
 3. There are two ways to calculate the strain of the cable:  
     - From $L_0$ definition: ${\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0}$
-    - From strain-stress relation with $T_{mean}: ${\varepsilon_{total}}_T = \frac{T_{mean}}{E\cdot S} + \theta \cdot \alpha_{th}$
+    - From strain-stress relation with $T_{mean}$: ${\varepsilon_{total}}_T = \frac{T_{mean}}{E\cdot S} + \theta \cdot \alpha_{th}$
 
 4. ${\varepsilon_{total}}_L$ and ${\varepsilon_{total}}_T$ are depending on $T_h$. An error function on $T_h$ estimation can be written:
     - $f(T_h) = {\varepsilon_{total}}_L - {\varepsilon_{total}}_T$
