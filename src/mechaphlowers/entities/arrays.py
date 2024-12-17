@@ -9,13 +9,13 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 import pandera as pa
-from pandera.typing import DataFrame
+from pandera.typing import pandas as pdt
 
 from mechaphlowers.entities.schemas import SectionArrayInput
 
 
 class ElementArray(ABC):
-    def __init__(self, data: DataFrame) -> None:
+    def __init__(self, data: pdt.DataFrame) -> None:
         data = self._drop_extra_columns(data)
         self._data = data
 
@@ -23,15 +23,15 @@ class ElementArray(ABC):
     @abstractmethod
     def _input_columns(self) -> list[str]: ...
 
-    def _compute_extra_columns(self, input_data: DataFrame) -> list[str]:
+    def _compute_extra_columns(self, input_data: pdt.DataFrame) -> list[str]:
         return [
             column for column in input_data.columns if column not in self._input_columns
         ]
 
-    def _drop_extra_columns(self, input_data: DataFrame) -> DataFrame:
-        """Return a copy of the input DataFrame, without irrelevant columns.
+    def _drop_extra_columns(self, input_data: pdt.DataFrame) -> pdt.DataFrame:
+        """Return a copy of the input pdt.DataFrame, without irrelevant columns.
 
-        Note: This has no impact on the input DataFrame.
+        Note: This has no impact on the input pdt.DataFrame.
         """
         extra_columns = self._compute_extra_columns(input_data)
         return input_data.drop(columns=extra_columns)
@@ -52,7 +52,7 @@ class SectionArray(ElementArray):
     @pa.check_types(lazy=True)
     def __init__(
         self,
-        data: DataFrame[SectionArrayInput],
+        data: pdt.DataFrame[SectionArrayInput],
         sagging_parameter: float | None = None,
         sagging_temperature: float | None = None,
     ) -> None:
