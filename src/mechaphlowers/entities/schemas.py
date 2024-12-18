@@ -38,7 +38,9 @@ class SectionArrayInput(pa.DataFrameModel):
         Taking them into account might be implemented later.
         For now, set the insulator length to 0 for tension supports to suppress this error."""
     )
-    def insulator_length_is_zero_if_not_suspension(cls, df: pdt.DataFrame) -> pdt.Series[bool]:
+    def insulator_length_is_zero_if_not_suspension(
+        cls, df: pdt.DataFrame
+    ) -> pdt.Series[bool]:
         return (df["suspension"] | (df["insulator_length"] == 0)).pipe(pdt.Series[bool])
 
     @pa.dataframe_check(
