@@ -34,6 +34,7 @@ nav:
   - Getting Started: home/home.md
   - User Guide: 
       - Introduction : user_guide/ug_general_concepts.md
+      - Input data format: user_guide/ug_input.md
       - Cable modelling : user_guide/ug_cable_model.md
       - Sag-tension calculation : user_guide/ug_sag_tension_calc.md
   - Developer guide:

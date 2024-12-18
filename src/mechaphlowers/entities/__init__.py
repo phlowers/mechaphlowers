@@ -3,12 +3,3 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
-
-import logging
-
-import pandas as pd
-
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
-
-pd.options.mode.copy_on_write = True
