@@ -37,9 +37,17 @@ class GeometricCableModel(ABC):
         """
 
     @abstractmethod
-    def x_m(self) -> float: ...
+    def x_m(self) -> float:
+        """Distance between the lowest point of the cable and the left hanging point, projected on the horizontal axis.
+
+        In other words: opposite of the abscissa of the left hanging point.
+        """
 
     def x_n(self) -> float:
+        """Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
+
+        In other words: abscissa of the right hanging point.
+        """
         # See above for explanations about following simplifying assumption
         a_prime = self.elevation_difference
 
