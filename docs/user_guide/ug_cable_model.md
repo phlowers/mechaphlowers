@@ -51,7 +51,7 @@ Let M the left hanging point and N the right hanging point. The cable plane defi
 $a$ and $b$ are expressed in the vertical plane. The equations that follow use $a'$ and $b'$ so they can be applied without considering $\beta$.
 
 $$
-    x_m = -\frac{a'}{2}+p \cdot asinh \left( \frac{b}{2 \cdot p \cdot \sinh⁡ \left( \frac{a'}{2 \cdot p} \right)}  \right)
+    x_m = -\frac{a'}{2}+p \cdot asinh \left( \frac{b'}{2 \cdot p \cdot \sinh⁡ \left( \frac{a'}{2 \cdot p} \right)}  \right)
 $$
 
 $$
