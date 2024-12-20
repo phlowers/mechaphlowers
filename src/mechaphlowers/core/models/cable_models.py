@@ -18,7 +18,7 @@ class GeometricCableModel(ABC):
     """
 
     def __init__(
-        self, span_length: float, elevation_difference: float, p: float
+        self, span_length: np.ndarray, elevation_difference: np.ndarray, p: np.ndarray
     ) -> None:
         self.span_length = span_length
         self.elevation_difference = elevation_difference

@@ -4,14 +4,19 @@ from mechaphlowers.core.models.cable_models import CatenaryCableModel
 
 
 def test_catenary_cable_model() -> None:
-    cable_model = CatenaryCableModel(501.3, -23.2, 2_112.2)
+    
+    a = np.ndarray([501.3, 499]) # test here int and float
+    b = np.ndarray([0, -5.])
+    p = np.ndarray([2_112.2, 2_112])
+        
+    cable_model = CatenaryCableModel(a, b, p)
     x = np.linspace(-223.2, 245.2, 250)
 
     assert isinstance(cable_model.z(x), np.ndarray)
 
-    assert isinstance(cable_model.x_m(), float)
+    cable_model.x_m() # check no error
 
-    assert isinstance(cable_model.x_n(), float)
+    cable_model.x_n()
 
 
 def test_catenary_cable_model__x_m__if_no_elevation_difference() -> None:
