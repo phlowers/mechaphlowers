@@ -67,14 +67,14 @@ class CatenaryCableModel(GeometricCableModel):
 
     def z(self, x: np.ndarray) -> np.ndarray:
         """Altitude of cable points depending on the abscissa."""
-        
+
         # repeating value to perform multidim operation
         xx = np.tile(x, self.p.shape[0])
         pp = np.repeat(self.p, x.shape[0])
         rr = pp * (np.cosh(xx / pp) - 1)
-        
+
         # reshaping back to p,x -> (vertical, horizontal)
-        return rr.reshape(( self.p.shape[0], x.shape[0] ))
+        return rr.reshape((self.p.shape[0], x.shape[0]))
 
     def x_m(self) -> np.ndarray:
         p = self.p
