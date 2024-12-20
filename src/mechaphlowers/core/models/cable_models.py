@@ -42,13 +42,13 @@ class GeometricCableModel(ABC):
         """
 
     @abstractmethod
-    def x_m(self) -> float:
+    def x_m(self) -> np.ndarray:
         """Distance between the lowest point of the cable and the left hanging point, projected on the horizontal axis.
 
         In other words: opposite of the abscissa of the left hanging point.
         """
 
-    def x_n(self) -> float:
+    def x_n(self) -> np.ndarray:
         """Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
 
         In other words: abscissa of the right hanging point.
@@ -69,7 +69,7 @@ class CatenaryCableModel(GeometricCableModel):
         """Altitude of cable points depending on the abscissa."""
         return self.p * (np.cosh(x / self.p) - 1)
 
-    def x_m(self) -> float:
+    def x_m(self) -> np.ndarray:
         p = self.p
         # See above for explanations about following simplifying assumptions
         a = self.span_length
