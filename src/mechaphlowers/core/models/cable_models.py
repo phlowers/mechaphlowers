@@ -54,9 +54,9 @@ class GeometricCableModel(ABC):
         In other words: abscissa of the right hanging point.
         """
         # See above for explanations about following simplifying assumption
-        a_prime = self.elevation_difference
+        a = self.span_length
 
-        return a_prime + self.x_m()
+        return a + self.x_m()
 
 
 class CatenaryCableModel(GeometricCableModel):
@@ -67,7 +67,14 @@ class CatenaryCableModel(GeometricCableModel):
 
     def z(self, x: np.ndarray) -> np.ndarray:
         """Altitude of cable points depending on the abscissa."""
-        return self.p * (np.cosh(x / self.p) - 1)
+        
+        # repeating value to perform multidim operation
+        xx = np.tile(x, self.p.shape[0])
+        pp = np.repeat(self.p, x.shape[0])
+        rr = pp * (np.cosh(xx / pp) - 1)
+        
+        # reshaping back to p,x -> (vertical, horizontal)
+        return rr.reshape(( self.p.shape[0], x.shape[0] ))
 
     def x_m(self) -> np.ndarray:
         p = self.p
