@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from math import asinh, sinh
 
 import numpy as np
 
@@ -70,4 +69,4 @@ class CatenaryCableModel(GeometricCableModel):
         a = self.span_length
         b = self.elevation_difference
 
-        return -a / 2 + p * asinh(b / (2 * p * sinh(a / (2 * p))))
+        return -a / 2 + p * np.asinh(b / (2 * p * np.sinh(a / (2 * p))))
