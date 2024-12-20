@@ -31,3 +31,13 @@ def test_catenary_cable_model__x_m__if_no_elevation_difference() -> None:
 
     cable_model = CatenaryCableModel(a, b, p)
     assert abs(cable_model.x_m() + 50.0) < 0.01
+
+
+def test_catenary_cable_model__z__two_spans() -> None:
+    a = np.array([100, 102])
+    b = np.array([0, 50])
+    p = np.array([2_000, 2_000])
+
+    cable_model = CatenaryCableModel(a, b, p)
+
+    cable_model.z(x)
