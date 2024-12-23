@@ -45,9 +45,10 @@ nav:
       - Cable modelling : user_guide/ug_cable_model.md
       - Sag-tension calculation : user_guide/ug_sag_tension_calc.md
   - Developer guide:
-    - Entities : 
-        - Arrays : docstring/entities/Arrays.md
-        - Schemas : docstring/entities/schemas.md
+    - API Reference:
+      - Entities : 
+          - Arrays : docstring/entities/arrays.md
+          - Schemas : docstring/entities/schemas.md
     - Guidelines : developer_guide/guidelines.md
     - Documentation : developer_guide/documentation.md
 
