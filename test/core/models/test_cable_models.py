@@ -39,11 +39,36 @@ def test_catenary_cable_model__x_m__if_no_elevation_difference() -> None:
 def test_catenary_cable_model__z__two_spans() -> None:
     a = np.array([100.0, 100.0])
     b = np.array([0.0, 50.0])
-    p = np.array([2_000.0, 2_000.0])
+    p = np.array([20.0, 1.0])
 
-    x = np.linspace(-10.0, 10.0, 5)
+    x = np.linspace((-10.0,6.0), (10.0, 10.0), 5)
 
     cable_model = CatenaryCableModel(a, b, p)
 
     cable_model.z(x)
     cable_model.x_m()
+    
+def test_catenary_cable_model__elevation_impact() -> None:
+    a = np.array([100.0, 100.0])
+    b = np.array([0.0, 50.0])
+    p = np.array([200.0, 10.0])
+
+    cable_model = CatenaryCableModel(a, b, p)
+    x_cable = cable_model.x(5)
+
+    z_cable = cable_model.z(x_cable)
+    assert abs(z_cable[-1,0]- z_cable[0,0] - b[0]) < 0.01
+    assert abs(z_cable[-1,1]- z_cable[0,1] - b[1]) < 0.01
+    
+    
+def test_catenary_cable_model__length_impact() -> None:
+    a = np.array([50.0, 500.0])
+    b = np.array([10.0, 50.0])
+    p = np.array([200.0, 100.0])
+
+    cable_model = CatenaryCableModel(a, b, p)
+    x_cable = cable_model.x(5)
+
+    z_cable = cable_model.z(x_cable)
+    assert abs(z_cable[-1,0]- z_cable[0,0] - b[0]) < 0.01
+    assert abs(z_cable[-1,1]- z_cable[0,1] - b[1]) < 0.01

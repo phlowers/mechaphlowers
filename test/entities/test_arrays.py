@@ -230,13 +230,25 @@ def test_create_section_array__insulator_length_for_tension_support(
 
 
 def test_compute_elevation_difference(section_array_input_data: dict) -> None:
-    df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(section_array_input_data)
+    
+    # I modify data to have more meaning here and understand results
+    data = {
+    "name": ["support 1", "2", "three", "support 4"],
+    "suspension": [False, True, True, False],
+    "conductor_attachment_altitude": [50.0, 40.0, 20.0, 10.0],
+    "crossarm_length": [5.0,]*4,
+    "line_angle": [0,]*4,
+    "insulator_length": [0, 4, 3.2, 0],
+    "span_length": [50, 100, 500, np.nan],
+    }
+    
+    df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(data)
 
     section_array = SectionArray(df, sagging_parameter=2_000, sagging_temperature=15)
 
     elevation_difference = section_array.compute_elevation_difference()
 
-    assert_allclose(elevation_difference, np.array([-2.8, 5.12, -0.12, np.nan]))
+    assert_allclose(elevation_difference, np.array([-10.0, -20.0, -10.0, np.nan]))
 
 
 def test_section_array__data(section_array_input_data: dict) -> None:
@@ -257,7 +269,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "line_angle": [0, 360, 90.1, -90.2],
             "insulator_length": [0, 4, 3.2, 0],
             "span_length": [1, 500.2, 500.05, np.nan],
-            "elevation_difference": [-2.8, 5.12, -0.12, np.nan],
+            "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "sagging_parameter": [2_000] * 4,
             "sagging_temperature": [15] * 4,
         },
