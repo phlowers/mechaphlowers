@@ -69,12 +69,12 @@ class CatenaryCableModel(GeometricCableModel):
         """Altitude of cable points depending on the abscissa."""
 
         # repeating value to perform multidim operation
-        xx = np.tile(x, self.p.shape[0])
-        pp = np.repeat(self.p, x.shape[0])
+        xx = x.T
+        pp = self.p[:,np.newaxis]
         rr = pp * (np.cosh(xx / pp) - 1)
 
         # reshaping back to p,x -> (vertical, horizontal)
-        return rr.reshape((self.p.shape[0], x.shape[0]))
+        return rr.T
 
     def x_m(self) -> np.ndarray:
         p = self.p
@@ -83,3 +83,15 @@ class CatenaryCableModel(GeometricCableModel):
         b = self.elevation_difference
 
         return -a / 2 + p * np.asinh(b / (2 * p * np.sinh(a / (2 * p))))
+
+
+    def x(self, resolution: int = 10) -> np.ndarray:
+        """x_coordinate for catenary generation in cable frame
+
+        Args:
+            resolution (int, optional): Number of point to generation between supports. Defaults to 10.
+
+        Returns:
+            np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span. 
+        """
+        return np.linspace(tuple(self.x_m().tolist()), tuple(self.x_n().tolist()), resolution)

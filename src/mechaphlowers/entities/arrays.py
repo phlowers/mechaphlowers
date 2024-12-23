@@ -70,7 +70,7 @@ class SectionArray(ElementArray):
         right_support_height = self._data["conductor_attachment_altitude"].shift(
             periods=-1
         )
-        return (left_support_height - right_support_height).to_numpy()
+        return (right_support_height - left_support_height).to_numpy()
 
     @property
     def data(self) -> pd.DataFrame:
