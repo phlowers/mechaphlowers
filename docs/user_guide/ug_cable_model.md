@@ -5,9 +5,9 @@ The cable modelisation is divided in two parts:
 
 This division is only for the sake of clarity. Indeed, the space positioning part is linked to the physic part through the parameter p.
 
-# Space positioning cable model
+## Space positioning cable model
 
-## Input 
+### Input 
 
 ![Image not available](./assets/cable_plane.drawio.png "Cable plane image")
 
@@ -36,9 +36,9 @@ $$
 Another way to see the cable plane is to rotate the cable plane.
 
 
-## Catenary model
+### Catenary model
 
-### Cable equation
+#### 1. Cable equation
 The catenary model can be written as the following:
 
 $$
@@ -74,7 +74,7 @@ $$
 
 
 
-### Tension
+#### 2. Tension
 
 The cable equation has an impact on the definition of the mechanical tensions of the cable:
 
@@ -102,16 +102,16 @@ $$
     T_{mean} = \frac{{T_{mean}}_{m} \cdot L_m+{T_{mean}}_{n} \cdot L_n}{L}
 $$
 
-## Parabola model
+### Parabola model
 ..
 
-## Elastic catenary model
+### Elastic catenary model
 ..
 
 
-# Physics-based cable model
+## Physics-based cable model
 
-## Cable's physics properties
+### Cable's physics properties
 
 - $S$: section in $mm^2$
 - $D$: diameter in $mm$
@@ -121,7 +121,7 @@ $$
 
 
 
-## Extension and unstressed cable length
+### Extension and unstressed cable length
 
 The cable is strained when subjected to mechanical tensions or thermal changes.
 
