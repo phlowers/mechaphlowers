@@ -38,6 +38,10 @@ class ElementArray(ABC):
 
     def __str__(self) -> str:
         return self._data.to_string()
+    
+    def __copy__(self):
+        return type(self)(self._data)
+    
 
 
 class SectionArray(ElementArray):
@@ -80,3 +84,9 @@ class SectionArray(ElementArray):
             sagging_parameter=self.sagging_parameter,
             sagging_temperature=self.sagging_temperature,
         )
+        
+    def __copy__(self):
+        copy_obj = super().__copy__()
+        copy_obj.sagging_parameter = self.sagging_parameter
+        copy_obj.sagging_temperature = self.sagging_temperature
+        return copy_obj

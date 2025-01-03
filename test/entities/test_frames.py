@@ -6,9 +6,12 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities import SectionFrame
 from mechaphlowers.core.models.cable_models import CatenaryCableModel
+
+import plotly.graph_objects as go
 
 
 data = {
@@ -18,7 +21,7 @@ data = {
     "crossarm_length": [10, 12.1, 10, 10.1],
     "line_angle": [0, 360, 90.1, -90.2],
     "insulator_length": [0, 4, 3.2, 0],
-    "span_length": [1, 500.2, 500.05, np.nan],
+    "span_length": [1, 500.2, 500., np.nan],
     }
 
 section = SectionArray(data = pd.DataFrame(data))
@@ -34,3 +37,32 @@ def test_section_frame_get_coord():
     coords = frame.get_coord()
     assert coords.shape == (30,3)
     assert isinstance(coords, np.ndarray)
+    
+def test_select_spans__input():
+    frame = SectionFrame(section)
+    
+    with pytest.raises(ValueError):
+        frame.select(["support 1", "2", "three"])
+        frame.select(["support 1",])
+        
+        frame.select(["support 1", "support 1"])
+        frame.select(["support 1", "name_not_existing"])
+        frame.select(["three", "support 1"])
+        
+    with pytest.raises(TypeError):
+        frame.select("support 1")
+        frame.select(["string", 2])
+      
+    frame_selected = frame.select(["support 1", "three"])
+        
+    assert len(frame_selected.data) == 3
+    assert frame_selected.data.elevation_difference.take([1]).item() == frame.data.elevation_difference.take([1]).item()
+    
+    frame_selected = frame.select(["2", "support 4"])
+    assert len(frame_selected.data) == 3
+    assert frame_selected.data.elevation_difference.take([1]).item() == frame.data.elevation_difference.take([2]).item()
+    
+    
+        
+    
+
