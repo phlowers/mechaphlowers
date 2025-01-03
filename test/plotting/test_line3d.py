@@ -13,7 +13,7 @@ from mechaphlowers.entities import SectionFrame
 
 
 data = {
-    "name": ["support 1", "2", "three", "support 4"],
+    "name": ["1", "2", "three", "support 4"],
     "suspension": [False, True, True, False],
     "conductor_attachment_altitude": [50.0, 40.0, 20.0, 10.0],
     "crossarm_length": [5.0,]*4,
@@ -31,5 +31,12 @@ frame = SectionFrame(section)
 def test_plot_line3d():
     fig = go.Figure()
     frame.plot.line3d(fig)
+    # fig.show()
+    assert True
+    
+    
+def test_plot_line3d__subset():
+    fig = go.Figure()
+    frame.select(["1", "2"]).plot.line3d(fig)
     # fig.show()
     assert True
