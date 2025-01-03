@@ -80,7 +80,7 @@ def translate_cable_to_span(x_span: np.ndarray, y_span: np.ndarray, z_span: np.n
         insulator_length (np.ndarray): insulator length
 
     Returns:
-        Tuple[np.ndarray]: translated x_span and z_span
+        Tuple[np.ndarray]: translated x_span, y_span and z_span
     """
     
     # "move" the cable to the conductor attachment altitude
@@ -91,7 +91,6 @@ def translate_cable_to_span(x_span: np.ndarray, y_span: np.ndarray, z_span: np.n
     z_span += -insulator_length[:-1]
     # "move" each cable to the x coordinate of the hanging point
     x_span += -x_span[0,:] + np.pad(np.cumsum(span_length[:-2]), (1,0), "constant")
-    
     
     return x_span, y_span, z_span
     

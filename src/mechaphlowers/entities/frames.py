@@ -38,8 +38,6 @@ class _SectionFrame:
             np.ndarray: x,y,z array in point format
         """
 
-        elevation_difference = self.section.data.elevation_difference.to_numpy()
-
         spans = self.span_model(
             self.section.data.span_length.to_numpy(), 
             self.section.data.elevation_difference.to_numpy(), 
@@ -78,7 +76,7 @@ class _SectionFrame:
     
     
     def select(self, between: List[str]) -> Self:
-        """select enable to select a part of the line based on names
+        """select enable to select a part of the line based on support names
 
         Args:
             between (List[str]): list of 2 elements [start support name, end support name].

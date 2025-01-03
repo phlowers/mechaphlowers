@@ -36,11 +36,11 @@ def plot_support(fig: go.Figure, points: np.ndarray) -> None:
             line=dict(width=8, color='green'),))
     
 def plot_insulator(fig: go.Figure, points: np.ndarray) -> None:
-    """Plot the points of the support onto the figure given
+    """Plot the points of the insulators onto the figure given
 
     Args:
         fig (go.Figure): plotly figure
-        points (np.ndarray): points of all the supports of the section in point format (3 x n)
+        points (np.ndarray): points of all the insulators of the section in point format (3 x n)
     """
     fig.add_trace(go.Scatter3d(x=points[:,0], y=points[:,1],z=points[:,2], mode='lines+markers',
             marker=dict(size=5),
@@ -48,7 +48,7 @@ def plot_insulator(fig: go.Figure, points: np.ndarray) -> None:
 
 
 def get_support_points(data: pd.DataFrame) -> np.ndarray:
-    """Temporary function to plot very simple 2-points-support with ground and attachment at the top. 
+    """function to plot simple support with ground, attachment and crossarm. 
 
     Args:
         data (pd.DataFrame): SectionArray or SectionFrame data property
@@ -90,7 +90,7 @@ def get_support_points(data: pd.DataFrame) -> np.ndarray:
 
 
 def get_insulator_points(data: pd.DataFrame) -> np.ndarray:
-    """Temporary function to plot very simple 2-points-support with ground and attachment at the top. 
+    """function to plot very simple 2-points-insulator with crossarm and attachment down. 
 
     Args:
         data (pd.DataFrame): SectionArray or SectionFrame data property
@@ -127,7 +127,15 @@ def get_insulator_points(data: pd.DataFrame) -> np.ndarray:
 
 
 
-def set_layout(fig: go.Figure, auto: bool = True):
+def set_layout(fig: go.Figure, auto: bool = True) -> None:
+    """set_layout _summary_
+
+    _extended_summary_
+
+    Args:
+        fig (go.Figure): plotly figure where layout has to be updated
+        auto (bool, optional): Automatic layout based on data (scale respect). False means manual with an aspectradio of x=1, y=.05, z=.5. Defaults to True.
+    """
     
     #Check input
     auto = bool(auto)
@@ -161,11 +169,15 @@ class PlotAccessor:
     def __init__(self, section: SectionFrame):
         self.section: SectionFrame = section
 
-    def line3d(self, fig: go.Figure, view: Literal["full", "analysis"] = "full") -> None: 
+    def line3d(self, fig: go.Figure, view: Literal['full', 'analysis'] = "full") -> None: 
         """Plot 3D of power lines sections
 
         Args:
             fig (go.Figure): plotly figure where new traces has to be added
+            view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+
+        Raises:
+            ValueError: view is not an expected value
         """
         
         view_map = {"full": True, "analysis": False}
