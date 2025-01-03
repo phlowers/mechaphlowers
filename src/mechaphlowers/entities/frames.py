@@ -41,6 +41,8 @@ class _SectionFrame:
             np.ndarray: _description_
         """
 
+        elevation_difference = self.section.data.elevation_difference.to_numpy()
+
         spans = self.span_model(
             self.section.data.span_length.to_numpy(), 
             self.section.data.elevation_difference.to_numpy(), 
@@ -58,9 +60,11 @@ class _SectionFrame:
 
         altitude: np.ndarray = self.section.data.conductor_attachment_altitude.to_numpy()
         span_length: np.ndarray = self.section.data.span_length.to_numpy()
+        crossarm_length: np.ndarray = self.section.data.crossarm_length.to_numpy()
+        insulator_length: np.ndarray = self.section.data.insulator_length.to_numpy()
         
         #TODO: the content of this function is not generic enough. An upcoming feature will change that.
-        x_span, z_span = references.translate_cable_to_span(x_span, z_span, altitude, span_length)
+        x_span, y_span, z_span = references.translate_cable_to_span(x_span, y_span, z_span, altitude, span_length, crossarm_length, insulator_length)
         
         # dont forget to flatten the arrays and stack in a 3xNpoints array
         return np.vstack([x_span.T.reshape(-1), y_span.T.reshape(-1), z_span.T.reshape(-1)]).T

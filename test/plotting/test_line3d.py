@@ -31,5 +31,5 @@ frame = SectionFrame(section)
 def test_plot_line3d():
     fig = go.Figure()
     frame.plot.line3d(fig)
-    fig.show()
+    # fig.show()
     assert True

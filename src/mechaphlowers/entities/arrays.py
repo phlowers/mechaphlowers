@@ -66,10 +66,11 @@ class SectionArray(ElementArray):
         return metadata["SectionArrayInput"]["columns"].keys()  # type: ignore
 
     def compute_elevation_difference(self) -> np.ndarray:
-        left_support_height = self._data["conductor_attachment_altitude"]
-        right_support_height = self._data["conductor_attachment_altitude"].shift(
+        left_support_height = self._data["conductor_attachment_altitude"] - self._data["insulator_length"]
+        right_support_height = left_support_height.shift(
             periods=-1
         )
+        
         return (right_support_height - left_support_height).to_numpy()
 
     @property

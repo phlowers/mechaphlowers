@@ -1,3 +1,9 @@
+# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+
 from typing import Tuple
 import numpy as np
 from scipy.spatial.transform import Rotation as R
@@ -61,23 +67,31 @@ def cable2span(x: np.ndarray, z: np.ndarray, beta: float) -> Tuple[np.ndarray, n
 
     return x_span, y_span, z_span
 
-def translate_cable_to_span(x_span: np.ndarray, z_span: np.ndarray, altitude: np.ndarray, span_length: np.ndarray) -> Tuple[np.ndarray]:
+def translate_cable_to_span(x_span: np.ndarray, y_span: np.ndarray, z_span: np.ndarray, altitude: np.ndarray, span_length: np.ndarray, crossarm_length: np.ndarray, insulator_length: np.ndarray) -> Tuple[np.ndarray]:
     """Translate cable using altitude and span length
 
     Args:
         x_span (np.ndarray): x coordinates rotated 
+        y_span (np.ndarray): y coordinates rotated
         z_span (np.ndarray): z coordinates rotated
         altitude (np.ndarray): conductor heigth altitude
         span_length (np.ndarray): span length
+        crossarm_length (np.ndarray): crossarm length
+        insulator_length (np.ndarray): insulator length
 
     Returns:
         Tuple[np.ndarray]: translated x_span and z_span
     """
     
-    # "hang" the cable tp the conductor attachment altitude
+    # "move" the cable to the conductor attachment altitude
     z_span += -z_span[0,:] + altitude[:-1]
+    # "move" the cables at the end of the arm
+    y_span += crossarm_length[:-1]
+    # "move down" the cables at the end of the insulator chain
+    z_span += -insulator_length[:-1]
     # "move" each cable to the x coordinate of the hanging point
     x_span += -x_span[0,:] + np.pad(np.cumsum(span_length[:-2]), (1,0), "constant")
     
-    return x_span, z_span
+    
+    return x_span, y_span, z_span
     
