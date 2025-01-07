@@ -14,7 +14,7 @@ class SpacePositionCableModel(ABC):
 
     The coordinates are expressed in the cable frame.
 
-    Notes: For now we assume in these geometric models that there's
+    Notes: For now we assume in these space positioning models that there's
     no line angle or wind (or other load on the cable), so we work under the following simplifying assumptions:
 
     - a = a' = span_length
@@ -60,7 +60,7 @@ class SpacePositionCableModel(ABC):
 
 
 class CatenaryCableModel(SpacePositionCableModel):
-    """Implementation of a geometric cable model according to the catenary equation.
+    """Implementation of a space positioning cable model according to the catenary equation.
 
     The coordinates are expressed in the cable frame.
     """
