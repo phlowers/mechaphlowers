@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 
-class GeometricCableModel(ABC):
+class SpacePositionCableModel(ABC):
     """This abstract class is a base class for various models describing the cable in its own frame.
 
     The coordinates are expressed in the cable frame.
@@ -59,7 +59,7 @@ class GeometricCableModel(ABC):
         return a + self.x_m()
 
 
-class CatenaryCableModel(GeometricCableModel):
+class CatenaryCableModel(SpacePositionCableModel):
     """Implementation of a geometric cable model according to the catenary equation.
 
     The coordinates are expressed in the cable frame.
