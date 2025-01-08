@@ -74,8 +74,11 @@ class SectionArray(ElementArray):
 
     @property
     def data(self) -> pd.DataFrame:
-        return self._data.assign(
-            elevation_difference=self.compute_elevation_difference(),
-            sagging_parameter=self.sagging_parameter,
-            sagging_temperature=self.sagging_temperature,
-        )
+        if self.sagging_parameter == None or self.sagging_temperature == None:
+            raise Exception("Cannot return data: sagging_parameter and sagging_temperature are needed")
+        else:
+            return self._data.assign(
+                elevation_difference=self.compute_elevation_difference(),
+                sagging_parameter=self.sagging_parameter,
+                sagging_temperature=self.sagging_temperature,
+            )
