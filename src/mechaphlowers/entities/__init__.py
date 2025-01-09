@@ -5,11 +5,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-from mechaphlowers import plotting
-from mechaphlowers.entities.frames import _SectionFrame as SectionFrame
-from mechaphlowers.plotting.plot import plot_line
-from mechaphlowers.utils import CachedAccessor
+from mechaphlowers.entities.frames import SectionFrame
 
-# adding plot module to SectionFrame object
-SectionFrame.plot_line = plot_line
-SectionFrame.plot = CachedAccessor("plot", plotting.plot.PlotAccessor)
+__all__ = [
+    "SectionFrame",
+]

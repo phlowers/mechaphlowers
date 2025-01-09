@@ -15,9 +15,9 @@ from mechaphlowers.entities.schemas import SectionArrayInput
 
 
 class ElementArray(ABC):
-    def __init__(self, data: pdt.DataFrame) -> None:
+    def __init__(self, data: pdt.DataFrame) -> None:   # type: ignore[arg-type]
         data = self._drop_extra_columns(data)
-        self._data = data
+        self._data: pdt.DataFrame|pd.DataFrame = data  # type: ignore[arg-type]
 
     @property
     @abstractmethod
@@ -56,11 +56,11 @@ class SectionArray(ElementArray):
     @pa.check_types(lazy=True)
     def __init__(
         self,
-        data: pdt.DataFrame[SectionArrayInput],
+        data: pdt.DataFrame[SectionArrayInput]|pd.DataFrame,
         sagging_parameter: float | None = None,
         sagging_temperature: float | None = None,
     ) -> None:
-        super().__init__(data)
+        super().__init__(data) # type: ignore[arg-type]
         self.sagging_parameter = sagging_parameter
         self.sagging_temperature = sagging_temperature
 

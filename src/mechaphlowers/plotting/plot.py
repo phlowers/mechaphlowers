@@ -3,13 +3,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
+from __future__ import annotations
 
-from typing import Dict, Literal
+from typing import TYPE_CHECKING, Dict, Literal
+
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
+import plotly.graph_objects as go  # type: ignore 
 
-from mechaphlowers.entities import SectionFrame
+if TYPE_CHECKING:
+    from mechaphlowers.entities import SectionFrame
 
 
 def plot_line(fig: go.Figure, points: np.ndarray) -> None:

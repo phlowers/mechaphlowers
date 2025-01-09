@@ -5,9 +5,9 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from typing import Tuple
-import numpy as np
-from scipy.spatial.transform import Rotation as R
 
+import numpy as np
+from scipy.spatial.transform import Rotation as R  # type: ignore 
 
 
 def spans2vector(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
@@ -67,7 +67,7 @@ def cable2span(x: np.ndarray, z: np.ndarray, beta: float) -> Tuple[np.ndarray, n
 
     return x_span, y_span, z_span
 
-def translate_cable_to_span(x_span: np.ndarray, y_span: np.ndarray, z_span: np.ndarray, altitude: np.ndarray, span_length: np.ndarray, crossarm_length: np.ndarray, insulator_length: np.ndarray) -> Tuple[np.ndarray]:
+def translate_cable_to_span(x_span: np.ndarray, y_span: np.ndarray, z_span: np.ndarray, altitude: np.ndarray, span_length: np.ndarray, crossarm_length: np.ndarray, insulator_length: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Translate cable using altitude and span length
 
     Args:

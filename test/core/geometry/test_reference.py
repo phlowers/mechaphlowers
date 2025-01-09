@@ -5,8 +5,13 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
-import pytest
-from mechaphlowers.core.geometry.references import cable2span, translate_cable_to_span
+
+from mechaphlowers.core.geometry.references import (
+    cable2span,
+    spans2vector,
+    translate_cable_to_span,
+)
+
 
 def test_cable2span_basic():
     x: np.ndarray = np.array([[1, 2, 3, 4], [10, 12, 14, 16]]).T
@@ -19,7 +24,6 @@ def test_cable2span_basic():
     # assert np.allclose(result, z)
 
 
-from mechaphlowers.core.geometry.references import spans2vector
 
 def test_spans2vector():
     x = np.array([[1, 2], [3, 4]])

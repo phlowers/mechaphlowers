@@ -57,6 +57,17 @@ class GeometricCableModel(ABC):
         a = self.span_length
 
         return a + self.x_m()
+    
+    @abstractmethod
+    def x(self, resolution: int) -> np.ndarray:
+        """x_coordinate for catenary generation in cable frame: abscissa of the different points of the cable
+        
+        Args:
+            resolution (int, optional): Number of point to generation between supports.
+
+        Returns:
+            np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span.
+        """
 
 
 class CatenaryCableModel(GeometricCableModel):
@@ -94,4 +105,8 @@ class CatenaryCableModel(GeometricCableModel):
         Returns:
             np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span. 
         """
-        return np.linspace(tuple(self.x_m().tolist()), tuple(self.x_n().tolist()), resolution)
+        
+        start_points = self.x_m()
+        end_points = self.x_n()
+        
+        return np.linspace(start_points, end_points, resolution)

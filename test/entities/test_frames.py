@@ -7,12 +7,10 @@
 import numpy as np
 import pandas as pd
 import pytest
-from mechaphlowers.entities.arrays import SectionArray
-from mechaphlowers.entities import SectionFrame
+
 from mechaphlowers.core.models.cable_models import CatenaryCableModel
-
-import plotly.graph_objects as go
-
+from mechaphlowers.entities import SectionFrame
+from mechaphlowers.entities.arrays import SectionArray
 
 data = {
     "name": ["support 1", "2", "three", "support 4"],

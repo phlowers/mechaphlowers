@@ -4,31 +4,36 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import List, Self
-import numpy as np
-import pandas as pd
-from mechaphlowers.core.geometry import references
-from mechaphlowers.core.models.cable_models import CatenaryCableModel, GeometricCableModel
-from mechaphlowers.entities.arrays import SectionArray
-
 from copy import copy
+from typing import List, Self, Type
+
+import numpy as np
+
+from mechaphlowers.core.geometry import references
+from mechaphlowers.core.models.cable_models import (
+    CatenaryCableModel,
+    GeometricCableModel,
+)
+from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.plotting.plot import PlotAccessor
+from mechaphlowers.utils import CachedAccessor
 
 # This parameter has to be removed later.
 # This is the default resolution for spans when exporting coordinates in get_coords
 RESOLUTION: int = 10
 
 
-class _SectionFrame:
+class SectionFrame:
     """ SectionFrame object is the top api object of the library. 
     
-    Inspired from dataframe, it is designed to handle the datas and the models.
+    Inspired from dataframe, it is designed to handle data and models.
     TODO: for the moment the initialization with SectionArray and GeometricCableModel is explicit.
     It is not intended to be later.
     """
 
-    def __init__(self, section: SectionArray, span_model : GeometricCableModel = CatenaryCableModel):
+    def __init__(self, section: SectionArray, span_model : Type[GeometricCableModel] = CatenaryCableModel):
         self.section: SectionArray = section
-        self.span_model: GeometricCableModel = span_model
+        self.span_model: Type[GeometricCableModel] = span_model
     
 
     def get_coord(self) -> np.ndarray:
@@ -106,7 +111,7 @@ class _SectionFrame:
         if start_value == end_value:
             raise ValueError("At least two rows has to be selected")
         
-        if self.section.data['name'].isin(between).sum().item() != 2:
+        if int(self.section.data['name'].isin(between).sum()) != 2:
             raise ValueError("One of the two name given in the between argument are not existing")
         
         return_sf = copy(self)
@@ -122,6 +127,8 @@ class _SectionFrame:
 
         
         return return_sf
+    
+    plot = CachedAccessor("plot", PlotAccessor)
     
         
     def __copy__(self):

@@ -7,12 +7,12 @@
 import numpy as np
 
 
-def ppnp(arr: np.ndarray,prec: float=2):
+def ppnp(arr: np.ndarray,prec: int=2):
     """ppnp helper function to force display without scientific notation
 
     Args:
         arr (np.ndarray): array to print
-        prec (float, optional): floatting precision. Defaults to 2.
+        prec (float, optional): floating precision. Defaults to 2.
     """
     print(np.array_str(arr, precision=prec, suppress_small=True))
 

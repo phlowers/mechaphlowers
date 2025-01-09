@@ -6,11 +6,10 @@
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
+import plotly.graph_objects as go  # type: ignore 
 
-from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities import SectionFrame
-
+from mechaphlowers.entities.arrays import SectionArray
 
 data = {
     "name": ["1", "2", "three", "support 4"],
@@ -28,7 +27,7 @@ section.sagging_parameter = 500
 frame = SectionFrame(section)
 
 
-def test_plot_line3d():
+def test_plot_line3d__all_line():
     fig = go.Figure()
     frame.plot.line3d(fig)
     # fig.show()
