@@ -8,5 +8,5 @@
 from mechaphlowers.entities.frames import SectionFrame
 
 __all__ = [
-    "SectionFrame",
+	"SectionFrame",
 ]

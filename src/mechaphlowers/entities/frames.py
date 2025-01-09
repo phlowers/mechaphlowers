@@ -11,8 +11,8 @@ import numpy as np
 
 from mechaphlowers.core.geometry import references
 from mechaphlowers.core.models.cable_models import (
-    CatenaryCableModel,
-    GeometricCableModel,
+	CatenaryCableModel,
+	GeometricCableModel,
 )
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.plotting.plot import PlotAccessor
@@ -24,114 +24,143 @@ RESOLUTION: int = 10
 
 
 class SectionFrame:
-    """ SectionFrame object is the top api object of the library. 
-    
-    Inspired from dataframe, it is designed to handle data and models.
-    TODO: for the moment the initialization with SectionArray and GeometricCableModel is explicit.
-    It is not intended to be later.
-    """
+	"""SectionFrame object is the top api object of the library.
 
-    def __init__(self, section: SectionArray, span_model : Type[GeometricCableModel] = CatenaryCableModel):
-        self.section: SectionArray = section
-        self.span_model: Type[GeometricCableModel] = span_model
-    
+	Inspired from dataframe, it is designed to handle data and models.
+	TODO: for the moment the initialization with SectionArray and GeometricCableModel is explicit.
+	It is not intended to be later.
+	"""
 
-    def get_coord(self) -> np.ndarray:
-        """Get x,y,z cables coordinates
+	def __init__(
+		self,
+		section: SectionArray,
+		span_model: Type[GeometricCableModel] = CatenaryCableModel,
+	):
+		self.section: SectionArray = section
+		self.span_model: Type[GeometricCableModel] = span_model
 
-        Returns:
-            np.ndarray: x,y,z array in point format
-        """
+	def get_coord(self) -> np.ndarray:
+		"""Get x,y,z cables coordinates
 
-        spans = self.span_model(
-            self.section.data.span_length.to_numpy(), 
-            self.section.data.elevation_difference.to_numpy(), 
-            self.section.data.sagging_parameter.to_numpy()
-            )
+		Returns:
+		    np.ndarray: x,y,z array in point format
+		"""
 
-        # compute x_axis
-        x_cable: np.ndarray = spans.x(RESOLUTION)
+		spans = self.span_model(
+			self.section.data.span_length.to_numpy(),
+			self.section.data.elevation_difference.to_numpy(),
+			self.section.data.sagging_parameter.to_numpy(),
+		)
 
-        # compute z_axis
-        z_cable: np.ndarray = spans.z(x_cable)
+		# compute x_axis
+		x_cable: np.ndarray = spans.x(RESOLUTION)
 
-        # change frame and drop last value
-        x_span, y_span, z_span = references.cable2span(x_cable[:,:-1], z_cable[:,:-1], beta = 0)
+		# compute z_axis
+		z_cable: np.ndarray = spans.z(x_cable)
 
-        altitude: np.ndarray = self.section.data.conductor_attachment_altitude.to_numpy()
-        span_length: np.ndarray = self.section.data.span_length.to_numpy()
-        crossarm_length: np.ndarray = self.section.data.crossarm_length.to_numpy()
-        insulator_length: np.ndarray = self.section.data.insulator_length.to_numpy()
-        
-        #TODO: the content of this function is not generic enough. An upcoming feature will change that.
-        x_span, y_span, z_span = references.translate_cable_to_span(x_span, y_span, z_span, altitude, span_length, crossarm_length, insulator_length)
-        
-        # dont forget to flatten the arrays and stack in a 3xNpoints array
-        return np.vstack([x_span.T.reshape(-1), y_span.T.reshape(-1), z_span.T.reshape(-1)]).T
-    
-    
-    @property
-    def data(self):
-        """data property to return SectionArray data property
+		# change frame and drop last value
+		x_span, y_span, z_span = references.cable2span(
+			x_cable[:, :-1], z_cable[:, :-1], beta=0
+		)
 
-        Returns:
-            np.ndarray: SectionArray data from input 
-        """
-        return self.section.data
-    
-    
-    def select(self, between: List[str]) -> Self:
-        """select enable to select a part of the line based on support names
+		altitude: np.ndarray = (
+			self.section.data.conductor_attachment_altitude.to_numpy()
+		)
+		span_length: np.ndarray = self.section.data.span_length.to_numpy()
+		crossarm_length: np.ndarray = (
+			self.section.data.crossarm_length.to_numpy()
+		)
+		insulator_length: np.ndarray = (
+			self.section.data.insulator_length.to_numpy()
+		)
 
-        Args:
-            between (List[str]): list of 2 elements [start support name, end support name].
-                End name is expected to be after start name in the section order
+		# TODO: the content of this function is not generic enough. An upcoming feature will change that.
+		x_span, y_span, z_span = references.translate_cable_to_span(
+			x_span,
+			y_span,
+			z_span,
+			altitude,
+			span_length,
+			crossarm_length,
+			insulator_length,
+		)
 
-        Raises:
-            TypeError: if between is not a list or has no string inside
-            ValueError: length(between) > 2 | names not existing or identical
+		# dont forget to flatten the arrays and stack in a 3xNpoints array
+		return np.vstack(
+			[x_span.T.reshape(-1), y_span.T.reshape(-1), z_span.T.reshape(-1)]
+		).T
+
+	@property
+	def data(self):
+		"""data property to return SectionArray data property
+
+		Returns:
+		    np.ndarray: SectionArray data from input
+		"""
+		return self.section.data
+
+	def select(self, between: List[str]) -> Self:
+		"""select enable to select a part of the line based on support names
+
+		Args:
+		    between (List[str]): list of 2 elements [start support name, end support name].
+		        End name is expected to be after start name in the section order
+
+		Raises:
+		    TypeError: if between is not a list or has no string inside
+		    ValueError: length(between) > 2 | names not existing or identical
 
 
-        Returns:
-            Self: copy of SectionFrame with the selected data
-        """
-        
-        if not isinstance(between, list):
-            raise TypeError()
-        
-        if len(between) != 2:
-            raise ValueError("{len(between)=} argument is expected to be 2")
-        
-        start_value: str = between[0]
-        end_value: str = between[1]
-        
-        if not ( isinstance(start_value, str) and isinstance(start_value, str) ):
-            raise TypeError("Strings are expected for support name inside the between list argument")
-        
-        if start_value == end_value:
-            raise ValueError("At least two rows has to be selected")
-        
-        if int(self.section.data['name'].isin(between).sum()) != 2:
-            raise ValueError("One of the two name given in the between argument are not existing")
-        
-        return_sf = copy(self)
-        return_sf.data.set_index("name").loc[start_value,:].index
-        
-        idx_start = return_sf.data.loc[return_sf.data.name == start_value,:].index[0].item()
-        idx_end = return_sf.data.loc[return_sf.data.name == end_value,:].index[0].item()
-        
-        if idx_end <= idx_start:
-            raise ValueError("First selected item is after the second one")
-        
-        return_sf.section._data = return_sf.section._data.iloc[idx_start:idx_end+1]
+		Returns:
+		    Self: copy of SectionFrame with the selected data
+		"""
 
-        
-        return return_sf
-    
-    plot = CachedAccessor("plot", PlotAccessor)
-    
-        
-    def __copy__(self):
-        return type(self)(copy(self.section), self.span_model)
-    
-    
+		if not isinstance(between, list):
+			raise TypeError()
+
+		if len(between) != 2:
+			raise ValueError("{len(between)=} argument is expected to be 2")
+
+		start_value: str = between[0]
+		end_value: str = between[1]
+
+		if not (isinstance(start_value, str) and isinstance(start_value, str)):
+			raise TypeError(
+				"Strings are expected for support name inside the between list argument"
+			)
+
+		if start_value == end_value:
+			raise ValueError("At least two rows has to be selected")
+
+		if int(self.section.data["name"].isin(between).sum()) != 2:
+			raise ValueError(
+				"One of the two name given in the between argument are not existing"
+			)
+
+		return_sf = copy(self)
+		return_sf.data.set_index("name").loc[start_value, :].index
+
+		idx_start = (
+			return_sf.data.loc[return_sf.data.name == start_value, :]
+			.index[0]
+			.item()
+		)
+		idx_end = (
+			return_sf.data.loc[return_sf.data.name == end_value, :]
+			.index[0]
+			.item()
+		)
+
+		if idx_end <= idx_start:
+			raise ValueError("First selected item is after the second one")
+
+		return_sf.section._data = return_sf.section._data.iloc[
+			idx_start : idx_end + 1
+		]
+
+		return return_sf
+
+	plot = CachedAccessor("plot", PlotAccessor)
+
+	def __copy__(self):
+		return type(self)(copy(self.section), self.span_model)

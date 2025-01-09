@@ -10,103 +10,105 @@ import numpy as np
 
 
 class GeometricCableModel(ABC):
-    """This abstract class is a base class for various models describing the cable in its own frame.
+	"""This abstract class is a base class for various models describing the cable in its own frame.
 
-    The coordinates are expressed in the cable frame.
+	The coordinates are expressed in the cable frame.
 
-    Notes: For now we assume in these geometric models that there's
-    no line angle or wind (or other load on the cable), so we work under the following simplifying assumptions:
+	Notes: For now we assume in these geometric models that there's
+	no line angle or wind (or other load on the cable), so we work under the following simplifying assumptions:
 
-    - a = a' = span_length
-    - b = b' = elevation_difference
+	- a = a' = span_length
+	- b = b' = elevation_difference
 
-    Support for line angle and wind will be added later.
-    """
+	Support for line angle and wind will be added later.
+	"""
 
-    def __init__(
-        self, span_length: np.ndarray, elevation_difference: np.ndarray, p: np.ndarray
-    ) -> None:
-        self.span_length = span_length
-        self.elevation_difference = elevation_difference
-        self.p = p
+	def __init__(
+		self,
+		span_length: np.ndarray,
+		elevation_difference: np.ndarray,
+		p: np.ndarray,
+	) -> None:
+		self.span_length = span_length
+		self.elevation_difference = elevation_difference
+		self.p = p
 
-    @abstractmethod
-    def z(self, x: np.ndarray) -> np.ndarray:
-        """Altitude of cable points depending on the abscissa.
+	@abstractmethod
+	def z(self, x: np.ndarray) -> np.ndarray:
+		"""Altitude of cable points depending on the abscissa.
 
-        Args:
-            x: abscissa
+		Args:
+		    x: abscissa
 
-        Returns:
-            altitudes based on the sag tension parameter "p" stored in the model.
-        """
+		Returns:
+		    altitudes based on the sag tension parameter "p" stored in the model.
+		"""
 
-    @abstractmethod
-    def x_m(self) -> np.ndarray:
-        """Distance between the lowest point of the cable and the left hanging point, projected on the horizontal axis.
+	@abstractmethod
+	def x_m(self) -> np.ndarray:
+		"""Distance between the lowest point of the cable and the left hanging point, projected on the horizontal axis.
 
-        In other words: opposite of the abscissa of the left hanging point.
-        """
+		In other words: opposite of the abscissa of the left hanging point.
+		"""
 
-    def x_n(self) -> np.ndarray:
-        """Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
+	def x_n(self) -> np.ndarray:
+		"""Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
 
-        In other words: abscissa of the right hanging point.
-        """
-        # See above for explanations about following simplifying assumption
-        a = self.span_length
+		In other words: abscissa of the right hanging point.
+		"""
+		# See above for explanations about following simplifying assumption
+		a = self.span_length
 
-        return a + self.x_m()
-    
-    @abstractmethod
-    def x(self, resolution: int) -> np.ndarray:
-        """x_coordinate for catenary generation in cable frame: abscissa of the different points of the cable
-        
-        Args:
-            resolution (int, optional): Number of point to generation between supports.
+		return a + self.x_m()
 
-        Returns:
-            np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span.
-        """
+	@abstractmethod
+	def x(self, resolution: int) -> np.ndarray:
+		"""x_coordinate for catenary generation in cable frame: abscissa of the different points of the cable
+
+		Args:
+		    resolution (int, optional): Number of point to generation between supports.
+
+		Returns:
+		    np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span.
+		"""
 
 
 class CatenaryCableModel(GeometricCableModel):
-    """Implementation of a geometric cable model according to the catenary equation.
+	"""Implementation of a geometric cable model according to the catenary equation.
 
-    The coordinates are expressed in the cable frame.
-    """
+	The coordinates are expressed in the cable frame.
+	"""
 
-    def z(self, x: np.ndarray) -> np.ndarray:
-        """Altitude of cable points depending on the abscissa."""
+	def z(self, x: np.ndarray) -> np.ndarray:
+		"""Altitude of cable points depending on the abscissa."""
 
-        # repeating value to perform multidim operation
-        xx = x.T
-        pp = self.p[:,np.newaxis]
-        rr = pp * (np.cosh(xx / pp) - 1)
+		# repeating value to perform multidim operation
+		xx = x.T
+		pp = self.p[:, np.newaxis]
+		rr = pp * (np.cosh(xx / pp) - 1)
 
-        # reshaping back to p,x -> (vertical, horizontal)
-        return rr.T
+		# reshaping back to p,x -> (vertical, horizontal)
+		return rr.T
 
-    def x_m(self) -> np.ndarray:
-        p = self.p
-        # See above for explanations about following simplifying assumptions
-        a = self.span_length
-        b = self.elevation_difference
+	def x_m(self) -> np.ndarray:
+		p = self.p
+		# See above for explanations about following simplifying assumptions
+		a = self.span_length
+		b = self.elevation_difference
 
-        return -a / 2 + p * np.asinh(b / (2 * p * np.sinh(a / (2 * p))))
+		return -a / 2 + p * np.asinh(b / (2 * p * np.sinh(a / (2 * p))))
 
+	def x(self, resolution: int = 10) -> np.ndarray:
+		"""x_coordinate for catenary generation in cable frame
 
-    def x(self, resolution: int = 10) -> np.ndarray:
-        """x_coordinate for catenary generation in cable frame
+		Args:
+		    resolution (int, optional): Number of point to generation between supports. Defaults to 10.
 
-        Args:
-            resolution (int, optional): Number of point to generation between supports. Defaults to 10.
+		Returns:
+		    np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span.
+		"""
 
-        Returns:
-            np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span. 
-        """
-        
-        start_points = self.x_m()
-        end_points = self.x_n()
-        
-        return np.linspace(start_points, end_points, resolution)
+		start_points = self.x_m()
+		end_points = self.x_n()
+
+		return np.linspace(start_points, end_points, resolution)
