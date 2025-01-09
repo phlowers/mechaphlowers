@@ -274,9 +274,9 @@ def test_section_array__without_sagging_properties(
     df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(section_array_input_data)
 
     section_array_without_temperature = SectionArray(data=df, sagging_parameter=2_000)
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):
         section_array_without_temperature.data
 
     section_array_without_parameter = SectionArray(data=df, sagging_temperature=15)
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):
         section_array_without_parameter.data

@@ -75,7 +75,7 @@ class SectionArray(ElementArray):
     @property
     def data(self) -> pd.DataFrame:
         if self.sagging_parameter is None or self.sagging_temperature is None:
-            raise Exception(
+            raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
             )
         else:
