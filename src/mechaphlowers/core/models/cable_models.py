@@ -9,12 +9,12 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 
-class GeometricCableModel(ABC):
+class SpacePositionCableModel(ABC):
 	"""This abstract class is a base class for various models describing the cable in its own frame.
 
 	The coordinates are expressed in the cable frame.
 
-	Notes: For now we assume in these geometric models that there's
+	Notes: For now we assume in these space positioning models that there's
 	no line angle or wind (or other load on the cable), so we work under the following simplifying assumptions:
 
 	- a = a' = span_length
@@ -38,10 +38,10 @@ class GeometricCableModel(ABC):
 		"""Altitude of cable points depending on the abscissa.
 
 		Args:
-		    x: abscissa
+		x: abscissa
 
 		Returns:
-		    altitudes based on the sag tension parameter "p" stored in the model.
+		altitudes based on the sag tension parameter "p" stored in the model.
 		"""
 
 	@abstractmethod
@@ -66,15 +66,15 @@ class GeometricCableModel(ABC):
 		"""x_coordinate for catenary generation in cable frame: abscissa of the different points of the cable
 
 		Args:
-		    resolution (int, optional): Number of point to generation between supports.
+		resolution (int, optional): Number of point to generation between supports.
 
 		Returns:
-		    np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span.
+		np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span.
 		"""
 
 
-class CatenaryCableModel(GeometricCableModel):
-	"""Implementation of a geometric cable model according to the catenary equation.
+class CatenaryCableModel(SpacePositionCableModel):
+	"""Implementation of a space positioning cable model according to the catenary equation.
 
 	The coordinates are expressed in the cable frame.
 	"""
@@ -105,10 +105,10 @@ class CatenaryCableModel(GeometricCableModel):
 		"""x_coordinate for catenary generation in cable frame
 
 		Args:
-		    resolution (int, optional): Number of point to generation between supports. Defaults to 10.
+		resolution (int, optional): Number of point to generation between supports. Defaults to 10.
 
 		Returns:
-		    np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span.
+		np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span.
 		"""
 
 		start_points = self.x_m()
