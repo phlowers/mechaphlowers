@@ -77,7 +77,7 @@ def cable2span(
 	return x_span, y_span, z_span
 
 
-def translate_cable_to_span(
+def translate_cable_to_support(
 	x_span: np.ndarray,
 	y_span: np.ndarray,
 	z_span: np.ndarray,
@@ -101,6 +101,8 @@ def translate_cable_to_span(
 	    Tuple[np.ndarray]: translated x_span, y_span and z_span
 	"""
 
+	# Note : for every data, we dont need the last support information
+	# Ex : altitude = array([50., 40., 20., 10.]) -> altitude[:-1] = array([50., 40., 20.])
 	# "move" the cable to the conductor attachment altitude
 	z_span += -z_span[0, :] + altitude[:-1]
 	# "move" the cables at the end of the arm
@@ -111,5 +113,7 @@ def translate_cable_to_span(
 	x_span += -x_span[0, :] + np.pad(
 		np.cumsum(span_length[:-2]), (1, 0), "constant"
 	)
+	# why pad ? cumsum(...) = array([100., 300.]) and we need a zero to start
+	# pad(...) = array([0., 100., 300.])
 
 	return x_span, y_span, z_span

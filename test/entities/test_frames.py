@@ -4,12 +4,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from copy import copy
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from mechaphlowers.core.models.cable_models import CatenaryCableModel
-from mechaphlowers.entities import SectionFrame
+from mechaphlowers.entities import SectionDataFrame
 from mechaphlowers.entities.arrays import SectionArray
 
 data = {
@@ -27,20 +29,20 @@ section.sagging_parameter = 2000
 
 
 def test_section_frame_initialization():
-	frame = SectionFrame(section)
+	frame = SectionDataFrame(section)
 	assert frame.section == section
 	assert isinstance(frame.span_model, type(CatenaryCableModel))
 
 
 def test_section_frame_get_coord():
-	frame = SectionFrame(section)
+	frame = SectionDataFrame(section)
 	coords = frame.get_coord()
 	assert coords.shape == (30, 3)
 	assert isinstance(coords, np.ndarray)
 
 
 def test_select_spans__input():
-	frame = SectionFrame(section)
+	frame = SectionDataFrame(section)
 
 	with pytest.raises(ValueError):
 		frame.select(["support 1", "2", "three"])
@@ -72,3 +74,9 @@ def test_select_spans__input():
 		frame_selected.data.elevation_difference.take([1]).item()
 		== frame.data.elevation_difference.take([2]).item()
 	)
+
+
+def test_SectionDataFrame__copy():
+	frame = SectionDataFrame(section)
+	copy(frame)
+	assert isinstance(frame, SectionDataFrame)

@@ -12,7 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go  # type: ignore
 
 if TYPE_CHECKING:
-	from mechaphlowers.entities import SectionFrame
+	from mechaphlowers.entities import SectionDataFrame
 
 
 def plot_line(fig: go.Figure, points: np.ndarray) -> None:
@@ -76,10 +76,10 @@ def get_support_points(data: pd.DataFrame) -> np.ndarray:
 	"""function to plot simple support with ground, attachment and crossarm.
 
 	Args:
-	    data (pd.DataFrame): SectionArray or SectionFrame data property
+	    data (pd.DataFrame): SectionArray or SectionDataFrame data property
 
 	Returns:
-	    np.ndarray: 3 x (2+1) number of support point for the data input
+	    np.ndarray: 3 x (3 x 2  segment to plot x N) with N number of support point for the data input
 	    Warning: every support is followed by a nan line to separate the traces on figure
 	"""
 
@@ -120,6 +120,7 @@ def get_support_points(data: pd.DataFrame) -> np.ndarray:
 		axis=1,
 	)
 
+	# initxshape x 3 because each segment is composed by 3 points (pp0, pp_up, nan) x 2 because 2 segments, 3 for x,y,z
 	return pp_final.reshape(init_xshape * 3 * 2, 3)
 
 
@@ -127,10 +128,10 @@ def get_insulator_points(data: pd.DataFrame) -> np.ndarray:
 	"""function to plot very simple 2-points-insulator with crossarm and attachment down.
 
 	Args:
-	    data (pd.DataFrame): SectionArray or SectionFrame data property
+	    data (pd.DataFrame): SectionArray or SectionDataFrame data property
 
 	Returns:
-	    np.ndarray: 3 x (2+1) number of support point for the data input
+	    np.ndarray: (3 x 1 segment to plot x N) and N number of support point for the data input
 	    Warning: every support is followed by a nan line to separate the traces on figure
 	"""
 
@@ -163,14 +164,12 @@ def get_insulator_points(data: pd.DataFrame) -> np.ndarray:
 		],
 		axis=1,
 	)
-
+	# initxshape x 3 because each segment is composed by 3 points (pp0, pp_up, nan) x 1 because 1 segment, 3 for x,y,z
 	return pp_final.reshape(init_xshape * 3 * 1, 3)
 
 
 def set_layout(fig: go.Figure, auto: bool = True) -> None:
-	"""set_layout _summary_
-
-	_extended_summary_
+	"""set_layout
 
 	Args:
 	    fig (go.Figure): plotly figure where layout has to be updated
@@ -204,8 +203,8 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 class PlotAccessor:
 	"""First accessor class for plots."""
 
-	def __init__(self, section: SectionFrame):
-		self.section: SectionFrame = section
+	def __init__(self, section: SectionDataFrame):
+		self.section: SectionDataFrame = section
 
 	def line3d(
 		self, fig: go.Figure, view: Literal["full", "analysis"] = "full"

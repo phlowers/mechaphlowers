@@ -23,8 +23,8 @@ from mechaphlowers.utils import CachedAccessor
 RESOLUTION: int = 10
 
 
-class SectionFrame:
-	"""SectionFrame object is the top api object of the library.
+class SectionDataFrame:
+	"""SectionDataFrame object is the top api object of the library.
 
 	Inspired from dataframe, it is designed to handle data and models.
 	TODO: for the moment the initialization with SectionArray and GeometricCableModel is explicit.
@@ -75,7 +75,7 @@ class SectionFrame:
 		)
 
 		# TODO: the content of this function is not generic enough. An upcoming feature will change that.
-		x_span, y_span, z_span = references.translate_cable_to_span(
+		x_span, y_span, z_span = references.translate_cable_to_support(
 			x_span,
 			y_span,
 			z_span,
@@ -86,6 +86,7 @@ class SectionFrame:
 		)
 
 		# dont forget to flatten the arrays and stack in a 3xNpoints array
+		# Ex: z_span = array([[10., 20., 30.], [11., 12. ,13.]]) -> z_span.reshape(-1) = array([10., 20., 30., 11., 12., 13.])
 		return np.vstack(
 			[x_span.T.reshape(-1), y_span.T.reshape(-1), z_span.T.reshape(-1)]
 		).T
@@ -112,7 +113,7 @@ class SectionFrame:
 
 
 		Returns:
-		    Self: copy of SectionFrame with the selected data
+		    Self: copy of SectionDataFrame with the selected data
 		"""
 
 		if not isinstance(between, list):

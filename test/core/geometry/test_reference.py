@@ -9,7 +9,7 @@ import numpy as np
 from mechaphlowers.core.geometry.references import (
 	cable2span,
 	spans2vector,
-	translate_cable_to_span,
+	translate_cable_to_support,
 )
 
 
@@ -64,7 +64,7 @@ def test_spans2vector_single_point():
 	), f"Expected {expected_output}, but got {result}"
 
 
-def test_translate_cable_to_span():
+def test_translate_cable_to_support():
 	altitude = np.array([50.0, 40.0, 20.0, 10.0])
 	span_length = np.array([100.0, 200.0, 300.0, np.nan])
 	crossarm_length = np.array([5.0, 2.0, 3.0, np.nan])
@@ -129,7 +129,7 @@ def test_translate_cable_to_span():
 		]
 	)
 
-	x_1, y_1, z_1 = translate_cable_to_span(
+	x_1, y_1, z_1 = translate_cable_to_support(
 		x_in,
 		y_in,
 		z_in,

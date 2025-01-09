@@ -6,9 +6,10 @@
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go  # type: ignore
+import plotly.graph_objects as go  # type: ignore[import-untyped]
+import pytest
 
-from mechaphlowers.entities import SectionFrame
+from mechaphlowers.entities import SectionDataFrame
 from mechaphlowers.entities.arrays import SectionArray
 
 data = {
@@ -30,18 +31,31 @@ data = {
 section = SectionArray(data=pd.DataFrame(data))
 section.sagging_parameter = 500
 
-frame = SectionFrame(section)
+frame = SectionDataFrame(section)
 
 
 def test_plot_line3d__all_line():
 	fig = go.Figure()
 	frame.plot.line3d(fig)
-	# fig.show()
-	assert True
+	# fig.show() # deactivate for auto unit testing
+	assert True  # Just trying to see if the previous code raises
 
 
 def test_plot_line3d__subset():
 	fig = go.Figure()
 	frame.select(["1", "2"]).plot.line3d(fig)
-	# fig.show()
-	assert True
+	# fig.show() # deactivate for auto unit testing
+	assert True  # Just trying to see if the previous code raises
+
+
+def test_plot_line3d__view_option():
+	fig = go.Figure()
+	frame.plot.line3d(fig, view="full")
+	assert True  # Just trying to see if the previous code raises
+
+
+def test_plot_line3d__wrong_view_option():
+	fig = go.Figure()
+	with pytest.raises(ValueError):
+		frame.plot.line3d(fig, view="fulll")
+		frame.plot.line3d(fig, view=22)
