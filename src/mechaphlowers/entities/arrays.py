@@ -84,3 +84,9 @@ class SectionArray(ElementArray):
                 sagging_parameter=self.sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
             )
+
+    @property
+    def data_alone(self) -> pd.DataFrame:
+        return self._data.assign(
+            elevation_difference=self.compute_elevation_difference()
+        )

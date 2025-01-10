@@ -268,7 +268,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
     assert_frame_equal(section_array._data, inner_data)
 
 
-def test_section_array__without_sagging_properties(
+def test_section_array__data_without_sagging_properties(
     section_array_input_data: dict,
 ) -> None:
     df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(section_array_input_data)
@@ -280,3 +280,25 @@ def test_section_array__without_sagging_properties(
     section_array_without_parameter = SectionArray(data=df, sagging_temperature=15)
     with pytest.raises(AttributeError):
         section_array_without_parameter.data
+
+
+def test_section_array__data_alone(section_array_input_data: dict) -> None:
+    df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(section_array_input_data)
+    section_array = SectionArray(data=df)
+
+    exported_data = section_array.data_alone
+
+    expected_data = pd.DataFrame(
+        {
+            "name": ["support 1", "2", "three", "support 4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
+            "crossarm_length": [10, 12.1, 10, 10.1],
+            "line_angle": [0, 360, 90.1, -90.2],
+            "insulator_length": [0, 4, 3.2, 0],
+            "span_length": [1, 500.2, 500.05, np.nan],
+            "elevation_difference": [-2.8, 5.12, -0.12, np.nan],
+        },
+    )
+
+    assert_frame_equal(exported_data, expected_data, rtol=1e-07)
