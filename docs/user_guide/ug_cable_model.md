@@ -15,6 +15,12 @@ This division is only for the sake of clarity. Indeed, the space positioning par
 - $b$ the elevation difference
 - $p$ the sagging parameter
 
+### Frame
+
+Models detailed below are all in the cable frame. Here are the formulae linking span frame and cable frame.
+
+### When cable is not vertical 
+
 The cable equation is expressed in the cable frame, depending on $\beta$. 
 The cable plane is "opening" due to the elevation difference with an angle $\alpha$.  
 $\alpha$ can be expressed depending on beta:
@@ -36,9 +42,22 @@ $$
 Another way to see the cable plane is to rotate the cable plane.
 
 
+### When there are line angles and/or different arm length
+
+![Image not available](./assets/angle_line.drawio.png "span length when angle line and arm length are changing")
+
+The expression of $a_{cable}$ is:
+
+$$
+    a_{cable} = \sqrt{ \left( a - L_l \cdot \sin \gamma_l - L_r \cdot \sin \gamma_r \right) ^2 + \left( L_r \cdot \cos \gamma_r - L_l \cdot \sin \gamma_l \right) ^2 }
+$$
+
+Another way could be working in the complex plane: coordinates of M and N points can be calculated from span length with one translation and one rotation. A simple distance between new points gives $a_{cable}$.
+
 ## Catenary model
 
 ### Cable equation
+
 The catenary model can be written as the following:
 
 $$
