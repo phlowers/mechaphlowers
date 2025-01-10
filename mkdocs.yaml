@@ -1,6 +1,7 @@
 site_name: mechaphlowers
 site_url : http://mechaphlowers.readthedocs.com
 repo_url: https://github.com/phlowers/mechaphlowers
+copyright: Copyright &copy; 2024 RTE France. Unless otherwise indicated, content is licensed under CC-BY-4.0.
 
 theme:
   name: "material"
@@ -8,6 +9,12 @@ theme:
   favicon: _static/logos/phlowers_32x32.ico
   features:
     - toc.integrate
+    - navigation.footer
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - search.highlight
+    - search.suggest
+    - toc.follow
   language: en
   icon:
     repo: fontawesome/brands/github
@@ -38,7 +45,9 @@ nav:
       - Cable modelling : user_guide/ug_cable_model.md
       - Sag-tension calculation : user_guide/ug_sag_tension_calc.md
   - Developer guide:
-    - Overview : docstring/welcome.md
+    - Entities : 
+        - Arrays : docstring/entities/Arrays.md
+        - Schemas : docstring/entities/schemas.md
     - Guidelines : developer_guide/guidelines.md
     - Documentation : developer_guide/documentation.md
 
@@ -54,22 +63,62 @@ plugins:
       handlers:
         # See: https://mkdocstrings.github.io/python/usage/
         python:
-          paths: [../src]
+          paths: [src]
+          import:
+            - url: https://docs.python.org/3/objects.inv
+              domains: [py, std]
+          options:
+            docstring_options:
+              ignore_init_summary: true
+            # docstring_section_style: list
+            filters: ["!^_"]
+            heading_level: 1
+            inherited_members: true
+            merge_init_into_class: true
+            parameter_headings: true
+            separate_signature: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_signature_annotations: true
+            # show_source: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            signature_crossrefs: true
+            # summary: true
 
 markdown_extensions:
-  - admonition
-
+  - admonition # https://squidfunk.github.io/mkdocs-material/reference/admonitions/#collapsible-blocks
   # - tables
+  - pymdownx.extra
+  - pymdownx.highlight:
+      pygments_lang_class: true
+      linenums: true
+  - pymdownx.superfences
   - pymdownx.snippets:
       check_paths: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.arithmatex:
       generic: true
+
 
 
 extra_javascript:
   - javascripts/mathjax.js
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
-# extra:
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/phlowers
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/rte_france
+    - icon: fontawesome/brands/youtube
+      link: https://www.youtube.com/user/myRTEtube
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/rte_245681
+    - icon: fontawesome/brands/instagram
+      link: https://www.instagram.com/rte_france
 #   version:
 #     provider: mike
