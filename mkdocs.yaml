@@ -113,13 +113,18 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/phlowers
-    - icon: fontawesome/brands/twitter
-      link: https://twitter.com/rte_france
+      name: phlowers on Github
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/rte_france
+      name: RTE France on Twitter
     - icon: fontawesome/brands/youtube
       link: https://www.youtube.com/user/myRTEtube
+      name: RTE France on Youtube
     - icon: fontawesome/brands/linkedin
       link: https://www.linkedin.com/company/rte_245681
+      name: RTE France on LinkedIn
     - icon: fontawesome/brands/instagram
       link: https://www.instagram.com/rte_france
+      name: RTE France on Instagram
 #   version:
 #     provider: mike
