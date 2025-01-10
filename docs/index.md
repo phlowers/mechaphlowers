@@ -3,24 +3,57 @@
 # Mechaphlowers
 
 
-Welcome to the Mechaphlowers package
+Mechaphlowers is a user oriented package dedicated to mechanical calculus for overhead power lines.
 
-..
+## Features
 
-.. 
+- loading simplified span referenced data of a section.
+- 3D plot of the section.
 
-.. 
-
-.. 
-
+<!-- ## Why use mechaphlowers ? -->
 
 
-## Try some maths
+## Examples
 
-$$
-\sum_{i=0}^n \pi^2 = \Delta\frac{(n^2+\epsilon)(2n+1)}{6\phi}
-$$
+```python
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
 
-## Try to include some plotly figure
+from mechaphlowers.entities import SectionDataFrame
+from mechaphlowers.entities.arrays import SectionArray
 
---8<-- "docs/test_figure_plotly.html"
+
+# load data 
+data = {
+	"name": ["1", "2", "three", "support 4"],
+	"suspension": [False, True, True, False],
+	"conductor_attachment_altitude": [50.0, 40.0, 20.0, 10.0],
+	"crossarm_length": [5.0,]* 4,
+	"line_angle": [0.]* 4,
+	"insulator_length": [0, 4, 3.2, 0],
+	"span_length": [100, 200, 300, np.nan],
+}
+
+section = SectionArray(data=pd.DataFrame(data))
+
+# Provide section to SectionDataFrame
+frame = SectionDataFrame(section)
+
+# set sagging parameter and temperatur 
+section.sagging_parameter = 500
+section.sagging_temperature = 15
+
+# Display figure
+fig = go.Figure()
+frame.plot.line3d(fig)
+fig.show()
+
+# Reset figure
+fig._data = []
+
+# display only first span
+frame.select(["1", "2"]).plot.line3d(fig)
+fig.show()
+
+```

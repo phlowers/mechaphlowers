@@ -36,8 +36,7 @@ theme:
         name: Switch to light mode
 
 nav:
-  - Home: 
-    - Home : index.md
+  - Home: index.md
   - Getting Started: home/home.md
   - User Guide: 
       - Introduction : user_guide/ug_general_concepts.md
@@ -49,6 +48,11 @@ nav:
       - Entities : 
           - Arrays : docstring/entities/arrays.md
           - Schemas : docstring/entities/schemas.md
+          - Frames : docstring/entities/frames.md
+      - Core :
+          - Geometry : docstring/core/geometry/references.md
+          - Models : 
+              - Cable : docstring/core/models/cable_models.md
     - Guidelines : developer_guide/guidelines.md
     - Documentation : developer_guide/documentation.md
 
