@@ -10,6 +10,8 @@ python = ">=3.11,<3.12"
 pandas = "^2.2.3"
 pandera = "^0.21.1"
 numpy = "^2.2.0"
+scipy = "^1.14.1"
+plotly = "^5.24.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.1"
@@ -36,6 +38,14 @@ mkdocs-jupyter = "^0.25.1"
 
 [tool.ruff]
 target-version = "py311"
+line-length = 79
+
+[tool.ruff.format]
+# Enable reformatting of code snippets in docstrings.
+docstring-code-format = true
+docstring-code-line-length = 79
+indent-style = "tab"
+quote-style = "preserve"
 
 [tool.ruff.lint]
 # Enable the isort rules.
