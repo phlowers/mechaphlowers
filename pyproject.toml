@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "mechaphlowers"
-version = "0.0.0"  
+version = "0.1.0a"  
 description = "Physical calculation package for the mechanics and geometry of power lines"
-authors = ["Adrien Goeller","Aimee Quinaou"]
+authors = ["Adrien Goeller","Aimee Quinaou", "Jeremy Wang"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.12"
+python = ">=3.10,=<3.12"
 pandas = "^2.2.3"
 pandera = "^0.21.1"
 numpy = "^2.2.0"
