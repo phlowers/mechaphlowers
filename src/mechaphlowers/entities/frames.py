@@ -6,9 +6,9 @@
 
 from copy import copy
 from typing import List, Type
-from typing_extensions import Self
 
 import numpy as np
+from typing_extensions import Self
 
 from mechaphlowers.core.geometry import references
 from mechaphlowers.core.models.cable_models import (
