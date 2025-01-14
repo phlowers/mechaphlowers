@@ -5,7 +5,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from copy import copy
-from typing import List, Self, Type
+from typing import List, Type
+from typing_extensions import Self
 
 import numpy as np
 

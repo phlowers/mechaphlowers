@@ -1296,13 +1296,13 @@ mkdocstrings = ">=0.26"
 
 [[package]]
 name = "multimethod"
-version = "2.0"
+version = "1.12"
 description = "Multiple argument dispatching."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "multimethod-2.0-py3-none-any.whl", hash = "sha256:45aa231dc9dbb7f980c0f2ad8179e2c2b72a8cd5c7d7534337be66dde29d35be"},
-    {file = "multimethod-2.0.tar.gz", hash = "sha256:c628b6d2e7d61fbe58484dd884d990901e8314faf58af062e72b65e3423cb109"},
+    {file = "multimethod-1.12-py3-none-any.whl", hash = "sha256:fd0c473c43558908d97cc06e4d68e8f69202f167db46f7b4e4058893e7dbdf60"},
+    {file = "multimethod-1.12.tar.gz", hash = "sha256:8db8ef2a8d2a247e3570cc23317680892fdf903d84c8c1053667c8e8f7671a67"},
 ]
 
 [[package]]
@@ -3089,4 +3089,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.13"
-content-hash = "b1a8a7f2ac30beef6464847298957cf5a5f334a48aac65036b3299a816b1eb38"
+content-hash = "8ba5db61c181aa0bab9b014c02c2634cd8b1903e833f44ecbe4c71cfb2281ae5"
