@@ -5,7 +5,6 @@ description = "Physical calculation package for the mechanics and geometry of po
 authors = ["Adrien Goeller","Aimee Quinaou", "Jeremy Wang"]
 readme = "README.md"
 license = "MPL-2.0"
-license-files = ["LICENSE*"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -126,5 +125,5 @@ relative_files = true
 verbosity = -1
 
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
