@@ -1,18 +1,47 @@
+[project]
+name = "mechaphlowers"
+version = "0.1.0a1"  
+description = "Physical calculation package for the mechanics and geometry of power lines"
+authors = ["Adrien Goeller","Aimee Quinaou", "Jeremy Wang"]
+readme = "README.md"
+license = "MPL-2.0"
+license-files = ["LICENSE*"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Natural Language :: English",
+
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/phlowers/mechaphlowers"
+Issues = "https://github.com/phlowers/mechaphlowers/issues"
+Documentation = "https://phlowers.readthedocs.io/projects/mechaphlowers/"
+
 [tool.poetry]
 name = "mechaphlowers"
-version = "0.1.0a"  
+version = "0.1.0a1"  
 description = "Physical calculation package for the mechanics and geometry of power lines"
 authors = ["Adrien Goeller","Aimee Quinaou", "Jeremy Wang"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
-pandas = "^2.2.3"
-pandera = "^0.21.1"
-numpy = "^2.2.0"
-scipy = "^1.14.1"
-plotly = "^5.24.1"
+numpy = "<=2.0.2"
+pandas = "<=2.2.3" 
+pandera = "<=0.21.1"  
+scipy = "<=1.14.1"
+plotly = "<=5.24.1" 
 multimethod = "<2.0"
+
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.1"
@@ -54,7 +83,7 @@ extend-select = ["I"]
 
 [tool.mypy]
 exclude = [
-    "virtualenv",
+    "virtualenv", ".venv*", "build", "dist", "site-packages", "tests", "docs", "doc", "examples", "example"
 ]
 
 [tool.poe.tasks]
@@ -97,5 +126,5 @@ relative_files = true
 verbosity = -1
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
