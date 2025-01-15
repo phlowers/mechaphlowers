@@ -52,7 +52,7 @@ jobs:
     - name: Install poetry
       run: |
         sudo apt install pipx
-        pipx install poetry
+        pipx install poetry==1.8.4
         poetry --version
 
     - name: Install dependencies
