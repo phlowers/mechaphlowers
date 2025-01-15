@@ -129,13 +129,15 @@ The cable is strained when subjected to mechanical tensions or thermal changes.
 $\varepsilon_{mecha} = \frac{T_{mean}}{E\cdot S}$
 
 - thermal part due to temperature $\theta$ :
-$\varepsilon_{therm} = \theta \cdot \alpha_{th}$
+$\varepsilon_{therm} = (\theta - \theta_{ref}) \cdot \alpha_{th}$
+
+$\theta_{ref}$ being the reference temperature chosen to define the unstressed cable length.
 
 The total strain is : 
 
-$$\varepsilon_{total} = \varepsilon_{mecha} + \varepsilon_{therm} = \frac{\Delta L}{L_0} = \frac{L - L_0}{L_0}$$
+$$\varepsilon_{total} = \varepsilon_{mecha} + \varepsilon_{therm} = \frac{\Delta L}{L_{ref}} = \frac{L - L_{ref}}{L_{ref}}$$
 
-The unstressed cable length $L_0$ can be then expressed as the following: 
+The unstressed cable length $L_{ref}$ can be then expressed as the following: 
 
-$$L_0 = \frac{L}{1+\varepsilon_{total}}$$
+$$L_{ref} = \frac{L}{1+\varepsilon_{total}}$$
 
