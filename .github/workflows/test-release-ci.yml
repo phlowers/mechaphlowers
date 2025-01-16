@@ -5,7 +5,7 @@ name: 🚀 Upload Python package test
 
 on:
   release:
-    types: [created]
+    types: [created, prereleased]
   workflow_dispatch:
     inputs:
       logLevel:
