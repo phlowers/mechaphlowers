@@ -1,6 +1,6 @@
 [project]
 name = "mechaphlowers"
-version = "0.1.0a1"  
+version = "0.1.0a2"  
 description = "Physical calculation package for the mechanics and geometry of power lines"
 authors = ["Adrien Goeller","Aimee Quinaou", "Jeremy Wang"]
 readme = "README.md"
@@ -13,11 +13,11 @@ classifiers = [
     "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
     "Natural Language :: English",
 
-    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
 ]
 
 [project.urls]
@@ -27,7 +27,7 @@ Documentation = "https://phlowers.readthedocs.io/projects/mechaphlowers/"
 
 [tool.poetry]
 name = "mechaphlowers"
-version = "0.1.0a1"  
+version = "0.1.0a2"  
 description = "Physical calculation package for the mechanics and geometry of power lines"
 authors = ["Adrien Goeller","Aimee Quinaou", "Jeremy Wang"]
 readme = "README.md"
