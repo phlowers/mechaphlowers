@@ -87,7 +87,7 @@ jobs:
 
 
 
-  publish-to-testpypi:
+  publish-to-pypi:
     name: Publish Python 🐍 distribution 📦 to PyPI
     runs-on: ubuntu-latest
     needs:
