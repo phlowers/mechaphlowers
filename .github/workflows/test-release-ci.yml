@@ -130,7 +130,7 @@ jobs:
       - name: 🛠️ Build wheel
         run: |
           poetry build
-      - name: 🚀 Publish release distributions to PyPI
+      - name: 🚀 Publish release distributions to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
