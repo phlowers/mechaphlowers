@@ -1,6 +1,6 @@
 [project]
 name = "mechaphlowers"
-version = "0.1.0a2"  
+version = "0.1.0"  
 description = "Physical calculation package for the mechanics and geometry of power lines"
 authors = ["Adrien Goeller","Aimee Quinaou", "Jeremy Wang"]
 readme = "README.md"
@@ -27,7 +27,7 @@ Documentation = "https://phlowers.readthedocs.io/projects/mechaphlowers/"
 
 [tool.poetry]
 name = "mechaphlowers"
-version = "0.1.0a2"  
+version = "0.1.0"  
 description = "Physical calculation package for the mechanics and geometry of power lines"
 authors = ["Adrien Goeller","Aimee Quinaou", "Jeremy Wang"]
 readme = "README.md"

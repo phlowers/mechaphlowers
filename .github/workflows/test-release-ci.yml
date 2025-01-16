@@ -3,11 +3,9 @@
 
 name: 🚀 Upload Python package test
 
-on:
-  push:
-    branches: [ "prerelease/setup-workflow/from_main" ]
-  pull_request:
-    branches: [ "prerelease/setup-workflow/from_main" ]
+# on:
+#   release:
+#     types: [created]
 
 jobs:
   release-ci:
