@@ -5,9 +5,10 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from copy import copy
-from typing import List, Self, Type
+from typing import List, Type
 
 import numpy as np
+from typing_extensions import Self
 
 from mechaphlowers.core.geometry import references
 from mechaphlowers.core.models.cable_models import (
