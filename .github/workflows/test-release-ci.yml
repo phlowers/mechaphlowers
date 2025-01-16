@@ -135,14 +135,14 @@ jobs:
       - name: Build wheel
         run: |
           poetry build
-      - name: Retrieve release distributions
-        uses: actions/download-artifact@v4
-        with:
-          name: mechaphlowers-wheel-linux-${{ matrix.python.name }}
-          path: dist/
+      # - name: Retrieve release distributions
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: mechaphlowers-wheel-linux-${{ matrix.python.name }}
+      #     path: dist/
 
       - name: Publish release distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-          packages-dir: dist/
+          # packages-dir: dist/
