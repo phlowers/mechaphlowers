@@ -2,7 +2,7 @@
 name = "mechaphlowers"
 version = "0.1.0"  
 description = "Physical calculation package for the mechanics and geometry of power lines"
-authors = ["Adrien Goeller","Aimee Quinaou", "Jeremy Wang"]
+authors = [{name = "Adrien Goeller"}, {name = "Aimee Quinaou"}, {name = "Jeremy Wang"}]
 readme = "README.md"
 license = "MPL-2.0"
 classifiers = [
