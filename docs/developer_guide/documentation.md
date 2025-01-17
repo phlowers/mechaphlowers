@@ -29,6 +29,10 @@ Use the docs/docs folder to organize where the documentation can be added :
 
 You have to complete the folder docstring with the subrepositories you want. At the end put a markdown with anchor `::: package.module.submodule` where submodule is the module you want to auto generate.
 
+!!! important
+
+    The file has to be placed inside subrepositories reflecting the code folders architecture. The name of the .md file containing the anchor needs to correspond to the .py file to document.
+
 
 ## Configuration
 
