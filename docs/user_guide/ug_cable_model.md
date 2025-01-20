@@ -91,7 +91,7 @@ $$
 $$
 
 $$
-    {T_{mean}}_m = \frac{-x_m \cdot T_h + L_m \cdot {T_{max}}_m}{(2 \cdot L_m}
+    {T_{mean}}_m = \frac{-x_m \cdot T_h + L_m \cdot {T_{max}}_m}{2 \cdot L_m}
 $$
 
 $$

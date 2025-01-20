@@ -13,8 +13,10 @@ def test_catenary_cable_model() -> None:
 	a = np.array([501.3, 499.0])  # test here int and float
 	b = np.array([0.0, -5.0])
 	p = np.array([2_112.2, 2_112.0])
+	lambd = np.array([16, 16.1])
+	m = np.array([1, 1.1])
 
-	cable_model = CatenaryCableModel(a, b, p)
+	cable_model = CatenaryCableModel(a, b, p, lambd, m)
 	x = np.linspace(-223.2, 245.2, 250)
 
 	assert isinstance(cable_model.z(x), np.ndarray)
@@ -22,8 +24,16 @@ def test_catenary_cable_model() -> None:
 	assert isinstance(cable_model.x_m(), np.ndarray)
 
 	cable_model.x_m()  # check no error
-
 	cable_model.x_n()
+	cable_model.L_m()
+	cable_model.L_n()
+	cable_model.T_h()
+	cable_model.T_v(x)
+	cable_model.T_max(x)
+	cable_model.T_mean_m()
+	cable_model.T_mean_n()
+	cable_model.T_mean()
+
 
 
 def test_catenary_cable_model__x_m__if_no_elevation_difference() -> None:

@@ -28,10 +28,18 @@ class SpacePositionCableModel(ABC):
 		span_length: np.ndarray,
 		elevation_difference: np.ndarray,
 		p: np.ndarray,
+		linear_weight: np.ndarray = None,
+		load_coefficient: np.ndarray = None
 	) -> None:
 		self.span_length = span_length
 		self.elevation_difference = elevation_difference
 		self.p = p
+		self.linear_weight = linear_weight
+		if load_coefficient is None:
+			self.load_coefficient = np.ones_like(span_length)
+		else:
+			self.load_coefficient = load_coefficient
+
 
 	@abstractmethod
 	def z(self, x: np.ndarray) -> np.ndarray:
@@ -70,6 +78,54 @@ class SpacePositionCableModel(ABC):
 
 		Returns:
 		np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span.
+		"""
+
+	@abstractmethod
+	def L_m(self) -> np.ndarray:
+		"""Length of the left portion of cable.
+		The left portion refers to the portion from the left point to lowest point of the cables"""
+
+	@abstractmethod
+	def L_n(self) -> np.ndarray:
+		"""Length of the right portion of cable.
+		The right portion refers to the portion from the right point to lowest point of the cables"""
+
+	def L(self) -> np.ndarray:
+		"""Total length of the cable.
+		"""
+		return self.L_m() + self.L_n()
+
+	@abstractmethod #???
+	def T_h(self) -> np.ndarray:
+		"""Horizontal tension on the cable. 
+		Right now, this tension is constant all along the cable, but that might not be true for elastic catenary model.
+		"""
+
+	@abstractmethod 
+	def T_v(self, x: np.ndarray) -> np.ndarray:
+		"""Vertival tension on the cable.
+		"""
+
+	@abstractmethod 
+	def T_max(self, x: np.ndarray) -> np.ndarray:
+		"""
+
+		"""
+
+	@abstractmethod
+	def T_mean_m(self) -> np.ndarray:
+		"""
+		
+		"""
+
+	@abstractmethod
+	def T_mean_n(self) -> np.ndarray:
+		"""
+		"""
+
+	@abstractmethod 
+	def T_mean(self) -> np.ndarray:
+		"""
 		"""
 
 
@@ -115,3 +171,57 @@ class CatenaryCableModel(SpacePositionCableModel):
 		end_points = self.x_n()
 
 		return np.linspace(start_points, end_points, resolution)
+	
+	def L_m(self) -> np.ndarray:
+		p = self.p
+		x_m = self.x_m()
+		return -p * np.sinh(x_m/p)
+	
+	def L_n(self) -> np.ndarray:
+		p = self.p
+		x_n = self.x_n()
+		return p * np.sinh(x_n/p)
+
+	def T_h(self):
+		p = self.p
+		m = self.load_coefficient
+		lambd = self.linear_weight
+		return p * m * lambd
+
+	def T_v(self, x):
+		# repeating value to perform multidim operation
+		xx = x.T
+		# self.p is a vector of size (nb support, ). I need to convert it in a matrix (nb support, 1) to perform matrix operation after.
+		# Ex: self.p = array([20,20,20,20]) -> self.p([:,new_axis]) = array([[20],[20],[20],[20]])
+		pp = self.p[:, np.newaxis]
+		T_h = self.T_h()[:, np.newaxis]
+		T_hh = T_h * np.sinh(xx/pp) # Correct multiplication?
+		return T_hh.T
+
+	def T_max(self, x):
+		xx = x.T
+		pp = self.p[:, np.newaxis]
+		T_h = self.T_h()[:, np.newaxis]
+		return T_h * np.cosh(xx/pp)
+	
+	def T_mean_m(self):
+		x_m = self.x_m()
+		L_m = self.L_m()
+		T_h = self.T_h()
+		T_max_m = self.T_max(x_m)
+		return (-x_m * T_h + L_m * T_max_m) / (2 * L_m)
+
+	def T_mean_n(self):
+		x_n = self.x_n()
+		L_n = self.L_n()
+		T_h = self.T_h()
+		T_max_n = self.T_max(x_n)
+		return (x_n * T_h + L_n * T_max_n) / (2 * L_n)
+
+	def T_mean(self):
+		T_mean_m = self.T_mean_m()
+		T_mean_n = self.T_mean_n()
+		L_m = self.L_m()
+		L_n = self.L_n()
+		L= self.L()
+		return (T_mean_m * L_m + T_mean_n * L_n) / L
