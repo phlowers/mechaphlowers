@@ -83,3 +83,30 @@ def test_catenary_cable_model__length_impact() -> None:
 	z_cable = cable_model.z(x_cable)
 	assert abs(z_cable[-1, 0] - z_cable[0, 0] - b[0]) < 0.01
 	assert abs(z_cable[-1, 1] - z_cable[0, 1] - b[1]) < 0.01
+
+
+def test_catenary_cable_model__tensions__if_no_elevation_difference() -> None:
+	a = np.array([100])
+	b = np.array([0])
+	p = np.array([2_000])
+	lambd = np.array([5])
+	m = np.array([2])
+
+	x = np.array([50])
+
+	cable_model = CatenaryCableModel(a, b, p, lambd, m)
+	assert abs(cable_model.T_h() - 20_000) < 0.01
+	assert abs(cable_model.T_v(x)[0] - 500.0521) < 0.01
+
+
+def test_catenary_cable_model__tensions__two_spans() -> None:
+	a = np.array([100.0, 100.0])
+	b = np.array([0.0, 50.0])
+	p = np.array([200.0, 10.0])
+
+	x = np.linspace((-10.0, 6.0), (10.0, 10.0), 5)
+
+	cable_model = CatenaryCableModel(a, b, p)
+
+	cable_model.z(x)
+	cable_model.x_m()
