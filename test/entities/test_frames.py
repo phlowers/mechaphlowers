@@ -41,37 +41,34 @@ def test_section_frame_get_coord():
 	assert coords.shape == (30, 3)
 	assert isinstance(coords, np.ndarray)
 
-
-def test_select_spans__input():
+@pytest.mark.parametrize("error,case", 
+                    [
+                        (ValueError,["support 1", "2", "three"]),
+                        (ValueError, ["support 1"]),
+                        (ValueError, ["support 1", "name_not_existing"]),
+                        (ValueError, ["three", "support 1"]),
+                        (TypeError, "support 1"),
+                        (TypeError, ["support 1", 2])
+					])
+def test_select_spans__input(error, case):
 	frame = SectionDataFrame(section)
 
-	with pytest.raises(ValueError):
-		frame.select(["support 1", "2", "three"])
-		frame.select(
-			[
-				"support 1",
-			]
-		)
+	with pytest.raises(error):
+		frame.select(case)
 
-		frame.select(["support 1", "support 1"])
-		frame.select(["support 1", "name_not_existing"])
-		frame.select(["three", "support 1"])
 
-	with pytest.raises(TypeError):
-		frame.select("support 1")
-		frame.select(["string", 2])
-
-	frame_selected = frame.select(["support 1", "three"])
-
-	assert len(frame_selected.data) == 3
-	assert (
+def test_select_spans__passing_input():	
+    frame = SectionDataFrame(section)
+    frame_selected = frame.select(["support 1", "three"])
+    assert len(frame_selected.data) == 3
+    assert (
 		frame_selected.data.elevation_difference.take([1]).item()
 		== frame.data.elevation_difference.take([1]).item()
 	)
-
-	frame_selected = frame.select(["2", "support 4"])
-	assert len(frame_selected.data) == 3
-	assert (
+    
+    frame_selected = frame.select(["2", "support 4"])
+    assert len(frame_selected.data) == 3
+    assert (
 		frame_selected.data.elevation_difference.take([1]).item()
 		== frame.data.elevation_difference.take([2]).item()
 	)
