@@ -5,12 +5,19 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from pathlib import Path
+
 import pandas as pd
+
+# Resolve the 'data' folder
+# which is the parent folder of this script
+# in order to later be able to find the data files stored in this folder.
+DATA_BASE_PATH = Path(__file__).absolute().parent
 
 
 class FakeCatalog:
 	def __init__(self) -> None:
-		filepath = "src/mechaphlowers/data/pokemon.csv"
+		filepath = DATA_BASE_PATH / Path("pokemon.csv")
 		key_column_name = "Name"
 		self._data = pd.read_csv(filepath, index_col=key_column_name)
 
