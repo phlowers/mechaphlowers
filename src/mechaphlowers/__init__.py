@@ -4,14 +4,15 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-import importlib.metadata
 import logging
 
 import pandas as pd
+
+from mechaphlowers._version import _VERSION
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 pd.options.mode.copy_on_write = True
 
-__version__ = importlib.metadata.version("mechaphlowers")
+__version__ = _VERSION

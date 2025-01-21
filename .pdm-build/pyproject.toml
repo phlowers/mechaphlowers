@@ -1,17 +1,19 @@
 [project]
 name = "mechaphlowers"
-dynamic = ["version"]  
+dynamic = []
 description = "Physical calculation package for the mechanics and geometry of power lines"
-authors = [{name = "Adrien Goeller"}, {name = "Aimee Quinaou"}, {name = "Jeremy Wang"}]
+authors = [
+    { name = "Adrien Goeller" },
+    { name = "Aimee Quinaou" },
+    { name = "Jeremy Wang" },
+]
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
-
     "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
     "Natural Language :: English",
-
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -27,6 +29,7 @@ dependencies = [
     "plotly<=5.24.1",
     "multimethod<2.0",
 ]
+version = "0.1.0"
 
 [project.urls]
 Homepage = "https://github.com/phlowers/mechaphlowers"
@@ -50,63 +53,72 @@ dev = [
 test = [
     "pytest==8.3.2",
     "pytest-cov==5.0.0",
-    ]
+]
 docs = [
     "mkdocs==1.6.1",
     "mkdocstrings[python]==0.26.2",
     "mkdocs-material==9.5.43",
-    "mkdocs-jupyter==0.25.1"
-    ]
-
+    "mkdocs-jupyter==0.25.1",
+]
 all = [
-    { include-group = 'dev' },
-    { include-group = 'docs' },
-    { include-group = 'test' },
+    { include-group = "dev" },
+    { include-group = "docs" },
+    { include-group = "test" },
 ]
 
-
 [build-system]
-requires = ["pdm-backend"]
+requires = [
+    "pdm-backend",
+]
 build-backend = "pdm.backend"
 
-
-### Tools configuration
-
 [tool.pdm]
-version = { source = "scm", version_format = "version:format_version", write_to = "mechaphlowers/_version.py", write_template = "_VERSION = '{}'"}
 distribution = true
 
+[tool.pdm.version]
+source = "scm"
+version_format = "version:format_version"
+write_to = "mechaphlowers/_version.py"
+write_template = "_VERSION = '{}'"
 
 [tool.ruff]
 target-version = "py311"
 line-length = 79
 
 [tool.ruff.format]
-# Enable reformatting of code snippets in docstrings.
 docstring-code-format = true
 docstring-code-line-length = 79
 indent-style = "tab"
 quote-style = "preserve"
 
 [tool.ruff.lint]
-# Enable the isort rules.
-extend-select = ["I"]
+extend-select = [
+    "I",
+]
 
 [tool.mypy]
 exclude = [
-    "virtualenv", ".venv*", "build", "dist", "site-packages", "tests", "docs", "doc", "examples", "example"
+    "virtualenv",
+    ".venv*",
+    "build",
+    "dist",
+    "site-packages",
+    "tests",
+    "docs",
+    "doc",
+    "examples",
+    "example",
 ]
 
-## Test framework
 [tool.pytest.ini_options]
 junit_family = "xunit2"
 filterwarnings = [
     "ignore::DeprecationWarning",
-    # Following warning seems to come from an issue in pandera,
-    # see https://github.com/unionai-oss/pandera/issues/1845
-    'ignore:use `parametric(<base>, <func>)` as a type instead',
+    "ignore:use `parametric(<base>, <func>)` as a type instead",
 ]
 
 [tool.coverage.run]
-source = ['src']
+source = [
+    "src",
+]
 relative_files = true
