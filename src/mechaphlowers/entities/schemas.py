@@ -53,3 +53,20 @@ class SectionArrayInput(pa.DataFrameModel):
 	)
 	def no_span_length_for_last_row(cls, df: pdt.DataFrame) -> bool:
 		return df.tail(1)["span_length"].isin([0, np.nan]).all()
+
+
+class CableArrayInput(pa.DataFrameModel):
+	"""Schema for the data expected for a dataframe used to instantiate a CableArray.
+
+
+	Notes:
+
+	TODO: change the format to input only a float, and not an array of floats
+	"""
+
+	section: pdt.Series[float] = pa.Field(coerce=True)
+	diameter: pdt.Series[float] = pa.Field(coerce=True)
+	linear_weight: pdt.Series[float] = pa.Field(coerce=True)
+	young_modulus: pdt.Series[float] = pa.Field(coerce=True)
+	dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
+	temperature_reference: pdt.Series[float] = pa.Field(coerce=True)
