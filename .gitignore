@@ -70,6 +70,9 @@ ipython_config.py
 # pyenv
 .python-version
 
+# tools
+.pdm-build/
+
 # Environments
 .env
 .venv
