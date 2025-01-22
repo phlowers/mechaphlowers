@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from abc import ABC
 from pathlib import Path
 
 import pandas as pd
@@ -15,25 +16,27 @@ import pandas as pd
 DATA_BASE_PATH = Path(__file__).absolute().parent
 
 
-class FakeCatalog:
-	def __init__(self) -> None:
-		filepath = DATA_BASE_PATH / Path("pokemon.csv")
-		key_column_name = "Name"
-		self._data = pd.read_csv(filepath, index_col=key_column_name)
+class Catalog(ABC):
+	filename: str
+	key_column_name: str | int
 
-	def get(self, keys: list[str]) -> pd.DataFrame:
+	def __init__(self) -> None:
+		filepath = DATA_BASE_PATH / Path(self.filename)
+		self._data = pd.read_csv(filepath, index_col=self.key_column_name)
+
+	def get(self, keys: list) -> pd.DataFrame:
 		return self._data.loc[keys]
 
 
-class IrisCatalog:
-	def __init__(self) -> None:
-		filepath = DATA_BASE_PATH / Path("iris_dataset.csv")
-		key_column_name = "sepal length (cm)"
-		self._data = pd.read_csv(filepath, index_col=key_column_name)
-
-	def get(self, keys: list[float]) -> pd.DataFrame:
-		return self._data.loc[keys]
+class PokemonCatalog(Catalog):
+	filename = "pokemon.csv"
+	key_column_name = "Name"
 
 
-fake_catalog = FakeCatalog()
+class IrisCatalog(Catalog):
+	filename = "iris_dataset.csv"
+	key_column_name = "sepal length (cm)"
+
+
+fake_catalog = PokemonCatalog()
 iris_catalog = IrisCatalog()
