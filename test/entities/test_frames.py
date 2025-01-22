@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from copy import copy
+from typing import Type
 
 import numpy as np
 import pandas as pd
@@ -53,7 +54,7 @@ def test_section_frame_get_coord():
 		(TypeError, ["support 1", 2]),
 	],
 )
-def test_select_spans__input(error, case):
+def test_select_spans__wrong_input(error: Type[Exception], case):
 	frame = SectionDataFrame(section)
 
 	with pytest.raises(error):
