@@ -367,4 +367,4 @@ def test_create_cable_array__with_floats(
 	assert_frame_equal(input_df, cable._data, check_dtype=False, rtol=1e-07)
 
 
-# TODO: add tests
+# TODO: add tests for CableArray

@@ -18,19 +18,6 @@ from mechaphlowers.entities.schemas import CableArrayInput
 
 
 @pytest.fixture
-def section_array_input_data() -> dict[str, list]:
-	return {
-		"name": ["support 1", "2", "three", "support 4"],
-		"suspension": [False, True, True, False],
-		"conductor_attachment_altitude": [2.2, 5, -0.12, 0],
-		"crossarm_length": [10, 12.1, 10, 10.1],
-		"line_angle": [0, 360, 90.1, -90.2],
-		"insulator_length": [0, 4, 3.2, 0],
-		"span_length": [1, 500.2, 500.05, np.nan],
-	}
-
-
-@pytest.fixture
 def cable_array_input_data() -> dict[str, list]:
 	return {
 		"section": [345.5, 345.5],
@@ -43,7 +30,6 @@ def cable_array_input_data() -> dict[str, list]:
 
 
 def test_physics_cable_impl(
-	section_array_input_data: dict,
 	cable_array_input_data: dict,
 ) -> None:
 	a = np.array([501.3, 499.0])
@@ -52,7 +38,9 @@ def test_physics_cable_impl(
 	lambd = np.array([16, 16.1])
 	m = np.array([1, 1.1])
 
-	cable_model = CatenaryCableModel(a, b, p, lambd, m)
+	cable_model = CatenaryCableModel(
+		a, b, p, load_coefficient=m, linear_weight=lambd
+	)
 
 	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
 		cable_array_input_data
@@ -62,21 +50,23 @@ def test_physics_cable_impl(
 	physics_model.L_ref(current_temperature)
 
 
+# TODO: confirm values for this test
 def test_physics_cable__two_spans(
-	section_array_input_data: dict,
 	cable_array_input_data: dict,
 ) -> None:
 	a = np.array([500, 500])
 	b = np.array([0.0, 0.0])
 	p = np.array([2_000, 2_000])
-	lambd = np.array([9.6, 9.6])
 	m = np.array([1, 1])
 
-	cable_model = CatenaryCableModel(a, b, p, lambd, m)
+	cable_model = CatenaryCableModel(a, b, p, load_coefficient=m)
 
 	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
 		cable_array_input_data
 	)
 	physics_model = PhysicsBasedCableModelImpl(cable_model, input_df)
 	current_temperature = np.array([20, 20])
+	physics_model.epsilon_mecha()
+	physics_model.epsilon_therm(current_temperature)
+	physics_model.epsilon(current_temperature)
 	physics_model.L_ref(current_temperature)

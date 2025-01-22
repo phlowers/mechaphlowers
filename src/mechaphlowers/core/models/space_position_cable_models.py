@@ -28,9 +28,8 @@ class SpacePositionCableModel(ABC):
 		span_length: np.ndarray,
 		elevation_difference: np.ndarray,
 		p: np.ndarray,
-		linear_weight: np.ndarray | None = None,
-		# TODO: being able to add linear weight after initialization (property?)
 		load_coefficient: np.ndarray | None = None,
+		linear_weight: np.ndarray | None = None,
 	) -> None:
 		self.span_length = span_length
 		self.elevation_difference = elevation_difference
@@ -113,7 +112,11 @@ class SpacePositionCableModel(ABC):
 
 	@abstractmethod
 	def T_max(self, x: np.ndarray) -> np.ndarray:
-		"""TODO: understand why it is called T_max"""
+		"""TODO: understand why it is called T_max
+
+		Args:
+		x: array of abscissa, one abscissa per span
+		"""
 
 	@abstractmethod
 	def T_mean_m(self) -> np.ndarray:

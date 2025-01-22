@@ -121,9 +121,9 @@ class CableArray(ElementArray):
 	@property
 	def data(self) -> pd.DataFrame:
 		data_SI = self._data.copy()
-		data_SI["section"] *= 10 ** (-6)
+		data_SI["section"] *= 1e-6
 		data_SI["diameter"] *= 10 ** (-3)
-		data_SI["young_modulus"] *= 10 ** (6)
+		data_SI["young_modulus"] *= 10 ** (9)
 		data_SI["dilatation_coefficient"] *= 10 ** (-6)
 		return data_SI
 

@@ -30,7 +30,6 @@ class SectionDataFrame:
 	TODO: for the moment the initialization with SectionArray and SpacePositionCableModel is explicit.
 	It is not intended to be later.
 
-	TODO: add CableArray object?
 	"""
 
 	def __init__(

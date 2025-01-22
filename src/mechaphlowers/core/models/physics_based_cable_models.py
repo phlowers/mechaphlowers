@@ -20,10 +20,12 @@ class PhysicsBasedCableModel(ABC):
 	def __init__(
 		self,
 		sp_model: SpacePositionCableModel,
-		data: pdt.DataFrame[CableArrayInput] | pd.DataFrame,
+		data_cable: pdt.DataFrame[CableArrayInput] | pd.DataFrame,
 	):
+		self.cable_array = CableArray(data_cable)
+		# Fetch linear weight given by user into SPModel
+		sp_model.linear_weight = data_cable["linear_weight"].to_numpy()
 		self.sp_model = sp_model
-		self.cable_array = CableArray(data)
 
 	@abstractmethod
 	def epsilon_mecha(self) -> np.ndarray:
