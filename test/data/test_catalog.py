@@ -7,7 +7,7 @@
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from mechaphlowers.data.catalog import fake_catalog
+from mechaphlowers.data.catalog import fake_catalog, iris_catalog
 
 
 def test_fake_catalog__get_one_row() -> None:
@@ -57,6 +57,16 @@ def test_fake_catalog__get_several_rows() -> None:
 	assert_frame_equal(rows, expected_dataframe)
 
 
+def test_iris_catalog__get_one_row() -> None:
+	iris_catalog.get([5.1])
+	assert True
+
+
+def test_iris_catalog__get_several_rows() -> None:
+	iris_catalog.get([5.1, 4.9, 4.7])
+	assert True
+
+
 def test_fake_catalog__get_same_row_twice() -> None:
 	rows = fake_catalog.get(["Spheal", "Spheal"])
 	expected_dataframe = pd.DataFrame(
@@ -82,6 +92,16 @@ def test_fake_catalog__get_same_row_twice() -> None:
 
 def test_fake_catalog__get_nothing() -> None:
 	df = fake_catalog.get([])
+	assert df.empty
+
+
+def test_iris_catalog__get_same_row_twice() -> None:
+	iris_catalog.get([5.0, 5.0])
+	assert True
+
+
+def test_iris_catalog__get_nothing() -> None:
+	df = iris_catalog.get([])
 	assert df.empty
 
 

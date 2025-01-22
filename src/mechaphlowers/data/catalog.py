@@ -25,4 +25,15 @@ class FakeCatalog:
 		return self._data.loc[keys]
 
 
+class IrisCatalog:
+	def __init__(self) -> None:
+		filepath = DATA_BASE_PATH / Path("iris_dataset.csv")
+		key_column_name = "sepal length (cm)"
+		self._data = pd.read_csv(filepath, index_col=key_column_name)
+
+	def get(self, keys: list[float]) -> pd.DataFrame:
+		return self._data.loc[keys]
+
+
 fake_catalog = FakeCatalog()
+iris_catalog = IrisCatalog()
