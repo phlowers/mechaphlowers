@@ -97,82 +97,23 @@ def test_create_section_array__span_length_for_last_support(
 		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
-def test_create_section_array__missing_name(
+@pytest.mark.parametrize(
+	"column",
+	[
+		"name",
+		"suspension",
+		"conductor_attachment_altitude",
+		"crossarm_length",
+		"line_angle",
+		"insulator_length",
+		"span_length"
+	]
+)
+def test_create_section_array__missing_column(
 	section_array_input_data: dict,
+	column: str
 ) -> None:
-	del section_array_input_data["name"]
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__missing_suspension(
-	section_array_input_data: dict,
-) -> None:
-	del section_array_input_data["suspension"]
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__missing_conductor_attachment_altitude(
-	section_array_input_data: dict,
-) -> None:
-	del section_array_input_data["conductor_attachment_altitude"]
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__missing_crossarm_length(
-	section_array_input_data: dict,
-) -> None:
-	del section_array_input_data["crossarm_length"]
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__missing_line_angle(
-	section_array_input_data: dict,
-) -> None:
-	del section_array_input_data["line_angle"]
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__missing_insulator_length(
-	section_array_input_data: dict,
-) -> None:
-	del section_array_input_data["insulator_length"]
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__missing_span_length(
-	section_array_input_data: dict,
-) -> None:
-	del section_array_input_data["span_length"]
+	del section_array_input_data[column]
 	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
 		section_array_input_data
 	)
@@ -197,82 +138,24 @@ def test_create_section_array__extra_column(
 	assert "extra column" not in section._data.columns
 
 
-def test_create_section_array__wrong_name_type(
+@pytest.mark.parametrize(
+	"column,value",
+	[
+		("name", [1, 2, 3, 4]),
+		("suspension", [1, 2, 3, 4]),
+		("conductor_attachment_altitude", ["1,2"] * 4),
+		("crossarm_length", ["1,2"] * 4),
+		("line_angle", ["1,2"] * 4),
+		("insulator_length", ["1,2"] * 4),
+		("span_length", ["1,2"] * 4),
+	]
+)
+def test_create_section_array__wrong_type(
 	section_array_input_data: dict,
+	column: str,
+	value
 ) -> None:
-	section_array_input_data["name"] = [1, 2, 3, 4]
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__wrong_suspension_type(
-	section_array_input_data: dict,
-) -> None:
-	section_array_input_data["suspension"] = [1, 2, 3, 4]
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__wrong_conductor_attachment_altitude_type(
-	section_array_input_data: dict,
-) -> None:
-	section_array_input_data["conductor_attachment_altitude"] = ["1,2"] * 4
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__wrong_crossarm_length_type(
-	section_array_input_data: dict,
-) -> None:
-	section_array_input_data["crossarm_length"] = ["1,2"] * 4
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__wrong_line_angle_type(
-	section_array_input_data: dict,
-) -> None:
-	section_array_input_data["line_angle"] = ["1,2"] * 4
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__wrong_insulator_length_type(
-	section_array_input_data: dict,
-) -> None:
-	section_array_input_data["insulator_length"] = ["1,2"] * 4
-	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
-		section_array_input_data
-	)
-
-	with pytest.raises(pa.errors.SchemaErrors):
-		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
-def test_create_section_array__wrong_span_length_type(
-	section_array_input_data: dict,
-) -> None:
-	section_array_input_data["span_length"] = ["1,2"] * 4
+	section_array_input_data[column] = value
 	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
 		section_array_input_data
 	)
@@ -410,5 +293,50 @@ def test_create_cable_array__with_floats(
 
 	assert_frame_equal(input_df, cable._data, check_dtype=False, rtol=1e-07)
 
+@pytest.mark.parametrize(
+	"column",
+	[
+		"section",
+		"diameter",
+		"linear_weight",
+		"young_modulus",
+		"dilatation_coefficient",
+		"temperature_reference",
+	],
+)
+def test_create_cable_array__missing_column(
+	cable_array_input_data: dict,
+	column: str
+) -> None:
+	del cable_array_input_data[column]
+	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
+		cable_array_input_data
+	)
 
-# TODO: add tests for CableArray
+	with pytest.raises(pa.errors.SchemaErrors):
+		CableArray(input_df)
+
+
+@pytest.mark.parametrize(
+	"column,value",
+	[
+		("section", ["1,2"] * 4),
+		("diameter", ["1,2"] * 4),
+		("linear_weight", ["1,2"] * 4),
+		("young_modulus", ["1,2"] * 4),
+		("dilatation_coefficient", ["1,2"] * 4),
+		("temperature_reference", ["1,2"] * 4),
+	]
+)
+def test_create_cable_array__wrong_type(
+	cable_array_input_data: dict,
+	column: str,
+	value
+) -> None:
+	cable_array_input_data[column] = value
+	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
+		cable_array_input_data
+	)
+
+	with pytest.raises(pa.errors.SchemaErrors):
+		CableArray(input_df)
