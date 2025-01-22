@@ -15,25 +15,14 @@ import pandas as pd
 DATA_BASE_PATH = Path(__file__).absolute().parent
 
 
-class FakeCatalog:
-	def __init__(self) -> None:
-		filepath = DATA_BASE_PATH / Path("pokemon.csv")
-		key_column_name = "Name"
+class Catalog:
+	def __init__(self, filename, key_column_name) -> None:
+		filepath = DATA_BASE_PATH / Path(filename)
 		self._data = pd.read_csv(filepath, index_col=key_column_name)
 
-	def get(self, keys: list[str]) -> pd.DataFrame:
+	def get(self, keys: list) -> pd.DataFrame:
 		return self._data.loc[keys]
 
 
-class IrisCatalog:
-	def __init__(self) -> None:
-		filepath = DATA_BASE_PATH / Path("iris_dataset.csv")
-		key_column_name = "sepal length (cm)"
-		self._data = pd.read_csv(filepath, index_col=key_column_name)
-
-	def get(self, keys: list[float]) -> pd.DataFrame:
-		return self._data.loc[keys]
-
-
-fake_catalog = FakeCatalog()
-iris_catalog = IrisCatalog()
+fake_catalog = Catalog("pokemon.csv", key_column_name="Name")
+iris_catalog = Catalog("iris_dataset.csv", key_column_name="sepal length (cm)")
