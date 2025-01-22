@@ -108,7 +108,7 @@ class SpacePositionCableModel(ABC):
 		"""Vertival tension on the cable, depending on the abscissa.
 
 		Args:
-		x: array of abscissa
+		x: array of abscissa, one abscissa per span
 		"""
 
 	@abstractmethod

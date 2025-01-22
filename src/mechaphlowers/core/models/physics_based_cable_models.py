@@ -5,13 +5,15 @@
 # SPDX-License-Identifier: MPL-2.0from abc import ABC, abstractmethod
 
 from abc import ABC, abstractmethod
+
+import numpy as np
+import pandas as pd
+from pandera.typing import pandas as pdt
+
 from mechaphlowers.core.models.space_position_cable_models import (
 	SpacePositionCableModel,
 )
 from mechaphlowers.entities.arrays import CableArray, CableArrayInput
-import numpy as np
-from pandera.typing import pandas as pdt
-import pandas as pd
 
 
 class PhysicsBasedCableModel(ABC):
@@ -27,6 +29,7 @@ class PhysicsBasedCableModel(ABC):
 	def epsilon_mecha(self) -> np.ndarray:
 		"""Mechanical part of the relative extension of the cable."""
 
+	# TODO: change argument type: np array -> float
 	@abstractmethod
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
 		"""Thermal part of the relative extension of the cable, compared to a temperature_reference."""
@@ -37,7 +40,7 @@ class PhysicsBasedCableModel(ABC):
 
 	@abstractmethod
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
-		"""Unstressed cable length, according an arbitrary temperature"""
+		"""Unstressed cable length, at a chosen reference temperature"""
 
 
 class PhysicsBasedCableModelImpl(PhysicsBasedCableModel):

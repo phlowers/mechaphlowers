@@ -102,7 +102,7 @@ class CableArray(ElementArray):
 	diameter: Diameter of the cable, in mm
 	linear_weight: Linear weight, in N/m
 	young_modulus: Young modulus in MPa
-	dilatation_coefficient: Dilataion coefficient in °C^(-1)
+	dilatation_coefficient: Dilataion coefficient in 10⁻⁶/°C
 	temperature_reference: Temperature used to compute unstressed cable length (usually 0°C or 15°C)
 	"""
 
@@ -124,6 +124,7 @@ class CableArray(ElementArray):
 		data_SI["section"] *= 10 ** (-6)
 		data_SI["diameter"] *= 10 ** (-3)
 		data_SI["young_modulus"] *= 10 ** (6)
+		data_SI["dilatation_coefficient"] *= 10 ** (-6)
 		return data_SI
 
 	@property

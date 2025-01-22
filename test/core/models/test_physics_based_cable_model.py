@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from pandera.typing import pandas as pdt
 
-from mechaphlowers.core.models.physics_based_cable_model import (
+from mechaphlowers.core.models.physics_based_cable_models import (
 	PhysicsBasedCableModelImpl,
 )
 from mechaphlowers.core.models.space_position_cable_models import (
@@ -51,6 +51,26 @@ def test_physics_cable_impl(
 	p = np.array([2_112.2, 2_112.0])
 	lambd = np.array([16, 16.1])
 	m = np.array([1, 1.1])
+
+	cable_model = CatenaryCableModel(a, b, p, lambd, m)
+
+	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
+		cable_array_input_data
+	)
+	physics_model = PhysicsBasedCableModelImpl(cable_model, input_df)
+	current_temperature = np.array([20, 20])
+	physics_model.L_ref(current_temperature)
+
+
+def test_physics_cable__two_spans(
+	section_array_input_data: dict,
+	cable_array_input_data: dict,
+) -> None:
+	a = np.array([500, 500])
+	b = np.array([0.0, 0.0])
+	p = np.array([2_000, 2_000])
+	lambd = np.array([9.6, 9.6])
+	m = np.array([1, 1])
 
 	cable_model = CatenaryCableModel(a, b, p, lambd, m)
 

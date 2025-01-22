@@ -13,10 +13,10 @@ from pandas.testing import assert_frame_equal
 from pandera.typing import pandas as pdt
 
 from mechaphlowers.entities.arrays import (
-	SectionArray,
-	SectionArrayInput,
 	CableArray,
 	CableArrayInput,
+	SectionArray,
+	SectionArrayInput,
 )
 
 
