@@ -12,7 +12,12 @@ from numpy.testing import assert_allclose
 from pandas.testing import assert_frame_equal
 from pandera.typing import pandas as pdt
 
-from mechaphlowers.entities.arrays import SectionArray, SectionArrayInput, CableArray, CableArrayInput
+from mechaphlowers.entities.arrays import (
+	SectionArray,
+	SectionArrayInput,
+	CableArray,
+	CableArrayInput,
+)
 
 
 @pytest.fixture
@@ -35,6 +40,7 @@ def section_array(section_array_input_data: dict[str, list]) -> SectionArray:
 		data=df, sagging_parameter=2_000, sagging_temperature=15
 	)
 
+
 @pytest.fixture
 def cable_array_input_data() -> dict[str, list]:
 	return {
@@ -45,6 +51,7 @@ def cable_array_input_data() -> dict[str, list]:
 		"dilatation_coefficient": [23, 23, 23, 23],
 		"temperature_reference": [15, 15, 15, 15],
 	}
+
 
 def test_create_section_array__with_floats(
 	section_array_input_data: dict,
@@ -348,6 +355,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
 	# section_array inner data shouldn't have been modified
 	assert_frame_equal(section_array._data, inner_data)
 
+
 def test_create_cable_array__with_floats(
 	cable_array_input_data: dict,
 ) -> None:
@@ -358,4 +366,5 @@ def test_create_cable_array__with_floats(
 
 	assert_frame_equal(input_df, cable._data, check_dtype=False, rtol=1e-07)
 
-#TODO: add tests
+
+# TODO: add tests

@@ -29,6 +29,7 @@ class SpacePositionCableModel(ABC):
 		elevation_difference: np.ndarray,
 		p: np.ndarray,
 		linear_weight: np.ndarray | None = None,
+		# TODO: being able to add linear weight after initialization (property?)
 		load_coefficient: np.ndarray | None = None,
 	) -> None:
 		self.span_length = span_length
@@ -97,22 +98,22 @@ class SpacePositionCableModel(ABC):
 	def T_h(self) -> np.ndarray:
 		"""Horizontal tension on the cable.
 		Right now, this tension is constant all along the cable, but that might not be true for elastic catenary model.
-		
-		Raises: 
-			AttributeError: linear_weight is required 
+
+		Raises:
+			AttributeError: linear_weight is required
 		"""
 
 	@abstractmethod
 	def T_v(self, x: np.ndarray) -> np.ndarray:
 		"""Vertival tension on the cable, depending on the abscissa.
-		
+
 		Args:
 		x: array of abscissa
 		"""
 
 	@abstractmethod
 	def T_max(self, x: np.ndarray) -> np.ndarray:
-		"""TODO: understand why it is called T_max """
+		"""TODO: understand why it is called T_max"""
 
 	@abstractmethod
 	def T_mean_m(self) -> np.ndarray:
@@ -190,20 +191,19 @@ class CatenaryCableModel(SpacePositionCableModel):
 			return p * m * lambd
 
 	def T_v(self, x) -> np.ndarray:
-		# repeating value to perform multidim operation
-		xx = x.T
-		# self.p is a vector of size (nb support, ). I need to convert it in a matrix (nb support, 1) to perform matrix operation after.
-		# Ex: self.p = array([20,20,20,20]) -> self.p([:,new_axis]) = array([[20],[20],[20],[20]])
-		pp = self.p[:, np.newaxis]
-		T_h = self.T_h()[:, np.newaxis]
-		T_hh = T_h * np.sinh(xx / pp)  # Correct multiplication?
-		return T_hh.T
+		# an array of abscissa of the same length than the number of spans is expected
+
+		p = self.p
+		T_h = self.T_h()
+		T_v = T_h * np.sinh(x / p)
+		return T_v
 
 	def T_max(self, x) -> np.ndarray:
-		xx = x.T
-		pp = self.p[:, np.newaxis]
-		T_h = self.T_h()[:, np.newaxis]
-		return T_h * np.cosh(xx / pp)
+		# an array of abscissa of the same length than the number of spans is expected
+
+		p = self.p
+		T_h = self.T_h()
+		return T_h * np.cosh(x / p)
 
 	def T_mean_m(self) -> np.ndarray:
 		x_m = self.x_m()
@@ -226,4 +226,3 @@ class CatenaryCableModel(SpacePositionCableModel):
 		L_n = self.L_n()
 		L = self.L()
 		return (T_mean_m * L_m + T_mean_n * L_n) / L
-

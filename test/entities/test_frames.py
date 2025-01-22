@@ -10,7 +10,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.core.models.cable_models import CatenaryCableModel
+from mechaphlowers.core.models.space_position_cable_models import (
+	CatenaryCableModel,
+)
 from mechaphlowers.entities import SectionDataFrame
 from mechaphlowers.entities.arrays import SectionArray
 
