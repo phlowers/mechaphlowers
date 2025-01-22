@@ -106,12 +106,11 @@ def test_create_section_array__span_length_for_last_support(
 		"crossarm_length",
 		"line_angle",
 		"insulator_length",
-		"span_length"
-	]
+		"span_length",
+	],
 )
 def test_create_section_array__missing_column(
-	section_array_input_data: dict,
-	column: str
+	section_array_input_data: dict, column: str
 ) -> None:
 	del section_array_input_data[column]
 	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
@@ -148,12 +147,10 @@ def test_create_section_array__extra_column(
 		("line_angle", ["1,2"] * 4),
 		("insulator_length", ["1,2"] * 4),
 		("span_length", ["1,2"] * 4),
-	]
+	],
 )
 def test_create_section_array__wrong_type(
-	section_array_input_data: dict,
-	column: str,
-	value
+	section_array_input_data: dict, column: str, value
 ) -> None:
 	section_array_input_data[column] = value
 	input_df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
@@ -293,6 +290,7 @@ def test_create_cable_array__with_floats(
 
 	assert_frame_equal(input_df, cable._data, check_dtype=False, rtol=1e-07)
 
+
 @pytest.mark.parametrize(
 	"column",
 	[
@@ -305,8 +303,7 @@ def test_create_cable_array__with_floats(
 	],
 )
 def test_create_cable_array__missing_column(
-	cable_array_input_data: dict,
-	column: str
+	cable_array_input_data: dict, column: str
 ) -> None:
 	del cable_array_input_data[column]
 	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
@@ -326,12 +323,10 @@ def test_create_cable_array__missing_column(
 		("young_modulus", ["1,2"] * 4),
 		("dilatation_coefficient", ["1,2"] * 4),
 		("temperature_reference", ["1,2"] * 4),
-	]
+	],
 )
 def test_create_cable_array__wrong_type(
-	cable_array_input_data: dict,
-	column: str,
-	value
+	cable_array_input_data: dict, column: str, value
 ) -> None:
 	cable_array_input_data[column] = value
 	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
