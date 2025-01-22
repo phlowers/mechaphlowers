@@ -28,6 +28,7 @@ data = {
 
 section = SectionArray(data=pd.DataFrame(data))
 section.sagging_parameter = 2000
+section.sagging_temperature = 15
 
 
 def test_section_frame_initialization():

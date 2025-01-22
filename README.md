@@ -1,4 +1,13 @@
-# Library
+# Mechaphlowers
+
+[![PyPI Latest Release](https://img.shields.io/pypi/v/mechaphlowers.svg)](https://pypi.org/project/mechaphlowers/)
+[![MPL-2.0 License](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
+[![Actions Status](https://github.com/phlowers/mechaphlowers/actions/workflows/dev-ci.yml/badge.svg)](https://github.com/phlowers/mechaphlowers/actions)
+
+Python code quality :
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=phlowers_mechaphlowers&metric=alert_status)](https://sonarcloud.io/dashboard?id=phlowers_mechaphlowers)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=phlowers_mechaphlowers&metric=coverage)](https://sonarcloud.io/dashboard?id=phlowers_mechaphlowers)
+
 
 Physical calculation package for the mechanics and geometry of overhead power lines.
 

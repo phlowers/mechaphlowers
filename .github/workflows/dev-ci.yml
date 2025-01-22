@@ -1,4 +1,4 @@
-name: Dev CI
+name: ✔️ Dev CI
 
 on:
   pull_request:
@@ -6,45 +6,49 @@ on:
 jobs:
   manylinux_build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - name: Checkout sources
+      - name: 📃 Checkout sources
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0 # Disable shallow clones to improve sonarcloud analysis
 
-      - name: Set up Python 3.11
+      - name: ⚙️ Set up Python 3.11
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
-      - name: Install poetry
+      - name: ⚙️ Install poetry
         run: |
           sudo apt install pipx
-          pipx install poetry
+          pipx install poetry==1.8.4
           poetry --version
 
-      - name: Install dependencies
+      - name: ⚙️ Install dependencies
         run: |
           poetry install
 
-      - name: Check code style
+      - name: ✔️ Check code style
         run: |
           poetry run poe check-format
 
-      - name: Lint code
+      - name: ✔️ Lint code
         run: |
           poetry run poe lint
 
-      - name: Check typing
+      - name: ✔️ Check typing
         run: |
           poetry run poe typing
 
-      - name: Run tests and generate coverage report
+      - name: ✔️ Run tests and generate coverage report
         run: |
           poetry run poe test-coverage
 
-      - name: Run Sonar analysis
+      - name: ✔️ Run Sonar analysis
         uses: sonarsource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838 # v3.1.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,6 +57,6 @@ jobs:
           args: |
             -Dsonar.python.coverage.reportPaths=coverage.xml
 
-      - name: Build wheel
+      - name: 🛠️ Build wheel
         run: |
           poetry build

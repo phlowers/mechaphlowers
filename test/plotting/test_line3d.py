@@ -30,6 +30,7 @@ data = {
 
 section = SectionArray(data=pd.DataFrame(data))
 section.sagging_parameter = 500
+section.sagging_temperature = 15
 
 frame = SectionDataFrame(section)
 

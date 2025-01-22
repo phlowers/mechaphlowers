@@ -76,15 +76,25 @@ class SectionArray(ElementArray):
 			- self._data["insulator_length"]
 		)
 		right_support_height = left_support_height.shift(periods=-1)
-
 		return (right_support_height - left_support_height).to_numpy()
 
 	@property
 	def data(self) -> pd.DataFrame:
+		if self.sagging_parameter is None or self.sagging_temperature is None:
+			raise AttributeError(
+				"Cannot return data: sagging_parameter and sagging_temperature are needed"
+			)
+		else:
+			return self._data.assign(
+				elevation_difference=self.compute_elevation_difference(),
+				sagging_parameter=self.sagging_parameter,
+				sagging_temperature=self.sagging_temperature,
+			)
+
+	@property
+	def data_alone(self) -> pd.DataFrame:
 		return self._data.assign(
-			elevation_difference=self.compute_elevation_difference(),
-			sagging_parameter=self.sagging_parameter,
-			sagging_temperature=self.sagging_temperature,
+			elevation_difference=self.compute_elevation_difference()
 		)
 
 	def __copy__(self):

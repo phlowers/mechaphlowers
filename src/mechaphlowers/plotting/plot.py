@@ -192,7 +192,7 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 				up=dict(x=0, y=0, z=1),
 				eye=dict(
 					x=0,
-					y=1 / zoom,
+					y=-1 / zoom,
 					z=0,
 				),
 			),
