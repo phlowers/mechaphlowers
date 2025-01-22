@@ -17,7 +17,7 @@ DATA_BASE_PATH = Path(__file__).absolute().parent
 
 class Catalog:
 	def __init__(self, filename, key_column_name) -> None:
-		filepath = DATA_BASE_PATH / Path(filename)
+		filepath = DATA_BASE_PATH / filename
 		self._data = pd.read_csv(filepath, index_col=key_column_name)
 
 	def get(self, keys: list) -> pd.DataFrame:
