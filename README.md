@@ -2,12 +2,16 @@
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/mechaphlowers.svg)](https://pypi.org/project/mechaphlowers/)
 [![MPL-2.0 License](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
+[![versions](https://img.shields.io/badge/python-3.10%7C3.11%7C3.12-blue)](https://github.com/phlowers/mechaphlowers)
+[![Documentation](https://readthedocs.org/projects/mechaphlowers/badge/?version=latest)](https://phlowers.readthedocs.io/projects/mechaphlowers/en/latest)
 [![Actions Status](https://github.com/phlowers/mechaphlowers/actions/workflows/dev-ci.yml/badge.svg)](https://github.com/phlowers/mechaphlowers/actions)
 
-Python code quality :
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=phlowers_mechaphlowers&metric=alert_status)](https://sonarcloud.io/dashboard?id=phlowers_mechaphlowers)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=phlowers_mechaphlowers&metric=coverage)](https://sonarcloud.io/dashboard?id=phlowers_mechaphlowers)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=phlowers_mechaphlowers&metric=alert_status)](https://sonarcloud.io/dashboard?id=phlowers_mechaphlowers) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=phlowers_mechaphlowers&metric=coverage)](https://sonarcloud.io/dashboard?id=phlowers_mechaphlowers)
 
+[![Pydantic v2](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/pydantic/pydantic/main/docs/badge/v2.json)](https://pydantic.dev)
+[![Numpy](https://img.shields.io/badge/numpy-v2-blue)](https://numpy.org/)
+[![pyodide](https://img.shields.io/badge/works_on-pyodide-%237303fc)](https://pyodide.org/en/stable/index.html)
+[![lite-badge](https://jupyterlite.rtfd.io/en/latest/_static/badge.svg)](https://phlowers.github.io/phlowers-notebooks/lab/index.html)
 
 Physical calculation package for the mechanics and geometry of overhead power lines.
 
