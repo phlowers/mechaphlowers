@@ -48,13 +48,13 @@ class PhysicsBasedCableModel(ABC):
 class PhysicsBasedCableModelImpl(PhysicsBasedCableModel):
 	def epsilon_mecha(self) -> np.ndarray:
 		T_mean = self.sp_model.T_mean()
-		E = self.cable_array.data["young_modulus"]
-		S = self.cable_array.data["section"]
+		E = self.cable_array.data["young_modulus"].to_numpy()
+		S = self.cable_array.data["section"].to_numpy()
 		return T_mean / (E * S)
 
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
-		temp_ref = self.cable_array.data["temperature_reference"]
-		alpha = self.cable_array.data["dilatation_coefficient"]
+		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
+		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
 		return (current_temperature - temp_ref) * alpha
 
 	def epsilon(self, current_temperature: np.ndarray) -> np.ndarray:

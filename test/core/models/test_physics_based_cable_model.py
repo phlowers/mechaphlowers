@@ -50,23 +50,31 @@ def test_physics_cable_impl(
 	physics_model.L_ref(current_temperature)
 
 
-# TODO: confirm values for this test
-def test_physics_cable__two_spans(
-	cable_array_input_data: dict,
-) -> None:
-	a = np.array([500, 500])
-	b = np.array([0.0, 0.0])
-	p = np.array([2_000, 2_000])
-	m = np.array([1, 1])
+def test_physics_cable__first_example() -> None:
+	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
+		{
+			"section": [345.55],
+			"diameter": [22.4],
+			"linear_weight": [9.55494],
+			"young_modulus": [59],
+			"dilatation_coefficient": [23],
+			"temperature_reference": [0],
+		}
+	)
+
+	a = np.array([500])
+	b = np.array([0.0])
+	p = np.array([2_000])
+	m = np.array([1])
 
 	cable_model = CatenaryCableModel(a, b, p, load_coefficient=m)
 
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		cable_array_input_data
-	)
 	physics_model = PhysicsBasedCableModelImpl(cable_model, input_df)
-	current_temperature = np.array([20, 20])
-	physics_model.epsilon_mecha()
-	physics_model.epsilon_therm(current_temperature)
-	physics_model.epsilon(current_temperature)
-	physics_model.L_ref(current_temperature)
+	current_temperature = np.array([15])
+
+	# Data given by the prototype
+	assert abs(physics_model.epsilon_mecha() - 0.00093978) < 0.01
+	assert (
+		abs(physics_model.epsilon_therm(current_temperature) + 0.000345) < 0.01
+	)
+	assert abs(physics_model.L_ref(current_temperature) - 500.65986147) < 0.01

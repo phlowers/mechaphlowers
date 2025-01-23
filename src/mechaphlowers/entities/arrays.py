@@ -108,12 +108,7 @@ class CableArray(ElementArray):
 	"""Physical description of a cable.
 
 	Args:
-	section: Area of the section, in mm²
-	diameter: Diameter of the cable, in mm
-	linear_weight: Linear weight, in N/m
-	young_modulus: Young modulus in MPa
-	dilatation_coefficient: Dilataion coefficient in 10⁻⁶/°C
-	temperature_reference: Temperature used to compute unstressed cable length (usually 0°C or 15°C)
+	data: Input data
 	"""
 
 	@pa.check_types(lazy=True)

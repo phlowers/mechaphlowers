@@ -116,7 +116,7 @@ $$
 - $S$: section in $mm^2$
 - $D$: diameter in $mm$
 - $\lambda$: linear weight in $N/m$
-- $E$: Young modulus in $MPa$
+- $E$: Young modulus in $GPa$
 - $\alpha_{th}$: dilatation coefficient in $°C^{-1}$
 
 

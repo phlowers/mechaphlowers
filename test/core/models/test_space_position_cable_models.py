@@ -100,43 +100,6 @@ def test_catenary_cable_model__length_impact() -> None:
 	assert abs(z_cable[-1, 1] - z_cable[0, 1] - b[1]) < 0.01
 
 
-def test_catenary_cable_model__tensions__if_no_elevation_difference() -> None:
-	a = np.array([100])
-	b = np.array([0])
-	p = np.array([2_000])
-	lambd = np.array([5])
-	m = np.array([2])
-
-	x = np.array([50])
-
-	cable_model = CatenaryCableModel(
-		a, b, p, load_coefficient=m, linear_weight=lambd
-	)
-	assert abs(cable_model.T_h()[0] - 20_000) < 0.01
-	assert abs(cable_model.T_v(x)[0] - 500.0521) < 0.01
-
-
-# TODO: confirm values for this test
-def test_catenary_cable_model__tensions__two_spans() -> None:
-	a = np.array([500, 500])
-	b = np.array([0.0, 0.0])
-	p = np.array([2_000, 2_000])
-	m = np.array([1, 1])
-	lambd = np.array([9.6, 9.6])
-
-	cable_model = CatenaryCableModel(
-		a, b, p, load_coefficient=m, linear_weight=lambd
-	)
-
-	x_m = cable_model.x_m()
-	cable_model.T_h()
-	cable_model.T_v(x_m)
-	cable_model.T_max(x_m)
-	cable_model.T_mean_m()
-	cable_model.T_mean_n()
-	cable_model.T_mean()
-
-
 def test_catenary_cable_model__no_linear_weight() -> None:
 	a = np.array([100.0, 100.0])
 	b = np.array([0.0, 50.0])
@@ -164,3 +127,21 @@ def test_catenary_cable_model__tensions__wrong_dimension_array() -> None:
 		cable_model.T_v(x)
 	with pytest.raises(ValueError):
 		cable_model.T_max(x)
+
+
+def test_catenary_cable_model__tensions__no_elevation_difference() -> None:
+	a = np.array([500])
+	b = np.array([0])
+	p = np.array([2_000])
+	lambd = np.array([9.55494])
+	m = np.array([1])
+
+	cable_model = CatenaryCableModel(
+		a, b, p, load_coefficient=m, linear_weight=lambd
+	)
+	x_m = cable_model.x_m()
+
+	# Data given by the prototype
+	assert abs(cable_model.T_h()[0] - 19109.88) < 0.01
+	assert abs(cable_model.T_v(x_m)[0] + 2394.96053) < 0.01
+	assert abs(cable_model.T_mean()[0] - 19159.78784541) < 0.01

@@ -58,8 +58,12 @@ class SectionArrayInput(pa.DataFrameModel):
 class CableArrayInput(pa.DataFrameModel):
 	"""Schema for the data expected for a dataframe used to instantiate a CableArray.
 
-
-	Notes:
+	section: Area of the section, in mm²
+	diameter: Diameter of the cable, in mm
+	linear_weight: Linear weight, in N/m
+	young_modulus: Young modulus in GPa
+	dilatation_coefficient: Dilataion coefficient in 10⁻⁶/°C
+	temperature_reference: Temperature used to compute unstressed cable length (usually 0°C or 15°C)
 
 	TODO: change the format to input only a float, and not an array of floats
 	"""
