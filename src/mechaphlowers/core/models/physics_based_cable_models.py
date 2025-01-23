@@ -17,8 +17,8 @@ from mechaphlowers.entities.arrays import CableArray, CableArrayInput
 
 
 class PhysicsBasedCableModel(ABC):
-	"""This abstract class is a base class for models to compute extensions of the cable. 
-	"""
+	"""This abstract class is a base class for models to compute extensions of the cable."""
+
 	def __init__(
 		self,
 		sp_model: SpacePositionCableModel,
@@ -48,8 +48,8 @@ class PhysicsBasedCableModel(ABC):
 
 
 class LinearElasticCableModel(PhysicsBasedCableModel):
-	"""This model assumes that mechanical extension is linear with tension.
-	"""
+	"""This model assumes that mechanical extension is linear with tension."""
+
 	def epsilon_mecha(self) -> np.ndarray:
 		T_mean = self.sp_model.T_mean()
 		E = self.cable_array.data["young_modulus"].to_numpy()
