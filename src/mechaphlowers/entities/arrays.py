@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -127,9 +127,9 @@ class CableArray(ElementArray):
 	def data(self) -> pd.DataFrame:
 		data_SI = self._data.copy()
 		data_SI["section"] *= 1e-6
-		data_SI["diameter"] *= 10 ** (-3)
-		data_SI["young_modulus"] *= 10 ** (9)
-		data_SI["dilatation_coefficient"] *= 10 ** (-6)
+		data_SI["diameter"] *= 1e-3
+		data_SI["young_modulus"] *= 1e9
+		data_SI["dilatation_coefficient"] *= 1e-6
 		return data_SI
 
 	@property

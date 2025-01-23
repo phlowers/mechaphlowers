@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -17,6 +17,8 @@ from mechaphlowers.entities.arrays import CableArray, CableArrayInput
 
 
 class PhysicsBasedCableModel(ABC):
+	"""This abstract class is a base class for models to compute extensions of the cable. 
+	"""
 	def __init__(
 		self,
 		sp_model: SpacePositionCableModel,
@@ -45,7 +47,9 @@ class PhysicsBasedCableModel(ABC):
 		"""Unstressed cable length, at a chosen reference temperature"""
 
 
-class PhysicsBasedCableModelImpl(PhysicsBasedCableModel):
+class LinearElasticCableModel(PhysicsBasedCableModel):
+	"""This model assumes that mechanical extension is linear with tension.
+	"""
 	def epsilon_mecha(self) -> np.ndarray:
 		T_mean = self.sp_model.T_mean()
 		E = self.cable_array.data["young_modulus"].to_numpy()

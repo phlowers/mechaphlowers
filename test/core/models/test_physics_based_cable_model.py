@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,7 +9,7 @@ import pytest
 from pandera.typing import pandas as pdt
 
 from mechaphlowers.core.models.physics_based_cable_models import (
-	PhysicsBasedCableModelImpl,
+	LinearElasticCableModel,
 )
 from mechaphlowers.core.models.space_position_cable_models import (
 	CatenaryCableModel,
@@ -45,7 +45,7 @@ def test_physics_cable_impl(
 	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
 		cable_array_input_data
 	)
-	physics_model = PhysicsBasedCableModelImpl(cable_model, input_df)
+	physics_model = LinearElasticCableModel(cable_model, input_df)
 	current_temperature = np.array([20, 20])
 	physics_model.L_ref(current_temperature)
 
@@ -69,7 +69,7 @@ def test_physics_cable__first_example() -> None:
 
 	cable_model = CatenaryCableModel(a, b, p, load_coefficient=m)
 
-	physics_model = PhysicsBasedCableModelImpl(cable_model, input_df)
+	physics_model = LinearElasticCableModel(cable_model, input_df)
 	current_temperature = np.array([15])
 
 	# Data given by the prototype
