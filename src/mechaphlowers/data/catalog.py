@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from os import PathLike
 from pathlib import Path
 
 import pandas as pd
@@ -16,11 +17,41 @@ DATA_BASE_PATH = Path(__file__).absolute().parent
 
 
 class Catalog:
-	def __init__(self, filename, key_column_name) -> None:
+	"""Generic wrapper for tabular data read from a csv file, indexed by a `key` column."""
+
+	def __init__(self, filename: str | PathLike, key_column_name: str) -> None:
+		"""Initialize catalog from a csv file.
+
+		For now, we only support csv input files located in the `data/` folder of the source code.
+
+		Please note that the responsibility of ensuring the "uniqueness" of the `key` column is left
+		to the user: no integrity check is performed on input data.
+
+		Args:
+			filename (str | PathLike): filename of the csv data source
+			key_column_name (str): name of the column used as key (i.e. row identifier)
+		"""
 		filepath = DATA_BASE_PATH / filename
 		self._data = pd.read_csv(filepath, index_col=key_column_name)
 
 	def get(self, keys: list) -> pd.DataFrame:
+		"""Get rows from a list of keys.
+
+		If a key is present several times in the `keys` argument, the returned dataframe
+		will contain the corresponding row as many times as requested.
+
+		If any of the requested `keys` were to match several rows, all matching rows would
+		be returned.
+
+		Raises:
+			KeyError: if any of the requested `keys` doesn't match any row in the input data
+
+		Args:
+			keys (list): list of keys
+
+		Returns:
+			pd.DataFrame: requested rows
+		"""
 		return self._data.loc[keys]
 
 
