@@ -126,7 +126,7 @@ class SectionDataFrame:
 		start_value: str = between[0]
 		end_value: str = between[1]
 
-		if not (isinstance(start_value, str) and isinstance(start_value, str)):
+		if not (isinstance(start_value, str) and isinstance(end_value, str)):
 			raise TypeError(
 				"Strings are expected for support name inside the between list argument"
 			)

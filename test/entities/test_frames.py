@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from copy import copy
+from typing import Type
 
 import numpy as np
 import pandas as pd
@@ -42,27 +43,27 @@ def test_section_frame_get_coord():
 	assert isinstance(coords, np.ndarray)
 
 
-def test_select_spans__input():
+@pytest.mark.parametrize(
+	"error,case",
+	[
+		(ValueError, ["support 1", "2", "three"]),
+		(ValueError, ["support 1"]),
+		(ValueError, ["support 1", "name_not_existing"]),
+		(ValueError, ["three", "support 1"]),
+		(TypeError, "support 1"),
+		(TypeError, ["support 1", 2]),
+	],
+)
+def test_select_spans__wrong_input(error: Type[Exception], case):
 	frame = SectionDataFrame(section)
 
-	with pytest.raises(ValueError):
-		frame.select(["support 1", "2", "three"])
-		frame.select(
-			[
-				"support 1",
-			]
-		)
+	with pytest.raises(error):
+		frame.select(case)
 
-		frame.select(["support 1", "support 1"])
-		frame.select(["support 1", "name_not_existing"])
-		frame.select(["three", "support 1"])
 
-	with pytest.raises(TypeError):
-		frame.select("support 1")
-		frame.select(["string", 2])
-
+def test_select_spans__passing_input():
+	frame = SectionDataFrame(section)
 	frame_selected = frame.select(["support 1", "three"])
-
 	assert len(frame_selected.data) == 3
 	assert (
 		frame_selected.data.elevation_difference.take([1]).item()
