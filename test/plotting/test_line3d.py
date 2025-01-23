@@ -58,5 +58,6 @@ def test_plot_line3d__view_option():
 def test_plot_line3d__wrong_view_option():
 	fig = go.Figure()
 	with pytest.raises(ValueError):
-		frame.plot.line3d(fig, view="fulll")
+		frame.plot.line3d(fig, view="wrong_parameter")
+	with pytest.raises(ValueError):
 		frame.plot.line3d(fig, view=22)
