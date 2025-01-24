@@ -9,10 +9,10 @@ There are 3 external loads:
 - $Q_w$ the wind load:  
     - $Q_w = P_w \cdot (D + 2 \cdot e)$
     - Depending on cable diameter $D$, ice thickness $e$ and wind pressure $P_w$
-- $Q_{ice}$ the ice weight:  
+- $Q_{ice}$ the linear ice weight:
     - $Q_{ice} = \rho_{ice} \cdot \pi \cdot e  \cdot (e+D)$
     - Depending on the cable diameter $D$ and ice thickness $e$
-    - $\rho_{ice}$ is the ice density and can vary from 2000 to 9500 $N/m^2$. The default value is set to 6000 $N/m^2$
+    - $\rho_{ice}$ is the ice density and can vary from 2000 to 9500 $N/m^3$. The default value is set to 6000 $N/m^3$
 - $\lambda$ the cable linear weight
 
 The resultant of forces, R is equal to: $R = \sqrt{(Q_{ice}+\lambda)^2+ Q_w^2}$
