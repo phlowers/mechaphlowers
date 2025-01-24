@@ -15,13 +15,15 @@ rebuild-lockfiles: .uv
 
 .PHONY: format  ## Auto-format python source files
 format: .uv
-	uv run ruff check --fix $(sources)
 	uv run ruff format $(sources)
+
+.PHONY: check-format  ## Auto-format python source files
+check-format: .uv
+	uv run ruff format --check $(sources)
 
 .PHONY: lint  ## Lint python source files
 lint: .uv
 	uv run ruff check $(sources)
-	uv run ruff format --check $(sources)
 
 .PHONY: typing  ## Run the type-checker
 typing: .uv
