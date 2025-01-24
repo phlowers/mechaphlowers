@@ -7,7 +7,6 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
-import pandas as pd
 from pandera.typing import pandas as pdt
 
 from mechaphlowers.core.models.space_position_cable_models import (
@@ -22,7 +21,7 @@ class PhysicsBasedCableModel(ABC):
 	def __init__(
 		self,
 		sp_model: SpacePositionCableModel,
-		data_cable: pdt.DataFrame[CableArrayInput] | pd.DataFrame,
+		data_cable: pdt.DataFrame[CableArrayInput],
 	):
 		self.cable_array = CableArray(data_cable)
 		# Fetch linear weight given by user into SPModel
@@ -47,7 +46,7 @@ class PhysicsBasedCableModel(ABC):
 		"""Unstressed cable length, at a chosen reference temperature"""
 
 
-class LinearElasticCableModel(PhysicsBasedCableModel):
+class ElasticLinearCableModel(PhysicsBasedCableModel):
 	"""This model assumes that mechanical extension is linear with tension."""
 
 	def epsilon_mecha(self) -> np.ndarray:

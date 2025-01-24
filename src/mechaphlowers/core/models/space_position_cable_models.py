@@ -104,10 +104,10 @@ class SpacePositionCableModel(ABC):
 
 	@abstractmethod
 	def T_v(self, x: np.ndarray) -> np.ndarray:
-		"""Vertival tension on the cable, depending on the abscissa.
+		"""Vertical tension on the cable, depending on the abscissa.
 
 		Args:
-		x: array of abscissa, one abscissa per span
+		x: array of abscissa, one abscissa per span: should be at the same length than span_length/elevation_difference/p
 		"""
 
 	@abstractmethod
@@ -191,11 +191,10 @@ class CatenaryCableModel(SpacePositionCableModel):
 		else:
 			p = self.p
 			m = self.load_coefficient
-			lambd = self.linear_weight
-			return p * m * lambd
+			return p * m * self.linear_weight
 
 	def T_v(self, x) -> np.ndarray:
-		# an array of abscissa of the same length than the number of spans is expected
+		# an array of abscissa of the same length as the number of spans is expected
 
 		p = self.p
 		T_h = self.T_h()
@@ -203,7 +202,7 @@ class CatenaryCableModel(SpacePositionCableModel):
 		return T_v
 
 	def T_max(self, x) -> np.ndarray:
-		# an array of abscissa of the same length than the number of spans is expected
+		# an array of abscissa of the same length as the number of spans is expected
 
 		p = self.p
 		T_h = self.T_h()

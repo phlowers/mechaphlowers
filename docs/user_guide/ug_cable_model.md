@@ -121,7 +121,9 @@ $$
 
 
 
-### Extension and unstressed cable length
+### Linear elasticity model
+
+In this section, we assume the cable exhibits linear elasticity and can be described by a linear relation between stress and strain. More complex behaviors (such as plasticity) may be added later.
 
 The cable is strained when subjected to mechanical tensions or thermal changes.
 
