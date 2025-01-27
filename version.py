@@ -13,7 +13,9 @@ def format_version(version: SCMVersion) -> str:
 	In this case there is no control from this function but only from pdm backend.
 	"""
 	print("---- pdm custom build version ----")
-	print(f"INFO: Version tag: {version.version}",)
+	print(
+		f"INFO: Version tag: {version.version}",
+	)
 	test_build = os.getenv("PACKAGE_BUILD_TEST", "")
 
 	dev_str = ""
@@ -26,5 +28,7 @@ def format_version(version: SCMVersion) -> str:
 	if version.distance is None:
 		return str(version.version)
 	else:
-		print(f"INFO Version is a post release, append .post{version.distance} to version")
+		print(
+			f"INFO Version is a post release, append .post{version.distance} to version"
+		)
 		return f"{version.version}.post{version.distance}"
