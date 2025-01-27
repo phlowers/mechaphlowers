@@ -1,5 +1,6 @@
-from pdm.backend.hooks.version import SCMVersion
 import os
+
+from pdm.backend.hooks.version import SCMVersion
 
 
 def format_version(version: SCMVersion) -> str:
