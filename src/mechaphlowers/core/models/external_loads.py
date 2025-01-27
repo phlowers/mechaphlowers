@@ -10,7 +10,6 @@ import numpy as np
 
 from mechaphlowers.entities.arrays import CableArray
 
-LINEAR_WEIGHT = 15  # TODO: use value from CableArray
 ICE_DENSITY = 6_000
 
 
@@ -20,7 +19,7 @@ class IceLoad:
 		self.ice_thickness = ice_thickness
 
 	def load_coefficient(self) -> np.ndarray:  # TODO: move to separate class?
-		return self.total_value() / LINEAR_WEIGHT
+		return self.total_value() / self.cable.linear_weight
 
 	def total_value(
 		self,
@@ -33,7 +32,7 @@ class IceLoad:
 		Returns:
 			np.ndarray:
 		"""
-		return self.value() + LINEAR_WEIGHT
+		return self.value() + self.cable.linear_weight
 
 	def value(self) -> np.ndarray:
 		"""Linear weight of the ice on the cable
@@ -43,4 +42,4 @@ class IceLoad:
 		"""
 		e = self.ice_thickness
 		D = self.cable.data.diameter
-		return ICE_DENSITY * pi * e * (e + D)  # FIXME
+		return ICE_DENSITY * pi * e * (e + D)

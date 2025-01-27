@@ -130,7 +130,6 @@ class CableArray(ElementArray):
 		data_SI["diameter"] *= 1e-3
 		data_SI["young_modulus"] *= 1e9
 		data_SI["dilatation_coefficient"] *= 1e-6
-		# TODO: add linear weight at reference temperature?
 		return data_SI
 
 	@property

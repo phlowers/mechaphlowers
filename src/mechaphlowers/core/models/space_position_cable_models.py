@@ -29,9 +29,7 @@ class SpacePositionCableModel(ABC):
 		elevation_difference: np.ndarray,
 		p: np.ndarray,
 		load_coefficient: np.ndarray | None = None,
-		linear_weight: np.ndarray
-		| None = None,  # TODO: linear_weight at reference temperature? (which one?)
-		# current linear weight (at current temperature)?
+		linear_weight: np.ndarray | None = None,
 	) -> None:
 		self.span_length = span_length
 		self.elevation_difference = elevation_difference
