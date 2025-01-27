@@ -46,7 +46,7 @@ jobs:
 
       - name: ✔️ Run tests and generate coverage report
         run: |
-          uv pytest --cov-report xml --cov=mechaphlowers test/
+          uv run pytest --cov-report xml --cov=mechaphlowers test/
 
       - name: ✔️ Run Sonar analysis
         uses: sonarsource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838 # v3.1.0
