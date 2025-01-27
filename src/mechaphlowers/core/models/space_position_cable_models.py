@@ -49,6 +49,25 @@ class SpacePositionCableModel(ABC):
 
 		Returns:
 		altitudes based on the sag tension parameter "p" stored in the model.
+
+
+		x is an array of any length.
+
+		Example with 3 spans, named a, b, c:
+		
+		`span_length = [500, 600, 700]`
+
+		`p = [2_000, 1_500, 1_000]`
+	
+		`x = [x0, x1, x2, x3]`
+
+		Then, the output is:
+		```
+		z = [[z0_a, z0_b, z0_c],
+		[z1_a, z1_b, z1_c],
+		[z2_a, z2_b, z2_c],
+		[z3_a, z3_b, z3_c]]
+		```
 		"""
 
 	@abstractmethod
@@ -103,20 +122,33 @@ class SpacePositionCableModel(ABC):
 		"""
 
 	@abstractmethod
-	def T_v(self, x: np.ndarray) -> np.ndarray:
+	def T_v(self, x_one_per_span: np.ndarray) -> np.ndarray:
 		"""Vertical tension on the cable, depending on the abscissa.
 
 		Args:
-		x: array of abscissa, one abscissa per span: should be at the same length than span_length/elevation_difference/p
+		x_one_per_span: array of abscissa, one abscissa per span: should be at the same length as span_length/elevation_difference/p
+		
+		Example with 3 spans, named a, b, c:
+
+		`span_length = [500, 600, 700]`
+
+		`p = [2_000, 1_500, 1_000]`
+
+		Then, x_one_per_span must be of size 3. Each element referes to one span:\n
+		`x_one_per_span = [x_a, x_b, x_c]`
+
+		Then, the output is:
+		`T_v = [T_v(x_a), T_v(x_b), T_v(x_c)]`
 		"""
 
 	@abstractmethod
-	# Rename this method?
-	def T_max(self, x: np.ndarray) -> np.ndarray:
+	# Rename this method? This method computes the norm, not necessarily the max. This is only the max for x_m and x_n
+	def T_max(self, x_one_per_span: np.ndarray) -> np.ndarray:
 		"""Norm of the tension on the cable.
+		Same as T_v, x_one_per_span must of same length as the number of spans.
 
 		Args:
-		x: array of abscissa, one abscissa per span
+		x_one_per_span: array of abscissa, one abscissa per span
 		"""
 
 	@abstractmethod
@@ -193,20 +225,20 @@ class CatenaryCableModel(SpacePositionCableModel):
 			m = self.load_coefficient
 			return p * m * self.linear_weight
 
-	def T_v(self, x) -> np.ndarray:
+	def T_v(self, x_one_per_span) -> np.ndarray:
 		# an array of abscissa of the same length as the number of spans is expected
 
 		p = self.p
 		T_h = self.T_h()
-		T_v = T_h * np.sinh(x / p)
+		T_v = T_h * np.sinh(x_one_per_span / p)
 		return T_v
 
-	def T_max(self, x) -> np.ndarray:
+	def T_max(self, x_one_per_span) -> np.ndarray:
 		# an array of abscissa of the same length as the number of spans is expected
 
 		p = self.p
 		T_h = self.T_h()
-		return T_h * np.cosh(x / p)
+		return T_h * np.cosh(x_one_per_span / p)
 
 	def T_mean_m(self) -> np.ndarray:
 		x_m = self.x_m()

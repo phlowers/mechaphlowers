@@ -65,7 +65,6 @@ class CableArrayInput(pa.DataFrameModel):
 	dilatation_coefficient: Dilataion coefficient in 10⁻⁶/°C
 	temperature_reference: Temperature used to compute unstressed cable length (usually 0°C or 15°C)
 
-	TODO: change the format to input only a float, and not an array of floats
 	"""
 
 	section: pdt.Series[float] = pa.Field(coerce=True)

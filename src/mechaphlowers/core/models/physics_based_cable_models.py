@@ -32,7 +32,6 @@ class PhysicsBasedCableModel(ABC):
 	def epsilon_mecha(self) -> np.ndarray:
 		"""Mechanical part of the relative extension of the cable."""
 
-	# TODO: change argument type: np array -> float
 	@abstractmethod
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
 		"""Thermal part of the relative extension of the cable, compared to a temperature_reference."""
