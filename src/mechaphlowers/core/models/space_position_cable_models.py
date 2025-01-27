@@ -54,19 +54,21 @@ class SpacePositionCableModel(ABC):
 		x is an array of any length.
 
 		Example with 3 spans, named a, b, c:
-		
+
 		`span_length = [500, 600, 700]`
 
 		`p = [2_000, 1_500, 1_000]`
-	
+
 		`x = [x0, x1, x2, x3]`
 
 		Then, the output is:
 		```
-		z = [[z0_a, z0_b, z0_c],
-		[z1_a, z1_b, z1_c],
-		[z2_a, z2_b, z2_c],
-		[z3_a, z3_b, z3_c]]
+		z = [
+		    [z0_a, z0_b, z0_c],
+		    [z1_a, z1_b, z1_c],
+		    [z2_a, z2_b, z2_c],
+		    [z3_a, z3_b, z3_c],
+		]
 		```
 		"""
 
@@ -127,7 +129,7 @@ class SpacePositionCableModel(ABC):
 
 		Args:
 		x_one_per_span: array of abscissa, one abscissa per span: should be at the same length as span_length/elevation_difference/p
-		
+
 		Example with 3 spans, named a, b, c:
 
 		`span_length = [500, 600, 700]`
