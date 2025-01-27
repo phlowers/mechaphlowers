@@ -4,6 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from typing import Optional
 import numpy as np
 import pandera as pa
 from pandera.typing import pandas as pdt
@@ -70,6 +71,12 @@ class CableArrayInput(pa.DataFrameModel):
 	section: pdt.Series[float] = pa.Field(coerce=True)
 	diameter: pdt.Series[float] = pa.Field(coerce=True)
 	linear_weight: pdt.Series[float] = pa.Field(coerce=True)
+	# Find a way to write: required young modulus OR coefs
 	young_modulus: pdt.Series[float] = pa.Field(coerce=True)
+	a0: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+	a1: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+	a2: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+	a3: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+	a4: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
 	temperature_reference: pdt.Series[float] = pa.Field(coerce=True)
