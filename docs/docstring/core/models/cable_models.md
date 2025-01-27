@@ -1,1 +1,0 @@
-::: mechaphlowers.core.models.cable_models

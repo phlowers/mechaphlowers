@@ -11,7 +11,7 @@ import numpy as np
 from typing_extensions import Self
 
 from mechaphlowers.core.geometry import references
-from mechaphlowers.core.models.cable_models import (
+from mechaphlowers.core.models.space_position_cable_models import (
 	CatenaryCableModel,
 	SpacePositionCableModel,
 )
@@ -30,6 +30,7 @@ class SectionDataFrame:
 	Inspired from dataframe, it is designed to handle data and models.
 	TODO: for the moment the initialization with SectionArray and SpacePositionCableModel is explicit.
 	It is not intended to be later.
+
 	"""
 
 	def __init__(
