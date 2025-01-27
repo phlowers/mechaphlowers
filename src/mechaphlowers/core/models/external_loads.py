@@ -20,9 +20,9 @@ class IceLoad:
 		self.ice_thickness = ice_thickness
 
 	def load_coefficient(self) -> np.ndarray:  # TODO: move to separate class?
-		return self.total_linear_force() / LINEAR_WEIGHT
+		return self.total_value() / LINEAR_WEIGHT
 
-	def total_linear_force(
+	def total_value(
 		self,
 	) -> np.ndarray:  # TODO: move to separate class?
 		"""Linear force applied on the cable, for each span
@@ -33,9 +33,9 @@ class IceLoad:
 		Returns:
 			np.ndarray:
 		"""
-		return self.linear_force() + LINEAR_WEIGHT
+		return self.value() + LINEAR_WEIGHT
 
-	def linear_force(self) -> np.ndarray:  # TODO: rename -> .value?
+	def value(self) -> np.ndarray:
 		"""Linear weight of the ice on the cable
 
 		Returns:

@@ -35,4 +35,4 @@ def test_compute_ice_load(cable_array_input_data: dict[str, list]) -> None:
 
 	ice_load = IceLoad(cable, ice_thickness=np.array([0.01, 0.02]))
 
-	ice_load.linear_force()  # TODO: compare with actual value
+	ice_load.value()  # TODO: compare with actual value
