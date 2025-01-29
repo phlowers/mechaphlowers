@@ -10,10 +10,10 @@ import numpy as np
 
 from mechaphlowers.entities.arrays import CableArray
 
-ICE_DENSITY = 6_000
+ICE_DENSITY = 6_000  # TODO: make configurable
 
 
-class ExternalLoads:
+class ExternalLoads:  # TODO: rename? "cas de charge"
 	def __init__(
 		self,
 		cable: CableArray,
@@ -28,7 +28,7 @@ class ExternalLoads:
 		"""Load coefficient, accounting for external loads"""
 		return self.total_load() / self.cable.data.linear_weight
 
-	def total_load(
+	def total_load(  # TODO: rename?
 		self,
 	) -> np.ndarray:
 		"""Linear force applied on the cable, for each span
@@ -68,3 +68,5 @@ class ExternalLoads:
 			P_w * (D + 2 * e)
 		)  # FIXME: mypy: Incompatible return value type (got "TimedeltaSeries", expected "ndarray[Any, Any]")
 		# Idea: define wind_pressure and ice_thickness in a df in ExternalInputArray
+
+	# TODO: compute beta

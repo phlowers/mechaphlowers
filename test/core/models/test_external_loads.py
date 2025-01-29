@@ -22,6 +22,7 @@ NB_SPAN = 3
 # in later issue?
 @pytest.fixture
 def cable() -> CableArray:
+	# TODO: use np.full?
 	cable_array_input_data = {
 		"section": [345.5] * NB_SPAN,
 		"diameter": [22.4] * NB_SPAN,
