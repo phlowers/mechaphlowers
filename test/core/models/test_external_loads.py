@@ -12,50 +12,60 @@ from mechaphlowers.core.models.external_loads import ExternalLoads
 from mechaphlowers.entities.arrays import CableArray
 from mechaphlowers.entities.schemas import CableArrayInput
 
+NB_SPAN = 3
+
+
+# TODO: compare with actual values
+
 
 # TODO: refacto: merge with fixture in test_physics_based_cable_model?
 # in later issue?
 @pytest.fixture
-def cable_array_input_data() -> dict[str, list]:
-	return {
-		"section": [345.5, 345.5],
-		"diameter": [22.4, 22.4],
-		"linear_weight": [9.6, 9.6],
-		"young_modulus": [59, 59],
-		"dilatation_coefficient": [23, 23],
-		"temperature_reference": [15, 15],
+def cable() -> CableArray:
+	cable_array_input_data = {
+		"section": [345.5] * NB_SPAN,
+		"diameter": [22.4] * NB_SPAN,
+		"linear_weight": [9.6] * NB_SPAN,
+		"young_modulus": [59] * NB_SPAN,
+		"dilatation_coefficient": [23] * NB_SPAN,
+		"temperature_reference": [15] * NB_SPAN,
 	}
-
-
-def test_compute_ice_load(cable_array_input_data: dict[str, list]) -> None:
 	cable_input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
 		cable_array_input_data
 	)
-	cable = CableArray(cable_input_df)
+	return CableArray(cable_input_df)
 
+
+def test_compute_ice_load(cable: CableArray) -> None:
 	external_loads = ExternalLoads(
 		cable,
-		ice_thickness=np.array([0.01, 0.02]),
+		ice_thickness=np.array([0.01, 0.02, 0.0]),
 		wind_pressure=np.array([0, 0]),
 	)
 	# TODO: improve API design?
 	# external_loads = ExternalLoads(cable, ice_thickness=np.array([0.01, 0.02]))
 
-	external_loads.ice_load()  # TODO: compare with actual value
+	external_loads.ice_load()
 
 
-def test_compute_wind_load(cable_array_input_data: dict[str, list]) -> None:
-	cable_input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		cable_array_input_data
-	)
-	cable = CableArray(cable_input_df)
-
+def test_compute_wind_load(cable: CableArray) -> None:
 	external_loads = ExternalLoads(
 		cable,
-		ice_thickness=np.array([0, 0]),
-		wind_pressure=np.array([240, -240]),
+		ice_thickness=np.array([0.01, 0.02, 0.0]),
+		wind_pressure=np.array([240.12, 0, -240.13]),
 	)
 	# TODO: improve API design?
 	# external_loads = ExternalLoads(cable, wind_pressure=np.array([240] * 2))
 
-	external_loads.wind_load()  # TODO: compare with actual value
+	external_loads.wind_load()
+
+
+def test_total_load(cable: CableArray) -> None:
+	external_loads = ExternalLoads(
+		cable,
+		ice_thickness=np.array([0.01, 0.02, 0.0]),
+		wind_pressure=np.array([240.12, 0, -240.13]),
+	)
+
+	external_loads.total_load()
+	external_loads.load_coefficient()

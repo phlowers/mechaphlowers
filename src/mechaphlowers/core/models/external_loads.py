@@ -35,13 +35,14 @@ class ExternalLoads:
 
 		Returns:
 			np.ndarray: result of the cable's own weight and
-			the weight of the ice on the cable
+			the external load
 		"""
 		return self.total_external_load() + self.cable.data.linear_weight
 
 	def total_external_load(
 		self,
 	) -> np.ndarray:
+		"""Linear force applied on the cable due to external loads"""
 		return self.ice_load() + self.wind_load()
 
 	def ice_load(self) -> np.ndarray:
