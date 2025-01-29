@@ -8,13 +8,15 @@ from abc import ABC, abstractmethod
 from typing import Type
 
 import numpy as np
-from pandera.typing import pandas as pdt
 
-from mechaphlowers.core.models.mecha_cable_extension_models import ElasticLinearExtensionModel, MechaCableExtensionModel
+from mechaphlowers.core.models.mecha_cable_extension_models import (
+	ElasticLinearExtensionModel,
+	MechaCableExtensionModel,
+)
 from mechaphlowers.core.models.space_position_cable_models import (
 	SpacePositionCableModel,
 )
-from mechaphlowers.entities.arrays import CableArray, CableArrayInput
+from mechaphlowers.entities.arrays import CableArray
 
 
 class CableExtensionModel(ABC):
@@ -23,18 +25,16 @@ class CableExtensionModel(ABC):
 	def __init__(
 		self,
 		sp_model: SpacePositionCableModel,
-		data_cable: pdt.DataFrame[CableArrayInput],
-		mecha_model_type: Type[MechaCableExtensionModel] = ElasticLinearExtensionModel
+		cable_array: CableArray,
+		mecha_model_type: Type[
+			MechaCableExtensionModel
+		] = ElasticLinearExtensionModel,
 	):
-		self.cable_array = CableArray(data_cable)
 		# Fetch linear weight given by user into SPModel
-		sp_model.linear_weight = data_cable["linear_weight"].to_numpy()
+		self.cable_array = cable_array
+		sp_model.linear_weight = cable_array.data["linear_weight"].to_numpy()
 		self.sp_model = sp_model
-		self.mecha_model = mecha_model_type(self.sp_model, data_cable)
-
-	# @abstractmethod
-	# def epsilon_mecha(self) -> np.ndarray:
-	# 	"""Mechanical part of the relative extension of the cable."""
+		self.mecha_model = mecha_model_type(self.sp_model, cable_array)
 
 	@abstractmethod
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
@@ -52,19 +52,15 @@ class CableExtensionModel(ABC):
 class CableExtensionModelImpl(CableExtensionModel):
 	"""This model assumes that mechanical extension is linear with tension."""
 
-	# def epsilon_mecha(self) -> np.ndarray:
-	# 	T_mean = self.sp_model.T_mean()
-	# 	E = self.cable_array.data["young_modulus"].to_numpy()
-	# 	S = self.cable_array.data["section"].to_numpy()
-	# 	return T_mean / (E * S)
-
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
 		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
 		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
 		return (current_temperature - temp_ref) * alpha
 
 	def epsilon(self, current_temperature: np.ndarray) -> np.ndarray:
-		return self.mecha_model.epsilon_mecha() + self.epsilon_therm(current_temperature)
+		return self.mecha_model.epsilon_mecha() + self.epsilon_therm(
+			current_temperature
+		)
 
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
 		L = self.sp_model.L()
