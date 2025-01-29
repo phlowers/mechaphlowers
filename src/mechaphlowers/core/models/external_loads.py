@@ -13,33 +13,57 @@ from mechaphlowers.entities.arrays import CableArray
 ICE_DENSITY = 6_000
 
 
-class IceLoad:
-	def __init__(self, cable: CableArray, ice_thickness: np.ndarray) -> None:
+class ExternalLoads:
+	def __init__(
+		self,
+		cable: CableArray,
+		ice_thickness: np.ndarray,
+		wind_pressure: np.ndarray,
+	) -> None:
 		self.cable = cable
 		self.ice_thickness = ice_thickness
+		self.wind_pressure = wind_pressure
 
-	def load_coefficient(self) -> np.ndarray:  # TODO: move to separate class?
-		return self.total_value() / self.cable.linear_weight
+	def load_coefficient(self) -> np.ndarray:
+		"""Load coefficient, accounting for external loads"""
+		return self.total_load() / self.cable.data.linear_weight
 
-	def total_value(
+	def total_load(
 		self,
-	) -> np.ndarray:  # TODO: move to separate class?
+	) -> np.ndarray:
 		"""Linear force applied on the cable, for each span
 
-		This force is the result of the cable's own weight and
-		the weight of the ice on the cable.
-
 		Returns:
-			np.ndarray:
+			np.ndarray: result of the cable's own weight and
+			the weight of the ice on the cable
 		"""
-		return self.value() + self.cable.linear_weight
+		return self.total_external_load() + self.cable.data.linear_weight
 
-	def value(self) -> np.ndarray:
+	def total_external_load(
+		self,
+	) -> np.ndarray:
+		return self.ice_load() + self.wind_load()
+
+	def ice_load(self) -> np.ndarray:
 		"""Linear weight of the ice on the cable
 
 		Returns:
-			np.ndarray: ice linear weight for each span
+			np.ndarray: linear weight of the ice for each span
 		"""
 		e = self.ice_thickness
 		D = self.cable.data.diameter
 		return ICE_DENSITY * pi * e * (e + D)
+
+	def wind_load(self) -> np.ndarray:
+		"""Linear force applied on the cable by the wind.
+
+		Returns:
+			np.ndarray: linear force applied on the cable by the wind
+		"""
+		P_w = self.wind_pressure
+		D = self.cable.data.diameter
+		e = self.ice_thickness
+		return (
+			P_w * (D + 2 * e)
+		)  # FIXME: mypy: Incompatible return value type (got "TimedeltaSeries", expected "ndarray[Any, Any]")
+		# Idea: define wind_pressure and ice_thickness in a df in ExternalInputArray
