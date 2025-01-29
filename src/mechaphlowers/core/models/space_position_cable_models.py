@@ -136,7 +136,8 @@ class SpacePositionCableModel(ABC):
 
 		`p = [2_000, 1_500, 1_000]`
 
-		Then, x_one_per_span must be of size 3. Each element referes to one span:\n
+		Then, x_one_per_span must be of size 3. Each element refers to one span:
+
 		`x_one_per_span = [x_a, x_b, x_c]`
 
 		Then, the output is:
