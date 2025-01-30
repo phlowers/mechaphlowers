@@ -61,12 +61,27 @@ def test_compute_wind_load(cable: CableArray) -> None:
 	external_loads.wind_load()
 
 
-def test_total_load(cable: CableArray) -> None:
+def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
 	external_loads = ExternalLoads(
 		cable,
-		ice_thickness=np.array([0.01, 0.02, 0.0]),
-		wind_pressure=np.array([240.12, 0, -240.13]),
+		ice_thickness=np.array(
+			[
+				0,
+				0.01,
+				0.02,
+				0.0,
+			]
+		),
+		wind_pressure=np.array(
+			[
+				0,
+				240.12,
+				0.0,
+				240.13,
+			]
+		),
 	)
 
 	external_loads.total_load()
 	external_loads.load_coefficient()
+	external_loads.load_angle()

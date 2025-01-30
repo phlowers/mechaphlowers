@@ -43,7 +43,10 @@ class ExternalLoads:  # TODO: rename? "cas de charge"
 		self,
 	) -> np.ndarray:
 		"""Linear force applied on the cable due to external loads"""
-		return self.ice_load() + self.wind_load()
+		q_wind = self.wind_load()
+		q_ice = self.ice_load()
+		linear_weight = self.cable.data.linear_weight
+		return np.sqrt((q_ice + linear_weight) ** 2 + q_wind**2)
 
 	def ice_load(self) -> np.ndarray:
 		"""Linear weight of the ice on the cable
@@ -69,4 +72,16 @@ class ExternalLoads:  # TODO: rename? "cas de charge"
 		)  # FIXME: mypy: Incompatible return value type (got "TimedeltaSeries", expected "ndarray[Any, Any]")
 		# Idea: define wind_pressure and ice_thickness in a df in ExternalInputArray
 
-	# TODO: compute beta
+	def load_angle(self) -> np.ndarray:  # TODO: rename?
+		"""Load angle
+
+		TODO: add precise definition?
+
+		Returns:
+			np.array: load angle (beta) for each span
+		"""
+		# TODO: improve perf? cf. trig schema
+		return np.arctan(
+			self.wind_load()
+			/ (self.ice_load() + self.cable.data.linear_weight)
+		)
