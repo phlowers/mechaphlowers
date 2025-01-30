@@ -13,7 +13,7 @@ from mechaphlowers.entities.arrays import CableArray
 ICE_DENSITY = 6_000  # TODO: make configurable
 
 
-class ExternalLoads:  # TODO: rename? "cas de charge"
+class WeatherLoads:
 	def __init__(
 		self,
 		cable: CableArray,
@@ -26,9 +26,9 @@ class ExternalLoads:  # TODO: rename? "cas de charge"
 
 	def load_coefficient(self) -> np.ndarray:
 		"""Load coefficient, accounting for external loads"""
-		return self.total_load() / self.cable.data.linear_weight
+		return self.total_with_linear_weight() / self.cable.data.linear_weight
 
-	def total_load(  # TODO: rename?
+	def total_with_linear_weight(
 		self,
 	) -> np.ndarray:
 		"""Linear force applied on the cable, for each span
@@ -37,9 +37,9 @@ class ExternalLoads:  # TODO: rename? "cas de charge"
 			np.ndarray: result of the cable's own weight and
 			the external load
 		"""
-		return self.total_external_load() + self.cable.data.linear_weight
+		return self.total_value() + self.cable.data.linear_weight
 
-	def total_external_load(
+	def total_value(
 		self,
 	) -> np.ndarray:
 		"""Linear force applied on the cable due to external loads"""

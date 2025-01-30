@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from pandera.typing import pandas as pdt
 
-from mechaphlowers.core.models.external_loads import ExternalLoads
+from mechaphlowers.core.models.external_loads import WeatherLoads
 from mechaphlowers.entities.arrays import CableArray
 from mechaphlowers.entities.schemas import CableArrayInput
 
@@ -37,31 +37,31 @@ def cable() -> CableArray:
 
 
 def test_compute_ice_load(cable: CableArray) -> None:
-	external_loads = ExternalLoads(
+	external_loads = WeatherLoads(
 		cable,
 		ice_thickness=np.array([0.01, 0.02, 0.0]),
 		wind_pressure=np.array([0, 0]),
 	)
 	# TODO: improve API design?
-	# external_loads = ExternalLoads(cable, ice_thickness=np.array([0.01, 0.02]))
+	# external_loads = WeatherLoads(cable, ice_thickness=np.array([0.01, 0.02]))
 
 	external_loads.ice_load()
 
 
 def test_compute_wind_load(cable: CableArray) -> None:
-	external_loads = ExternalLoads(
+	external_loads = WeatherLoads(
 		cable,
 		ice_thickness=np.array([0.01, 0.02, 0.0]),
 		wind_pressure=np.array([240.12, 0, -240.13]),
 	)
 	# TODO: improve API design?
-	# external_loads = ExternalLoads(cable, wind_pressure=np.array([240] * 2))
+	# external_loads = WeatherLoads(cable, wind_pressure=np.array([240] * 2))
 
 	external_loads.wind_load()
 
 
 def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
-	external_loads = ExternalLoads(
+	external_loads = WeatherLoads(
 		cable,
 		ice_thickness=np.array(
 			[
@@ -79,6 +79,6 @@ def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
 		),
 	)
 
-	external_loads.total_load()
+	external_loads.total_with_linear_weight()
 	external_loads.load_coefficient()
 	external_loads.load_angle()
