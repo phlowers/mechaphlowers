@@ -22,14 +22,13 @@ NB_SPAN = 3
 # in later issue?
 @pytest.fixture
 def cable() -> CableArray:
-	# TODO: use np.full?
 	cable_array_input_data = {
-		"section": [345.5] * NB_SPAN,
-		"diameter": [22.4] * NB_SPAN,
-		"linear_weight": [9.6] * NB_SPAN,
-		"young_modulus": [59] * NB_SPAN,
-		"dilatation_coefficient": [23] * NB_SPAN,
-		"temperature_reference": [15] * NB_SPAN,
+		"section": np.full(NB_SPAN, [345.5]),
+		"diameter": np.full(NB_SPAN, [22.4]),
+		"linear_weight": np.full(NB_SPAN, [9.6]),
+		"young_modulus": np.full(NB_SPAN, [59]),
+		"dilatation_coefficient": np.full(NB_SPAN, [23]),
+		"temperature_reference": np.full(NB_SPAN, [15]),
 	}
 	cable_input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
 		cable_array_input_data
@@ -66,7 +65,6 @@ def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
 		cable,
 		ice_thickness=np.array(
 			[
-				0,
 				0.01,
 				0.02,
 				0.0,
@@ -74,7 +72,6 @@ def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
 		),
 		wind_pressure=np.array(
 			[
-				0,
 				240.12,
 				0.0,
 				240.13,
