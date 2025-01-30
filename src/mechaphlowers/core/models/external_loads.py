@@ -7,8 +7,10 @@
 from math import pi
 
 import numpy as np
+from pandera.typing import pandas as pdt
 
 from mechaphlowers.entities.arrays import CableArray
+from mechaphlowers.entities.schemas import LoadResultOutput
 
 DEFAULT_ICE_DENSITY = 6_000
 
@@ -26,30 +28,36 @@ class WeatherLoads:
 		self.wind_pressure = wind_pressure
 		self.ice_density = ice_density
 
-	def total_value(
-		self,
-	) -> np.ndarray:
-		"""Linear force (R) applied on the cable due to weather loads"""
-		q_wind = self.wind_load()
-		q_ice = self.ice_load()
+	def result(self) -> pdt.DataFrame[LoadResultOutput]:
 		linear_weight = self.cable.data.linear_weight
-		return np.sqrt((q_ice + linear_weight) ** 2 + q_wind**2)
 
-	def load_coefficient(self) -> np.ndarray:
-		"""Load coefficient, accounting for external loads"""
-		return self.total_value() / self.cable.data.linear_weight
+		wind_load = self.wind_load()
+		ice_load = self.ice_load()
 
-	def load_angle(self) -> np.ndarray:
+		load_angle = np.arctan(wind_load / (ice_load + linear_weight))
+		total_value = self.total_value(wind_load, ice_load, linear_weight)
+		load_coefficient = total_value / linear_weight
+
+		return pdt.DataFrame[LoadResultOutput](
+			{
+				"load_coefficient": load_coefficient,
+				"load_angle": load_angle,
+			}
+		)
+
+	@staticmethod
+	def load_angle(wind_load, ice_load, linear_weight) -> np.ndarray:
 		"""Load angle (in radians)
 
 		Returns:
 			np.array: load angle (beta) for each span
 		"""
-		# TODO: improve perf? cf. trig schema
-		return np.arctan(
-			self.wind_load()
-			/ (self.ice_load() + self.cable.data.linear_weight)
-		)
+		return np.arctan(wind_load / ice_load + linear_weight)
+
+	@staticmethod
+	def total_value(wind_load, ice_load, linear_weight) -> np.ndarray:
+		"""Norm of the force (R) applied on the cable due to weather loads, per meter cable"""
+		return np.sqrt((ice_load + linear_weight) ** 2 + wind_load**2)
 
 	def ice_load(self) -> np.ndarray:
 		"""Linear weight of the ice on the cable

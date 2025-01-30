@@ -15,7 +15,7 @@ from mechaphlowers.entities.schemas import CableArrayInput
 NB_SPAN = 3
 
 
-# TODO: compare with actual values
+# TODO: compare with actual values from prototype?
 
 
 # TODO: refacto: merge with fixture in test_physics_based_cable_model?
@@ -79,5 +79,6 @@ def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
 		),
 	)
 
-	external_loads.load_coefficient()
-	external_loads.load_angle()
+	result = external_loads.result()
+	result.load_coefficient
+	result.load_angle
