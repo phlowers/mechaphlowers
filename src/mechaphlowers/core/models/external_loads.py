@@ -10,7 +10,7 @@ import numpy as np
 
 from mechaphlowers.entities.arrays import CableArray
 
-ICE_DENSITY = 6_000  # TODO: make configurable
+DEFAULT_ICE_DENSITY = 6_000
 
 
 class WeatherLoads:
@@ -19,10 +19,12 @@ class WeatherLoads:
 		cable: CableArray,
 		ice_thickness: np.ndarray,
 		wind_pressure: np.ndarray,
+		ice_density: float = DEFAULT_ICE_DENSITY,
 	) -> None:
 		self.cable = cable
 		self.ice_thickness = ice_thickness
 		self.wind_pressure = wind_pressure
+		self.ice_density = ice_density
 
 	def load_coefficient(self) -> np.ndarray:
 		"""Load coefficient, accounting for external loads"""
@@ -56,7 +58,7 @@ class WeatherLoads:
 		"""
 		e = self.ice_thickness
 		D = self.cable.data.diameter
-		return ICE_DENSITY * pi * e * (e + D)
+		return self.ice_density * pi * e * (e + D)
 
 	def wind_load(self) -> np.ndarray:
 		"""Linear force applied on the cable by the wind.
@@ -67,12 +69,9 @@ class WeatherLoads:
 		P_w = self.wind_pressure
 		D = self.cable.data.diameter
 		e = self.ice_thickness
-		return (
-			P_w * (D + 2 * e)
-		)  # FIXME: mypy: Incompatible return value type (got "TimedeltaSeries", expected "ndarray[Any, Any]")
-		# Idea: define wind_pressure and ice_thickness in a df in ExternalInputArray
+		return P_w * (D + 2 * e)
 
-	def load_angle(self) -> np.ndarray:  # TODO: rename?
+	def load_angle(self) -> np.ndarray:
 		"""Load angle
 
 		TODO: add precise definition?
