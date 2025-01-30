@@ -10,7 +10,6 @@ from pandera.typing import pandas as pdt
 
 from mechaphlowers.core.models.mecha_cable_extension_models import (
 	ElasticLinearExtensionModel,
-	ElasticPolynomialExtensionModel,
 )
 from mechaphlowers.core.models.space_position_cable_models import (
 	CatenaryCableModel,
@@ -52,35 +51,6 @@ def test_elastic_linear_cable_impl(
 
 	linear_mecha_model = ElasticLinearExtensionModel(cable_model, cable_array)
 	linear_mecha_model.epsilon_mecha()
-
-
-def test_poly_extension_cable_impl(
-	cable_array_input_data: dict,
-) -> None:
-	a = np.array([501.3, 499.0])
-	b = np.array([0.0, -5.0])
-	p = np.array([2_112.2, 2_112.0])
-	lambd = np.array([9.6, 9.6])
-	m = np.array([1, 1])
-
-	cable_model = CatenaryCableModel(
-		a, b, p, load_coefficient=m, linear_weight=lambd
-	)
-
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		cable_array_input_data
-	)
-	coefs_poly_heart = np.array([0, 38_440])
-	coefs_poly_conductor = np.array(
-		[0, 26_760, -6344000, 646900000, -23640000000]
-	)
-
-	cable_array = CableArray(input_df, coefs_poly_heart, coefs_poly_conductor)
-	polynomial_mecha_model = ElasticPolynomialExtensionModel(
-		cable_model, cable_array
-	)
-	# Test not working: returns no solutions
-	polynomial_mecha_model.epsilon_mecha()
 
 
 def test_physics_cable__first_example() -> None:

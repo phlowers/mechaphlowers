@@ -26,6 +26,16 @@ class MechaCableExtensionModel(ABC):
 		self.cable_array = cable_array
 		self.sp_model = sp_model
 
+	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
+		"""Thermal part of the relative extension of the cable, compared to a temperature_reference."""
+		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
+		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
+		return (current_temperature - temp_ref) * alpha
+
+	def epsilon(self, current_temperature: np.ndarray) -> np.ndarray:
+		"""Total strain of the cable."""
+		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
+
 	@abstractmethod
 	def epsilon_mecha(self) -> np.ndarray:
 		"""Mechanical part of the relative extension of the cable."""
@@ -39,38 +49,3 @@ class ElasticLinearExtensionModel(MechaCableExtensionModel):
 		E = self.cable_array.data["young_modulus"].to_numpy()
 		S = self.cable_array.data["section"].to_numpy()
 		return T_mean / (E * S)
-
-
-class ElasticPolynomialExtensionModel(MechaCableExtensionModel):
-	def epsilon_mecha(self) -> np.ndarray:
-		# values hardcoded right now
-		min = 0.0
-		max = 0.01
-		T_mean = self.sp_model.T_mean()
-		S = self.cable_array.data["section"].to_numpy()
-
-		poly_heart = self.cable_array.poly_heart
-		poly_conductor = self.cable_array.poly_conductor
-		poly_array = np.full(T_mean.shape, poly_heart + poly_conductor)
-
-		poly_to_resolve = poly_array - T_mean / S
-		# Can cause performance issues
-		# use .toList() instead?
-		all_roots = [poly.roots() for poly in poly_to_resolve]
-		real_roots_in_range = np.array(
-			[
-				[
-					root.real
-					for root in roots_one_poly
-					if (root.imag == 0 and (min <= root and root <= max))
-				]
-				for roots_one_poly in all_roots
-			]
-		)
-
-		# assert len(real_roots_in_range) == 1, len(real_roots_in_range)  # TODO
-		return real_roots_in_range.T[:, 0]
-
-
-class ElasticPolynomialWithPreLoadExtensionModel(MechaCableExtensionModel):
-	pass
