@@ -72,9 +72,7 @@ class WeatherLoads:
 		return P_w * (D + 2 * e)
 
 	def load_angle(self) -> np.ndarray:
-		"""Load angle
-
-		TODO: add precise definition?
+		"""Load angle (in radians)
 
 		Returns:
 			np.array: load angle (beta) for each span
