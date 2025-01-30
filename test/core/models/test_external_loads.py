@@ -79,6 +79,5 @@ def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
 		),
 	)
 
-	external_loads.total_with_linear_weight()
 	external_loads.load_coefficient()
 	external_loads.load_angle()
