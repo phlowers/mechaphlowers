@@ -42,13 +42,17 @@ def test_physics_cable_impl(
 	cable_model = CatenaryCableModel(
 		a, b, p, load_coefficient=m, linear_weight=lambd
 	)
+	tension_mean = cable_model.T_mean()
+	cable_length = cable_model.L()
 
 	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
 		cable_array_input_data
 	)
 	cable_array = CableArray(input_df)
 
-	physics_model = PhysicsBasedCableModel(cable_model, cable_array)
+	physics_model = PhysicsBasedCableModel(
+		cable_array, tension_mean, cable_length
+	)
 	current_temperature = np.array([20, 20])
 	physics_model.L_ref(current_temperature)
 
@@ -69,18 +73,27 @@ def test_physics_cable__first_example() -> None:
 	a = np.array([500])
 	b = np.array([0.0])
 	p = np.array([2_000])
+	linear_weight = np.array([9.55494])
 	m = np.array([1])
 
-	cable_model = CatenaryCableModel(a, b, p, load_coefficient=m)
-
-	physics_model = PhysicsBasedCableModel(cable_model, cable_array)
+	cable_model = CatenaryCableModel(
+		a, b, p, load_coefficient=m, linear_weight=linear_weight
+	)
+	tension_mean = cable_model.T_mean()
+	cable_length = cable_model.L()
+	physics_model = PhysicsBasedCableModel(
+		cable_array, tension_mean, cable_length
+	)
 	current_temperature = np.array([15])
 
 	# Data given by the prototype
-	assert abs(physics_model.mecha_model.epsilon_mecha() - 0.00093978) < 0.01
+	assert (
+		abs(physics_model.deformation_model.epsilon_mecha() - 0.00093978)
+		< 0.01
+	)
 	assert (
 		abs(
-			physics_model.mecha_model.epsilon_therm(current_temperature)
+			physics_model.deformation_model.epsilon_therm(current_temperature)
 			+ 0.000345
 		)
 		< 0.01

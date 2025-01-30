@@ -8,9 +8,6 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from mechaphlowers.core.models.space_position_cable_models import (
-	SpacePositionCableModel,
-)
 from mechaphlowers.entities.arrays import CableArray
 
 
@@ -20,11 +17,11 @@ class CableDeformationModel(ABC):
 
 	def __init__(
 		self,
-		sp_model: SpacePositionCableModel,
 		cable_array: CableArray,
+		tension_mean: np.ndarray,
 	):
 		self.cable_array = cable_array
-		self.sp_model = sp_model
+		self.tension_mean = tension_mean
 
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
 		"""Thermal part of the relative extension of the cable, compared to a temperature_reference."""
@@ -45,7 +42,7 @@ class LinearCableDeformationModel(CableDeformationModel):
 	"""This model assumes that mechanical extension is linear with tension."""
 
 	def epsilon_mecha(self) -> np.ndarray:
-		T_mean = self.sp_model.T_mean()
+		T_mean = self.tension_mean
 		E = self.cable_array.data["young_modulus"].to_numpy()
 		S = self.cable_array.data["section"].to_numpy()
 		return T_mean / (E * S)

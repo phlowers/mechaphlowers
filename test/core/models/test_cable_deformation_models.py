@@ -42,14 +42,14 @@ def test_elastic_linear_cable_impl(
 	cable_model = CatenaryCableModel(
 		a, b, p, load_coefficient=m, linear_weight=lambd
 	)
+	tension_mean = cable_model.T_mean()
 
 	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
 		cable_array_input_data
 	)
 
 	cable_array = CableArray(input_df)
-
-	linear_mecha_model = LinearCableDeformationModel(cable_model, cable_array)
+	linear_mecha_model = LinearCableDeformationModel(cable_array, tension_mean)
 	linear_mecha_model.epsilon_mecha()
 
 
@@ -74,9 +74,9 @@ def test_physics_cable__first_example() -> None:
 	cable_model = CatenaryCableModel(
 		a, b, p, load_coefficient=m, linear_weight=linear_weight
 	)
-
+	tension_mean = cable_model.T_mean()
 	cable_array = CableArray(input_df, np.array([0]), np.array([0]))
-	mecha_model = LinearCableDeformationModel(cable_model, cable_array)
+	mecha_model = LinearCableDeformationModel(cable_array, tension_mean)
 
 	# Data given by the prototype
 	assert abs(mecha_model.epsilon_mecha() - 0.00093978) < 0.01

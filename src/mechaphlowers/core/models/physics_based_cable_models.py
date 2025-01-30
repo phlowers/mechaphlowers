@@ -13,9 +13,6 @@ from mechaphlowers.core.models.cable_deformation_models import (
 	CableDeformationModel,
 	LinearCableDeformationModel,
 )
-from mechaphlowers.core.models.space_position_cable_models import (
-	SpacePositionCableModel,
-)
 from mechaphlowers.entities.arrays import CableArray
 
 
@@ -24,20 +21,22 @@ class PhysicsBasedCableModel(ABC):
 
 	def __init__(
 		self,
-		sp_model: SpacePositionCableModel,
 		cable_array: CableArray,
-		mecha_model_type: Type[
+		tension_mean: np.ndarray,
+		cable_length: np.ndarray,
+		deformation_model_type: Type[
 			CableDeformationModel
 		] = LinearCableDeformationModel,
 	):
-		# Fetch linear weight given by user into SPModel
 		self.cable_array = cable_array
-		sp_model.linear_weight = cable_array.data["linear_weight"].to_numpy()
-		self.sp_model = sp_model
-		self.mecha_model = mecha_model_type(self.sp_model, cable_array)
+		self.tension_mean = tension_mean
+		self.cable_length = cable_length
+		self.deformation_model = deformation_model_type(
+			cable_array, tension_mean
+		)
 
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
 		"""Unstressed cable length, at a chosen reference temperature"""
-		L = self.sp_model.L()
-		epsilon = self.mecha_model.epsilon(current_temperature)
+		L = self.cable_length
+		epsilon = self.deformation_model.epsilon(current_temperature)
 		return L / (1 + epsilon)
