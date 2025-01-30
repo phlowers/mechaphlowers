@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 from pandera.typing import pandas as pdt
 
-from mechaphlowers.core.models.mecha_cable_extension_models import (
-	ElasticLinearExtensionModel,
+from mechaphlowers.core.models.cable_deformation_models import (
+	LinearCableDeformationModel,
 )
 from mechaphlowers.core.models.space_position_cable_models import (
 	CatenaryCableModel,
@@ -49,7 +49,7 @@ def test_elastic_linear_cable_impl(
 
 	cable_array = CableArray(input_df)
 
-	linear_mecha_model = ElasticLinearExtensionModel(cable_model, cable_array)
+	linear_mecha_model = LinearCableDeformationModel(cable_model, cable_array)
 	linear_mecha_model.epsilon_mecha()
 
 
@@ -76,7 +76,7 @@ def test_physics_cable__first_example() -> None:
 	)
 
 	cable_array = CableArray(input_df, np.array([0]), np.array([0]))
-	mecha_model = ElasticLinearExtensionModel(cable_model, cable_array)
+	mecha_model = LinearCableDeformationModel(cable_model, cable_array)
 
 	# Data given by the prototype
 	assert abs(mecha_model.epsilon_mecha() - 0.00093978) < 0.01

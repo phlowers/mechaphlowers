@@ -14,7 +14,7 @@ from mechaphlowers.core.models.space_position_cable_models import (
 from mechaphlowers.entities.arrays import CableArray
 
 
-class MechaCableExtensionModel(ABC):
+class CableDeformationModel(ABC):
 	# TODO: write docstring
 	"""This abstract class is a base class for models to compute extensions of the cable."""
 
@@ -41,7 +41,7 @@ class MechaCableExtensionModel(ABC):
 		"""Mechanical part of the relative extension of the cable."""
 
 
-class ElasticLinearExtensionModel(MechaCableExtensionModel):
+class LinearCableDeformationModel(CableDeformationModel):
 	"""This model assumes that mechanical extension is linear with tension."""
 
 	def epsilon_mecha(self) -> np.ndarray:

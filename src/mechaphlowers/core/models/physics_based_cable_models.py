@@ -9,9 +9,9 @@ from typing import Type
 
 import numpy as np
 
-from mechaphlowers.core.models.mecha_cable_extension_models import (
-	ElasticLinearExtensionModel,
-	MechaCableExtensionModel,
+from mechaphlowers.core.models.cable_deformation_models import (
+	CableDeformationModel,
+	LinearCableDeformationModel,
 )
 from mechaphlowers.core.models.space_position_cable_models import (
 	SpacePositionCableModel,
@@ -19,7 +19,7 @@ from mechaphlowers.core.models.space_position_cable_models import (
 from mechaphlowers.entities.arrays import CableArray
 
 
-class CableExtensionModel(ABC):
+class PhysicsBasedCableModel(ABC):
 	"""This abstract class is a base class for models to compute extensions of the cable."""
 
 	def __init__(
@@ -27,8 +27,8 @@ class CableExtensionModel(ABC):
 		sp_model: SpacePositionCableModel,
 		cable_array: CableArray,
 		mecha_model_type: Type[
-			MechaCableExtensionModel
-		] = ElasticLinearExtensionModel,
+			CableDeformationModel
+		] = LinearCableDeformationModel,
 	):
 		# Fetch linear weight given by user into SPModel
 		self.cable_array = cable_array
