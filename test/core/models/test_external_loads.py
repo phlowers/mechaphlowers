@@ -15,11 +15,6 @@ from mechaphlowers.entities.schemas import CableArrayInput
 NB_SPAN = 3
 
 
-# TODO: compare with actual values from prototype?
-
-
-# TODO: refacto: merge with fixture in test_physics_based_cable_model?
-# in later issue?
 @pytest.fixture
 def cable() -> CableArray:
 	cable_array_input_data = {
@@ -42,9 +37,6 @@ def test_compute_ice_load(cable: CableArray) -> None:
 		ice_thickness=np.array([0.01, 0.02, 0.0]),
 		wind_pressure=np.array([0, 0]),
 	)
-	# TODO: improve API design?
-	# external_loads = WeatherLoads(cable, ice_thickness=np.array([0.01, 0.02]))
-
 	external_loads.ice_load()
 
 
@@ -54,9 +46,6 @@ def test_compute_wind_load(cable: CableArray) -> None:
 		ice_thickness=np.array([0.01, 0.02, 0.0]),
 		wind_pressure=np.array([240.12, 0, -240.13]),
 	)
-	# TODO: improve API design?
-	# external_loads = WeatherLoads(cable, wind_pressure=np.array([240] * 2))
-
 	external_loads.wind_load()
 
 
