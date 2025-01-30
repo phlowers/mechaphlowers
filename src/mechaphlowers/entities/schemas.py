@@ -76,5 +76,7 @@ class CableArrayInput(pa.DataFrameModel):
 
 
 class LoadResultOutput(pa.DataFrameModel):
+	"""Schema for the content of the dataframe returned by WeatherLoads.result."""
+
 	load_coefficient: pdt.Series[float]
 	load_angle: pdt.Series[float]
