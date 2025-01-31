@@ -11,8 +11,8 @@ from pandera.typing import pandas as pdt
 from mechaphlowers.core.models.cable.physics import (
 	Physics,
 )
-from mechaphlowers.core.models.cable.space_position_cable_models import (
-	CatenaryCableModel,
+from mechaphlowers.core.models.cable.span import (
+	CatenarySpan,
 )
 from mechaphlowers.entities.arrays import CableArray
 from mechaphlowers.entities.schemas import CableArrayInput
@@ -39,11 +39,9 @@ def test_physics_cable_impl(
 	lambd = np.array([16, 16.1])
 	m = np.array([1, 1.1])
 
-	cable_model = CatenaryCableModel(
-		a, b, p, load_coefficient=m, linear_weight=lambd
-	)
-	tension_mean = cable_model.T_mean()
-	cable_length = cable_model.L()
+	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+	tension_mean = span_model.T_mean()
+	cable_length = span_model.L()
 
 	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
 		cable_array_input_data
@@ -74,11 +72,11 @@ def test_physics_cable__first_example() -> None:
 	linear_weight = np.array([9.55494])
 	m = np.array([1])
 
-	cable_model = CatenaryCableModel(
+	span_model = CatenarySpan(
 		a, b, p, load_coefficient=m, linear_weight=linear_weight
 	)
-	tension_mean = cable_model.T_mean()
-	cable_length = cable_model.L()
+	tension_mean = span_model.T_mean()
+	cable_length = span_model.L()
 	physics_model = Physics(cable_array, tension_mean, cable_length)
 	current_temperature = np.array([15])
 

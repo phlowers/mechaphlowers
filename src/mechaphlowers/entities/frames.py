@@ -11,9 +11,9 @@ import numpy as np
 from typing_extensions import Self
 
 from mechaphlowers.core.geometry import references
-from mechaphlowers.core.models.cable.space_position_cable_models import (
-	CatenaryCableModel,
-	SpacePositionCableModel,
+from mechaphlowers.core.models.cable.span import (
+	CatenarySpan,
+	Span,
 )
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.plotting.plot import PlotAccessor
@@ -28,7 +28,7 @@ class SectionDataFrame:
 	"""SectionDataFrame object is the top api object of the library.
 
 	Inspired from dataframe, it is designed to handle data and models.
-	TODO: for the moment the initialization with SectionArray and SpacePositionCableModel is explicit.
+	TODO: for the moment the initialization with SectionArray and Span is explicit.
 	It is not intended to be later.
 
 	"""
@@ -36,10 +36,10 @@ class SectionDataFrame:
 	def __init__(
 		self,
 		section: SectionArray,
-		span_model: Type[SpacePositionCableModel] = CatenaryCableModel,
+		span_model: Type[Span] = CatenarySpan,
 	):
 		self.section: SectionArray = section
-		self.span_model: Type[SpacePositionCableModel] = span_model
+		self.span_model: Type[Span] = span_model
 
 	def get_coord(self) -> np.ndarray:
 		"""Get x,y,z cables coordinates
