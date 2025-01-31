@@ -4,8 +4,9 @@ from pdm.backend.hooks.version import SCMVersion  # type: ignore
 
 
 def format_version(version: SCMVersion) -> str:
-	"""format_version : function provided for pdm backend to customize the version format when extract from scm tag.
-	In practice, this function is called by the pdm backend to format the version string
+	"""Function provided for pdm backend to customize the version format when extract from scm tag.
+
+	In practice, this function is called by the pdm backend to format the version string.
 	When called with the PACKAGE_BUILD_TEST environment variable set, it will append a
 	.dev{PACKAGE_BUILD_TEST} to the version string. This is useful for testing deployment ci.
 
