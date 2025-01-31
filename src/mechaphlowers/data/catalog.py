@@ -52,7 +52,12 @@ class Catalog:
 		Returns:
 			pd.DataFrame: requested rows
 		"""
-		return self._data.loc[keys]
+		try:
+			return self._data.loc[keys]
+		except KeyError as e:
+			raise KeyError(
+				f"Error when requesting catalog: {e.args[0]}"
+			) from e
 
 
 fake_catalog = Catalog("pokemon.csv", key_column_name="Name")
