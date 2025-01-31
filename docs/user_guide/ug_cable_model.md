@@ -5,7 +5,7 @@ The cable modelisation is divided in two parts:
 
 This division is only for the sake of clarity. Indeed, the space positioning part is linked to the physic part through the parameter p.
 
-## Space positioning cable model
+## Span cable model
 
 ### Input 
 
