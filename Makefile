@@ -17,7 +17,7 @@ rebuild-lockfiles: .uv
 format: .uv
 	uv run ruff format $(sources)
 
-.PHONY: check-format  ## Auto-format python source files
+.PHONY: check-format  ## Check formatting of python source files
 check-format: .uv
 	uv run ruff format --check $(sources)
 
