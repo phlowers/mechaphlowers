@@ -52,9 +52,10 @@ nav:
       - Core :
           - Geometry : docstring/core/geometry/references.md
           - Models : 
+            - Cable :
               - Space position : docstring/core/models/space_position_cable_models.md
-              - Physics : docstring/core/models/physics_based_cable_models.md
-              - Deformation : docstring/core/models/cable_deformation_models.md
+              - Physics : docstring/core/models/cable/physics.md
+              - Deformation : docstring/core/models/cable/deformation.md
     - Guidelines : developer_guide/guidelines.md
     - Documentation : developer_guide/documentation.md
 

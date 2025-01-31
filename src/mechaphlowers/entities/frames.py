@@ -11,7 +11,7 @@ import numpy as np
 from typing_extensions import Self
 
 from mechaphlowers.core.geometry import references
-from mechaphlowers.core.models.space_position_cable_models import (
+from mechaphlowers.core.models.cable.space_position_cable_models import (
 	CatenaryCableModel,
 	SpacePositionCableModel,
 )

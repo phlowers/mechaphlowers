@@ -8,10 +8,10 @@ import numpy as np
 import pytest
 from pandera.typing import pandas as pdt
 
-from mechaphlowers.core.models.physics_based_cable_models import (
-	PhysicsBasedCableModel,
+from mechaphlowers.core.models.cable.physics import (
+	Physics,
 )
-from mechaphlowers.core.models.space_position_cable_models import (
+from mechaphlowers.core.models.cable.space_position_cable_models import (
 	CatenaryCableModel,
 )
 from mechaphlowers.entities.arrays import CableArray
@@ -50,9 +50,7 @@ def test_physics_cable_impl(
 	)
 	cable_array = CableArray(input_df)
 
-	physics_model = PhysicsBasedCableModel(
-		cable_array, tension_mean, cable_length
-	)
+	physics_model = Physics(cable_array, tension_mean, cable_length)
 	current_temperature = np.array([20, 20])
 	physics_model.L_ref(current_temperature)
 
@@ -81,9 +79,7 @@ def test_physics_cable__first_example() -> None:
 	)
 	tension_mean = cable_model.T_mean()
 	cable_length = cable_model.L()
-	physics_model = PhysicsBasedCableModel(
-		cable_array, tension_mean, cable_length
-	)
+	physics_model = Physics(cable_array, tension_mean, cable_length)
 	current_temperature = np.array([15])
 
 	# Data given by the prototype

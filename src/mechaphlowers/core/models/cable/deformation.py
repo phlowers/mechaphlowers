@@ -11,7 +11,7 @@ import numpy as np
 from mechaphlowers.entities.arrays import CableArray
 
 
-class CableDeformationModel(ABC):
+class Deformation(ABC):
 	"""This abstract class is a base class for models to compute relative cable deformations."""
 
 	def __init__(
@@ -37,7 +37,7 @@ class CableDeformationModel(ABC):
 		"""Mechanical part of the relative deformation  of the cable."""
 
 
-class LinearCableDeformationModel(CableDeformationModel):
+class LinearDeformation(Deformation):
 	"""This model assumes that mechanical deformation is linear with tension."""
 
 	def epsilon_mecha(self) -> np.ndarray:

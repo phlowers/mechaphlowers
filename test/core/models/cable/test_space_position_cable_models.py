@@ -7,7 +7,7 @@
 import numpy as np
 import pytest
 
-from mechaphlowers.core.models.space_position_cable_models import (
+from mechaphlowers.core.models.cable.space_position_cable_models import (
 	CatenaryCableModel,
 )
 
