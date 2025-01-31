@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -11,7 +11,7 @@ import pandas as pd
 import pandera as pa
 from pandera.typing import pandas as pdt
 
-from mechaphlowers.entities.schemas import SectionArrayInput
+from mechaphlowers.entities.schemas import CableArrayInput, SectionArrayInput
 
 
 class ElementArray(ABC):
@@ -102,3 +102,36 @@ class SectionArray(ElementArray):
 		copy_obj.sagging_parameter = self.sagging_parameter
 		copy_obj.sagging_temperature = self.sagging_temperature
 		return copy_obj
+
+
+class CableArray(ElementArray):
+	"""Physical description of a cable.
+
+	Args:
+	data: Input data
+	"""
+
+	@pa.check_types(lazy=True)
+	def __init__(
+		self,
+		data: pdt.DataFrame[CableArrayInput] | pd.DataFrame,
+	) -> None:
+		super().__init__(data)  # type: ignore[arg-type]
+
+	@property
+	def _input_columns(self) -> list[str]:
+		metadata = CableArrayInput.get_metadata()
+		return metadata["CableArrayInput"]["columns"].keys()  # type: ignore
+
+	@property
+	def data(self) -> pd.DataFrame:
+		data_SI = self._data.copy()
+		data_SI["section"] *= 1e-6
+		data_SI["diameter"] *= 1e-3
+		data_SI["young_modulus"] *= 1e9
+		data_SI["dilatation_coefficient"] *= 1e-6
+		return data_SI
+
+	@property
+	def data_original_units(self) -> pd.DataFrame:
+		return self._data

@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -53,3 +53,23 @@ class SectionArrayInput(pa.DataFrameModel):
 	)
 	def no_span_length_for_last_row(cls, df: pdt.DataFrame) -> bool:
 		return df.tail(1)["span_length"].isin([0, np.nan]).all()
+
+
+class CableArrayInput(pa.DataFrameModel):
+	"""Schema for the data expected for a dataframe used to instantiate a CableArray.
+
+	section: Area of the section, in mm²
+	diameter: Diameter of the cable, in mm
+	linear_weight: Linear weight, in N/m
+	young_modulus: Young modulus in GPa
+	dilatation_coefficient: Dilataion coefficient in 10⁻⁶/°C
+	temperature_reference: Temperature used to compute unstressed cable length (usually 0°C or 15°C)
+
+	"""
+
+	section: pdt.Series[float] = pa.Field(coerce=True)
+	diameter: pdt.Series[float] = pa.Field(coerce=True)
+	linear_weight: pdt.Series[float] = pa.Field(coerce=True)
+	young_modulus: pdt.Series[float] = pa.Field(coerce=True)
+	dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
+	temperature_reference: pdt.Series[float] = pa.Field(coerce=True)

@@ -91,7 +91,7 @@ $$
 $$
 
 $$
-    {T_{mean}}_m = \frac{-x_m \cdot T_h + L_m \cdot {T_{max}}_m}{(2 \cdot L_m}
+    {T_{mean}}_m = \frac{-x_m \cdot T_h + L_m \cdot {T_{max}}_m}{2 \cdot L_m}
 $$
 
 $$
@@ -116,12 +116,14 @@ $$
 - $S$: section in $mm^2$
 - $D$: diameter in $mm$
 - $\lambda$: linear weight in $N/m$
-- $E$: Young modulus in $MPa$
+- $E$: Young modulus in $GPa$
 - $\alpha_{th}$: dilatation coefficient in $°C^{-1}$
 
 
 
-### Extension and unstressed cable length
+### Linear elasticity model
+
+In this section, we assume the cable exhibits linear elasticity and can be described by a linear relation between stress and strain. More complex behaviors (such as plasticity) may be added later.
 
 The cable is strained when subjected to mechanical tensions or thermal changes.
 
@@ -129,13 +131,15 @@ The cable is strained when subjected to mechanical tensions or thermal changes.
 $\varepsilon_{mecha} = \frac{T_{mean}}{E\cdot S}$
 
 - thermal part due to temperature $\theta$ :
-$\varepsilon_{therm} = \theta \cdot \alpha_{th}$
+$\varepsilon_{therm} = (\theta - \theta_{ref}) \cdot \alpha_{th}$
+
+$\theta_{ref}$ being the reference temperature chosen to define the unstressed cable length.
 
 The total strain is : 
 
-$$\varepsilon_{total} = \varepsilon_{mecha} + \varepsilon_{therm} = \frac{\Delta L}{L_0} = \frac{L - L_0}{L_0}$$
+$$\varepsilon_{total} = \varepsilon_{mecha} + \varepsilon_{therm} = \frac{\Delta L}{L_{ref}} = \frac{L - L_{ref}}{L_{ref}}$$
 
-The unstressed cable length $L_0$ can be then expressed as the following: 
+The unstressed cable length $L_{ref}$ can be then expressed as the following: 
 
-$$L_0 = \frac{L}{1+\varepsilon_{total}}$$
+$$L_{ref} = \frac{L}{1+\varepsilon_{total}}$$
 
