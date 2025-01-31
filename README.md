@@ -13,7 +13,6 @@
 [![pyodide](https://img.shields.io/badge/works_on-pyodide-%237303fc)](https://pyodide.org/en/stable/index.html)
 [![lite-badge](https://jupyterlite.rtfd.io/en/latest/_static/badge.svg)](https://phlowers.github.io/phlowers-notebooks/lab/index.html)
 
-
 Physical calculation package for the mechanics and geometry of overhead power lines.
 
 ## User
