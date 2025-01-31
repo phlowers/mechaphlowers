@@ -5,7 +5,7 @@ sources = src test
 .uv:
 	@uv -V || echo 'Please install uv: https://docs.astral.sh/uv/getting-started/installation/'
 
-.PHONY: install  ## Install the package, dependencies, and pre-commit for local development
+.PHONY: install  ## Install the package and dependencies for local development
 install: .uv
 	uv sync --frozen --group all --all-extras
 
