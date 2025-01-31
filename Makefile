@@ -44,7 +44,7 @@ testcov: test
 	@uv run coverage html
 
 .PHONY: all  ## Run the standard set of checks performed in CI
-all: lint format typing typing testcov
+all: lint format typing testcov
 
 .PHONY: clean  ## Clear local caches and build artifacts
 clean:
