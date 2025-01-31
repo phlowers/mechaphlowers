@@ -72,8 +72,6 @@ class CableArrayInput(pa.DataFrameModel):
 	section: pdt.Series[float] = pa.Field(coerce=True)
 	diameter: pdt.Series[float] = pa.Field(coerce=True)
 	linear_weight: pdt.Series[float] = pa.Field(coerce=True)
-	# Find a way to write: required young modulus OR coefs
-	# Polynom coefs: not in data but argument in CableArray?
 	young_modulus: pdt.Series[float] = pa.Field(coerce=True)
 	a0: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	a1: Optional[pdt.Series[float]] = pa.Field(coerce=True)

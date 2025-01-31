@@ -87,15 +87,4 @@ def test_physics_cable__first_example() -> None:
 	current_temperature = np.array([15])
 
 	# Data given by the prototype
-	assert (
-		abs(physics_model.deformation_model.epsilon_mecha() - 0.00093978)
-		< 0.01
-	)
-	assert (
-		abs(
-			physics_model.deformation_model.epsilon_therm(current_temperature)
-			+ 0.000345
-		)
-		< 0.01
-	)
 	assert abs(physics_model.L_ref(current_temperature) - 500.65986147) < 0.01

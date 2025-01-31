@@ -17,7 +17,7 @@ from mechaphlowers.entities.arrays import CableArray
 
 
 class PhysicsBasedCableModel(ABC):
-	"""This abstract class is a base class for models to compute extensions of the cable."""
+	"""This class models physics properties of the cable, like mechanical or thermal deformation."""
 
 	def __init__(
 		self,

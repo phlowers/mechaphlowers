@@ -12,8 +12,7 @@ from mechaphlowers.entities.arrays import CableArray
 
 
 class CableDeformationModel(ABC):
-	# TODO: write docstring
-	"""This abstract class is a base class for models to compute extensions of the cable."""
+	"""This abstract class is a base class for models to compute relative cable deformations."""
 
 	def __init__(
 		self,
@@ -24,25 +23,28 @@ class CableDeformationModel(ABC):
 		self.tension_mean = tension_mean
 
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
-		"""Thermal part of the relative extension of the cable, compared to a temperature_reference."""
+		"""Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
 		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
 		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
 		return (current_temperature - temp_ref) * alpha
 
+	@abstractmethod
 	def epsilon(self, current_temperature: np.ndarray) -> np.ndarray:
-		"""Total strain of the cable."""
-		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
+		"""Total relative deformation of the cable."""
 
 	@abstractmethod
 	def epsilon_mecha(self) -> np.ndarray:
-		"""Mechanical part of the relative extension of the cable."""
+		"""Mechanical part of the relative deformation  of the cable."""
 
 
 class LinearCableDeformationModel(CableDeformationModel):
-	"""This model assumes that mechanical extension is linear with tension."""
+	"""This model assumes that mechanical deformation is linear with tension."""
 
 	def epsilon_mecha(self) -> np.ndarray:
 		T_mean = self.tension_mean
 		E = self.cable_array.data["young_modulus"].to_numpy()
 		S = self.cable_array.data["section"].to_numpy()
 		return T_mean / (E * S)
+
+	def epsilon(self, current_temperature):
+		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)

@@ -50,7 +50,10 @@ def test_elastic_linear_cable_impl(
 
 	cable_array = CableArray(input_df)
 	linear_mecha_model = LinearCableDeformationModel(cable_array, tension_mean)
+	current_temperature = np.array([15, 15])
 	linear_mecha_model.epsilon_mecha()
+	linear_mecha_model.epsilon_therm(current_temperature)
+	linear_mecha_model.epsilon(current_temperature)
 
 
 def test_physics_cable__first_example() -> None:
@@ -75,8 +78,12 @@ def test_physics_cable__first_example() -> None:
 		a, b, p, load_coefficient=m, linear_weight=linear_weight
 	)
 	tension_mean = cable_model.T_mean()
-	cable_array = CableArray(input_df, np.array([0]), np.array([0]))
+	cable_array = CableArray(input_df)
 	mecha_model = LinearCableDeformationModel(cable_array, tension_mean)
+	current_temperature = np.array([15])
 
 	# Data given by the prototype
 	assert abs(mecha_model.epsilon_mecha() - 0.00093978) < 0.01
+	assert (
+		abs(mecha_model.epsilon_therm(current_temperature) + 0.000345) < 0.01
+	)

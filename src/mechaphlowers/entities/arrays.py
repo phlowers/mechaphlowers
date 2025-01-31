@@ -9,7 +9,6 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 import pandera as pa
-from numpy.polynomial import Polynomial as Poly
 from pandera.typing import pandas as pdt
 
 from mechaphlowers.entities.schemas import CableArrayInput, SectionArrayInput
@@ -116,15 +115,9 @@ class CableArray(ElementArray):
 	def __init__(
 		self,
 		data: pdt.DataFrame[CableArrayInput] | pd.DataFrame,
-		# [a0, a1, a2, a3, a4] -> P = a0 + a1X + a2X² + a3X³ + a4X⁴
-		# TODO: checking that length <= 4
-		coefs_poly_heart: np.ndarray = np.array([0]),
-		coefs_poly_conductor: np.ndarray = np.array([0]),
 	) -> None:
 		super().__init__(data)  # type: ignore[arg-type]
 		# Conversion correct?
-		self.poly_heart = Poly(coefs_poly_heart * 1_000_000)
-		self.poly_conductor = Poly(coefs_poly_conductor * 1_000_000)
 
 	@property
 	def _input_columns(self) -> list[str]:
