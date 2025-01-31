@@ -34,9 +34,7 @@ Then you may create a virtualenv, install dependencies and activate the env:
 
 !!! Tip
 
-    You would probably use an editor, make sure you configure it to use the same virtual environment you created (it will probably autodetect it) so that you can get autocompletion and inline errors.  
-    - [VSCode](https://code.visualstudio.com/docs/python)environments#_select-and-activate-an-environment]
-    - [PyCharm](https://www.jetbrains.com/help/pycharm/creating-virtual-environment.html)
+    You would probably use an editor, make sure you configure it to use the same virtual environment you created (it will probably autodetect it) so that you can get autocompletion and inline errors. Here some links for [VSCode](https://code.visualstudio.com/docs/python/environments#_select-and-activate-an-environment) and [PyCharm](https://www.jetbrains.com/help/pycharm/creating-virtual-environment.html).  
 
 ### Set up mechaphlowers
 
