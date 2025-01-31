@@ -72,7 +72,7 @@ build-backend = "pdm.backend"
 ### Tools configuration
 
 [tool.pdm]
-version = { source = "scm", version_format = "version:format_version", write_to = "mechaphlowers/_version.py", write_template = "_VERSION = '{}'\n"}
+version = { source = "scm", version_format = "pdm_build:format_version", write_to = "mechaphlowers/_version.py", write_template = "# This file is generated\n# Any manual change will be overwritten\n_VERSION = '{}'\n"}
 distribution = true
 
 
