@@ -87,5 +87,5 @@ class WeatherArrayInput(pa.DataFrameModel):
 
 	ice_thickness: pdt.Series[float] = pa.Field(
 		coerce=True, ge=0.0
-	)  # TODO: optional?
-	wind_pressure: pdt.Series[float] = pa.Field(coerce=True)  # TODO: optional?
+	)
+	wind_pressure: pdt.Series[float] = pa.Field(coerce=True)
