@@ -87,10 +87,3 @@ class WeatherArrayInput(pa.DataFrameModel):
 
 	ice_thickness: pdt.Series[float] = pa.Field(coerce=True)  # TODO: optional?
 	wind_pressure: pdt.Series[float] = pa.Field(coerce=True)  # TODO: optional?
-
-
-class LoadResultOutput(pa.DataFrameModel):
-	"""Schema for the content of the dataframe returned by WeatherLoads.result."""
-
-	load_coefficient: pdt.Series[float]
-	load_angle: pdt.Series[float]
