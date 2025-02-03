@@ -5,14 +5,18 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
+from importlib.metadata import version
 
 import pandas as pd
 
-from mechaphlowers._version import _VERSION
+from mechaphlowers.api.frames import SectionDataFrame
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 pd.options.mode.copy_on_write = True
 
-__version__ = _VERSION
+__version__ = version
+
+
+__all__ = ["SectionDataFrame"]

@@ -36,3 +36,13 @@ class Physics(ABC):
 		L = self.cable_length
 		epsilon = self.deformation.epsilon(current_temperature)
 		return L / (1 + epsilon)
+
+
+class dd:
+	e = 1
+
+	def ff(self):
+		print(dd.e)
+
+	def set(self, v):
+		dd.e = v

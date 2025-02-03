@@ -8,14 +8,23 @@ from copy import copy
 from typing import List, Type
 
 import numpy as np
+import pandas as pd
 from typing_extensions import Self
 
+from mechaphlowers.api.state import StateAccessor
 from mechaphlowers.core.geometry import references
+
+# if TYPE_CHECKING:
+from mechaphlowers.core.models.cable.deformation import (
+	Deformation,
+	LinearDeformation,
+)
+from mechaphlowers.core.models.cable.physics import Physics
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 	Span,
 )
-from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.plotting.plot import PlotAccessor
 from mechaphlowers.utils import CachedAccessor
 
@@ -37,9 +46,27 @@ class SectionDataFrame:
 		self,
 		section: SectionArray,
 		span_model: Type[Span] = CatenarySpan,
+		physics_model: Type[Physics] = Physics,
+		deformation_model: Type[Deformation] = LinearDeformation,
 	):
 		self.section: SectionArray = section
-		self.span_model: Type[Span] = span_model
+		self.cable: CableArray | None = None
+		self._span_model: Type[Span] = span_model
+		self._physics_model: Type[Physics] = physics_model
+		self._deformation_model: Type[Deformation] = deformation_model
+		self.init_span_model()
+
+	def init_span_model(self):
+		"""init_span_model method to initialize span model
+
+		Returns:
+		    None
+		"""
+		self.span = self._span_model(
+			self.section.data.span_length.to_numpy(),
+			self.section.data.elevation_difference.to_numpy(),
+			self.section.data.sagging_parameter.to_numpy(),
+		)
 
 	def get_coord(self) -> np.ndarray:
 		"""Get x,y,z cables coordinates
@@ -48,17 +75,17 @@ class SectionDataFrame:
 		    np.ndarray: x,y,z array in point format
 		"""
 
-		spans = self.span_model(
-			self.section.data.span_length.to_numpy(),
-			self.section.data.elevation_difference.to_numpy(),
-			self.section.data.sagging_parameter.to_numpy(),
-		)
+		# spans = self._span_model(
+		# 	self.section.data.span_length.to_numpy(),
+		# 	self.section.data.elevation_difference.to_numpy(),
+		# 	self.section.data.sagging_parameter.to_numpy(),
+		# )
 
 		# compute x_axis
-		x_cable: np.ndarray = spans.x(RESOLUTION)
+		x_cable: np.ndarray = self.span.x(RESOLUTION)
 
 		# compute z_axis
-		z_cable: np.ndarray = spans.z(x_cable)
+		z_cable: np.ndarray = self.span.z(x_cable)
 
 		# change frame and drop last value
 		x_span, y_span, z_span = references.cable2span(
@@ -100,7 +127,11 @@ class SectionDataFrame:
 		Returns:
 		    np.ndarray: SectionArray data from input
 		"""
-		return self.section.data
+
+		if self.cable is None:
+			return self.section.data
+		else:
+			return pd.concat([self.section.data, self.cable.data], axis=1)
 
 	def select(self, between: List[str]) -> Self:
 		"""select enable to select a part of the line based on support names
@@ -163,7 +194,49 @@ class SectionDataFrame:
 
 		return return_sf
 
+	def add_cable(self, cable: CableArray):
+		"""add_cable method to add a new cable to the SectionDataFrame
+
+		Args:
+		    cable (CableArray): cable to add
+
+		Returns:
+		    Self: SectionDataFrame with the added cable
+		"""
+
+		if not isinstance(cable, CableArray):
+			raise TypeError("cable has to be a CableArray object")
+		# Check if the cable is compatible with the section
+		if cable.data.shape[0] != self.section.data.shape[0]:
+			raise ValueError(
+				"CableArray has to have the same length as the section"
+			)
+
+		# Add cable to the section
+		self.cable = cable
+
+		self.span.linear_weight = self.cable.data.linear_weight.to_numpy()
+
+		self.initialize_physics()
+
+	def initialize_physics(self):
+		"""initialize_physics method to initialize physics model
+
+		Returns:
+		    None
+		"""
+
+		# Initialize physics model
+		self.physics = self._physics_model(
+			self.cable,
+			self.span.T_mean(),
+			self.span.L(),
+		)
+		# TODO: test if L_ref change when span_model T_mean change
+
 	plot = CachedAccessor("plot", PlotAccessor)
 
+	state = CachedAccessor("state", StateAccessor)
+
 	def __copy__(self):
-		return type(self)(copy(self.section), self.span_model)
+		return type(self)(copy(self.section), self._span_model)

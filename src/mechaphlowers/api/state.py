@@ -1,0 +1,35 @@
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import numpy as np
+
+if TYPE_CHECKING:
+	from mechaphlowers.api.frames import SectionDataFrame
+
+
+class StateAccessor:
+	"""shortcut accessor class for state calculus"""
+
+	def __init__(self, section: SectionDataFrame):
+		self.section: SectionDataFrame = section
+
+	def L_ref(self, current_temperature: float | np.ndarray) -> np.ndarray:
+		# TODO: if current_temperature is a float, it should be converted to a np.ndarray of size section.section.data.shape[0]
+		if isinstance(current_temperature, float):
+			current_temperature = np.full(
+				self.section.section.data.shape[0], current_temperature
+			)
+
+		if isinstance(current_temperature, np.ndarray):
+			if (
+				current_temperature.shape[0]
+				!= self.section.section.data.shape[0]
+			):
+				raise ValueError(
+					"Current temperature should have the same length as the section"
+				)
+		return self.section.physics.L_ref(current_temperature)
