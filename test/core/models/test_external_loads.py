@@ -44,7 +44,7 @@ def test_compute_ice_load(cable: CableArray) -> None:
 		weather,
 	)
 
-	weather_loads.ice_load()
+	weather_loads.ice_load
 
 
 def test_compute_wind_load(cable: CableArray) -> None:
@@ -61,7 +61,7 @@ def test_compute_wind_load(cable: CableArray) -> None:
 		weather,
 	)
 
-	weather_loads.wind_load()
+	weather_loads.wind_load
 
 
 def test_total_load_coefficient_and_angle(cable: CableArray) -> None:

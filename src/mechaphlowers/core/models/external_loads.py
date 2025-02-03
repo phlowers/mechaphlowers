@@ -29,8 +29,8 @@ class WeatherLoads:
 	def result(self) -> pdt.DataFrame[LoadResultOutput]:
 		linear_weight = self.cable.data.linear_weight
 
-		wind_load = self.wind_load()
-		ice_load = self.ice_load()
+		wind_load = self.wind_load
+		ice_load = self.ice_load
 
 		load_angle = np.arctan(wind_load / (ice_load + linear_weight))
 		total_value = self.total_value(wind_load, ice_load, linear_weight)
@@ -57,6 +57,7 @@ class WeatherLoads:
 		"""Norm of the force (R) applied on the cable due to weather loads, per meter cable"""
 		return np.sqrt((ice_load + linear_weight) ** 2 + wind_load**2)
 
+	@property
 	def ice_load(self) -> np.ndarray:
 		"""Linear weight of the ice on the cable
 
@@ -67,6 +68,7 @@ class WeatherLoads:
 		D = self.cable.data.diameter.to_numpy()
 		return self.ice_density * pi * e * (e + D)
 
+	@property
 	def wind_load(self) -> np.ndarray:
 		"""Linear force applied on the cable by the wind.
 
