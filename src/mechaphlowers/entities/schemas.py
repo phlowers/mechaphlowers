@@ -60,23 +60,24 @@ class SectionArrayInput(pa.DataFrameModel):
 class CableArrayInput(pa.DataFrameModel):
 	"""Schema for the data expected for a dataframe used to instantiate a CableArray.
 
-	\nsection: Area of the section, in mm²
-	\ndiameter: Diameter of the cable, in mm
-	\nlinear_weight: Linear weight, in N/m
-	\nyoung_modulus: Young modulus in GPa
-	\ndilatation_coefficient: Dilataion coefficient in 10⁻⁶/°C
-	\ntemperature_reference: Temperature used to compute unstressed cable length (usually 0°C or 15°C)
-
+	Attributes:
+		section (float): Area of the section, in mm²
+		diameter (float): Diameter of the cable, in mm
+		linear_weight (float): Linear weight, in N/m
+		young_modulus (float): Young modulus in GPa
+		dilatation_coefficient (float): Dilataion coefficient in 10⁻⁶/°C
+		temperature_reference (float): Temperature used to compute unstressed cable length (usually 0°C or 15°C)
+		a0/a1/a2/a3/a4 (float): Coefficients of the relation between stress $\sigma$ and deformation $\epsilon$ : $\sigma = a0 + a1*\epsilon + a2*\epsilon^2 + a3*\epsilon^3 + a4*\epsilon^4$
 	"""
 
 	section: pdt.Series[float] = pa.Field(coerce=True)
 	diameter: pdt.Series[float] = pa.Field(coerce=True)
 	linear_weight: pdt.Series[float] = pa.Field(coerce=True)
 	young_modulus: pdt.Series[float] = pa.Field(coerce=True)
+	dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
+	temperature_reference: pdt.Series[float] = pa.Field(coerce=True)
 	a0: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	a1: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	a2: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	a3: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	a4: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-	dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
-	temperature_reference: pdt.Series[float] = pa.Field(coerce=True)
