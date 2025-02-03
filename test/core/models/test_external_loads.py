@@ -78,6 +78,5 @@ def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
 		weather,
 	)
 
-	result = weather_loads.result()
-	result.load_coefficient
-	result.load_angle
+	weather_loads.load_coefficient
+	weather_loads.load_angle

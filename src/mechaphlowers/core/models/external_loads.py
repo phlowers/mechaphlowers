@@ -7,10 +7,8 @@
 from math import pi
 
 import numpy as np
-from pandera.typing import pandas as pdt
 
 from mechaphlowers.entities.arrays import CableArray, WeatherArray
-from mechaphlowers.entities.schemas import LoadResultOutput
 
 DEFAULT_ICE_DENSITY = 6_000
 
@@ -26,36 +24,35 @@ class WeatherLoads:
 		self.weather = weather
 		self.ice_density = ice_density
 
-	def result(self) -> pdt.DataFrame[LoadResultOutput]:
-		linear_weight = self.cable.data.linear_weight
-
-		wind_load = self.wind_load
-		ice_load = self.ice_load
-
-		load_angle = np.arctan(wind_load / (ice_load + linear_weight))
-		total_value = self.total_value(wind_load, ice_load, linear_weight)
-		load_coefficient = total_value / linear_weight
-
-		return pdt.DataFrame[LoadResultOutput](
-			{
-				"load_coefficient": load_coefficient,
-				"load_angle": load_angle,
-			}
-		)
-
-	@staticmethod
-	def load_angle(wind_load, ice_load, linear_weight) -> np.ndarray:
+	@property
+	def load_angle(self) -> np.ndarray:
 		"""Load angle (in radians)
 
 		Returns:
-			np.array: load angle (beta) for each span
+			np.ndarray: load angle (beta) for each span
 		"""
-		return np.arctan(wind_load / ice_load + linear_weight)
+		linear_weight = self.cable.data.linear_weight
+		ice_load = self.ice_load
+		wind_load = self.wind_load
 
-	@staticmethod
-	def total_value(wind_load, ice_load, linear_weight) -> np.ndarray:
-		"""Norm of the force (R) applied on the cable due to weather loads, per meter cable"""
+		return np.arctan(wind_load / (ice_load + linear_weight))
+
+	@property
+	def total_value(
+		self,
+	) -> np.ndarray:  # TODO: rename? _total_load_including_own_weight? _weather_load_and_weight ? _weather_and_weight_load?
+		"""Norm of the force (R) applied on the cable due to weather loads and cable own weight, per meter cable"""
+
+		linear_weight = self.cable.data.linear_weight
+		ice_load = self.ice_load
+		wind_load = self.wind_load
+
 		return np.sqrt((ice_load + linear_weight) ** 2 + wind_load**2)
+
+	@property
+	def load_coefficient(self) -> np.ndarray:
+		linear_weight = self.cable.data.linear_weight
+		return self.total_value / linear_weight
 
 	@property
 	def ice_load(self) -> np.ndarray:
