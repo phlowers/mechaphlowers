@@ -10,35 +10,35 @@ from pandera.typing import pandas as pdt
 
 from mechaphlowers.core.models.external_loads import WeatherLoads
 from mechaphlowers.entities.arrays import CableArray, WeatherArray
-from mechaphlowers.entities.schemas import CableArrayInput, WeatherArrayInput
 
 NB_SPAN = 3
 
 
 @pytest.fixture
 def cable() -> CableArray:
-	cable_array_input_data = {
-		"section": np.full(NB_SPAN, [345.5]),
-		"diameter": np.full(NB_SPAN, [22.4]),
-		"linear_weight": np.full(NB_SPAN, [9.6]),
-		"young_modulus": np.full(NB_SPAN, [59]),
-		"dilatation_coefficient": np.full(NB_SPAN, [23]),
-		"temperature_reference": np.full(NB_SPAN, [15]),
-	}
-	cable_input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		cable_array_input_data
+	return CableArray(
+		pdt.DataFrame(
+			{
+				"section": np.full(NB_SPAN, [345.5]),
+				"diameter": np.full(NB_SPAN, [22.4]),
+				"linear_weight": np.full(NB_SPAN, [9.6]),
+				"young_modulus": np.full(NB_SPAN, [59]),
+				"dilatation_coefficient": np.full(NB_SPAN, [23]),
+				"temperature_reference": np.full(NB_SPAN, [15]),
+			}
+		)
 	)
-	return CableArray(cable_input_df)
 
 
 def test_compute_ice_load(cable: CableArray) -> None:
-	weather_input_df: pdt.DataFrame[WeatherArrayInput] = pdt.DataFrame(
-		{
-			"ice_thickness": np.array([0.01, 0.02, 0.0]),
-			"wind_pressure": np.zeros(3),
-		}
+	weather = WeatherArray(
+		pdt.DataFrame(
+			{
+				"ice_thickness": [0.01, 0.02, 0.0],
+				"wind_pressure": np.zeros(NB_SPAN),
+			}
+		)
 	)
-	weather = WeatherArray(weather_input_df)
 	weather_loads = WeatherLoads(
 		cable,
 		weather,
@@ -48,13 +48,14 @@ def test_compute_ice_load(cable: CableArray) -> None:
 
 
 def test_compute_wind_load(cable: CableArray) -> None:
-	weather_input_df: pdt.DataFrame[WeatherArrayInput] = pdt.DataFrame(
-		{
-			"ice_thickness": np.array([0.01, 0.02, 0.0]),
-			"wind_pressure": [240.12, 0, -240.13],
-		}
+	weather = WeatherArray(
+		pdt.DataFrame(
+			{
+				"ice_thickness": [0.01, 0.02, 0.0],
+				"wind_pressure": [240.12, 0, -240.13],
+			}
+		)
 	)
-	weather = WeatherArray(weather_input_df)
 	weather_loads = WeatherLoads(
 		cable,
 		weather,
@@ -64,13 +65,14 @@ def test_compute_wind_load(cable: CableArray) -> None:
 
 
 def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
-	weather_input_df: pdt.DataFrame[WeatherArrayInput] = pdt.DataFrame(
-		{
-			"ice_thickness": np.array([0.01, 0.02, 0.0]),
-			"wind_pressure": [240.12, 0, -240.13],
-		}
+	weather = WeatherArray(
+		pdt.DataFrame(
+			{
+				"ice_thickness": [0.01, 0.02, 0.0],
+				"wind_pressure": [240.12, 0, -240.13],
+			}
+		)
 	)
-	weather = WeatherArray(weather_input_df)
 	weather_loads = WeatherLoads(
 		cable,
 		weather,
