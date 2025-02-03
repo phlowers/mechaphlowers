@@ -9,7 +9,7 @@ from math import pi
 import numpy as np
 from pandera.typing import pandas as pdt
 
-from mechaphlowers.entities.arrays import CableArray
+from mechaphlowers.entities.arrays import CableArray, WeatherArray
 from mechaphlowers.entities.schemas import LoadResultOutput
 
 DEFAULT_ICE_DENSITY = 6_000
@@ -19,13 +19,11 @@ class WeatherLoads:
 	def __init__(
 		self,
 		cable: CableArray,
-		ice_thickness: np.ndarray,
-		wind_pressure: np.ndarray,
+		weather: WeatherArray,
 		ice_density: float = DEFAULT_ICE_DENSITY,
 	) -> None:
 		self.cable = cable
-		self.ice_thickness = ice_thickness
-		self.wind_pressure = wind_pressure
+		self.weather = weather
 		self.ice_density = ice_density
 
 	def result(self) -> pdt.DataFrame[LoadResultOutput]:
@@ -65,8 +63,8 @@ class WeatherLoads:
 		Returns:
 			np.ndarray: linear weight of the ice for each span
 		"""
-		e = self.ice_thickness
-		D = self.cable.data.diameter
+		e = self.weather.data.ice_thickness.to_numpy()
+		D = self.cable.data.diameter.to_numpy()
 		return self.ice_density * pi * e * (e + D)
 
 	def wind_load(self) -> np.ndarray:
@@ -75,7 +73,7 @@ class WeatherLoads:
 		Returns:
 			np.ndarray: linear force applied on the cable by the wind
 		"""
-		P_w = self.wind_pressure
-		D = self.cable.data.diameter
-		e = self.ice_thickness
+		P_w = self.weather.data.wind_pressure.to_numpy()
+		D = self.cable.data.diameter.to_numpy()
+		e = self.weather.data.ice_thickness.to_numpy()
 		return P_w * (D + 2 * e)

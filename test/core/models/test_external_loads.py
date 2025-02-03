@@ -9,8 +9,8 @@ import pytest
 from pandera.typing import pandas as pdt
 
 from mechaphlowers.core.models.external_loads import WeatherLoads
-from mechaphlowers.entities.arrays import CableArray
-from mechaphlowers.entities.schemas import CableArrayInput
+from mechaphlowers.entities.arrays import CableArray, WeatherArray
+from mechaphlowers.entities.schemas import CableArrayInput, WeatherArrayInput
 
 NB_SPAN = 3
 
@@ -32,42 +32,50 @@ def cable() -> CableArray:
 
 
 def test_compute_ice_load(cable: CableArray) -> None:
-	external_loads = WeatherLoads(
-		cable,
-		ice_thickness=np.array([0.01, 0.02, 0.0]),
-		wind_pressure=np.array([0, 0]),
+	weather_input_df: pdt.DataFrame[WeatherArrayInput] = pdt.DataFrame(
+		{
+			"ice_thickness": np.array([0.01, 0.02, 0.0]),
+			"wind_pressure": np.zeros(3),
+		}
 	)
-	external_loads.ice_load()
+	weather = WeatherArray(weather_input_df)
+	weather_loads = WeatherLoads(
+		cable,
+		weather,
+	)
+
+	weather_loads.ice_load()
 
 
 def test_compute_wind_load(cable: CableArray) -> None:
-	external_loads = WeatherLoads(
-		cable,
-		ice_thickness=np.array([0.01, 0.02, 0.0]),
-		wind_pressure=np.array([240.12, 0, -240.13]),
+	weather_input_df: pdt.DataFrame[WeatherArrayInput] = pdt.DataFrame(
+		{
+			"ice_thickness": np.array([0.01, 0.02, 0.0]),
+			"wind_pressure": [240.12, 0, -240.13],
+		}
 	)
-	external_loads.wind_load()
+	weather = WeatherArray(weather_input_df)
+	weather_loads = WeatherLoads(
+		cable,
+		weather,
+	)
+
+	weather_loads.wind_load()
 
 
 def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
-	external_loads = WeatherLoads(
+	weather_input_df: pdt.DataFrame[WeatherArrayInput] = pdt.DataFrame(
+		{
+			"ice_thickness": np.array([0.01, 0.02, 0.0]),
+			"wind_pressure": [240.12, 0, -240.13],
+		}
+	)
+	weather = WeatherArray(weather_input_df)
+	weather_loads = WeatherLoads(
 		cable,
-		ice_thickness=np.array(
-			[
-				0.01,
-				0.02,
-				0.0,
-			]
-		),
-		wind_pressure=np.array(
-			[
-				240.12,
-				0.0,
-				240.13,
-			]
-		),
+		weather,
 	)
 
-	result = external_loads.result()
+	result = weather_loads.result()
 	result.load_coefficient
 	result.load_angle

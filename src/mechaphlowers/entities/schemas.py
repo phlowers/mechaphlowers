@@ -75,6 +75,20 @@ class CableArrayInput(pa.DataFrameModel):
 	temperature_reference: pdt.Series[float] = pa.Field(coerce=True)
 
 
+class WeatherArrayInput(pa.DataFrameModel):
+	"""Schema describing the expected dataframe for instantiating a WeatherArray.
+
+	ice_thickness: Thickness of the ice layer on the cable, in m
+	wind_pressure: Pressure of the wind, in Pa  # TODO: more precise definition?
+	"""
+
+	# TODO: add input validation
+	# TODO: checks units?
+
+	ice_thickness: pdt.Series[float] = pa.Field(coerce=True)  # TODO: optional?
+	wind_pressure: pdt.Series[float] = pa.Field(coerce=True)  # TODO: optional?
+
+
 class LoadResultOutput(pa.DataFrameModel):
 	"""Schema for the content of the dataframe returned by WeatherLoads.result."""
 
