@@ -80,7 +80,7 @@ class WeatherArrayInput(pa.DataFrameModel):
 
 	ice_thickness: Thickness of the ice layer on the cable, in m
 
-	wind_pressure: Pressure of the wind, in Pa  # TODO: more precise definition?
+	wind_pressure: Pressure of the perpendicular component of the wind, in Pa
 	"""
 
 	# TODO: checks units?
