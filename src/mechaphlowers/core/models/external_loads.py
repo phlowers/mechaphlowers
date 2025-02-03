@@ -38,9 +38,9 @@ class WeatherLoads:
 		return np.arctan(wind_load / (ice_load + linear_weight))
 
 	@property
-	def total_value(
+	def _weather_loads_and_weight(
 		self,
-	) -> np.ndarray:  # TODO: rename? _total_load_including_own_weight? _weather_load_and_weight ? _weather_and_weight_load?
+	) -> np.ndarray:
 		"""Norm of the force (R) applied on the cable due to weather loads and cable own weight, per meter cable"""
 
 		linear_weight = self.cable.data.linear_weight
@@ -52,7 +52,7 @@ class WeatherLoads:
 	@property
 	def load_coefficient(self) -> np.ndarray:
 		linear_weight = self.cable.data.linear_weight
-		return self.total_value / linear_weight
+		return self._weather_loads_and_weight / linear_weight
 
 	@property
 	def ice_load(self) -> np.ndarray:

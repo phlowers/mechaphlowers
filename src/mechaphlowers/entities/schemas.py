@@ -79,11 +79,13 @@ class WeatherArrayInput(pa.DataFrameModel):
 	"""Schema describing the expected dataframe for instantiating a WeatherArray.
 
 	ice_thickness: Thickness of the ice layer on the cable, in m
+
 	wind_pressure: Pressure of the wind, in Pa  # TODO: more precise definition?
 	"""
 
-	# TODO: add input validation
 	# TODO: checks units?
 
-	ice_thickness: pdt.Series[float] = pa.Field(coerce=True)  # TODO: optional?
+	ice_thickness: pdt.Series[float] = pa.Field(
+		coerce=True, ge=0.0
+	)  # TODO: optional?
 	wind_pressure: pdt.Series[float] = pa.Field(coerce=True)  # TODO: optional?

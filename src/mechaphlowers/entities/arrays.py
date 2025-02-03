@@ -150,10 +150,9 @@ class WeatherArray(ElementArray):
 	@pa.check_types(lazy=True)
 	def __init__(
 		self,
-		data: pdt.DataFrame[WeatherArrayInput]
-		| pdt.DataFrame,  # TODO: check use with a bare df
+		data: pdt.DataFrame[WeatherArrayInput] | pd.DataFrame,
 	) -> None:
-		super().__init__(data)
+		super().__init__(data)  # type: ignore[arg-type]
 
 	@property
 	def _input_columns(self) -> list[str]:

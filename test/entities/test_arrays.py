@@ -17,6 +17,7 @@ from mechaphlowers.entities.arrays import (
 	CableArrayInput,
 	SectionArray,
 	SectionArrayInput,
+	WeatherArray,
 )
 
 
@@ -335,3 +336,14 @@ def test_create_cable_array__wrong_type(
 
 	with pytest.raises(pa.errors.SchemaErrors):
 		CableArray(input_df)
+
+
+def test_create_weather_array__negative_ice() -> None:
+	input_data_with_negative_ice = {
+		"ice_thickness": [0.01, -5.0, -0.0001],
+		"wind_pressure": [240.12, 0, -240.13],
+	}
+	input_df = pd.DataFrame(input_data_with_negative_ice)
+
+	with pytest.raises(pa.errors.SchemaErrors):
+		WeatherArray(input_df)
