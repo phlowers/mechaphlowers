@@ -9,12 +9,12 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 
-class SpacePositionCableModel(ABC):
+class Span(ABC):
 	"""This abstract class is a base class for various models describing the cable in its own frame.
 
 	The coordinates are expressed in the cable frame.
 
-	Notes: For now we assume in these space positioning models that there's
+	Notes: For now we assume in these span models that there's
 	no line angle or wind (or other load on the cable), so we work under the following simplifying assumptions:
 
 	- a = a' = span_length
@@ -167,8 +167,8 @@ class SpacePositionCableModel(ABC):
 		"""Mean tension along the whole cable."""
 
 
-class CatenaryCableModel(SpacePositionCableModel):
-	"""Implementation of a space positioning cable model according to the catenary equation.
+class CatenarySpan(Span):
+	"""Implementation of a span cable model according to the catenary equation.
 
 	The coordinates are expressed in the cable frame.
 	"""

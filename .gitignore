@@ -70,6 +70,10 @@ ipython_config.py
 # pyenv
 .python-version
 
+# tools
+.pdm-build/
+src/mechaplowers/_version.py
+
 # Environments
 .env
 .venv
