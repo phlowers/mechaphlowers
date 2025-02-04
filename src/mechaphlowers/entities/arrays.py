@@ -117,7 +117,6 @@ class CableArray(ElementArray):
 		data: pdt.DataFrame[CableArrayInput] | pd.DataFrame,
 	) -> None:
 		super().__init__(data)  # type: ignore[arg-type]
-		# Conversion correct?
 
 	@property
 	def _input_columns(self) -> list[str]:
