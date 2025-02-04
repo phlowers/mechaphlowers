@@ -45,10 +45,10 @@ nav:
       - Sag-tension calculation : user_guide/ug_sag_tension_calc.md
   - Developer guide:
     - API Reference:
+      - API : docstring/api/frames.md
       - Entities : 
           - Arrays : docstring/entities/arrays.md
           - Schemas : docstring/entities/schemas.md
-          - Frames : docstring/entities/frames.md
       - Core :
           - Geometry : docstring/core/geometry/references.md
           - Models : 

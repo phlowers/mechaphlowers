@@ -12,7 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go  # type: ignore
 
 if TYPE_CHECKING:
-	from mechaphlowers.entities import SectionDataFrame
+	from mechaphlowers.api.frames import SectionDataFrame
 
 
 def plot_line(fig: go.Figure, points: np.ndarray) -> None:

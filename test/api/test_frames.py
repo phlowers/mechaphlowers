@@ -11,11 +11,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
-from mechaphlowers.entities import SectionDataFrame
-from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 data = {
 	"name": ["support 1", "2", "three", "support 4"],
@@ -35,7 +35,7 @@ section.sagging_temperature = 15
 def test_section_frame_initialization():
 	frame = SectionDataFrame(section)
 	assert frame.section == section
-	assert isinstance(frame.span_model, type(CatenarySpan))
+	assert isinstance(frame._span_model, type(CatenarySpan))
 
 
 def test_section_frame_get_coord():
@@ -84,3 +84,130 @@ def test_SectionDataFrame__copy():
 	frame = SectionDataFrame(section)
 	copy(frame)
 	assert isinstance(frame, SectionDataFrame)
+
+
+def test_SectionDataFrame__state():
+	frame = SectionDataFrame(section)
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [
+					345.5,
+				]
+				* 4,
+				"diameter": [
+					22.4,
+				]
+				* 4,
+				"linear_weight": [
+					9.6,
+				]
+				* 4,
+				"young_modulus": [
+					59,
+				]
+				* 4,
+				"dilatation_coefficient": [
+					23,
+				]
+				* 4,
+				"temperature_reference": [
+					15,
+				]
+				* 4,
+			}
+		)
+	)
+
+	frame.add_cable(cable_array)
+	assert np.array_equal(
+		frame.state.L_ref(12), frame.physics.L_ref(12), equal_nan=True
+	)
+
+
+# test add_cable method
+def test_add_cable():
+	frame = SectionDataFrame(section)
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [
+					345.5,
+				]
+				* 4,
+				"diameter": [
+					22.4,
+				]
+				* 4,
+				"linear_weight": [
+					9.6,
+				]
+				* 4,
+				"young_modulus": [
+					59,
+				]
+				* 4,
+				"dilatation_coefficient": [
+					23,
+				]
+				* 4,
+				"temperature_reference": [
+					15,
+				]
+				* 4,
+			}
+		)
+	)
+
+	with pytest.raises(TypeError):
+		# wrong input type
+		frame.add_cable(1)
+	with pytest.raises(ValueError):
+		# wrong input length
+		cable_copy = copy(cable_array)
+		cable_copy._data = cable_copy.data.iloc[:-1]
+		frame.add_cable(cable_copy)
+	frame.add_cable(cable_array)
+
+
+def test_SectionDataFrame__data():
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [
+					345.5,
+				]
+				* 4,
+				"diameter": [
+					22.4,
+				]
+				* 4,
+				"linear_weight": [
+					9.6,
+				]
+				* 4,
+				"young_modulus": [
+					59,
+				]
+				* 4,
+				"dilatation_coefficient": [
+					23,
+				]
+				* 4,
+				"temperature_reference": [
+					15,
+				]
+				* 4,
+			}
+		)
+	)
+
+	frame = SectionDataFrame(section)
+	assert frame.data.equals(frame.section.data)
+
+	frame.add_cable(cable_array)
+	assert not frame.data.equals(frame.section.data)
+	assert (
+		frame.data.shape[1]
+		== frame.cable.data.shape[1] + frame.section.data.shape[1]
+	)

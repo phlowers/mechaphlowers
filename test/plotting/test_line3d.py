@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 import pytest
 
-from mechaphlowers.entities import SectionDataFrame
+from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.entities.arrays import SectionArray
 
 data = {
