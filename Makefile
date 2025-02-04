@@ -22,7 +22,7 @@ check-format: .uv
 	uv run ruff format --check $(sources)
 
 .PHONY: check-lint  ## Lint python source files
-lint: .uv
+check-lint: .uv
 	uv run ruff check $(sources)
 
 .PHONY: lint  ## Lint python source files

@@ -79,6 +79,6 @@ frame.add_cable(cable_array)
 frame.span.L()
 frame.state.L_ref(100)
 frame.span.T_mean()
-frame.span.Th()
+frame.span.T_h()
 
 ```
