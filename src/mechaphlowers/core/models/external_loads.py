@@ -13,7 +13,7 @@ from mechaphlowers.entities.arrays import CableArray, WeatherArray
 DEFAULT_ICE_DENSITY = 6_000
 
 
-class WeatherLoads:
+class CableLoads:
 	def __init__(
 		self,
 		cable: CableArray,
@@ -38,7 +38,7 @@ class WeatherLoads:
 		return np.arctan(wind_load / (ice_load + linear_weight))
 
 	@property
-	def _weather_loads_and_weight(
+	def resulting_norm(
 		self,
 	) -> np.ndarray:
 		"""Norm of the force (R) applied on the cable due to weather loads and cable own weight, per meter cable"""
@@ -52,7 +52,7 @@ class WeatherLoads:
 	@property
 	def load_coefficient(self) -> np.ndarray:
 		linear_weight = self.cable.data.linear_weight
-		return self._weather_loads_and_weight / linear_weight
+		return self.resulting_norm / linear_weight
 
 	@property
 	def ice_load(self) -> np.ndarray:

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from pandera.typing import pandas as pdt
 
-from mechaphlowers.core.models.external_loads import WeatherLoads
+from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, WeatherArray
 
 NB_SPAN = 3
@@ -39,7 +39,7 @@ def test_compute_ice_load(cable: CableArray) -> None:
 			}
 		)
 	)
-	weather_loads = WeatherLoads(
+	weather_loads = CableLoads(
 		cable,
 		weather,
 	)
@@ -56,7 +56,7 @@ def test_compute_wind_load(cable: CableArray) -> None:
 			}
 		)
 	)
-	weather_loads = WeatherLoads(
+	weather_loads = CableLoads(
 		cable,
 		weather,
 	)
@@ -73,7 +73,7 @@ def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
 			}
 		)
 	)
-	weather_loads = WeatherLoads(
+	weather_loads = CableLoads(
 		cable,
 		weather,
 	)
