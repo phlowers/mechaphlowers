@@ -78,9 +78,9 @@ class CableArrayInput(pa.DataFrameModel):
 class WeatherArrayInput(pa.DataFrameModel):
 	"""Schema describing the expected dataframe for instantiating a WeatherArray.
 
-	ice_thickness: Thickness of the ice layer on the cable, in m
-
-	wind_pressure: Pressure of the perpendicular component of the wind, in Pa
+	Attributes:
+		ice_thickness (float): Thickness of the ice layer on the cable, in m
+		wind_pressure (float): Pressure of the perpendicular component of the wind, in Pa
 	"""
 
 	# TODO: checks units?
