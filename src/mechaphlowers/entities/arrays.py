@@ -108,7 +108,7 @@ class CableArray(ElementArray):
 	"""Physical description of a cable.
 
 	Args:
-	data: Input data
+		data: Input data
 	"""
 
 	@pa.check_types(lazy=True)
