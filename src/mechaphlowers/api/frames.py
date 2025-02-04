@@ -57,11 +57,7 @@ class SectionDataFrame:
 		self.init_span_model()
 
 	def init_span_model(self):
-		"""init_span_model method to initialize span model
-
-		Returns:
-		    None
-		"""
+		"""init_span_model method to initialize span model"""
 		self.span = self._span_model(
 			self.section.data.span_length.to_numpy(),
 			self.section.data.elevation_difference.to_numpy(),
@@ -199,9 +195,10 @@ class SectionDataFrame:
 
 		Args:
 		    cable (CableArray): cable to add
-
-		Returns:
-		    Self: SectionDataFrame with the added cable
+    
+		Raises:
+			TypeError: if cable is not a CableArray object
+			ValueError: if cable has not the same length as the section
 		"""
 
 		if not isinstance(cable, CableArray):
@@ -217,14 +214,10 @@ class SectionDataFrame:
 
 		self.span.linear_weight = self.cable.data.linear_weight.to_numpy()
 
-		self.initialize_physics()
+		self.init_physics_model()
 
-	def initialize_physics(self):
-		"""initialize_physics method to initialize physics model
-
-		Returns:
-		    None
-		"""
+	def init_physics_model(self):
+		"""initialize_physics method to initialize physics model"""
 
 		# Initialize physics model
 		self.physics = self._physics_model(
