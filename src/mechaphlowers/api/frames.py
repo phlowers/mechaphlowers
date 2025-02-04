@@ -121,11 +121,11 @@ class SectionDataFrame:
 		).T
 
 	@property
-	def data(self):
-		"""data property to return SectionArray data property
+	def data(self) -> pd.DataFrame:
+		"""data property to get the data of the SectionDataFrame object with or without cable data
 
 		Returns:
-		    np.ndarray: SectionArray data from input
+		    pd.DataFrame: data property of the SectionDataFrame object with or without cable data
 		"""
 
 		if self.cable is None:

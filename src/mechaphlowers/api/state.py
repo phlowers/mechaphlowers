@@ -18,7 +18,17 @@ class StateAccessor:
 		self.section: SectionDataFrame = section
 
 	def L_ref(self, current_temperature: float | np.ndarray) -> np.ndarray:
-		# TODO: if current_temperature is a float, it should be converted to a np.ndarray of size section.section.data.shape[0]
+		"""L_ref values for the current temperature
+
+		Args:
+			current_temperature (float | np.ndarray): current temperature in degrees Celsius
+
+		Raises:
+			ValueError: if current_temperature is not a float or an array with the same length as the section
+
+		Returns:
+			np.ndarray: L_ref values
+		"""
 		if isinstance(current_temperature, float):
 			current_temperature = np.full(
 				self.section.section.data.shape[0], current_temperature
