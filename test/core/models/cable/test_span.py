@@ -12,7 +12,7 @@ from mechaphlowers.core.models.cable.span import (
 )
 
 
-def test_catenary_span_model() -> None:
+def test_catenary_span_model__no_error_lengths() -> None:
 	a = np.array([501.3, 499.0])  # test here int and float
 	b = np.array([0.0, -5.0])
 	p = np.array([2_112.2, 2_112.0])
@@ -30,7 +30,7 @@ def test_catenary_span_model() -> None:
 	span_model.L_n()
 
 
-def test_catenary_span_model_tensions() -> None:
+def test_catenary_span_model__no_errors_tensions() -> None:
 	a = np.array([501.3, 499.0])  # test here int and float
 	b = np.array([0.0, -5.0])
 	p = np.array([2_112.2, 2_112.0])

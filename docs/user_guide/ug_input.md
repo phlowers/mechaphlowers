@@ -1,6 +1,8 @@
 # Input data format
 
-This page describes the format of the input data needed to perform calculations about a line section in mechaphlowers.
+## Line Section
+
+This paragraph describes the format of the input data needed to perform calculations about a line section in mechaphlowers.
 
 !!! Units
 
@@ -60,3 +62,52 @@ You may use following code to define this data and load it so that it can be use
     })
     section_array = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
     print(section_array)
+
+## Cable
+
+This paragraph describes the format of the input data needed about the cable properties in mechaphlowers.
+
+A Cable is described using the following data:
+
+- section in $mm^2$
+- diameter in $mm$
+- linear weight in $N/m$
+- Young modulus in $GPa$
+- temperature of reference in $°C$
+- dilatation coefficient in $°C^{-1}$
+- coefficients of the polynomial model between stress and deformation in $GPa$ (optional)
+
+
+Similarly to line section data, input data should be organized in a table. The number of rows is equal to the number of spans. However, the data of CableArray is independent of the span, therefore all rows are identical.
+
+|section|diameter|linear_weight|young_modulus|dilatation_coefficient|temperature_reference|a0|a1|a2|a3|a4|
+|---|-----|--|--|--|-|-|-----|--------|----------|--------------|
+|450|30.5 |14|45|23|0|0|15|45000|2300000|-1800000000|
+|450|30.5 |14|45|23|0|0|15|45000|2300000|-1800000000|
+
+
+You may use following code to define this data and load it so that it can be used by mechaphlowers:
+
+```
+import pandas as pd
+import numpy as np
+
+from mechaphlowers.entities.arrays import CableArray
+
+
+input_df = pd.DataFrame({
+	"section": [450, 450],
+	"diameter": [30.5, 30.5],
+	"linear_weight": [14, 14],
+	"young_modulus": [45, 45],
+	"dilatation_coefficient": [23, 23],
+	"temperature_reference": [0, 0],
+	"a0": [0, 0],
+	"a1": [15000, 15000],
+	"a2": [45000000, 45000000],
+	"a3": [2300000000, 2300000000],
+	"a4": [-1800000000000, -1800000000000],
+})
+cable_array = CableArray(input_df)
+print(cable_array)
+```

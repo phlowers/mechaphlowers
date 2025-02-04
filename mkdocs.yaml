@@ -56,6 +56,8 @@ nav:
               - Span : docstring/core/models/cable/span.md
               - Physics : docstring/core/models/cable/physics.md
               - Deformation : docstring/core/models/cable/deformation.md
+      - Data :
+          - Catalog: docstring/data/catalog.md
     - Guidelines : developer_guide/guidelines.md
     - Documentation : developer_guide/documentation.md
 
