@@ -7,6 +7,7 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+from numpy.polynomial import Polynomial as Poly
 import pandas as pd
 import pandera as pa
 from pandera.typing import pandas as pdt
@@ -125,6 +126,8 @@ class CableArray(ElementArray):
 
 	@property
 	def data(self) -> pd.DataFrame:
+		"""Returns a copy of self._data that converts values into SI units
+		"""
 		data_SI = self._data.copy()
 		data_SI["section"] *= 1e-6
 		data_SI["diameter"] *= 1e-3
@@ -135,3 +138,11 @@ class CableArray(ElementArray):
 	@property
 	def data_original_units(self) -> pd.DataFrame:
 		return self._data
+
+	@property
+	def polynom(self) -> Poly:
+		"""Converts coefficients in the dataframe into polynom
+		"""
+		coefs_poly = self.data.iloc[0][["a0", "a1", "a2", "a3", "a4"]].to_numpy()
+		return Poly(coefs_poly)
+		
