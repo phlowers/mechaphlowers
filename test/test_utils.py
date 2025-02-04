@@ -1,5 +1,5 @@
 import numpy as np
-import pytest
+
 from mechaphlowers.utils import CachedAccessor, ppnp
 
 # FILE: src/mechaphlowers/test_utils.py

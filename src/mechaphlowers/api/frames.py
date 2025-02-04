@@ -71,11 +71,17 @@ class SectionDataFrame:
 		    np.ndarray: x,y,z array in point format
 		"""
 
+		spans = self._span_model(
+			self.section.data.span_length.to_numpy(),
+			self.section.data.elevation_difference.to_numpy(),
+			self.section.data.sagging_parameter.to_numpy(),
+		)
+
 		# compute x_axis
-		x_cable: np.ndarray = self.span.x(RESOLUTION)
+		x_cable: np.ndarray = spans.x(RESOLUTION)
 
 		# compute z_axis
-		z_cable: np.ndarray = self.span.z(x_cable)
+		z_cable: np.ndarray = spans.z(x_cable)
 
 		# change frame and drop last value
 		x_span, y_span, z_span = references.cable2span(
@@ -189,7 +195,7 @@ class SectionDataFrame:
 
 		Args:
 		    cable (CableArray): cable to add
-    
+
 		Raises:
 			TypeError: if cable is not a CableArray object
 			ValueError: if cable has not the same length as the section
