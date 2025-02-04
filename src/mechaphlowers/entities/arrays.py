@@ -161,4 +161,10 @@ class WeatherArray(ElementArray):
 
 	@property
 	def data(self) -> pd.DataFrame:
+		data_SI = self._data.copy()
+		data_SI["ice_thickness"] *= 1e-2
+		return data_SI
+
+	@property
+	def data_original_units(self) -> pd.DataFrame:
 		return self._data

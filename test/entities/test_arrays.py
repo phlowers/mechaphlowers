@@ -340,7 +340,7 @@ def test_create_cable_array__wrong_type(
 
 def test_create_weather_array__negative_ice() -> None:
 	input_data_with_negative_ice = {
-		"ice_thickness": [0.01, -5.0, -0.0001],
+		"ice_thickness": [1, -5.0, -0.0001],
 		"wind_pressure": [240.12, 0, -240.13],
 	}
 	input_df = pd.DataFrame(input_data_with_negative_ice)

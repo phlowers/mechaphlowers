@@ -34,7 +34,7 @@ def test_compute_ice_load(cable: CableArray) -> None:
 	weather = WeatherArray(
 		pdt.DataFrame(
 			{
-				"ice_thickness": [0.01, 0.02, 0.0],
+				"ice_thickness": [1, 2.1, 0.0],
 				"wind_pressure": np.zeros(NB_SPAN),
 			}
 		)
@@ -51,7 +51,7 @@ def test_compute_wind_load(cable: CableArray) -> None:
 	weather = WeatherArray(
 		pdt.DataFrame(
 			{
-				"ice_thickness": [0.01, 0.02, 0.0],
+				"ice_thickness": [1, 2.1, 0.0],
 				"wind_pressure": [240.12, 0, -240.13],
 			}
 		)
@@ -68,7 +68,7 @@ def test_total_load_coefficient_and_angle(cable: CableArray) -> None:
 	weather = WeatherArray(
 		pdt.DataFrame(
 			{
-				"ice_thickness": [0.01, 0.02, 0.0],
+				"ice_thickness": [1, 2.1, 0.0],
 				"wind_pressure": [240.12, 0, -240.13],
 			}
 		)
