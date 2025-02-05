@@ -108,5 +108,5 @@ def test_plot_line3d__with_beta():
 	frame.cable_loads.load_angle
 	fig = go.Figure()
 	frame.plot.line3d(fig)
-	fig.show() # deactivate for auto unit testing
+	# fig.show() # deactivate for auto unit testing
 	assert True  # Just trying to see if the previous code raises
