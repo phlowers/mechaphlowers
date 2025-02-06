@@ -218,6 +218,14 @@ class SectionDataFrame:
 		self.init_physics_model()
 
 	def add_weather(self, weather: WeatherArray):
+		"""add_weather method to add a new weather to the SectionDataFrame
+
+		Args:
+			weather (WeatherArray): weather to add
+
+		Raises:
+			ValueError: if cable has not been added before weather
+		"""
 		self._add_array(weather, WeatherArray)
 		if self.cable is None:
 			raise ValueError("Cable has to be added before weather")
