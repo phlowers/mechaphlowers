@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -11,11 +11,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.api.frames import SectionDataFrame
+from mechaphlowers.api.frames import RESOLUTION, SectionDataFrame
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
-from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.arrays import (
+	CableArray,
+	SectionArray,
+	WeatherArray,
+)
 
 data = {
 	"name": ["support 1", "2", "three", "support 4"],
@@ -41,7 +45,7 @@ def test_section_frame_initialization():
 def test_section_frame_get_coord():
 	frame = SectionDataFrame(section)
 	coords = frame.get_coord()
-	assert coords.shape == (30, 3)
+	assert coords.shape == ((len(section.data) - 1) * RESOLUTION, 3)
 	assert isinstance(coords, np.ndarray)
 
 
@@ -50,6 +54,7 @@ def test_section_frame_get_coord():
 	[
 		(ValueError, ["support 1", "2", "three"]),
 		(ValueError, ["support 1"]),
+		(ValueError, ["support 1", "support 1"]),
 		(ValueError, ["support 1", "name_not_existing"]),
 		(ValueError, ["three", "support 1"]),
 		(TypeError, "support 1"),
@@ -126,7 +131,7 @@ def test_SectionDataFrame__state():
 
 
 # test add_cable method
-def test_add_cable():
+def test_SectionDataFrame__add_cable():
 	frame = SectionDataFrame(section)
 	cable_array = CableArray(
 		pd.DataFrame(
@@ -168,6 +173,114 @@ def test_add_cable():
 		cable_copy._data = cable_copy.data.iloc[:-1]
 		frame.add_cable(cable_copy)
 	frame.add_cable(cable_array)
+
+
+def test_SectionDataFrame__add_weather():
+	frame = SectionDataFrame(section)
+	weather = WeatherArray(
+		pd.DataFrame(
+			{
+				"ice_thickness": [1, 2.1, 0.0, 5.4],
+				"wind_pressure": [1840.12, 0.0, 12.0, 53.0],
+			}
+		)
+	)
+
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [
+					345.5,
+				]
+				* 4,
+				"diameter": [
+					22.4,
+				]
+				* 4,
+				"linear_weight": [
+					9.6,
+				]
+				* 4,
+				"young_modulus": [
+					59,
+				]
+				* 4,
+				"dilatation_coefficient": [
+					23,
+				]
+				* 4,
+				"temperature_reference": [
+					15,
+				]
+				* 4,
+			}
+		)
+	)
+	with pytest.raises(ValueError):
+		# cable has to be added before weather
+		frame.add_weather(weather)
+	frame.add_cable(cable=cable_array)
+	frame.add_weather(weather=weather)
+
+
+def test_SectionDataFrame__add_array():
+	frame = SectionDataFrame(section)
+	cable_df = pd.DataFrame(
+		{
+			"section": [
+				345.5,
+			]
+			* 4,
+			"diameter": [
+				22.4,
+			]
+			* 4,
+			"linear_weight": [
+				9.6,
+			]
+			* 4,
+			"young_modulus": [
+				59,
+			]
+			* 4,
+			"dilatation_coefficient": [
+				23,
+			]
+			* 4,
+			"temperature_reference": [
+				15,
+			]
+			* 4,
+		}
+	)
+	cable_array = CableArray(cable_df)
+	weather_array = WeatherArray(
+		pd.DataFrame(
+			{
+				"ice_thickness": [1, 2.1, 0.0, 5.4],
+				"wind_pressure": [1840.12, 0.0, 12.0, 53.0],
+			}
+		)
+	)
+	# Testez l'ajout de CableArray
+	frame._add_array(cable_array, CableArray)
+	assert frame.cable == cable_array
+
+	# Testez l'ajout de WeatherArray
+	frame._add_array(weather_array, WeatherArray)
+	assert frame.weather == weather_array
+
+	# Wrong object type
+	with pytest.raises(TypeError):
+		frame._add_array(cable_df, pd.DataFrame)
+	# Testez les exceptions
+	with pytest.raises(TypeError):
+		frame._add_array("not_an_array", CableArray)
+
+	with pytest.raises(ValueError):
+		wrong_length_array = copy(cable_array)
+		wrong_length_array._data = wrong_length_array.data.iloc[:-1]
+		frame._add_array(wrong_length_array, CableArray)
 
 
 def test_SectionDataFrame__data():

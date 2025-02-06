@@ -54,10 +54,10 @@ def cable2span(
 	# elevation part has the same shape
 	# However rotation is applied on [x,y,z] stacked matrix with x vector of shape (n x d, )
 	elevation_part = np.linspace(
-		tuple(np.nanmin(z, axis=1).tolist()),
-		tuple(np.nanmax(z, axis=1).tolist()),
-		x.shape[1],
-	).T
+		tuple(z[0, :].tolist()),
+		tuple(z[-1, :].tolist()),
+		x.shape[0],
+	)
 
 	rotation_matrix = R.from_euler("x", beta, degrees=True)
 	# span = np.dot(rotation_matrix, np.array([x, elevation_part, z]))

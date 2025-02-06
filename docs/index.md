@@ -21,7 +21,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from mechaphlowers import SectionDataFrame
-from mechaphlowers.entities.arrays import SectionArray, CableArray
+from mechaphlowers.entities.arrays import SectionArray, CableArray, WeatherArray
 
 
 # load data 
@@ -80,5 +80,25 @@ frame.span.L()
 frame.state.L_ref(100)
 frame.span.T_mean()
 frame.span.T_h()
+
+# It is possible to add an external weather on cable
+weather = WeatherArray(
+	pd.DataFrame(
+		{
+			"ice_thickness": [1, 2.1, 0.0, 5.4],
+			"wind_pressure": [240.12, 0.0, 12.0, 53.0],
+		}
+	)
+)
+frame.add_weather(weather=weather)
+
+# You can get parameters associated with loads
+frame.cable_loads.load_angle
+
+# And you can display effect of loads on the previous plot
+# For the moment only the maximum wind is applied on all the span.
+fig = go.Figure()
+frame.plot.line3d(fig)
+
 
 ```

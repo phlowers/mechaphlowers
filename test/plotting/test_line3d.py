@@ -10,7 +10,11 @@ import plotly.graph_objects as go  # type: ignore[import-untyped]
 import pytest
 
 from mechaphlowers.api.frames import SectionDataFrame
-from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.arrays import (
+	CableArray,
+	SectionArray,
+	WeatherArray,
+)
 
 data = {
 	"name": ["1", "2", "three", "support 4"],
@@ -61,3 +65,52 @@ def test_plot_line3d__wrong_view_option():
 		frame.plot.line3d(fig, view="wrong_parameter")
 	with pytest.raises(ValueError):
 		frame.plot.line3d(fig, view=22)
+
+
+def test_plot_line3d__with_beta():
+	weather = WeatherArray(
+		pd.DataFrame(
+			{
+				"ice_thickness": [1, 2.1, 0.0, 5.4],
+				"wind_pressure": [240.12, 0.0, 12.0, 53.0],
+			}
+		)
+	)
+
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [
+					345.5,
+				]
+				* 4,
+				"diameter": [
+					22.4,
+				]
+				* 4,
+				"linear_weight": [
+					9.6,
+				]
+				* 4,
+				"young_modulus": [
+					59,
+				]
+				* 4,
+				"dilatation_coefficient": [
+					23,
+				]
+				* 4,
+				"temperature_reference": [
+					15,
+				]
+				* 4,
+			}
+		)
+	)
+	frame.add_cable(cable=cable_array)
+	frame.add_weather(weather=weather)
+	frame.cable_loads.load_angle
+	fig = go.Figure()
+	frame.plot.line3d(fig)
+	# fig.show() # deactivate for auto unit testing
+	assert True  # Just trying to see if the previous code raises
