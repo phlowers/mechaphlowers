@@ -29,22 +29,117 @@ class Deformation(ABC):
 		return (current_temperature - temp_ref) * alpha
 
 	@abstractmethod
-	def epsilon(self, current_temperature: np.ndarray) -> np.ndarray:
+	def epsilon(
+		self,
+		current_temperature: np.ndarray,
+		constraint_max: np.ndarray | None = None,
+	) -> np.ndarray:
 		"""Total relative deformation of the cable."""
 
 	@abstractmethod
-	def epsilon_mecha(self) -> np.ndarray:
+	def epsilon_mecha(
+		self, constraint_max: np.ndarray | None = None
+	) -> np.ndarray:
 		"""Mechanical part of the relative deformation  of the cable."""
 
 
 class LinearDeformation(Deformation):
 	"""This model assumes that mechanical deformation is linear with tension."""
 
-	def epsilon_mecha(self) -> np.ndarray:
+	def epsilon_mecha(
+		self, constraint_max: np.ndarray | None = None
+	) -> np.ndarray:
 		T_mean = self.tension_mean
 		E = self.cable_array.data["young_modulus"].to_numpy()
 		S = self.cable_array.data["section"].to_numpy()
 		return T_mean / (E * S)
 
-	def epsilon(self, current_temperature):
+	def epsilon(
+		self, current_temperature, constraint_max: np.ndarray | None = None
+	):
 		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
+
+
+class PolynomialDeformation(Deformation):
+	def epsilon_mecha(
+		self, constraint_max: np.ndarray | None = None
+	) -> np.ndarray:
+		if constraint_max is None:
+			constraint_max = np.full(self.tension_mean.shape, 0)
+
+		T_mean = self.tension_mean
+		S = self.cable_array.data["section"].to_numpy()
+		sigma = T_mean / S
+
+		E = self.cable_array.data["young_modulus"].to_numpy()
+
+		# -------test values------
+		if (sigma >= constraint_max).all():
+			temp_return = self.find_roots_polynom(sigma)
+		elif (sigma < constraint_max).all():
+			epsilon_max = self.find_roots_polynom(constraint_max)
+			temp_return = epsilon_max - sigma / E
+		else:
+			is_lower_than_before = sigma < constraint_max
+			highest_constraint = np.fmax(sigma, constraint_max)
+			equation_solution = self.find_roots_polynom(highest_constraint)
+			for index in range(equation_solution.size):
+				if is_lower_than_before[index]:
+					equation_solution[index] -= sigma[index] / E[index]
+			temp_return = equation_solution
+		# ----------------
+
+		equation_solution = np.where(
+			sigma >= constraint_max,
+			self.find_roots_polynom(sigma),
+			self.find_roots_polynom(constraint_max) - sigma / E,
+		)
+		return equation_solution
+
+	def find_roots_polynom(self, sigma: np.ndarray) -> np.ndarray:
+		"""Resolves $\sigma = Polynom(\epsilon)$"""
+		# values hardcoded right now
+		min = 0.0
+		max = 0.01
+		T_mean = self.tension_mean
+
+		polynom_array = np.full(T_mean.shape, self.cable_array.polynom)
+
+		poly_to_resolve = polynom_array - sigma
+		# Can cause performance issues
+		# use .toList() instead?
+		all_roots = [poly.roots() for poly in poly_to_resolve]
+
+		# ------- TESTING VALUES--------
+		real_roots_in_range_temp = np.array(
+			[
+				[
+					root.real
+					for root in roots_one_poly
+					if (
+						abs(root.imag) < 1e-5 and (min <= root and root <= max)
+					)
+				]
+				for roots_one_poly in all_roots
+			]
+		).T[0]
+		# # -------------------------
+
+		all_roots_stacked = np.stack(all_roots)
+		keep_solution_condition = np.logical_and(
+			abs(all_roots_stacked.imag) < 1e-5,
+			np.logical_and(min <= all_roots_stacked, all_roots_stacked <= max),
+		)
+		real_roots_in_range = np.extract(keep_solution_condition, all_roots_stacked)
+
+		# assert len(real_roots_in_range) == 1, len(real_roots_in_range)  # TODO
+		return real_roots_in_range
+
+	def epsilon(
+		self,
+		current_temperature: np.ndarray,
+		constraint_max: np.ndarray | None = None,
+	):
+		return self.epsilon_mecha(constraint_max) + self.epsilon_therm(
+			current_temperature
+		)
