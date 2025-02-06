@@ -75,10 +75,10 @@ class PolynomialDeformation(Deformation):
 
 		# -------test values------
 		if (sigma >= constraint_max).all():
-			temp_return = self.find_roots_polynom(sigma)
+			equation_solution_temp = self.find_roots_polynom(sigma)
 		elif (sigma < constraint_max).all():
 			epsilon_max = self.find_roots_polynom(constraint_max)
-			temp_return = epsilon_max - sigma / E
+			equation_solution_temp = epsilon_max - sigma / E
 		else:
 			is_lower_than_before = sigma < constraint_max
 			highest_constraint = np.fmax(sigma, constraint_max)
@@ -86,18 +86,19 @@ class PolynomialDeformation(Deformation):
 			for index in range(equation_solution.size):
 				if is_lower_than_before[index]:
 					equation_solution[index] -= sigma[index] / E[index]
-			temp_return = equation_solution
+			equation_solution_temp = equation_solution
 		# ----------------
 
 		equation_solution = np.where(
 			sigma >= constraint_max,
 			self.find_roots_polynom(sigma),
 			self.find_roots_polynom(constraint_max) - sigma / E,
+			#TODO: check performance
 		)
 		return equation_solution
 
 	def find_roots_polynom(self, sigma: np.ndarray) -> np.ndarray:
-		"""Resolves $\sigma = Polynom(\epsilon)$"""
+		"""Solves $\sigma = Polynom(\epsilon)$"""
 		# values hardcoded right now
 		min = 0.0
 		max = 0.01
@@ -110,30 +111,14 @@ class PolynomialDeformation(Deformation):
 		# use .toList() instead?
 		all_roots = [poly.roots() for poly in poly_to_resolve]
 
-		# ------- TESTING VALUES--------
-		real_roots_in_range_temp = np.array(
-			[
-				[
-					root.real
-					for root in roots_one_poly
-					if (
-						abs(root.imag) < 1e-5 and (min <= root and root <= max)
-					)
-				]
-				for roots_one_poly in all_roots
-			]
-		).T[0]
-		# # -------------------------
-
 		all_roots_stacked = np.stack(all_roots)
 		keep_solution_condition = np.logical_and(
 			abs(all_roots_stacked.imag) < 1e-5,
-			np.logical_and(min <= all_roots_stacked, all_roots_stacked <= max),
+			0.0 <= all_roots_stacked
 		)
-		real_roots_in_range = np.extract(keep_solution_condition, all_roots_stacked)
-
-		# assert len(real_roots_in_range) == 1, len(real_roots_in_range)  # TODO
-		return real_roots_in_range
+		real_smallest_roots = np.where(keep_solution_condition, all_roots_stacked, np.inf)
+		real_smallest_root = np.extract(np.isfinite(real_smallest_roots), real_smallest_roots).real
+		return real_smallest_root
 
 	def epsilon(
 		self,

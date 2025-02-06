@@ -88,7 +88,7 @@ def test_physics_cable__first_example() -> None:
 	)
 
 
-def test_poly_extension_cable_impl(
+def test_poly_deformation__degree_one(
 	cable_array_input_data: dict,
 ) -> None:
 	a = np.array([500, 500])
@@ -123,9 +123,52 @@ def test_poly_extension_cable_impl(
 	)
 	current_temperature = np.array([15, 15])
 	polynomial_deformation_model.find_roots_polynom(constraint)
-	polynomial_deformation_model.epsilon_mecha(np.array([10000, 10000]))
-	polynomial_deformation_model.epsilon_mecha(np.array([10000, 100000000]))
+	polynomial_deformation_model.epsilon_mecha(np.array([1e4, 1e4]))
+	polynomial_deformation_model.epsilon_mecha(np.array([1e4, 1e8]))
 	polynomial_deformation_model.epsilon_mecha(
-		np.array([100000000, 100000000])
+		np.array([1e8, 1e8])
+	)
+	polynomial_deformation_model.epsilon(current_temperature)
+
+
+def test_poly_deformation__degree_four(
+	cable_array_input_data: dict,
+) -> None:
+	a = np.array([500, 500])
+	b = np.array([0.0, -5.0])
+	p = np.array([2_000, 2_000.0])
+	lambd = np.array([9.6, 9.6])
+	m = np.array([1, 1])
+
+	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+	tension_mean = span_model.T_mean()
+
+	cable_array_input_data.update(
+		{
+			"a0": [0] * 2,
+			"a1": [10_000] * 2,
+			"a2": [2400_000] * 2,
+			"a3": [244_000_000] * 2,
+			"a4": [9_000_000_000] * 2,
+		}
+	)
+
+	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
+		cable_array_input_data
+	)
+
+	cable_array = CableArray(input_df)
+	polynomial_deformation_model = PolynomialDeformation(
+		cable_array, tension_mean
+	)
+	constraint = tension_mean / (
+		np.array(cable_array_input_data["section"]) * 1e-6
+	)
+	current_temperature = np.array([15, 15])
+	polynomial_deformation_model.find_roots_polynom(constraint)
+	polynomial_deformation_model.epsilon_mecha(np.array([1e4, 1e4]))
+	polynomial_deformation_model.epsilon_mecha(np.array([1e4, 1e8]))
+	polynomial_deformation_model.epsilon_mecha(
+		np.array([1e8, 1e8])
 	)
 	polynomial_deformation_model.epsilon(current_temperature)
