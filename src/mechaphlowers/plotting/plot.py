@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 MARKER_SIZE = 3
 
+
 def plot_line(fig: go.Figure, points: np.ndarray) -> None:
 	"""Plot the points of the cable onto the figure given
 

@@ -45,7 +45,6 @@ class SectionDataFrame:
 	Inspired from dataframe, it is designed to handle data and models.
 	TODO: for the moment the initialization with SectionArray and Span is explicit.
 	It is not intended to be later.
-
 	"""
 
 	def __init__(
@@ -97,7 +96,7 @@ class SectionDataFrame:
 		# TODO refactor in a property ?
 		beta = 0
 		if self.cable_loads is not None:
-			# TODO: here we take the max angle of the cable. 
+			# TODO: here we take the max angle of the cable.
 			beta = self.cable_loads.load_angle.max() * 180 / np.pi
 
 		x_span, y_span, z_span = references.cable2span(
@@ -208,23 +207,34 @@ class SectionDataFrame:
 		return return_sf
 
 	def add_cable(self, cable: CableArray):
-		self.add_array(cable, CableArray)
-		self.span.linear_weight = self.cable.data.linear_weight.to_numpy()
-		self.init_physics_model()
-
-	def add_weather(self, weather: WeatherArray):
-		self.add_array(weather, WeatherArray)
-		self.cable_loads = CableLoads(self.cable, self.weather)
-
-	def add_array(self, var: ElementArray, type_var: Type[ElementArray]):
 		"""add_cable method to add a new cable to the SectionDataFrame
 
 		Args:
-		    cable (CableArray): cable to add
+			cable (CableArray): cable to add
+		"""
+		self._add_array(cable, CableArray)
+		# type is checked in add_array
+		self.span.linear_weight = self.cable.data.linear_weight.to_numpy()  # type: ignore[union-attr]
+		self.init_physics_model()
+
+	def add_weather(self, weather: WeatherArray):
+		self._add_array(weather, WeatherArray)
+		if self.cable is None:
+			raise ValueError("Cable has to be added before weather")
+		# weather type is checked in add_array self.cable is tested above but mypy does not understand
+		self.cable_loads = CableLoads(self.cable, self.weather)  # type: ignore[union-attr,arg-type]
+
+	def _add_array(self, var: ElementArray, type_var: Type[ElementArray]):
+		"""add_array method to add a new array to the SectionDataFrame
+
+		Args:
+		    cable (ElementArray): var to add
+			type_var (Type[ElementArray]): type of the var to add
 
 		Raises:
 			TypeError: if cable is not a CableArray object
 			ValueError: if cable has not the same length as the section
+			KeyError: if type_var is not handled by this method
 		"""
 
 		property_map = {
@@ -234,14 +244,22 @@ class SectionDataFrame:
 		}
 
 		if not isinstance(var, type_var):
-			raise TypeError(f"{type_var} has to be a CableArray object")
-		# Check if the cable is compatible with the section
-		if var.data.shape[0] != self.section.data.shape[0]:
+			raise TypeError(f"var has to be a {type_var.__name__} object")
+		try:
+			property_map[type_var]
+		except KeyError:
+			raise TypeError(
+				f"{type_var.__name__} is not handled by this method"
+				f"it should be one of the {property_map}"
+			)
+		# Check if the var is compatible with the section
+		if var._data.shape[0] != self.section._data.shape[0]:
 			raise ValueError(
-				f"{type_var} has to have the same length as the section"
+				f"{type_var.__name__} has to have the same length as the section"
 			)
 
 		# Add cable to the section
+
 		self.__setattr__(property_map[type_var], var)
 
 	def init_physics_model(self):

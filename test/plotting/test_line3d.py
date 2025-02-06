@@ -10,7 +10,11 @@ import plotly.graph_objects as go  # type: ignore[import-untyped]
 import pytest
 
 from mechaphlowers.api.frames import SectionDataFrame
-from mechaphlowers.entities.arrays import CableArray, SectionArray, WeatherArray
+from mechaphlowers.entities.arrays import (
+	CableArray,
+	SectionArray,
+	WeatherArray,
+)
 
 data = {
 	"name": ["1", "2", "three", "support 4"],
@@ -68,7 +72,7 @@ def test_plot_line3d__with_beta():
 		pd.DataFrame(
 			{
 				"ice_thickness": [1, 2.1, 0.0, 5.4],
-				"wind_pressure": [1840.12, 0., 12., 53.],
+				"wind_pressure": [240.12, 0.0, 12.0, 53.0],
 			}
 		)
 	)

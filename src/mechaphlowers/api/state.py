@@ -32,11 +32,18 @@ class StateAccessor:
 		Returns:
 			np.ndarray: L_ref values
 		"""
-		if isinstance(current_temperature, float):
-			current_temperature = np.full(
-				self.section.section.data.shape[0], current_temperature
+		if self.section.physics is None:
+			raise ValueError(
+				"Physics model is not defined: setting cable usually sets physics model"
 			)
-
+		if isinstance(current_temperature, (float, int)):
+			current_temperature = np.full(
+				self.section.section.data.shape[0], float(current_temperature)
+			)
+		if not isinstance(current_temperature, np.ndarray):
+			raise ValueError(
+				"Current temperature should be a float or an array"
+			)
 		if isinstance(current_temperature, np.ndarray):
 			if (
 				current_temperature.shape[0]

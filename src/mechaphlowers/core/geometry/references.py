@@ -54,8 +54,8 @@ def cable2span(
 	# elevation part has the same shape
 	# However rotation is applied on [x,y,z] stacked matrix with x vector of shape (n x d, )
 	elevation_part = np.linspace(
-		tuple(z[0,:].tolist()),
-		tuple(z[-1,:].tolist()),
+		tuple(z[0, :].tolist()),
+		tuple(z[-1, :].tolist()),
 		x.shape[0],
 	)
 

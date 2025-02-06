@@ -1,13 +1,19 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
 import pandas as pd
+import pytest
 from pandas.testing import assert_frame_equal
 
 from mechaphlowers.data.catalog import fake_catalog
+
+
+def test_fake_catalog__get_mistyping() -> None:
+	with pytest.raises(KeyError):
+		fake_catalog.get(["wrong_key"])
 
 
 def test_fake_catalog__get_one_row() -> None:
