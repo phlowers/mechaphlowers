@@ -110,7 +110,7 @@ def get_support_points(data: pd.DataFrame) -> np.ndarray:
 	pp_insulator[2, :] += -altitude_shift
 
 	# add nan to separate
-	pp_final = np.concat(
+	pp_final = np.concatenate(
 		[
 			pp0.T,
 			pp_up.T,
@@ -158,7 +158,7 @@ def get_insulator_points(data: pd.DataFrame) -> np.ndarray:
 	pp_insulator[2, :] += -altitude_shift
 
 	# add nan to separate
-	pp_final = np.concat(
+	pp_final = np.concatenate(
 		[
 			pp0.T,
 			pp_insulator.T,
