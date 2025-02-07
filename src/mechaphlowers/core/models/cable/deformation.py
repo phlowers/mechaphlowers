@@ -99,16 +99,12 @@ class PolynomialDeformation(Deformation):
 
 	def find_roots_polynom(self, sigma: np.ndarray) -> np.ndarray:
 		"""Solves $\sigma = Polynom(\epsilon)$"""
-		# values hardcoded right now
-		min = 0.0
-		max = 0.01
 		T_mean = self.tension_mean
 
 		polynom_array = np.full(T_mean.shape, self.cable_array.polynom)
 
 		poly_to_resolve = polynom_array - sigma
 		# Can cause performance issues
-		# use .toList() instead?
 		all_roots = [poly.roots() for poly in poly_to_resolve]
 
 		all_roots_stacked = np.stack(all_roots)
@@ -116,8 +112,10 @@ class PolynomialDeformation(Deformation):
 			abs(all_roots_stacked.imag) < 1e-5,
 			0.0 <= all_roots_stacked
 		)
-		real_smallest_roots = np.where(keep_solution_condition, all_roots_stacked, np.inf)
-		real_smallest_root = np.extract(np.isfinite(real_smallest_roots), real_smallest_roots).real
+		real_positive_roots = np.where(keep_solution_condition, all_roots_stacked, np.inf)
+		real_smallest_root = real_positive_roots.min(axis=1).real
+		if np.inf in real_smallest_root:
+			raise ValueError(f"No solution found for at least one span")
 		return real_smallest_root
 
 	def epsilon(
