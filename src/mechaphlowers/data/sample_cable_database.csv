@@ -1,5 +1,5 @@
-name,diameter,young_modulus,dilatation_coefficient,reference_temperature,stress_strain_a0,stress_strain_a1,stress_strain_a2,stress_strain_a3,stress_strain_a4
-ASTER600,"31,86",60000,"2,3E-05",15,0,60000,0,0,0
-CROCUS400,"26,16",72000,"1,76E-05",15,0,72000,0,0,0
-NARCISSE600G,"29,56",75565,"1,77E-05",15,0,27804,-6590391,672009160,-24561975349
-PETUNIA600,"31,66",70000,"1,82E-05",15,0,70000,0,0,0
+name,diameter,young_modulus,dilatation_coefficient,temperature_reference,stress_strain_a0,stress_strain_a1,stress_strain_a2,stress_strain_a3,stress_strain_a4
+ASTER600,31.86,60000,2.3E-05,15,0,60000,0,0,0
+CROCUS400,26.16,72000,1.76E-05,15,0,72000,0,0,0
+NARCISSE600G,29.56,75565,1.77E-05,15,0,27804,-6590391,672009160,-24561975349
+PETUNIA600,31.66,70000,1.82E-05,15,0,70000,0,0,0
