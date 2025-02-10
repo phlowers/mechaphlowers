@@ -59,6 +59,8 @@ class Catalog:
 				f"Error when requesting catalog: {e.args[0]}"
 			) from e
 
+	def __str__(self) -> str:
+		return self._data.to_string()
 
 fake_catalog = Catalog("pokemon.csv", key_column_name="Name")
 iris_catalog = Catalog("iris_dataset.csv", key_column_name="sepal length (cm)")
