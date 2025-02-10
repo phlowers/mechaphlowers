@@ -36,7 +36,29 @@ class Catalog:
 		filepath = DATA_BASE_PATH / filename
 		self._data = pd.read_csv(filepath, index_col=key_column_name)
 
-	def get(self, keys: list) -> CableArray:
+	def get(self, keys: list) -> pd.DataFrame:
+		"""Get rows from a list of keys.
+		If a key is present several times in the `keys` argument, the returned dataframe
+		will contain the corresponding row as many times as requested.
+		If any of the requested `keys` were to match several rows, all matching rows would
+		be returned.
+		Raises:
+			KeyError: if any of the requested `keys` doesn't match any row in the input data
+		Args:
+			keys (list): list of keys
+		Returns:
+			pd.DataFrame: requested rows
+		"""
+		try:
+			return self._data.loc[keys]
+		except KeyError as e:
+			raise KeyError(
+				f"Error when requesting catalog: {e.args[0]}"
+			) from e
+
+	def get_as_cable_array(
+		self, keys: list
+	) -> CableArray:  # FIXME(ai-qui): make this code generic
 		"""Get rows from a list of keys.
 
 		If a key is present several times in the `keys` argument, the returned dataframe

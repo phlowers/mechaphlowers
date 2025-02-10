@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
-from mechaphlowers.data.catalog import fake_catalog
+from mechaphlowers.data.catalog import fake_catalog, sample_cable_catalog
 
 
 def test_fake_catalog__get_mistyping() -> None:
@@ -89,3 +89,7 @@ def test_fake_catalog__get_same_row_twice() -> None:
 def test_fake_catalog__get_nothing() -> None:
 	df = fake_catalog.get([])
 	assert df.empty
+
+
+def test_sample_cable_catalog__get_as_cable_array() -> None:
+	sample_cable_catalog.get_as_cable_array(["ASTER600", "PETUNIA600"])
