@@ -206,6 +206,7 @@ def test_poly_deformation__degree_four(
 
 	polynomial_deformation_model.epsilon(current_temperature)
 
+
 def test_poly_deformation__no_solutions(
 	cable_array_input_data: dict,
 ) -> None:

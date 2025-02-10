@@ -7,9 +7,9 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
-from numpy.polynomial import Polynomial as Poly
 import pandas as pd
 import pandera as pa
+from numpy.polynomial import Polynomial as Poly
 from pandera.typing import pandas as pdt
 
 from mechaphlowers.entities.schemas import (
@@ -153,6 +153,7 @@ class CableArray(ElementArray):
 			["a0", "a1", "a2", "a3", "a4"]
 		].to_numpy()
 		return Poly(coefs_poly)
+
 
 class WeatherArray(ElementArray):
 	"""Weather-related data, such as wind and ice.

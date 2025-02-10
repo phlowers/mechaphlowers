@@ -73,12 +73,14 @@ class PolynomialDeformation(Deformation):
 
 		E = self.cable_array.data["young_modulus"].to_numpy()
 
-		# -------test values------
+		# if sigma is the highest constraint, the solution is the root(sigma)
+		# else, the solution is on the line based on constraint_max
+		# so the solution is root(constraint_max) - sigma/E
 		if (sigma >= constraint_max).all():
-			equation_solution_temp = self.find_roots_polynom(sigma)
+			equation_solution = self.find_roots_polynom(sigma)
 		elif (sigma < constraint_max).all():
 			epsilon_max = self.find_roots_polynom(constraint_max)
-			equation_solution_temp = epsilon_max - sigma / E
+			equation_solution = epsilon_max - sigma / E
 		else:
 			is_lower_than_before = sigma < constraint_max
 			highest_constraint = np.fmax(sigma, constraint_max)
@@ -86,15 +88,6 @@ class PolynomialDeformation(Deformation):
 			for index in range(equation_solution.size):
 				if is_lower_than_before[index]:
 					equation_solution[index] -= sigma[index] / E[index]
-			equation_solution_temp = equation_solution
-		# ----------------
-
-		equation_solution = np.where(
-			sigma >= constraint_max,
-			self.find_roots_polynom(sigma),
-			self.find_roots_polynom(constraint_max) - sigma / E,
-			#TODO: check performance
-		)
 		return equation_solution
 
 	def find_roots_polynom(self, sigma: np.ndarray) -> np.ndarray:
@@ -109,13 +102,14 @@ class PolynomialDeformation(Deformation):
 
 		all_roots_stacked = np.stack(all_roots)
 		keep_solution_condition = np.logical_and(
-			abs(all_roots_stacked.imag) < 1e-5,
-			0.0 <= all_roots_stacked
+			abs(all_roots_stacked.imag) < 1e-5, 0.0 <= all_roots_stacked
 		)
-		real_positive_roots = np.where(keep_solution_condition, all_roots_stacked, np.inf)
+		real_positive_roots = np.where(
+			keep_solution_condition, all_roots_stacked, np.inf
+		)
 		real_smallest_root = real_positive_roots.min(axis=1).real
 		if np.inf in real_smallest_root:
-			raise ValueError(f"No solution found for at least one span")
+			raise ValueError("No solution found for at least one span")
 		return real_smallest_root
 
 	def epsilon(
