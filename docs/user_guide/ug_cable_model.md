@@ -119,16 +119,12 @@ $$
 - $E$: Young modulus in $GPa$
 - $\alpha_{th}$: dilatation coefficient in $°C^{-1}$
 
-
-
-### Linear elasticity model
-
-In this section, we assume the cable exhibits linear elasticity and can be described by a linear relation between stress and strain. More complex behaviors (such as plasticity) may be added later.
+### Unstressed length
 
 The cable is strained when subjected to mechanical tensions or thermal changes.
 
 - mechanical part due to tension $T_{mean}$ :
-$\varepsilon_{mecha} = \frac{T_{mean}}{E\cdot S}$
+$\varepsilon_{mecha}$
 
 - thermal part due to temperature $\theta$ :
 $\varepsilon_{therm} = (\theta - \theta_{ref}) \cdot \alpha_{th}$
@@ -143,3 +139,20 @@ The unstressed cable length $L_{ref}$ can be then expressed as the following:
 
 $$L_{ref} = \frac{L}{1+\varepsilon_{total}}$$
 
+
+#### Linear elasticity model
+
+In this section, we assume the cable exhibits linear elasticity and can be described by a linear relation between stress $\sigma = T_{mean}/S$ and strain $\varepsilon_{mecha}$.
+
+$$\varepsilon_{mecha} = \varepsilon_{m} = \frac{\sigma}{E} = \frac{T_{mean}}{E\cdot S}$$
+
+#### Polynomial model
+
+In this section, we assume that stress and strain are linked by a polynomial relation: 
+
+$$\sigma = a0 + a1 \cdot \varepsilon_{m} + a2 \cdot \varepsilon_{m}^2 + a3 \cdot \varepsilon_{m}^3 + a4 \cdot \varepsilon_{m}^4$$
+
+However, this equation is only true if the cable strain $\sigma$ is higher than it has ever been. If $\sigma$ is lower than a previous value, the model is once more linear, but the line starts on the highest value of $\sigma$ that has been reached.
+
+
+![Image not available](./assets/polynomial_deformation.drawio.png "Polynomial deformation")
