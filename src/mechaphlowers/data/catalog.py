@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from mechaphlowers.entities.arrays import CableArray
+
 # Resolve the 'data' folder
 # which is the parent folder of this script
 # in order to later be able to find the data files stored in this folder.
@@ -34,7 +36,7 @@ class Catalog:
 		filepath = DATA_BASE_PATH / filename
 		self._data = pd.read_csv(filepath, index_col=key_column_name)
 
-	def get(self, keys: list) -> pd.DataFrame:
+	def get(self, keys: list) -> CableArray:
 		"""Get rows from a list of keys.
 
 		If a key is present several times in the `keys` argument, the returned dataframe
@@ -50,10 +52,11 @@ class Catalog:
 			keys (list): list of keys
 
 		Returns:
-			pd.DataFrame: requested rows
+			CableArray: requested rows
 		"""
 		try:
-			return self._data.loc[keys]
+			df = self._data.loc[keys]
+			return CableArray(df)  # TODO(ai-qui): test data validation
 		except KeyError as e:
 			raise KeyError(
 				f"Error when requesting catalog: {e.args[0]}"
