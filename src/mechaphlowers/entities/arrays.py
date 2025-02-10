@@ -12,7 +12,11 @@ import pandas as pd
 import pandera as pa
 from pandera.typing import pandas as pdt
 
-from mechaphlowers.entities.schemas import CableArrayInput, SectionArrayInput
+from mechaphlowers.entities.schemas import (
+	CableArrayInput,
+	SectionArrayInput,
+	WeatherArrayInput,
+)
 
 
 class ElementArray(ABC):
@@ -149,3 +153,31 @@ class CableArray(ElementArray):
 			["a0", "a1", "a2", "a3", "a4"]
 		].to_numpy()
 		return Poly(coefs_poly)
+
+class WeatherArray(ElementArray):
+	"""Weather-related data, such as wind and ice.
+
+	They're typically used to compute weather-related loads on the cable.
+	"""
+
+	@pa.check_types(lazy=True)
+	def __init__(
+		self,
+		data: pdt.DataFrame[WeatherArrayInput] | pd.DataFrame,
+	) -> None:
+		super().__init__(data)  # type: ignore[arg-type]
+
+	@property
+	def _input_columns(self) -> list[str]:
+		metadata = WeatherArrayInput.get_metadata()
+		return metadata["WeatherArrayInput"]["columns"].keys()  # type: ignore
+
+	@property
+	def data(self) -> pd.DataFrame:
+		data_SI = self._data.copy()
+		data_SI["ice_thickness"] *= 1e-2
+		return data_SI
+
+	@property
+	def data_original_units(self) -> pd.DataFrame:
+		return self._data

@@ -21,9 +21,13 @@ format: .uv
 check-format: .uv
 	uv run ruff format --check $(sources)
 
+.PHONY: check-lint  ## Lint python source files
+check-lint: .uv
+	uv run ruff check $(sources)
+
 .PHONY: lint  ## Lint python source files
 lint: .uv
-	uv run ruff check $(sources)
+	uv run ruff check $(sources) --fix
 
 .PHONY: typing  ## Run the type-checker
 typing: .uv
@@ -44,7 +48,7 @@ testcov: test
 	@uv run coverage html
 
 .PHONY: all  ## Run the standard set of checks performed in CI
-all: lint format typing testcov
+all: check-lint check-format typing testcov
 
 .PHONY: clean  ## Clear local caches and build artifacts
 clean:

@@ -12,7 +12,9 @@ import pandas as pd
 import plotly.graph_objects as go  # type: ignore
 
 if TYPE_CHECKING:
-	from mechaphlowers.entities import SectionDataFrame
+	from mechaphlowers.api.frames import SectionDataFrame
+
+MARKER_SIZE = 3
 
 
 def plot_line(fig: go.Figure, points: np.ndarray) -> None:
@@ -28,7 +30,7 @@ def plot_line(fig: go.Figure, points: np.ndarray) -> None:
 			y=points[:, 1],
 			z=points[:, 2],
 			mode="lines+markers",
-			marker=dict(size=5),
+			marker=dict(size=MARKER_SIZE),
 			line=dict(width=8, color="red"),
 		)
 	)
@@ -47,7 +49,7 @@ def plot_support(fig: go.Figure, points: np.ndarray) -> None:
 			y=points[:, 1],
 			z=points[:, 2],
 			mode="lines+markers",
-			marker=dict(size=5),
+			marker=dict(size=MARKER_SIZE),
 			line=dict(width=8, color="green"),
 		)
 	)
@@ -108,7 +110,7 @@ def get_support_points(data: pd.DataFrame) -> np.ndarray:
 	pp_insulator[2, :] += -altitude_shift
 
 	# add nan to separate
-	pp_final = np.concat(
+	pp_final = np.concatenate(
 		[
 			pp0.T,
 			pp_up.T,
@@ -156,7 +158,7 @@ def get_insulator_points(data: pd.DataFrame) -> np.ndarray:
 	pp_insulator[2, :] += -altitude_shift
 
 	# add nan to separate
-	pp_final = np.concat(
+	pp_final = np.concatenate(
 		[
 			pp0.T,
 			pp_insulator.T,

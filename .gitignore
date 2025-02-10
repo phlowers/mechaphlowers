@@ -72,7 +72,6 @@ ipython_config.py
 
 # tools
 .pdm-build/
-src/mechaplowers/_version.py
 
 # Environments
 .env

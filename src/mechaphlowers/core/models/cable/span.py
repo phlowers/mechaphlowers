@@ -2,7 +2,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-# SPDX-License-Identifier: MPL-2.0from abc import ABC, abstractmethod
+# SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
 
@@ -193,7 +193,7 @@ class CatenarySpan(Span):
 		a = self.span_length
 		b = self.elevation_difference
 
-		return -a / 2 + p * np.asinh(b / (2 * p * np.sinh(a / (2 * p))))
+		return -a / 2 + p * np.arcsinh(b / (2 * p * np.sinh(a / (2 * p))))
 
 	def x(self, resolution: int = 10) -> np.ndarray:
 		"""x_coordinate for catenary generation in cable frame

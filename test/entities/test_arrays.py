@@ -17,6 +17,7 @@ from mechaphlowers.entities.arrays import (
 	CableArrayInput,
 	SectionArray,
 	SectionArrayInput,
+	WeatherArray,
 )
 
 
@@ -358,3 +359,14 @@ def test_cable_array__get_poly_coefs() -> None:
 	polynom = cable_array.polynom
 	expected_coefs = np.array([3, 10, 25, 400, 1000]) * 1e9
 	assert np.array_equal(polynom.coef, expected_coefs)
+
+
+def test_create_weather_array__negative_ice() -> None:
+	input_data_with_negative_ice = {
+		"ice_thickness": [1, -5.0, -0.0001],
+		"wind_pressure": [240.12, 0, -240.13],
+	}
+	input_df = pd.DataFrame(input_data_with_negative_ice)
+
+	with pytest.raises(pa.errors.SchemaErrors):
+		WeatherArray(input_df)

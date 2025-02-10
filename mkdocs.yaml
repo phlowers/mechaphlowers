@@ -45,10 +45,10 @@ nav:
       - Sag-tension calculation : user_guide/ug_sag_tension_calc.md
   - Developer guide:
     - API Reference:
+      - API : docstring/api/frames.md
       - Entities : 
           - Arrays : docstring/entities/arrays.md
           - Schemas : docstring/entities/schemas.md
-          - Frames : docstring/entities/frames.md
       - Core :
           - Geometry : docstring/core/geometry/references.md
           - Models : 
@@ -56,6 +56,9 @@ nav:
               - Span : docstring/core/models/cable/span.md
               - Physics : docstring/core/models/cable/physics.md
               - Deformation : docstring/core/models/cable/deformation.md
+              - External loads : docstring/core/models/external_loads.md
+      - Data :
+          - Catalog: docstring/data/catalog.md
     - Guidelines : developer_guide/guidelines.md
     - Documentation : developer_guide/documentation.md
 

@@ -5,8 +5,3 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-from mechaphlowers.entities.frames import SectionDataFrame
-
-__all__ = [
-	"SectionDataFrame",
-]

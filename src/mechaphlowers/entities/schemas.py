@@ -65,7 +65,7 @@ class CableArrayInput(pa.DataFrameModel):
 		diameter (float): Diameter of the cable, in mm
 		linear_weight (float): Linear weight, in N/m
 		young_modulus (float): Young modulus in GPa
-		dilatation_coefficient (float): Dilataion coefficient in 10⁻⁶/°C
+		dilatation_coefficient (float): Dilatation coefficient in 10⁻⁶/°C
 		temperature_reference (float): Temperature used to compute unstressed cable length (usually 0°C or 15°C)
 		a0/a1/a2/a3/a4 (float): Coefficients of the relation between stress $\sigma$ and deformation $\epsilon$ : $\sigma = a0 + a1*\epsilon + a2*\epsilon^2 + a3*\epsilon^3 + a4*\epsilon^4$
 	"""
@@ -81,3 +81,15 @@ class CableArrayInput(pa.DataFrameModel):
 	a2: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	a3: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	a4: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+
+
+class WeatherArrayInput(pa.DataFrameModel):
+	"""Schema describing the expected dataframe for instantiating a WeatherArray.
+
+	Attributes:
+		ice_thickness (float): Thickness of the ice layer on the cable, in cm
+		wind_pressure (float): Pressure of the perpendicular component of the wind, in Pa
+	"""
+
+	ice_thickness: pdt.Series[float] = pa.Field(coerce=True, ge=0.0)
+	wind_pressure: pdt.Series[float] = pa.Field(coerce=True)
