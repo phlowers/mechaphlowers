@@ -65,5 +65,10 @@ class Catalog:
 	def __str__(self) -> str:
 		return self._data.to_string()
 
+
 fake_catalog = Catalog("pokemon.csv", key_column_name="Name")
 iris_catalog = Catalog("iris_dataset.csv", key_column_name="sepal length (cm)")
+sample_cable_catalog = Catalog(
+	"sample_cable_database.csv", key_column_name="name"
+)
+# TODO(ai-qui): remove fake catalogs?
