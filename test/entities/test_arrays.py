@@ -47,7 +47,7 @@ def cable_array_input_data() -> dict[str, list]:
 	return {
 		"section": [345.5, 345.5, 345.5, 345.5],
 		"diameter": [22.4, 22.4, 22.4, 22.4],
-		"linear_weight": [9.6, 9.6, 9.6, 9.6],
+		"linear_weight_with_grease": [9.6, 9.6, 9.6, 9.6],
 		"young_modulus": [59, 59, 59, 59],
 		"dilatation_coefficient": [23, 23, 23, 23],
 		"temperature_reference": [15, 15, 15, 15],
