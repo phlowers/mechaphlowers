@@ -129,6 +129,10 @@ class CableArray(ElementArray):
 
 	@property
 	def data(self) -> pd.DataFrame:
+		self._data.assign(
+			linear_weight=self._data.linear_weight_with_grease
+			| self._data.linear_weight_without_grease
+		)
 		data_SI = self._data.copy()
 		data_SI["section"] *= 1e-6
 		data_SI["diameter"] *= 1e-3

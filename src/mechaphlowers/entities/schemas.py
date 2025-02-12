@@ -57,7 +57,9 @@ class SectionArrayInput(pa.DataFrameModel):
 		return df.tail(1)["span_length"].isin([0, np.nan]).all()
 
 
-class CableArrayInput(pa.DataFrameModel):
+class CableArrayInput(
+	pa.DataFrameModel
+):  # TODO(ai-qui): make code generic here (and particularize for us)
 	"""Schema for the data expected for a dataframe used to instantiate a CableArray.
 
 	Attributes:
@@ -72,7 +74,8 @@ class CableArrayInput(pa.DataFrameModel):
 
 	section: pdt.Series[float] = pa.Field(coerce=True)
 	diameter: pdt.Series[float] = pa.Field(coerce=True)
-	linear_weight: pdt.Series[float] = pa.Field(coerce=True)
+	linear_weight_without_grease: pdt.Series[float] = pa.Field(coerce=True)
+	linear_weight_with_grease: pdt.Series[float] = pa.Field(coerce=True)
 	young_modulus: pdt.Series[float] = pa.Field(coerce=True)
 	dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
 	temperature_reference: pdt.Series[float] = pa.Field(coerce=True)
@@ -81,6 +84,16 @@ class CableArrayInput(pa.DataFrameModel):
 	a2: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	a3: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	a4: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+
+	@pa.dataframe_check(
+		description="""Each row should have a value for either linear_weight_without_grease
+		or linear_weight_with_grease (or both)."""
+	)
+	def linear_weight(cls, df: pdt.DataFrame) -> pdt.Series[bool]:
+		return (
+			df["linear_weight_without_grease"]
+			| df["linear_weight_with_grease"]
+		).pipe(pdt.Series[bool])
 
 
 class WeatherArrayInput(pa.DataFrameModel):
