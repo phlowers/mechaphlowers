@@ -92,5 +92,10 @@ def test_fake_catalog__get_nothing() -> None:
 
 
 def test_sample_cable_catalog__get_as_cable_array() -> None:
-	cable_array = sample_cable_catalog.get_as_cable_array(["ASTER600", "PETUNIA600"])
+	cable_array = sample_cable_catalog.get_as_cable_array(
+		["ASTER600", "PETUNIA600"]
+	)
 	assert "data_source" not in cable_array.data
+	cable_array.data.section
+	cable_array.data.index
+	# cable_array.data.name  # TODO(ai-qui): check
