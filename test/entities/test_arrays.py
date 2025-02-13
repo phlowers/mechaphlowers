@@ -356,9 +356,9 @@ def test_cable_array__get_poly_coefs() -> None:
 	)
 
 	cable_array = CableArray(input_df)
-	polynom = cable_array.polynom
+	polynomial = cable_array.stress_strain_polynomial
 	expected_coefs = np.array([3, 10, 25, 400, 1000]) * 1e9
-	assert np.array_equal(polynom.coef, expected_coefs)
+	assert np.array_equal(polynomial.coef, expected_coefs)
 
 
 def test_create_weather_array__negative_ice() -> None:

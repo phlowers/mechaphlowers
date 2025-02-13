@@ -147,8 +147,8 @@ class CableArray(ElementArray):
 		return self._data
 
 	@property
-	def polynom(self) -> Poly:
-		"""Converts coefficients in the dataframe into polynom"""
+	def stress_strain_polynomial(self) -> Poly:
+		"""Converts coefficients in the dataframe into polynomial"""
 		coefs_poly = self.data.iloc[0][
 			["a0", "a1", "a2", "a3", "a4"]
 		].to_numpy()
