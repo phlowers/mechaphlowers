@@ -25,7 +25,7 @@ class Deformation(ABC):
 		self.tension_mean = tension_mean
 
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
-		"""Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
+		"""Thermal part of the relative strain of the cable, compared to a temperature_reference."""
 		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
 		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
 		return (current_temperature - temp_ref) * alpha
@@ -36,17 +36,17 @@ class Deformation(ABC):
 		current_temperature: np.ndarray,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
-		"""Total relative deformation of the cable."""
+		"""Total relative strain of the cable."""
 
 	@abstractmethod
 	def epsilon_mecha(
 		self, max_stress: np.ndarray | None = None
 	) -> np.ndarray:
-		"""Mechanical part of the relative deformation  of the cable."""
+		"""Mechanical part of the relative strain  of the cable."""
 
 
 class LinearDeformation(Deformation):
-	"""This model assumes that mechanical deformation is linear with tension."""
+	"""This model assumes that mechanical strain is linear with tension."""
 
 	def epsilon_mecha(
 		self, max_stress: np.ndarray | None = None
@@ -63,6 +63,8 @@ class LinearDeformation(Deformation):
 
 
 class PolynomialDeformation(Deformation):
+	"""This model assumes that mechanical strain and tension follow a polynomial relation."""
+
 	def epsilon_mecha(
 		self, max_stress: np.ndarray | None = None
 	) -> np.ndarray:
@@ -78,14 +80,13 @@ class PolynomialDeformation(Deformation):
 		return epsilon_plastic + sigma / E
 
 	def epsilon_plastic(self, max_stress: np.ndarray) -> np.ndarray:
+		"""Computes elastic permanent strain."""
 		T_mean = self.tension_mean
 		S = self.cable_array.data["section"].to_numpy()
 		E = self.cable_array.data["young_modulus"].to_numpy()
 		sigma = T_mean / S
 
-		# if sigma is the highest constraint, the solution is the root(sigma)
-		# else, the solution is on the line based on max_stress
-
+		# epsilon plastic is based on the highest value between sigma and max_stress
 		highest_constraint = np.fmax(sigma, max_stress)
 		equation_solution = self.resolve_stress_strain_equation(
 			highest_constraint
@@ -100,10 +101,23 @@ class PolynomialDeformation(Deformation):
 			T_mean.shape, self.cable_array.stress_strain_polynomial
 		)
 		poly_to_resolve = polynom_array - sigma
-		return self.find_real_positive_roots(poly_to_resolve)
+		return self.find_smallest_real_positive_root(poly_to_resolve)
 
 	@staticmethod
-	def find_real_positive_roots(poly_to_resolve: np.ndarray) -> np.ndarray:
+	def find_smallest_real_positive_root(
+		poly_to_resolve: np.ndarray,
+	) -> np.ndarray:
+		"""Find the smallest root that is real and positive for each polynomial
+
+		Args:
+			poly_to_resolve (np.ndarray): array of polynomials to solve
+
+		Raises:
+			ValueError: if no real positive root has been found for at least one polynomial.
+
+		Returns:
+			np.ndarray: array of the roots (one per polynomial)
+		"""
 		# Can cause performance issues
 		all_roots = [poly.roots() for poly in poly_to_resolve]
 
@@ -112,6 +126,7 @@ class PolynomialDeformation(Deformation):
 			abs(all_roots_stacked.imag) < IMAGINARY_THRESHOLD,
 			0.0 <= all_roots_stacked,
 		)
+		# Replace roots that are not real nor positive by np.inf
 		real_positive_roots = np.where(
 			keep_solution_condition, all_roots_stacked, np.inf
 		)

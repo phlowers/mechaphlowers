@@ -31,6 +31,31 @@ def cable_array_input_data() -> dict[str, list]:
 	}
 
 
+@pytest.fixture
+def a_two_spans() -> np.ndarray:
+	return np.array([500, 500])
+
+
+@pytest.fixture
+def b_two_spans() -> np.ndarray:
+	return np.array([0.0, -5.0])
+
+
+@pytest.fixture
+def p_two_spans() -> np.ndarray:
+	return np.array([2_000, 2_000.0])
+
+
+@pytest.fixture
+def lambd_two_spans() -> np.ndarray:
+	return np.array([9.6, 9.6])
+
+
+@pytest.fixture
+def m_two_spans() -> np.ndarray:
+	return np.array([1, 1])
+
+
 def test_elastic_linear_cable_impl(
 	cable_array_input_data: dict,
 ) -> None:
@@ -90,14 +115,19 @@ def test_physics_cable__first_example() -> None:
 
 def test_poly_deformation__degree_one(
 	cable_array_input_data: dict,
+	a_two_spans: np.ndarray,
+	b_two_spans: np.ndarray,
+	p_two_spans: np.ndarray,
+	lambd_two_spans: np.ndarray,
+	m_two_spans: np.ndarray,
 ) -> None:
-	a = np.array([500, 500])
-	b = np.array([0.0, -5.0])
-	p = np.array([2_000, 2_000.0])
-	lambd = np.array([9.6, 9.6])
-	m = np.array([1, 1])
-
-	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+	span_model = CatenarySpan(
+		a_two_spans,
+		b_two_spans,
+		p_two_spans,
+		load_coefficient=m_two_spans,
+		linear_weight=lambd_two_spans,
+	)
 	tension_mean = span_model.T_mean()
 
 	cable_array_input_data.update(
@@ -129,14 +159,19 @@ def test_poly_deformation__degree_one(
 
 def test_poly_deformation__degree_three(
 	cable_array_input_data: dict,
+	a_two_spans: np.ndarray,
+	b_two_spans: np.ndarray,
+	p_two_spans: np.ndarray,
+	lambd_two_spans: np.ndarray,
+	m_two_spans: np.ndarray,
 ) -> None:
-	a = np.array([500, 500])
-	b = np.array([0.0, -5.0])
-	p = np.array([2_000, 2_000.0])
-	lambd = np.array([9.6, 9.6])
-	m = np.array([1, 1])
-
-	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+	span_model = CatenarySpan(
+		a_two_spans,
+		b_two_spans,
+		p_two_spans,
+		load_coefficient=m_two_spans,
+		linear_weight=lambd_two_spans,
+	)
 	tension_mean = span_model.T_mean()
 
 	cable_array_input_data.update(
@@ -169,14 +204,19 @@ def test_poly_deformation__degree_three(
 
 def test_poly_deformation__degree_four(
 	cable_array_input_data: dict,
+	a_two_spans: np.ndarray,
+	b_two_spans: np.ndarray,
+	p_two_spans: np.ndarray,
+	lambd_two_spans: np.ndarray,
+	m_two_spans: np.ndarray,
 ) -> None:
-	a = np.array([500, 500])
-	b = np.array([0.0, -5.0])
-	p = np.array([2_000, 2_000.0])
-	lambd = np.array([9.6, 9.6])
-	m = np.array([1, 1])
-
-	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+	span_model = CatenarySpan(
+		a_two_spans,
+		b_two_spans,
+		p_two_spans,
+		load_coefficient=m_two_spans,
+		linear_weight=lambd_two_spans,
+	)
 	tension_mean = span_model.T_mean()
 
 	cable_array_input_data.update(
@@ -209,14 +249,19 @@ def test_poly_deformation__degree_four(
 
 def test_poly_deformation__no_solutions(
 	cable_array_input_data: dict,
+	a_two_spans: np.ndarray,
+	b_two_spans: np.ndarray,
+	p_two_spans: np.ndarray,
+	lambd_two_spans: np.ndarray,
+	m_two_spans: np.ndarray,
 ) -> None:
-	a = np.array([500, 500])
-	b = np.array([0.0, -5.0])
-	p = np.array([2_000, 2_000.0])
-	lambd = np.array([9.6, 9.6])
-	m = np.array([1, 1])
-
-	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+	span_model = CatenarySpan(
+		a_two_spans,
+		b_two_spans,
+		p_two_spans,
+		load_coefficient=m_two_spans,
+		linear_weight=lambd_two_spans,
+	)
 	tension_mean = span_model.T_mean()
 
 	cable_array_input_data.update(
