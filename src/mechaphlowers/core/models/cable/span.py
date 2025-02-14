@@ -193,7 +193,7 @@ class CatenarySpan(Span):
 		a = self.span_length
 		b = self.elevation_difference
 
-		return -a / 2 + p * np.asinh(b / (2 * p * np.sinh(a / (2 * p))))
+		return -a / 2 + p * np.arcsinh(b / (2 * p * np.sinh(a / (2 * p))))
 
 	def x(self, resolution: int = 10) -> np.ndarray:
 		"""x_coordinate for catenary generation in cable frame

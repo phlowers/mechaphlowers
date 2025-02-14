@@ -16,7 +16,7 @@ logger.addHandler(logging.NullHandler())
 
 pd.options.mode.copy_on_write = True
 
-__version__ = version
+__version__ = version('mechaphlowers')
 
 
 __all__ = ["SectionDataFrame"]
