@@ -58,7 +58,7 @@ class Catalog:
 
 	def get_as_cable_array(
 		self, keys: list
-	) -> CableArray:  # FIXME(ai-qui): make this code generic
+	) -> CableArray:  # FIXME(ai-qui): re-use .get?
 		"""Get rows from a list of keys.
 
 		If a key is present several times in the `keys` argument, the returned dataframe
@@ -79,6 +79,7 @@ class Catalog:
 		try:
 			df = self._data.loc[keys]
 			return CableArray(df)  # TODO(ai-qui): test data validation
+			# TODO(ai-qui): make this generic (CableArray vs. generic Catalog)
 		except KeyError as e:
 			raise KeyError(
 				f"Error when requesting catalog: {e.args[0]}"
