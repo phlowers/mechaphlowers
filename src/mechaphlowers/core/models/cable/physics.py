@@ -16,7 +16,7 @@ from mechaphlowers.core.models.cable.deformation import (
 from mechaphlowers.entities.arrays import CableArray
 
 
-class Physics(ABC):
+class Physics():
 	"""This class models physics properties of the cable, like mechanical or thermal deformation."""
 
 	def __init__(
