@@ -175,7 +175,7 @@ def test_create_section_array__insulator_length_for_tension_support(
 		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
-def test_compute_elevation_difference(section_array_input_data: dict) -> None:
+def test_compute_elevation_difference() -> None:
 	# I modify data to have more meaning here and understand results
 	data = {
 		"name": ["support 1", "2", "three", "support 4"],
@@ -336,6 +336,20 @@ def test_create_cable_array__wrong_type(
 
 	with pytest.raises(pa.errors.SchemaErrors):
 		CableArray(input_df)
+
+
+def test_create_cable_array__extra_column(
+	cable_array_input_data: dict,
+) -> None:
+	cable_array_input_data["extra column"] = [0] * 4
+
+	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
+		cable_array_input_data
+	)
+
+	section = CableArray(input_df)
+
+	assert "extra column" not in section._data.columns
 
 
 def test_create_weather_array__negative_ice() -> None:

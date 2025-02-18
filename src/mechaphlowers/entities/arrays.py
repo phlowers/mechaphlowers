@@ -4,7 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from abc import ABC, abstractmethod
+from abc import ABC
+from typing import Type
 
 import numpy as np
 import pandas as pd
@@ -19,28 +20,22 @@ from mechaphlowers.entities.schemas import (
 
 
 class ElementArray(ABC):
+	array_input_type: Type[pa.DataFrameModel]
+
 	def __init__(self, data: pdt.DataFrame) -> None:  # type: ignore[arg-type]
-		data = self._drop_extra_columns(data)
-		self._data: pdt.DataFrame | pd.DataFrame = data  # type: ignore[arg-type]
+		_data = self._drop_extra_columns(data)
+		self._data: pdt.DataFrame | pd.DataFrame = _data  # type: ignore[arg-type]
 
-	@property
-	@abstractmethod
-	def _input_columns(self) -> list[str]: ...
-
-	def _compute_extra_columns(self, input_data: pdt.DataFrame) -> list[str]:
-		return [
-			column
-			for column in input_data.columns
-			if column not in self._input_columns
-		]
-
-	def _drop_extra_columns(self, input_data: pdt.DataFrame) -> pdt.DataFrame:
+	def _drop_extra_columns(
+		self, input_data: pdt.DataFrame
+	) -> pdt.DataFrame | pd.DataFrame:
 		"""Return a copy of the input pdt.DataFrame, without irrelevant columns.
 
 		Note: This has no impact on the input pdt.DataFrame.
 		"""
-		extra_columns = self._compute_extra_columns(input_data)
-		return input_data.drop(columns=extra_columns)
+		array_input_schema = self.array_input_type.to_schema()
+		array_input_schema.strict = 'filter'
+		return array_input_schema.validate(input_data)
 
 	def __str__(self) -> str:
 		return self._data.to_string()
@@ -58,6 +53,8 @@ class SectionArray(ElementArray):
 	    sagging_temperature: Sagging temperature, in Celsius degrees
 	"""
 
+	array_input_type: Type[pa.DataFrameModel] = SectionArrayInput
+
 	@pa.check_types(lazy=True)
 	def __init__(
 		self,
@@ -68,11 +65,6 @@ class SectionArray(ElementArray):
 		super().__init__(data)  # type: ignore[arg-type]
 		self.sagging_parameter = sagging_parameter
 		self.sagging_temperature = sagging_temperature
-
-	@property
-	def _input_columns(self) -> list[str]:
-		metadata = SectionArrayInput.get_metadata()
-		return metadata["SectionArrayInput"]["columns"].keys()  # type: ignore
 
 	def compute_elevation_difference(self) -> np.ndarray:
 		left_support_height = (
@@ -115,6 +107,8 @@ class CableArray(ElementArray):
 		data: Input data
 	"""
 
+	array_input_type: Type[pa.DataFrameModel] = CableArrayInput
+
 	@pa.check_types(lazy=True)
 	def __init__(
 		self,
@@ -146,6 +140,8 @@ class WeatherArray(ElementArray):
 
 	They're typically used to compute weather-related loads on the cable.
 	"""
+
+	array_input_type: Type[pa.DataFrameModel] = WeatherArrayInput
 
 	@pa.check_types(lazy=True)
 	def __init__(
