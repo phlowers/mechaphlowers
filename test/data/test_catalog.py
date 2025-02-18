@@ -101,3 +101,8 @@ def test_sample_cable_catalog__get_as_cable_array() -> None:
 
 	cable_array.data.section
 	cable_array.data.index
+
+
+def test_sample_cable_catalog__get_as_cable_array__missing_key() -> None:
+	with pytest.raises(KeyError):
+		sample_cable_catalog.get_as_cable_array(["chat"])
