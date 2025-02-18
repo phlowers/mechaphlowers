@@ -51,7 +51,7 @@ class ElementArray(ABC):
 	@property
 	def data_original(self) -> pd.DataFrame:
 		"""Original dataframe with the exact same data as input:
-		original units and no columns added 
+		original units and no columns added
 		"""
 		return self._data
 
