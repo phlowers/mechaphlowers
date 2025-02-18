@@ -257,13 +257,13 @@ def test_section_array__data_without_sagging_properties(
 		section_array_without_parameter.data
 
 
-def test_section_array__data_alone(section_array_input_data: dict) -> None:
+def test_section_array__data_original(section_array_input_data: dict) -> None:
 	df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
 		section_array_input_data
 	)
 	section_array = SectionArray(data=df)
 
-	exported_data = section_array.data_alone
+	exported_data = section_array.data_original
 
 	expected_data = pd.DataFrame(
 		{
@@ -274,7 +274,6 @@ def test_section_array__data_alone(section_array_input_data: dict) -> None:
 			"line_angle": [0, 360, 90.1, -90.2],
 			"insulator_length": [0, 4, 3.2, 0],
 			"span_length": [1, 500.2, 500.05, np.nan],
-			"elevation_difference": [-1.2, -4.32, 3.32, np.nan],
 		},
 	)
 

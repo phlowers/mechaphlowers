@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Type
 
 import numpy as np
@@ -42,6 +42,18 @@ class ElementArray(ABC):
 
 	def __copy__(self):
 		return type(self)(self._data)
+
+	@property
+	@abstractmethod
+	def data(self) -> pd.DataFrame:
+		"""Dataframe with updated data: SI units and added columns"""
+
+	@property
+	def data_original(self) -> pd.DataFrame:
+		"""Original dataframe with the exact same data as input:
+		original units and no columns added 
+		"""
+		return self._data
 
 
 class SectionArray(ElementArray):
@@ -87,12 +99,6 @@ class SectionArray(ElementArray):
 				sagging_temperature=self.sagging_temperature,
 			)
 
-	@property
-	def data_alone(self) -> pd.DataFrame:
-		return self._data.assign(
-			elevation_difference=self.compute_elevation_difference()
-		)
-
 	def __copy__(self):
 		copy_obj = super().__copy__()
 		copy_obj.sagging_parameter = self.sagging_parameter
@@ -117,11 +123,6 @@ class CableArray(ElementArray):
 		super().__init__(data)  # type: ignore[arg-type]
 
 	@property
-	def _input_columns(self) -> list[str]:
-		metadata = CableArrayInput.get_metadata()
-		return metadata["CableArrayInput"]["columns"].keys()  # type: ignore
-
-	@property
 	def data(self) -> pd.DataFrame:
 		data_SI = self._data.copy()
 		data_SI["section"] *= 1e-6
@@ -129,10 +130,6 @@ class CableArray(ElementArray):
 		data_SI["young_modulus"] *= 1e9
 		data_SI["dilatation_coefficient"] *= 1e-6
 		return data_SI
-
-	@property
-	def data_original_units(self) -> pd.DataFrame:
-		return self._data
 
 
 class WeatherArray(ElementArray):
@@ -151,16 +148,7 @@ class WeatherArray(ElementArray):
 		super().__init__(data)  # type: ignore[arg-type]
 
 	@property
-	def _input_columns(self) -> list[str]:
-		metadata = WeatherArrayInput.get_metadata()
-		return metadata["WeatherArrayInput"]["columns"].keys()  # type: ignore
-
-	@property
 	def data(self) -> pd.DataFrame:
 		data_SI = self._data.copy()
 		data_SI["ice_thickness"] *= 1e-2
 		return data_SI
-
-	@property
-	def data_original_units(self) -> pd.DataFrame:
-		return self._data
