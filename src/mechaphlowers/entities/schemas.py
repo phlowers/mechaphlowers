@@ -67,8 +67,8 @@ class CableArrayInput(pa.DataFrameModel):
 		young_modulus (float): Young modulus in GPa
 		dilatation_coefficient (float): Dilatation coefficient in 10⁻⁶/°C
 		temperature_reference (float): Temperature used to compute unstressed cable length (usually 0°C or 15°C)
-		a0/a1/a2/a3/a4 (float): Coefficients of the relation between stress $\sigma$ and deformation $\epsilon$ for the first material: $\sigma = a0 + a1*\epsilon + a2*\epsilon^2 + a3*\epsilon^3 + a4*\epsilon^4$
-		b0/b1/b2/b3/b4 (float): Coefficients of the relation between stress $\sigma$ and deformation $\epsilon$ for the second material: $\sigma = b0 + b1*\epsilon + b2*\epsilon^2 + b3*\epsilon^3 + b4*\epsilon^4$
+		a0/a1/a2/a3/a4 (float): Coefficients of the relation between stress $\sigma$ and deformation $\epsilon$ for the conductor: $\sigma = a0 + a1*\epsilon + a2*\epsilon^2 + a3*\epsilon^3 + a4*\epsilon^4$
+		b0/b1/b2/b3/b4 (float): Coefficients of the relation between stress $\sigma$ and deformation $\epsilon$ for the heart: $\sigma = b0 + b1*\epsilon + b2*\epsilon^2 + b3*\epsilon^3 + b4*\epsilon^4$
 	"""
 
 	section: pdt.Series[float] = pa.Field(coerce=True)
