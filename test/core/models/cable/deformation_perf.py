@@ -57,9 +57,11 @@ def test_solve_polynom_perf() -> None:
 	)
 
 	start_time = time.time()
-	polynomial_deformation_model.epsilon_mecha(
-		np.array([1e8] * (spans_number - 1) + [100])
+
+	polynomial_deformation_model.max_stress = np.array(
+		[1e8] * (spans_number - 1) + [100]
 	)
+	polynomial_deformation_model.epsilon_mecha()
 	exec_time = time.time() - start_time
 	print(f"{spans_number} spans execution time : {exec_time}")
 
