@@ -82,6 +82,7 @@ class CatenarySpanEquations(SpanEquations):
 
 class DeformationEquations(ABC):
 	""""""
+
 	# @abstractmethod
 	# def function_epsilon(self, T_h):
 	# 	""""""
@@ -94,8 +95,10 @@ class DeformationEquations(ABC):
 	# def function_epsilon_mecha(self, T_h):
 	# 	""""""
 
+
 class LinearDeformationEquations(DeformationEquations):
 	pass
+
 
 class SagTensionCalculation(ABC):
 	def __init__(
@@ -105,7 +108,9 @@ class SagTensionCalculation(ABC):
 		unstressed_length: np.ndarray,
 		cable_array: CableArray,
 		span_equations_type: Type[SpanEquations] = CatenarySpanEquations,
-		deformation_equations_type: Type[DeformationEquations] = LinearDeformationEquations,
+		deformation_equations_type: Type[
+			DeformationEquations
+		] = LinearDeformationEquations,
 		load_coefficient: np.ndarray | None = None,
 	):
 		self.unstressed_length = unstressed_length
@@ -115,7 +120,9 @@ class SagTensionCalculation(ABC):
 		else:
 			self.load_coefficient = load_coefficient
 
-		self.span_equations = span_equations_type(section_array, unstressed_length, cable_array, load_coefficient) # type: ignore[arg-type]
+		self.span_equations = span_equations_type(
+			section_array, unstressed_length, cable_array, load_coefficient
+		)  # type: ignore[arg-type]
 		self.deformation_equations = deformation_equations_type()
 
 	@abstractmethod

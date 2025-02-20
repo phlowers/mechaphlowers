@@ -12,7 +12,9 @@ from mechaphlowers.core.models.cable.physics import Physics
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
-from mechaphlowers.core.models.sag_tension_calculation import ScipySagTensionCalculation
+from mechaphlowers.core.models.sag_tension_calculation import (
+	ScipySagTensionCalculation,
+)
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.schemas import CableArrayInput
 
@@ -41,7 +43,7 @@ def test_functions_to_solve() -> None:
 	section_array = SectionArray(data=pd.DataFrame(data_section))
 	section_array.sagging_parameter = 2000
 	section_array.sagging_temperature = 15
-	
+
 	a = np.array([500])
 	b = np.array([0.0])
 	p = np.array([2_000])
@@ -57,4 +59,6 @@ def test_functions_to_solve() -> None:
 	cable_length = span_model.L()
 	physics_model = Physics(cable_array, tension_mean, cable_length)
 	unstressed_length = physics_model.L_ref(np.array([15] * 4))
-	sag_tension_calculation = ScipySagTensionCalculation(section_array, unstressed_length, cable_array)
+	sag_tension_calculation = ScipySagTensionCalculation(
+		section_array, unstressed_length, cable_array
+	)
