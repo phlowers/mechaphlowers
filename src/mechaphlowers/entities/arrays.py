@@ -10,7 +10,6 @@ from typing import Type
 import numpy as np
 import pandas as pd
 import pandera as pa
-from pandera.typing import pandas as pdt
 
 from mechaphlowers.entities.schemas import (
 	CableArrayInput,
@@ -22,17 +21,16 @@ from mechaphlowers.entities.schemas import (
 class ElementArray(ABC):
 	array_input_type: Type[pa.DataFrameModel]
 
-	def __init__(self, data: pdt.DataFrame) -> None:  # type: ignore[arg-type]
+	def __init__(self, data: pd.DataFrame) -> None:
 		_data = self._drop_extra_columns(data)
-		self._data: pdt.DataFrame | pd.DataFrame = _data  # type: ignore[arg-type]
+		self._data: pd.DataFrame = _data
 
-	def _drop_extra_columns(
-		self, input_data: pdt.DataFrame
-	) -> pdt.DataFrame | pd.DataFrame:
+	def _drop_extra_columns(self, input_data: pd.DataFrame) -> pd.DataFrame:
 		"""Return a copy of the input pdt.DataFrame, without irrelevant columns.
 
 		Note: This has no impact on the input pdt.DataFrame.
 		"""
+		# We need to convert Model into Schema because the strict attribute doesn't exist for Model
 		array_input_schema = self.array_input_type.to_schema()
 		array_input_schema.strict = 'filter'
 		return array_input_schema.validate(input_data)
@@ -67,10 +65,9 @@ class SectionArray(ElementArray):
 
 	array_input_type: Type[pa.DataFrameModel] = SectionArrayInput
 
-	@pa.check_types(lazy=True)
 	def __init__(
 		self,
-		data: pdt.DataFrame[SectionArrayInput] | pd.DataFrame,
+		data: pd.DataFrame,
 		sagging_parameter: float | None = None,
 		sagging_temperature: float | None = None,
 	) -> None:
@@ -115,10 +112,9 @@ class CableArray(ElementArray):
 
 	array_input_type: Type[pa.DataFrameModel] = CableArrayInput
 
-	@pa.check_types(lazy=True)
 	def __init__(
 		self,
-		data: pdt.DataFrame[CableArrayInput] | pd.DataFrame,
+		data: pd.DataFrame,
 	) -> None:
 		super().__init__(data)  # type: ignore[arg-type]
 
@@ -140,10 +136,9 @@ class WeatherArray(ElementArray):
 
 	array_input_type: Type[pa.DataFrameModel] = WeatherArrayInput
 
-	@pa.check_types(lazy=True)
 	def __init__(
 		self,
-		data: pdt.DataFrame[WeatherArrayInput] | pd.DataFrame,
+		data: pd.DataFrame,
 	) -> None:
 		super().__init__(data)  # type: ignore[arg-type]
 
