@@ -22,11 +22,9 @@ class Deformation(ABC):
 		self.cable_array = cable_array
 		self.tension_mean = tension_mean
 
+	@abstractmethod
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
 		"""Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
-		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
-		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
-		return (current_temperature - temp_ref) * alpha
 
 	@abstractmethod
 	def epsilon(self, current_temperature: np.ndarray) -> np.ndarray:
@@ -40,6 +38,12 @@ class Deformation(ABC):
 class LinearDeformation(Deformation):
 	"""This model assumes that mechanical deformation is linear with tension."""
 
+	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
+		"""Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
+		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
+		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
+		return self.compute_epsilon_therm(current_temperature, temp_ref, alpha)
+
 	def epsilon_mecha(self) -> np.ndarray:
 		# T_mean(T_h)???
 		T_mean = self.tension_mean
@@ -49,10 +53,28 @@ class LinearDeformation(Deformation):
 
 	def epsilon(self, current_temperature):
 		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
-	
+
+	@staticmethod
+	def compute_epsilon_therm(
+		theta: np.ndarray, theta_ref: np.ndarray, alpha: np.ndarray
+	) -> np.ndarray:
+		return (theta - theta_ref) * alpha
+
 	@staticmethod
 	def compute_epsilon_mecha(
-		T_mean: np.ndarray,
-		E: np.ndarray,
-		S: np.ndarray) -> np.ndarray:
+		T_mean: np.ndarray, E: np.ndarray, S: np.ndarray
+	) -> np.ndarray:
 		return T_mean / (E * S)
+
+	# @staticmethod
+	# def compute_epsilon(
+	# 	theta: np.ndarray,
+	# 	theta_ref: np.ndarray,
+	# 	alpha: np.ndarray,
+	# 	T_mean: np.ndarray,
+	# 	E: np.ndarray,
+	# 	S: np.ndarray,
+	# ) -> np.ndarray:
+	# 	return LinearDeformation.compute_epsilon_mecha(
+	# 		T_mean, E, S
+	# 	) + LinearDeformation.compute_epsilon_therm(theta, theta_ref, alpha)

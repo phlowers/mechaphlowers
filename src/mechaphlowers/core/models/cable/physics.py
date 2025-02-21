@@ -4,7 +4,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from abc import ABC
 from typing import Type
 
 import numpy as np
@@ -16,7 +15,7 @@ from mechaphlowers.core.models.cable.deformation import (
 from mechaphlowers.entities.arrays import CableArray
 
 
-class Physics():
+class Physics:
 	"""This class models physics properties of the cable, like mechanical or thermal deformation."""
 
 	def __init__(

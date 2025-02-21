@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
-from typing import Type
 
 import numpy as np
 
@@ -23,7 +22,7 @@ class Span(ABC):
 
 	Support for line angle and wind will be added later.
 	"""
-	
+
 	def __init__(
 		self,
 		span_length: np.ndarray,
@@ -80,18 +79,12 @@ class Span(ABC):
 		In other words: opposite of the abscissa of the left hanging point.
 		"""
 
+	@abstractmethod
 	def x_n(self) -> np.ndarray:
 		"""Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
 
 		In other words: abscissa of the right hanging point.
 		"""
-		# See above for explanations about following simplifying assumption
-		a = self.span_length
-		b = self.elevation_difference
-		p = self.p
-
-		#TODO: find a way to call compute function from subclass
-		return self.__class__.compute_x_n(a, b, p)
 
 	@abstractmethod
 	def x(self, resolution: int) -> np.ndarray:
@@ -113,7 +106,7 @@ class Span(ABC):
 	def L_n(self) -> np.ndarray:
 		"""Length of the right portion of the cable.
 		The right portion refers to the portion from the right point to lowest point of the cables"""
-	
+
 	@abstractmethod
 	def L(self) -> np.ndarray:
 		"""Total length of the cable."""
@@ -173,8 +166,6 @@ class Span(ABC):
 	# TODO: factorize compute_L and compute_x_n in Span class later ?
 
 
-
-
 class CatenarySpan(Span):
 	"""Implementation of a span cable model according to the catenary equation.
 
@@ -203,6 +194,12 @@ class CatenarySpan(Span):
 		# write if lambd None -> use p instead?
 		# return error if linear_weight = None?
 		return self.compute_x_m(a, b, p)
+
+	def x_n(self):
+		a = self.span_length
+		b = self.elevation_difference
+		p = self.p
+		return self.compute_x_n(a, b, p)
 
 	def x(self, resolution: int = 10) -> np.ndarray:
 		"""x_coordinate for catenary generation in cable frame
@@ -237,8 +234,7 @@ class CatenarySpan(Span):
 		a = self.span_length
 		b = self.elevation_difference
 		p = self.p
-		return CatenarySpan.compute_L(a, b, p)
-
+		return self.compute_L(a, b, p)
 
 	def T_h(self) -> np.ndarray:
 		if self.linear_weight is None:
@@ -246,40 +242,40 @@ class CatenarySpan(Span):
 		else:
 			p = self.p
 			m = self.load_coefficient
-			return CatenarySpan.compute_T_h(p, m, self.linear_weight)
+			return self.compute_T_h(p, m, self.linear_weight)
 
 	def T_v(self, x_one_per_span) -> np.ndarray:
 		# an array of abscissa of the same length as the number of spans is expected
 		T_h = self.T_h()
 		p = self.p
-		return CatenarySpan.compute_T_v(x_one_per_span,	p, T_h) 
+		return self.compute_T_v(x_one_per_span, p, T_h)
 
 	def T_max(self, x_one_per_span) -> np.ndarray:
 		# an array of abscissa of the same length as the number of spans is expected
 		T_h = self.T_h()
 		p = self.p
-		return CatenarySpan.compute_T_max(x_one_per_span, p, T_h) 
+		return self.compute_T_max(x_one_per_span, p, T_h)
 
 	def T_mean_m(self) -> np.ndarray:
 		a = self.span_length
 		b = self.elevation_difference
 		p = self.p
 		T_h = self.T_h()
-		return CatenarySpan.compute_T_mean_m(a, b, p, T_h) 
+		return self.compute_T_mean_m(a, b, p, T_h)
 
 	def T_mean_n(self) -> np.ndarray:
 		a = self.span_length
 		b = self.elevation_difference
 		p = self.p
 		T_h = self.T_h()
-		return CatenarySpan.compute_T_mean_n(a, b, p, T_h) 
+		return self.compute_T_mean_n(a, b, p, T_h)
 
 	def T_mean(self) -> np.ndarray:
 		a = self.span_length
 		b = self.elevation_difference
 		T_h = self.T_h()
 		p = self.p
-		return CatenarySpan.compute_T_mean(a, b, p, T_h) 
+		return self.compute_T_mean(a, b, p, T_h)
 
 	# @staticmethod
 	# def compute_z(T_h, m ,lambd) -> np.ndarray:
@@ -299,13 +295,9 @@ class CatenarySpan(Span):
 		p: np.ndarray,
 	) -> np.ndarray:
 		return -a / 2 + p * np.arcsinh(b / (2 * p * np.sinh(a / (2 * p))))
-	
+
 	@staticmethod
-	def compute_x_n(
-		a: np.ndarray,
-		b: np.ndarray,
-		p: np.ndarray
-	) -> np.ndarray:
+	def compute_x_n(a: np.ndarray, b: np.ndarray, p: np.ndarray) -> np.ndarray:
 		"""Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
 
 		In other words: abscissa of the right hanging point.
@@ -313,21 +305,7 @@ class CatenarySpan(Span):
 		return a + CatenarySpan.compute_x_m(a, b, p)
 
 	@staticmethod
-	def compute_L(
-		a: np.ndarray,
-		b: np.ndarray,
-		p: np.ndarray,
-	) -> np.ndarray:
-		L_m = CatenarySpan.compute_L_m(a, b, p)
-		L_n = CatenarySpan.compute_L_n(a, b, p)
-		return L_m + L_n
-
-	@staticmethod
-	def compute_L_m(
-		a: np.ndarray,
-		b: np.ndarray,
-		p: np.ndarray
-	) -> np.ndarray:
+	def compute_L_m(a: np.ndarray, b: np.ndarray, p: np.ndarray) -> np.ndarray:
 		x_m = CatenarySpan.compute_x_m(a, b, p)
 		return -p * np.sinh(x_m / p)
 
@@ -340,7 +318,6 @@ class CatenarySpan(Span):
 		x_n = CatenarySpan.compute_x_n(a, b, p)
 		return p * np.sinh(x_n / p)
 
-
 	# put in superclass?
 	@staticmethod
 	def compute_L(
@@ -351,8 +328,7 @@ class CatenarySpan(Span):
 		L_m = CatenarySpan.compute_L_m(a, b, p)
 		L_n = CatenarySpan.compute_L_n(a, b, p)
 		return L_m + L_n
-	
-	
+
 	@staticmethod
 	def compute_T_h(
 		p: np.ndarray, m: np.ndarray, lambd: np.ndarray
@@ -414,4 +390,3 @@ class CatenarySpan(Span):
 		L_n = CatenarySpan.compute_L_n(a, b, p)
 		L = CatenarySpan.compute_L(a, b, p)
 		return (T_mean_m * L_m + T_mean_n * L_n) / L
-
