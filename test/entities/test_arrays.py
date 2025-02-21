@@ -94,7 +94,7 @@ def test_create_section_array__span_length_for_last_support(
 		section_array_input_data
 	)
 
-	with pytest.raises(pa.errors.SchemaError):
+	with pytest.raises(pa.errors.SchemaErrors):
 		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
@@ -118,7 +118,7 @@ def test_create_section_array__missing_column(
 		section_array_input_data
 	)
 
-	with pytest.raises(pa.errors.SchemaError):
+	with pytest.raises(pa.errors.SchemaErrors):
 		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
@@ -158,7 +158,7 @@ def test_create_section_array__wrong_type(
 		section_array_input_data
 	)
 
-	with pytest.raises(pa.errors.SchemaError):
+	with pytest.raises(pa.errors.SchemaErrors):
 		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
@@ -171,7 +171,7 @@ def test_create_section_array__insulator_length_for_tension_support(
 		section_array_input_data
 	)
 
-	with pytest.raises(pa.errors.SchemaError):
+	with pytest.raises(pa.errors.SchemaErrors):
 		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
@@ -310,7 +310,7 @@ def test_create_cable_array__missing_column(
 		cable_array_input_data
 	)
 
-	with pytest.raises(pa.errors.SchemaError):
+	with pytest.raises(pa.errors.SchemaErrors):
 		CableArray(input_df)
 
 
@@ -333,7 +333,7 @@ def test_create_cable_array__wrong_type(
 		cable_array_input_data
 	)
 
-	with pytest.raises(pa.errors.SchemaError):
+	with pytest.raises(pa.errors.SchemaErrors):
 		CableArray(input_df)
 
 
@@ -358,5 +358,5 @@ def test_create_weather_array__negative_ice() -> None:
 	}
 	input_df = pd.DataFrame(input_data_with_negative_ice)
 
-	with pytest.raises(pa.errors.SchemaError):
+	with pytest.raises(pa.errors.SchemaErrors):
 		WeatherArray(input_df)
