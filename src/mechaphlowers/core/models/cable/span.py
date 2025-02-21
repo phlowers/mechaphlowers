@@ -201,19 +201,7 @@ class CatenarySpan(Span):
 		p = self.p
 		# write if lambd None -> use p instead?
 		# return error if linear_weight = None?
-		return CatenarySpan.compute_x_m(a, b, p)
-	
-	@staticmethod
-	def compute_x_n(
-		a: np.ndarray,
-		b: np.ndarray,
-		p: np.ndarray
-	) -> np.ndarray:
-		"""Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
-
-		In other words: abscissa of the right hanging point.
-		"""
-		return a + CatenarySpan.compute_x_m(a, b, p)
+		return self.compute_x_m(a, b, p)
 
 	def x(self, resolution: int = 10) -> np.ndarray:
 		"""x_coordinate for catenary generation in cable frame
@@ -235,25 +223,15 @@ class CatenarySpan(Span):
 		b = self.elevation_difference
 		p = self.p
 		# write if lambd None -> use p instead?
-		return CatenarySpan.compute_L_m(a, b, p)
+		return self.compute_L_m(a, b, p)
 
 	def L_n(self) -> np.ndarray:
 		a = self.span_length
 		b = self.elevation_difference
 		p = self.p
-		return CatenarySpan.compute_L_n(a, b, p)
+		return self.compute_L_n(a, b, p)
 
 
-	# put in superclass?
-	@staticmethod
-	def compute_L(
-		a: np.ndarray,
-		b: np.ndarray,
-		p: np.ndarray,
-	) -> np.ndarray:
-		L_m = CatenarySpan.compute_L_m(a, b, p)
-		L_n = CatenarySpan.compute_L_n(a, b, p)
-		return L_m + L_n
 
 	def T_h(self) -> np.ndarray:
 		if self.linear_weight is None:
@@ -314,7 +292,19 @@ class CatenarySpan(Span):
 		p: np.ndarray,
 	) -> np.ndarray:
 		return -a / 2 + p * np.arcsinh(b / (2 * p * np.sinh(a / (2 * p))))
+	
+	@staticmethod
+	def compute_x_n(
+		a: np.ndarray,
+		b: np.ndarray,
+		p: np.ndarray
+	) -> np.ndarray:
+		"""Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
 
+		In other words: abscissa of the right hanging point.
+		"""
+		return a + CatenarySpan.compute_x_m(a, b, p)
+	
 	@staticmethod
 	def compute_L_m(
 		a: np.ndarray,
@@ -334,6 +324,18 @@ class CatenarySpan(Span):
 		return p * np.sinh(x_n / p)
 
 
+	# put in superclass?
+	@staticmethod
+	def compute_L(
+		a: np.ndarray,
+		b: np.ndarray,
+		p: np.ndarray,
+	) -> np.ndarray:
+		L_m = CatenarySpan.compute_L_m(a, b, p)
+		L_n = CatenarySpan.compute_L_n(a, b, p)
+		return L_m + L_n
+	
+	
 	@staticmethod
 	def compute_T_h(
 		p: np.ndarray, m: np.ndarray, lambd: np.ndarray
@@ -395,5 +397,4 @@ class CatenarySpan(Span):
 		L_n = CatenarySpan.compute_L_n(a, b, p)
 		L = CatenarySpan.compute_L(a, b, p)
 		return (T_mean_m * L_m + T_mean_n * L_n) / L
-
 

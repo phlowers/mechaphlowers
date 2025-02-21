@@ -41,10 +41,18 @@ class LinearDeformation(Deformation):
 	"""This model assumes that mechanical deformation is linear with tension."""
 
 	def epsilon_mecha(self) -> np.ndarray:
+		# T_mean(T_h)???
 		T_mean = self.tension_mean
 		E = self.cable_array.data["young_modulus"].to_numpy()
 		S = self.cable_array.data["section"].to_numpy()
-		return T_mean / (E * S)
+		return self.compute_epsilon_mecha(T_mean, E, S)
 
 	def epsilon(self, current_temperature):
 		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
+	
+	@staticmethod
+	def compute_epsilon_mecha(
+		T_mean: np.ndarray,
+		E: np.ndarray,
+		S: np.ndarray) -> np.ndarray:
+		return T_mean / (E * S)
