@@ -33,7 +33,7 @@ class ElementArray(ABC):
 		# We need to convert Model into Schema because the strict attribute doesn't exist for Model
 		array_input_schema = self.array_input_type.to_schema()
 		array_input_schema.strict = 'filter'
-		return array_input_schema.validate(input_data)
+		return array_input_schema.validate(input_data, lazy=True)
 
 	def __str__(self) -> str:
 		return self._data.to_string()
