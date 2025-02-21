@@ -113,13 +113,10 @@ class Span(ABC):
 	def L_n(self) -> np.ndarray:
 		"""Length of the right portion of the cable.
 		The right portion refers to the portion from the right point to lowest point of the cables"""
-
+	
+	@abstractmethod
 	def L(self) -> np.ndarray:
 		"""Total length of the cable."""
-		a = self.span_length
-		b = self.elevation_difference
-		p = self.p
-		return Span.compute_L(a, b, p)
 
 	@abstractmethod
 	def T_h(self) -> np.ndarray:
@@ -172,6 +169,10 @@ class Span(ABC):
 	@abstractmethod
 	def T_mean(self) -> np.ndarray:
 		"""Mean tension along the whole cable."""
+
+	# TODO: factorize compute_L and compute_x_n in Span class later ?
+
+
 
 
 class CatenarySpan(Span):
@@ -231,6 +232,12 @@ class CatenarySpan(Span):
 		p = self.p
 		return self.compute_L_n(a, b, p)
 
+	def L(self) -> np.ndarray:
+		"""Total length of the cable."""
+		a = self.span_length
+		b = self.elevation_difference
+		p = self.p
+		return CatenarySpan.compute_L(a, b, p)
 
 
 	def T_h(self) -> np.ndarray:
@@ -304,7 +311,17 @@ class CatenarySpan(Span):
 		In other words: abscissa of the right hanging point.
 		"""
 		return a + CatenarySpan.compute_x_m(a, b, p)
-	
+
+	@staticmethod
+	def compute_L(
+		a: np.ndarray,
+		b: np.ndarray,
+		p: np.ndarray,
+	) -> np.ndarray:
+		L_m = CatenarySpan.compute_L_m(a, b, p)
+		L_n = CatenarySpan.compute_L_n(a, b, p)
+		return L_m + L_n
+
 	@staticmethod
 	def compute_L_m(
 		a: np.ndarray,
@@ -320,7 +337,7 @@ class CatenarySpan(Span):
 		b: np.ndarray,
 		p: np.ndarray,
 	) -> np.ndarray:
-		x_n = CatenarySpan.compute_x_m(a, b, p)
+		x_n = CatenarySpan.compute_x_n(a, b, p)
 		return p * np.sinh(x_n / p)
 
 
@@ -358,7 +375,7 @@ class CatenarySpan(Span):
 		T_h: np.ndarray,
 	) -> np.ndarray:
 		# an array of abscissa of the same length as the number of spans is expected
-		return T_h * np.sinh(x_one_per_span / p)
+		return T_h * np.cosh(x_one_per_span / p)
 
 	@staticmethod
 	def compute_T_mean_m(
@@ -380,7 +397,7 @@ class CatenarySpan(Span):
 		T_h: np.ndarray,
 	) -> np.ndarray:
 		x_n = CatenarySpan.compute_x_n(a, b, p)
-		L_n = CatenarySpan.compute_L_m(a, b, p)
+		L_n = CatenarySpan.compute_L_n(a, b, p)
 		T_max_n = CatenarySpan.compute_T_max(x_n, p, T_h)
 		return (x_n * T_h + L_n * T_max_n) / (2 * L_n)
 
