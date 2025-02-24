@@ -31,7 +31,7 @@ class CableLoads:
 		Returns:
 			np.ndarray: load angle (beta) for each span
 		"""
-		linear_weight = self.cable.data.linear_weight
+		linear_weight = self.cable.data.linear_weight.to_numpy()
 		ice_load = self.ice_load
 		wind_load = self.wind_load
 
@@ -43,7 +43,7 @@ class CableLoads:
 	) -> np.ndarray:
 		"""Norm of the force (R) applied on the cable due to weather loads and cable own weight, per meter cable"""
 
-		linear_weight = self.cable.data.linear_weight
+		linear_weight = self.cable.data.linear_weight.to_numpy()
 		ice_load = self.ice_load
 		wind_load = self.wind_load
 
@@ -51,7 +51,7 @@ class CableLoads:
 
 	@property
 	def load_coefficient(self) -> np.ndarray:
-		linear_weight = self.cable.data.linear_weight
+		linear_weight = self.cable.data.linear_weight.to_numpy()
 		return self.resulting_norm / linear_weight
 
 	@property
