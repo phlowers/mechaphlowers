@@ -85,7 +85,7 @@ def test_functions_to_solve() -> None:
 	weather_array_final = WeatherArray(
 		pdt.DataFrame(
 			{
-				"ice_thickness": [1, 2.1, 0.0, 0.0],
+				"ice_thickness": [1 ,2.1 , 0.0, 0.0],
 				"wind_pressure": 0*np.ones(NB_SPAN),
 			}
 		)

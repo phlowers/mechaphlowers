@@ -53,7 +53,7 @@ class SagTensionSolver:
 			weather_array (WeatherArray): _description_
 		"""
 		self.cable_loads.weather = weather_array
-		m = self.cable_loads.load_coefficient.to_numpy()
+		m = self.cable_loads.load_coefficient
 		Th0 = CatenarySpan.compute_T_h(self.p, m, self.linear_weight)
 		temp = self.sagging_temperature
   
