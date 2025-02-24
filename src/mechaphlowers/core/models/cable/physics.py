@@ -32,11 +32,20 @@ class Physics:
 
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
 		"""Unstressed cable length, at a chosen reference temperature"""
-		return self.compute_L_ref(current_temperature, self.cable_length, self.deformation)
+		return self.compute_L_ref(
+			current_temperature, self.cable_length, self.deformation
+		)
 
 	@staticmethod
-	def compute_L_ref(current_temperature: np.ndarray, cable_length: np.ndarray, deformation: Deformation) -> np.ndarray:
+	def compute_L_ref(
+		current_temperature: np.ndarray,
+		cable_length: np.ndarray,
+		deformation: Deformation,
+	) -> np.ndarray:
 		"""Unstressed cable length, at a chosen reference temperature"""
 		L = cable_length
-		epsilon = deformation.epsilon_therm(current_temperature) + deformation.epsilon_mecha()
+		epsilon = (
+			deformation.epsilon_therm(current_temperature)
+			+ deformation.epsilon_mecha()
+		)
 		return L / (1 + epsilon)

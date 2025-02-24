@@ -164,6 +164,38 @@ class Span(ABC):
 		"""Mean tension along the whole cable."""
 
 	# TODO: factorize compute_L and compute_x_n in Span class later ?
+	@staticmethod
+	@abstractmethod
+	def compute_L(
+		a: np.ndarray,
+		b: np.ndarray,
+		p: np.ndarray,
+	) -> np.ndarray:
+		""""""
+
+	@staticmethod
+	@abstractmethod
+	def compute_T_h(
+		p: np.ndarray, m: np.ndarray, lambd: np.ndarray
+	) -> np.ndarray:
+		""""""
+
+	@staticmethod
+	@abstractmethod
+	def compute_p(
+		T_h: np.ndarray, m: np.ndarray, lambd: np.ndarray
+	) -> np.ndarray:
+		""""""
+
+	@staticmethod
+	@abstractmethod
+	def compute_T_mean(
+		a: np.ndarray,
+		b: np.ndarray,
+		p: np.ndarray,
+		T_h: np.ndarray,
+	) -> np.ndarray:
+		""""""
 
 
 class CatenarySpan(Span):

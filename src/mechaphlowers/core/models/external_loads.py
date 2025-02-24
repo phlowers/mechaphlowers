@@ -76,4 +76,3 @@ class CableLoads:
 		D = self.cable.data.diameter.to_numpy()
 		e = self.weather.data.ice_thickness.to_numpy()
 		return P_w * (D + 2 * e)
-

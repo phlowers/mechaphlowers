@@ -8,25 +8,19 @@ import numpy as np
 import pandas as pd
 from pandera.typing import pandas as pdt
 
-
 from mechaphlowers.api.frames import SectionDataFrame
-from mechaphlowers.core.models.cable.physics import Physics
-from mechaphlowers.core.models.cable.span import (
-	CatenarySpan,
-)
 from mechaphlowers.core.solver.cable_state import (
 	SagTensionSolver,
 )
-from mechaphlowers.entities.arrays import CableArray, SectionArray, WeatherArray
+from mechaphlowers.entities.arrays import (
+	CableArray,
+	SectionArray,
+	WeatherArray,
+)
 from mechaphlowers.entities.schemas import CableArrayInput
 
 
-
-
-
-
 def test_functions_to_solve() -> None:
-    
 	NB_SPAN = 4
 	input_cable: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
 		{
@@ -45,7 +39,7 @@ def test_functions_to_solve() -> None:
 		"crossarm_length": [10, 12.1, 10, 10.1],
 		"line_angle": [0, 360, 90.1, -90.2],
 		"insulator_length": [0, 4, 3.2, 0],
-		"span_length": [1, 500.2, 500.0, np.nan],
+		"span_length": [400, 500.2, 500.0, np.nan],
 	}
 
 	section_array = SectionArray(data=pd.DataFrame(data_section))
@@ -79,14 +73,17 @@ def test_functions_to_solve() -> None:
 	unstressed_length = section.physics.L_ref(np.array([15] * NB_SPAN))
 
 	sag_tension_calculation = SagTensionSolver(
-		section_array, cable_array, weather_array, unstressed_length,
+		section_array,
+		cable_array,
+		weather_array,
+		unstressed_length,
 	)
 
 	weather_array_final = WeatherArray(
 		pdt.DataFrame(
 			{
-				"ice_thickness": [1 ,2.1 , 0.0, 0.0],
-				"wind_pressure": 0*np.ones(NB_SPAN),
+				"ice_thickness": [1, 2.1, 0.0, 0.0],
+				"wind_pressure": 0 * np.ones(NB_SPAN),
 			}
 		)
 	)
@@ -100,7 +97,7 @@ def test_functions_to_solve() -> None:
 		pdt.DataFrame(
 			{
 				"ice_thickness": [1, 2.1, 0.0, 0.0],
-				"wind_pressure": 1000*np.ones(NB_SPAN),
+				"wind_pressure": 1000 * np.ones(NB_SPAN),
 			}
 		)
 	)

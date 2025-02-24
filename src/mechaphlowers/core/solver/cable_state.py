@@ -5,13 +5,18 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from typing import Type
+
 import numpy as np
 from scipy import optimize
+
 from mechaphlowers.core.models.cable.deformation import (
+	Deformation,
 	LinearDeformation,
 )
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
+	Span,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import (
@@ -20,10 +25,8 @@ from mechaphlowers.entities.arrays import (
 	WeatherArray,
 )
 
-from mechaphlowers.core.models.cable.physics import Physics
 
 class SagTensionSolver:
-	
 	_ZETA = 10
 
 	def __init__(
@@ -31,12 +34,16 @@ class SagTensionSolver:
 		section_array: SectionArray,
 		cable_array: CableArray,
 		weather_array: WeatherArray,
-		L_ref: np.ndarray
+		L_ref: np.ndarray,
+		span_model: Type[Span] = CatenarySpan,
+		deformation_model: Type[Deformation] = LinearDeformation,
 	) -> None:
 		self.a = section_array.data.span_length.to_numpy()
 		self.b = section_array.data.elevation_difference.to_numpy()
 		self.p = section_array.data.sagging_parameter.to_numpy()
-		self.sagging_temperature = section_array.data.sagging_temperature.to_numpy()
+		self.sagging_temperature = (
+			section_array.data.sagging_temperature.to_numpy()
+		)
 		self.linear_weight = cable_array.data.linear_weight.to_numpy()
 		self.E = cable_array.data.young_modulus.to_numpy()
 		self.S = cable_array.data.section.to_numpy()
@@ -44,7 +51,8 @@ class SagTensionSolver:
 		self.theta_ref = cable_array.data.temperature_reference.to_numpy()
 		self.cable_loads = CableLoads(cable_array, weather_array)
 		self.L_ref = L_ref
-		
+		self.span_model = span_model
+		self.deformation_model = deformation_model
 
 	def change_state(self, weather_array: WeatherArray) -> None:
 		"""_summary_
@@ -54,13 +62,12 @@ class SagTensionSolver:
 		"""
 		self.cable_loads.weather = weather_array
 		m = self.cable_loads.load_coefficient
-		Th0 = CatenarySpan.compute_T_h(self.p, m, self.linear_weight)
+		Th0 = self.span_model.compute_T_h(self.p, m, self.linear_weight)
 		temp = self.sagging_temperature
-  
-		L = CatenarySpan.compute_L(self.a, self.b, self.p)
-		
 
-		# TODO: parametrize Linear Deformation 
+		L = self.span_model.compute_L(self.a, self.b, self.p)
+
+		# TODO: parametrize Linear Deformation
 		# TODO: L_ref as static method ?
 		# L_ref = Physics.compute_L_ref(temp, L, LinearDeformation)
 
@@ -69,25 +76,19 @@ class SagTensionSolver:
 			self._delta,
 			Th0,
 			fprime=self._delta_prime,
-			args=(
-				m, temp, self.L_ref
-			),
+			args=(m, temp, self.L_ref),
 			tol=1e-5,
-			full_output=True
+			full_output=True,
 		)
- 
-
 
 	def _delta(self, T_h, m, temp, L_ref):
-		# TODO: give CatenarySpan as an argument in __init__
-		p = CatenarySpan.compute_p(T_h, m, self.linear_weight)
-		L = CatenarySpan.compute_L(self.a, self.b, p)
+		p = self.span_model.compute_p(T_h, m, self.linear_weight)
+		L = self.span_model.compute_L(self.a, self.b, p)
 
-		T_mean = CatenarySpan.compute_T_mean(self.a, self.b, p, T_h)
-		# TODO: give LinearDeformation as an argument in __init__
-		epsilon_total = LinearDeformation.compute_epsilon_mecha(
+		T_mean = self.span_model.compute_T_mean(self.a, self.b, p, T_h)
+		epsilon_total = self.deformation_model.compute_epsilon_mecha(
 			T_mean, self.E, self.S
-		) + LinearDeformation.compute_epsilon_therm(
+		) + self.deformation_model.compute_epsilon_therm(
 			temp, self.theta_ref, self.alpha
 		)
 
@@ -95,15 +96,16 @@ class SagTensionSolver:
 
 	def _delta_prime(
 		self,
-		Th ,
-		m ,
-		temp ,
-		L_ref ,
+		Th,
+		m,
+		temp,
+		L_ref,
 	):
 		kwargs = {
 			"m": m,
 			"temp": temp,
 			"L_ref": L_ref,
 		}
-		return (self._delta(Th + self._ZETA, **kwargs) - self._delta(Th, **kwargs)) / self._ZETA
-
+		return (
+			self._delta(Th + self._ZETA, **kwargs) - self._delta(Th, **kwargs)
+		) / self._ZETA

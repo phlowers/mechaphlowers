@@ -46,13 +46,11 @@ class Deformation(ABC):
 class LinearDeformation(Deformation):
 	"""This model assumes that mechanical strain is linear with tension."""
 
-
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
 		"""Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
 		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
 		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
 		return self.compute_epsilon_therm(current_temperature, temp_ref, alpha)
-
 
 	def epsilon_mecha(
 		self, max_stress: np.ndarray | None = None
@@ -95,6 +93,12 @@ class LinearDeformation(Deformation):
 
 class PolynomialDeformation(Deformation):
 	"""This model assumes that mechanical strain and tension follow a polynomial relation."""
+
+	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
+		"""Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
+		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
+		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
+		return self.compute_epsilon_therm(current_temperature, temp_ref, alpha)
 
 	def epsilon_mecha(
 		self, max_stress: np.ndarray | None = None
@@ -175,3 +179,9 @@ class PolynomialDeformation(Deformation):
 		return self.epsilon_mecha(max_stress) + self.epsilon_therm(
 			current_temperature
 		)
+
+	@staticmethod
+	def compute_epsilon_therm(
+		theta: np.ndarray, theta_ref: np.ndarray, alpha: np.ndarray
+	) -> np.ndarray:
+		return (theta - theta_ref) * alpha
