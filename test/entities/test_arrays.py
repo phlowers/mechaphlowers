@@ -338,6 +338,29 @@ def test_create_cable_array__wrong_type(
 		CableArray(input_df)
 
 
+def test_cable_array__get_poly_coefs() -> None:
+	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
+		{
+			"section": [345.5, 345.5, 345.5, 345.5],
+			"diameter": [22.4, 22.4, 22.4, 22.4],
+			"linear_weight": [9.6, 9.6, 9.6, 9.6],
+			"young_modulus": [59, 59, 59, 59],
+			"dilatation_coefficient": [23, 23, 23, 23],
+			"temperature_reference": [15, 15, 15, 15],
+			"a0": [3, 3, 3, 3],
+			"a1": [10, 10, 10, 10],
+			"a2": [25, 25, 25, 25],
+			"a3": [400, 400, 400, 400],
+			"a4": [1000, 1000, 1000, 1000],
+		}
+	)
+
+	cable_array = CableArray(input_df)
+	polynomial = cable_array.stress_strain_polynomial
+	expected_coefs = np.array([3, 10, 25, 400, 1000]) * 1e9
+	assert np.array_equal(polynomial.coef, expected_coefs)
+
+
 def test_create_weather_array__negative_ice() -> None:
 	input_data_with_negative_ice = {
 		"ice_thickness": [1, -5.0, -0.0001],
