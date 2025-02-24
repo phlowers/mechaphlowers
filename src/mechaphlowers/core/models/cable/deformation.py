@@ -95,7 +95,7 @@ class PolynomialDeformation(Deformation):
 		return equation_solution
 
 	def resolve_stress_strain_equation(self, sigma: np.ndarray) -> np.ndarray:
-		"""Solves $\sigma = Polynomial(\epsilon)$"""
+		"""Solves $\\sigma = Polynomial(\\varepsilon)$"""
 		T_mean = self.tension_mean
 		polynom_array = np.full(
 			T_mean.shape, self.cable_array.stress_strain_polynomial
