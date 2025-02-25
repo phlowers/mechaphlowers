@@ -231,8 +231,8 @@ class SectionDataFrame:
 			raise ValueError("Cable has to be added before weather")
 		# weather type is checked in add_array self.cable is tested above but mypy does not understand
 		self.cable_loads = CableLoads(self.cable, self.weather)  # type: ignore[union-attr,arg-type]
-		# self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr]
-
+		self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr]
+		self.init_physics_model()
 
 	def _add_array(self, var: ElementArray, type_var: Type[ElementArray]):
 		"""add_array method to add a new array to the SectionDataFrame
