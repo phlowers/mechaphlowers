@@ -50,13 +50,17 @@ class Deformation(ABC):
 class LinearDeformation(Deformation):
 	"""This model assumes that mechanical strain is linear with tension."""
 
-	def epsilon_mecha(self) -> np.ndarray:
+	def epsilon_mecha(
+		self, max_stress: np.ndarray | None = None
+	) -> np.ndarray:
 		T_mean = self.tension_mean
 		E = self.cable_array.data["young_modulus"].to_numpy()
 		S = self.cable_array.data["section"].to_numpy()
 		return T_mean / (E * S)
 
-	def epsilon(self, current_temperature):
+	def epsilon(
+		self, current_temperature, max_stress: np.ndarray | None = None
+	):
 		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
 
 
@@ -88,7 +92,7 @@ class PolynomialDeformation(Deformation):
 		return equation_solution
 
 	def resolve_stress_strain_equation(self, sigma: np.ndarray) -> np.ndarray:
-		"""Solves $\sigma = Polynomial(\epsilon)$"""
+		"""Solves $\\sigma = Polynomial(\\varepsilon)$"""
 		T_mean = self.tension_mean
 		polynom_array = np.full(
 			T_mean.shape, self.cable_array.stress_strain_polynomial
