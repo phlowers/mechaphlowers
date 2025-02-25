@@ -42,6 +42,20 @@ class Deformation(ABC):
 	) -> np.ndarray:
 		"""Mechanical part of the relative strain  of the cable."""
 
+	@staticmethod
+	@abstractmethod
+	def compute_epsilon_mecha(
+		T_mean: np.ndarray, E: np.ndarray, S: np.ndarray
+	) -> np.ndarray:
+		""""""
+
+	@staticmethod
+	@abstractmethod
+	def compute_epsilon_therm(
+		theta: np.ndarray, theta_ref: np.ndarray, alpha: np.ndarray
+	) -> np.ndarray:
+		""""""
+
 
 class LinearDeformation(Deformation):
 	"""This model assumes that mechanical strain is linear with tension."""
@@ -185,3 +199,10 @@ class PolynomialDeformation(Deformation):
 		theta: np.ndarray, theta_ref: np.ndarray, alpha: np.ndarray
 	) -> np.ndarray:
 		return (theta - theta_ref) * alpha
+
+	# TODO: refactor this!!!!
+	@staticmethod
+	def compute_epsilon_mecha(
+		T_mean: np.ndarray, E: np.ndarray, S: np.ndarray
+	) -> np.ndarray:
+		return T_mean / (E * S)

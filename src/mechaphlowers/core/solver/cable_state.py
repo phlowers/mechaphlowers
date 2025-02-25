@@ -65,10 +65,8 @@ class SagTensionSolver:
 		Th0 = self.span_model.compute_T_h(self.p, m, self.linear_weight)
 		temp = self.sagging_temperature
 
-		L = self.span_model.compute_L(self.a, self.b, self.p)
-
-		# TODO: parametrize Linear Deformation
 		# TODO: L_ref as static method ?
+		# L = self.span_model.compute_L(self.a, self.b, self.p)
 		# L_ref = Physics.compute_L_ref(temp, L, LinearDeformation)
 
 		# TODO parametrize solver method with optimize minimize
