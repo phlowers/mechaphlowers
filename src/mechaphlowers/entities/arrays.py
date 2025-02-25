@@ -141,6 +141,7 @@ class CableArray(ElementArray):
 		].to_numpy()
 		return Poly(coefs_poly)
 
+
 class WeatherArray(ElementArray):
 	"""Weather-related data, such as wind and ice.
 
