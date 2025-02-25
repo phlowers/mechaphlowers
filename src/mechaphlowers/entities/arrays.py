@@ -10,6 +10,7 @@ from typing import Type
 import numpy as np
 import pandas as pd
 import pandera as pa
+from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.entities.schemas import (
 	CableArrayInput,
@@ -120,13 +121,25 @@ class CableArray(ElementArray):
 
 	@property
 	def data(self) -> pd.DataFrame:
+		"""Returns a copy of self._data that converts values into SI units"""
 		data_SI = self._data.copy()
 		data_SI["section"] *= 1e-6
 		data_SI["diameter"] *= 1e-3
 		data_SI["young_modulus"] *= 1e9
 		data_SI["dilatation_coefficient"] *= 1e-6
+
+		for coef in ["a0", "a1", "a2", "a3", "a4"]:
+			if coef in data_SI:
+				data_SI[coef] *= 1e9
 		return data_SI
 
+	@property
+	def stress_strain_polynomial(self) -> Poly:
+		"""Converts coefficients in the dataframe into polynomial"""
+		coefs_poly = self.data.iloc[0][
+			["a0", "a1", "a2", "a3", "a4"]
+		].to_numpy()
+		return Poly(coefs_poly)
 
 class WeatherArray(ElementArray):
 	"""Weather-related data, such as wind and ice.
