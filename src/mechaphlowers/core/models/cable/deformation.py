@@ -20,9 +20,14 @@ class Deformation(ABC):
 		self,
 		cable_array: CableArray,
 		tension_mean: np.ndarray,
+		max_stress: np.ndarray | None = None,
 	):
 		self.cable_array = cable_array
 		self.tension_mean = tension_mean
+		if max_stress is None:
+			self.max_stress = np.full(self.tension_mean.shape, 0)
+		else:
+			self.max_stress = max_stress
 
 	@abstractmethod
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
@@ -32,14 +37,11 @@ class Deformation(ABC):
 	def epsilon(
 		self,
 		current_temperature: np.ndarray,
-		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		"""Total relative strain of the cable."""
 
 	@abstractmethod
-	def epsilon_mecha(
-		self, max_stress: np.ndarray | None = None
-	) -> np.ndarray:
+	def epsilon_mecha(self) -> np.ndarray:
 		"""Mechanical part of the relative strain  of the cable."""
 
 	@staticmethod
@@ -108,7 +110,7 @@ class LinearDeformation(Deformation):
 class PolynomialDeformation(Deformation):
 	"""This model assumes that mechanical strain and tension follow a polynomial relation."""
 
-	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
+	def epsilon_therm(self) -> np.ndarray:
 		"""Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
 		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
 		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
@@ -125,10 +127,10 @@ class PolynomialDeformation(Deformation):
 		E = self.cable_array.data["young_modulus"].to_numpy()
 		sigma = T_mean / S
 
-		epsilon_plastic = self.epsilon_plastic(max_stress)
+		epsilon_plastic = self.epsilon_plastic()
 		return epsilon_plastic + sigma / E
 
-	def epsilon_plastic(self, max_stress: np.ndarray) -> np.ndarray:
+	def epsilon_plastic(self) -> np.ndarray:
 		"""Computes elastic permanent strain."""
 		T_mean = self.tension_mean
 		S = self.cable_array.data["section"].to_numpy()
@@ -136,7 +138,7 @@ class PolynomialDeformation(Deformation):
 		sigma = T_mean / S
 
 		# epsilon plastic is based on the highest value between sigma and max_stress
-		highest_constraint = np.fmax(sigma, max_stress)
+		highest_constraint = np.fmax(sigma, self.max_stress)
 		equation_solution = self.resolve_stress_strain_equation(
 			highest_constraint
 		)
@@ -188,11 +190,9 @@ class PolynomialDeformation(Deformation):
 	def epsilon(
 		self,
 		current_temperature: np.ndarray,
-		max_stress: np.ndarray | None = None,
 	):
-		return self.epsilon_mecha(max_stress) + self.epsilon_therm(
-			current_temperature
-		)
+		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
+
 
 	@staticmethod
 	def compute_epsilon_therm(
