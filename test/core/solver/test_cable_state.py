@@ -79,11 +79,19 @@ def test_functions_to_solve__same_loads() -> None:
 		)
 	)
 	new_temperature = np.array([15] * NB_SPAN)
-	state_0 = sag_tension_calculation.change_state(weather_array_final, new_temperature)
+	state_0 = sag_tension_calculation.change_state(
+		weather_array_final, new_temperature
+	)
 	# Not comparing the last value as it is NaN
-	assert(((state_0 - section.span.T_h())[0:-1]) < 1e-6).all()
-	assert(sag_tension_calculation.p_after_change()[0] - section_array.sagging_parameter < 1e-6)
-	assert(sag_tension_calculation.L_after_change() - section.span.L() < 1e-6)[0:-1].all()
+	assert (((state_0 - section.span.T_h())[0:-1]) < 1e-6).all()
+	assert (
+		sag_tension_calculation.p_after_change()[0]
+		- section_array.sagging_parameter
+		< 1e-6
+	)
+	assert (
+		sag_tension_calculation.L_after_change() - section.span.L() < 1e-6
+	)[0:-1].all()
 	assert True
 
 
@@ -137,8 +145,10 @@ def test_functions_to_solve_values() -> None:
 		unstressed_length,
 	)
 	new_temperature = np.array([15] * NB_SPAN)
-	state_0 = sag_tension_calculation.change_state(initial_weather_array, new_temperature)
-	assert((state_0 - section.span.T_h())[0] < 1e-6)
+	state_0 = sag_tension_calculation.change_state(
+		initial_weather_array, new_temperature
+	)
+	assert (state_0 - section.span.T_h())[0] < 1e-6
 
 	weather_array_final_1 = WeatherArray(
 		pdt.DataFrame(
@@ -149,9 +159,11 @@ def test_functions_to_solve_values() -> None:
 		)
 	)
 
-	state_1 = sag_tension_calculation.change_state(weather_array_final_1, new_temperature)
-	assert(state_1[0] - 42098.9070 < 5)
-	
+	state_1 = sag_tension_calculation.change_state(
+		weather_array_final_1, new_temperature
+	)
+	assert state_1[0] - 42098.9070 < 5
+
 	weather_array_final_2 = WeatherArray(
 		pdt.DataFrame(
 			{
@@ -160,6 +172,8 @@ def test_functions_to_solve_values() -> None:
 			}
 		)
 	)
-	state_2 = sag_tension_calculation.change_state(weather_array_final_2, new_temperature)
-	assert(state_2[0] - 31745.05101 < 5)
+	state_2 = sag_tension_calculation.change_state(
+		weather_array_final_2, new_temperature
+	)
+	assert state_2[0] - 31745.05101 < 5
 	assert True

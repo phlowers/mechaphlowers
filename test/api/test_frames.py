@@ -36,38 +36,6 @@ section.sagging_parameter = 2000
 section.sagging_temperature = 15
 
 
-@pytest.fixture
-def cable_df():
-	return pd.DataFrame(
-		{
-			"section": [
-				345.5,
-			]
-			* 4,
-			"diameter": [
-				22.4,
-			]
-			* 4,
-			"linear_weight": [
-				9.6,
-			]
-			* 4,
-			"young_modulus": [
-				59,
-			]
-			* 4,
-			"dilatation_coefficient": [
-				23,
-			]
-			* 4,
-			"temperature_reference": [
-				15,
-			]
-			* 4,
-		}
-	)
-
-
 def test_section_frame_initialization():
 	frame = SectionDataFrame(section)
 	assert frame.section == section
@@ -123,9 +91,38 @@ def test_SectionDataFrame__copy():
 	assert isinstance(frame, SectionDataFrame)
 
 
-def test_SectionDataFrame__state(cable_df: dict):
+def test_SectionDataFrame__state():
 	frame = SectionDataFrame(section)
-	cable_array = CableArray(cable_df)
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [
+					345.5,
+				]
+				* 4,
+				"diameter": [
+					22.4,
+				]
+				* 4,
+				"linear_weight": [
+					9.6,
+				]
+				* 4,
+				"young_modulus": [
+					59,
+				]
+				* 4,
+				"dilatation_coefficient": [
+					23,
+				]
+				* 4,
+				"temperature_reference": [
+					15,
+				]
+				* 4,
+			}
+		)
+	)
 
 	frame.add_cable(cable_array)
 	assert np.array_equal(
@@ -134,9 +131,39 @@ def test_SectionDataFrame__state(cable_df: dict):
 
 
 # test add_cable method
-def test_SectionDataFrame__add_cable(cable_df: dict):
+def test_SectionDataFrame__add_cable():
 	frame = SectionDataFrame(section)
-	cable_array = CableArray(cable_df)
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [
+					345.5,
+				]
+				* 4,
+				"diameter": [
+					22.4,
+				]
+				* 4,
+				"linear_weight": [
+					9.6,
+				]
+				* 4,
+				"young_modulus": [
+					59,
+				]
+				* 4,
+				"dilatation_coefficient": [
+					23,
+				]
+				* 4,
+				"temperature_reference": [
+					15,
+				]
+				* 4,
+			}
+		)
+	)
+
 	with pytest.raises(TypeError):
 		# wrong input type
 		frame.add_cable(1)
@@ -148,7 +175,7 @@ def test_SectionDataFrame__add_cable(cable_df: dict):
 	frame.add_cable(cable_array)
 
 
-def test_SectionDataFrame__add_weather(cable_df: dict):
+def test_SectionDataFrame__add_weather():
 	frame = SectionDataFrame(section)
 	weather = WeatherArray(
 		pd.DataFrame(
@@ -159,7 +186,36 @@ def test_SectionDataFrame__add_weather(cable_df: dict):
 		)
 	)
 
-	cable_array = CableArray(cable_df)
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [
+					345.5,
+				]
+				* 4,
+				"diameter": [
+					22.4,
+				]
+				* 4,
+				"linear_weight": [
+					9.6,
+				]
+				* 4,
+				"young_modulus": [
+					59,
+				]
+				* 4,
+				"dilatation_coefficient": [
+					23,
+				]
+				* 4,
+				"temperature_reference": [
+					15,
+				]
+				* 4,
+			}
+		)
+	)
 	with pytest.raises(ValueError):
 		# cable has to be added before weather
 		frame.add_weather(weather)
@@ -167,8 +223,36 @@ def test_SectionDataFrame__add_weather(cable_df: dict):
 	frame.add_weather(weather=weather)
 
 
-def test_SectionDataFrame__add_array(cable_df: dict):
+def test_SectionDataFrame__add_array():
 	frame = SectionDataFrame(section)
+	cable_df = pd.DataFrame(
+		{
+			"section": [
+				345.5,
+			]
+			* 4,
+			"diameter": [
+				22.4,
+			]
+			* 4,
+			"linear_weight": [
+				9.6,
+			]
+			* 4,
+			"young_modulus": [
+				59,
+			]
+			* 4,
+			"dilatation_coefficient": [
+				23,
+			]
+			* 4,
+			"temperature_reference": [
+				15,
+			]
+			* 4,
+		}
+	)
 	cable_array = CableArray(cable_df)
 	weather_array = WeatherArray(
 		pd.DataFrame(
@@ -199,8 +283,38 @@ def test_SectionDataFrame__add_array(cable_df: dict):
 		frame._add_array(wrong_length_array, CableArray)
 
 
-def test_SectionDataFrame__data(cable_df: dict):
-	cable_array = CableArray(cable_df)
+def test_SectionDataFrame__data():
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [
+					345.5,
+				]
+				* 4,
+				"diameter": [
+					22.4,
+				]
+				* 4,
+				"linear_weight": [
+					9.6,
+				]
+				* 4,
+				"young_modulus": [
+					59,
+				]
+				* 4,
+				"dilatation_coefficient": [
+					23,
+				]
+				* 4,
+				"temperature_reference": [
+					15,
+				]
+				* 4,
+			}
+		)
+	)
+
 	frame = SectionDataFrame(section)
 	assert frame.data.equals(frame.section.data)
 
@@ -212,13 +326,43 @@ def test_SectionDataFrame__data(cable_df: dict):
 	)
 
 
-def test_SectionDataFrame__add_weather_update_span(cable_df: dict):
+def test_SectionDataFrame__add_weather_update_span():
 	frame = SectionDataFrame(section)
 	weather = WeatherArray(
 		pd.DataFrame(
 			{
 				"ice_thickness": [1, 2.1, 0.0, 5.4],
 				"wind_pressure": [1840.12, 0.0, 12.0, 53.0],
+			}
+		)
+	)
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [
+					345.5,
+				]
+				* 4,
+				"diameter": [
+					22.4,
+				]
+				* 4,
+				"linear_weight": [
+					9.6,
+				]
+				* 4,
+				"young_modulus": [
+					59,
+				]
+				* 4,
+				"dilatation_coefficient": [
+					23,
+				]
+				* 4,
+				"temperature_reference": [
+					15,
+				]
+				* 4,
 			}
 		)
 	)
