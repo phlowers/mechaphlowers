@@ -48,8 +48,8 @@ def test_functions_to_solve__same_loads() -> None:
 
 	cable_array = CableArray(input_cable)
 
-	section = SectionDataFrame(section_array)
-	section.add_cable(cable_array)
+	frame = SectionDataFrame(section_array)
+	frame.add_cable(cable_array)
 
 	weather_array = WeatherArray(
 		pdt.DataFrame(
@@ -60,8 +60,8 @@ def test_functions_to_solve__same_loads() -> None:
 		)
 	)
 
-	section.add_weather(weather_array)
-	unstressed_length = section.physics.L_ref(np.array([15] * NB_SPAN))
+	frame.add_weather(weather_array)
+	unstressed_length = frame.state.L_ref(np.array([15] * NB_SPAN))
 
 	sag_tension_calculation = SagTensionSolver(
 		section_array,
@@ -83,15 +83,15 @@ def test_functions_to_solve__same_loads() -> None:
 		weather_array_final, new_temperature
 	)
 	# Not comparing the last value as it is NaN
-	assert (((state_0 - section.span.T_h())[0:-1]) < 1e-6).all()
+	assert (((state_0 - frame.span.T_h())[0:-1]) < 1e-6).all()
 	assert (
 		sag_tension_calculation.p_after_change()[0]
 		- section_array.sagging_parameter
 		< 1e-6
 	)
-	assert (
-		sag_tension_calculation.L_after_change() - section.span.L() < 1e-6
-	)[0:-1].all()
+	assert (sag_tension_calculation.L_after_change() - frame.span.L() < 1e-6)[
+		0:-1
+	].all()
 	assert True
 
 
@@ -123,8 +123,8 @@ def test_functions_to_solve_values() -> None:
 
 	cable_array = CableArray(input_cable)
 
-	section = SectionDataFrame(section_array)
-	section.add_cable(cable_array)
+	frame = SectionDataFrame(section_array)
+	frame.add_cable(cable_array)
 
 	initial_weather_array = WeatherArray(
 		pdt.DataFrame(
@@ -135,8 +135,8 @@ def test_functions_to_solve_values() -> None:
 		)
 	)
 
-	section.add_weather(initial_weather_array)
-	unstressed_length = section.physics.L_ref(np.array([15] * NB_SPAN))
+	frame.add_weather(initial_weather_array)
+	unstressed_length = frame.state.L_ref(np.array([15] * NB_SPAN))
 
 	sag_tension_calculation = SagTensionSolver(
 		section_array,
@@ -148,7 +148,7 @@ def test_functions_to_solve_values() -> None:
 	state_0 = sag_tension_calculation.change_state(
 		initial_weather_array, new_temperature
 	)
-	assert (state_0 - section.span.T_h())[0] < 1e-6
+	assert (state_0 - frame.span.T_h())[0] < 1e-6
 
 	weather_array_final_1 = WeatherArray(
 		pdt.DataFrame(
