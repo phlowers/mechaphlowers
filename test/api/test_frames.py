@@ -15,6 +15,7 @@ from mechaphlowers.api.frames import RESOLUTION, SectionDataFrame
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
+from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import (
 	CableArray,
 	SectionArray,
@@ -366,10 +367,8 @@ def test_SectionDataFrame__add_weather_update_span():
 			}
 		)
 	)
-
-	cable_array = CableArray(cable_df)
-	with pytest.raises(ValueError):
-		# cable has to be added before weather
-		frame.add_weather(weather)
+	cable_loads = CableLoads(cable_array, weather)
 	frame.add_cable(cable=cable_array)
 	frame.add_weather(weather=weather)
+	assert (frame.span.load_coefficient == cable_loads.load_coefficient).all()
+	assert (frame.physics.cable_length == frame.span.L())[0:-1].all()
