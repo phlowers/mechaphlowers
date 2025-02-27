@@ -54,7 +54,8 @@ class SagTensionSolver:
 		self.span_model = span_model
 		self.deformation_model = deformation_model
 
-	def change_state(self, weather_array: WeatherArray) -> None:
+	# default value for temp? Inlcude temperature in weather_array?
+	def change_state(self, weather_array: WeatherArray, temp: np.ndarray) -> None:
 		"""_summary_
 
 		Args:
@@ -62,22 +63,20 @@ class SagTensionSolver:
 		"""
 		self.cable_loads.weather = weather_array
 		m = self.cable_loads.load_coefficient
-		Th0 = self.span_model.compute_T_h(self.p, m, self.linear_weight)
-		temp = self.sagging_temperature
-
-		# TODO: L_ref as static method ?
-		# L = self.span_model.compute_L(self.a, self.b, self.p)
-		# L_ref = Physics.compute_L_ref(temp, L, LinearDeformation)
+		T_h0 = self.span_model.compute_T_h(self.p, m, self.linear_weight)
 
 		# TODO parametrize solver method with optimize minimize
-		return optimize.newton(
+		# TODO: return np array if converged = True
+		T_h_after_change = optimize.newton(
 			self._delta,
-			Th0,
+			T_h0,
 			fprime=self._delta_prime,
 			args=(m, temp, self.L_ref),
 			tol=1e-5,
 			full_output=True,
-		)
+		).root
+		self.T_h_after_change = T_h_after_change
+		return T_h_after_change
 
 	def _delta(self, T_h, m, temp, L_ref):
 		p = self.span_model.compute_p(T_h, m, self.linear_weight)
@@ -107,3 +106,14 @@ class SagTensionSolver:
 		return (
 			self._delta(Th + self._ZETA, **kwargs) - self._delta(Th, **kwargs)
 		) / self._ZETA
+
+
+	def p_after_change(self):
+		m = self.cable_loads.load_coefficient
+		return self.span_model.compute_p(self.T_h_after_change, m, self.linear_weight)
+
+
+	def L_after_change(self):
+		p = self.p_after_change()
+		return self.span_model.compute_L(self.a, self.b, p)
+	
