@@ -8,7 +8,7 @@
 from typing import Type
 
 import numpy as np
-from scipy import optimize
+from scipy import optimize  # type: ignore
 
 from mechaphlowers.core.models.cable.deformation import (
 	Deformation,
@@ -56,29 +56,40 @@ class SagTensionSolver:
 
 	# default value for temp? Inlcude temperature in weather_array?
 	def change_state(
-		self, weather_array: WeatherArray, temp: np.ndarray
+		self,
+		weather_array: WeatherArray,
+		temp: np.ndarray,
+		solver: str = "newton",
 	) -> None:
 		"""_summary_
 
 		Args:
 			weather_array (WeatherArray): _description_
 		"""
+
+		solver_dict = {"newton": optimize.newton}
+		try:
+			solver_method = solver_dict[solver]
+		except KeyError:
+			raise ValueError(f"Solver method {solver} not implemented")
 		self.cable_loads.weather = weather_array
 		m = self.cable_loads.load_coefficient
 		T_h0 = self.span_model.compute_T_h(self.p, m, self.linear_weight)
 
-		# TODO parametrize solver method with optimize minimize
-		# TODO: return np array if converged = True
-		T_h_after_change = optimize.newton(
+		# TODO adapt code to use other solving methods
+
+		solver_result = solver_method(
 			self._delta,
 			T_h0,
 			fprime=self._delta_prime,
 			args=(m, temp, self.L_ref),
 			tol=1e-5,
 			full_output=True,
-		).root
-		self.T_h_after_change = T_h_after_change
-		return T_h_after_change
+		)
+		if not solver_result.converged.all():
+			raise ValueError("Solver did not converge")
+		self.T_h_after_change = solver_result.root
+		# return solver_result.root
 
 	def _delta(self, T_h, m, temp, L_ref):
 		p = self.span_model.compute_p(T_h, m, self.linear_weight)
