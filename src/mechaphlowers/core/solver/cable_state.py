@@ -8,11 +8,13 @@
 from typing import Type
 
 import numpy as np
+from numpy.polynomial import Polynomial as Poly
 from scipy import optimize  # type: ignore
 
 from mechaphlowers.core.models.cable.deformation import (
 	Deformation,
 	LinearDeformation,
+	PolynomialDeformation,
 )
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
@@ -48,11 +50,17 @@ class SagTensionSolver:
 		self.E = cable_array.data.young_modulus.to_numpy()
 		self.S = cable_array.data.section.to_numpy()
 		self.alpha = cable_array.data.dilatation_coefficient.to_numpy()
+		self.stress_strain_polynomial: Poly | None = None
+		if deformation_model == PolynomialDeformation:
+			self.stress_strain_polynomial = (
+				cable_array.stress_strain_polynomial
+			)
 		self.theta_ref = cable_array.data.temperature_reference.to_numpy()
 		self.cable_loads = CableLoads(cable_array, weather_array)
 		self.L_ref = L_ref
 		self.span_model = span_model
 		self.deformation_model = deformation_model
+		self.T_h_after_change: np.ndarray | None = None
 
 	# default value for temp? Inlcude temperature in weather_array?
 	def change_state(
@@ -71,7 +79,7 @@ class SagTensionSolver:
 		try:
 			solver_method = solver_dict[solver]
 		except KeyError:
-			raise ValueError(f"Solver method {solver} not implemented")
+			raise ValueError(f"Incorrect solver name: {solver}")
 		self.cable_loads.weather = weather_array
 		m = self.cable_loads.load_coefficient
 		T_h0 = self.span_model.compute_T_h(self.p, m, self.linear_weight)
@@ -89,7 +97,6 @@ class SagTensionSolver:
 		if not solver_result.converged.all():
 			raise ValueError("Solver did not converge")
 		self.T_h_after_change = solver_result.root
-		# return solver_result.root
 
 	def _delta(self, T_h, m, temp, L_ref):
 		p = self.span_model.compute_p(T_h, m, self.linear_weight)
@@ -97,7 +104,7 @@ class SagTensionSolver:
 
 		T_mean = self.span_model.compute_T_mean(self.a, self.b, p, T_h)
 		epsilon_total = self.deformation_model.compute_epsilon_mecha(
-			T_mean, self.E, self.S
+			T_mean, self.E, self.S, polynomial=self.stress_strain_polynomial
 		) + self.deformation_model.compute_epsilon_therm(
 			temp, self.theta_ref, self.alpha
 		)
@@ -122,10 +129,18 @@ class SagTensionSolver:
 
 	def p_after_change(self):
 		m = self.cable_loads.load_coefficient
+		if self.T_h_after_change is None:
+			raise ValueError(
+				"method change_state has to be run before calling this method"
+			)
 		return self.span_model.compute_p(
 			self.T_h_after_change, m, self.linear_weight
 		)
 
 	def L_after_change(self):
 		p = self.p_after_change()
+		if self.T_h_after_change is None:
+			raise ValueError(
+				"method change_state has to be run before calling this method"
+			)
 		return self.span_model.compute_L(self.a, self.b, p)

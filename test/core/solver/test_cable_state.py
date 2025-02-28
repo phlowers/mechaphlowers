@@ -1,15 +1,20 @@
-# # Copyright (c) 2025, RTE (http://www.rte-france.com)
-# # This Source Code Form is subject to the terms of the Mozilla Public
-# # License, v. 2.0. If a copy of the MPL was not distributed with this
-# # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-# # SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
 import pandas as pd
 import pytest
-from pandera.typing import pandas as pdt
 
-from mechaphlowers.api.frames import SectionDataFrame
+from mechaphlowers.core.models.cable.deformation import (
+	LinearDeformation,
+	PolynomialDeformation,
+)
+from mechaphlowers.core.models.cable.physics import Physics
+from mechaphlowers.core.models.cable.span import CatenarySpan
+from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.core.solver.cable_state import (
 	SagTensionSolver,
 )
@@ -18,87 +23,11 @@ from mechaphlowers.entities.arrays import (
 	SectionArray,
 	WeatherArray,
 )
-from mechaphlowers.entities.schemas import CableArrayInput
-
-
-def test_functions_to_solve__same_loads() -> None:
-	NB_SPAN = 4
-	input_cable: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		{
-			"section": [345.55] * NB_SPAN,
-			"diameter": [22.4] * NB_SPAN,
-			"linear_weight": [9.55494] * NB_SPAN,
-			"young_modulus": [59] * NB_SPAN,
-			"dilatation_coefficient": [23] * NB_SPAN,
-			"temperature_reference": [0] * NB_SPAN,
-		}
-	)
-	data_section = {
-		"name": ["support 1", "2", "three", "support 4"],
-		"suspension": [False, True, True, False],
-		"conductor_attachment_altitude": [2.2, 5, -0.12, 0],
-		"crossarm_length": [10, 12.1, 10, 10.1],
-		"line_angle": [0, 360, 90.1, -90.2],
-		"insulator_length": [0, 4, 3.2, 0],
-		"span_length": [400, 500.2, 500.0, np.nan],
-	}
-
-	section_array = SectionArray(data=pd.DataFrame(data_section))
-	section_array.sagging_parameter = 2000
-	section_array.sagging_temperature = 15
-
-	cable_array = CableArray(input_cable)
-
-	frame = SectionDataFrame(section_array)
-	frame.add_cable(cable_array)
-
-	weather_array = WeatherArray(
-		pdt.DataFrame(
-			{
-				"ice_thickness": [1, 2.1, 0.0, 0.0],
-				"wind_pressure": np.zeros(NB_SPAN),
-			}
-		)
-	)
-
-	frame.add_weather(weather_array)
-	unstressed_length = frame.state.L_ref(np.array([15] * NB_SPAN))
-
-	sag_tension_calculation = SagTensionSolver(
-		section_array,
-		cable_array,
-		weather_array,
-		unstressed_length,
-	)
-
-	weather_array_final = WeatherArray(
-		pdt.DataFrame(
-			{
-				"ice_thickness": [1, 2.1, 0.0, 0.0],
-				"wind_pressure": 0 * np.ones(NB_SPAN),
-			}
-		)
-	)
-	new_temperature = np.array([15] * NB_SPAN)
-	sag_tension_calculation.change_state(weather_array_final, new_temperature)
-	state_0 = sag_tension_calculation.T_h_after_change
-
-	# Not comparing the last value as it is NaN
-	assert (((state_0 - frame.span.T_h())[0:-1]) < 1e-6).all()
-	assert (
-		sag_tension_calculation.p_after_change()[0]
-		- section_array.sagging_parameter
-		< 1e-6
-	)
-	assert (sag_tension_calculation.L_after_change() - frame.span.L() < 1e-6)[
-		0:-1
-	].all()
-	assert True
 
 
 @pytest.fixture
 def section_array_one_span():
-	return SectionArray(
+	section_array = SectionArray(
 		pd.DataFrame(
 			{
 				"name": ["1", "2"],
@@ -111,6 +40,9 @@ def section_array_one_span():
 			}
 		)
 	)
+	section_array.sagging_parameter = 2000
+	section_array.sagging_temperature = 15
+	return section_array
 
 
 @pytest.fixture
@@ -130,6 +62,27 @@ def cable_array_one_span():
 
 
 @pytest.fixture
+def cable_array_one_span__polynomial():
+	return CableArray(
+		pd.DataFrame(
+			{
+				"section": [345.55] * 2,
+				"diameter": [22.4] * 2,
+				"linear_weight": [9.55494] * 2,
+				"young_modulus": [59] * 2,
+				"dilatation_coefficient": [23] * 2,
+				"temperature_reference": [0] * 2,
+				"a0": [0] * 2,
+				"a1": [100] * 2,
+				"a2": [-24_000] * 2,
+				"a3": [2_440_000] * 2,
+				"a4": [-90_000_000] * 2,
+			}
+		)
+	)
+
+
+@pytest.fixture
 def neutral_weather_array_one_span():
 	return WeatherArray(
 		pd.DataFrame(
@@ -141,108 +94,150 @@ def neutral_weather_array_one_span():
 	)
 
 
-# def test_temporary_name(
-# 	section_array_one_span: SectionArray, cable_array_one_span: CableArray, neutral_weather_array_one_span: WeatherArray
-# ) -> None:
-# 	span_model = CatenarySpan(
-# 		section_array_one_span.data.span_length.to_numpy(),
-# 		section_array_one_span.data.elevation_difference.to_numpy(),
-# 		section_array_one_span.data.sagging_parameter.to_numpy(),
-# 	)
-
-
-# 	sag_tension_calculation = SagTensionSolver(
-# 		section_array_one_span,
-# 		cable_array_one_span,
-# 		neutral_weather_array_one_span,
-# 		unstressed_length,
-# 	)
-
-
-def test_functions_to_solve__values() -> None:
-	NB_SPAN = 2
-	input_cable: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		{
-			"section": [345.55] * NB_SPAN,
-			"diameter": [22.4] * NB_SPAN,
-			"linear_weight": [9.55494] * NB_SPAN,
-			"young_modulus": [59] * NB_SPAN,
-			"dilatation_coefficient": [23] * NB_SPAN,
-			"temperature_reference": [0] * NB_SPAN,
-		}
+def get_L_ref_from_arrays(
+	section_array: SectionArray,
+	cable_array: CableArray,
+	weather_array: WeatherArray,
+	current_temperature: np.ndarray,
+	deformation_type=LinearDeformation,
+):
+	cable_loads = CableLoads(cable_array, weather_array)
+	span_model = CatenarySpan(
+		section_array.data.span_length.to_numpy(),
+		section_array.data.elevation_difference.to_numpy(),
+		section_array.data.sagging_parameter.to_numpy(),
 	)
-	data_section = {
-		"name": ["1", "2"],
-		"suspension": [False, False],
-		"conductor_attachment_altitude": [30, 40],
-		"crossarm_length": [0, 0],
-		"line_angle": [0, 0],
-		"insulator_length": [0, 0],
-		"span_length": [480, np.nan],
-	}
-
-	section_array = SectionArray(data=pd.DataFrame(data_section))
-	section_array.sagging_parameter = 2000
-	section_array.sagging_temperature = 15
-
-	cable_array = CableArray(input_cable)
-
-	frame = SectionDataFrame(section_array)
-	frame.add_cable(cable_array)
-
-	initial_weather_array = WeatherArray(
-		pdt.DataFrame(
-			{
-				"ice_thickness": [0.0, 0.0],
-				"wind_pressure": np.zeros(NB_SPAN),
-			}
-		)
+	span_model.load_coefficient = cable_loads.load_coefficient
+	span_model.linear_weight = cable_array.data.linear_weight.to_numpy()
+	physics = Physics(
+		cable_array,
+		span_model.T_mean(),
+		span_model.L(),
+		deformation_type=deformation_type,
 	)
+	return physics.L_ref(current_temperature)
 
-	frame.add_weather(initial_weather_array)
-	unstressed_length = frame.state.L_ref(np.array([15] * NB_SPAN))
+
+def test_solver__run_solver(
+	section_array_one_span: SectionArray,
+	cable_array_one_span: CableArray,
+	neutral_weather_array_one_span: WeatherArray,
+) -> None:
+	current_temperature = np.array([15] * 2)
+	unstressed_length = get_L_ref_from_arrays(
+		section_array_one_span,
+		cable_array_one_span,
+		neutral_weather_array_one_span,
+		current_temperature,
+	)
 
 	sag_tension_calculation = SagTensionSolver(
-		section_array,
-		cable_array,
-		initial_weather_array,
+		section_array_one_span,
+		cable_array_one_span,
+		neutral_weather_array_one_span,
 		unstressed_length,
 	)
-	new_temperature = np.array([15] * NB_SPAN)
 	sag_tension_calculation.change_state(
-		initial_weather_array, new_temperature
+		neutral_weather_array_one_span, current_temperature, "newton"
 	)
-	state_0 = sag_tension_calculation.T_h_after_change
-	# assert (state_0 - frame.span.T_h())[0] < 1e-6
+	sag_tension_calculation.p_after_change()
+	sag_tension_calculation.L_after_change()
 
-	weather_array_final_1 = WeatherArray(
-		pdt.DataFrame(
-			{
-				"ice_thickness": [6, 6],
-				"wind_pressure": 0 * np.ones(NB_SPAN),
-			}
+
+def test_solver__run_solver__polynomial_model(
+	section_array_one_span: SectionArray,
+	cable_array_one_span__polynomial: CableArray,
+	neutral_weather_array_one_span: WeatherArray,
+) -> None:
+	current_temperature = np.array([15] * 2)
+	# add polynomial
+	unstressed_length = get_L_ref_from_arrays(
+		section_array_one_span,
+		cable_array_one_span__polynomial,
+		neutral_weather_array_one_span,
+		current_temperature,
+		deformation_type=PolynomialDeformation,
+	)
+
+	sag_tension_calculation = SagTensionSolver(
+		section_array_one_span,
+		cable_array_one_span__polynomial,
+		neutral_weather_array_one_span,
+		unstressed_length,
+		deformation_model=PolynomialDeformation,
+	)
+	sag_tension_calculation.change_state(
+		neutral_weather_array_one_span, current_temperature, "newton"
+	)
+	sag_tension_calculation.p_after_change()
+	sag_tension_calculation.L_after_change()
+
+
+def test_solver__run_solver_no_solution(
+	section_array_one_span: SectionArray,
+	cable_array_one_span: CableArray,
+	neutral_weather_array_one_span: WeatherArray,
+) -> None:
+	current_temperature = np.array([15] * 2)
+	sag_tension_calculation = SagTensionSolver(
+		section_array_one_span,
+		cable_array_one_span,
+		neutral_weather_array_one_span,
+		np.array([1, 1]),
+	)
+	with pytest.raises(ValueError) as excinfo:
+		sag_tension_calculation.change_state(
+			neutral_weather_array_one_span, current_temperature
 		)
+	assert str(excinfo.value) == "Solver did not converge"
+
+
+def test_solver__bad_solver(
+	section_array_one_span: SectionArray,
+	cable_array_one_span: CableArray,
+	neutral_weather_array_one_span: WeatherArray,
+) -> None:
+	current_temperature = np.array([15] * 2)
+	unstressed_length = get_L_ref_from_arrays(
+		section_array_one_span,
+		cable_array_one_span,
+		neutral_weather_array_one_span,
+		current_temperature,
 	)
 
-	sag_tension_calculation.change_state(
-		weather_array_final_1, new_temperature
+	sag_tension_calculation = SagTensionSolver(
+		section_array_one_span,
+		cable_array_one_span,
+		neutral_weather_array_one_span,
+		unstressed_length,
 	)
-	state_1 = sag_tension_calculation.T_h_after_change
-
-	# assert state_1[0] - 42098.9070 < 5
-
-	weather_array_final_2 = WeatherArray(
-		pdt.DataFrame(
-			{
-				"ice_thickness": [1, 1],
-				"wind_pressure": 200 * np.ones(NB_SPAN),
-			}
+	with pytest.raises(ValueError) as excinfo:
+		sag_tension_calculation.change_state(
+			neutral_weather_array_one_span, current_temperature, "wrong_solver"
 		)
-	)
-	sag_tension_calculation.change_state(
-		weather_array_final_2, new_temperature
-	)
-	state_2 = sag_tension_calculation.T_h_after_change
+	assert str(excinfo.value) == "Incorrect solver name: wrong_solver"
 
-	# assert state_2[0] - 31745.05101 < 5
-	assert True
+
+def test_solver__values_before_solver(
+	section_array_one_span: SectionArray,
+	cable_array_one_span: CableArray,
+	neutral_weather_array_one_span: WeatherArray,
+) -> None:
+	current_temperature = np.array([15] * 2)
+	unstressed_length = get_L_ref_from_arrays(
+		section_array_one_span,
+		cable_array_one_span,
+		neutral_weather_array_one_span,
+		current_temperature,
+	)
+
+	sag_tension_calculation = SagTensionSolver(
+		section_array_one_span,
+		cable_array_one_span,
+		neutral_weather_array_one_span,
+		unstressed_length,
+	)
+	with pytest.raises(ValueError):
+		sag_tension_calculation.p_after_change()
+	with pytest.raises(ValueError):
+		sag_tension_calculation.L_after_change()
