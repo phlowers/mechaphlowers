@@ -56,12 +56,14 @@ class Deformation(ABC):
 		polynomial: Poly | None = None,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
-		""""""
+		"""Computing mechanical strain using a static method"""
+
 
 	@staticmethod
 	def compute_epsilon_therm(
 		theta: np.ndarray, theta_ref: np.ndarray, alpha: np.ndarray
 	) -> np.ndarray:
+		"""Computing thermal strain using a static method"""
 		return (theta - theta_ref) * alpha
 
 
@@ -85,6 +87,7 @@ class LinearDeformation(Deformation):
 		polynomial: Poly | None = None,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
+		# polynomial and max_stress are unused here, but are need for polynomial model
 		return T_mean / (E * S)
 
 

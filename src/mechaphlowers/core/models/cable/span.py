@@ -171,21 +171,22 @@ class Span(ABC):
 		b: np.ndarray,
 		p: np.ndarray,
 	) -> np.ndarray:
-		""""""
+		"""Computing total length of the cable using a static method"""
 
 	@staticmethod
 	@abstractmethod
 	def compute_T_h(
 		p: np.ndarray, m: np.ndarray, lambd: np.ndarray
 	) -> np.ndarray:
-		""""""
+		"""Computing horizontal tension on the cable using a static method"""
+
 
 	@staticmethod
 	@abstractmethod
 	def compute_p(
 		T_h: np.ndarray, m: np.ndarray, lambd: np.ndarray
 	) -> np.ndarray:
-		""""""
+		"""Computing sagging parameter on the cable using a static method"""
 
 	@staticmethod
 	@abstractmethod
@@ -195,7 +196,7 @@ class Span(ABC):
 		p: np.ndarray,
 		T_h: np.ndarray,
 	) -> np.ndarray:
-		""""""
+		"""Computing mean tension on the cable using a static method"""
 
 
 class CatenarySpan(Span):
@@ -325,10 +326,6 @@ class CatenarySpan(Span):
 
 	@staticmethod
 	def compute_x_n(a: np.ndarray, b: np.ndarray, p: np.ndarray) -> np.ndarray:
-		"""Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
-
-		In other words: abscissa of the right hanging point.
-		"""
 		return a + CatenarySpan.compute_x_m(a, b, p)
 
 	@staticmethod
@@ -399,6 +396,7 @@ class CatenarySpan(Span):
 		p: np.ndarray,
 		T_h: np.ndarray,
 	) -> np.ndarray:
+		# Be careful: p and T_h are linked so the input values must be consistent
 		x_n = CatenarySpan.compute_x_n(a, b, p)
 		L_n = CatenarySpan.compute_L_n(a, b, p)
 		T_max_n = CatenarySpan.compute_T_max(x_n, p, T_h)

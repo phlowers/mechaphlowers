@@ -29,6 +29,9 @@ from mechaphlowers.entities.arrays import (
 
 
 class SagTensionSolver:
+	"""This class reprensents the sag tension calculation.
+	It computes the horizontal tension of a cable after a change of parameters
+	"""
 	_ZETA = 10
 
 	def __init__(
@@ -62,17 +65,18 @@ class SagTensionSolver:
 		self.deformation_model = deformation_model
 		self.T_h_after_change: np.ndarray | None = None
 
-	# default value for temp? Inlcude temperature in weather_array?
 	def change_state(
 		self,
 		weather_array: WeatherArray,
 		temp: np.ndarray,
 		solver: str = "newton",
 	) -> None:
-		"""_summary_
-
+		"""Method that solves the finds the new horizontal tension after a change of parameters.
+		The equation to solve is : $\\delta(T_h) = O$
 		Args:
-			weather_array (WeatherArray): _description_
+			weather_array (WeatherArray): data on wind and ice
+			temp (np.ndarray): current temperature
+			solver (str, optional): resolution method of the equation. Defaults to "newton", which is the only method implemented for now.
 		"""
 
 		solver_dict = {"newton": optimize.newton}
@@ -99,6 +103,11 @@ class SagTensionSolver:
 		self.T_h_after_change = solver_result.root
 
 	def _delta(self, T_h, m, temp, L_ref):
+		"""Function to solve.
+		This function is the difference between two ways to compute epsilon.
+		Therefore, its value should be zero.
+		$\\delta = \\varepsilon_{L} - \\varepsilon_{T}$
+		"""
 		p = self.span_model.compute_p(T_h, m, self.linear_weight)
 		L = self.span_model.compute_L(self.a, self.b, p)
 
@@ -118,6 +127,9 @@ class SagTensionSolver:
 		temp,
 		L_ref,
 	):
+		"""Approximation of the derivative of the function to solve
+		$$\\delta'(T_h) = \\frac{\\delta(T_h + \\zeta) - \\delta(T_h)}{\\zeta}$$
+		"""
 		kwargs = {
 			"m": m,
 			"temp": temp,
@@ -128,6 +140,8 @@ class SagTensionSolver:
 		) / self._ZETA
 
 	def p_after_change(self):
+		"""Compute the new value of the sagging parameter after sag tension calculation
+		"""
 		m = self.cable_loads.load_coefficient
 		if self.T_h_after_change is None:
 			raise ValueError(
@@ -138,6 +152,8 @@ class SagTensionSolver:
 		)
 
 	def L_after_change(self):
+		"""Compute the new value of the length of the cable after sag tension calculation
+		"""
 		p = self.p_after_change()
 		if self.T_h_after_change is None:
 			raise ValueError(
