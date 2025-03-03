@@ -83,13 +83,13 @@ def test_functions_to_solve__same_loads() -> None:
 	state_0 = sag_tension_calculation.T_h_after_change
 
 	# Not comparing the last value as it is NaN
-	assert (((state_0 - frame.span.T_h())[0:-1]) < 1e-6).all()
+	assert (((state_0 - frame.span.T_h())[0:-1]) < 1e-6).all()  # type: ignore[union-attr]
 	assert (
 		sag_tension_calculation.p_after_change()[0]
 		- section_array.sagging_parameter
 		< 1e-6
 	)
-	assert (sag_tension_calculation.L_after_change() - frame.span.L() < 1e-6)[
+	assert (sag_tension_calculation.L_after_change() - frame.span.L() < 1e-6)[  # type: ignore[union-attr]
 		0:-1
 	].all()
 	assert True
@@ -149,7 +149,7 @@ def test_functions_to_solve__values() -> None:
 		initial_weather_array, new_temperature
 	)
 	T_h_state_0 = sag_tension_calculation.T_h_after_change
-	assert (T_h_state_0 - frame.span.T_h())[0] < 1e-6
+	assert (T_h_state_0 - frame.span.T_h())[0] < 1e-6  # type: ignore[union-attr]
 
 	weather_array_final_1 = WeatherArray(
 		pdt.DataFrame(
@@ -165,7 +165,7 @@ def test_functions_to_solve__values() -> None:
 	)
 	T_h_state_1 = sag_tension_calculation.T_h_after_change
 
-	assert T_h_state_1[0] - 42098.9070 < 5
+	assert T_h_state_1[0] - 42098.9070 < 5  # type: ignore[index]
 
 	weather_array_final_2 = WeatherArray(
 		pdt.DataFrame(
@@ -180,5 +180,5 @@ def test_functions_to_solve__values() -> None:
 	)
 	state_2 = sag_tension_calculation.T_h_after_change
 
-	assert state_2[0] - 31745.05101 < 5
+	assert state_2[0] - 31745.05101 < 5  # type: ignore[index]
 	assert True
