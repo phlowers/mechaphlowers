@@ -32,6 +32,7 @@ class SagTensionSolver:
 	"""This class reprensents the sag tension calculation.
 	It computes the horizontal tension of a cable after a change of parameters
 	"""
+
 	_ZETA = 10
 
 	def __init__(
@@ -140,8 +141,7 @@ class SagTensionSolver:
 		) / self._ZETA
 
 	def p_after_change(self):
-		"""Compute the new value of the sagging parameter after sag tension calculation
-		"""
+		"""Compute the new value of the sagging parameter after sag tension calculation"""
 		m = self.cable_loads.load_coefficient
 		if self.T_h_after_change is None:
 			raise ValueError(
@@ -152,8 +152,7 @@ class SagTensionSolver:
 		)
 
 	def L_after_change(self):
-		"""Compute the new value of the length of the cable after sag tension calculation
-		"""
+		"""Compute the new value of the length of the cable after sag tension calculation"""
 		p = self.p_after_change()
 		if self.T_h_after_change is None:
 			raise ValueError(

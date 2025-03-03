@@ -180,7 +180,6 @@ class Span(ABC):
 	) -> np.ndarray:
 		"""Computing horizontal tension on the cable using a static method"""
 
-
 	@staticmethod
 	@abstractmethod
 	def compute_p(

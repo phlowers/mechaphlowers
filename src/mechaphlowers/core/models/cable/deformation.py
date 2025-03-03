@@ -58,7 +58,6 @@ class Deformation(ABC):
 	) -> np.ndarray:
 		"""Computing mechanical strain using a static method"""
 
-
 	@staticmethod
 	def compute_epsilon_therm(
 		theta: np.ndarray, theta_ref: np.ndarray, alpha: np.ndarray
