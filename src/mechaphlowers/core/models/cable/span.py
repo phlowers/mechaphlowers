@@ -309,11 +309,6 @@ class CatenarySpan(Span):
 		p = self.p
 		return self.compute_T_mean(a, b, p, T_h)
 
-	# @staticmethod
-	# def compute_z(T_h, m ,lambd) -> np.ndarray:
-	# 	"""????"""
-	# 	return
-
 	@staticmethod
 	def compute_p(
 		T_h: np.ndarray, m: np.ndarray, lambd: np.ndarray

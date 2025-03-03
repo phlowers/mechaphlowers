@@ -92,7 +92,6 @@ def test_functions_to_solve__same_loads() -> None:
 	assert (sag_tension_calculation.L_after_change() - frame.span.L() < 1e-6)[  # type: ignore[union-attr]
 		0:-1
 	].all()
-	assert True
 
 
 def test_functions_to_solve__values() -> None:
@@ -181,4 +180,3 @@ def test_functions_to_solve__values() -> None:
 	state_2 = sag_tension_calculation.T_h_after_change
 
 	assert state_2[0] - 31745.05101 < 5  # type: ignore[index]
-	assert True
