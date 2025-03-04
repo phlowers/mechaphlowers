@@ -153,7 +153,7 @@ def test_poly_deformation__degree_one(
 	)
 	current_temperature = np.array([15, 15])
 	polynomial_deformation_model.resolve_stress_strain_equation(constraint)
-	polynomial_deformation_model.epsilon_mecha(np.array([1000, 1e8]))
+	polynomial_deformation_model.epsilon_mecha()
 	polynomial_deformation_model.epsilon(current_temperature)
 
 
@@ -197,7 +197,7 @@ def test_poly_deformation__degree_three(
 	)
 	current_temperature = np.array([15, 15])
 	polynomial_deformation_model.resolve_stress_strain_equation(constraint)
-	polynomial_deformation_model.epsilon_mecha(np.array([1000, 1e8]))
+	polynomial_deformation_model.epsilon_mecha()
 
 	polynomial_deformation_model.epsilon(current_temperature)
 
@@ -242,8 +242,51 @@ def test_poly_deformation__degree_four(
 	)
 	current_temperature = np.array([15, 15])
 	polynomial_deformation_model.resolve_stress_strain_equation(constraint)
-	polynomial_deformation_model.epsilon_mecha(np.array([1000, 1e8]))
+	polynomial_deformation_model.epsilon_mecha()
 
+	polynomial_deformation_model.epsilon(current_temperature)
+
+
+def test_poly_deformation__degree_four__with_max_stress(
+	cable_array_input_data: dict,
+	a_two_spans: np.ndarray,
+	b_two_spans: np.ndarray,
+	p_two_spans: np.ndarray,
+	lambd_two_spans: np.ndarray,
+	m_two_spans: np.ndarray,
+) -> None:
+	span_model = CatenarySpan(
+		a_two_spans,
+		b_two_spans,
+		p_two_spans,
+		load_coefficient=m_two_spans,
+		linear_weight=lambd_two_spans,
+	)
+	tension_mean = span_model.T_mean()
+
+	cable_array_input_data.update(
+		{
+			"a0": [0] * 2,
+			"a1": [100] * 2,
+			"a2": [-24_000] * 2,
+			"a3": [2_440_000] * 2,
+			"a4": [-90_000_000] * 2,
+		}
+	)
+
+	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
+		cable_array_input_data
+	)
+
+	cable_array = CableArray(input_df)
+	default_max_stress = np.array([0, 0])
+	polynomial_deformation_model = PolynomialDeformation(
+		cable_array, tension_mean, default_max_stress
+	)
+
+	current_temperature = np.array([15, 15])
+	polynomial_deformation_model.max_stress = np.array([1000, 1e8])
+	polynomial_deformation_model.epsilon_mecha()
 	polynomial_deformation_model.epsilon(current_temperature)
 
 
@@ -282,5 +325,6 @@ def test_poly_deformation__no_solutions(
 	polynomial_deformation_model = PolynomialDeformation(
 		cable_array, tension_mean
 	)
+	polynomial_deformation_model.max_stress = np.array([1000, 1e10])
 	with pytest.raises(ValueError):
-		polynomial_deformation_model.epsilon_mecha(np.array([1000, 1e10]))
+		polynomial_deformation_model.epsilon_mecha()
