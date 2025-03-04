@@ -175,7 +175,7 @@ def test_create_section_array__insulator_length_for_tension_support(
 		SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
-def test_compute_elevation_difference(section_array_input_data: dict) -> None:
+def test_compute_elevation_difference() -> None:
 	# I modify data to have more meaning here and understand results
 	data = {
 		"name": ["support 1", "2", "three", "support 4"],
@@ -257,13 +257,13 @@ def test_section_array__data_without_sagging_properties(
 		section_array_without_parameter.data
 
 
-def test_section_array__data_alone(section_array_input_data: dict) -> None:
+def test_section_array__data_original(section_array_input_data: dict) -> None:
 	df: pdt.DataFrame[SectionArrayInput] = pdt.DataFrame(
 		section_array_input_data
 	)
 	section_array = SectionArray(data=df)
 
-	exported_data = section_array.data_alone
+	exported_data = section_array.data_original
 
 	expected_data = pd.DataFrame(
 		{
@@ -274,7 +274,6 @@ def test_section_array__data_alone(section_array_input_data: dict) -> None:
 			"line_angle": [0, 360, 90.1, -90.2],
 			"insulator_length": [0, 4, 3.2, 0],
 			"span_length": [1, 500.2, 500.05, np.nan],
-			"elevation_difference": [-1.2, -4.32, 3.32, np.nan],
 		},
 	)
 
@@ -336,6 +335,20 @@ def test_create_cable_array__wrong_type(
 
 	with pytest.raises(pa.errors.SchemaErrors):
 		CableArray(input_df)
+
+
+def test_create_cable_array__extra_column(
+	cable_array_input_data: dict,
+) -> None:
+	cable_array_input_data["extra column"] = [0] * 4
+
+	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
+		cable_array_input_data
+	)
+
+	section = CableArray(input_df)
+
+	assert "extra column" not in section._data.columns
 
 
 def test_cable_array__get_poly_coefs() -> None:

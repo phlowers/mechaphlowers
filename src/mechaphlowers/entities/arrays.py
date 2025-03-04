@@ -5,12 +5,12 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
+from typing import Type
 
 import numpy as np
 import pandas as pd
 import pandera as pa
 from numpy.polynomial import Polynomial as Poly
-from pandera.typing import pandas as pdt
 
 from mechaphlowers.entities.schemas import (
 	CableArrayInput,
@@ -20,34 +20,39 @@ from mechaphlowers.entities.schemas import (
 
 
 class ElementArray(ABC):
-	def __init__(self, data: pdt.DataFrame) -> None:  # type: ignore[arg-type]
-		data = self._drop_extra_columns(data)
-		self._data: pdt.DataFrame | pd.DataFrame = data  # type: ignore[arg-type]
+	array_input_type: Type[pa.DataFrameModel]
 
-	@property
-	@abstractmethod
-	def _input_columns(self) -> list[str]: ...
+	def __init__(self, data: pd.DataFrame) -> None:
+		_data = self._drop_extra_columns(data)
+		self._data: pd.DataFrame = _data
 
-	def _compute_extra_columns(self, input_data: pdt.DataFrame) -> list[str]:
-		return [
-			column
-			for column in input_data.columns
-			if column not in self._input_columns
-		]
-
-	def _drop_extra_columns(self, input_data: pdt.DataFrame) -> pdt.DataFrame:
+	def _drop_extra_columns(self, input_data: pd.DataFrame) -> pd.DataFrame:
 		"""Return a copy of the input pdt.DataFrame, without irrelevant columns.
 
 		Note: This has no impact on the input pdt.DataFrame.
 		"""
-		extra_columns = self._compute_extra_columns(input_data)
-		return input_data.drop(columns=extra_columns)
+		# We need to convert Model into Schema because the strict attribute doesn't exist for Model
+		array_input_schema = self.array_input_type.to_schema()
+		array_input_schema.strict = 'filter'
+		return array_input_schema.validate(input_data, lazy=True)
 
 	def __str__(self) -> str:
 		return self._data.to_string()
 
 	def __copy__(self):
 		return type(self)(self._data)
+
+	@property
+	@abstractmethod
+	def data(self) -> pd.DataFrame:
+		"""Dataframe with updated data: SI units and added columns"""
+
+	@property
+	def data_original(self) -> pd.DataFrame:
+		"""Original dataframe with the exact same data as input:
+		original units and no columns added
+		"""
+		return self._data
 
 
 class SectionArray(ElementArray):
@@ -59,21 +64,17 @@ class SectionArray(ElementArray):
 	    sagging_temperature: Sagging temperature, in Celsius degrees
 	"""
 
-	@pa.check_types(lazy=True)
+	array_input_type: Type[pa.DataFrameModel] = SectionArrayInput
+
 	def __init__(
 		self,
-		data: pdt.DataFrame[SectionArrayInput] | pd.DataFrame,
+		data: pd.DataFrame,
 		sagging_parameter: float | None = None,
 		sagging_temperature: float | None = None,
 	) -> None:
 		super().__init__(data)  # type: ignore[arg-type]
 		self.sagging_parameter = sagging_parameter
 		self.sagging_temperature = sagging_temperature
-
-	@property
-	def _input_columns(self) -> list[str]:
-		metadata = SectionArrayInput.get_metadata()
-		return metadata["SectionArrayInput"]["columns"].keys()  # type: ignore
 
 	def compute_elevation_difference(self) -> np.ndarray:
 		left_support_height = (
@@ -96,12 +97,6 @@ class SectionArray(ElementArray):
 				sagging_temperature=self.sagging_temperature,
 			)
 
-	@property
-	def data_alone(self) -> pd.DataFrame:
-		return self._data.assign(
-			elevation_difference=self.compute_elevation_difference()
-		)
-
 	def __copy__(self):
 		copy_obj = super().__copy__()
 		copy_obj.sagging_parameter = self.sagging_parameter
@@ -116,17 +111,13 @@ class CableArray(ElementArray):
 		data: Input data
 	"""
 
-	@pa.check_types(lazy=True)
+	array_input_type: Type[pa.DataFrameModel] = CableArrayInput
+
 	def __init__(
 		self,
-		data: pdt.DataFrame[CableArrayInput] | pd.DataFrame,
+		data: pd.DataFrame,
 	) -> None:
 		super().__init__(data)  # type: ignore[arg-type]
-
-	@property
-	def _input_columns(self) -> list[str]:
-		metadata = CableArrayInput.get_metadata()
-		return metadata["CableArrayInput"]["columns"].keys()  # type: ignore
 
 	@property
 	def data(self) -> pd.DataFrame:
@@ -143,10 +134,6 @@ class CableArray(ElementArray):
 		return data_SI
 
 	@property
-	def data_original_units(self) -> pd.DataFrame:
-		return self._data
-
-	@property
 	def stress_strain_polynomial(self) -> Poly:
 		"""Converts coefficients in the dataframe into polynomial"""
 		coefs_poly = self.data.iloc[0][
@@ -161,24 +148,16 @@ class WeatherArray(ElementArray):
 	They're typically used to compute weather-related loads on the cable.
 	"""
 
-	@pa.check_types(lazy=True)
+	array_input_type: Type[pa.DataFrameModel] = WeatherArrayInput
+
 	def __init__(
 		self,
-		data: pdt.DataFrame[WeatherArrayInput] | pd.DataFrame,
+		data: pd.DataFrame,
 	) -> None:
 		super().__init__(data)  # type: ignore[arg-type]
-
-	@property
-	def _input_columns(self) -> list[str]:
-		metadata = WeatherArrayInput.get_metadata()
-		return metadata["WeatherArrayInput"]["columns"].keys()  # type: ignore
 
 	@property
 	def data(self) -> pd.DataFrame:
 		data_SI = self._data.copy()
 		data_SI["ice_thickness"] *= 1e-2
 		return data_SI
-
-	@property
-	def data_original_units(self) -> pd.DataFrame:
-		return self._data
