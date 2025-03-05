@@ -110,18 +110,26 @@ def test_functions_to_solve__same_loads() -> None:
 	)
 	new_temperature = np.array([15] * NB_SPAN)
 	sag_tension_calculation.change_state(weather_array_final, new_temperature)
-	state_0 = sag_tension_calculation.T_h_after_change
+	T_h_state_0 = sag_tension_calculation.T_h_after_change
 
-	# Not comparing the last value as it is NaN
-	assert (((state_0 - frame.span.T_h())[0:-1]) < 1e-6).all()  # type: ignore[union-attr]
+	# TODO: change this test after fixing the issue with NaN at last value
+	assert (((T_h_state_0 - frame.span.T_h())[0:-1]) < 1e-6).all()  # type: ignore[union-attr]
+
 	assert (
 		sag_tension_calculation.p_after_change()[0]
 		- section_array.sagging_parameter
 		< 1e-6
 	)
-	assert (sag_tension_calculation.L_after_change() - frame.span.L() < 1e-6)[  # type: ignore[union-attr]
-		0:-1
-	].all()
+	expected_p = np.array([section_array.sagging_parameter] * 3 + [np.nan])
+	np.testing.assert_allclose(
+		sag_tension_calculation.p_after_change(), expected_p, rtol=1e-5
+	)
+
+	np.testing.assert_allclose(
+		sag_tension_calculation.L_after_change(),
+		frame.span.L(),  # type: ignore[union-attr]
+		rtol=1e-5,
+	)
 
 
 def test_functions_to_solve__different_weather() -> None:
@@ -170,7 +178,9 @@ def test_functions_to_solve__different_weather() -> None:
 		WeatherArray(initial_weather_data), same_temperature
 	)
 	T_h_state_0 = sag_tension_calculation.T_h_after_change
-	assert (T_h_state_0[0] - 19109.88) < 1e-6  # type: ignore[index]
+	expected_result_0 = np.array([19109.88, np.nan])
+	assert T_h_state_0 is not None
+	np.testing.assert_allclose(T_h_state_0, expected_result_0, rtol=1e-5)
 
 	weather_array_final_1 = WeatherArray(
 		pdt.DataFrame(
@@ -184,7 +194,9 @@ def test_functions_to_solve__different_weather() -> None:
 		weather_array_final_1, same_temperature
 	)
 	T_h_state_1 = sag_tension_calculation.T_h_after_change
-	assert T_h_state_1[0] - 42098.9070 < 0.01  # type: ignore[index]
+	expected_result_1 = np.array([42098.9070, np.nan])
+	assert T_h_state_1 is not None
+	np.testing.assert_allclose(T_h_state_1, expected_result_1, rtol=0.01)
 
 	weather_array_final_2 = WeatherArray(
 		pdt.DataFrame(
@@ -197,15 +209,21 @@ def test_functions_to_solve__different_weather() -> None:
 	sag_tension_calculation.change_state(
 		weather_array_final_2, same_temperature
 	)
-	state_2 = sag_tension_calculation.T_h_after_change
-	assert state_2[0] - 31745.05101 < 0.01  # type: ignore[index]
+	T_h_state_2 = sag_tension_calculation.T_h_after_change
+	expected_result_2 = np.array([31745.05101, np.nan])
+	assert T_h_state_2 is not None
+	np.testing.assert_allclose(
+		T_h_state_2, expected_result_2, rtol=0.01
+	)  # typing: ignore[arg-type]
 
 	new_temperature = np.array([25] * NB_SPAN)
 	sag_tension_calculation.change_state(
 		WeatherArray(initial_weather_data), new_temperature
 	)
-	state_3 = sag_tension_calculation.T_h_after_change
-	assert state_3[0] - 18383.1116 < 0.01  # type: ignore[index]
+	T_h_state_3 = sag_tension_calculation.T_h_after_change
+	expected_result_3 = np.array([18383.1116, np.nan])
+	assert T_h_state_3 is not None
+	np.testing.assert_allclose(T_h_state_3, expected_result_3, rtol=0.01)
 
 
 def test_functions_to_solve__different_temp_ref() -> None:
@@ -261,9 +279,9 @@ def test_functions_to_solve__different_temp_ref() -> None:
 		weather_array_final, new_temperature
 	)
 	T_h_state_0 = sag_tension_calculation_0.T_h_after_change
-
-	assert T_h_state_0[0] - 117951.847 < 0.01  # type: ignore[index]
-
+	expected_result_0 = np.array([117951.847, np.nan])
+	assert T_h_state_0 is not None
+	np.testing.assert_allclose(T_h_state_0, expected_result_0, rtol=0.01)
 	input_cable_1 = pd.DataFrame(
 		{
 			"section": [345.55] * NB_SPAN,
@@ -285,5 +303,6 @@ def test_functions_to_solve__different_temp_ref() -> None:
 		weather_array_final, new_temperature
 	)
 	T_h_state_1 = sag_tension_calculation_1.T_h_after_change
-
-	assert T_h_state_1[0] - 117961.6142 < 0.01  # type: ignore[index]
+	expected_result_1 = np.array([117961.6142, np.nan])
+	assert T_h_state_1 is not None
+	np.testing.assert_allclose(T_h_state_1, expected_result_1, rtol=0.01)

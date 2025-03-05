@@ -237,6 +237,7 @@ def test_solver__values_before_solver(
 		neutral_weather_array_one_span,
 		unstressed_length,
 	)
+	assert sag_tension_calculation.T_h_after_change is None
 	with pytest.raises(ValueError):
 		sag_tension_calculation.p_after_change()
 	with pytest.raises(ValueError):
