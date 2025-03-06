@@ -49,6 +49,19 @@ class ElementArray(ABC):
 	def __copy__(self):
 		return type(self)(self._data)
 
+	def to_numpy(self, mask=None):
+		"""extract data in thermohl format"""
+		out_dict = {}
+
+		for column in self.data:
+			if mask is not None:
+				out_dict[column] = self.data[column][mask].to_numpy()
+			else:
+				out_dict[column] = self.data[column].to_numpy()
+
+		return out_dict
+
+
 
 class SectionArray(ElementArray):
 	"""Description of an overhead line section.
@@ -140,6 +153,8 @@ class CableArray(ElementArray):
 		for coef in ["a0", "a1", "a2", "a3", "a4"]:
 			if coef in data_SI:
 				data_SI[coef] *= 1e9
+			else:
+				data_SI[coef] = 0. if coef != "a1" else 1.
 		return data_SI
 
 	@property
@@ -149,9 +164,14 @@ class CableArray(ElementArray):
 	@property
 	def stress_strain_polynomial(self) -> Poly:
 		"""Converts coefficients in the dataframe into polynomial"""
-		coefs_poly = self.data.iloc[0][
-			["a0", "a1", "a2", "a3", "a4"]
-		].to_numpy()
+		try:
+			coefs_poly = self._data.iloc[0][
+				["a0", "a1", "a2", "a3", "a4"]
+			].to_numpy()
+		except KeyError:
+			coefs_poly = np.array([0., 1.,0.,0.,0.])
+		coefs_poly = coefs_poly * 1e9
+  
 		return Poly(coefs_poly)
 
 

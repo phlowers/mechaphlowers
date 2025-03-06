@@ -13,16 +13,27 @@ from mechaphlowers.entities.arrays import CableArray, WeatherArray
 DEFAULT_ICE_DENSITY = 6_000
 
 
+
 class CableLoads:
 	def __init__(
 		self,
-		cable: CableArray,
-		weather: WeatherArray,
-		ice_density: float = DEFAULT_ICE_DENSITY,
+		linear_weight: np.ndarray,
+		ice_thickness: np.ndarray,
+		wind_pressure: np.ndarray,
+		diameter: np.ndarray,
+  		ice_density: float = DEFAULT_ICE_DENSITY,
+		**kwargs
 	) -> None:
-		self.cable = cable
-		self.weather = weather
+		self.linear_weight = linear_weight
+		self.ice_thickness = ice_thickness
+		self.wind_pressure = wind_pressure
+		self.diameter = diameter
 		self.ice_density = ice_density
+
+	def update(self, newdata):
+		match_keys = self.__dict__.keys() & newdata.keys()
+		for key,value in zip(match_keys, map(newdata.get, match_keys)):
+			setattr(self,key,value)
 
 	@property
 	def load_angle(self) -> np.ndarray:
@@ -31,7 +42,7 @@ class CableLoads:
 		Returns:
 			np.ndarray: load angle (beta) for each span
 		"""
-		linear_weight = self.cable.data.linear_weight.to_numpy()
+		linear_weight = self.linear_weight
 		ice_load = self.ice_load
 		wind_load = self.wind_load
 
@@ -43,7 +54,7 @@ class CableLoads:
 	) -> np.ndarray:
 		"""Norm of the force (R) applied on the cable due to weather loads and cable own weight, per meter cable"""
 
-		linear_weight = self.cable.data.linear_weight.to_numpy()
+		linear_weight = self.linear_weight
 		ice_load = self.ice_load
 		wind_load = self.wind_load
 
@@ -51,7 +62,7 @@ class CableLoads:
 
 	@property
 	def load_coefficient(self) -> np.ndarray:
-		linear_weight = self.cable.data.linear_weight.to_numpy()
+		linear_weight = self.linear_weight
 		return self.resulting_norm / linear_weight
 
 	@property
@@ -61,9 +72,9 @@ class CableLoads:
 		Returns:
 			np.ndarray: linear weight of the ice for each span
 		"""
-		e = self.weather.data.ice_thickness.to_numpy()
-		D = self.cable.data.diameter.to_numpy()
-		return self.ice_density * pi * e * (e + D)
+		e = self.ice_thickness
+		D = self.diameter
+		return self.ice_density * np.pi * e * (e + D)
 
 	@property
 	def wind_load(self) -> np.ndarray:
@@ -72,7 +83,7 @@ class CableLoads:
 		Returns:
 			np.ndarray: linear force applied on the cable by the wind
 		"""
-		P_w = self.weather.data.wind_pressure.to_numpy()
-		D = self.cable.data.diameter.to_numpy()
-		e = self.weather.data.ice_thickness.to_numpy()
+		P_w = self.wind_pressure
+		D = self.diameter
+		e = self.ice_thickness
 		return P_w * (D + 2 * e)

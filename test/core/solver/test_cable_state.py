@@ -17,7 +17,9 @@ from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.core.solver.cable_state import (
 	SagTensionSolver,
+	SagTensionSolverRefactor,
 )
+from mechaphlowers.core.solver.data_model import DataContainer
 from mechaphlowers.entities.arrays import (
 	CableArray,
 	SectionArray,
@@ -116,6 +118,38 @@ def get_L_ref_from_arrays(
 		deformation_type=deformation_type,
 	)
 	return physics.L_ref(current_temperature)
+
+
+def test_solver__refactor(
+	section_array_one_span: SectionArray,
+	cable_array_one_span: CableArray,
+	neutral_weather_array_one_span: WeatherArray,
+):
+	
+	dc = DataContainer(
+		wa=neutral_weather_array_one_span,
+		ca=cable_array_one_span,
+		sa=section_array_one_span,
+	)
+	current_temperature = np.array([15] * 2)
+	# unstressed_length = LinearDeformation(**dc.to_dict).L_ref(current_temperature)
+
+ 
+	sag_tension_calculation = SagTensionSolverRefactor(
+		# unstressed_length=unstressed_length,
+		# solver="newton",
+  		dc,
+
+	)
+
+	sag_tension_calculation.initial_state(current_temperature=current_temperature)
+
+	sag_tension_calculation.change_state(
+		neutral_weather_array_one_span.to_numpy(), 
+  current_temperature, "newton"
+	)
+	# sag_tension_calculation.p_after_change()
+	# sag_tension_calculation.L_after_change()
 
 
 def test_solver__run_solver(

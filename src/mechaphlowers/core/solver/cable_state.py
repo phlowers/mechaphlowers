@@ -21,12 +21,107 @@ from mechaphlowers.core.models.cable.span import (
 	Span,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
+from mechaphlowers.core.solver.data_model import Args, DataContainer
 from mechaphlowers.entities.arrays import (
 	CableArray,
 	SectionArray,
 	WeatherArray,
 )
 
+class SagTensionSolverRefactor:
+	
+	_ZETA = 10
+	SpanModel = CatenarySpan
+	DeformationModel = LinearDeformation
+
+	def __init__(self, params: DataContainer, **kwargs) -> None:
+		self.span_model = self.SpanModel(**params.to_dict)
+		self.deformation_model = self.DeformationModel(**params.to_dict)
+		self.v = params.to_dict
+		# self.unstressed_length = unstressed_length
+		self.params_container = params
+		self.cable_loads = CableLoads(**self.v)
+  
+	def initial_state(self, current_temperature): # sagging temperature here ?
+		"""Method that computes the initial horizontal tension of the cable."""
+		tension_mean = self.span_model.T_mean()
+		self.unstressed_length = self.deformation_model.L_ref(current_temperature, tension_mean)
+  
+
+	def change_state(
+		self,
+		weather_dict,
+		temp: np.ndarray,
+		solver: str = "newton",
+	) -> None:
+		"""Method that solves the finds the new horizontal tension after a change of parameters.
+		The equation to solve is : $\\delta(T_h) = O$
+		Args:
+			weather_array (WeatherArray): data on wind and ice
+			temp (np.ndarray): current temperature
+			solver (str, optional): resolution method of the equation. Defaults to "newton", which is the only method implemented for now.
+		"""
+
+		solver_dict = {"newton": optimize.newton}
+		try:
+			solver_method = solver_dict[solver]
+		except KeyError:
+			raise ValueError(f"Incorrect solver name: {solver}")
+		self.cable_loads.update(weather_dict)
+		m = self.cable_loads.load_coefficient
+		T_h0 = self.span_model.compute_T_h(self.v["sagging_parameter"], m, self.v["linear_weight"])
+
+		# TODO adapt code to use other solving methods
+
+		solver_result = solver_method(
+			self._delta,
+			T_h0,
+			fprime=self._delta_prime,
+			args=(m, temp, self.unstressed_length),
+			tol=1e-5,
+			full_output=True,
+		)
+		if not solver_result.converged.all():
+			raise ValueError("Solver did not converge")
+		self.T_h_after_change = solver_result.root
+
+	def _delta(self, T_h, m, temp, L_ref):
+		"""Function to solve.
+		This function is the difference between two ways to compute epsilon.
+		Therefore, its value should be zero.
+		$\\delta = \\varepsilon_{L} - \\varepsilon_{T}$
+		"""
+		p = self.span_model.compute_p(T_h, m, self.v["linear_weight"])
+		L = self.span_model.compute_L(self.v["span_length"], self.v["elevation_difference"], p)
+
+		polynomial = self.deformation_model.stress_strain_polynomial
+		T_mean = self.span_model.compute_T_mean(self.v["span_length"], self.v["elevation_difference"], p, T_h)
+		epsilon_total = self.deformation_model.compute_epsilon_mecha(
+			T_mean, self.v["young_modulus"], self.v["section"], polynomial=polynomial
+		) + self.deformation_model.compute_epsilon_therm(
+			temp, self.v["temperature_reference"], self.v["dilatation_coefficient"]
+		)
+
+		return (L / L_ref - 1) - epsilon_total
+
+	def _delta_prime(
+		self,
+		Th,
+		m,
+		temp,
+		L_ref,
+	):
+		"""Approximation of the derivative of the function to solve
+		$$\\delta'(T_h) = \\frac{\\delta(T_h + \\zeta) - \\delta(T_h)}{\\zeta}$$
+		"""
+		kwargs = {
+			"m": m,
+			"temp": temp,
+			"L_ref": L_ref,
+		}
+		return (
+			self._delta(Th + self._ZETA, **kwargs) - self._delta(Th, **kwargs)
+		) / self._ZETA
 
 class SagTensionSolver:
 	"""This class reprensents the sag tension calculation.

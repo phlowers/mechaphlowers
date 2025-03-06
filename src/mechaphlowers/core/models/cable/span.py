@@ -27,13 +27,14 @@ class Span(ABC):
 		self,
 		span_length: np.ndarray,
 		elevation_difference: np.ndarray,
-		p: np.ndarray,
+		sagging_parameter: np.ndarray,
 		load_coefficient: np.ndarray | None = None,
 		linear_weight: np.ndarray | None = None,
+		**kwargs
 	) -> None:
 		self.span_length = span_length
 		self.elevation_difference = elevation_difference
-		self.p = p
+		self.p = sagging_parameter
 		self.linear_weight = linear_weight
 		if load_coefficient is None:
 			self.load_coefficient = np.ones_like(span_length)

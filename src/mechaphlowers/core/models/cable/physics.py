@@ -14,21 +14,39 @@ from mechaphlowers.core.models.cable.deformation import (
 )
 from mechaphlowers.entities.arrays import CableArray
 
+from numpy.polynomial import Polynomial as Poly
+
 
 class Physics:
 	"""This class models physics properties of the cable, like mechanical or thermal deformation."""
 
 	def __init__(
 		self,
-		cable_array: CableArray,
+		# cable_array: CableArray,
+		young_modulus: np.ndarray,
+		section: np.ndarray,
+		temp_ref: np.ndarray,
+		dilatation_coefficient: np.ndarray,
+		linear_weight: np.ndarray,
+		alpha: np.ndarray,
+		stress_strain_polynomial: Poly,
 		tension_mean: np.ndarray,
 		cable_length: np.ndarray,
-		deformation_type: Type[Deformation] = LinearDeformation,
+		deformation: Deformation,
+		**kwargs
 	):
-		self.cable_array = cable_array
+		# self.cable_array = cable_array
+		self.young_modulus = young_modulus
+		self.section = section
+		self.temp_ref = temp_ref
+		self.dilatation_coefficient = dilatation_coefficient
+		self.linear_weight = linear_weight
+		self.alpha = alpha
+		self.stress_strain_polynomial = stress_strain_polynomial
 		self.tension_mean = tension_mean
 		self.cable_length = cable_length
-		self.deformation = deformation_type(cable_array, tension_mean)
+		self.deformation = deformation
+		# self.deformation = deformation_type(cable_array, tension_mean)
 
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
 		"""Unstressed cable length, at a chosen reference temperature"""
