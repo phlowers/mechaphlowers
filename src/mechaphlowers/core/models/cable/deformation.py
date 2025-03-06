@@ -7,6 +7,7 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.entities.arrays import CableArray
 
@@ -30,10 +31,10 @@ class Deformation(ABC):
 			self.max_stress = max_stress
 
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
-		"""Thermal part of the relative strain of the cable, compared to a temperature_reference."""
+		"""Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
 		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
 		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
-		return (current_temperature - temp_ref) * alpha
+		return self.compute_epsilon_therm(current_temperature, temp_ref, alpha)
 
 	@abstractmethod
 	def epsilon(
@@ -46,22 +47,47 @@ class Deformation(ABC):
 	def epsilon_mecha(self) -> np.ndarray:
 		"""Mechanical part of the relative strain  of the cable."""
 
+	@staticmethod
+	@abstractmethod
+	def compute_epsilon_mecha(
+		T_mean: np.ndarray,
+		E: np.ndarray,
+		S: np.ndarray,
+		polynomial: Poly | None = None,
+		max_stress: np.ndarray | None = None,
+	) -> np.ndarray:
+		"""Computing mechanical strain using a static method"""
+
+	@staticmethod
+	def compute_epsilon_therm(
+		theta: np.ndarray, theta_ref: np.ndarray, alpha: np.ndarray
+	) -> np.ndarray:
+		"""Computing thermal strain using a static method"""
+		return (theta - theta_ref) * alpha
+
 
 class LinearDeformation(Deformation):
 	"""This model assumes that mechanical strain is linear with tension."""
 
-	def epsilon_mecha(
-		self, max_stress: np.ndarray | None = None
-	) -> np.ndarray:
+	def epsilon_mecha(self) -> np.ndarray:
 		T_mean = self.tension_mean
 		E = self.cable_array.data["young_modulus"].to_numpy()
 		S = self.cable_array.data["section"].to_numpy()
-		return T_mean / (E * S)
+		return self.compute_epsilon_mecha(T_mean, E, S)
 
-	def epsilon(
-		self, current_temperature, max_stress: np.ndarray | None = None
-	):
+	def epsilon(self, current_temperature):
 		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
+
+	@staticmethod
+	def compute_epsilon_mecha(
+		T_mean: np.ndarray,
+		E: np.ndarray,
+		S: np.ndarray,
+		polynomial: Poly | None = None,
+		max_stress: np.ndarray | None = None,
+	) -> np.ndarray:
+		# polynomial and max_stress are unused here, but are need for polynomial model
+		return T_mean / (E * S)
 
 
 class PolynomialDeformation(Deformation):
@@ -71,34 +97,59 @@ class PolynomialDeformation(Deformation):
 		T_mean = self.tension_mean
 		S = self.cable_array.data["section"].to_numpy()
 		E = self.cable_array.data["young_modulus"].to_numpy()
-		sigma = T_mean / S
+		polynomial = self.cable_array.stress_strain_polynomial
+		return self.compute_epsilon_mecha(
+			T_mean, E, S, polynomial, self.max_stress
+		)
 
-		epsilon_plastic = self.epsilon_plastic()
+	@staticmethod
+	def compute_epsilon_mecha(
+		T_mean: np.ndarray,
+		E: np.ndarray,
+		S: np.ndarray,
+		polynomial: Poly | None = None,
+		max_stress: np.ndarray | None = None,
+	) -> np.ndarray:
+		sigma = T_mean / S
+		if polynomial is None:
+			raise ValueError("Polynomial is not defined")
+		epsilon_plastic = PolynomialDeformation.compute_epsilon_plastic(
+			T_mean, E, S, polynomial, max_stress
+		)
 		return epsilon_plastic + sigma / E
 
-	def epsilon_plastic(self) -> np.ndarray:
+	@staticmethod
+	def compute_epsilon_plastic(
+		T_mean: np.ndarray,
+		E: np.ndarray,
+		S: np.ndarray,
+		polynomial: Poly,
+		max_stress: np.ndarray | None = None,
+	) -> np.ndarray:
 		"""Computes elastic permanent strain."""
-		T_mean = self.tension_mean
-		S = self.cable_array.data["section"].to_numpy()
-		E = self.cable_array.data["young_modulus"].to_numpy()
 		sigma = T_mean / S
-
+		if max_stress is None:
+			max_stress = np.full(T_mean.shape, 0)
 		# epsilon plastic is based on the highest value between sigma and max_stress
-		highest_constraint = np.fmax(sigma, self.max_stress)
-		equation_solution = self.resolve_stress_strain_equation(
-			highest_constraint
+		highest_constraint = np.fmax(sigma, max_stress)
+		equation_solution = (
+			PolynomialDeformation.resolve_stress_strain_equation(
+				highest_constraint, polynomial
+			)
 		)
 		equation_solution -= highest_constraint / E
 		return equation_solution
 
-	def resolve_stress_strain_equation(self, sigma: np.ndarray) -> np.ndarray:
+	@staticmethod
+	def resolve_stress_strain_equation(
+		sigma: np.ndarray, polynomial: Poly
+	) -> np.ndarray:
 		"""Solves $\\sigma = Polynomial(\\varepsilon)$"""
-		T_mean = self.tension_mean
-		polynom_array = np.full(
-			T_mean.shape, self.cable_array.stress_strain_polynomial
-		)
+		polynom_array = np.full(sigma.shape, polynomial)
 		poly_to_resolve = polynom_array - sigma
-		return self.find_smallest_real_positive_root(poly_to_resolve)
+		return PolynomialDeformation.find_smallest_real_positive_root(
+			poly_to_resolve
+		)
 
 	@staticmethod
 	def find_smallest_real_positive_root(

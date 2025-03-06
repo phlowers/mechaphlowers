@@ -56,7 +56,9 @@ nav:
               - Span : docstring/core/models/cable/span.md
               - Physics : docstring/core/models/cable/physics.md
               - Deformation : docstring/core/models/cable/deformation.md
-              - External loads : docstring/core/models/external_loads.md
+            - External loads : docstring/core/models/external_loads.md
+          - Solver :
+            - Cable state : docstring/core/solver/cable_state.md
       - Data :
           - Catalog: docstring/data/catalog.md
     - Guidelines : developer_guide/guidelines.md

@@ -141,3 +141,23 @@ def test_catenary_span_model__tensions__no_elevation_difference() -> None:
 	assert abs(span_model.T_h()[0] - 19109.88) < 0.01
 	assert abs(span_model.T_v(x_m)[0] + 2394.96053) < 0.01
 	assert abs(span_model.T_mean()[0] - 19159.78784541) < 0.01
+
+
+def test_catenary_span_model__geometric_output():
+	a = np.array([500])
+	b = np.array([0])
+	p = np.array([2_000])
+	lambd = np.array([9.55494])
+	m = np.array([1])
+
+	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+
+	assert (span_model.x_m() + 250.0) < 0.01
+	assert (span_model.x_n() - 250.0) < 0.01
+
+	assert (span_model.L_m() - 250.652) < 0.01
+	assert (span_model.L_n() - 250.652) < 0.01
+
+	assert (span_model.L() - 501.303) < 0.01
+
+	# TODO: check on a non symetrical case

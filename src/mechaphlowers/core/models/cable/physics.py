@@ -4,7 +4,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from abc import ABC
 from typing import Type
 
 import numpy as np
@@ -16,7 +15,7 @@ from mechaphlowers.core.models.cable.deformation import (
 from mechaphlowers.entities.arrays import CableArray
 
 
-class Physics(ABC):
+class Physics:
 	"""This class models physics properties of the cable, like mechanical or thermal deformation."""
 
 	def __init__(
@@ -33,6 +32,20 @@ class Physics(ABC):
 
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
 		"""Unstressed cable length, at a chosen reference temperature"""
-		L = self.cable_length
-		epsilon = self.deformation.epsilon(current_temperature)
+		return self.compute_L_ref(
+			current_temperature, self.cable_length, self.deformation
+		)
+
+	@staticmethod
+	def compute_L_ref(
+		current_temperature: np.ndarray,
+		cable_length: np.ndarray,
+		deformation: Deformation,
+	) -> np.ndarray:
+		"""Unstressed cable length, at a chosen reference temperature"""
+		L = cable_length
+		epsilon = (
+			deformation.epsilon_therm(current_temperature)
+			+ deformation.epsilon_mecha()
+		)
 		return L / (1 + epsilon)
