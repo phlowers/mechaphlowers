@@ -172,7 +172,7 @@ def test_solver__run_solver__polynomial_model(
 	sag_tension_calculation.p_after_change()
 	sag_tension_calculation.L_after_change()
 
-
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_solver__run_solver_no_solution(
 	section_array_one_span: SectionArray,
 	cable_array_one_span: CableArray,
