@@ -226,9 +226,7 @@ class CatenarySpan(Span):
 		else:
 			p = self.p
 			m = self.load_coefficient
-			T_h = p * m * self.linear_weight
-			T_h[np.isnan(self.elevation_difference)] = np.nan
-			return T_h
+			return p * m * self.linear_weight
 
 	def T_v(self, x_one_per_span) -> np.ndarray:
 		# an array of abscissa of the same length as the number of spans is expected
