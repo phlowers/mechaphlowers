@@ -1,9 +1,7 @@
 import numpy as np
 
-from scipy.spatial.transform import Rotation as R  # type: ignore
-
 from mechaphlowers.core.geometry.rotation import (
-	hamilton_array,
+	hamilton_product_array,
 	rotation_matrix_quaternion,
 	rotation_quaternion_same_axis,
 )
@@ -13,7 +11,7 @@ def test_hamilton_array():
 	q1 = np.array([[0.1, 0.2, 0.3, 0.4], [1] * 4])
 	q2 = q1 * 2
 
-	hamilton_array(q1, q2)
+	hamilton_product_array(q1, q2)
 
 
 def test_rotation_matrix_quaternion():
