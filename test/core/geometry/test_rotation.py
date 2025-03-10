@@ -1,18 +1,12 @@
 import numpy as np
 
+from scipy.spatial.transform import Rotation as R  # type: ignore
+
 from mechaphlowers.core.geometry.rotation import (
 	hamilton_array,
-	rotation,
 	rotation_matrix_quaternion,
-	rotation_multiple,
+	rotation_quaternion_same_axis,
 )
-
-
-def test_rotation_0():
-	vector = np.array([0, 1, 0])
-	beta = 90
-
-	vector_rotated, vector_rotated_scipy = rotation(vector, beta)
 
 
 def test_hamilton_array():
@@ -24,18 +18,34 @@ def test_hamilton_array():
 
 def test_rotation_matrix_quaternion():
 	beta = np.array([90, 180])
-	rotation_matrix = rotation_matrix_quaternion(beta, np.array([1, 0, 0]))
-	assert True
+	rotation_matrix_0 = rotation_matrix_quaternion(
+		beta, np.array([[1, 0, 0], [0, 2, 0]])
+	)
+	# rotation_matrix_2 = rotation_quaternion_same_axis(
+	# 	beta, np.array([1, 1, 0])
+	# )
 
-def test_rotation_multiple_0():
-	vector = np.array([[0, 1, 1], [0, 0.5, 0]])
-	beta = np.array([90, 180])
+	# quaternion rotation vector result using scipy.from_euler
+	expected_result = np.array(
+		[
+			[2 ** (-1 / 2), 2 ** (-1 / 2), 0, 0],
+			[0, 0, 1, 0],
+		]
+	)
+	np.testing.assert_array_almost_equal(rotation_matrix_0, expected_result)
 
-	vector_rotated = rotation_multiple(vector, beta)
 
+def test_rotation_multiple__same_axis_0():
+	vector = np.array([[0, 1, 1], [0, 0.5, 0], [1, 0, 0], [0, 0, 7]])
+	beta = np.array([90, 180, 90, 90])
 
-def test_rotation_multiple_1():
-	vector = np.array([[0, 1, 1], [0, 0.5, 0], [0, 3, 4]])
-	beta = np.array([90, 180, 45])
-
-	vector_rotated = rotation_multiple(vector, beta)
+	vector_rotated = rotation_quaternion_same_axis(vector, beta)
+	expected_result = np.array(
+		[
+			[0, -1, 1],
+			[0, -0.5, 0],
+			[1, 0, 0],
+			[0, -7, 0],
+		]
+	)
+	np.testing.assert_array_almost_equal(vector_rotated, expected_result)
