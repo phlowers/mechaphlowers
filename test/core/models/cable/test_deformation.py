@@ -152,7 +152,9 @@ def test_poly_deformation__degree_one(
 		np.array(cable_array_input_data["section"]) * 1e-6
 	)
 	current_temperature = np.array([15, 15])
-	polynomial_deformation_model.resolve_stress_strain_equation(constraint)
+	polynomial_deformation_model.resolve_stress_strain_equation(
+		constraint, cable_array.stress_strain_polynomial
+	)
 	polynomial_deformation_model.epsilon_mecha()
 	polynomial_deformation_model.epsilon(current_temperature)
 
@@ -196,7 +198,9 @@ def test_poly_deformation__degree_three(
 		np.array(cable_array_input_data["section"]) * 1e-6
 	)
 	current_temperature = np.array([15, 15])
-	polynomial_deformation_model.resolve_stress_strain_equation(constraint)
+	polynomial_deformation_model.resolve_stress_strain_equation(
+		constraint, cable_array.stress_strain_polynomial
+	)
 	polynomial_deformation_model.epsilon_mecha()
 
 	polynomial_deformation_model.epsilon(current_temperature)
@@ -241,7 +245,9 @@ def test_poly_deformation__degree_four(
 		np.array(cable_array_input_data["section"]) * 1e-6
 	)
 	current_temperature = np.array([15, 15])
-	polynomial_deformation_model.resolve_stress_strain_equation(constraint)
+	polynomial_deformation_model.resolve_stress_strain_equation(
+		constraint, cable_array.stress_strain_polynomial
+	)
 	polynomial_deformation_model.epsilon_mecha()
 
 	polynomial_deformation_model.epsilon(current_temperature)
