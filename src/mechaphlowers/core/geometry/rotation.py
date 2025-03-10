@@ -42,24 +42,40 @@ def rotation(vector: np.ndarray, beta: float):
 	return vector_rotated, vector_rotated_scipy
 
 
-def rotation_multiple(vector: np.ndarray, beta: np.ndarray):
+def rotation_matrix_quaternion(beta: np.ndarray, rotation_axis: np.ndarray):
+	beta_rad = np.radians(beta)
+	C = np.cos(beta_rad / 2)[:, np.newaxis]
+	S = np.sin(beta_rad / 2)[:, np.newaxis]
+	triple_sin = np.repeat(S, 3, axis=1)
+	unit_vector = np.full(triple_sin.shape, rotation_axis)
+	quat = np.concatenate((C, triple_sin * unit_vector), axis=1)
+	return quat
+
+
+def rotation_multiple(
+	vector: np.ndarray,
+	beta: np.ndarray,
+	rotation_axis: np.ndarray = np.array([1, 0, 0]),
+):
 	# here vector is [[x0, y0, z0], [x1, y1, z1],...]
 
 	# TODO: write a way to create rotation vector using quaternion by hand
-	rotation_object = R.from_euler("x", beta, degrees=True)
-	quat = rotation_object.as_quat()
+	# rotation_object = R.from_euler("x", beta, degrees=True)
+	# rotation_quat_scipy = rotation_object.as_quat()
+
+	rotation_quat = rotation_matrix_quaternion(beta, rotation_axis)
 	# quat will be needed to be converted as unitary quaternion
 
-	quat = np.roll(quat, -1, axis=1)
-	conj = np.full(quat.shape, [1, -1, -1, -1])
-	quatconj = quat * conj  # hand conjugate
-
+	rotation_quat = np.roll(rotation_quat, -1, axis=1)
+	conj = np.full(rotation_quat.shape, [1, -1, -1, -1])
+	quatconj = rotation_quat * conj  # hand conjugate
 
 	w_coord = np.zeros((vector.shape[0], 1))
 	purequat = np.concat((w_coord, vector), axis=1)
 
-	vector_rotated = hamilton_array(quat, hamilton_array(purequat, quatconj))
+	vector_rotated = hamilton_array(
+		rotation_quat, hamilton_array(purequat, quatconj)
+	)
 
-
-	vector_rotated_3d = vector_rotated[:,1:]
+	vector_rotated_3d = vector_rotated[:, 1:]
 	return vector_rotated_3d

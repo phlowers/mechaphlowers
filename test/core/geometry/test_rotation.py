@@ -1,14 +1,14 @@
 import numpy as np
-from scipy.spatial.transform import Rotation as R
 
 from mechaphlowers.core.geometry.rotation import (
-	rotation,
 	hamilton_array,
+	rotation,
+	rotation_matrix_quaternion,
 	rotation_multiple,
 )
 
 
-def test_roation_0():
+def test_rotation_0():
 	vector = np.array([0, 1, 0])
 	beta = 90
 
@@ -22,14 +22,19 @@ def test_hamilton_array():
 	hamilton_array(q1, q2)
 
 
-def test_roation_multiple_0():
+def test_rotation_matrix_quaternion():
+	beta = np.array([90, 180])
+	rotation_matrix = rotation_matrix_quaternion(beta, np.array([1, 0, 0]))
+	assert True
+
+def test_rotation_multiple_0():
 	vector = np.array([[0, 1, 1], [0, 0.5, 0]])
 	beta = np.array([90, 180])
 
 	vector_rotated = rotation_multiple(vector, beta)
 
 
-def test_roation_multiple_1():
+def test_rotation_multiple_1():
 	vector = np.array([[0, 1, 1], [0, 0.5, 0], [0, 3, 4]])
 	beta = np.array([90, 180, 45])
 
