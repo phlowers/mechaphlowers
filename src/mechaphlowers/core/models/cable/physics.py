@@ -10,7 +10,7 @@ import numpy as np
 
 from mechaphlowers.core.models.cable.deformation import (
 	Deformation,
-	LinearDeformation,
+	DeformationImpl,
 )
 from mechaphlowers.entities.arrays import CableArray
 
@@ -23,7 +23,7 @@ class Physics:
 		cable_array: CableArray,
 		tension_mean: np.ndarray,
 		cable_length: np.ndarray,
-		deformation_type: Type[Deformation] = LinearDeformation,
+		deformation_type: Type[Deformation] = DeformationImpl,
 	):
 		self.cable_array = cable_array
 		self.tension_mean = tension_mean

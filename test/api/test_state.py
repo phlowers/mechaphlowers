@@ -16,10 +16,10 @@ class MockPhysics:
 
 
 class MockSection:
-	def __init__(self, data_shape, physics=None):
+	def __init__(self, data_shape, deformation=None):
 		self.section = self
 		self.data = np.zeros(data_shape)
-		self.physics = physics
+		self.deformation = deformation
 
 
 @pytest.fixture

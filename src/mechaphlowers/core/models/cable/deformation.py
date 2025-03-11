@@ -21,14 +21,24 @@ class Deformation(ABC):
 		self,
 		cable_array: CableArray,
 		tension_mean: np.ndarray,
+		cable_length: np.ndarray,
 		max_stress: np.ndarray | None = None,
 	):
 		self.cable_array = cable_array
 		self.tension_mean = tension_mean
+		self.cable_length = cable_length
 		if max_stress is None:
 			self.max_stress = np.full(self.tension_mean.shape, 0)
 		else:
 			self.max_stress = max_stress
+
+	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
+		"""Unstressed cable length, at a chosen reference temperature"""
+		L = self.cable_length
+		epsilon = (
+			self.epsilon_therm(current_temperature) + self.epsilon_mecha()
+		)
+		return L / (1 + epsilon)
 
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
 		"""Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
@@ -66,7 +76,7 @@ class Deformation(ABC):
 		return (theta - theta_ref) * alpha
 
 
-class LinearDeformation(Deformation):
+class DeformationImpl(Deformation):
 	"""This model assumes that mechanical strain is linear with tension."""
 
 	def epsilon_mecha(self) -> np.ndarray:

@@ -17,9 +17,8 @@ from mechaphlowers.core.geometry import references
 # if TYPE_CHECKING:
 from mechaphlowers.core.models.cable.deformation import (
 	Deformation,
-	LinearDeformation,
+	DeformationImpl,
 )
-from mechaphlowers.core.models.cable.physics import Physics
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 	Span,
@@ -51,17 +50,15 @@ class SectionDataFrame:
 		self,
 		section: SectionArray,
 		span_model: Type[Span] = CatenarySpan,
-		physics_model: Type[Physics] = Physics,
-		deformation_model: Type[Deformation] = LinearDeformation,
+		deformation_model: Type[Deformation] = DeformationImpl,
 	):
 		self.section: SectionArray = section
 		self.cable: CableArray | None = None
 		self.weather: WeatherArray | None = None
 		self.cable_loads: CableLoads | None = None
 		self.span: Span | None = None
-		self.physics: Physics | None = None
+		self.deformation: Deformation | None = None
 		self._span_model: Type[Span] = span_model
-		self._physics_model: Type[Physics] = physics_model
 		self._deformation_model: Type[Deformation] = deformation_model
 		self.init_span_model()
 
@@ -215,7 +212,7 @@ class SectionDataFrame:
 		self._add_array(cable, CableArray)
 		# type is checked in add_array
 		self.span.linear_weight = self.cable.data.linear_weight.to_numpy()  # type: ignore[union-attr]
-		self.init_physics_model()
+		self.init_deformation_model()
 
 	def add_weather(self, weather: WeatherArray):
 		"""add_weather method to add a new weather to the SectionDataFrame
@@ -232,7 +229,7 @@ class SectionDataFrame:
 		# weather type is checked in add_array self.cable is tested above but mypy does not understand
 		self.cable_loads = CableLoads(self.cable, self.weather)  # type: ignore[union-attr,arg-type]
 		self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr]
-		self.init_physics_model()
+		self.init_deformation_model()
 
 	def _add_array(self, var: ElementArray, type_var: Type[ElementArray]):
 		"""add_array method to add a new array to the SectionDataFrame
@@ -272,11 +269,11 @@ class SectionDataFrame:
 
 		self.__setattr__(property_map[type_var], var)
 
-	def init_physics_model(self):
+	def init_deformation_model(self):
 		"""initialize_physics method to initialize physics model"""
 
 		# Initialize physics model
-		self.physics = self._physics_model(
+		self.deformation = self._deformation_model(
 			self.cable,
 			self.span.T_mean(),
 			self.span.L(),

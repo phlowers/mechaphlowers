@@ -127,7 +127,7 @@ def test_SectionDataFrame__state():
 
 	frame.add_cable(cable_array)
 	assert np.array_equal(
-		frame.state.L_ref(12), frame.physics.L_ref(12), equal_nan=True
+		frame.state.L_ref(12), frame.deformation.L_ref(12), equal_nan=True
 	)
 
 
@@ -371,4 +371,4 @@ def test_SectionDataFrame__add_weather_update_span():
 	frame.add_cable(cable=cable_array)
 	frame.add_weather(weather=weather)
 	assert (frame.span.load_coefficient == cable_loads.load_coefficient).all()
-	assert (frame.physics.cable_length == frame.span.L())[0:-1].all()
+	assert (frame.deformation.cable_length == frame.span.L())[0:-1].all()

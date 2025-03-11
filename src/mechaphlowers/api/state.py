@@ -32,7 +32,7 @@ class StateAccessor:
 		Returns:
 			np.ndarray: L_ref values
 		"""
-		if self.section.physics is None:
+		if self.section.deformation is None:
 			raise ValueError(
 				"Physics model is not defined: setting cable usually sets physics model"
 			)
@@ -52,4 +52,4 @@ class StateAccessor:
 				raise ValueError(
 					"Current temperature should have the same length as the section"
 				)
-		return self.section.physics.L_ref(current_temperature)
+		return self.section.deformation.L_ref(current_temperature)
