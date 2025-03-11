@@ -15,6 +15,7 @@ from mechaphlowers.api.frames import RESOLUTION, SectionDataFrame
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
+from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import (
 	CableArray,
 	SectionArray,
@@ -324,3 +325,50 @@ def test_SectionDataFrame__data():
 		frame.data.shape[1]
 		== frame.cable.data.shape[1] + frame.section.data.shape[1]
 	)
+
+
+def test_SectionDataFrame__add_weather_update_span():
+	frame = SectionDataFrame(section)
+	weather = WeatherArray(
+		pd.DataFrame(
+			{
+				"ice_thickness": [1, 2.1, 0.0, 5.4],
+				"wind_pressure": [1840.12, 0.0, 12.0, 53.0],
+			}
+		)
+	)
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [
+					345.5,
+				]
+				* 4,
+				"diameter": [
+					22.4,
+				]
+				* 4,
+				"linear_weight": [
+					9.6,
+				]
+				* 4,
+				"young_modulus": [
+					59,
+				]
+				* 4,
+				"dilatation_coefficient": [
+					23,
+				]
+				* 4,
+				"temperature_reference": [
+					15,
+				]
+				* 4,
+			}
+		)
+	)
+	cable_loads = CableLoads(cable_array, weather)
+	frame.add_cable(cable=cable_array)
+	frame.add_weather(weather=weather)
+	assert (frame.span.load_coefficient == cable_loads.load_coefficient).all()
+	assert (frame.physics.cable_length == frame.span.L())[0:-1].all()
