@@ -24,7 +24,7 @@ def hamilton_product_array(
 
 
 def rotation_matrix_quaternion(
-	beta: np.ndarray, rotation_axis: np.ndarray
+	beta: np.ndarray, rotation_axes: np.ndarray
 ) -> np.ndarray:
 	"""Create rotation matrix for quaternion rotation.
 	One rotation vector equals to: [cos(beta/2), sin(beta/2)*x, sin(beta/2)*y, sin(beta/2)*z]
@@ -32,7 +32,7 @@ def rotation_matrix_quaternion(
 
 	Args:
 		beta (np.ndarray): array of angles in degrees
-		rotation_axis (np.ndarray): array of axis of rotation (no need to normalize)
+		rotation_axis (np.ndarray): array of axis of rotation in 3D (no need to normalize)
 
 	Returns:
 		np.ndarray: [[w0, x0, y0, z0], [w1, x1, y1, z1],...]
@@ -40,35 +40,34 @@ def rotation_matrix_quaternion(
 	beta_rad = np.radians(beta)
 	# normalize the rotation axis
 	unit_vector = (
-		rotation_axis / np.linalg.norm(rotation_axis, axis=1)[:, np.newaxis]
+		rotation_axes / np.linalg.norm(rotation_axes, axis=1)[:, np.newaxis]
 	)
 
-	# C =[[cos(beta_0/2)], [cos(beta_1/2)],...]
+	# C = [[cos(beta_0/2)], [cos(beta_1/2)],...]
 	C = np.cos(beta_rad / 2)[:, np.newaxis]
 	S = np.sin(beta_rad / 2)[:, np.newaxis]
-	# triple_sin = [[sin(beta_0/2), sin(beta_0/2), sin(beta_0/2)], [sin(beta_1/2), sin(beta_1/2), sin(beta_1/2)],...]
-	triple_sin = np.repeat(S, 3, axis=1)
+	x, y, z = np.split(unit_vector, 3, axis=-1)
 
-	quat = np.concatenate((C, triple_sin * unit_vector), axis=1)
+	quat = np.concatenate((C, S * x, S * y, S * z), axis=-1)
 	return quat
 
 
 def rotation_quaternion_same_axis(
 	vector: np.ndarray,
 	beta: np.ndarray,
-	rotation_axis_single: np.ndarray = np.array([1, 0, 0]),
+	rotation_axis: np.ndarray = np.array([1, 0, 0]),
 ) -> np.ndarray:
 	"""Compute rotation of vector using quaternion rotation.
 	All vectors are rotated around the same axis."""
 
-	rotation_axis_multiple = np.full(vector.shape, rotation_axis_single)
-	return rotation_quaternion(vector, beta, rotation_axis_multiple)
+	rotation_axes = np.full(vector.shape, rotation_axis)
+	return rotation_quaternion(vector, beta, rotation_axes)
 
 
 def rotation_quaternion(
 	vector: np.ndarray,
 	beta: np.ndarray,
-	rotation_axis: np.ndarray,
+	rotation_axes: np.ndarray,
 ) -> np.ndarray:
 	"""Compute rotation of vector using quaternion rotation.
 
@@ -81,7 +80,7 @@ def rotation_quaternion(
 		np.ndarray: array of new points that have been rotated by angles beta around axes rotation_axis
 	"""
 	# compute the rotation matrix as quaternion
-	rotation_matrix = rotation_matrix_quaternion(beta, rotation_axis)
+	rotation_matrix = rotation_matrix_quaternion(beta, rotation_axes)
 	# compute the conjugate of the rotation matrix
 	conj = np.full(rotation_matrix.shape, [1, -1, -1, -1])
 	rotation_matrix_conj = rotation_matrix * conj
