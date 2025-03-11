@@ -2,7 +2,7 @@ import numpy as np
 
 from mechaphlowers.core.geometry.rotation import (
 	hamilton_product_array,
-	rotation_matrix_quaternion,
+	rotation_matrix_to_quaternion,
 	rotation_quaternion,
 	rotation_quaternion_same_axis,
 )
@@ -31,7 +31,7 @@ def test_hamilton_array():
 
 def test_rotation_matrix_quaternion__simple_axis():
 	beta = np.array([90, 180])
-	rotation_matrix_0 = rotation_matrix_quaternion(
+	rotation_matrix_0 = rotation_matrix_to_quaternion(
 		beta, np.array([[1, 0, 0], [0, 2, 0]])
 	)
 	expected_result = np.array(
