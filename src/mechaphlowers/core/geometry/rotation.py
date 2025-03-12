@@ -38,10 +38,11 @@ def rotation_matrix_to_quaternion(
 	Returns:
 		np.ndarray: [[w0, x0, y0, z0], [w1, x1, y1, z1],...]
 
-	>>> beta = [90, 180]
-	>>> rotation_axes = np.array([[1, 0, 0], [0, 0, 1]])
-	>>> rotation_matrix_to_quaternion(beta, rotation_axes)
-	array([[0.707106781, 0.707106781, 0, 0], [0, 0, 0, 1]])
+	Examples:
+		>>> beta = [90, 180]
+		>>> rotation_axes = np.array([[1, 0, 0], [0, 0, 1]])
+		>>> rotation_matrix_to_quaternion(beta, rotation_axes)
+		array([[0.707106781, 0.707106781, 0, 0], [0, 0, 0, 1]])
 	"""
 	beta_rad = np.radians(beta)
 	# normalize the rotation axis
@@ -49,7 +50,7 @@ def rotation_matrix_to_quaternion(
 		rotation_axes / np.linalg.norm(rotation_axes, axis=1)[:, np.newaxis]
 	)
 
-	# C = [[cos(beta_0/2)], [cos(beta_1/2)],...]
+	# C equals to: [[cos(beta_0/2)], [cos(beta_1/2)],...]
 	C = np.cos(beta_rad / 2)[:, np.newaxis]
 	S = np.sin(beta_rad / 2)[:, np.newaxis]
 	x, y, z = np.split(unit_vector, 3, axis=-1)
@@ -74,11 +75,12 @@ def rotation_quaternion_same_axis(
 	Returns:
 		np.ndarray: array of new points that have been rotated by angles beta around rotation_axis
 
-	>>> vector = np.array([[0, 1, 0], [0, 1, 0]])
-	>>> beta = np.array([90, 45])
-	>>> rotation_axis = np.array([1, 0, 0])
-	>>> rotation_quaternion_same_axis(vector, beta, rotation_axis)
-	array([[0,  0,  1], [0,  0.707106781,  0.707106781]])
+	Examples:
+		>>> vector = np.array([[0, 1, 0], [0, 1, 0]])
+		>>> beta = np.array([90, 45])
+		>>> rotation_axis = np.array([1, 0, 0])
+		>>> rotation_quaternion_same_axis(vector, beta, rotation_axis)
+		array([[0,  0,  1], [0,  0.707106781,  0.707106781]])
 	"""
 
 	rotation_axes = np.full(vector.shape, rotation_axis)
@@ -100,11 +102,12 @@ def rotation_quaternion(
 	Returns:
 		np.ndarray: array of new points that have been rotated by angles beta around rotation_axes
 
-	>>> vector = np.array([[0, 1, 0], [0, 1, 0]])
-	>>> beta = np.array([90, -90])
-	>>> rotation_axes = np.array([[1, 0, 0], [0, 0, 1]])
-	>>> rotation_quaternion(vector, beta, rotation_axes)
-	array([[ 0,  0,  1], [1,  0,  0]])
+	Examples:
+		>>> vector = np.array([[0, 1, 0], [0, 1, 0]])
+		>>> beta = np.array([90, -90])
+		>>> rotation_axes = np.array([[1, 0, 0], [0, 0, 1]])
+		>>> rotation_quaternion(vector, beta, rotation_axes)
+		array([[ 0,  0,  1], [1,  0,  0]])
 	"""
 	# compute the rotation matrix as quaternion
 	rotation_quaternion = rotation_matrix_to_quaternion(beta, rotation_axes)
