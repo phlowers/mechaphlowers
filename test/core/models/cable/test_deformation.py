@@ -81,30 +81,31 @@ def test_elastic_linear_cable_impl(
 	linear_model.epsilon_mecha()
 	linear_model.epsilon_therm(current_temperature)
 	linear_model.epsilon(current_temperature)
+	linear_model.L_ref(current_temperature)
 
 
-def test_physics_cable__first_example() -> None:
+def test_deformation_values__first_example() -> None:
 	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
 		{
-			"section": [345.55],
-			"diameter": [22.4],
-			"linear_weight": [9.55494],
-			"young_modulus": [59],
-			"dilatation_coefficient": [23],
-			"temperature_reference": [0],
-			"a0": [0],
-			"a1": [59],
-			"a2": [0],
-			"a3": [0],
-			"a4": [0],
+			"section": [345.55] * 2,
+			"diameter": [22.4] * 2,
+			"linear_weight": [9.55494] * 2,
+			"young_modulus": [59] * 2,
+			"dilatation_coefficient": [23] * 2,
+			"temperature_reference": [0] * 2,
+			"a0": [0] * 2,
+			"a1": [59] * 2,
+			"a2": [0] * 2,
+			"a3": [0] * 2,
+			"a4": [0] * 2,
 		}
 	)
 
-	a = np.array([500])
-	b = np.array([0.0])
-	p = np.array([2_000])
-	m = np.array([1])
-	linear_weight = np.array([9.55494])
+	a = np.array([500] * 2)
+	b = np.array([0.0] * 2)
+	p = np.array([2_000] * 2)
+	m = np.array([1] * 2)
+	linear_weight = np.array([9.55494] * 2)
 
 	span_model = CatenarySpan(
 		a, b, p, load_coefficient=m, linear_weight=linear_weight
@@ -113,12 +114,27 @@ def test_physics_cable__first_example() -> None:
 	cable_length = span_model.L()
 	cable_array = CableArray(input_df)
 	linear_model = DeformationImpl(cable_array, tension_mean, cable_length)
-	current_temperature = np.array([15])
+	current_temperature = np.array([15, 15])
 
 	# Data given by the prototype
-	assert abs(linear_model.epsilon_mecha() - 0.00093978) < 0.01
-	assert (
-		abs(linear_model.epsilon_therm(current_temperature) + 0.000345) < 0.01
+	eps_mecha = linear_model.epsilon_mecha()
+	eps_therm = linear_model.epsilon_therm(current_temperature)
+	L_ref = linear_model.L_ref(current_temperature)
+
+	np.testing.assert_allclose(
+		eps_mecha,
+		np.array([0.00093978, 0.00093978]),
+		atol=1e-6,
+	)
+	np.testing.assert_allclose(
+		eps_therm,
+		np.array([0.000345, 0.000345]),
+		atol=1e-6,
+	)
+	np.testing.assert_allclose(
+		L_ref,
+		np.array([500.65986147, 500.65986147]),
+		atol=1e-6,
 	)
 
 

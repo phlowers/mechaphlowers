@@ -270,9 +270,9 @@ class SectionDataFrame:
 		self.__setattr__(property_map[type_var], var)
 
 	def init_deformation_model(self):
-		"""initialize_physics method to initialize physics model"""
+		"""initialize_deformation method to initialize deformation model"""
 
-		# Initialize physics model
+		# Initialize deformation model
 		self.deformation = self._deformation_model(
 			self.cable,
 			self.span.T_mean(),

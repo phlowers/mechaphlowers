@@ -34,7 +34,7 @@ class StateAccessor:
 		"""
 		if self.section.deformation is None:
 			raise ValueError(
-				"Physics model is not defined: setting cable usually sets physics model"
+				"Deformation model is not defined: setting cable usually sets deformation model"
 			)
 		if isinstance(current_temperature, (float, int)):
 			current_temperature = np.full(

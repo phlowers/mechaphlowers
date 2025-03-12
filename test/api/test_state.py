@@ -10,7 +10,7 @@ import pytest
 from mechaphlowers.api.state import StateAccessor
 
 
-class MockPhysics:
+class MockDeformation:
 	def L_ref(self, current_temperature):
 		return current_temperature
 
@@ -23,20 +23,20 @@ class MockSection:
 
 
 @pytest.fixture
-def section_dataframe_without_physics():
+def section_dataframe_without_deformation():
 	return MockSection((5,), None)
 
 
 @pytest.fixture
 def section_dataframe():
-	return MockSection((5,), MockPhysics())
+	return MockSection((5,), MockDeformation())
 
 
 # ---------Tests---------
 
 
-def test_Physics_is_not_defined(section_dataframe_without_physics):
-	state_accessor = StateAccessor(section_dataframe_without_physics)
+def test_Deformation_is_not_defined(section_dataframe_without_deformation):
+	state_accessor = StateAccessor(section_dataframe_without_deformation)
 	with pytest.raises(
 		ValueError,
 	):
