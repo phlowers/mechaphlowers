@@ -14,7 +14,6 @@ from scipy import optimize  # type: ignore
 from mechaphlowers.core.models.cable.deformation import (
 	Deformation,
 	DeformationImpl,
-	PolynomialDeformation,
 )
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
@@ -55,10 +54,7 @@ class SagTensionSolver:
 		self.S = cable_array.data.section.to_numpy()
 		self.alpha = cable_array.data.dilatation_coefficient.to_numpy()
 		self.stress_strain_polynomial: Poly | None = None
-		if deformation_model == PolynomialDeformation:
-			self.stress_strain_polynomial = (
-				cable_array.stress_strain_polynomial
-			)
+		self.stress_strain_polynomial = cable_array.stress_strain_polynomial
 		self.theta_ref = cable_array.data.temperature_reference.to_numpy()
 		self.cable_loads = CableLoads(cable_array, weather_array)
 		self.L_ref = L_ref

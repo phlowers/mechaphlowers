@@ -8,10 +8,7 @@ import numpy as np
 import pytest
 from pandera.typing import pandas as pdt
 
-from mechaphlowers.core.models.cable.deformation import (
-	DeformationImpl,
-	PolynomialDeformation,
-)
+from mechaphlowers.core.models.cable.deformation import DeformationImpl
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
@@ -28,6 +25,11 @@ def cable_array_input_data() -> dict[str, list]:
 		"young_modulus": [59, 59],
 		"dilatation_coefficient": [23, 23],
 		"temperature_reference": [15, 15],
+		"a0": [0] * 2,
+		"a1": [59] * 2,
+		"a2": [0] * 2,
+		"a3": [0] * 2,
+		"a4": [0] * 2,
 	}
 
 
@@ -90,6 +92,11 @@ def test_physics_cable__first_example() -> None:
 			"young_modulus": [59],
 			"dilatation_coefficient": [23],
 			"temperature_reference": [0],
+			"a0": [0],
+			"a1": [59],
+			"a2": [0],
+			"a3": [0],
+			"a4": [0],
 		}
 	)
 
@@ -148,7 +155,7 @@ def test_poly_deformation__degree_one(
 	)
 
 	cable_array = CableArray(input_df)
-	polynomial_deformation_model = PolynomialDeformation(
+	polynomial_deformation_model = DeformationImpl(
 		cable_array, tension_mean, cable_length
 	)
 	constraint = tension_mean / (
@@ -195,7 +202,7 @@ def test_poly_deformation__degree_three(
 	)
 
 	cable_array = CableArray(input_df)
-	polynomial_deformation_model = PolynomialDeformation(
+	polynomial_deformation_model = DeformationImpl(
 		cable_array, tension_mean, cable_length
 	)
 	constraint = tension_mean / (
@@ -243,7 +250,7 @@ def test_poly_deformation__degree_four(
 	)
 
 	cable_array = CableArray(input_df)
-	polynomial_deformation_model = PolynomialDeformation(
+	polynomial_deformation_model = DeformationImpl(
 		cable_array, tension_mean, cable_length
 	)
 	constraint = tension_mean / (
@@ -292,7 +299,7 @@ def test_poly_deformation__degree_four__with_max_stress(
 
 	cable_array = CableArray(input_df)
 	default_max_stress = np.array([0, 0])
-	polynomial_deformation_model = PolynomialDeformation(
+	polynomial_deformation_model = DeformationImpl(
 		cable_array, tension_mean, default_max_stress, cable_length
 	)
 
@@ -335,7 +342,7 @@ def test_poly_deformation__no_solutions(
 	)
 
 	cable_array = CableArray(input_df)
-	polynomial_deformation_model = PolynomialDeformation(
+	polynomial_deformation_model = DeformationImpl(
 		cable_array, tension_mean, cable_length
 	)
 	polynomial_deformation_model.max_stress = np.array([1000, 1e10])

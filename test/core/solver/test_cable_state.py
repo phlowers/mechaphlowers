@@ -8,10 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.core.models.cable.deformation import (
-	DeformationImpl,
-	PolynomialDeformation,
-)
+from mechaphlowers.core.models.cable.deformation import DeformationImpl
 from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.core.solver.cable_state import (
@@ -160,7 +157,6 @@ def test_solver__run_solver__polynomial_model(
 		cable_array_one_span__polynomial,
 		neutral_weather_array_one_span,
 		unstressed_length,
-		deformation_model=PolynomialDeformation,
 	)
 	sag_tension_calculation.change_state(
 		neutral_weather_array_one_span, current_temperature, "newton"
