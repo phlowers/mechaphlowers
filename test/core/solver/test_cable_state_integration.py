@@ -127,13 +127,13 @@ def test_functions_to_solve__same_loads() -> None:
 	)
 	expected_p = np.array([section_array.sagging_parameter] * 3 + [np.nan])
 	np.testing.assert_allclose(
-		sag_tension_calculation.p_after_change(), expected_p, rtol=1e-5
+		sag_tension_calculation.p_after_change(), expected_p, atol=1e-5
 	)
 
 	np.testing.assert_allclose(
 		sag_tension_calculation.L_after_change(),
 		frame.span.L(),  # type: ignore[union-attr]
-		rtol=1e-5,
+		atol=1e-5,
 	)
 
 
@@ -152,7 +152,6 @@ def test_functions_to_solve__different_weather() -> None:
 			"a2": [0] * NB_SPAN,
 			"a3": [0] * NB_SPAN,
 			"a4": [0] * NB_SPAN,
-			
 		}
 	)
 	data_section = pd.DataFrame(
@@ -191,7 +190,7 @@ def test_functions_to_solve__different_weather() -> None:
 	T_h_state_0 = sag_tension_calculation.T_h_after_change
 	expected_result_0 = np.array([19109.88, np.nan])
 	assert T_h_state_0 is not None
-	np.testing.assert_allclose(T_h_state_0, expected_result_0, rtol=1e-5)
+	np.testing.assert_allclose(T_h_state_0, expected_result_0, atol=1e-5)
 
 	weather_array_final_1 = WeatherArray(
 		pdt.DataFrame(
@@ -207,7 +206,7 @@ def test_functions_to_solve__different_weather() -> None:
 	T_h_state_1 = sag_tension_calculation.T_h_after_change
 	expected_result_1 = np.array([42098.9070, np.nan])
 	assert T_h_state_1 is not None
-	np.testing.assert_allclose(T_h_state_1, expected_result_1, rtol=0.01)
+	np.testing.assert_allclose(T_h_state_1, expected_result_1, atol=0.01)
 
 	weather_array_final_2 = WeatherArray(
 		pdt.DataFrame(
@@ -223,8 +222,9 @@ def test_functions_to_solve__different_weather() -> None:
 	T_h_state_2 = sag_tension_calculation.T_h_after_change
 	expected_result_2 = np.array([31745.05101, np.nan])
 	assert T_h_state_2 is not None
+	# Careful: value is not exactly the same: 31742.24808412 vs 31745.05101
 	np.testing.assert_allclose(
-		T_h_state_2, expected_result_2, rtol=0.01
+		T_h_state_2, expected_result_2, atol=3
 	)  # typing: ignore[arg-type]
 
 	new_temperature = np.array([25] * NB_SPAN)
@@ -232,14 +232,14 @@ def test_functions_to_solve__different_weather() -> None:
 		WeatherArray(initial_weather_data), new_temperature
 	)
 	T_h_state_3 = sag_tension_calculation.T_h_after_change
-	expected_result_3 = np.array([18383.1116, np.nan])
+	expected_result_3 = np.array([18380.1116, np.nan])
 	assert T_h_state_3 is not None
-	np.testing.assert_allclose(T_h_state_3, expected_result_3, rtol=0.01)
+	np.testing.assert_allclose(T_h_state_3, expected_result_3, atol=0.01)
 
 
 def test_functions_to_solve__different_temp_ref() -> None:
 	NB_SPAN = 2
-	input_cable_0 = pd.DataFrame(
+	input_cable = pd.DataFrame(
 		{
 			"section": [345.55] * NB_SPAN,
 			"diameter": [22.4] * NB_SPAN,
@@ -276,7 +276,7 @@ def test_functions_to_solve__different_temp_ref() -> None:
 	sagging_temperature = 15
 	sag_tension_calculation_0 = create_sag_tension_solver(
 		data_section,
-		input_cable_0,
+		input_cable,
 		initial_data_weather,
 		sagging_parameter,
 		sagging_temperature,
@@ -297,25 +297,17 @@ def test_functions_to_solve__different_temp_ref() -> None:
 	T_h_state_0 = sag_tension_calculation_0.T_h_after_change
 	expected_result_0 = np.array([117951.847, np.nan])
 	assert T_h_state_0 is not None
-	np.testing.assert_allclose(T_h_state_0, expected_result_0, rtol=0.01)
-	input_cable_1 = pd.DataFrame(
-		{
-			"section": [345.55] * NB_SPAN,
-			"diameter": [22.4] * NB_SPAN,
-			"linear_weight": [9.55494] * NB_SPAN,
-			"young_modulus": [59] * NB_SPAN,
-			"dilatation_coefficient": [23] * NB_SPAN,
-			"temperature_reference": [0] * NB_SPAN,  # difference here
-			"a0": [0] * NB_SPAN,
-			"a1": [59] * NB_SPAN,
-			"a2": [0] * NB_SPAN,
-			"a3": [0] * NB_SPAN,
-			"a4": [0] * NB_SPAN,
-		}
+	np.testing.assert_allclose(T_h_state_0, expected_result_0, atol=0.01)
+	input_cable.update(
+		pd.DataFrame(
+			{
+				"temperature_reference": [0] * NB_SPAN,
+			}
+		)
 	)
 	sag_tension_calculation_1 = create_sag_tension_solver(
 		data_section,
-		input_cable_1,
+		input_cable,
 		initial_data_weather,
 		sagging_parameter,
 		sagging_temperature,
@@ -326,4 +318,4 @@ def test_functions_to_solve__different_temp_ref() -> None:
 	T_h_state_1 = sag_tension_calculation_1.T_h_after_change
 	expected_result_1 = np.array([117961.6142, np.nan])
 	assert T_h_state_1 is not None
-	np.testing.assert_allclose(T_h_state_1, expected_result_1, rtol=0.01)
+	np.testing.assert_allclose(T_h_state_1, expected_result_1, atol=0.01)
