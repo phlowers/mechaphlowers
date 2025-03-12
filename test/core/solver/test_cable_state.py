@@ -52,6 +52,11 @@ def cable_array_one_span():
 				"young_modulus": [59] * 2,
 				"dilatation_coefficient": [23] * 2,
 				"temperature_reference": [0] * 2,
+				"a0": [0] * 2,
+				"a1": [59] * 2,
+				"a2": [0] * 2,
+				"a3": [0] * 2,
+				"a4": [0] * 2,
 			}
 		)
 	)

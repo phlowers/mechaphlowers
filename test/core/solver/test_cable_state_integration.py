@@ -60,6 +60,11 @@ def test_functions_to_solve__same_loads() -> None:
 			"young_modulus": [59] * NB_SPAN,
 			"dilatation_coefficient": [23] * NB_SPAN,
 			"temperature_reference": [0] * NB_SPAN,
+			"a0": [0] * NB_SPAN,
+			"a1": [59] * NB_SPAN,
+			"a2": [0] * NB_SPAN,
+			"a3": [0] * NB_SPAN,
+			"a4": [0] * NB_SPAN,
 		}
 	)
 	data_section = {
@@ -142,6 +147,12 @@ def test_functions_to_solve__different_weather() -> None:
 			"young_modulus": [59] * NB_SPAN,
 			"dilatation_coefficient": [23] * NB_SPAN,
 			"temperature_reference": [15] * NB_SPAN,
+			"a0": [0] * NB_SPAN,
+			"a1": [59] * NB_SPAN,
+			"a2": [0] * NB_SPAN,
+			"a3": [0] * NB_SPAN,
+			"a4": [0] * NB_SPAN,
+			
 		}
 	)
 	data_section = pd.DataFrame(
@@ -236,6 +247,11 @@ def test_functions_to_solve__different_temp_ref() -> None:
 			"young_modulus": [59] * NB_SPAN,
 			"dilatation_coefficient": [23] * NB_SPAN,
 			"temperature_reference": [15] * NB_SPAN,
+			"a0": [0] * NB_SPAN,
+			"a1": [59] * NB_SPAN,
+			"a2": [0] * NB_SPAN,
+			"a3": [0] * NB_SPAN,
+			"a4": [0] * NB_SPAN,
 		}
 	)
 	data_section = pd.DataFrame(
@@ -290,6 +306,11 @@ def test_functions_to_solve__different_temp_ref() -> None:
 			"young_modulus": [59] * NB_SPAN,
 			"dilatation_coefficient": [23] * NB_SPAN,
 			"temperature_reference": [0] * NB_SPAN,  # difference here
+			"a0": [0] * NB_SPAN,
+			"a1": [59] * NB_SPAN,
+			"a2": [0] * NB_SPAN,
+			"a3": [0] * NB_SPAN,
+			"a4": [0] * NB_SPAN,
 		}
 	)
 	sag_tension_calculation_1 = create_sag_tension_solver(
