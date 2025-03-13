@@ -39,6 +39,9 @@ def rotation_matrix_to_quaternion(
 		np.ndarray: [[w0, x0, y0, z0], [w1, x1, y1, z1],...]
 
 	Examples:
+		Create two quaternions that serve as rotation matrix:
+		rotation of 90° around the axis $\\vec{x}$, and rotation of 180° around the axis $\\vec{z}$
+
 		>>> beta = [90, 180]
 		>>> rotation_axes = np.array([[1, 0, 0], [0, 0, 1]])
 		>>> rotation_matrix_to_quaternion(beta, rotation_axes)
@@ -76,11 +79,14 @@ def rotation_quaternion_same_axis(
 		np.ndarray: array of new points that have been rotated by angles beta around rotation_axis
 
 	Examples:
-		>>> vector = np.array([[0, 1, 0], [0, 1, 0]])
+		Rotation of vector $2\\vec{z}$ by angle of 90° and rotation of vector $\\vec{y}$ by angle of 45°, both around the axis $\\vec{x}$.
+
+		The rotated vectors are: $-2\\vec{y}$ and \\(\\frac{\\sqrt{2}}{2} \\vec{y} + \\frac{\\sqrt{2}}{2} \\vec{z} \\)
+		>>> vector = np.array([[0, 0, 2], [0, 1, 0]])
 		>>> beta = np.array([90, 45])
 		>>> rotation_axis = np.array([1, 0, 0])
 		>>> rotation_quaternion_same_axis(vector, beta, rotation_axis)
-		array([[0,  0,  1], [0,  0.707106781,  0.707106781]])
+		array([[0,  -2,  0], [0,  0.707106781,  0.707106781]])
 	"""
 
 	rotation_axes = np.full(vector.shape, rotation_axis)
@@ -103,11 +109,14 @@ def rotation_quaternion(
 		np.ndarray: array of new points that have been rotated by angles beta around rotation_axes
 
 	Examples:
-		>>> vector = np.array([[0, 1, 0], [0, 1, 0]])
+		Rotation of vector $2\\vec{z}$ by angle of 90° around the axis $\\vec{x}$, and rotation of vector $\\vec{y}$ by angle of -90° around the axis $\\vec{z}$
+
+		The rotated vectors are: $-2\\vec{y}$ and $\\vec{x}$
+		>>> vector = np.array([[0, 0, 2], [0, 1, 0]])
 		>>> beta = np.array([90, -90])
 		>>> rotation_axes = np.array([[1, 0, 0], [0, 0, 1]])
 		>>> rotation_quaternion(vector, beta, rotation_axes)
-		array([[ 0,  0,  1], [1,  0,  0]])
+		array([[ 0,  -2,  0], [1,  0,  0]])
 	"""
 	# compute the rotation matrix as quaternion
 	rotation_quaternion = rotation_matrix_to_quaternion(beta, rotation_axes)
