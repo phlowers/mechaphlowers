@@ -16,8 +16,8 @@ from mechaphlowers.core.geometry import references
 
 # if TYPE_CHECKING:
 from mechaphlowers.core.models.cable.deformation import (
-	Deformation,
-	DeformationImpl,
+	DeformationRTE,
+	IDeformation,
 )
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
@@ -50,16 +50,16 @@ class SectionDataFrame:
 		self,
 		section: SectionArray,
 		span_model: Type[Span] = CatenarySpan,
-		deformation_model: Type[Deformation] = DeformationImpl,
+		deformation_model: Type[IDeformation] = DeformationRTE,
 	):
 		self.section: SectionArray = section
 		self.cable: CableArray | None = None
 		self.weather: WeatherArray | None = None
 		self.cable_loads: CableLoads | None = None
 		self.span: Span | None = None
-		self.deformation: Deformation | None = None
+		self.deformation: IDeformation | None = None
 		self._span_model: Type[Span] = span_model
-		self._deformation_model: Type[Deformation] = deformation_model
+		self._deformation_model: Type[IDeformation] = deformation_model
 		self.init_span_model()
 
 	def init_span_model(self):

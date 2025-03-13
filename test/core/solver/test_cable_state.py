@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.core.models.cable.deformation import DeformationImpl
+from mechaphlowers.core.models.cable.deformation import DeformationRTE
 from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.core.solver.cable_state import (
@@ -109,7 +109,7 @@ def get_L_ref_from_arrays(
 	)
 	span_model.load_coefficient = cable_loads.load_coefficient
 	span_model.linear_weight = cable_array.data.linear_weight.to_numpy()
-	deformation = DeformationImpl(
+	deformation = DeformationRTE(
 		cable_array,
 		span_model.T_mean(),
 		span_model.L(),

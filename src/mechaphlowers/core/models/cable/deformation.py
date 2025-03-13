@@ -14,7 +14,7 @@ from mechaphlowers.entities.arrays import CableArray
 IMAGINARY_THRESHOLD = 1e-5
 
 
-class Deformation(ABC):
+class IDeformation(ABC):
 	"""This abstract class is a base class for models to compute relative cable deformations."""
 
 	def __init__(
@@ -70,8 +70,8 @@ class Deformation(ABC):
 		"""Computing thermal strain using a static method"""
 
 
-class DeformationImpl(Deformation):
-	"""This model assumes that mechanical strain is linear with tension."""
+class DeformationRTE(IDeformation):
+	# TODO: docstring
 
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
 		L = self.cable_length
@@ -105,11 +105,10 @@ class DeformationImpl(Deformation):
 		polynomial: Poly,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
-		# TODO: check degree of every polynom, and the split arrays in 2
 		if polynomial.trim().degree() < 2:
 			return T_mean / (E * S)
 		else:
-			return DeformationImpl.compute_epsilon_mecha_polynomial(
+			return DeformationRTE.compute_epsilon_mecha_polynomial(
 				T_mean, E, S, polynomial, max_stress
 			)
 
@@ -124,7 +123,7 @@ class DeformationImpl(Deformation):
 		sigma = T_mean / S
 		if polynomial is None:
 			raise ValueError("Polynomial is not defined")
-		epsilon_plastic = DeformationImpl.compute_epsilon_plastic(
+		epsilon_plastic = DeformationRTE.compute_epsilon_plastic(
 			T_mean, E, S, polynomial, max_stress
 		)
 		return epsilon_plastic + sigma / E
@@ -143,7 +142,7 @@ class DeformationImpl(Deformation):
 			max_stress = np.full(T_mean.shape, 0)
 		# epsilon plastic is based on the highest value between sigma and max_stress
 		highest_constraint = np.fmax(sigma, max_stress)
-		equation_solution = DeformationImpl.resolve_stress_strain_equation(
+		equation_solution = DeformationRTE.resolve_stress_strain_equation(
 			highest_constraint, polynomial
 		)
 		equation_solution -= highest_constraint / E
@@ -156,9 +155,7 @@ class DeformationImpl(Deformation):
 		"""Solves $\\sigma = Polynomial(\\varepsilon)$"""
 		polynom_array = np.full(sigma.shape, polynomial)
 		poly_to_resolve = polynom_array - sigma
-		return DeformationImpl.find_smallest_real_positive_root(
-			poly_to_resolve
-		)
+		return DeformationRTE.find_smallest_real_positive_root(poly_to_resolve)
 
 	@staticmethod
 	def find_smallest_real_positive_root(
