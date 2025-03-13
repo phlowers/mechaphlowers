@@ -71,7 +71,7 @@ class IDeformation(ABC):
 
 
 class DeformationRTE(IDeformation):
-	# TODO: docstring
+	"""This class implements the deformation model used by RTE."""
 
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
 		L = self.cable_length
@@ -105,8 +105,10 @@ class DeformationRTE(IDeformation):
 		polynomial: Poly,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
+		# linear case
 		if polynomial.trim().degree() < 2:
 			return T_mean / (E * S)
+		# polynomial case
 		else:
 			return DeformationRTE.compute_epsilon_mecha_polynomial(
 				T_mean, E, S, polynomial, max_stress
@@ -120,6 +122,7 @@ class DeformationRTE(IDeformation):
 		polynomial: Poly,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
+		"""Computes epsilon when the stress-strain relation is polynomial"""
 		sigma = T_mean / S
 		if polynomial is None:
 			raise ValueError("Polynomial is not defined")
