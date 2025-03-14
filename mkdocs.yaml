@@ -50,7 +50,9 @@ nav:
           - Arrays : docstring/entities/arrays.md
           - Schemas : docstring/entities/schemas.md
       - Core :
-          - Geometry : docstring/core/geometry/references.md
+          - Geometry : 
+            - References : docstring/core/geometry/references.md
+            - Rotation : docstring/core/geometry/rotation.md
           - Models : 
             - Cable :
               - Span : docstring/core/models/cable/span.md
