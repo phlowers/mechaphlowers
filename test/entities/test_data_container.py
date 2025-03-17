@@ -4,20 +4,18 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-import pytest
-from numpy.testing import assert_allclose
-from pandas.testing import assert_frame_equal
-import pandas as pd
 import numpy as np
-from dataclasses import dataclass, field
-from mechaphlowers.entities.data_container import DataContainer
-from mechaphlowers.entities.arrays import CableArray, SectionArray, WeatherArray
+import pandas as pd
+
+from mechaphlowers.entities.arrays import (
+	CableArray,
+	SectionArray,
+	WeatherArray,
+)
 from mechaphlowers.entities.data_container import factory_data_container
 
 
-
 def test_first_try():
-
 	NB_SPAN = 4
 	cable_dict = {
 		"section": [345.55] * NB_SPAN,
@@ -44,8 +42,8 @@ def test_first_try():
 	}
 
 	weather_dict = {
-				"ice_thickness": [1, 2.1, 0.0, 0.0],
-				"wind_pressure": np.zeros(NB_SPAN),
+		"ice_thickness": [1, 2.1, 0.0, 0.0],
+		"wind_pressure": np.zeros(NB_SPAN),
 	}
 
 	section_array = SectionArray(pd.DataFrame(section_dict))
@@ -54,9 +52,9 @@ def test_first_try():
 	cable_array = CableArray(pd.DataFrame(cable_dict))
 	weather_array = WeatherArray(pd.DataFrame(weather_dict))
 
-
-	data_container_new = factory_data_container(section_array, cable_array, weather_array)
+	data_container_new = factory_data_container(
+		section_array, cable_array, weather_array
+	)
 	data_container_new.name
-
 
 	assert True

@@ -53,7 +53,7 @@ class ElementArray(ABC):
 		original units and no columns added
 		"""
 		return self._data
-	
+
 	# find a more elegant way to do this
 	def to_dict_with_numpy(self) -> dict:
 		data_dict = self.data.to_dict('list')

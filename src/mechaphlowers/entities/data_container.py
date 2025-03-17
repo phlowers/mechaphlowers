@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 import numpy as np
 
 from mechaphlowers.entities.arrays import (
@@ -33,11 +31,11 @@ class DataContainer:
 		self.a2: np.ndarray
 		self.a3: np.ndarray
 		self.a4: np.ndarray
-		self.b0: np.ndarray | None = None # Correct solution???
-		self.b1: np.ndarray | None = None
-		self.b2: np.ndarray | None = None
-		self.b3: np.ndarray | None = None
-		self.b4: np.ndarray | None = None
+		self.b0: np.ndarray | None  # Correct solution???
+		self.b1: np.ndarray | None
+		self.b2: np.ndarray | None
+		self.b3: np.ndarray | None
+		self.b4: np.ndarray | None
 
 		self.ice_thickness: np.ndarray
 		self.wind_pressure: np.ndarray
@@ -56,7 +54,7 @@ class DataContainer:
 		elevation_difference: np.ndarray,
 		sagging_parameter: np.ndarray,
 		sagging_temperature: np.ndarray,
-		**kwargs # keep kwargs?
+		**kwargs,  # keep kwargs?
 	) -> None:
 		self.name = name
 		self.suspension = suspension
@@ -87,7 +85,7 @@ class DataContainer:
 		b2: np.ndarray | None = None,
 		b3: np.ndarray | None = None,
 		b4: np.ndarray | None = None,
-		**kwargs
+		**kwargs,
 	) -> None:
 		self.section = section
 		self.diameter = diameter
@@ -107,15 +105,10 @@ class DataContainer:
 		self.b4 = b4
 
 	def add_data_weather(
-		self,
-		ice_thickness: np.ndarray,
-		wind_pressure: np.ndarray,
-		**kwargs
+		self, ice_thickness: np.ndarray, wind_pressure: np.ndarray, **kwargs
 	) -> None:
 		self.ice_thickness = ice_thickness
 		self.wind_pressure = wind_pressure
-
-
 
 	def __getitem__(self, key):
 		return getattr(self, key)
