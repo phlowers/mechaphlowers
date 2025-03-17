@@ -8,13 +8,11 @@
 from typing import Type
 
 import numpy as np
-from numpy.polynomial import Polynomial as Poly
 from scipy import optimize  # type: ignore
 
 from mechaphlowers.core.models.cable.deformation import (
-	Deformation,
-	LinearDeformation,
-	PolynomialDeformation,
+	DeformationRTE,
+	IDeformation,
 )
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
@@ -42,7 +40,7 @@ class SagTensionSolver:
 		weather_array: WeatherArray,
 		L_ref: np.ndarray,
 		span_model: Type[Span] = CatenarySpan,
-		deformation_model: Type[Deformation] = LinearDeformation,
+		deformation_model: Type[IDeformation] = DeformationRTE,
 	) -> None:
 		self.a = section_array.data.span_length.to_numpy()
 		self.b = section_array.data.elevation_difference.to_numpy()
@@ -54,11 +52,7 @@ class SagTensionSolver:
 		self.E = cable_array.data.young_modulus.to_numpy()
 		self.S = cable_array.data.section.to_numpy()
 		self.alpha = cable_array.data.dilatation_coefficient.to_numpy()
-		self.stress_strain_polynomial: Poly | None = None
-		if deformation_model == PolynomialDeformation:
-			self.stress_strain_polynomial = (
-				cable_array.stress_strain_polynomial
-			)
+		self.stress_strain_polynomial = cable_array.stress_strain_polynomial
 		self.theta_ref = cable_array.data.temperature_reference.to_numpy()
 		self.cable_loads = CableLoads(cable_array, weather_array)
 		self.L_ref = L_ref
@@ -114,7 +108,7 @@ class SagTensionSolver:
 
 		T_mean = self.span_model.compute_T_mean(self.a, self.b, p, T_h)
 		epsilon_total = self.deformation_model.compute_epsilon_mecha(
-			T_mean, self.E, self.S, polynomial=self.stress_strain_polynomial
+			T_mean, self.E, self.S, self.stress_strain_polynomial
 		) + self.deformation_model.compute_epsilon_therm(
 			temp, self.theta_ref, self.alpha
 		)
