@@ -53,6 +53,13 @@ class ElementArray(ABC):
 		original units and no columns added
 		"""
 		return self._data
+	
+	# find a more elegant way to do this
+	def to_dict_with_numpy(self) -> dict:
+		data_dict = self.data.to_dict('list')
+		for key, value in data_dict.items():
+			data_dict[key] = np.array(value)
+		return data_dict
 
 
 class SectionArray(ElementArray):
