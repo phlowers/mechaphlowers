@@ -36,7 +36,7 @@ def default_data_container_two_spans() -> DataContainer:
 		"linear_weight": [9.55494] * NB_SPAN,
 		"young_modulus": [59] * NB_SPAN,
 		"dilatation_coefficient": [23] * NB_SPAN,
-		"temperature_reference": [0] * NB_SPAN,
+		"temperature_reference": [15] * NB_SPAN,
 		"a0": [0] * NB_SPAN,
 		"a1": [59] * NB_SPAN,
 		"a2": [0] * NB_SPAN,
@@ -55,7 +55,7 @@ def default_data_container_two_spans() -> DataContainer:
 	}
 
 	weather_dict = {
-		"ice_thickness": [1, 2.1, 0.0, 0.0],
+		"ice_thickness": [0.0, 0.0],
 		"wind_pressure": np.zeros(NB_SPAN),
 	}
 	section_array = SectionArray(pd.DataFrame(section_dict))  # refactor this?

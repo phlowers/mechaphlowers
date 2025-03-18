@@ -40,7 +40,7 @@ def a_two_spans() -> np.ndarray:
 def b_two_spans() -> np.ndarray:
 	return np.array([0.0, -5.0])
 
-
+ 
 @pytest.fixture
 def p_two_spans() -> np.ndarray:
 	return np.array([2_000, 2_000.0])

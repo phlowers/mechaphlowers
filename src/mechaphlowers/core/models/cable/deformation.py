@@ -22,6 +22,7 @@ class Deformation(ABC):
 		cable_array: CableArray,
 		tension_mean: np.ndarray,
 		max_stress: np.ndarray | None = None,
+		**kwargs,
 	):
 		self.cable_array = cable_array
 		self.tension_mean = tension_mean
