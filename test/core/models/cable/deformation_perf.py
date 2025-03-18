@@ -10,7 +10,7 @@ import numpy as np
 from pandera.typing import pandas as pdt
 
 from mechaphlowers.core.models.cable.deformation import (
-	PolynomialDeformation,
+	DeformationRTE,
 )
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
@@ -52,16 +52,13 @@ def test_solve_polynom_perf() -> None:
 
 	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
 	tension_mean = span_model.T_mean()
-	polynomial_deformation_model = PolynomialDeformation(
-		cable_array, tension_mean
-	)
+	cable_length = span_model.L()
+	deformation_model = DeformationRTE(cable_array, tension_mean, cable_length)
 
 	start_time = time.time()
 
-	polynomial_deformation_model.max_stress = np.array(
-		[1e8] * (spans_number - 1) + [100]
-	)
-	polynomial_deformation_model.epsilon_mecha()
+	deformation_model.max_stress = np.array([1e8] * (spans_number - 1) + [100])
+	deformation_model.epsilon_mecha()
 	exec_time = time.time() - start_time
 	print(f"{spans_number} spans execution time : {exec_time}")
 
