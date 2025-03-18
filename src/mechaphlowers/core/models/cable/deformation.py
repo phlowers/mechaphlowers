@@ -9,8 +9,6 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
-from mechaphlowers.entities.arrays import CableArray
-
 IMAGINARY_THRESHOLD = 1e-5
 
 
@@ -19,17 +17,40 @@ class IDeformation(ABC):
 
 	def __init__(
 		self,
-		cable_array: CableArray,
 		tension_mean: np.ndarray,
-		cable_length: np.ndarray,
-		max_stress: np.ndarray | None = None,
+		cable_length: np.ndarray,  # Values that are not in DataContainer?
+		young_modulus: np.ndarray,
+		section: np.ndarray,
+		temperature_reference: np.ndarray,
+		dilatation_coefficient: np.ndarray,
+		linear_weight: np.ndarray,
+		# tension_mean: np.ndarray,
+		a0: np.ndarray,
+		a1: np.ndarray,
+		a2: np.ndarray,
+		a3: np.ndarray,
+		a4: np.ndarray,
+		max_stress: np.ndarray | float = 0.0,
 		**kwargs,
 	):
-		self.cable_array = cable_array
 		self.tension_mean = tension_mean
+		self.young_modulus = young_modulus
+		self.section = section
 		self.cable_length = cable_length
-		if max_stress is None:
-			self.max_stress = np.full(self.tension_mean.shape, 0)
+		self.temp_ref = temperature_reference
+		self.dilatation_coefficient = dilatation_coefficient
+		self.linear_weight = linear_weight
+
+		self.a0 = a0
+		self.a1 = a1
+		self.a2 = a2
+		self.a3 = a3
+		self.a4 = a4
+
+		# self.tension_mean = tension_mean
+
+		if isinstance(max_stress, float):  # TODO: Keep this instead of None?
+			self.max_stress = np.full(self.cable_length.shape, max_stress)
 		else:
 			self.max_stress = max_stress
 
@@ -83,9 +104,13 @@ class DeformationRTE(IDeformation):
 
 	def epsilon_mecha(self) -> np.ndarray:
 		T_mean = self.tension_mean
-		E = self.cable_array.data["young_modulus"].to_numpy()
-		S = self.cable_array.data["section"].to_numpy()
-		polynomial = self.cable_array.stress_strain_polynomial
+		E = self.young_modulus
+		S = self.section
+		# TODO: improve this -> should not be done here, DataContainer should provide polynomial directly
+		coefs_poly = np.array(
+			[self.a0[0], self.a1[0], self.a2[0], self.a3[0], self.a4[0]]
+		)
+		polynomial = Poly(coefs_poly)
 		return self.compute_epsilon_mecha(
 			T_mean, E, S, polynomial, self.max_stress
 		)
@@ -94,8 +119,8 @@ class DeformationRTE(IDeformation):
 		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
 
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
-		temp_ref = self.cable_array.data["temperature_reference"].to_numpy()
-		alpha = self.cable_array.data["dilatation_coefficient"].to_numpy()
+		temp_ref = self.temp_ref
+		alpha = self.dilatation_coefficient
 		return self.compute_epsilon_therm(current_temperature, temp_ref, alpha)
 
 	@staticmethod

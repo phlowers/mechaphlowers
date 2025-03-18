@@ -35,6 +35,15 @@ class SagTensionSolver:
 
 	def __init__(
 		self,
+		span_length: np.ndarray,
+		elevation_difference: np.ndarray,
+		sagging_parameter: np.ndarray,
+		sagging_temperature: np.ndarray,
+		linear_weight: np.ndarray,
+		young_modulus: np.ndarray,
+		section: np.ndarray,
+		dilatation_coefficient: np.ndarray,
+		temperature_reference: np.ndarray,
 		section_array: SectionArray,
 		cable_array: CableArray,
 		weather_array: WeatherArray,
@@ -42,19 +51,19 @@ class SagTensionSolver:
 		span_model: Type[Span] = CatenarySpan,
 		deformation_model: Type[IDeformation] = DeformationRTE,
 	) -> None:
-		self.a = section_array.data.span_length.to_numpy()
-		self.b = section_array.data.elevation_difference.to_numpy()
-		self.p = section_array.data.sagging_parameter.to_numpy()
-		self.sagging_temperature = (
-			section_array.data.sagging_temperature.to_numpy()
-		)
-		self.linear_weight = cable_array.data.linear_weight.to_numpy()
-		self.E = cable_array.data.young_modulus.to_numpy()
-		self.S = cable_array.data.section.to_numpy()
-		self.alpha = cable_array.data.dilatation_coefficient.to_numpy()
-		self.stress_strain_polynomial = cable_array.stress_strain_polynomial
-		self.theta_ref = cable_array.data.temperature_reference.to_numpy()
-		self.cable_loads = CableLoads(cable_array, weather_array)
+		self.span_length = span_length
+		self.elevation_difference = elevation_difference
+		self.sagging_parameter = sagging_parameter
+		self.sagging_temperature = sagging_temperature
+		self.linear_weight = linear_weight
+		self.young_modulus = young_modulus
+		self.section = section
+		self.dilatation_coefficient = dilatation_coefficient
+		self.temperature_reference = temperature_reference
+		self.stress_strain_polynomial = (
+			cable_array.stress_strain_polynomial
+		)  # ??
+		self.cable_loads = CableLoads(cable_array, weather_array)  # TODO: ???
 		self.L_ref = L_ref
 		self.span_model = span_model
 		self.deformation_model = deformation_model
@@ -81,7 +90,9 @@ class SagTensionSolver:
 			raise ValueError(f"Incorrect solver name: {solver}")
 		self.cable_loads.weather = weather_array
 		m = self.cable_loads.load_coefficient
-		T_h0 = self.span_model.compute_T_h(self.p, m, self.linear_weight)
+		T_h0 = self.span_model.compute_T_h(
+			self.sagging_parameter, m, self.linear_weight
+		)
 
 		# TODO adapt code to use other solving methods
 
@@ -104,13 +115,20 @@ class SagTensionSolver:
 		$\\delta = \\varepsilon_{L} - \\varepsilon_{T}$
 		"""
 		p = self.span_model.compute_p(T_h, m, self.linear_weight)
-		L = self.span_model.compute_L(self.a, self.b, p)
+		L = self.span_model.compute_L(
+			self.span_length, self.elevation_difference, p
+		)
 
-		T_mean = self.span_model.compute_T_mean(self.a, self.b, p, T_h)
+		T_mean = self.span_model.compute_T_mean(
+			self.span_length, self.elevation_difference, p, T_h
+		)
 		epsilon_total = self.deformation_model.compute_epsilon_mecha(
-			T_mean, self.E, self.S, self.stress_strain_polynomial
+			T_mean,
+			self.young_modulus,
+			self.section,
+			self.stress_strain_polynomial,
 		) + self.deformation_model.compute_epsilon_therm(
-			temp, self.theta_ref, self.alpha
+			temp, self.temperature_reference, self.dilatation_coefficient
 		)
 
 		return (L / L_ref - 1) - epsilon_total
@@ -152,4 +170,6 @@ class SagTensionSolver:
 			raise ValueError(
 				"method change_state has to be run before calling this method"
 			)
-		return self.span_model.compute_L(self.a, self.b, p)
+		return self.span_model.compute_L(
+			self.span_length, self.elevation_difference, p
+		)

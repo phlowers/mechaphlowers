@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.entities.arrays import (
 	CableArray,
@@ -31,7 +32,7 @@ class DataContainer:
 		self.a2: np.ndarray
 		self.a3: np.ndarray
 		self.a4: np.ndarray
-		self.b0: np.ndarray | None  # Correct solution???
+		self.b0: np.ndarray | None  # Correct solution??? Or always 0?
 		self.b1: np.ndarray | None
 		self.b2: np.ndarray | None
 		self.b3: np.ndarray | None
@@ -40,7 +41,13 @@ class DataContainer:
 		self.ice_thickness: np.ndarray
 		self.wind_pressure: np.ndarray
 
-		L_ref: np.ndarray
+	@property
+	def stress_strain_polynomial_conductor(self) -> Poly:
+		"""Converts coefficients in the dataframe into polynomial"""
+		coefs_poly = np.array(
+			[self.a0[0], self.a1[0], self.a2[0], self.a3[0], self.a4[0]]
+		)
+		return Poly(coefs_poly)
 
 	def add_data_section(
 		self,

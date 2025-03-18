@@ -42,6 +42,11 @@ def default_data_container_two_spans() -> DataContainer:
 		"a2": [0] * NB_SPAN,
 		"a3": [0] * NB_SPAN,
 		"a4": [0] * NB_SPAN,
+		"b0": [0] * NB_SPAN,
+		"b1": [0] * NB_SPAN,
+		"b2": [0] * NB_SPAN,
+		"b3": [0] * NB_SPAN,
+		"b4": [0] * NB_SPAN,
 	}
 
 	section_dict = {

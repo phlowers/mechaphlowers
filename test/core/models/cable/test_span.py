@@ -10,6 +10,7 @@ import pytest
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
+from mechaphlowers.entities.data_container import DataContainer
 
 
 def test_catenary_span_model__no_error_lengths(
@@ -165,7 +166,9 @@ def test_catenary_span_model__geometric_output():
 	# TODO: check on a non symetrical case
 
 
-def test_catenary_span_model__data_container(default_data_container_two_spans) -> None:
+def test_catenary_span_model__data_container(
+	default_data_container_two_spans: DataContainer,
+) -> None:
 	span_model = CatenarySpan(**default_data_container_two_spans.__dict__)
 	x = np.array([100, 200.0])
 
