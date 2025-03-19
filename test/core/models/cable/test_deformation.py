@@ -90,11 +90,11 @@ def test_deformation_values__default_data(
 	)
 	current_temperature = np.array([30, 30])
 
-	# Data given by the prototype
 	eps_mecha = deformation_model.epsilon_mecha()
 	eps_therm = deformation_model.epsilon_therm(current_temperature)
 	L_ref = deformation_model.L_ref(current_temperature)
 
+	# Data given by the prototype
 	np.testing.assert_allclose(
 		eps_mecha,
 		np.array([0.00093978, np.nan]),
@@ -105,10 +105,10 @@ def test_deformation_values__default_data(
 		np.array([0.000345, 0.000345]),
 		atol=1e-6,
 	)
-	# TODO: use proto to fix values
+	# our method L_ref returns L_15 but proto returns L_0 so that's why 480.6392123 is not the displayed value if you are using proto
 	np.testing.assert_allclose(
 		L_ref,
-		np.array([500.65986147, np.nan]),
+		np.array([480.6392123, np.nan]),
 		atol=1e-6,
 	)
 
