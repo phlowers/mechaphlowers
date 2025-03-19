@@ -6,6 +6,7 @@
 
 import numpy as np
 import pytest
+from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.core.models.cable.deformation import DeformationRTE
 from mechaphlowers.core.models.cable.span import (
@@ -115,11 +116,9 @@ def test_deformation_values__default_data(
 def test_poly_deformation__degree_three(
 	default_data_container_two_spans: DataContainer,
 ) -> None:
-	default_data_container_two_spans.a0 = np.array([0] * 2)
-	default_data_container_two_spans.a1 = np.array([1e9 * 50] * 2)
-	default_data_container_two_spans.a2 = np.array([1e9 * -3_000] * 2)
-	default_data_container_two_spans.a3 = np.array([1e9 * 44_000] * 2)
-	default_data_container_two_spans.a4 = np.array([0] * 2)
+	new_poly = Poly([0, 1e9 * 50, 1e9 * -3_000, 1e9 * 44_000, 0])
+	new_poly_array = np.repeat(np.array([new_poly]), 2)
+	default_data_container_two_spans.polynomial_conductor = new_poly_array
 
 	span_model = CatenarySpan(**default_data_container_two_spans.__dict__)
 	tension_mean = span_model.T_mean()
@@ -146,12 +145,11 @@ def test_poly_deformation__degree_three(
 def test_poly_deformation__degree_four(
 	default_data_container_two_spans: DataContainer,
 ) -> None:
-	# TODO: units error!!
-	default_data_container_two_spans.a0 = np.array([0] * 2)
-	default_data_container_two_spans.a1 = np.array([1e9 * 100] * 2)
-	default_data_container_two_spans.a2 = np.array([1e9 * -24_000] * 2)
-	default_data_container_two_spans.a3 = np.array([1e9 * 2_440_000] * 2)
-	default_data_container_two_spans.a4 = np.array([1e9 * -90_000_000] * 2)
+	new_poly = Poly(
+		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
+	)
+	new_poly_array = np.repeat(np.array([new_poly]), 2)
+	default_data_container_two_spans.polynomial_conductor = new_poly_array
 
 	span_model = CatenarySpan(**default_data_container_two_spans.__dict__)
 	tension_mean = span_model.T_mean()
@@ -178,11 +176,11 @@ def test_poly_deformation__degree_four(
 def test_poly_deformation__degree_four__with_max_stress(
 	default_data_container_two_spans: DataContainer,
 ) -> None:
-	default_data_container_two_spans.a0 = np.array([0] * 2)
-	default_data_container_two_spans.a1 = np.array([1e9 * 100] * 2)
-	default_data_container_two_spans.a2 = np.array([1e9 * -24_000] * 2)
-	default_data_container_two_spans.a3 = np.array([1e9 * 2_440_000] * 2)
-	default_data_container_two_spans.a4 = np.array([1e9 * -90_000_000] * 2)
+	new_poly = Poly(
+		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
+	)
+	new_poly_array = np.repeat(np.array([new_poly]), 2)
+	default_data_container_two_spans.polynomial_conductor = new_poly_array
 
 	span_model = CatenarySpan(**default_data_container_two_spans.__dict__)
 	tension_mean = span_model.T_mean()
@@ -205,11 +203,11 @@ def test_poly_deformation__degree_four__with_max_stress(
 def test_poly_deformation__no_solutions(
 	default_data_container_two_spans: DataContainer,
 ) -> None:
-	default_data_container_two_spans.a0 = np.array([0] * 2)
-	default_data_container_two_spans.a1 = np.array([1e9 * 100] * 2)
-	default_data_container_two_spans.a2 = np.array([1e9 * -24_000] * 2)
-	default_data_container_two_spans.a3 = np.array([1e9 * 2_440_000] * 2)
-	default_data_container_two_spans.a4 = np.array([1e9 * -90_000_000] * 2)
+	new_poly = Poly(
+		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
+	)
+	new_poly_array = np.repeat(np.array([new_poly]), 2)
+	default_data_container_two_spans.polynomial_conductor = new_poly_array
 
 	span_model = CatenarySpan(**default_data_container_two_spans.__dict__)
 	tension_mean = span_model.T_mean()

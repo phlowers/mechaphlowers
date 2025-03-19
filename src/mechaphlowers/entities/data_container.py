@@ -32,11 +32,14 @@ class DataContainer:
 		self.a2: np.ndarray
 		self.a3: np.ndarray
 		self.a4: np.ndarray
-		self.b0: np.ndarray | None  # Correct solution??? Or always 0?
-		self.b1: np.ndarray | None
-		self.b2: np.ndarray | None
-		self.b3: np.ndarray | None
-		self.b4: np.ndarray | None
+		self.b0: np.ndarray  # Correct solution??? Or always 0?
+		self.b1: np.ndarray
+		self.b2: np.ndarray
+		self.b3: np.ndarray
+		self.b4: np.ndarray
+
+		self.polynomial_conductor: np.ndarray
+		self.polynomial_heart: np.ndarray
 
 		self.ice_thickness: np.ndarray
 		self.wind_pressure: np.ndarray
@@ -87,11 +90,11 @@ class DataContainer:
 		a2: np.ndarray,
 		a3: np.ndarray,
 		a4: np.ndarray,
-		b0: np.ndarray | None = None,
-		b1: np.ndarray | None = None,
-		b2: np.ndarray | None = None,
-		b3: np.ndarray | None = None,
-		b4: np.ndarray | None = None,
+		b0: np.ndarray,
+		b1: np.ndarray,
+		b2: np.ndarray,
+		b3: np.ndarray,
+		b4: np.ndarray,
 		**kwargs,
 	) -> None:
 		self.section = section
@@ -111,6 +114,18 @@ class DataContainer:
 		self.b3 = b3
 		self.b4 = b4
 
+		poly_conductor_array = [
+			Poly([a0[index], a1[index], a2[index], a3[index], a4[index]])
+			for index in range(len(a0))
+		]
+		self.polynomial_conductor = np.array(poly_conductor_array)
+
+		poly_heart_array = [
+			Poly([b0[index], b1[index], b2[index], b3[index], b4[index]])
+			for index in range(len(b0))
+		]
+		self.polynomial_heart = np.array(poly_heart_array)
+
 	def add_data_weather(
 		self, ice_thickness: np.ndarray, wind_pressure: np.ndarray, **kwargs
 	) -> None:
@@ -127,20 +142,7 @@ def factory_data_container(
 	weather_array: WeatherArray,
 ) -> DataContainer:
 	data_container = DataContainer()
-	# data_container.add_section(
-	# 	section_array.data["name"].to_numpy(),
-	# 	section_array.data["suspension"].to_numpy(),
-	# 	section_array.data["conductor_attachment_altitude"].to_numpy(),
-	# 	section_array.data["crossarm_length"].to_numpy(),
-	# 	section_array.data["line_angle"].to_numpy(),
-	# 	section_array.data["insulator_length"].to_numpy(),
-	# 	section_array.data["span_length"].to_numpy(),
-	# 	section_array.data["elevation_difference"].to_numpy(),
-	# 	section_array.data["sagging_parameter"].to_numpy(),
-	# 	section_array.data["sagging_temperature"].to_numpy(),
-	# )
 	data_container.add_data_section(**(section_array.to_dict_with_numpy()))
 	data_container.add_data_cable(**(cable_array.to_dict_with_numpy()))
 	data_container.add_data_weather(**(weather_array.to_dict_with_numpy()))
-	# Create .to_dict_numpy() methods in arrays?
 	return data_container

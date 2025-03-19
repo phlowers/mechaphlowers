@@ -30,6 +30,7 @@ class IDeformation(ABC):
 		a2: np.ndarray,
 		a3: np.ndarray,
 		a4: np.ndarray,
+		polynomial_conductor: np.ndarray,
 		max_stress: np.ndarray | float = 0.0,
 		**kwargs,
 	):
@@ -46,6 +47,7 @@ class IDeformation(ABC):
 		self.a2 = a2
 		self.a3 = a3
 		self.a4 = a4
+		self.polynomial_conductor = polynomial_conductor
 
 		# self.tension_mean = tension_mean
 
@@ -106,11 +108,8 @@ class DeformationRTE(IDeformation):
 		T_mean = self.tension_mean
 		E = self.young_modulus
 		S = self.section
-		# TODO: improve this -> should not be done here, DataContainer should provide polynomial directly
-		coefs_poly = np.array(
-			[self.a0[0], self.a1[0], self.a2[0], self.a3[0], self.a4[0]]
-		)
-		polynomial = Poly(coefs_poly)
+		# TODO: use array of polynomial instead
+		polynomial = self.polynomial_conductor[0]
 		return self.compute_epsilon_mecha(
 			T_mean, E, S, polynomial, self.max_stress
 		)
