@@ -19,11 +19,6 @@ from mechaphlowers.core.models.cable.span import (
 	Span,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.entities.arrays import (
-	CableArray,
-	SectionArray,
-	WeatherArray,
-)
 
 
 class SagTensionSolver:
@@ -39,17 +34,19 @@ class SagTensionSolver:
 		elevation_difference: np.ndarray,
 		sagging_parameter: np.ndarray,
 		sagging_temperature: np.ndarray,
-		linear_weight: np.ndarray,
 		young_modulus: np.ndarray,
 		section: np.ndarray,
+		diameter: np.ndarray,
+		linear_weight: np.ndarray,
 		dilatation_coefficient: np.ndarray,
 		temperature_reference: np.ndarray,
-		section_array: SectionArray,
-		cable_array: CableArray,
-		weather_array: WeatherArray,
-		L_ref: np.ndarray,
+		polynomial_conductor: np.ndarray,
+		ice_thickness: np.ndarray,
+		wind_pressure: np.ndarray,
+		unstressed_length: np.ndarray,
 		span_model: Type[Span] = CatenarySpan,
 		deformation_model: Type[IDeformation] = DeformationRTE,
+		**kwargs,
 	) -> None:
 		self.span_length = span_length
 		self.elevation_difference = elevation_difference
@@ -58,20 +55,33 @@ class SagTensionSolver:
 		self.linear_weight = linear_weight
 		self.young_modulus = young_modulus
 		self.section = section
+		self.diameter = diameter
 		self.dilatation_coefficient = dilatation_coefficient
 		self.temperature_reference = temperature_reference
-		self.stress_strain_polynomial = (
-			cable_array.stress_strain_polynomial
-		)  # ??
-		self.cable_loads = CableLoads(cable_array, weather_array)  # TODO: ???
-		self.L_ref = L_ref
+		self.polynomial_conductor = (
+			polynomial_conductor  # single polynomial or array?
+		)
+		# TODO: decide if CableLoads should be created by solver or not
+		self.ice_thickness = ice_thickness
+		self.wind_pressure = wind_pressure
+		self.L_ref = unstressed_length
 		self.span_model = span_model
 		self.deformation_model = deformation_model
 		self.T_h_after_change: np.ndarray | None = None
+		self.init_cable_loads()
+
+	def init_cable_loads(self):
+		self.cable_loads = CableLoads(
+			self.diameter,
+			self.linear_weight,
+			self.ice_thickness,
+			self.wind_pressure,
+		)
 
 	def change_state(
 		self,
-		weather_array: WeatherArray,
+		ice_thickness: np.ndarray,
+		wind_pressure: np.ndarray,
 		temp: np.ndarray,
 		solver: str = "newton",
 	) -> None:
@@ -88,7 +98,9 @@ class SagTensionSolver:
 			solver_method = solver_dict[solver]
 		except KeyError:
 			raise ValueError(f"Incorrect solver name: {solver}")
-		self.cable_loads.weather = weather_array
+		self.ice_thickness = ice_thickness
+		self.wind_pressure = wind_pressure
+		self.init_cable_loads()
 		m = self.cable_loads.load_coefficient
 		T_h0 = self.span_model.compute_T_h(
 			self.sagging_parameter, m, self.linear_weight
@@ -126,7 +138,9 @@ class SagTensionSolver:
 			T_mean,
 			self.young_modulus,
 			self.section,
-			self.stress_strain_polynomial,
+			self.polynomial_conductor[
+				0
+			],  # TODO: make a clear choice between single polynomial or array
 		) + self.deformation_model.compute_epsilon_therm(
 			temp, self.temperature_reference, self.dilatation_coefficient
 		)

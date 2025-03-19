@@ -7,6 +7,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.core.models.cable.deformation import DeformationRTE
 from mechaphlowers.core.models.cable.span import CatenarySpan
@@ -19,6 +20,7 @@ from mechaphlowers.entities.arrays import (
 	SectionArray,
 	WeatherArray,
 )
+from mechaphlowers.entities.data_container import DataContainer
 
 
 @pytest.fixture
@@ -95,145 +97,138 @@ def neutral_weather_array_one_span():
 	)
 
 
+@pytest.fixture
+def neutral_weather_dict_one_span():
+	return {
+		"ice_thickness": np.array([0.0, 0.0]),
+		"wind_pressure": np.zeros(2),
+	}
+
+
 def get_L_ref_from_arrays(
-	section_array: SectionArray,
-	cable_array: CableArray,
-	weather_array: WeatherArray,
-	current_temperature: np.ndarray,
+	data_container: DataContainer, current_temperature: np.ndarray
 ):
-	cable_loads = CableLoads(cable_array, weather_array)
-	span_model = CatenarySpan(
-		section_array.data.span_length.to_numpy(),
-		section_array.data.elevation_difference.to_numpy(),
-		section_array.data.sagging_parameter.to_numpy(),
-	)
+	cable_loads = CableLoads(**data_container.__dict__)
+	span_model = CatenarySpan(**data_container.__dict__)
+
 	span_model.load_coefficient = cable_loads.load_coefficient
-	span_model.linear_weight = cable_array.data.linear_weight.to_numpy()
 	deformation = DeformationRTE(
-		cable_array,
-		span_model.T_mean(),
-		span_model.L(),
+		**data_container.__dict__,
+		tension_mean=span_model.T_mean(),
+		cable_length=span_model.L(),
 	)
 	return deformation.L_ref(current_temperature)
 
 
 def test_solver__run_solver(
-	section_array_one_span: SectionArray,
-	cable_array_one_span: CableArray,
-	neutral_weather_array_one_span: WeatherArray,
+	default_data_container_two_spans: DataContainer,
+	neutral_weather_dict_one_span: dict,
 ) -> None:
 	current_temperature = np.array([15] * 2)
 	unstressed_length = get_L_ref_from_arrays(
-		section_array_one_span,
-		cable_array_one_span,
-		neutral_weather_array_one_span,
+		default_data_container_two_spans,
 		current_temperature,
 	)
 
 	sag_tension_calculation = SagTensionSolver(
-		section_array_one_span,
-		cable_array_one_span,
-		neutral_weather_array_one_span,
-		unstressed_length,
+		**default_data_container_two_spans.__dict__,
+		unstressed_length=unstressed_length,
 	)
 	sag_tension_calculation.change_state(
-		neutral_weather_array_one_span, current_temperature, "newton"
+		**neutral_weather_dict_one_span,
+		temp=current_temperature,
+		solver="newton",
 	)
+	# check no error
 	sag_tension_calculation.p_after_change()
 	sag_tension_calculation.L_after_change()
 
 
 def test_solver__run_solver__polynomial_model(
-	section_array_one_span: SectionArray,
-	cable_array_one_span__polynomial: CableArray,
-	neutral_weather_array_one_span: WeatherArray,
+	default_data_container_two_spans: DataContainer,
+	neutral_weather_dict_one_span: dict,
 ) -> None:
 	current_temperature = np.array([15] * 2)
-	# add polynomial
+	# update polynomial from default data
+	new_poly = Poly(
+		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
+	)
+	new_poly_array = np.repeat(np.array([new_poly]), 2)
+	default_data_container_two_spans.polynomial_conductor = new_poly_array
+
 	unstressed_length = get_L_ref_from_arrays(
-		section_array_one_span,
-		cable_array_one_span__polynomial,
-		neutral_weather_array_one_span,
+		default_data_container_two_spans,
 		current_temperature,
 	)
 
 	sag_tension_calculation = SagTensionSolver(
-		section_array_one_span,
-		cable_array_one_span__polynomial,
-		neutral_weather_array_one_span,
-		unstressed_length,
+		**default_data_container_two_spans.__dict__,
+		unstressed_length=unstressed_length,
 	)
 	sag_tension_calculation.change_state(
-		neutral_weather_array_one_span, current_temperature, "newton"
+		**neutral_weather_dict_one_span,
+		temp=current_temperature,
+		solver="newton",
 	)
+	# check no error
 	sag_tension_calculation.p_after_change()
 	sag_tension_calculation.L_after_change()
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_solver__run_solver_no_solution(
-	section_array_one_span: SectionArray,
-	cable_array_one_span: CableArray,
-	neutral_weather_array_one_span: WeatherArray,
+	default_data_container_two_spans: DataContainer,
+	neutral_weather_dict_one_span: dict,
 ) -> None:
 	current_temperature = np.array([15] * 2)
 	sag_tension_calculation = SagTensionSolver(
-		section_array_one_span,
-		cable_array_one_span,
-		neutral_weather_array_one_span,
-		np.array([1, 1]),
+		**default_data_container_two_spans.__dict__,
+		unstressed_length=np.array([1, 1]),
 	)
 	with pytest.raises(ValueError) as excinfo:
 		sag_tension_calculation.change_state(
-			neutral_weather_array_one_span, current_temperature
+			**neutral_weather_dict_one_span, temp=current_temperature
 		)
 	assert str(excinfo.value) == "Solver did not converge"
 
 
 def test_solver__bad_solver(
-	section_array_one_span: SectionArray,
-	cable_array_one_span: CableArray,
-	neutral_weather_array_one_span: WeatherArray,
+	default_data_container_two_spans: DataContainer,
+	neutral_weather_dict_one_span: dict,
 ) -> None:
 	current_temperature = np.array([15] * 2)
 	unstressed_length = get_L_ref_from_arrays(
-		section_array_one_span,
-		cable_array_one_span,
-		neutral_weather_array_one_span,
+		default_data_container_two_spans,
 		current_temperature,
 	)
 
 	sag_tension_calculation = SagTensionSolver(
-		section_array_one_span,
-		cable_array_one_span,
-		neutral_weather_array_one_span,
-		unstressed_length,
+		**default_data_container_two_spans.__dict__,
+		unstressed_length=unstressed_length,
 	)
+
 	with pytest.raises(ValueError) as excinfo:
 		sag_tension_calculation.change_state(
-			neutral_weather_array_one_span, current_temperature, "wrong_solver"
+			**neutral_weather_dict_one_span,
+			temp=current_temperature,
+			solver="wrong_solver",
 		)
 	assert str(excinfo.value) == "Incorrect solver name: wrong_solver"
 
 
 def test_solver__values_before_solver(
-	section_array_one_span: SectionArray,
-	cable_array_one_span: CableArray,
-	neutral_weather_array_one_span: WeatherArray,
+	default_data_container_two_spans: DataContainer,
+	neutral_weather_dict_one_span: dict,
 ) -> None:
 	current_temperature = np.array([15] * 2)
 	unstressed_length = get_L_ref_from_arrays(
-		section_array_one_span,
-		cable_array_one_span,
-		neutral_weather_array_one_span,
+		default_data_container_two_spans,
 		current_temperature,
 	)
 
 	sag_tension_calculation = SagTensionSolver(
-		section_array_one_span,
-		cable_array_one_span,
-		neutral_weather_array_one_span,
-		unstressed_length,
+		**default_data_container_two_spans.__dict__,
+		unstressed_length=unstressed_length,
 	)
 	assert sag_tension_calculation.T_h_after_change is None
 	with pytest.raises(ValueError):
