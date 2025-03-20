@@ -69,7 +69,7 @@ def default_data_container_two_spans() -> DataContainer:
 	cable_array = CableArray(pd.DataFrame(cable_dict))
 	weather_array = WeatherArray(pd.DataFrame(weather_dict))
 
-	data_container_new = factory_data_container(
+	data_container = factory_data_container(
 		section_array, cable_array, weather_array
 	)
-	return data_container_new
+	return data_container

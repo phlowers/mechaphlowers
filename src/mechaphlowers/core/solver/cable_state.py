@@ -84,6 +84,7 @@ class SagTensionSolver:
 		wind_pressure: np.ndarray,
 		temp: np.ndarray,
 		solver: str = "newton",
+		**kwargs,
 	) -> None:
 		"""Method that solves the finds the new horizontal tension after a change of parameters.
 		The equation to solve is : $\\delta(T_h) = O$

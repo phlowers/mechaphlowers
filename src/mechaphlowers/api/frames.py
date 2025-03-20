@@ -126,12 +126,14 @@ class SectionDataFrame:
 		Returns:
 		    pd.DataFrame: data property of the SectionDataFrame object with or without cable data
 		"""
-		out = self.section.data
-		if self.cable is not None:
-			out = pd.concat([out, self.cable.data], axis=1)
-		if self.weather is not None:
-			out = pd.concat([out, self.weather.data], axis=1)
-		return out
+		data_dict = self.data_container.__dict__
+		return pd.DataFrame(data_dict)
+		# out = self.section.data
+		# if self.cable is not None:
+		# 	out = pd.concat([out, self.cable.data], axis=1)
+		# if self.weather is not None:
+		# 	out = pd.concat([out, self.weather.data], axis=1)
+		# return out
 
 	def select(self, between: List[str]) -> Self:
 		"""select enable to select a part of the line based on support names

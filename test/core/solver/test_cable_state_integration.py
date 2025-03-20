@@ -6,6 +6,7 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 from pandera.typing import pandas as pdt
 
 from mechaphlowers.api.frames import SectionDataFrame
@@ -17,7 +18,10 @@ from mechaphlowers.entities.arrays import (
 	SectionArray,
 	WeatherArray,
 )
-from mechaphlowers.entities.data_container import DataContainer
+from mechaphlowers.entities.data_container import (
+	DataContainer,
+	factory_data_container,
+)
 
 
 def create_sag_tension_solver(
@@ -43,11 +47,13 @@ def create_sag_tension_solver(
 		section_array.data.sagging_temperature.to_numpy()
 	)
 
+	data_container = factory_data_container(
+		section_array, cable_array, weather_array
+	)
+
 	return SagTensionSolver(
-		section_array,
-		cable_array,
-		weather_array,
-		unstressed_length,
+		**data_container.__dict__,
+		unstressed_length=unstressed_length,
 	)
 
 
@@ -66,6 +72,11 @@ def test_functions_to_solve__same_loads() -> None:
 			"a2": [0] * NB_SPAN,
 			"a3": [0] * NB_SPAN,
 			"a4": [0] * NB_SPAN,
+			"b0": [0] * NB_SPAN,
+			"b1": [0] * NB_SPAN,
+			"b2": [0] * NB_SPAN,
+			"b3": [0] * NB_SPAN,
+			"b4": [0] * NB_SPAN,
 		}
 	)
 	data_section = {
@@ -99,23 +110,24 @@ def test_functions_to_solve__same_loads() -> None:
 	frame.add_weather(weather_array)
 	unstressed_length = frame.state.L_ref(np.array([15] * NB_SPAN))
 
-	sag_tension_calculation = SagTensionSolver(
-		section_array,
-		cable_array,
-		weather_array,
-		unstressed_length,
+	data_container = factory_data_container(
+		section_array, cable_array, weather_array
 	)
 
-	weather_array_final = WeatherArray(
-		pdt.DataFrame(
-			{
-				"ice_thickness": [1, 2.1, 0.0, 0.0],
-				"wind_pressure": 0 * np.ones(NB_SPAN),
-			}
-		)
+	sag_tension_calculation = SagTensionSolver(
+		**data_container.__dict__,
+		unstressed_length=unstressed_length,
 	)
+
+	weather_dict_final = {
+		"ice_thickness": 1e-2 * np.array([1, 2.1, 0.0, 0.0]),
+		"wind_pressure": 0 * np.ones(NB_SPAN),
+	}
+
 	new_temperature = np.array([15] * NB_SPAN)
-	sag_tension_calculation.change_state(weather_array_final, new_temperature)
+	sag_tension_calculation.change_state(
+		**weather_dict_final, temp=new_temperature
+	)
 	T_h_state_0 = sag_tension_calculation.T_h_after_change
 
 	# TODO: change this test after fixing the issue with NaN at last value
@@ -138,8 +150,49 @@ def test_functions_to_solve__same_loads() -> None:
 	)
 
 
+@pytest.mark.parametrize(
+	"weather,temperature,expected_result",
+	[
+		(
+			{
+				"ice_thickness": np.array([0.0, 0.0]),
+				"wind_pressure": np.array([0.0, 0.0]),
+			},
+			np.array([15, 15]),
+			np.array([19109.88, np.nan]),
+		),
+		(
+			{
+				"ice_thickness": 2e-2 * np.ones(2),
+				"wind_pressure": np.array([0.0, 0.0]),
+			},
+			np.array([15, 15]),
+			np.array([42098.9070, np.nan]),
+		),
+		(
+			{
+				"ice_thickness": 1e-2 * np.ones(2),
+				"wind_pressure": 200 * np.ones(2),
+			},
+			np.array([15, 15]),
+			np.array([31742.24808412, np.nan]),
+			# should be np.array([31745.05101, np.nan])
+		),
+		(
+			{
+				"ice_thickness": np.array([0.0, 0.0]),
+				"wind_pressure": np.array([0.0, 0.0]),
+			},
+			np.array([25, 25]),
+			np.array([18380.1116, np.nan]),
+		),
+	],
+)
 def test_functions_to_solve__different_weather(
 	default_data_container_two_spans: DataContainer,
+	weather: dict,
+	temperature: np.ndarray,
+	expected_result: np.ndarray,
 ) -> None:
 	NB_SPAN = 2
 	input_cable = pd.DataFrame(
@@ -155,6 +208,11 @@ def test_functions_to_solve__different_weather(
 			"a2": [0] * NB_SPAN,
 			"a3": [0] * NB_SPAN,
 			"a4": [0] * NB_SPAN,
+			"b0": [0] * NB_SPAN,
+			"b1": [0] * NB_SPAN,
+			"b2": [0] * NB_SPAN,
+			"b3": [0] * NB_SPAN,
+			"b4": [0] * NB_SPAN,
 		}
 	)
 	data_section = pd.DataFrame(
@@ -186,58 +244,10 @@ def test_functions_to_solve__different_weather(
 		sagging_parameter,
 		sagging_temperature,
 	)
-	same_temperature = np.array([15] * NB_SPAN)
-	sag_tension_calculation.change_state(
-		WeatherArray(initial_weather_data), same_temperature
-	)
-	T_h_state_0 = sag_tension_calculation.T_h_after_change
-	expected_result_0 = np.array([19109.88, np.nan])
-	assert T_h_state_0 is not None
-	np.testing.assert_allclose(T_h_state_0, expected_result_0, atol=1e-5)
-
-	weather_array_final_1 = WeatherArray(
-		pdt.DataFrame(
-			{
-				"ice_thickness": [2, 2],
-				"wind_pressure": 0 * np.ones(NB_SPAN),
-			}
-		)
-	)
-	sag_tension_calculation.change_state(
-		weather_array_final_1, same_temperature
-	)
-	T_h_state_1 = sag_tension_calculation.T_h_after_change
-	expected_result_1 = np.array([42098.9070, np.nan])
-	assert T_h_state_1 is not None
-	np.testing.assert_allclose(T_h_state_1, expected_result_1, atol=0.01)
-
-	weather_array_final_2 = WeatherArray(
-		pdt.DataFrame(
-			{
-				"ice_thickness": [1, 1],
-				"wind_pressure": 200 * np.ones(NB_SPAN),
-			}
-		)
-	)
-	sag_tension_calculation.change_state(
-		weather_array_final_2, same_temperature
-	)
-	T_h_state_2 = sag_tension_calculation.T_h_after_change
-	expected_result_2 = np.array([31745.05101, np.nan])
-	assert T_h_state_2 is not None
-	# Careful: value is not exactly the same: 31742.24808412 vs 31745.05101
-	np.testing.assert_allclose(
-		T_h_state_2, expected_result_2, atol=3
-	)  # typing: ignore[arg-type]
-
-	new_temperature = np.array([25] * NB_SPAN)
-	sag_tension_calculation.change_state(
-		WeatherArray(initial_weather_data), new_temperature
-	)
-	T_h_state_3 = sag_tension_calculation.T_h_after_change
-	expected_result_3 = np.array([18380.1116, np.nan])
-	assert T_h_state_3 is not None
-	np.testing.assert_allclose(T_h_state_3, expected_result_3, atol=0.01)
+	sag_tension_calculation.change_state(**weather, temp=temperature)
+	T_h = sag_tension_calculation.T_h_after_change
+	assert T_h is not None
+	np.testing.assert_allclose(T_h, expected_result, atol=1e-5)
 
 
 def test_functions_to_solve__different_temp_ref() -> None:
@@ -255,6 +265,11 @@ def test_functions_to_solve__different_temp_ref() -> None:
 			"a2": [0] * NB_SPAN,
 			"a3": [0] * NB_SPAN,
 			"a4": [0] * NB_SPAN,
+			"b0": [0] * NB_SPAN,
+			"b1": [0] * NB_SPAN,
+			"b2": [0] * NB_SPAN,
+			"b3": [0] * NB_SPAN,
+			"b4": [0] * NB_SPAN,
 		}
 	)
 	data_section = pd.DataFrame(
@@ -269,33 +284,32 @@ def test_functions_to_solve__different_temp_ref() -> None:
 		}
 	)
 
-	initial_data_weather = pd.DataFrame(
+	sagging_parameter = 2000
+	sagging_temperature = 15
+
+	initial_weather_data = pd.DataFrame(
 		{
-			"ice_thickness": [0.0, 0.0],
+			"ice_thickness": np.zeros(NB_SPAN),
 			"wind_pressure": np.zeros(NB_SPAN),
 		}
 	)
-	sagging_parameter = 2000
-	sagging_temperature = 15
+	new_temperature = np.array([15] * NB_SPAN)
+
 	sag_tension_calculation_0 = create_sag_tension_solver(
 		data_section,
 		input_cable,
-		initial_data_weather,
+		initial_weather_data,
 		sagging_parameter,
 		sagging_temperature,
 	)
-	new_temperature = np.array([15] * NB_SPAN)
-	weather_array_final = WeatherArray(
-		pdt.DataFrame(
-			{
-				"ice_thickness": [6, 6],
-				"wind_pressure": 0 * np.ones(NB_SPAN),
-			}
-		)
-	)
+
+	weather_dict_final = {
+		"ice_thickness": 6e-2 * np.ones(NB_SPAN),
+		"wind_pressure": 0 * np.ones(NB_SPAN),
+	}
 
 	sag_tension_calculation_0.change_state(
-		weather_array_final, new_temperature
+		**weather_dict_final, temp=new_temperature
 	)
 	T_h_state_0 = sag_tension_calculation_0.T_h_after_change
 	expected_result_0 = np.array([117951.847, np.nan])
@@ -311,12 +325,12 @@ def test_functions_to_solve__different_temp_ref() -> None:
 	sag_tension_calculation_1 = create_sag_tension_solver(
 		data_section,
 		input_cable,
-		initial_data_weather,
+		initial_weather_data,
 		sagging_parameter,
 		sagging_temperature,
 	)
 	sag_tension_calculation_1.change_state(
-		weather_array_final, new_temperature
+		**weather_dict_final, temp=new_temperature
 	)
 	T_h_state_1 = sag_tension_calculation_1.T_h_after_change
 	expected_result_1 = np.array([117961.6142, np.nan])

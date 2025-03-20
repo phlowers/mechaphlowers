@@ -373,7 +373,9 @@ def test_SectionDataFrame__data():
 	assert not frame.data.equals(frame.section.data)
 	assert (
 		frame.data.shape[1]
-		== frame.cable.data.shape[1] + frame.section.data.shape[1]
+		== frame.cable.data.shape[1]
+		+ frame.section.data.shape[1]
+		+ 2  # both polynomials add 2 more attributes
 	)
 
 
