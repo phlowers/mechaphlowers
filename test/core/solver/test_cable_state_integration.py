@@ -17,6 +17,7 @@ from mechaphlowers.entities.arrays import (
 	SectionArray,
 	WeatherArray,
 )
+from mechaphlowers.entities.data_container import DataContainer
 
 
 def create_sag_tension_solver(
@@ -137,7 +138,9 @@ def test_functions_to_solve__same_loads() -> None:
 	)
 
 
-def test_functions_to_solve__different_weather() -> None:
+def test_functions_to_solve__different_weather(
+	default_data_container_two_spans: DataContainer,
+) -> None:
 	NB_SPAN = 2
 	input_cable = pd.DataFrame(
 		{

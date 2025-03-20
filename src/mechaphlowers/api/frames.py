@@ -30,6 +30,7 @@ from mechaphlowers.entities.arrays import (
 	SectionArray,
 	WeatherArray,
 )
+from mechaphlowers.entities.data_container import DataContainer
 from mechaphlowers.plotting.plot import PlotAccessor
 from mechaphlowers.utils import CachedAccessor
 
@@ -55,6 +56,8 @@ class SectionDataFrame:
 		self.section: SectionArray = section
 		self.cable: CableArray | None = None
 		self.weather: WeatherArray | None = None
+		self.data_container: DataContainer = DataContainer()
+		self.data_container.add_section_array(section)
 		self.cable_loads: CableLoads | None = None
 		self.span: Span | None = None
 		self.deformation: IDeformation | None = None
@@ -64,11 +67,7 @@ class SectionDataFrame:
 
 	def init_span_model(self):
 		"""init_span_model method to initialize span model"""
-		self.span = self._span_model(
-			self.section.data.span_length.to_numpy(),
-			self.section.data.elevation_difference.to_numpy(),
-			self.section.data.sagging_parameter.to_numpy(),
-		)
+		self.span = self._span_model(**self.data_container.__dict__)
 
 	def get_coord(self) -> np.ndarray:
 		"""Get x,y,z cables coordinates
@@ -77,11 +76,7 @@ class SectionDataFrame:
 		    np.ndarray: x,y,z array in point format
 		"""
 
-		spans = self._span_model(
-			self.section.data.span_length.to_numpy(),
-			self.section.data.elevation_difference.to_numpy(),
-			self.section.data.sagging_parameter.to_numpy(),
-		)
+		spans = self._span_model(**self.data_container.__dict__)
 
 		# compute x_axis
 		x_cable: np.ndarray = spans.x(RESOLUTION)
@@ -101,15 +96,11 @@ class SectionDataFrame:
 		)
 
 		altitude: np.ndarray = (
-			self.section.data.conductor_attachment_altitude.to_numpy()
+			self.data_container.conductor_attachment_altitude
 		)
-		span_length: np.ndarray = self.section.data.span_length.to_numpy()
-		crossarm_length: np.ndarray = (
-			self.section.data.crossarm_length.to_numpy()
-		)
-		insulator_length: np.ndarray = (
-			self.section.data.insulator_length.to_numpy()
-		)
+		span_length: np.ndarray = self.data_container.span_length
+		crossarm_length: np.ndarray = self.data_container.crossarm_length
+		insulator_length: np.ndarray = self.data_container.insulator_length
 
 		# TODO: the content of this function is not generic enough. An upcoming feature will change that.
 		x_span, y_span, z_span = references.translate_cable_to_support(
@@ -211,6 +202,7 @@ class SectionDataFrame:
 		"""
 		self._add_array(cable, CableArray)
 		# type is checked in add_array
+		self.data_container.add_cable_array(cable)
 		self.span.linear_weight = self.cable.data.linear_weight.to_numpy()  # type: ignore[union-attr]
 		self.init_deformation_model()
 
@@ -227,7 +219,8 @@ class SectionDataFrame:
 		if self.cable is None:
 			raise ValueError("Cable has to be added before weather")
 		# weather type is checked in add_array self.cable is tested above but mypy does not understand
-		self.cable_loads = CableLoads(self.cable, self.weather)  # type: ignore[union-attr,arg-type]
+		self.data_container.add_weather_array(weather)
+		self.cable_loads = CableLoads(**self.data_container.__dict__)  # type: ignore[union-attr,arg-type]
 		self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr]
 		self.init_deformation_model()
 
@@ -265,18 +258,19 @@ class SectionDataFrame:
 				f"{type_var.__name__} has to have the same length as the section"
 			)
 
-		# Add cable to the section
+		# Add array to the section
 
 		self.__setattr__(property_map[type_var], var)
+		# Add array to DataContainer
 
 	def init_deformation_model(self):
 		"""initialize_deformation method to initialize deformation model"""
 
 		# Initialize deformation model
 		self.deformation = self._deformation_model(
-			self.cable,
-			self.span.T_mean(),
-			self.span.L(),
+			**self.data_container.__dict__,
+			tension_mean=self.span.T_mean(),
+			cable_length=self.span.L(),
 		)
 		# TODO: test if L_ref change when span_model T_mean change
 

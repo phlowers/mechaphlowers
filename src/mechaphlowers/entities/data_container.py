@@ -132,6 +132,62 @@ class DataContainer:
 		self.ice_thickness = ice_thickness
 		self.wind_pressure = wind_pressure
 
+
+	def add_section_array(
+		self,
+		section_array: SectionArray
+	) -> None:
+		self.name = section_array.data.name.to_numpy()
+		self.suspension = section_array.data.suspension.to_numpy()
+		self.conductor_attachment_altitude = section_array.data.conductor_attachment_altitude.to_numpy()
+		self.crossarm_length = section_array.data.crossarm_length.to_numpy()
+		self.line_angle = section_array.data.line_angle.to_numpy()
+		self.insulator_length = section_array.data.insulator_length.to_numpy()
+		self.span_length = section_array.data.span_length.to_numpy()
+		self.elevation_difference = section_array.data.elevation_difference.to_numpy()
+		self.sagging_parameter = section_array.data.sagging_parameter.to_numpy()
+		self.sagging_temperature = section_array.data.sagging_temperature.to_numpy()
+
+	def add_cable_array(
+		self,
+		cable_array: CableArray
+	) -> None:
+		self.section = cable_array.data.section.to_numpy()
+		self.diameter = cable_array.data.diameter.to_numpy()
+		self.linear_weight = cable_array.data.linear_weight.to_numpy()
+		self.young_modulus = cable_array.data.young_modulus.to_numpy()
+		self.dilatation_coefficient = cable_array.data.dilatation_coefficient.to_numpy()
+		self.temperature_reference = cable_array.data.temperature_reference.to_numpy()
+		self.a0 = cable_array.data.a0.to_numpy()
+		self.a1 = cable_array.data.a1.to_numpy()
+		self.a2 = cable_array.data.a2.to_numpy()
+		self.a3 = cable_array.data.a3.to_numpy()
+		self.a4 = cable_array.data.a4.to_numpy()
+		self.b0 = cable_array.data.b0.to_numpy()
+		self.b1 = cable_array.data.b1.to_numpy()
+		self.b2 = cable_array.data.b2.to_numpy()
+		self.b3 = cable_array.data.b3.to_numpy()
+		self.b4 = cable_array.data.b4.to_numpy()
+
+		poly_conductor_array = [
+			Poly([self.a0[index], self.a1[index], self.a2[index], self.a3[index], self.a4[index]])
+			for index in range(len(self.a0))
+		]
+		self.polynomial_conductor = np.array(poly_conductor_array)
+
+		poly_heart_array = [
+			Poly([self.b0[index], self.b1[index], self.b2[index], self.b3[index], self.b4[index]])
+			for index in range(len(self.b0))
+		]
+		self.polynomial_heart = np.array(poly_heart_array)
+
+	def add_weather_array(
+		self, weather_array: WeatherArray
+	) -> None:
+		self.ice_thickness = weather_array.data.ice_thickness.to_numpy()
+		self.wind_pressure = weather_array.data.wind_pressure.to_numpy()
+
+
 	def __getitem__(self, key):
 		return getattr(self, key)
 
@@ -142,7 +198,7 @@ def factory_data_container(
 	weather_array: WeatherArray,
 ) -> DataContainer:
 	data_container = DataContainer()
-	data_container.add_data_section(**(section_array.to_dict_with_numpy()))
-	data_container.add_data_cable(**(cable_array.to_dict_with_numpy()))
-	data_container.add_data_weather(**(weather_array.to_dict_with_numpy()))
+	data_container.add_data_section(**section_array.to_dict_with_numpy())
+	data_container.add_data_cable(**cable_array.to_dict_with_numpy())
+	data_container.add_data_weather(**weather_array.to_dict_with_numpy())
 	return data_container

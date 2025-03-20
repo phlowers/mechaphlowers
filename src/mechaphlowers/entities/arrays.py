@@ -54,7 +54,7 @@ class ElementArray(ABC):
 		"""
 		return self._data
 
-	# find a more elegant way to do this
+	# TODO: find a more elegant way to do this
 	def to_dict_with_numpy(self) -> dict:
 		data_dict = self.data.to_dict('list')
 		for key, value in data_dict.items():
