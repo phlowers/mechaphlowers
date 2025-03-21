@@ -7,7 +7,7 @@
 import time
 
 import numpy as np
-from pandera.typing import pandas as pdt
+from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.core.models.cable.deformation import (
 	DeformationRTE,
@@ -15,34 +15,23 @@ from mechaphlowers.core.models.cable.deformation import (
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
-from mechaphlowers.entities.arrays import CableArray
-from mechaphlowers.entities.schemas import CableArrayInput
 
 
 def test_solve_polynom_perf() -> None:
 	spans_number = 10_000
 
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		{
-			"section": [345.5],
-			"diameter": [22.4],
-			"linear_weight": [9.6],
-			"young_modulus": [59],
-			"dilatation_coefficient": [23],
-			"temperature_reference": [15],
-			"a0": [0],
-			"a1": [100],
-			"a2": [-24_000],
-			"a3": [2_440_000],
-			"a4": [-90_000_000],
-		}
+	polynomial = Poly(
+		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
 	)
-
-	cable_array = CableArray(
-		input_df.loc[input_df.index.repeat(spans_number)].reset_index(
-			drop=True
-		)
-	)
+	input_dict = {
+		"section": np.array([345.5] * spans_number),
+		"diameter": np.array([22.4] * spans_number),
+		"linear_weight": np.array([9.6] * spans_number),
+		"young_modulus": np.array([59] * spans_number),
+		"dilatation_coefficient": np.array([23] * spans_number),
+		"temperature_reference": np.array([15] * spans_number),
+		"polynomial_conductor": np.array([polynomial] * spans_number),
+	}
 
 	a = np.array([500] * spans_number)
 	b = np.array([0.0] * spans_number)
@@ -53,7 +42,9 @@ def test_solve_polynom_perf() -> None:
 	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
-	deformation_model = DeformationRTE(cable_array, tension_mean, cable_length)
+	deformation_model = DeformationRTE(
+		**input_dict, tension_mean=tension_mean, cable_length=cable_length
+	)
 
 	start_time = time.time()
 

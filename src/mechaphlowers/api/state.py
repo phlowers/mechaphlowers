@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 class StateAccessor:
 	"""shortcut accessor class for state calculus"""
 
-	def __init__(self, section: SectionDataFrame):
-		self.section: SectionDataFrame = section
+	def __init__(self, frame: SectionDataFrame):
+		self.frame: SectionDataFrame = frame
 
 	def L_ref(self, current_temperature: float | np.ndarray) -> np.ndarray:
 		"""L_ref values for the current temperature
@@ -32,13 +32,13 @@ class StateAccessor:
 		Returns:
 			np.ndarray: L_ref values
 		"""
-		if self.section.deformation is None:
+		if self.frame.deformation is None:
 			raise ValueError(
 				"Deformation model is not defined: setting cable usually sets deformation model"
 			)
 		if isinstance(current_temperature, (float, int)):
 			current_temperature = np.full(
-				self.section.section.data.shape[0], float(current_temperature)
+				self.frame.section.data.shape[0], float(current_temperature)
 			)
 		if not isinstance(current_temperature, np.ndarray):
 			raise ValueError(
@@ -47,9 +47,9 @@ class StateAccessor:
 		if isinstance(current_temperature, np.ndarray):
 			if (
 				current_temperature.shape[0]
-				!= self.section.section.data.shape[0]
+				!= self.frame.section.data.shape[0]
 			):
 				raise ValueError(
 					"Current temperature should have the same length as the section"
 				)
-		return self.section.deformation.L_ref(current_temperature)
+		return self.frame.deformation.L_ref(current_temperature)

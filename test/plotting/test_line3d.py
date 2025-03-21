@@ -81,7 +81,7 @@ def test_plot_line3d__with_beta(
 		)
 	)
 
-	cable_array = factory_cable_array(nb_span=4)
+	cable_array = factory_cable_array(4)
 	frame.add_cable(cable=cable_array)
 	frame.add_weather(weather=weather)
 	frame.cable_loads.load_angle

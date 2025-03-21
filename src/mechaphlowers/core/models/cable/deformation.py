@@ -18,18 +18,12 @@ class IDeformation(ABC):
 	def __init__(
 		self,
 		tension_mean: np.ndarray,
-		cable_length: np.ndarray,  # Values that are not in DataContainer?
+		cable_length: np.ndarray,
 		young_modulus: np.ndarray,
 		section: np.ndarray,
 		temperature_reference: np.ndarray,
 		dilatation_coefficient: np.ndarray,
 		linear_weight: np.ndarray,
-		# tension_mean: np.ndarray,
-		a0: np.ndarray,
-		a1: np.ndarray,
-		a2: np.ndarray,
-		a3: np.ndarray,
-		a4: np.ndarray,
 		polynomial_conductor: np.ndarray,
 		max_stress: np.ndarray | float = 0.0,
 		**kwargs,
@@ -41,12 +35,6 @@ class IDeformation(ABC):
 		self.temp_ref = temperature_reference
 		self.dilatation_coefficient = dilatation_coefficient
 		self.linear_weight = linear_weight
-
-		self.a0 = a0
-		self.a1 = a1
-		self.a2 = a2
-		self.a3 = a3
-		self.a4 = a4
 		self.polynomial_conductor = polynomial_conductor
 
 		# self.tension_mean = tension_mean

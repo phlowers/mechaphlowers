@@ -76,9 +76,7 @@ def test_total_load_coefficient__data_container(
 			}
 		)
 	)
-	default_data_container_two_spans.add_data_weather(
-		**(weather.to_dict_with_numpy())
-	)
+	default_data_container_two_spans.add_weather_array(weather)
 	weather_loads = CableLoads(**default_data_container_two_spans.__dict__)
 
 	weather_loads.load_coefficient

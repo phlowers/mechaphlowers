@@ -58,86 +58,6 @@ class DataContainer:
 		)
 		return Poly(coefs_poly)
 
-	def add_data_section(
-		self,
-		name: np.ndarray,
-		suspension: np.ndarray,
-		conductor_attachment_altitude: np.ndarray,
-		crossarm_length: np.ndarray,
-		line_angle: np.ndarray,
-		insulator_length: np.ndarray,
-		span_length: np.ndarray,
-		elevation_difference: np.ndarray,
-		sagging_parameter: np.ndarray,
-		sagging_temperature: np.ndarray,
-		**kwargs,  # keep kwargs?
-	) -> None:
-		self.name = name
-		self.suspension = suspension
-		self.conductor_attachment_altitude = conductor_attachment_altitude
-		self.crossarm_length = crossarm_length
-		self.line_angle = line_angle
-		self.insulator_length = insulator_length
-		self.span_length = span_length
-		self.elevation_difference = elevation_difference
-		self.sagging_parameter = sagging_parameter
-		self.sagging_temperature = sagging_temperature
-
-	def add_data_cable(
-		self,
-		section: np.ndarray,
-		diameter: np.ndarray,
-		linear_weight: np.ndarray,
-		young_modulus: np.ndarray,
-		dilatation_coefficient: np.ndarray,
-		temperature_reference: np.ndarray,
-		a0: np.ndarray,
-		a1: np.ndarray,
-		a2: np.ndarray,
-		a3: np.ndarray,
-		a4: np.ndarray,
-		b0: np.ndarray,
-		b1: np.ndarray,
-		b2: np.ndarray,
-		b3: np.ndarray,
-		b4: np.ndarray,
-		**kwargs,
-	) -> None:
-		self.section = section
-		self.diameter = diameter
-		self.linear_weight = linear_weight
-		self.young_modulus = young_modulus
-		self.dilatation_coefficient = dilatation_coefficient
-		self.temperature_reference = temperature_reference
-		self.a0 = a0
-		self.a1 = a1
-		self.a2 = a2
-		self.a3 = a3
-		self.a4 = a4
-		self.b0 = b0
-		self.b1 = b1
-		self.b2 = b2
-		self.b3 = b3
-		self.b4 = b4
-
-		poly_conductor_array = [
-			Poly([a0[index], a1[index], a2[index], a3[index], a4[index]])
-			for index in range(len(a0))
-		]
-		self.polynomial_conductor = np.array(poly_conductor_array)
-
-		poly_heart_array = [
-			Poly([b0[index], b1[index], b2[index], b3[index], b4[index]])
-			for index in range(len(b0))
-		]
-		self.polynomial_heart = np.array(poly_heart_array)
-
-	def add_data_weather(
-		self, ice_thickness: np.ndarray, wind_pressure: np.ndarray, **kwargs
-	) -> None:
-		self.ice_thickness = ice_thickness
-		self.wind_pressure = wind_pressure
-
 	def add_section_array(self, section_array: SectionArray) -> None:
 		self.name = section_array.data.name.to_numpy()
 		self.suspension = section_array.data.suspension.to_numpy()
@@ -222,7 +142,7 @@ def factory_data_container(
 	weather_array: WeatherArray,
 ) -> DataContainer:
 	data_container = DataContainer()
-	data_container.add_data_section(**section_array.to_dict_with_numpy())
-	data_container.add_data_cable(**cable_array.to_dict_with_numpy())
-	data_container.add_data_weather(**weather_array.to_dict_with_numpy())
+	data_container.add_section_array(section_array)
+	data_container.add_cable_array(cable_array)
+	data_container.add_weather_array(weather_array)
 	return data_container
