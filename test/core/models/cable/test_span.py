@@ -10,9 +10,12 @@ import pytest
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
+from mechaphlowers.entities.data_container import DataContainer
 
 
-def test_catenary_span_model__no_error_lengths() -> None:
+def test_catenary_span_model__no_error_lengths(
+	default_data_container_two_spans,
+) -> None:
 	a = np.array([501.3, 499.0])  # test here int and float
 	b = np.array([0.0, -5.0])
 	p = np.array([2_112.2, 2_112.0])
@@ -161,3 +164,24 @@ def test_catenary_span_model__geometric_output():
 	assert (span_model.L() - 501.303) < 0.01
 
 	# TODO: check on a non symetrical case
+
+
+def test_catenary_span_model__data_container(
+	default_data_container_two_spans: DataContainer,
+) -> None:
+	span_model = CatenarySpan(**default_data_container_two_spans.__dict__)
+	x = np.array([100, 200.0])
+
+	span_model.x_m()
+	assert isinstance(span_model.z(x), np.ndarray)
+
+	assert isinstance(span_model.x_m(), np.ndarray)
+	span_model.x_n()
+	span_model.L_m()
+	span_model.L_n()
+	span_model.T_h()
+	span_model.T_v(x)
+	span_model.T_max(x)
+	span_model.T_mean_m()
+	span_model.T_mean_n()
+	span_model.T_mean()

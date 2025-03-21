@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from copy import copy
-from typing import Type
+from typing import Callable, Type
 
 import numpy as np
 import pandas as pd
@@ -69,6 +69,9 @@ def test_select_spans__wrong_input(error: Type[Exception], case):
 		frame.select(case)
 
 
+# TODO: Add teston data property
+
+
 def test_select_spans__passing_input():
 	frame = SectionDataFrame(section)
 	frame_selected = frame.select(["support 1", "three"])
@@ -121,13 +124,23 @@ def test_SectionDataFrame__state():
 					15,
 				]
 				* 4,
+				"a0": [0] * 4,
+				"a1": [59] * 4,
+				"a2": [0] * 4,
+				"a3": [0] * 4,
+				"a4": [0] * 4,
+				"b0": [0] * 4,
+				"b1": [0] * 4,
+				"b2": [0] * 4,
+				"b3": [0] * 4,
+				"b4": [0] * 4,
 			}
 		)
 	)
 
 	frame.add_cable(cable_array)
 	assert np.array_equal(
-		frame.state.L_ref(12), frame.physics.L_ref(12), equal_nan=True
+		frame.state.L_ref(12), frame.deformation.L_ref(12), equal_nan=True
 	)
 
 
@@ -161,6 +174,16 @@ def test_SectionDataFrame__add_cable():
 					15,
 				]
 				* 4,
+				"a0": [0] * 4,
+				"a1": [59] * 4,
+				"a2": [0] * 4,
+				"a3": [0] * 4,
+				"a4": [0] * 4,
+				"b0": [0] * 4,
+				"b1": [0] * 4,
+				"b2": [0] * 4,
+				"b3": [0] * 4,
+				"b4": [0] * 4,
 			}
 		)
 	)
@@ -214,6 +237,16 @@ def test_SectionDataFrame__add_weather():
 					15,
 				]
 				* 4,
+				"a0": [0] * 4,
+				"a1": [59] * 4,
+				"a2": [0] * 4,
+				"a3": [0] * 4,
+				"a4": [0] * 4,
+				"b0": [0] * 4,
+				"b1": [0] * 4,
+				"b2": [0] * 4,
+				"b3": [0] * 4,
+				"b4": [0] * 4,
 			}
 		)
 	)
@@ -252,6 +285,16 @@ def test_SectionDataFrame__add_array():
 				15,
 			]
 			* 4,
+			"a0": [0] * 4,
+			"a1": [59] * 4,
+			"a2": [0] * 4,
+			"a3": [0] * 4,
+			"a4": [0] * 4,
+			"b0": [0] * 4,
+			"b1": [0] * 4,
+			"b2": [0] * 4,
+			"b3": [0] * 4,
+			"b4": [0] * 4,
 		}
 	)
 	cable_array = CableArray(cable_df)
@@ -312,6 +355,16 @@ def test_SectionDataFrame__data():
 					15,
 				]
 				* 4,
+				"a0": [0] * 4,
+				"a1": [59] * 4,
+				"a2": [0] * 4,
+				"a3": [0] * 4,
+				"a4": [0] * 4,
+				"b0": [0] * 4,
+				"b1": [0] * 4,
+				"b2": [0] * 4,
+				"b3": [0] * 4,
+				"b4": [0] * 4,
 			}
 		)
 	)
@@ -323,52 +376,30 @@ def test_SectionDataFrame__data():
 	assert not frame.data.equals(frame.section.data)
 	assert (
 		frame.data.shape[1]
-		== frame.cable.data.shape[1] + frame.section.data.shape[1]
+		== frame.cable.data.shape[1]
+		+ frame.section.data.shape[1]
+		+ 2  # both polynomials add 2 more attributes
 	)
 
 
-def test_SectionDataFrame__add_weather_update_span():
+def test_SectionDataFrame__add_weather_update_span(
+	factory_cable_array: Callable[[int], CableArray],
+):
+	cable_array = factory_cable_array(4)
 	frame = SectionDataFrame(section)
-	weather = WeatherArray(
-		pd.DataFrame(
-			{
-				"ice_thickness": [1, 2.1, 0.0, 5.4],
-				"wind_pressure": [1840.12, 0.0, 12.0, 53.0],
-			}
-		)
-	)
-	cable_array = CableArray(
-		pd.DataFrame(
-			{
-				"section": [
-					345.5,
-				]
-				* 4,
-				"diameter": [
-					22.4,
-				]
-				* 4,
-				"linear_weight": [
-					9.6,
-				]
-				* 4,
-				"young_modulus": [
-					59,
-				]
-				* 4,
-				"dilatation_coefficient": [
-					23,
-				]
-				* 4,
-				"temperature_reference": [
-					15,
-				]
-				* 4,
-			}
-		)
-	)
-	cable_loads = CableLoads(cable_array, weather)
+	weather_dict = {
+		"ice_thickness": np.array([1, 2.1, 0.0, 5.4]),
+		"wind_pressure": np.array([1840.12, 0.0, 12.0, 53.0]),
+	}
+	weather = WeatherArray(pd.DataFrame(weather_dict))
+	cable_loads_input = {
+		"diameter": cable_array.data.diameter.to_numpy(),
+		"linear_weight": cable_array.data.linear_weight.to_numpy(),
+	}
+	cable_loads_input.update(weather_dict)
+	cable_loads_input["ice_thickness"] *= 1e-2
+	cable_loads = CableLoads(**cable_loads_input)
 	frame.add_cable(cable=cable_array)
 	frame.add_weather(weather=weather)
 	assert (frame.span.load_coefficient == cable_loads.load_coefficient).all()
-	assert (frame.physics.cable_length == frame.span.L())[0:-1].all()
+	assert (frame.deformation.cable_length == frame.span.L())[0:-1].all()

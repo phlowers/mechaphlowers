@@ -64,7 +64,7 @@ def test_create_section_array__with_floats(
 		input_df, sagging_parameter=2_000, sagging_temperature=15
 	)
 
-	assert_frame_equal(input_df, section._data, check_dtype=False, rtol=1e-07)
+	assert_frame_equal(input_df, section._data, check_dtype=False, atol=1e-07)
 
 
 def test_create_section_array__only_ints() -> None:
@@ -83,7 +83,7 @@ def test_create_section_array__only_ints() -> None:
 		input_df, sagging_parameter=2_000, sagging_temperature=15
 	)
 
-	assert_frame_equal(input_df, section._data, check_dtype=False, rtol=1e-07)
+	assert_frame_equal(input_df, section._data, check_dtype=False, atol=1e-07)
 
 
 def test_create_section_array__span_length_for_last_support(
@@ -232,7 +232,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
 		},
 	)
 
-	assert_frame_equal(exported_data, expected_data, rtol=1e-07)
+	assert_frame_equal(exported_data, expected_data, atol=1e-07)
 	# section_array inner data shouldn't have been modified
 	assert_frame_equal(section_array._data, inner_data)
 
@@ -277,7 +277,7 @@ def test_section_array__data_original(section_array_input_data: dict) -> None:
 		},
 	)
 
-	assert_frame_equal(exported_data, expected_data, rtol=1e-07)
+	assert_frame_equal(exported_data, expected_data, atol=1e-07)
 
 
 def test_create_cable_array__with_floats(
@@ -288,7 +288,7 @@ def test_create_cable_array__with_floats(
 	)
 	cable = CableArray(input_df)
 
-	assert_frame_equal(input_df, cable._data, check_dtype=False, rtol=1e-07)
+	assert_frame_equal(input_df, cable._data, check_dtype=False, atol=1e-07)
 
 
 @pytest.mark.parametrize(

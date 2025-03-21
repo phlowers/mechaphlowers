@@ -16,10 +16,9 @@ from mechaphlowers.core.geometry import references
 
 # if TYPE_CHECKING:
 from mechaphlowers.core.models.cable.deformation import (
-	Deformation,
-	LinearDeformation,
+	DeformationRTE,
+	IDeformation,
 )
-from mechaphlowers.core.models.cable.physics import Physics
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 	Span,
@@ -31,6 +30,7 @@ from mechaphlowers.entities.arrays import (
 	SectionArray,
 	WeatherArray,
 )
+from mechaphlowers.entities.data_container import DataContainer
 from mechaphlowers.plotting.plot import PlotAccessor
 from mechaphlowers.utils import CachedAccessor
 
@@ -51,27 +51,23 @@ class SectionDataFrame:
 		self,
 		section: SectionArray,
 		span_model: Type[Span] = CatenarySpan,
-		physics_model: Type[Physics] = Physics,
-		deformation_model: Type[Deformation] = LinearDeformation,
+		deformation_model: Type[IDeformation] = DeformationRTE,
 	):
 		self.section: SectionArray = section
 		self.cable: CableArray | None = None
 		self.weather: WeatherArray | None = None
+		self.data_container: DataContainer = DataContainer()
+		self.data_container.add_section_array(section)
 		self.cable_loads: CableLoads | None = None
 		self.span: Span | None = None
-		self.physics: Physics | None = None
+		self.deformation: IDeformation | None = None
 		self._span_model: Type[Span] = span_model
-		self._physics_model: Type[Physics] = physics_model
-		self._deformation_model: Type[Deformation] = deformation_model
+		self._deformation_model: Type[IDeformation] = deformation_model
 		self.init_span_model()
 
 	def init_span_model(self):
 		"""init_span_model method to initialize span model"""
-		self.span = self._span_model(
-			self.section.data.span_length.to_numpy(),
-			self.section.data.elevation_difference.to_numpy(),
-			self.section.data.sagging_parameter.to_numpy(),
-		)
+		self.span = self._span_model(**self.data_container.__dict__)
 
 	def get_coord(self) -> np.ndarray:
 		"""Get x,y,z cables coordinates
@@ -80,11 +76,7 @@ class SectionDataFrame:
 		    np.ndarray: x,y,z array in point format
 		"""
 
-		spans = self._span_model(
-			self.section.data.span_length.to_numpy(),
-			self.section.data.elevation_difference.to_numpy(),
-			self.section.data.sagging_parameter.to_numpy(),
-		)
+		spans = self._span_model(**self.data_container.__dict__)
 
 		# compute x_axis
 		x_cable: np.ndarray = spans.x(RESOLUTION)
@@ -104,15 +96,11 @@ class SectionDataFrame:
 		)
 
 		altitude: np.ndarray = (
-			self.section.data.conductor_attachment_altitude.to_numpy()
+			self.data_container.conductor_attachment_altitude
 		)
-		span_length: np.ndarray = self.section.data.span_length.to_numpy()
-		crossarm_length: np.ndarray = (
-			self.section.data.crossarm_length.to_numpy()
-		)
-		insulator_length: np.ndarray = (
-			self.section.data.insulator_length.to_numpy()
-		)
+		span_length: np.ndarray = self.data_container.span_length
+		crossarm_length: np.ndarray = self.data_container.crossarm_length
+		insulator_length: np.ndarray = self.data_container.insulator_length
 
 		# TODO: the content of this function is not generic enough. An upcoming feature will change that.
 		x_span, y_span, z_span = references.translate_cable_to_support(
@@ -138,12 +126,21 @@ class SectionDataFrame:
 		Returns:
 		    pd.DataFrame: data property of the SectionDataFrame object with or without cable data
 		"""
-		out = self.section.data
-		if self.cable is not None:
-			out = pd.concat([out, self.cable.data], axis=1)
-		if self.weather is not None:
-			out = pd.concat([out, self.weather.data], axis=1)
-		return out
+		data_dict = self.data_container.__dict__
+		return pd.DataFrame(data_dict)
+		# out = self.section.data
+		# if self.cable is not None:
+		# 	out = pd.concat([out, self.cable.data], axis=1)
+		# if self.weather is not None:
+		# 	out = pd.concat([out, self.weather.data], axis=1)
+		# return out
+
+	@data.setter
+	def data(self, input_data_frame: pd.DataFrame):
+		input_dict = input_data_frame.to_dict('list')
+		for key, value in input_dict.items():
+			input_dict[key] = np.array(value)
+		self.data_container = DataContainer.init_with_dict(input_dict)
 
 	def select(self, between: List[str]) -> Self:
 		"""select enable to select a part of the line based on support names
@@ -200,9 +197,7 @@ class SectionDataFrame:
 		if idx_end <= idx_start:
 			raise ValueError("First selected item is after the second one")
 
-		return_sf.section._data = return_sf.section._data.iloc[
-			idx_start : idx_end + 1
-		]
+		return_sf.data = return_sf.data.iloc[idx_start : idx_end + 1]
 
 		return return_sf
 
@@ -214,8 +209,9 @@ class SectionDataFrame:
 		"""
 		self._add_array(cable, CableArray)
 		# type is checked in add_array
+		self.data_container.add_cable_array(cable)
 		self.span.linear_weight = self.cable.data.linear_weight.to_numpy()  # type: ignore[union-attr]
-		self.init_physics_model()
+		self.init_deformation_model()
 
 	def add_weather(self, weather: WeatherArray):
 		"""add_weather method to add a new weather to the SectionDataFrame
@@ -230,9 +226,10 @@ class SectionDataFrame:
 		if self.cable is None:
 			raise ValueError("Cable has to be added before weather")
 		# weather type is checked in add_array self.cable is tested above but mypy does not understand
-		self.cable_loads = CableLoads(self.cable, self.weather)  # type: ignore[union-attr,arg-type]
+		self.data_container.add_weather_array(weather)
+		self.cable_loads = CableLoads(**self.data_container.__dict__)  # type: ignore[union-attr,arg-type]
 		self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr]
-		self.init_physics_model()
+		self.init_deformation_model()
 
 	def _add_array(self, var: ElementArray, type_var: Type[ElementArray]):
 		"""add_array method to add a new array to the SectionDataFrame
@@ -268,18 +265,19 @@ class SectionDataFrame:
 				f"{type_var.__name__} has to have the same length as the section"
 			)
 
-		# Add cable to the section
+		# Add array to the section
 
 		self.__setattr__(property_map[type_var], var)
+		# Add array to DataContainer
 
-	def init_physics_model(self):
-		"""initialize_physics method to initialize physics model"""
+	def init_deformation_model(self):
+		"""initialize_deformation method to initialize deformation model"""
 
-		# Initialize physics model
-		self.physics = self._physics_model(
-			self.cable,
-			self.span.T_mean(),
-			self.span.L(),
+		# Initialize deformation model
+		self.deformation = self._deformation_model(
+			**self.data_container.__dict__,
+			tension_mean=self.span.T_mean(),
+			cable_length=self.span.L(),
 		)
 		# TODO: test if L_ref change when span_model T_mean change
 
