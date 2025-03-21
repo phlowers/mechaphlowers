@@ -69,6 +69,9 @@ def test_select_spans__wrong_input(error: Type[Exception], case):
 		frame.select(case)
 
 
+# TODO: Add teston data property
+
+
 def test_select_spans__passing_input():
 	frame = SectionDataFrame(section)
 	frame_selected = frame.select(["support 1", "three"])

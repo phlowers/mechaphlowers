@@ -32,7 +32,7 @@ class DataContainer:
 		self.a2: np.ndarray
 		self.a3: np.ndarray
 		self.a4: np.ndarray
-		self.b0: np.ndarray  # Correct solution??? Or always 0?
+		self.b0: np.ndarray
 		self.b1: np.ndarray
 		self.b2: np.ndarray
 		self.b3: np.ndarray
@@ -43,6 +43,12 @@ class DataContainer:
 
 		self.ice_thickness: np.ndarray
 		self.wind_pressure: np.ndarray
+
+	@classmethod
+	def init_with_dict(cls, input_dict: dict):
+		data_container = cls()
+		data_container.__dict__ = input_dict
+		return data_container
 
 	@property
 	def stress_strain_polynomial_conductor(self) -> Poly:

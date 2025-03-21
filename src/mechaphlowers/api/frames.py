@@ -135,6 +135,13 @@ class SectionDataFrame:
 		# 	out = pd.concat([out, self.weather.data], axis=1)
 		# return out
 
+	@data.setter
+	def data(self, input_data_frame: pd.DataFrame):
+		input_dict = input_data_frame.to_dict('list')
+		for key, value in input_dict.items():
+			input_dict[key] = np.array(value)
+		self.data_container = DataContainer.init_with_dict(input_dict)
+
 	def select(self, between: List[str]) -> Self:
 		"""select enable to select a part of the line based on support names
 
@@ -190,9 +197,7 @@ class SectionDataFrame:
 		if idx_end <= idx_start:
 			raise ValueError("First selected item is after the second one")
 
-		return_sf.section._data = return_sf.section._data.iloc[
-			idx_start : idx_end + 1
-		]
+		return_sf.data = return_sf.data.iloc[idx_start : idx_end + 1]
 
 		return return_sf
 
