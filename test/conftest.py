@@ -7,6 +7,7 @@
 
 import sys
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -28,30 +29,32 @@ sys.path.insert(0, str(source_dir))
 
 
 @pytest.fixture
-def default_cable_array_two_spans() -> CableArray:
-	NB_SPAN = 2
-	return CableArray(
-		pd.DataFrame(
-			{
-				"section": [345.55] * NB_SPAN,
-				"diameter": [22.4] * NB_SPAN,
-				"linear_weight": [9.55494] * NB_SPAN,
-				"young_modulus": [59] * NB_SPAN,
-				"dilatation_coefficient": [23] * NB_SPAN,
-				"temperature_reference": [15] * NB_SPAN,
-				"a0": [0] * NB_SPAN,
-				"a1": [59] * NB_SPAN,
-				"a2": [0] * NB_SPAN,
-				"a3": [0] * NB_SPAN,
-				"a4": [0] * NB_SPAN,
-				"b0": [0] * NB_SPAN,
-				"b1": [0] * NB_SPAN,
-				"b2": [0] * NB_SPAN,
-				"b3": [0] * NB_SPAN,
-				"b4": [0] * NB_SPAN,
-			}
+def factory_cable_array() -> Callable[[int], CableArray]:
+	def _method_cable_array(nb_span=2):
+		return CableArray(
+			pd.DataFrame(
+				{
+					"section": [345.55] * nb_span,
+					"diameter": [22.4] * nb_span,
+					"linear_weight": [9.55494] * nb_span,
+					"young_modulus": [59] * nb_span,
+					"dilatation_coefficient": [23] * nb_span,
+					"temperature_reference": [15] * nb_span,
+					"a0": [0] * nb_span,
+					"a1": [59] * nb_span,
+					"a2": [0] * nb_span,
+					"a3": [0] * nb_span,
+					"a4": [0] * nb_span,
+					"b0": [0] * nb_span,
+					"b1": [0] * nb_span,
+					"b2": [0] * nb_span,
+					"b3": [0] * nb_span,
+					"b4": [0] * nb_span,
+				}
+			)
 		)
-	)
+
+	return _method_cable_array
 
 
 @pytest.fixture
