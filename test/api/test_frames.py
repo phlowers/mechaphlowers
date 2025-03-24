@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from copy import copy
-from typing import Callable, Type
+from typing import Callable, Type, TypedDict
 
 import numpy as np
 import pandas as pd
@@ -21,6 +21,14 @@ from mechaphlowers.entities.arrays import (
 	SectionArray,
 	WeatherArray,
 )
+
+
+class CableLoadsInputDict(TypedDict, total=False):
+	diameter: np.ndarray
+	linear_weight: np.ndarray
+	ice_thickness: np.ndarray
+	wind_pressure: np.ndarray
+
 
 data = {
 	"name": ["support 1", "2", "three", "support 4"],
@@ -371,7 +379,8 @@ def test_SectionDataFrame__data():
 
 	frame = SectionDataFrame(section)
 	# TODO: fix this test: recreate expected result by changing "name" -> "support_name"
-	assert frame.data.equals(frame.section_array.data)
+	expected_dict = frame.section_array.data.rename(columns ={"name": "support_name"})
+	assert frame.data.equals(expected_dict)
 
 	frame.add_cable(cable_array)
 	assert not frame.data.equals(frame.section_array.data)
@@ -388,15 +397,16 @@ def test_SectionDataFrame__add_weather_update_span(
 ):
 	cable_array = factory_cable_array(4)
 	frame = SectionDataFrame(section)
-	weather_dict = {
+	weather_dict: CableLoadsInputDict = {
 		"ice_thickness": np.array([1, 2.1, 0.0, 5.4]),
 		"wind_pressure": np.array([1840.12, 0.0, 12.0, 53.0]),
 	}
 	weather = WeatherArray(pd.DataFrame(weather_dict))
-	cable_loads_input = {
+	cable_loads_input: CableLoadsInputDict = {
 		"diameter": cable_array.data.diameter.to_numpy(),
 		"linear_weight": cable_array.data.linear_weight.to_numpy(),
 	}
+	# Converts into SI units because CableArray automatically converts into SI units but not CableLoads
 	cable_loads_input.update(weather_dict)
 	cable_loads_input["ice_thickness"] *= 1e-2
 	cable_loads = CableLoads(**cable_loads_input)

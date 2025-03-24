@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from typing import TypedDict
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -22,6 +24,11 @@ from mechaphlowers.entities.data_container import (
 	DataContainer,
 	factory_data_container,
 )
+
+
+class WeatherDict(TypedDict, total=False):
+	ice_thickness: np.ndarray
+	wind_pressure: np.ndarray
 
 
 def create_sag_tension_solver(
@@ -119,14 +126,15 @@ def test_functions_to_solve__same_loads() -> None:
 		unstressed_length=unstressed_length,
 	)
 
-	weather_dict_final = {
+	weather_dict_final: WeatherDict = {
 		"ice_thickness": 1e-2 * np.array([1, 2.1, 0.0, 0.0]),
 		"wind_pressure": 0 * np.ones(NB_SPAN),
 	}
 
 	new_temperature = np.array([15] * NB_SPAN)
 	sag_tension_calculation.change_state(
-		**weather_dict_final, temp=new_temperature
+		**weather_dict_final,
+		temp=new_temperature,
 	)
 	T_h_state_0 = sag_tension_calculation.T_h_after_change
 
@@ -303,7 +311,7 @@ def test_functions_to_solve__different_temp_ref() -> None:
 		sagging_temperature,
 	)
 
-	weather_dict_final = {
+	weather_dict_final: WeatherDict = {
 		"ice_thickness": 6e-2 * np.ones(NB_SPAN),
 		"wind_pressure": 0 * np.ones(NB_SPAN),
 	}

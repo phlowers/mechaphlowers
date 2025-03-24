@@ -54,13 +54,6 @@ class ElementArray(ABC):
 		"""
 		return self._data
 
-	# TODO: find a more elegant way to do this
-	def to_dict_with_numpy(self) -> dict:
-		data_dict = self.data.to_dict('list')
-		for key, value in data_dict.items():
-			data_dict[key] = np.array(value)
-		return data_dict
-
 
 class SectionArray(ElementArray):
 	"""Description of an overhead line section.
