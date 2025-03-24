@@ -131,11 +131,13 @@ def test_poly_deformation__degree_three(
 	)
 	current_temperature = np.array([15, 15])
 
-	constraint = tension_mean / default_data_container_two_spans.section
+	constraint = (
+		tension_mean / default_data_container_two_spans.cable_section_area
+	)
 	constraint = np.fmax(constraint, np.array([0, 0]))
 	deformation_model.resolve_stress_strain_equation(
 		constraint,
-		default_data_container_two_spans.stress_strain_polynomial_conductor,
+		default_data_container_two_spans.polynomial_conductor,
 	)
 	deformation_model.epsilon_mecha()
 
@@ -162,11 +164,13 @@ def test_poly_deformation__degree_four(
 	)
 	current_temperature = np.array([15, 15])
 
-	constraint = tension_mean / default_data_container_two_spans.section
+	constraint = (
+		tension_mean / default_data_container_two_spans.cable_section_area
+	)
 	constraint = np.fmax(constraint, np.array([0, 0]))
 	deformation_model.resolve_stress_strain_equation(
 		constraint,
-		default_data_container_two_spans.stress_strain_polynomial_conductor,
+		default_data_container_two_spans.polynomial_conductor,
 	)
 	deformation_model.epsilon_mecha()
 
@@ -193,7 +197,9 @@ def test_poly_deformation__degree_four__with_max_stress(
 	)
 	current_temperature = np.array([15, 15])
 
-	constraint = tension_mean / default_data_container_two_spans.section
+	constraint = (
+		tension_mean / default_data_container_two_spans.cable_section_area
+	)
 	constraint = np.fmax(constraint, np.array([0, 0]))
 	deformation_model.max_stress = np.array([1000, 1e8])
 	deformation_model.epsilon_mecha()

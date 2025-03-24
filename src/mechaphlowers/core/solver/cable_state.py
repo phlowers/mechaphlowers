@@ -35,7 +35,7 @@ class SagTensionSolver:
 		sagging_parameter: np.ndarray,
 		sagging_temperature: np.ndarray,
 		young_modulus: np.ndarray,
-		section: np.ndarray,
+		cable_section_area: np.ndarray,
 		diameter: np.ndarray,
 		linear_weight: np.ndarray,
 		dilatation_coefficient: np.ndarray,
@@ -54,7 +54,7 @@ class SagTensionSolver:
 		self.sagging_temperature = sagging_temperature
 		self.linear_weight = linear_weight
 		self.young_modulus = young_modulus
-		self.section = section
+		self.cable_section_area = cable_section_area
 		self.diameter = diameter
 		self.dilatation_coefficient = dilatation_coefficient
 		self.temperature_reference = temperature_reference
@@ -138,7 +138,7 @@ class SagTensionSolver:
 		epsilon_total = self.deformation_model.compute_epsilon_mecha(
 			T_mean,
 			self.young_modulus,
-			self.section,
+			self.cable_section_area,
 			self.polynomial_conductor[
 				0
 			],  # TODO: make a clear choice between single polynomial or array

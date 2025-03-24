@@ -49,15 +49,15 @@ class SectionDataFrame:
 
 	def __init__(
 		self,
-		section: SectionArray,
+		section_array: SectionArray,
 		span_model: Type[Span] = CatenarySpan,
 		deformation_model: Type[IDeformation] = DeformationRTE,
 	):
-		self.section: SectionArray = section
+		self.section_array: SectionArray = section_array
 		self.cable: CableArray | None = None
 		self.weather: WeatherArray | None = None
 		self.data_container: DataContainer = DataContainer()
-		self.data_container.add_section_array(section)
+		self.data_container.add_section_array(section_array)
 		self.cable_loads: CableLoads | None = None
 		self.span: Span | None = None
 		self.deformation: IDeformation | None = None
@@ -175,21 +175,23 @@ class SectionDataFrame:
 		if start_value == end_value:
 			raise ValueError("At least two rows has to be selected")
 
-		if int(self.section.data["name"].isin(between).sum()) != 2:
+		if int(self.data["support_name"].isin(between).sum()) != 2:
 			raise ValueError(
 				"One of the two name given in the between argument are not existing"
 			)
 
 		return_sf = copy(self)
-		return_sf.data.set_index("name").loc[start_value, :].index
+		return_sf.data.set_index("support_name").loc[start_value, :].index
 
 		idx_start = (
-			return_sf.data.loc[return_sf.data.name == start_value, :]
+			return_sf.data.loc[
+				return_sf.data["support_name"] == start_value, :
+			]
 			.index[0]
 			.item()
 		)
 		idx_end = (
-			return_sf.data.loc[return_sf.data.name == end_value, :]
+			return_sf.data.loc[return_sf.data["support_name"] == end_value, :]
 			.index[0]
 			.item()
 		)
@@ -231,6 +233,7 @@ class SectionDataFrame:
 		self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr]
 		self.init_deformation_model()
 
+	# How to manage case where type_var = SectionArray
 	def _add_array(self, var: ElementArray, type_var: Type[ElementArray]):
 		"""add_array method to add a new array to the SectionDataFrame
 
@@ -240,13 +243,13 @@ class SectionDataFrame:
 
 		Raises:
 			TypeError: if cable is not a CableArray object
-			ValueError: if cable has not the same length as the section
+			ValueError: if cable has not the same length as the section_array
 			KeyError: if type_var is not handled by this method
 		"""
 
 		property_map = {
 			CableArray: "cable",
-			SectionArray: "section",
+			SectionArray: "section_array",
 			WeatherArray: "weather",
 		}
 
@@ -259,13 +262,13 @@ class SectionDataFrame:
 				f"{type_var.__name__} is not handled by this method"
 				f"it should be one of the {property_map}"
 			)
-		# Check if the var is compatible with the section
-		if var._data.shape[0] != self.section._data.shape[0]:
+		# Check if the var is compatible with the section_array
+		if var._data.shape[0] != self.section_array._data.shape[0]:
 			raise ValueError(
 				f"{type_var.__name__} has to have the same length as the section"
 			)
 
-		# Add array to the section
+		# Add array to the SectionDataFrame
 
 		self.__setattr__(property_map[type_var], var)
 		# Add array to DataContainer
@@ -286,4 +289,4 @@ class SectionDataFrame:
 	state = CachedAccessor("state", StateAccessor)
 
 	def __copy__(self):
-		return type(self)(copy(self.section), self._span_model)
+		return type(self)(copy(self.section_array), self._span_model)

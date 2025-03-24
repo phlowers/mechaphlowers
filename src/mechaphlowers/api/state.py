@@ -38,7 +38,8 @@ class StateAccessor:
 			)
 		if isinstance(current_temperature, (float, int)):
 			current_temperature = np.full(
-				self.frame.section.data.shape[0], float(current_temperature)
+				self.frame.section_array.data.shape[0],
+				float(current_temperature),
 			)
 		if not isinstance(current_temperature, np.ndarray):
 			raise ValueError(
@@ -47,7 +48,7 @@ class StateAccessor:
 		if isinstance(current_temperature, np.ndarray):
 			if (
 				current_temperature.shape[0]
-				!= self.frame.section.data.shape[0]
+				!= self.frame.section_array.data.shape[0]
 			):
 				raise ValueError(
 					"Current temperature should have the same length as the section"

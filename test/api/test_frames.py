@@ -39,7 +39,7 @@ section.sagging_temperature = 15
 
 def test_section_frame_initialization():
 	frame = SectionDataFrame(section)
-	assert frame.section == section
+	assert frame.section_array == section
 	assert isinstance(frame._span_model, type(CatenarySpan))
 
 
@@ -69,7 +69,7 @@ def test_select_spans__wrong_input(error: Type[Exception], case):
 		frame.select(case)
 
 
-# TODO: Add teston data property
+# TODO: Add test on data property
 
 
 def test_select_spans__passing_input():
@@ -370,14 +370,15 @@ def test_SectionDataFrame__data():
 	)
 
 	frame = SectionDataFrame(section)
-	assert frame.data.equals(frame.section.data)
+	# TODO: fix this test: recreate expected result by changing "name" -> "support_name"
+	assert frame.data.equals(frame.section_array.data)
 
 	frame.add_cable(cable_array)
-	assert not frame.data.equals(frame.section.data)
+	assert not frame.data.equals(frame.section_array.data)
 	assert (
 		frame.data.shape[1]
 		== frame.cable.data.shape[1]
-		+ frame.section.data.shape[1]
+		+ frame.section_array.data.shape[1]
 		+ 2  # both polynomials add 2 more attributes
 	)
 

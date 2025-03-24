@@ -20,7 +20,7 @@ class IDeformation(ABC):
 		tension_mean: np.ndarray,
 		cable_length: np.ndarray,
 		young_modulus: np.ndarray,
-		section: np.ndarray,
+		cable_section_area: np.ndarray,
 		temperature_reference: np.ndarray,
 		dilatation_coefficient: np.ndarray,
 		linear_weight: np.ndarray,
@@ -30,7 +30,7 @@ class IDeformation(ABC):
 	):
 		self.tension_mean = tension_mean
 		self.young_modulus = young_modulus
-		self.section = section
+		self.cable_section_area = cable_section_area
 		self.cable_length = cable_length
 		self.temp_ref = temperature_reference
 		self.dilatation_coefficient = dilatation_coefficient
@@ -95,7 +95,7 @@ class DeformationRTE(IDeformation):
 	def epsilon_mecha(self) -> np.ndarray:
 		T_mean = self.tension_mean
 		E = self.young_modulus
-		S = self.section
+		S = self.cable_section_area
 		# TODO: use array of polynomial instead
 		polynomial = self.polynomial_conductor[0]
 		return self.compute_epsilon_mecha(

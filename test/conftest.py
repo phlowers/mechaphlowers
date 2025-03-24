@@ -75,60 +75,89 @@ def default_section_array_two_spans() -> SectionArray:
 
 
 @pytest.fixture
-def default_weather_array_two_spans() -> WeatherArray:
-	return WeatherArray(
+def default_section_array_four_spans() -> SectionArray:
+	return SectionArray(
 		pd.DataFrame(
 			{
-				"ice_thickness": [0.0, 0.0],
-				"wind_pressure": [0.0, 0.0],
+				"name": np.array(["support 1", "2", "three", "support 4"]),
+				"suspension": np.array([False, True, True, False]),
+				"conductor_attachment_altitude": np.array([2.2, 5, -0.12, 0]),
+				"crossarm_length": np.array([10, 12.1, 10, 10.1]),
+				"line_angle": np.array([0, 360, 90.1, -90.2]),
+				"insulator_length": np.array([0, 4, 3.2, 0]),
+				"span_length": np.array([400, 500.2, 500.0, np.nan]),
 			}
 		)
 	)
 
 
 @pytest.fixture
+def factory_neutral_weather_array() -> Callable[[int], WeatherArray]:
+	def _method_cable_array(nb_span=2):
+		return CableArray(
+			pd.DataFrame(
+				{
+					"ice_thickness": [0.0] * nb_span,
+					"wind_pressure": [0.0] * nb_span,
+				}
+			)
+		)
+
+	return _method_cable_array
+
+
+@pytest.fixture
 def default_data_container_two_spans() -> DataContainer:
 	NB_SPAN = 2
-	cable_dict = {
-		"section": [345.55] * NB_SPAN,
-		"diameter": [22.4] * NB_SPAN,
-		"linear_weight": [9.55494] * NB_SPAN,
-		"young_modulus": [59] * NB_SPAN,
-		"dilatation_coefficient": [23] * NB_SPAN,
-		"temperature_reference": [15] * NB_SPAN,
-		"a0": [0] * NB_SPAN,
-		"a1": [59] * NB_SPAN,
-		"a2": [0] * NB_SPAN,
-		"a3": [0] * NB_SPAN,
-		"a4": [0] * NB_SPAN,
-		"b0": [0] * NB_SPAN,
-		"b1": [0] * NB_SPAN,
-		"b2": [0] * NB_SPAN,
-		"b3": [0] * NB_SPAN,
-		"b4": [0] * NB_SPAN,
-	}
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [345.55] * NB_SPAN,
+				"diameter": [22.4] * NB_SPAN,
+				"linear_weight": [9.55494] * NB_SPAN,
+				"young_modulus": [59] * NB_SPAN,
+				"dilatation_coefficient": [23] * NB_SPAN,
+				"temperature_reference": [15] * NB_SPAN,
+				"a0": [0] * NB_SPAN,
+				"a1": [59] * NB_SPAN,
+				"a2": [0] * NB_SPAN,
+				"a3": [0] * NB_SPAN,
+				"a4": [0] * NB_SPAN,
+				"b0": [0] * NB_SPAN,
+				"b1": [0] * NB_SPAN,
+				"b2": [0] * NB_SPAN,
+				"b3": [0] * NB_SPAN,
+				"b4": [0] * NB_SPAN,
+			}
+		)
+	)
 
-	section_dict = {
-		"name": ["1", "2"],
-		"suspension": [False, False],
-		"conductor_attachment_altitude": [30, 40],
-		"crossarm_length": [0, 0],
-		"line_angle": [0, 0],
-		"insulator_length": [0, 0],
-		"span_length": [480, np.nan],
-		"sagging_parameter": [2000, 2000],
-		"sagging_temperature": [15, 15],
-	}
-
-	weather_dict = {
-		"ice_thickness": [0.0, 0.0],
-		"wind_pressure": np.zeros(NB_SPAN),
-	}
-	section_array = SectionArray(pd.DataFrame(section_dict))  # refactor this?
+	section_array = SectionArray(
+		pd.DataFrame(
+			{
+				"name": ["1", "2"],
+				"suspension": [False, False],
+				"conductor_attachment_altitude": [30, 40],
+				"crossarm_length": [0, 0],
+				"line_angle": [0, 0],
+				"insulator_length": [0, 0],
+				"span_length": [480, np.nan],
+				"sagging_parameter": [2000, 2000],
+				"sagging_temperature": [15, 15],
+			}
+		)
+	)
 	section_array.sagging_parameter = 2000
 	section_array.sagging_temperature = 15
-	cable_array = CableArray(pd.DataFrame(cable_dict))
-	weather_array = WeatherArray(pd.DataFrame(weather_dict))
+
+	weather_array = WeatherArray(
+		pd.DataFrame(
+			{
+				"ice_thickness": [0.0, 0.0],
+				"wind_pressure": np.zeros(NB_SPAN),
+			}
+		)
+	)
 
 	data_container = factory_data_container(
 		section_array, cable_array, weather_array

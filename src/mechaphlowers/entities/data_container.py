@@ -10,7 +10,7 @@ from mechaphlowers.entities.arrays import (
 
 class DataContainer:
 	def __init__(self) -> None:  # keep this for mypy?
-		self.name: np.ndarray
+		self.support_name: np.ndarray
 		self.suspension: np.ndarray
 		self.conductor_attachment_altitude: np.ndarray
 		self.crossarm_length: np.ndarray
@@ -21,7 +21,7 @@ class DataContainer:
 		self.sagging_parameter: np.ndarray
 		self.sagging_temperature: np.ndarray
 
-		self.section: np.ndarray
+		self.cable_section_area: np.ndarray
 		self.diameter: np.ndarray
 		self.linear_weight: np.ndarray
 		self.young_modulus: np.ndarray
@@ -50,16 +50,16 @@ class DataContainer:
 		data_container.__dict__ = input_dict
 		return data_container
 
-	@property
-	def stress_strain_polynomial_conductor(self) -> Poly:
-		"""Converts coefficients in the dataframe into polynomial"""
-		coefs_poly = np.array(
-			[self.a0[0], self.a1[0], self.a2[0], self.a3[0], self.a4[0]]
-		)
-		return Poly(coefs_poly)
+	# @property
+	# def stress_strain_polynomial_conductor(self) -> Poly:
+	# 	"""Converts coefficients in the dataframe into polynomial"""
+	# 	coefs_poly = np.array(
+	# 		[self.a0[0], self.a1[0], self.a2[0], self.a3[0], self.a4[0]]
+	# 	)
+	# 	return Poly(coefs_poly)
 
 	def add_section_array(self, section_array: SectionArray) -> None:
-		self.name = section_array.data.name.to_numpy()
+		self.support_name = section_array.data.name.to_numpy()
 		self.suspension = section_array.data.suspension.to_numpy()
 		self.conductor_attachment_altitude = (
 			section_array.data.conductor_attachment_altitude.to_numpy()
@@ -79,7 +79,7 @@ class DataContainer:
 		)
 
 	def add_cable_array(self, cable_array: CableArray) -> None:
-		self.section = cable_array.data.section.to_numpy()
+		self.cable_section_area = cable_array.data.section.to_numpy()
 		self.diameter = cable_array.data.diameter.to_numpy()
 		self.linear_weight = cable_array.data.linear_weight.to_numpy()
 		self.young_modulus = cable_array.data.young_modulus.to_numpy()
