@@ -68,22 +68,22 @@ def test_functions_to_solve__same_loads() -> None:
 	NB_SPAN = 4
 	input_cable = pd.DataFrame(
 		{
-			"section": [345.55] * NB_SPAN,
-			"diameter": [22.4] * NB_SPAN,
-			"linear_weight": [9.55494] * NB_SPAN,
-			"young_modulus": [59] * NB_SPAN,
-			"dilatation_coefficient": [23] * NB_SPAN,
-			"temperature_reference": [0] * NB_SPAN,
-			"a0": [0] * NB_SPAN,
-			"a1": [59] * NB_SPAN,
-			"a2": [0] * NB_SPAN,
-			"a3": [0] * NB_SPAN,
-			"a4": [0] * NB_SPAN,
-			"b0": [0] * NB_SPAN,
-			"b1": [0] * NB_SPAN,
-			"b2": [0] * NB_SPAN,
-			"b3": [0] * NB_SPAN,
-			"b4": [0] * NB_SPAN,
+			"section": [345.55],
+			"diameter": [22.4],
+			"linear_weight": [9.55494],
+			"young_modulus": [59],
+			"dilatation_coefficient": [23],
+			"temperature_reference": [0],
+			"a0": [0],
+			"a1": [59],
+			"a2": [0],
+			"a3": [0],
+			"a4": [0],
+			"b0": [0],
+			"b1": [0],
+			"b2": [0],
+			"b3": [0],
+			"b4": [0],
 		}
 	)
 	data_section = {

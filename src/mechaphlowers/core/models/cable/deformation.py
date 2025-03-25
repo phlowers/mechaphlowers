@@ -19,12 +19,12 @@ class IDeformation(ABC):
 		self,
 		tension_mean: np.ndarray,
 		cable_length: np.ndarray,
-		young_modulus: np.ndarray,
-		cable_section_area: np.ndarray,
-		temperature_reference: np.ndarray,
-		dilatation_coefficient: np.ndarray,
-		linear_weight: np.ndarray,
-		polynomial_conductor: np.ndarray,
+		young_modulus: float,
+		cable_section_area: float,
+		temperature_reference: float,
+		dilatation_coefficient: float,
+		linear_weight: float,
+		polynomial_conductor: Poly,
 		max_stress: np.ndarray | float = 0.0,
 		**kwargs,
 	):
@@ -36,8 +36,6 @@ class IDeformation(ABC):
 		self.dilatation_coefficient = dilatation_coefficient
 		self.linear_weight = linear_weight
 		self.polynomial_conductor = polynomial_conductor
-
-		# self.tension_mean = tension_mean
 
 		if isinstance(max_stress, float):  # TODO: Keep this instead of None?
 			self.max_stress = np.full(self.cable_length.shape, max_stress)
@@ -67,8 +65,8 @@ class IDeformation(ABC):
 	@abstractmethod
 	def compute_epsilon_mecha(
 		T_mean: np.ndarray,
-		E: np.ndarray,
-		S: np.ndarray,
+		E: float,
+		S: float,
 		polynomial: Poly,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
@@ -77,7 +75,7 @@ class IDeformation(ABC):
 	@staticmethod
 	@abstractmethod
 	def compute_epsilon_therm(
-		theta: np.ndarray, theta_ref: np.ndarray, alpha: np.ndarray
+		theta: np.ndarray, theta_ref: float, alpha: float
 	) -> np.ndarray:
 		"""Computing thermal strain using a static method"""
 
@@ -97,15 +95,16 @@ class DeformationRTE(IDeformation):
 		E = self.young_modulus
 		S = self.cable_section_area
 		# TODO: use array of polynomial instead
-		polynomial = self.polynomial_conductor[0]
+		polynomial = self.polynomial_conductor
 		return self.compute_epsilon_mecha(
 			T_mean, E, S, polynomial, self.max_stress
 		)
 
-	def epsilon(self, current_temperature):
+	def epsilon(self, current_temperature: np.ndarray):
 		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
 
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
+		# TODO: check if current_temperature really is as scalar
 		temp_ref = self.temp_ref
 		alpha = self.dilatation_coefficient
 		return self.compute_epsilon_therm(current_temperature, temp_ref, alpha)
@@ -113,8 +112,8 @@ class DeformationRTE(IDeformation):
 	@staticmethod
 	def compute_epsilon_mecha(
 		T_mean: np.ndarray,
-		E: np.ndarray,
-		S: np.ndarray,
+		E: float,
+		S: float,
 		polynomial: Poly,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
@@ -130,8 +129,8 @@ class DeformationRTE(IDeformation):
 	@staticmethod
 	def compute_epsilon_mecha_polynomial(
 		T_mean: np.ndarray,
-		E: np.ndarray,
-		S: np.ndarray,
+		E: float,
+		S: float,
 		polynomial: Poly,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
@@ -147,8 +146,8 @@ class DeformationRTE(IDeformation):
 	@staticmethod
 	def compute_epsilon_plastic(
 		T_mean: np.ndarray,
-		E: np.ndarray,
-		S: np.ndarray,
+		E: float,
+		S: float,
 		polynomial: Poly,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
@@ -207,7 +206,7 @@ class DeformationRTE(IDeformation):
 
 	@staticmethod
 	def compute_epsilon_therm(
-		theta: np.ndarray, theta_ref: np.ndarray, alpha: np.ndarray
+		theta: np.ndarray, theta_ref: float, alpha: float
 	) -> np.ndarray:
 		"""Computing thermal strain using a static method"""
 		return (theta - theta_ref) * alpha

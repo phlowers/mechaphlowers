@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from copy import copy
-from typing import Callable, Type, TypedDict
+from typing import Type, TypedDict
 
 import numpy as np
 import pandas as pd
@@ -103,111 +103,32 @@ def test_SectionDataFrame__copy():
 	assert isinstance(frame, SectionDataFrame)
 
 
-def test_SectionDataFrame__state():
+def test_SectionDataFrame__state(default_cable_array: CableArray):
 	frame = SectionDataFrame(section)
-	cable_array = CableArray(
-		pd.DataFrame(
-			{
-				"section": [
-					345.5,
-				]
-				* 4,
-				"diameter": [
-					22.4,
-				]
-				* 4,
-				"linear_weight": [
-					9.6,
-				]
-				* 4,
-				"young_modulus": [
-					59,
-				]
-				* 4,
-				"dilatation_coefficient": [
-					23,
-				]
-				* 4,
-				"temperature_reference": [
-					15,
-				]
-				* 4,
-				"a0": [0] * 4,
-				"a1": [59] * 4,
-				"a2": [0] * 4,
-				"a3": [0] * 4,
-				"a4": [0] * 4,
-				"b0": [0] * 4,
-				"b1": [0] * 4,
-				"b2": [0] * 4,
-				"b3": [0] * 4,
-				"b4": [0] * 4,
-			}
-		)
-	)
-
-	frame.add_cable(cable_array)
+	frame.add_cable(default_cable_array)
 	assert np.array_equal(
 		frame.state.L_ref(12), frame.deformation.L_ref(12), equal_nan=True
 	)
 
 
 # test add_cable method
-def test_SectionDataFrame__add_cable():
+def test_SectionDataFrame__add_cable(default_cable_array: CableArray):
 	frame = SectionDataFrame(section)
-	cable_array = CableArray(
-		pd.DataFrame(
-			{
-				"section": [
-					345.5,
-				]
-				* 4,
-				"diameter": [
-					22.4,
-				]
-				* 4,
-				"linear_weight": [
-					9.6,
-				]
-				* 4,
-				"young_modulus": [
-					59,
-				]
-				* 4,
-				"dilatation_coefficient": [
-					23,
-				]
-				* 4,
-				"temperature_reference": [
-					15,
-				]
-				* 4,
-				"a0": [0] * 4,
-				"a1": [59] * 4,
-				"a2": [0] * 4,
-				"a3": [0] * 4,
-				"a4": [0] * 4,
-				"b0": [0] * 4,
-				"b1": [0] * 4,
-				"b2": [0] * 4,
-				"b3": [0] * 4,
-				"b4": [0] * 4,
-			}
-		)
-	)
-
 	with pytest.raises(TypeError):
 		# wrong input type
 		frame.add_cable(1)
-	with pytest.raises(ValueError):
-		# wrong input length
-		cable_copy = copy(cable_array)
-		cable_copy._data = cable_copy.data.iloc[:-1]
-		frame.add_cable(cable_copy)
-	frame.add_cable(cable_array)
+	with pytest.raises(NotImplementedError):
+		# TODO: test with array with length > 1
+		wrong_length_array = CableArray(
+			default_cable_array._data.loc[
+				np.repeat(default_cable_array._data.index, 3)
+			].reset_index(drop=True)
+		)
+		frame.add_cable(wrong_length_array)
+	frame.add_cable(default_cable_array)
 
 
-def test_SectionDataFrame__add_weather():
+def test_SectionDataFrame__add_weather(default_cable_array: CableArray):
 	frame = SectionDataFrame(section)
 	weather = WeatherArray(
 		pd.DataFrame(
@@ -217,95 +138,53 @@ def test_SectionDataFrame__add_weather():
 			}
 		)
 	)
-
-	cable_array = CableArray(
-		pd.DataFrame(
-			{
-				"section": [
-					345.5,
-				]
-				* 4,
-				"diameter": [
-					22.4,
-				]
-				* 4,
-				"linear_weight": [
-					9.6,
-				]
-				* 4,
-				"young_modulus": [
-					59,
-				]
-				* 4,
-				"dilatation_coefficient": [
-					23,
-				]
-				* 4,
-				"temperature_reference": [
-					15,
-				]
-				* 4,
-				"a0": [0] * 4,
-				"a1": [59] * 4,
-				"a2": [0] * 4,
-				"a3": [0] * 4,
-				"a4": [0] * 4,
-				"b0": [0] * 4,
-				"b1": [0] * 4,
-				"b2": [0] * 4,
-				"b3": [0] * 4,
-				"b4": [0] * 4,
-			}
-		)
-	)
+	# cable has to be added before weather
 	with pytest.raises(ValueError):
-		# cable has to be added before weather
 		frame.add_weather(weather)
-	frame.add_cable(cable=cable_array)
+	# wrong input length
+	with pytest.raises(ValueError):
+		weather_copy = copy(weather)
+		weather_copy._data = weather_copy.data.iloc[:-1]
+		frame.add_weather(weather_copy)
+	frame.add_cable(cable=default_cable_array)
 	frame.add_weather(weather=weather)
 
 
-def test_SectionDataFrame__add_array():
+def test_SectionDataFrame__add_array(default_cable_array: CableArray):
 	frame = SectionDataFrame(section)
 	cable_df = pd.DataFrame(
 		{
 			"section": [
 				345.5,
-			]
-			* 4,
+			],
 			"diameter": [
 				22.4,
-			]
-			* 4,
+			],
 			"linear_weight": [
 				9.6,
-			]
-			* 4,
+			],
 			"young_modulus": [
 				59,
-			]
-			* 4,
+			],
 			"dilatation_coefficient": [
 				23,
-			]
-			* 4,
+			],
 			"temperature_reference": [
 				15,
-			]
-			* 4,
-			"a0": [0] * 4,
-			"a1": [59] * 4,
-			"a2": [0] * 4,
-			"a3": [0] * 4,
-			"a4": [0] * 4,
-			"b0": [0] * 4,
-			"b1": [0] * 4,
-			"b2": [0] * 4,
-			"b3": [0] * 4,
-			"b4": [0] * 4,
+			],
+			"a0": [0],
+			"a1": [59],
+			"a2": [0],
+			"a3": [0],
+			"a4": [0],
+			"b0": [0],
+			"b1": [0],
+			"b2": [0],
+			"b3": [0],
+			"b4": [0],
 		}
 	)
-	cable_array = CableArray(cable_df)
+	default_cable_array = CableArray(cable_df)
 	weather_array = WeatherArray(
 		pd.DataFrame(
 			{
@@ -315,8 +194,8 @@ def test_SectionDataFrame__add_array():
 		)
 	)
 	# Testez l'ajout de CableArray
-	frame._add_array(cable_array, CableArray)
-	assert frame.cable == cable_array
+	frame._add_array(default_cable_array, CableArray)
+	assert frame.cable == default_cable_array
 
 	# Testez l'ajout de WeatherArray
 	frame._add_array(weather_array, WeatherArray)
@@ -329,73 +208,22 @@ def test_SectionDataFrame__add_array():
 	with pytest.raises(TypeError):
 		frame._add_array("not_an_array", CableArray)
 
-	with pytest.raises(ValueError):
-		wrong_length_array = copy(cable_array)
-		wrong_length_array._data = wrong_length_array.data.iloc[:-1]
-		frame._add_array(wrong_length_array, CableArray)
 
-
-def test_SectionDataFrame__data():
-	cable_array = CableArray(
-		pd.DataFrame(
-			{
-				"section": [
-					345.5,
-				]
-				* 4,
-				"diameter": [
-					22.4,
-				]
-				* 4,
-				"linear_weight": [
-					9.6,
-				]
-				* 4,
-				"young_modulus": [
-					59,
-				]
-				* 4,
-				"dilatation_coefficient": [
-					23,
-				]
-				* 4,
-				"temperature_reference": [
-					15,
-				]
-				* 4,
-				"a0": [0] * 4,
-				"a1": [59] * 4,
-				"a2": [0] * 4,
-				"a3": [0] * 4,
-				"a4": [0] * 4,
-				"b0": [0] * 4,
-				"b1": [0] * 4,
-				"b2": [0] * 4,
-				"b3": [0] * 4,
-				"b4": [0] * 4,
-			}
-		)
-	)
-
+def test_SectionDataFrame__data(default_cable_array: CableArray):
 	frame = SectionDataFrame(section)
-	# TODO: fix this test: recreate expected result by changing "name" -> "support_name"
-	expected_dict = frame.section_array.data.rename(columns ={"name": "support_name"})
-	assert frame.data.equals(expected_dict)
+	assert frame.data.equals(frame.section_array.data)
 
-	frame.add_cable(cable_array)
+	frame.add_cable(default_cable_array)
 	assert not frame.data.equals(frame.section_array.data)
 	assert (
 		frame.data.shape[1]
-		== frame.cable.data.shape[1]
-		+ frame.section_array.data.shape[1]
-		+ 2  # both polynomials add 2 more attributes
+		== frame.cable.data.shape[1] + frame.section_array.data.shape[1]
 	)
 
 
 def test_SectionDataFrame__add_weather_update_span(
-	factory_cable_array: Callable[[int], CableArray],
+	default_cable_array: CableArray,
 ):
-	cable_array = factory_cable_array(4)
 	frame = SectionDataFrame(section)
 	weather_dict: CableLoadsInputDict = {
 		"ice_thickness": np.array([1, 2.1, 0.0, 5.4]),
@@ -403,14 +231,14 @@ def test_SectionDataFrame__add_weather_update_span(
 	}
 	weather = WeatherArray(pd.DataFrame(weather_dict))
 	cable_loads_input: CableLoadsInputDict = {
-		"diameter": cable_array.data.diameter.to_numpy(),
-		"linear_weight": cable_array.data.linear_weight.to_numpy(),
+		"diameter": default_cable_array.data.diameter.to_numpy(),
+		"linear_weight": default_cable_array.data.linear_weight.to_numpy(),
 	}
 	# Converts into SI units because CableArray automatically converts into SI units but not CableLoads
 	cable_loads_input.update(weather_dict)
 	cable_loads_input["ice_thickness"] *= 1e-2
 	cable_loads = CableLoads(**cable_loads_input)
-	frame.add_cable(cable=cable_array)
+	frame.add_cable(cable=default_cable_array)
 	frame.add_weather(weather=weather)
 	assert (frame.span.load_coefficient == cable_loads.load_coefficient).all()
 	assert (frame.deformation.cable_length == frame.span.L())[0:-1].all()

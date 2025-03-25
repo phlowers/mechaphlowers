@@ -21,25 +21,15 @@ class DataContainer:
 		self.sagging_parameter: np.ndarray
 		self.sagging_temperature: np.ndarray
 
-		self.cable_section_area: np.ndarray
-		self.diameter: np.ndarray
-		self.linear_weight: np.ndarray
-		self.young_modulus: np.ndarray
-		self.dilatation_coefficient: np.ndarray
-		self.temperature_reference: np.ndarray
-		self.a0: np.ndarray
-		self.a1: np.ndarray
-		self.a2: np.ndarray
-		self.a3: np.ndarray
-		self.a4: np.ndarray
-		self.b0: np.ndarray
-		self.b1: np.ndarray
-		self.b2: np.ndarray
-		self.b3: np.ndarray
-		self.b4: np.ndarray
+		self.cable_section_area: float
+		self.diameter: float
+		self.linear_weight: float
+		self.young_modulus: float
+		self.dilatation_coefficient: float
+		self.temperature_reference: float
 
-		self.polynomial_conductor: np.ndarray
-		self.polynomial_heart: np.ndarray
+		self.polynomial_conductor: Poly
+		self.polynomial_heart: Poly
 
 		self.ice_thickness: np.ndarray
 		self.wind_pressure: np.ndarray
@@ -49,14 +39,6 @@ class DataContainer:
 		data_container = cls()
 		data_container.__dict__ = input_dict
 		return data_container
-
-	# @property
-	# def stress_strain_polynomial_conductor(self) -> Poly:
-	# 	"""Converts coefficients in the dataframe into polynomial"""
-	# 	coefs_poly = np.array(
-	# 		[self.a0[0], self.a1[0], self.a2[0], self.a3[0], self.a4[0]]
-	# 	)
-	# 	return Poly(coefs_poly)
 
 	def add_section_array(self, section_array: SectionArray) -> None:
 		self.support_name = section_array.data.name.to_numpy()
@@ -79,54 +61,37 @@ class DataContainer:
 		)
 
 	def add_cable_array(self, cable_array: CableArray) -> None:
-		self.cable_section_area = cable_array.data.section.to_numpy()
-		self.diameter = cable_array.data.diameter.to_numpy()
-		self.linear_weight = cable_array.data.linear_weight.to_numpy()
-		self.young_modulus = cable_array.data.young_modulus.to_numpy()
-		self.dilatation_coefficient = (
-			cable_array.data.dilatation_coefficient.to_numpy()
-		)
-		self.temperature_reference = (
-			cable_array.data.temperature_reference.to_numpy()
-		)
-		self.a0 = cable_array.data.a0.to_numpy()
-		self.a1 = cable_array.data.a1.to_numpy()
-		self.a2 = cable_array.data.a2.to_numpy()
-		self.a3 = cable_array.data.a3.to_numpy()
-		self.a4 = cable_array.data.a4.to_numpy()
-		self.b0 = cable_array.data.b0.to_numpy()
-		self.b1 = cable_array.data.b1.to_numpy()
-		self.b2 = cable_array.data.b2.to_numpy()
-		self.b3 = cable_array.data.b3.to_numpy()
-		self.b4 = cable_array.data.b4.to_numpy()
-
-		poly_conductor_array = [
-			Poly(
-				[
-					self.a0[index],
-					self.a1[index],
-					self.a2[index],
-					self.a3[index],
-					self.a4[index],
-				]
-			)
-			for index in range(len(self.a0))
+		# TODO: check that cable_array length is one
+		if len(cable_array.data.section) != 1:
+			raise NotImplementedError("CableArray should only contain one row")
+		self.cable_section_area = cable_array.data.section[0]
+		self.diameter = cable_array.data.diameter[0]
+		self.linear_weight = cable_array.data.linear_weight[0]
+		self.young_modulus = cable_array.data.young_modulus[0]
+		self.dilatation_coefficient = cable_array.data.dilatation_coefficient[
+			0
 		]
-		self.polynomial_conductor = np.array(poly_conductor_array)
+		self.temperature_reference = cable_array.data.temperature_reference[0]
 
-		poly_heart_array = [
-			Poly(
-				[
-					self.b0[index],
-					self.b1[index],
-					self.b2[index],
-					self.b3[index],
-					self.b4[index],
-				]
-			)
-			for index in range(len(self.b0))
-		]
-		self.polynomial_heart = np.array(poly_heart_array)
+		self.polynomial_conductor = Poly(
+			[
+				cable_array.data.a0[0],
+				cable_array.data.a1[0],
+				cable_array.data.a2[0],
+				cable_array.data.a3[0],
+				cable_array.data.a4[0],
+			]
+		)
+
+		self.polynomial_heart = Poly(
+			[
+				cable_array.data.b0[0],
+				cable_array.data.b1[0],
+				cable_array.data.b2[0],
+				cable_array.data.b3[0],
+				cable_array.data.b4[0],
+			]
+		)
 
 	def add_weather_array(self, weather_array: WeatherArray) -> None:
 		self.ice_thickness = weather_array.data.ice_thickness.to_numpy()

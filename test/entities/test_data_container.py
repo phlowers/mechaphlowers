@@ -19,7 +19,7 @@ from mechaphlowers.entities.data_container import factory_data_container
 def test_factory_data_container(
 	default_section_array_four_spans: SectionArray,
 	factory_neutral_weather_array,
-	factory_cable_array,
+	default_cable_array,
 ):
 	NB_SPAN = 4
 	cable_dict = {

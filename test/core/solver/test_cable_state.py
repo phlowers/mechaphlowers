@@ -153,8 +153,7 @@ def test_solver__run_solver__polynomial_model(
 	new_poly = Poly(
 		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
 	)
-	new_poly_array = np.repeat(np.array([new_poly]), 2)
-	default_data_container_two_spans.polynomial_conductor = new_poly_array
+	default_data_container_two_spans.polynomial_conductor = new_poly
 
 	unstressed_length = get_L_ref_from_arrays(
 		default_data_container_two_spans,

@@ -8,6 +8,7 @@
 from typing import Type
 
 import numpy as np
+from numpy.polynomial import Polynomial as Poly
 from scipy import optimize  # type: ignore
 
 from mechaphlowers.core.models.cable.deformation import (
@@ -34,13 +35,13 @@ class SagTensionSolver:
 		elevation_difference: np.ndarray,
 		sagging_parameter: np.ndarray,
 		sagging_temperature: np.ndarray,
-		young_modulus: np.ndarray,
-		cable_section_area: np.ndarray,
-		diameter: np.ndarray,
-		linear_weight: np.ndarray,
-		dilatation_coefficient: np.ndarray,
-		temperature_reference: np.ndarray,
-		polynomial_conductor: np.ndarray,
+		young_modulus: float,
+		cable_section_area: float,
+		diameter: float,
+		linear_weight: float,
+		dilatation_coefficient: float,
+		temperature_reference: float,
+		polynomial_conductor: Poly,
 		ice_thickness: np.ndarray,
 		wind_pressure: np.ndarray,
 		unstressed_length: np.ndarray,
@@ -58,9 +59,8 @@ class SagTensionSolver:
 		self.diameter = diameter
 		self.dilatation_coefficient = dilatation_coefficient
 		self.temperature_reference = temperature_reference
-		self.polynomial_conductor = (
-			polynomial_conductor  # single polynomial or array?
-		)
+		self.polynomial_conductor = polynomial_conductor
+
 		# TODO: decide if CableLoads should be created by solver or not
 		self.ice_thickness = ice_thickness
 		self.wind_pressure = wind_pressure
@@ -139,9 +139,7 @@ class SagTensionSolver:
 			T_mean,
 			self.young_modulus,
 			self.cable_section_area,
-			self.polynomial_conductor[
-				0
-			],  # TODO: make a clear choice between single polynomial or array
+			self.polynomial_conductor,
 		) + self.deformation_model.compute_epsilon_therm(
 			temp, self.temperature_reference, self.dilatation_coefficient
 		)

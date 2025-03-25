@@ -29,7 +29,7 @@ class Span(ABC):
 		elevation_difference: np.ndarray,
 		sagging_parameter: np.ndarray,
 		load_coefficient: np.ndarray | None = None,
-		linear_weight: np.ndarray | None = None,
+		linear_weight: float | None = None,
 		**kwargs,
 	) -> None:
 		self.span_length = span_length
@@ -176,16 +176,12 @@ class Span(ABC):
 
 	@staticmethod
 	@abstractmethod
-	def compute_T_h(
-		p: np.ndarray, m: np.ndarray, lambd: np.ndarray
-	) -> np.ndarray:
+	def compute_T_h(p: np.ndarray, m: np.ndarray, lambd: float) -> np.ndarray:
 		"""Computing horizontal tension on the cable using a static method"""
 
 	@staticmethod
 	@abstractmethod
-	def compute_p(
-		T_h: np.ndarray, m: np.ndarray, lambd: np.ndarray
-	) -> np.ndarray:
+	def compute_p(T_h: np.ndarray, m: np.ndarray, lambd: float) -> np.ndarray:
 		"""Computing sagging parameter on the cable using a static method"""
 
 	@staticmethod
@@ -311,9 +307,7 @@ class CatenarySpan(Span):
 		return self.compute_T_mean(a, b, p, T_h)
 
 	@staticmethod
-	def compute_p(
-		T_h: np.ndarray, m: np.ndarray, lambd: np.ndarray
-	) -> np.ndarray:
+	def compute_p(T_h: np.ndarray, m: np.ndarray, lambd: float) -> np.ndarray:
 		return T_h / (m * lambd)
 
 	@staticmethod
@@ -354,9 +348,7 @@ class CatenarySpan(Span):
 		return L_m + L_n
 
 	@staticmethod
-	def compute_T_h(
-		p: np.ndarray, m: np.ndarray, lambd: np.ndarray
-	) -> np.ndarray:
+	def compute_T_h(p: np.ndarray, m: np.ndarray, lambd: float) -> np.ndarray:
 		return p * m * lambd
 
 	@staticmethod

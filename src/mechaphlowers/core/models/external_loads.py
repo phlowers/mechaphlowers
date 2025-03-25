@@ -14,8 +14,8 @@ DEFAULT_ICE_DENSITY = 6_000
 class CableLoads:
 	def __init__(
 		self,
-		diameter: np.ndarray,
-		linear_weight: np.ndarray,
+		diameter: float,
+		linear_weight: float,
 		ice_thickness: np.ndarray,
 		wind_pressure: np.ndarray,
 		ice_density: float = DEFAULT_ICE_DENSITY,

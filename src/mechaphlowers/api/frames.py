@@ -126,14 +126,13 @@ class SectionDataFrame:
 		Returns:
 		    pd.DataFrame: data property of the SectionDataFrame object with or without cable data
 		"""
-		data_dict = self.data_container.__dict__
-		return pd.DataFrame(data_dict)
-		# out = self.section.data
-		# if self.cable is not None:
-		# 	out = pd.concat([out, self.cable.data], axis=1)
-		# if self.weather is not None:
-		# 	out = pd.concat([out, self.weather.data], axis=1)
-		# return out
+		out = self.section_array.data
+		if self.cable is not None:
+			out = pd.concat([out, self.cable.data], axis=1)
+			# TODO: repeat to adjust size
+		if self.weather is not None:
+			out = pd.concat([out, self.weather.data], axis=1)
+		return out
 
 	@data.setter
 	def data(self, input_data_frame: pd.DataFrame):
@@ -175,23 +174,21 @@ class SectionDataFrame:
 		if start_value == end_value:
 			raise ValueError("At least two rows has to be selected")
 
-		if int(self.data["support_name"].isin(between).sum()) != 2:
+		if int(self.data["name"].isin(between).sum()) != 2:
 			raise ValueError(
 				"One of the two name given in the between argument are not existing"
 			)
 
 		return_sf = copy(self)
-		return_sf.data.set_index("support_name").loc[start_value, :].index
+		return_sf.data.set_index("name").loc[start_value, :].index
 
 		idx_start = (
-			return_sf.data.loc[
-				return_sf.data["support_name"] == start_value, :
-			]
+			return_sf.data.loc[return_sf.data["name"] == start_value, :]
 			.index[0]
 			.item()
 		)
 		idx_end = (
-			return_sf.data.loc[return_sf.data["support_name"] == end_value, :]
+			return_sf.data.loc[return_sf.data["name"] == end_value, :]
 			.index[0]
 			.item()
 		)
@@ -199,8 +196,9 @@ class SectionDataFrame:
 		if idx_end <= idx_start:
 			raise ValueError("First selected item is after the second one")
 
-		return_sf.data = return_sf.data.iloc[idx_start : idx_end + 1]
-
+		return_sf.section_array._data = return_sf.section_array._data.iloc[
+			idx_start : idx_end + 1
+		]
 		return return_sf
 
 	def add_cable(self, cable: CableArray):
@@ -225,6 +223,11 @@ class SectionDataFrame:
 			ValueError: if cable has not been added before weather
 		"""
 		self._add_array(weather, WeatherArray)
+		# Check if the var is compatible with the section_array
+		if weather._data.shape[0] != self.section_array._data.shape[0]:
+			raise ValueError(
+				"WeatherArray has to have the same length as the section"
+			)
 		if self.cable is None:
 			raise ValueError("Cable has to be added before weather")
 		# weather type is checked in add_array self.cable is tested above but mypy does not understand
@@ -262,16 +265,9 @@ class SectionDataFrame:
 				f"{type_var.__name__} is not handled by this method"
 				f"it should be one of the {property_map}"
 			)
-		# Check if the var is compatible with the section_array
-		if var._data.shape[0] != self.section_array._data.shape[0]:
-			raise ValueError(
-				f"{type_var.__name__} has to have the same length as the section"
-			)
 
 		# Add array to the SectionDataFrame
-
 		self.__setattr__(property_map[type_var], var)
-		# Add array to DataContainer
 
 	def init_deformation_model(self):
 		"""initialize_deformation method to initialize deformation model"""

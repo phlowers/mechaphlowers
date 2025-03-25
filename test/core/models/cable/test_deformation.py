@@ -117,8 +117,7 @@ def test_poly_deformation__degree_three(
 	default_data_container_two_spans: DataContainer,
 ) -> None:
 	new_poly = Poly([0, 1e9 * 50, 1e9 * -3_000, 1e9 * 44_000, 0])
-	new_poly_array = np.repeat(np.array([new_poly]), 2)
-	default_data_container_two_spans.polynomial_conductor = new_poly_array
+	default_data_container_two_spans.polynomial_conductor = new_poly
 
 	span_model = CatenarySpan(**default_data_container_two_spans.__dict__)
 	tension_mean = span_model.T_mean()
@@ -137,7 +136,7 @@ def test_poly_deformation__degree_three(
 	constraint = np.fmax(constraint, np.array([0, 0]))
 	deformation_model.resolve_stress_strain_equation(
 		constraint,
-		default_data_container_two_spans.polynomial_conductor[0],
+		default_data_container_two_spans.polynomial_conductor,
 	)
 	deformation_model.epsilon_mecha()
 
@@ -150,8 +149,7 @@ def test_poly_deformation__degree_four(
 	new_poly = Poly(
 		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
 	)
-	new_poly_array = np.repeat(np.array([new_poly]), 2)
-	default_data_container_two_spans.polynomial_conductor = new_poly_array
+	default_data_container_two_spans.polynomial_conductor = new_poly
 
 	span_model = CatenarySpan(**default_data_container_two_spans.__dict__)
 	tension_mean = span_model.T_mean()
@@ -170,7 +168,7 @@ def test_poly_deformation__degree_four(
 	constraint = np.fmax(constraint, np.array([0, 0]))
 	deformation_model.resolve_stress_strain_equation(
 		constraint,
-		default_data_container_two_spans.polynomial_conductor[0],
+		default_data_container_two_spans.polynomial_conductor,
 	)
 	deformation_model.epsilon_mecha()
 
@@ -183,8 +181,7 @@ def test_poly_deformation__degree_four__with_max_stress(
 	new_poly = Poly(
 		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
 	)
-	new_poly_array = np.repeat(np.array([new_poly]), 2)
-	default_data_container_two_spans.polynomial_conductor = new_poly_array
+	default_data_container_two_spans.polynomial_conductor = new_poly
 
 	span_model = CatenarySpan(**default_data_container_two_spans.__dict__)
 	tension_mean = span_model.T_mean()
@@ -212,8 +209,7 @@ def test_poly_deformation__no_solutions(
 	new_poly = Poly(
 		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
 	)
-	new_poly_array = np.repeat(np.array([new_poly]), 2)
-	default_data_container_two_spans.polynomial_conductor = new_poly_array
+	default_data_container_two_spans.polynomial_conductor = new_poly
 
 	span_model = CatenarySpan(**default_data_container_two_spans.__dict__)
 	tension_mean = span_model.T_mean()

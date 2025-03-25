@@ -4,7 +4,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -70,7 +69,7 @@ def test_plot_line3d__wrong_view_option():
 
 
 def test_plot_line3d__with_beta(
-	factory_cable_array: Callable[[int], CableArray],
+	default_cable_array: CableArray,
 ):
 	weather = WeatherArray(
 		pd.DataFrame(
@@ -80,9 +79,7 @@ def test_plot_line3d__with_beta(
 			}
 		)
 	)
-
-	cable_array = factory_cable_array(4)
-	frame.add_cable(cable=cable_array)
+	frame.add_cable(cable=default_cable_array)
 	frame.add_weather(weather=weather)
 	frame.cable_loads.load_angle
 	fig = go.Figure()
