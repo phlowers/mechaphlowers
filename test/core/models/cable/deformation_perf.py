@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import time
+from typing import TypedDict
 
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
@@ -17,26 +18,34 @@ from mechaphlowers.core.models.cable.span import (
 )
 
 
+class DeformationInputDict(TypedDict, total=False):
+	cable_section_area: float
+	linear_weight: float
+	young_modulus: float
+	dilatation_coefficient: float
+	temperature_reference: float
+	polynomial_conductor: Poly
+
+
 def test_solve_polynom_perf() -> None:
 	spans_number = 10_000
 
 	polynomial = Poly(
 		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
 	)
-	input_dict = {
-		"section": np.array([345.5] * spans_number),
-		"diameter": np.array([22.4] * spans_number),
-		"linear_weight": np.array([9.6] * spans_number),
-		"young_modulus": np.array([59] * spans_number),
-		"dilatation_coefficient": np.array([23] * spans_number),
-		"temperature_reference": np.array([15] * spans_number),
-		"polynomial_conductor": np.array([polynomial] * spans_number),
+	input_dict: DeformationInputDict = {
+		"cable_section_area": 345.5,
+		"linear_weight": 9.6,
+		"young_modulus": 59,
+		"dilatation_coefficient": 23,
+		"temperature_reference": 15,
+		"polynomial_conductor": polynomial,
 	}
 
 	a = np.array([500] * spans_number)
 	b = np.array([0.0] * spans_number)
 	p = np.array([2_000] * spans_number)
-	lambd = np.array([9.6] * spans_number)
+	lambd = 9.6
 	m = np.array([1] * spans_number)
 
 	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)

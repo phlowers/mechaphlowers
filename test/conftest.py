@@ -56,7 +56,7 @@ def default_cable_array() -> CableArray:
 
 @pytest.fixture
 def default_section_array_two_spans() -> SectionArray:
-	return SectionArray(
+	section_array = SectionArray(
 		pd.DataFrame(
 			{
 				"name": ["1", "2"],
@@ -69,11 +69,14 @@ def default_section_array_two_spans() -> SectionArray:
 			}
 		)
 	)
+	section_array.sagging_parameter = 2000
+	section_array.sagging_temperature = 15
+	return section_array
 
 
 @pytest.fixture
 def default_section_array_four_spans() -> SectionArray:
-	return SectionArray(
+	section_array = SectionArray(
 		pd.DataFrame(
 			{
 				"name": np.array(["support 1", "2", "three", "support 4"]),
@@ -86,12 +89,15 @@ def default_section_array_four_spans() -> SectionArray:
 			}
 		)
 	)
+	section_array.sagging_parameter = 2000
+	section_array.sagging_temperature = 15
+	return section_array
 
 
 @pytest.fixture
 def factory_neutral_weather_array() -> Callable[[int], WeatherArray]:
 	def _method_cable_array(nb_span=2):
-		return CableArray(
+		return WeatherArray(
 			pd.DataFrame(
 				{
 					"ice_thickness": [0.0] * nb_span,

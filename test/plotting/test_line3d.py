@@ -12,7 +12,6 @@ import pytest
 
 from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.entities.arrays import (
-	CableArray,
 	SectionArray,
 	WeatherArray,
 )
@@ -69,7 +68,7 @@ def test_plot_line3d__wrong_view_option():
 
 
 def test_plot_line3d__with_beta(
-	default_cable_array: CableArray,
+	default_cable_array,
 ):
 	weather = WeatherArray(
 		pd.DataFrame(

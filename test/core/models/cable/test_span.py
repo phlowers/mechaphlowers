@@ -37,7 +37,7 @@ def test_catenary_span_model__no_errors_tensions() -> None:
 	a = np.array([501.3, 499.0])  # test here int and float
 	b = np.array([0.0, -5.0])
 	p = np.array([2_112.2, 2_112.0])
-	lambd = np.array([16, 16.1])
+	lambd = 16.0
 
 	span_model = CatenarySpan(a, b, p, linear_weight=lambd)
 	x = np.array([100, 200.0])
@@ -118,7 +118,7 @@ def test_catenary_span_model__tensions__wrong_dimension_array() -> None:
 	b = np.array([0.0, 0.0])
 	p = np.array([2_000, 2_000])
 	m = np.array([1, 1])
-	lambd = np.array([9.6, 9.6])
+	lambd = 9.6
 
 	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
 
@@ -134,7 +134,7 @@ def test_catenary_span_model__tensions__no_elevation_difference() -> None:
 	a = np.array([500])
 	b = np.array([0])
 	p = np.array([2_000])
-	lambd = np.array([9.55494])
+	lambd = 9.55494
 	m = np.array([1])
 
 	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
@@ -150,7 +150,7 @@ def test_catenary_span_model__geometric_output():
 	a = np.array([500])
 	b = np.array([0])
 	p = np.array([2_000])
-	lambd = np.array([9.55494])
+	lambd = 9.55494
 	m = np.array([1])
 
 	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
