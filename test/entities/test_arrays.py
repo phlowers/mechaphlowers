@@ -45,12 +45,22 @@ def section_array(section_array_input_data: dict[str, list]) -> SectionArray:
 @pytest.fixture
 def cable_array_input_data() -> dict[str, list]:
 	return {
-		"section": [345.5, 345.5, 345.5, 345.5],
-		"diameter": [22.4, 22.4, 22.4, 22.4],
-		"linear_weight": [9.6, 9.6, 9.6, 9.6],
-		"young_modulus": [59, 59, 59, 59],
-		"dilatation_coefficient": [23, 23, 23, 23],
-		"temperature_reference": [15, 15, 15, 15],
+		"section": [345.5],
+		"diameter": [22.4],
+		"linear_weight": [9.6],
+		"young_modulus": [59],
+		"dilatation_coefficient": [23],
+		"temperature_reference": [15],
+		"a0": [0],
+		"a1": [59],
+		"a2": [0],
+		"a3": [0],
+		"a4": [0],
+		"b0": [0],
+		"b1": [0],
+		"b2": [0],
+		"b3": [0],
+		"b4": [0],
 	}
 
 
@@ -283,12 +293,33 @@ def test_section_array__data_original(section_array_input_data: dict) -> None:
 def test_create_cable_array__with_floats(
 	cable_array_input_data: dict,
 ) -> None:
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		cable_array_input_data
-	)
+	input_df = pd.DataFrame(cable_array_input_data)
 	cable = CableArray(input_df)
 
-	assert_frame_equal(input_df, cable._data, check_dtype=False, atol=1e-07)
+	assert_frame_equal(cable._data, input_df, check_dtype=False, atol=1e-07)
+	expected_result_SI_units = pd.DataFrame(
+		{
+			"section": [345.5e-6],
+			"diameter": [22.4e-3],
+			"linear_weight": [9.6],
+			"young_modulus": [59e9],
+			"dilatation_coefficient": [23e-6],
+			"temperature_reference": [15],
+			"a0": [0],
+			"a1": [59e9],
+			"a2": [0],
+			"a3": [0],
+			"a4": [0],
+			"b0": [0],
+			"b1": [0],
+			"b2": [0],
+			"b3": [0],
+			"b4": [0],
+		}
+	)
+	assert_frame_equal(
+		cable.data, expected_result_SI_units, check_dtype=False, atol=1e-07
+	)
 
 
 @pytest.mark.parametrize(
@@ -317,12 +348,12 @@ def test_create_cable_array__missing_column(
 @pytest.mark.parametrize(
 	"column,value",
 	[
-		("section", ["1,2"] * 4),
-		("diameter", ["1,2"] * 4),
-		("linear_weight", ["1,2"] * 4),
-		("young_modulus", ["1,2"] * 4),
-		("dilatation_coefficient", ["1,2"] * 4),
-		("temperature_reference", ["1,2"] * 4),
+		("section", ["1,2"]),
+		("diameter", ["1,2"]),
+		("linear_weight", ["1,2"]),
+		("young_modulus", ["1,2"]),
+		("dilatation_coefficient", ["1,2"]),
+		("temperature_reference", ["1,2"]),
 	],
 )
 def test_create_cable_array__wrong_type(
@@ -340,7 +371,7 @@ def test_create_cable_array__wrong_type(
 def test_create_cable_array__extra_column(
 	cable_array_input_data: dict,
 ) -> None:
-	cable_array_input_data["extra column"] = [0] * 4
+	cable_array_input_data["extra column"] = [0]
 
 	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
 		cable_array_input_data
@@ -352,19 +383,24 @@ def test_create_cable_array__extra_column(
 
 
 def test_cable_array__get_poly_coefs() -> None:
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
+	input_df = pd.DataFrame(
 		{
-			"section": [345.5, 345.5, 345.5, 345.5],
-			"diameter": [22.4, 22.4, 22.4, 22.4],
-			"linear_weight": [9.6, 9.6, 9.6, 9.6],
-			"young_modulus": [59, 59, 59, 59],
-			"dilatation_coefficient": [23, 23, 23, 23],
-			"temperature_reference": [15, 15, 15, 15],
-			"a0": [3, 3, 3, 3],
-			"a1": [10, 10, 10, 10],
-			"a2": [25, 25, 25, 25],
-			"a3": [400, 400, 400, 400],
-			"a4": [1000, 1000, 1000, 1000],
+			"section": [345.5],
+			"diameter": [22.4],
+			"linear_weight": [9.6],
+			"young_modulus": [59],
+			"dilatation_coefficient": [23],
+			"temperature_reference": [15],
+			"a0": [3],
+			"a1": [10],
+			"a2": [25],
+			"a3": [400],
+			"a4": [1000],
+			"b0": [0],
+			"b1": [0],
+			"b2": [0],
+			"b3": [0],
+			"b4": [0],
 		}
 	)
 

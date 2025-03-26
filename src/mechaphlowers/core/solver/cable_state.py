@@ -52,6 +52,7 @@ class SagTensionSolver:
 		self.span_length = span_length
 		self.elevation_difference = elevation_difference
 		self.sagging_parameter = sagging_parameter
+		# sagging_temperature unused?
 		self.sagging_temperature = sagging_temperature
 		self.linear_weight = linear_weight
 		self.young_modulus = young_modulus
@@ -61,7 +62,7 @@ class SagTensionSolver:
 		self.temperature_reference = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
 
-		# TODO: decide if CableLoads should be created by solver or not
+		# Maybe weather params not necessary to initialize in constructor (will be given in change_state())
 		self.ice_thickness = ice_thickness
 		self.wind_pressure = wind_pressure
 		self.L_ref = unstressed_length

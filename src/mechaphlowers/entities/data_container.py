@@ -61,7 +61,6 @@ class DataContainer:
 		)
 
 	def add_cable_array(self, cable_array: CableArray) -> None:
-		# TODO: check that cable_array length is one
 		if len(cable_array.data.section) != 1:
 			raise NotImplementedError("CableArray should only contain one row")
 		self.cable_section_area = cable_array.data.section[0]

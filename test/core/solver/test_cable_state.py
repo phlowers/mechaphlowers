@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
-import pandas as pd
 import pytest
 from numpy.polynomial import Polynomial as Poly
 
@@ -15,86 +14,7 @@ from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.core.solver.cable_state import (
 	SagTensionSolver,
 )
-from mechaphlowers.entities.arrays import (
-	CableArray,
-	SectionArray,
-	WeatherArray,
-)
 from mechaphlowers.entities.data_container import DataContainer
-
-
-@pytest.fixture
-def section_array_one_span():
-	section_array = SectionArray(
-		pd.DataFrame(
-			{
-				"name": ["1", "2"],
-				"suspension": [False, False],
-				"conductor_attachment_altitude": [30, 40],
-				"crossarm_length": [0, 0],
-				"line_angle": [0, 0],
-				"insulator_length": [0, 0],
-				"span_length": [480, np.nan],
-			}
-		)
-	)
-	section_array.sagging_parameter = 2000
-	section_array.sagging_temperature = 15
-	return section_array
-
-
-@pytest.fixture
-def cable_array_one_span():
-	return CableArray(
-		pd.DataFrame(
-			{
-				"section": [345.55] * 2,
-				"diameter": [22.4] * 2,
-				"linear_weight": [9.55494] * 2,
-				"young_modulus": [59] * 2,
-				"dilatation_coefficient": [23] * 2,
-				"temperature_reference": [0] * 2,
-				"a0": [0] * 2,
-				"a1": [59] * 2,
-				"a2": [0] * 2,
-				"a3": [0] * 2,
-				"a4": [0] * 2,
-			}
-		)
-	)
-
-
-@pytest.fixture
-def cable_array_one_span__polynomial():
-	return CableArray(
-		pd.DataFrame(
-			{
-				"section": [345.55] * 2,
-				"diameter": [22.4] * 2,
-				"linear_weight": [9.55494] * 2,
-				"young_modulus": [59] * 2,
-				"dilatation_coefficient": [23] * 2,
-				"temperature_reference": [0] * 2,
-				"a0": [0] * 2,
-				"a1": [100] * 2,
-				"a2": [-24_000] * 2,
-				"a3": [2_440_000] * 2,
-				"a4": [-90_000_000] * 2,
-			}
-		)
-	)
-
-
-@pytest.fixture
-def neutral_weather_array_one_span():
-	return WeatherArray(
-		pd.DataFrame(
-			{
-				"ice_thickness": [0.0, 0.0],
-				"wind_pressure": np.zeros(2),
-			}
-		)
-	)
 
 
 @pytest.fixture

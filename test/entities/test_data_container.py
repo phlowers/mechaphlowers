@@ -13,22 +13,55 @@ from mechaphlowers.entities.arrays import (
 	SectionArray,
 	WeatherArray,
 )
-from mechaphlowers.entities.data_container import factory_data_container
+from mechaphlowers.entities.data_container import (
+	DataContainer,
+	factory_data_container,
+)
 
 
-def test_factory_data_container(
+def test_data_container__factory(
 	default_section_array_four_spans: SectionArray,
-	default_cable_array,
+	default_cable_array: CableArray,
 	factory_neutral_weather_array,
 ):
 	NB_SPAN = 4
 
-	weather_array = factory_neutral_weather_array(NB_SPAN)
+	weather_array: WeatherArray = factory_neutral_weather_array(NB_SPAN)
 
 	data_container_new = factory_data_container(
 		default_section_array_four_spans, default_cable_array, weather_array
 	)
 	expected_result_poly = Poly(np.array([0, 59e9, 0, 0, 0]))
+
+	# TODO: commpare all fields
+
+	expected_result = {
+		"support_name": np.array(["support 1", "2", "three", "support 4"]),
+		"suspension": np.array([False, True, True, False]),
+		"conductor_attachment_altitude": np.array([2.2, 5, -0.12, 0]),
+		"crossarm_length": np.array([10, 12.1, 10, 10.1]),
+		"line_angle": np.array([0, 360, 90.1, -90.2]),
+		"insulator_length": np.array([0, 4, 3.2, 0]),
+		"span_length": np.array([400, 500.2, 500.0, np.nan]),
+		"cable_section_area": 345.55,
+		"diameter": 22.4,
+		"linear_weight": 9.55494,
+		"young_modulus": 59,
+		"dilatation_coefficient": 23,
+		"temperature_reference": 0,
+		"a0": 0,
+		"a1": 59,
+		"a2": 0,
+		"a3": 0,
+		"a4": 0,
+		"b0": 0,
+		"b1": 0,
+		"b2": 0,
+		"b3": 0,
+		"b4": 0,
+		"ice_thickness": np.zeros(NB_SPAN),
+		"wind_pressure": np.zeros(NB_SPAN),
+	}
 
 	assert (
 		data_container_new.young_modulus
@@ -43,8 +76,12 @@ def test_factory_data_container(
 	).all()
 	assert data_container_new.polynomial_conductor == expected_result_poly
 
+	# for attribute, value in expected_result.items():
+	# 	# use a numpy assert
+	# 	assert (data_container_new.__dict__[attribute] == value).all()
 
-def test_factory_data_container__numpy_arrays():
+
+def test_data_container__factory__attributes_types():
 	# same thing but check that the results are np.array even if input are python arrays
 	NB_SPAN = 4
 	cable_dict = {
@@ -90,11 +127,23 @@ def test_factory_data_container__numpy_arrays():
 	data_container_new = factory_data_container(
 		section_array, cable_array, weather_array
 	)
-	data_container_new.support_name
+	assert isinstance(
+		data_container_new.conductor_attachment_altitude, np.ndarray
+	)
+	assert isinstance(data_container_new.diameter, float)
+	assert isinstance(data_container_new.polynomial_conductor, Poly)
+	assert isinstance(data_container_new.ice_thickness, np.ndarray)
 
-	assert True
 
+def test_data_container__add_arrays(
+	default_section_array_four_spans: SectionArray,
+	default_cable_array: CableArray,
+	factory_neutral_weather_array,
+):
+	weather_array: WeatherArray = factory_neutral_weather_array(4)
+	data_container = DataContainer()
+	data_container.add_section_array(default_section_array_four_spans)
+	data_container.add_cable_array(default_cable_array)
+	data_container.add_weather_array(weather_array)
 
-# TODO: test about factory
-
-# TODO: test about add_cable/add_weather...
+	# TODO: test __dict__ about add_cable/add_weather...

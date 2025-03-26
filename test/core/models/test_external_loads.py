@@ -19,12 +19,8 @@ NB_SPAN = 3
 def cable_data_dict() -> dict:
 	# units are incorrect
 	return {
-		"section": np.full(NB_SPAN, [345.5]),
-		"diameter": np.full(NB_SPAN, [22.4]),
-		"linear_weight": np.full(NB_SPAN, [9.6]),
-		"young_modulus": np.full(NB_SPAN, [59]),
-		"dilatation_coefficient": np.full(NB_SPAN, [23]),
-		"temperature_reference": np.full(NB_SPAN, [15]),
+		"diameter": 22.4,
+		"linear_weight": 9.6,
 	}
 
 

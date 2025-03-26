@@ -123,16 +123,22 @@ class CableArray(ElementArray):
 	def data(self) -> pd.DataFrame:
 		"""Returns a copy of self._data that converts values into SI units"""
 		data_SI = self._data.copy()
+		# section is in mm²
 		data_SI["section"] *= 1e-6
+		# diameter is in mm
 		data_SI["diameter"] *= 1e-3
+		# young_modulus is in GPa
 		data_SI["young_modulus"] *= 1e9
+		# dilatation_coefficient is in 10⁻⁶/°C
 		data_SI["dilatation_coefficient"] *= 1e-6
 
+		# polynomial coefficients are in GPa
 		for coef in ["a0", "a1", "a2", "a3", "a4"]:
 			if coef in data_SI:
 				data_SI[coef] *= 1e9
 		return data_SI
 
+	# TODO: remove this?
 	@property
 	def stress_strain_polynomial(self) -> Poly:
 		"""Converts coefficients in the dataframe into polynomial"""
@@ -159,5 +165,6 @@ class WeatherArray(ElementArray):
 	@property
 	def data(self) -> pd.DataFrame:
 		data_SI = self._data.copy()
+		# ice_thickness is in cm
 		data_SI["ice_thickness"] *= 1e-2
 		return data_SI

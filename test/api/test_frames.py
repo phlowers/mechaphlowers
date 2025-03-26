@@ -112,7 +112,6 @@ def test_SectionDataFrame__add_cable(
 		# wrong input type
 		frame.add_cable(1)
 	with pytest.raises(NotImplementedError):
-		# TODO: test with array with length > 1
 		wrong_length_array = CableArray(
 			default_cable_array._data.loc[
 				np.repeat(default_cable_array._data.index, 3)
@@ -150,39 +149,6 @@ def test_SectionDataFrame__add_array(
 	default_cable_array, default_section_array_four_spans
 ):
 	frame = SectionDataFrame(default_section_array_four_spans)
-	cable_df = pd.DataFrame(
-		{
-			"section": [
-				345.5,
-			],
-			"diameter": [
-				22.4,
-			],
-			"linear_weight": [
-				9.6,
-			],
-			"young_modulus": [
-				59,
-			],
-			"dilatation_coefficient": [
-				23,
-			],
-			"temperature_reference": [
-				15,
-			],
-			"a0": [0],
-			"a1": [59],
-			"a2": [0],
-			"a3": [0],
-			"a4": [0],
-			"b0": [0],
-			"b1": [0],
-			"b2": [0],
-			"b3": [0],
-			"b4": [0],
-		}
-	)
-	default_cable_array = CableArray(cable_df)
 	weather_array = WeatherArray(
 		pd.DataFrame(
 			{
@@ -201,10 +167,26 @@ def test_SectionDataFrame__add_array(
 
 	# Wrong object type
 	with pytest.raises(TypeError):
-		frame._add_array(cable_df, pd.DataFrame)
+		frame._add_array(default_cable_array._data, pd.DataFrame)
 	# Testez les exceptions
 	with pytest.raises(TypeError):
 		frame._add_array("not_an_array", CableArray)
+
+
+def test_select_spans__after_added_arrays(
+	default_section_array_four_spans,
+	default_cable_array,
+	factory_neutral_weather_array,
+):
+	frame = SectionDataFrame(default_section_array_four_spans)
+	frame.add_cable(default_cable_array)
+	frame.add_weather(factory_neutral_weather_array(4))
+	frame_selected = frame.select(["support 1", "three"])
+	assert len(frame_selected.data) == 3
+	assert (
+		frame_selected.data.elevation_difference.take([1]).item()
+		== frame.data.elevation_difference.take([1]).item()
+	)
 
 
 def test_SectionDataFrame__data(
@@ -219,6 +201,7 @@ def test_SectionDataFrame__data(
 		frame.data.shape[1]
 		== frame.cable.data.shape[1] + frame.section_array.data.shape[1]
 	)
+	# TODO: add some test to check if values are correct
 
 
 def test_SectionDataFrame__add_weather_update_span(

@@ -128,18 +128,14 @@ class SectionDataFrame:
 		"""
 		out = self.section_array.data
 		if self.cable is not None:
-			out = pd.concat([out, self.cable.data], axis=1)
+			cable_data_repeat = self.cable.data.loc[
+				np.repeat(self.cable.data.index, out.shape[0])
+			].reset_index(drop=True)
+			out = pd.concat([out, cable_data_repeat], axis=1)
 			# TODO: repeat to adjust size
 		if self.weather is not None:
 			out = pd.concat([out, self.weather.data], axis=1)
 		return out
-
-	@data.setter
-	def data(self, input_data_frame: pd.DataFrame):
-		input_dict = input_data_frame.to_dict('list')
-		for key, value in input_dict.items():
-			input_dict[key] = np.array(value)
-		self.data_container = DataContainer.init_with_dict(input_dict)
 
 	def select(self, between: List[str]) -> Self:
 		"""select enable to select a part of the line based on support names

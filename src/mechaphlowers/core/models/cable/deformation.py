@@ -94,7 +94,6 @@ class DeformationRTE(IDeformation):
 		T_mean = self.tension_mean
 		E = self.young_modulus
 		S = self.cable_section_area
-		# TODO: use array of polynomial instead
 		polynomial = self.polynomial_conductor
 		return self.compute_epsilon_mecha(
 			T_mean, E, S, polynomial, self.max_stress
@@ -104,7 +103,6 @@ class DeformationRTE(IDeformation):
 		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
 
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
-		# TODO: check if current_temperature really is as scalar
 		temp_ref = self.temp_ref
 		alpha = self.dilatation_coefficient
 		return self.compute_epsilon_therm(current_temperature, temp_ref, alpha)
