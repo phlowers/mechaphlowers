@@ -21,24 +21,18 @@ class DataContainer:
 		self.sagging_parameter: np.ndarray
 		self.sagging_temperature: np.ndarray
 
-		self.cable_section_area: float
-		self.diameter: float
-		self.linear_weight: float
-		self.young_modulus: float
-		self.dilatation_coefficient: float
-		self.temperature_reference: float
+		self.cable_section_area: np.float64
+		self.diameter: np.float64
+		self.linear_weight: np.float64
+		self.young_modulus: np.float64
+		self.dilatation_coefficient: np.float64
+		self.temperature_reference: np.float64
 
 		self.polynomial_conductor: Poly
 		self.polynomial_heart: Poly
 
 		self.ice_thickness: np.ndarray
 		self.wind_pressure: np.ndarray
-
-	@classmethod
-	def init_with_dict(cls, input_dict: dict):
-		data_container = cls()
-		data_container.__dict__ = input_dict
-		return data_container
 
 	def add_section_array(self, section_array: SectionArray) -> None:
 		self.support_name = section_array.data.name.to_numpy()
@@ -63,6 +57,7 @@ class DataContainer:
 	def add_cable_array(self, cable_array: CableArray) -> None:
 		if len(cable_array.data.section) != 1:
 			raise NotImplementedError("CableArray should only contain one row")
+		# TODO: use dict instead of [0]
 		self.cable_section_area = cable_array.data.section[0]
 		self.diameter = cable_array.data.diameter[0]
 		self.linear_weight = cable_array.data.linear_weight[0]

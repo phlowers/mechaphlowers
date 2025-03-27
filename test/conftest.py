@@ -110,6 +110,18 @@ def factory_neutral_weather_array() -> Callable[[int], WeatherArray]:
 
 
 @pytest.fixture
+def generic_weather_array_four_spans() -> WeatherArray:
+	return WeatherArray(
+		pd.DataFrame(
+			{
+				"ice_thickness": [1, 2.1, 0.0, 5.4],
+				"wind_pressure": [240.12, 0.0, 12.0, 53.0],
+			}
+		)
+	)
+
+
+@pytest.fixture
 def default_data_container_two_spans() -> DataContainer:
 	NB_SPAN = 2
 	cable_array = CableArray(

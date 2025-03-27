@@ -19,11 +19,11 @@ from mechaphlowers.core.models.cable.span import (
 
 
 class DeformationInputDict(TypedDict, total=False):
-	cable_section_area: float
-	linear_weight: float
-	young_modulus: float
-	dilatation_coefficient: float
-	temperature_reference: float
+	cable_section_area: np.float64
+	linear_weight: np.float64
+	young_modulus: np.float64
+	dilatation_coefficient: np.float64
+	temperature_reference: np.float64
 	polynomial_conductor: Poly
 
 
@@ -34,18 +34,18 @@ def test_solve_polynom_perf() -> None:
 		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
 	)
 	input_dict: DeformationInputDict = {
-		"cable_section_area": 345.5,
-		"linear_weight": 9.6,
-		"young_modulus": 59,
-		"dilatation_coefficient": 23,
-		"temperature_reference": 15,
+		"cable_section_area": np.float64(345.5),
+		"linear_weight": np.float64(9.6),
+		"young_modulus": np.float64(59),
+		"dilatation_coefficient": np.float64(23),
+		"temperature_reference": np.float64(15),
 		"polynomial_conductor": polynomial,
 	}
 
 	a = np.array([500] * spans_number)
 	b = np.array([0.0] * spans_number)
 	p = np.array([2_000] * spans_number)
-	lambd = 9.6
+	lambd = np.float64(9.6)
 	m = np.array([1] * spans_number)
 
 	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
