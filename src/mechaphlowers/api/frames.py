@@ -128,11 +128,11 @@ class SectionDataFrame:
 		"""
 		out = self.section_array.data
 		if self.cable is not None:
+			# repeat to adjust size: CableArray only has one row
 			cable_data_repeat = self.cable.data.loc[
 				np.repeat(self.cable.data.index, out.shape[0])
 			].reset_index(drop=True)
 			out = pd.concat([out, cable_data_repeat], axis=1)
-			# TODO: repeat to adjust size
 		if self.weather is not None:
 			out = pd.concat([out, self.weather.data], axis=1)
 		return out

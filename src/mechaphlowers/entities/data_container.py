@@ -9,7 +9,13 @@ from mechaphlowers.entities.arrays import (
 
 
 class DataContainer:
-	def __init__(self) -> None:  # keep this for mypy?
+	"""This class contains data from SectionArray, CableArray and WeatherArray.
+	It allows SectionDataFrame to store all data in one class instead of three separate classes.
+	Data is stored as attributes, allowing the use of .__dict__() method.
+
+	"""
+
+	def __init__(self) -> None:
 		self.support_name: np.ndarray
 		self.suspension: np.ndarray
 		self.conductor_attachment_altitude: np.ndarray
@@ -35,6 +41,7 @@ class DataContainer:
 		self.wind_pressure: np.ndarray
 
 	def add_section_array(self, section_array: SectionArray) -> None:
+		"""Take as argument a SectionArray, and add all data into its attributes"""
 		self.support_name = section_array.data.name.to_numpy()
 		self.suspension = section_array.data.suspension.to_numpy()
 		self.conductor_attachment_altitude = (
@@ -55,6 +62,17 @@ class DataContainer:
 		)
 
 	def add_cable_array(self, cable_array: CableArray) -> None:
+		"""Take as argument a CableArray, and add all data into its attributes.
+		CableArray having only one row, we only keep data as np.float.
+		The stress-strain polynomial is created, the coefficients are not kept.
+
+		Args:
+			cable_array (CableArray): the CableArray that contains data.
+
+		Raises:
+			NotImplementedError: raises error if CableArray does not have exactly one row.
+		"""
+
 		if len(cable_array.data.section) != 1:
 			raise NotImplementedError("CableArray should only contain one row")
 		# TODO: use dict instead of [0]
@@ -88,6 +106,7 @@ class DataContainer:
 		)
 
 	def add_weather_array(self, weather_array: WeatherArray) -> None:
+		"""Take as argument a WeatherArray, and add all data into its attributes"""
 		self.ice_thickness = weather_array.data.ice_thickness.to_numpy()
 		self.wind_pressure = weather_array.data.wind_pressure.to_numpy()
 
@@ -100,6 +119,16 @@ def factory_data_container(
 	cable_array: CableArray,
 	weather_array: WeatherArray,
 ) -> DataContainer:
+	"""Function that creates a DataContainer from arrays.
+
+	Args:
+		section_array (SectionArray): SectionArray
+		cable_array (CableArray): CableArray
+		weather_array (WeatherArray): WeatherArray
+
+	Returns:
+		DataContainer: DataContainer instance that contains data from the input arrays
+	"""
 	data_container = DataContainer()
 	data_container.add_section_array(section_array)
 	data_container.add_cable_array(cable_array)
