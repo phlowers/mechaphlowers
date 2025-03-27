@@ -20,14 +20,14 @@ from mechaphlowers.entities.data_container import (
 
 
 def test_data_container__factory(
-	default_section_array_four_spans: SectionArray,
+	default_section_array_three_spans: SectionArray,
 	default_cable_array: CableArray,
-	generic_weather_array_four_spans: WeatherArray,
+	generic_weather_array_three_spans: WeatherArray,
 ):
 	data_container_new = factory_data_container(
-		default_section_array_four_spans,
+		default_section_array_three_spans,
 		default_cable_array,
-		generic_weather_array_four_spans,
+		generic_weather_array_three_spans,
 	)
 	expected_result_poly = Poly(np.array([0, 59e9, 0, 0, 0]))
 
@@ -123,11 +123,11 @@ def test_data_container__factory__attributes_types():
 
 
 def test_data_container__add_arrays(
-	default_section_array_four_spans: SectionArray,
+	default_section_array_three_spans: SectionArray,
 	default_cable_array: CableArray,
-	generic_weather_array_four_spans: WeatherArray,
+	generic_weather_array_three_spans: WeatherArray,
 ):
 	data_container = DataContainer()
-	data_container.add_section_array(default_section_array_four_spans)
+	data_container.add_section_array(default_section_array_three_spans)
 	data_container.add_cable_array(default_cable_array)
-	data_container.add_weather_array(generic_weather_array_four_spans)
+	data_container.add_weather_array(generic_weather_array_three_spans)

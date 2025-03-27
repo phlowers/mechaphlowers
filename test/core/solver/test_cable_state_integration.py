@@ -52,11 +52,11 @@ def create_sag_tension_solver(
 
 
 def test_functions_to_solve__same_loads(
-	default_section_array_four_spans: SectionArray,
+	default_section_array_three_spans: SectionArray,
 	default_cable_array: CableArray,
 ) -> None:
 	NB_SPAN = 4
-	frame = SectionDataFrame(default_section_array_four_spans)
+	frame = SectionDataFrame(default_section_array_three_spans)
 	frame.add_cable(default_cable_array)
 
 	weather_array = WeatherArray(
@@ -72,7 +72,7 @@ def test_functions_to_solve__same_loads(
 	unstressed_length = frame.state.L_ref(np.array([15] * NB_SPAN))
 
 	data_container = factory_data_container(
-		default_section_array_four_spans, default_cable_array, weather_array
+		default_section_array_three_spans, default_cable_array, weather_array
 	)
 
 	sag_tension_calculation = SagTensionSolver(
@@ -97,11 +97,11 @@ def test_functions_to_solve__same_loads(
 
 	assert (
 		sag_tension_calculation.p_after_change()[0]
-		- default_section_array_four_spans.sagging_parameter
+		- default_section_array_three_spans.sagging_parameter
 		< 1e-6
 	)
 	expected_p = np.array(
-		[default_section_array_four_spans.sagging_parameter] * 3 + [np.nan]
+		[default_section_array_three_spans.sagging_parameter] * 3 + [np.nan]
 	)
 	np.testing.assert_allclose(
 		sag_tension_calculation.p_after_change(), expected_p, atol=1e-5
@@ -153,7 +153,7 @@ def test_functions_to_solve__same_loads(
 	],
 )
 def test_functions_to_solve__different_weather(
-	default_section_array_two_spans: SectionArray,
+	default_section_array_one_spans: SectionArray,
 	default_cable_array: CableArray,
 	factory_neutral_weather_array: Callable[[int], WeatherArray],
 	weather: dict,
@@ -163,7 +163,7 @@ def test_functions_to_solve__different_weather(
 	initial_weather = factory_neutral_weather_array(2)
 
 	sag_tension_calculation = create_sag_tension_solver(
-		default_section_array_two_spans,
+		default_section_array_one_spans,
 		default_cable_array,
 		initial_weather,
 	)
@@ -174,7 +174,7 @@ def test_functions_to_solve__different_weather(
 
 
 def test_functions_to_solve__different_temp_ref(
-	default_section_array_two_spans: SectionArray,
+	default_section_array_one_spans: SectionArray,
 	default_cable_array: CableArray,
 	factory_neutral_weather_array: Callable[[int], WeatherArray],
 ) -> None:
@@ -183,7 +183,7 @@ def test_functions_to_solve__different_temp_ref(
 	new_temperature = np.array([15] * NB_SPAN)
 
 	sag_tension_calculation_0 = create_sag_tension_solver(
-		default_section_array_two_spans,
+		default_section_array_one_spans,
 		default_cable_array,
 		initial_weather_array,
 	)
@@ -205,7 +205,7 @@ def test_functions_to_solve__different_temp_ref(
 	new_cable_array._data.temperature_reference = 0
 
 	sag_tension_calculation_1 = create_sag_tension_solver(
-		default_section_array_two_spans,
+		default_section_array_one_spans,
 		new_cable_array,
 		initial_weather_array,
 	)

@@ -34,16 +34,13 @@ class SagTensionSolver:
 		span_length: np.ndarray,
 		elevation_difference: np.ndarray,
 		sagging_parameter: np.ndarray,
-		sagging_temperature: np.ndarray,
-		young_modulus: np.float64,
 		cable_section_area: np.float64,
 		diameter: np.float64,
 		linear_weight: np.float64,
+		young_modulus: np.float64,
 		dilatation_coefficient: np.float64,
 		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
-		ice_thickness: np.ndarray,
-		wind_pressure: np.ndarray,
 		unstressed_length: np.ndarray,
 		span_model: Type[Span] = CatenarySpan,
 		deformation_model: Type[IDeformation] = DeformationRTE,
@@ -52,31 +49,22 @@ class SagTensionSolver:
 		self.span_length = span_length
 		self.elevation_difference = elevation_difference
 		self.sagging_parameter = sagging_parameter
-		# sagging_temperature unused?
-		self.sagging_temperature = sagging_temperature
-		self.linear_weight = linear_weight
-		self.young_modulus = young_modulus
 		self.cable_section_area = cable_section_area
 		self.diameter = diameter
+		self.linear_weight = linear_weight
+		self.young_modulus = young_modulus
 		self.dilatation_coefficient = dilatation_coefficient
 		self.temperature_reference = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
-
-		# Maybe weather params not necessary to initialize in constructor (will be given in change_state())
-		self.ice_thickness = ice_thickness
-		self.wind_pressure = wind_pressure
 		self.L_ref = unstressed_length
 		self.span_model = span_model
 		self.deformation_model = deformation_model
 		self.T_h_after_change: np.ndarray | None = None
-		self.init_cable_loads()
-
-	def init_cable_loads(self):
 		self.cable_loads = CableLoads(
 			self.diameter,
 			self.linear_weight,
-			self.ice_thickness,
-			self.wind_pressure,
+			np.zeros(span_length.shape),
+			np.zeros(span_length.shape),
 		)
 
 	def change_state(
@@ -100,9 +88,9 @@ class SagTensionSolver:
 			solver_method = solver_dict[solver]
 		except KeyError:
 			raise ValueError(f"Incorrect solver name: {solver}")
-		self.ice_thickness = ice_thickness
-		self.wind_pressure = wind_pressure
-		self.init_cable_loads()
+		self.cable_loads.ice_thickness = ice_thickness
+		self.cable_loads.wind_pressure = wind_pressure
+
 		m = self.cable_loads.load_coefficient
 		T_h0 = self.span_model.compute_T_h(
 			self.sagging_parameter, m, self.linear_weight

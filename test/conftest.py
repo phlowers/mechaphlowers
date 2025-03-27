@@ -55,7 +55,7 @@ def default_cable_array() -> CableArray:
 
 
 @pytest.fixture
-def default_section_array_two_spans() -> SectionArray:
+def default_section_array_one_spans() -> SectionArray:
 	section_array = SectionArray(
 		pd.DataFrame(
 			{
@@ -75,7 +75,7 @@ def default_section_array_two_spans() -> SectionArray:
 
 
 @pytest.fixture
-def default_section_array_four_spans() -> SectionArray:
+def default_section_array_three_spans() -> SectionArray:
 	section_array = SectionArray(
 		pd.DataFrame(
 			{
@@ -110,7 +110,7 @@ def factory_neutral_weather_array() -> Callable[[int], WeatherArray]:
 
 
 @pytest.fixture
-def generic_weather_array_four_spans() -> WeatherArray:
+def generic_weather_array_three_spans() -> WeatherArray:
 	return WeatherArray(
 		pd.DataFrame(
 			{
@@ -122,7 +122,7 @@ def generic_weather_array_four_spans() -> WeatherArray:
 
 
 @pytest.fixture
-def default_data_container_two_spans() -> DataContainer:
+def default_data_container_one_span() -> DataContainer:
 	NB_SPAN = 2
 	cable_array = CableArray(
 		pd.DataFrame(

@@ -30,17 +30,17 @@ class CableLoadsInputDict(TypedDict, total=False):
 	wind_pressure: np.ndarray
 
 
-def test_section_frame_initialization(default_section_array_four_spans):
-	frame = SectionDataFrame(default_section_array_four_spans)
-	assert frame.section_array == default_section_array_four_spans
+def test_section_frame_initialization(default_section_array_three_spans):
+	frame = SectionDataFrame(default_section_array_three_spans)
+	assert frame.section_array == default_section_array_three_spans
 	assert isinstance(frame._span_model, type(CatenarySpan))
 
 
-def test_section_frame_get_coord(default_section_array_four_spans):
-	frame = SectionDataFrame(default_section_array_four_spans)
+def test_section_frame_get_coord(default_section_array_three_spans):
+	frame = SectionDataFrame(default_section_array_three_spans)
 	coords = frame.get_coord()
 	assert coords.shape == (
-		(len(default_section_array_four_spans.data) - 1) * RESOLUTION,
+		(len(default_section_array_three_spans.data) - 1) * RESOLUTION,
 		3,
 	)
 	assert isinstance(coords, np.ndarray)
@@ -59,9 +59,9 @@ def test_section_frame_get_coord(default_section_array_four_spans):
 	],
 )
 def test_select_spans__wrong_input(
-	error: Type[Exception], case, default_section_array_four_spans
+	error: Type[Exception], case, default_section_array_three_spans
 ):
-	frame = SectionDataFrame(default_section_array_four_spans)
+	frame = SectionDataFrame(default_section_array_three_spans)
 
 	with pytest.raises(error):
 		frame.select(case)
@@ -70,8 +70,8 @@ def test_select_spans__wrong_input(
 # TODO: Add test on data property
 
 
-def test_select_spans__passing_input(default_section_array_four_spans):
-	frame = SectionDataFrame(default_section_array_four_spans)
+def test_select_spans__passing_input(default_section_array_three_spans):
+	frame = SectionDataFrame(default_section_array_three_spans)
 	frame_selected = frame.select(["support 1", "three"])
 	assert len(frame_selected.data) == 3
 	assert (
@@ -87,16 +87,16 @@ def test_select_spans__passing_input(default_section_array_four_spans):
 	)
 
 
-def test_SectionDataFrame__copy(default_section_array_four_spans):
-	frame = SectionDataFrame(default_section_array_four_spans)
+def test_SectionDataFrame__copy(default_section_array_three_spans):
+	frame = SectionDataFrame(default_section_array_three_spans)
 	copy(frame)
 	assert isinstance(frame, SectionDataFrame)
 
 
 def test_SectionDataFrame__state(
-	default_cable_array, default_section_array_four_spans
+	default_cable_array, default_section_array_three_spans
 ):
-	frame = SectionDataFrame(default_section_array_four_spans)
+	frame = SectionDataFrame(default_section_array_three_spans)
 	frame.add_cable(default_cable_array)
 	assert np.array_equal(
 		frame.state.L_ref(12), frame.deformation.L_ref(12), equal_nan=True
@@ -105,9 +105,9 @@ def test_SectionDataFrame__state(
 
 # test add_cable method
 def test_SectionDataFrame__add_cable(
-	default_cable_array, default_section_array_four_spans
+	default_cable_array, default_section_array_three_spans
 ):
-	frame = SectionDataFrame(default_section_array_four_spans)
+	frame = SectionDataFrame(default_section_array_three_spans)
 	with pytest.raises(TypeError):
 		# wrong input type
 		frame.add_cable(1)
@@ -122,9 +122,9 @@ def test_SectionDataFrame__add_cable(
 
 
 def test_SectionDataFrame__add_weather(
-	default_cable_array, default_section_array_four_spans
+	default_cable_array, default_section_array_three_spans
 ):
-	frame = SectionDataFrame(default_section_array_four_spans)
+	frame = SectionDataFrame(default_section_array_three_spans)
 	weather = WeatherArray(
 		pd.DataFrame(
 			{
@@ -146,9 +146,9 @@ def test_SectionDataFrame__add_weather(
 
 
 def test_SectionDataFrame__add_array(
-	default_cable_array, default_section_array_four_spans
+	default_cable_array, default_section_array_three_spans
 ):
-	frame = SectionDataFrame(default_section_array_four_spans)
+	frame = SectionDataFrame(default_section_array_three_spans)
 	weather_array = WeatherArray(
 		pd.DataFrame(
 			{
@@ -174,11 +174,11 @@ def test_SectionDataFrame__add_array(
 
 
 def test_select_spans__after_added_arrays(
-	default_section_array_four_spans,
+	default_section_array_three_spans,
 	default_cable_array,
 	factory_neutral_weather_array,
 ):
-	frame = SectionDataFrame(default_section_array_four_spans)
+	frame = SectionDataFrame(default_section_array_three_spans)
 	frame.add_cable(default_cable_array)
 	frame.add_weather(factory_neutral_weather_array(4))
 	frame_selected = frame.select(["support 1", "three"])
@@ -190,9 +190,9 @@ def test_select_spans__after_added_arrays(
 
 
 def test_SectionDataFrame__data(
-	default_cable_array, default_section_array_four_spans
+	default_cable_array, default_section_array_three_spans
 ):
-	frame = SectionDataFrame(default_section_array_four_spans)
+	frame = SectionDataFrame(default_section_array_three_spans)
 	assert frame.data.equals(frame.section_array.data)
 
 	frame.add_cable(default_cable_array)
@@ -205,9 +205,9 @@ def test_SectionDataFrame__data(
 
 
 def test_SectionDataFrame__add_weather_update_span(
-	default_cable_array, default_section_array_four_spans
+	default_cable_array, default_section_array_three_spans
 ):
-	frame = SectionDataFrame(default_section_array_four_spans)
+	frame = SectionDataFrame(default_section_array_three_spans)
 	weather_dict = {
 		"ice_thickness": np.array([1, 2.1, 0.0, 5.4]),
 		"wind_pressure": np.array([1840.12, 0.0, 12.0, 53.0]),

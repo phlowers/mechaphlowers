@@ -62,7 +62,7 @@ def test_total_load_coefficient_and_angle(cable_data_dict: dict) -> None:
 
 
 def test_total_load_coefficient__data_container(
-	default_data_container_two_spans: DataContainer,
+	default_data_container_one_span: DataContainer,
 ) -> None:
 	weather = WeatherArray(
 		pd.DataFrame(
@@ -72,8 +72,8 @@ def test_total_load_coefficient__data_container(
 			}
 		)
 	)
-	default_data_container_two_spans.add_weather_array(weather)
-	weather_loads = CableLoads(**default_data_container_two_spans.__dict__)
+	default_data_container_one_span.add_weather_array(weather)
+	weather_loads = CableLoads(**default_data_container_one_span.__dict__)
 
 	weather_loads.load_coefficient
 	weather_loads.load_angle

@@ -19,28 +19,26 @@ class IDeformation(ABC):
 		self,
 		tension_mean: np.ndarray,
 		cable_length: np.ndarray,
-		young_modulus: np.float64,
 		cable_section_area: np.float64,
-		temperature_reference: np.float64,
-		dilatation_coefficient: np.float64,
 		linear_weight: np.float64,
+		young_modulus: np.float64,
+		dilatation_coefficient: np.float64,
+		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
 		max_stress: np.ndarray | None = None,
 		**kwargs,
 	):
 		self.tension_mean = tension_mean
-		self.young_modulus = young_modulus
-		self.cable_section_area = cable_section_area
 		self.cable_length = cable_length
-		self.temp_ref = temperature_reference
-		self.dilatation_coefficient = dilatation_coefficient
+		self.cable_section_area = cable_section_area
 		self.linear_weight = linear_weight
+		self.young_modulus = young_modulus
+		self.dilatation_coefficient = dilatation_coefficient
+		self.temp_ref = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
 
-		if max_stress is None:  # TODO: Keep this instead of None?
+		if max_stress is None:
 			self.max_stress = np.full(self.cable_length.shape, 0)
-		else:
-			self.max_stress = max_stress
 
 	@abstractmethod
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:

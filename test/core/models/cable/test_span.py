@@ -14,7 +14,7 @@ from mechaphlowers.entities.data_container import DataContainer
 
 
 def test_catenary_span_model__no_error_lengths(
-	default_data_container_two_spans,
+	default_data_container_one_span,
 ) -> None:
 	a = np.array([501.3, 499.0])  # test here int and float
 	b = np.array([0.0, -5.0])
@@ -64,7 +64,7 @@ def test_catenary_span_model__x_m__if_no_elevation_difference() -> None:
 	assert abs(49.37 + span_model.z(np.array([-50.0])) - 50.0) < 0.01
 
 
-def test_catenary_span_model__z__two_spans() -> None:
+def test_catenary_span_model__z__one_span() -> None:
 	a = np.array([100.0, 100.0])
 	b = np.array([0.0, 50.0])
 	p = np.array([20.0, 1.0])
@@ -167,9 +167,9 @@ def test_catenary_span_model__geometric_output():
 
 
 def test_catenary_span_model__data_container(
-	default_data_container_two_spans: DataContainer,
+	default_data_container_one_span: DataContainer,
 ) -> None:
-	span_model = CatenarySpan(**default_data_container_two_spans.__dict__)
+	span_model = CatenarySpan(**default_data_container_one_span.__dict__)
 	x = np.array([100, 200.0])
 
 	span_model.x_m()
