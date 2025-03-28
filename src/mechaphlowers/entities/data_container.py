@@ -75,7 +75,6 @@ class DataContainer:
 
 		if len(cable_array.data.section) != 1:
 			raise NotImplementedError("CableArray should only contain one row")
-		# TODO: use dict instead of [0]
 		self.cable_section_area = cable_array.data.section[0]
 		self.diameter = cable_array.data.diameter[0]
 		self.linear_weight = cable_array.data.linear_weight[0]
@@ -109,9 +108,6 @@ class DataContainer:
 		"""Take as argument a WeatherArray, and add all data into its attributes"""
 		self.ice_thickness = weather_array.data.ice_thickness.to_numpy()
 		self.wind_pressure = weather_array.data.wind_pressure.to_numpy()
-
-	def __getitem__(self, key):
-		return getattr(self, key)
 
 
 def factory_data_container(

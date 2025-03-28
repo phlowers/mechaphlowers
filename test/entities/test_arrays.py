@@ -382,34 +382,6 @@ def test_create_cable_array__extra_column(
 	assert "extra column" not in section._data.columns
 
 
-def test_cable_array__get_poly_coefs() -> None:
-	input_df = pd.DataFrame(
-		{
-			"section": [345.5],
-			"diameter": [22.4],
-			"linear_weight": [9.6],
-			"young_modulus": [59],
-			"dilatation_coefficient": [23],
-			"temperature_reference": [15],
-			"a0": [3],
-			"a1": [10],
-			"a2": [25],
-			"a3": [400],
-			"a4": [1000],
-			"b0": [0],
-			"b1": [0],
-			"b2": [0],
-			"b3": [0],
-			"b4": [0],
-		}
-	)
-
-	cable_array = CableArray(input_df)
-	polynomial = cable_array.stress_strain_polynomial
-	expected_coefs = np.array([3, 10, 25, 400, 1000]) * 1e9
-	assert np.array_equal(polynomial.coef, expected_coefs)
-
-
 def test_create_weather_array__negative_ice() -> None:
 	input_data_with_negative_ice = {
 		"ice_thickness": [1, -5.0, -0.0001],

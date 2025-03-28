@@ -10,7 +10,6 @@ from typing import Type
 import numpy as np
 import pandas as pd
 import pandera as pa
-from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.entities.schemas import (
 	CableArrayInput,
@@ -137,15 +136,6 @@ class CableArray(ElementArray):
 			if coef in data_SI:
 				data_SI[coef] *= 1e9
 		return data_SI
-
-	# TODO: remove this?
-	@property
-	def stress_strain_polynomial(self) -> Poly:
-		"""Converts coefficients in the dataframe into polynomial"""
-		coefs_poly = self.data.iloc[0][
-			["a0", "a1", "a2", "a3", "a4"]
-		].to_numpy()
-		return Poly(coefs_poly)
 
 
 class WeatherArray(ElementArray):
