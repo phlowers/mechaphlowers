@@ -11,7 +11,7 @@ import numpy as np
 from scipy import optimize  # type: ignore
 
 from mechaphlowers.core.models.cable.deformation import (
-	DeformationRTE,
+	DeformationRte,
 	IDeformation,
 )
 from mechaphlowers.core.models.cable.span import (
@@ -40,7 +40,7 @@ class SagTensionSolver:
 		weather_array: WeatherArray,
 		L_ref: np.ndarray,
 		span_model: Type[Span] = CatenarySpan,
-		deformation_model: Type[IDeformation] = DeformationRTE,
+		deformation_model: Type[IDeformation] = DeformationRte,
 	) -> None:
 		self.a = section_array.data.span_length.to_numpy()
 		self.b = section_array.data.elevation_difference.to_numpy()

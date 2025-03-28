@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from pandera.typing import pandas as pdt
 
-from mechaphlowers.core.models.cable.deformation import DeformationRTE
+from mechaphlowers.core.models.cable.deformation import DeformationRte
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
@@ -76,7 +76,7 @@ def test_linear_cable_impl(
 	)
 
 	cable_array = CableArray(input_df)
-	deformation_model = DeformationRTE(cable_array, tension_mean, cable_length)
+	deformation_model = DeformationRte(cable_array, tension_mean, cable_length)
 	current_temperature = np.array([15, 15])
 	deformation_model.epsilon_mecha()
 	deformation_model.epsilon_therm(current_temperature)
@@ -113,7 +113,7 @@ def test_deformation_values__first_example() -> None:
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 	cable_array = CableArray(input_df)
-	deformation_model = DeformationRTE(cable_array, tension_mean, cable_length)
+	deformation_model = DeformationRte(cable_array, tension_mean, cable_length)
 	current_temperature = np.array([15, 15])
 
 	# Data given by the prototype
@@ -171,7 +171,7 @@ def test_poly_deformation__degree_three(
 	)
 
 	cable_array = CableArray(input_df)
-	deformation_model = DeformationRTE(cable_array, tension_mean, cable_length)
+	deformation_model = DeformationRte(cable_array, tension_mean, cable_length)
 	constraint = tension_mean / (
 		np.array(cable_array_input_data["section"]) * 1e-6
 	)
@@ -217,7 +217,7 @@ def test_poly_deformation__degree_four(
 	)
 
 	cable_array = CableArray(input_df)
-	deformation_model = DeformationRTE(cable_array, tension_mean, cable_length)
+	deformation_model = DeformationRte(cable_array, tension_mean, cable_length)
 	constraint = tension_mean / (
 		np.array(cable_array_input_data["section"]) * 1e-6
 	)
@@ -264,7 +264,7 @@ def test_poly_deformation__degree_four__with_max_stress(
 
 	cable_array = CableArray(input_df)
 	default_max_stress = np.array([0, 0])
-	deformation_model = DeformationRTE(
+	deformation_model = DeformationRte(
 		cable_array, tension_mean, default_max_stress, cable_length
 	)
 
@@ -307,7 +307,7 @@ def test_poly_deformation__no_solutions(
 	)
 
 	cable_array = CableArray(input_df)
-	deformation_model = DeformationRTE(cable_array, tension_mean, cable_length)
+	deformation_model = DeformationRte(cable_array, tension_mean, cable_length)
 	deformation_model.max_stress = np.array([1000, 1e10])
 	with pytest.raises(ValueError):
 		deformation_model.epsilon_mecha()
