@@ -63,6 +63,7 @@ nav:
             - Cable state : docstring/core/solver/cable_state.md
       - Data :
           - Catalog: docstring/data/catalog.md
+    - Logging : developer_guide/logging.md
     - Guidelines : developer_guide/guidelines.md
     - Documentation : developer_guide/documentation.md
 

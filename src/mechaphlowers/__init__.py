@@ -18,5 +18,8 @@ pd.options.mode.copy_on_write = True
 
 __version__ = version('mechaphlowers')
 
+logger.info("Mechaphlowers package initialized.")
+logger.info(f"Mechaphlowers version: {__version__}")
+
 
 __all__ = ["SectionDataFrame"]

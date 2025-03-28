@@ -7,6 +7,8 @@
 from copy import copy
 from typing import List, Type
 
+import logging
+
 import numpy as np
 import pandas as pd
 from typing_extensions import Self
@@ -34,6 +36,8 @@ from mechaphlowers.entities.arrays import (
 from mechaphlowers.plotting.plot import PlotAccessor
 from mechaphlowers.utils import CachedAccessor
 
+logger = logging.getLogger(__name__)
+
 # This parameter has to be removed later.
 # This is the default resolution for spans when exporting coordinates in get_coords
 RESOLUTION: int = 7
@@ -54,6 +58,7 @@ class SectionDataFrame:
 		physics_model: Type[Physics] = Physics,
 		deformation_model: Type[Deformation] = LinearDeformation,
 	):
+
 		self.section: SectionArray = section
 		self.cable: CableArray | None = None
 		self.weather: WeatherArray | None = None
