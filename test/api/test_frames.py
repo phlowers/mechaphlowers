@@ -67,9 +67,6 @@ def test_select_spans__wrong_input(
 		frame.select(case)
 
 
-# TODO: Add test on data property
-
-
 def test_select_spans__passing_input(default_section_array_three_spans):
 	frame = SectionDataFrame(default_section_array_three_spans)
 	frame_selected = frame.select(["support 1", "three"])
@@ -201,7 +198,9 @@ def test_SectionDataFrame__data(
 		frame.data.shape[1]
 		== frame.cable.data.shape[1] + frame.section_array.data.shape[1]
 	)
-	# TODO: add some test to check if values are correct
+	assert frame.data.dilatation_coefficient.iloc[-1] == 23e-6
+	assert frame.data.a1.iloc[-1] == 59e9
+	assert frame.data.b1.iloc[-1] == 0
 
 
 def test_SectionDataFrame__add_weather_update_span(

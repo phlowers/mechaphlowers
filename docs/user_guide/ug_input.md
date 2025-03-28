@@ -75,16 +75,14 @@ A Cable is described using the following data:
 - Young modulus in $GPa$
 - temperature of reference in $°C$
 - dilatation coefficient in $°C^{-1}$
-- coefficients of the polynomial model between stress and deformation in $GPa$ (optional)
+- coefficients of the polynomial model between stress and deformation in $GPa$
 
 
-Similarly to line section data, input data should be organized in a table. The number of rows is equal to the number of spans. However, the data of CableArray is independent of the span, therefore all rows are identical.
+Similarly to line section data, input data should be organized in a table. However the number of rows should be equal to 1: the attributes of a cable are the same on any span.
 
-|section|diameter|linear_weight|young_modulus|dilatation_coefficient|temperature_reference|a0|a1|a2|a3|a4|
-|---|-----|--|--|--|-|-|-----|--------|----------|--------------|
-|450|30.5 |14|45|23|0|0|15|45000|2300000|-1800000000|
-|450|30.5 |14|45|23|0|0|15|45000|2300000|-1800000000|
-
+|section|diameter|linear_weight|young_modulus|dilatation_coefficient|temperature_reference|a0|a1|a2|a3|a4|b0|b1|b2|b3|b4|
+|---|-----|--|--|--|-|-|--|-----|-------|-----------|-|-|-|-|-|
+|450|30.5 |14|45|23|0|0|15|45000|2300000|-1800000000|0|0|0|0|0|
 
 You may use following code to define this data and load it so that it can be used by mechaphlowers:
 
@@ -96,17 +94,22 @@ from mechaphlowers.entities.arrays import CableArray
 
 
 input_df = pd.DataFrame({
-	"section": [450, 450],
-	"diameter": [30.5, 30.5],
-	"linear_weight": [14, 14],
-	"young_modulus": [45, 45],
-	"dilatation_coefficient": [23, 23],
-	"temperature_reference": [0, 0],
-	"a0": [0, 0],
-	"a1": [15000, 15000],
-	"a2": [45000000, 45000000],
-	"a3": [2300000000, 2300000000],
-	"a4": [-1800000000000, -1800000000000],
+	"section": [450],
+	"diameter": [30.5],
+	"linear_weight": [14],
+	"young_modulus": [45],
+	"dilatation_coefficient": [23],
+	"temperature_reference": [0],
+	"a0": [0],
+	"a1": [15000],
+	"a2": [45000000],
+	"a3": [2300000000],
+	"a4": [-1800000000000],
+    "b0": [0],
+    "b1": [0],
+    "b2": [0],
+    "b3": [0],
+    "b4": [0],
 })
 cable_array = CableArray(input_df)
 print(cable_array)

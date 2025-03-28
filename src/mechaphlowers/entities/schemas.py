@@ -77,7 +77,6 @@ class CableArrayInput(pa.DataFrameModel):
 	young_modulus: pdt.Series[float] = pa.Field(coerce=True)
 	dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
 	temperature_reference: pdt.Series[float] = pa.Field(coerce=True)
-	# TODO: rename with stress_strain_a0?
 	a0: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	a1: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	a2: Optional[pdt.Series[float]] = pa.Field(coerce=True)
