@@ -12,7 +12,7 @@ from numpy.polynomial import Polynomial as Poly
 from scipy import optimize  # type: ignore
 
 from mechaphlowers.core.models.cable.deformation import (
-	DeformationRTE,
+	DeformationRte,
 	IDeformation,
 )
 from mechaphlowers.core.models.cable.span import (
@@ -43,7 +43,7 @@ class SagTensionSolver:
 		polynomial_conductor: Poly,
 		unstressed_length: np.ndarray,
 		span_model: Type[Span] = CatenarySpan,
-		deformation_model: Type[IDeformation] = DeformationRTE,
+		deformation_model: Type[IDeformation] = DeformationRte,
 		**kwargs,
 	) -> None:
 		self.span_length = span_length

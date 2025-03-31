@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from numpy.polynomial import Polynomial as Poly
 
-from mechaphlowers.core.models.cable.deformation import DeformationRTE
+from mechaphlowers.core.models.cable.deformation import DeformationRte
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
@@ -39,7 +39,7 @@ def test_deformation_impl(
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	deformation_model = DeformationRTE(
+	deformation_model = DeformationRte(
 		**default_data_container_one_span.__dict__,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
@@ -58,7 +58,7 @@ def test_deformation_values__default_data(
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	deformation_model = DeformationRTE(
+	deformation_model = DeformationRte(
 		**default_data_container_one_span.__dict__,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
@@ -98,7 +98,7 @@ def test_poly_deformation__degree_three(
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	deformation_model = DeformationRTE(
+	deformation_model = DeformationRte(
 		**default_data_container_one_span.__dict__,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
@@ -130,7 +130,7 @@ def test_poly_deformation__degree_four(
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	deformation_model = DeformationRTE(
+	deformation_model = DeformationRte(
 		**default_data_container_one_span.__dict__,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
@@ -162,7 +162,7 @@ def test_poly_deformation__degree_four__with_max_stress(
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	deformation_model = DeformationRTE(
+	deformation_model = DeformationRte(
 		**default_data_container_one_span.__dict__,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
@@ -190,7 +190,7 @@ def test_poly_deformation__no_solutions(
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	deformation_model = DeformationRTE(
+	deformation_model = DeformationRte(
 		**default_data_container_one_span.__dict__,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
@@ -208,7 +208,7 @@ def test_deformation__data_container(
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	deformation_model = DeformationRTE(
+	deformation_model = DeformationRte(
 		**default_data_container_one_span.__dict__,
 		tension_mean=tension_mean,
 		cable_length=cable_length,

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from numpy.polynomial import Polynomial as Poly
 
-from mechaphlowers.core.models.cable.deformation import DeformationRTE
+from mechaphlowers.core.models.cable.deformation import DeformationRte
 from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.core.solver.cable_state import (
@@ -32,7 +32,7 @@ def get_L_ref_from_arrays(
 	span_model = CatenarySpan(**data_container.__dict__)
 
 	span_model.load_coefficient = cable_loads.load_coefficient
-	deformation = DeformationRTE(
+	deformation = DeformationRte(
 		**data_container.__dict__,
 		tension_mean=span_model.T_mean(),
 		cable_length=span_model.L(),

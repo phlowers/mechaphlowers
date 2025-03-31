@@ -16,7 +16,7 @@ from mechaphlowers.core.geometry import references
 
 # if TYPE_CHECKING:
 from mechaphlowers.core.models.cable.deformation import (
-	DeformationRTE,
+	DeformationRte,
 	IDeformation,
 )
 from mechaphlowers.core.models.cable.span import (
@@ -51,7 +51,7 @@ class SectionDataFrame:
 		self,
 		section_array: SectionArray,
 		span_model: Type[Span] = CatenarySpan,
-		deformation_model: Type[IDeformation] = DeformationRTE,
+		deformation_model: Type[IDeformation] = DeformationRte,
 	):
 		self.section_array: SectionArray = section_array
 		self.cable: CableArray | None = None

@@ -11,7 +11,7 @@ import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.core.models.cable.deformation import (
-	DeformationRTE,
+	DeformationRte,
 )
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
@@ -51,7 +51,7 @@ def test_solve_polynom_perf() -> None:
 	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
-	deformation_model = DeformationRTE(
+	deformation_model = DeformationRte(
 		**input_dict, tension_mean=tension_mean, cable_length=cable_length
 	)
 
