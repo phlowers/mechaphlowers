@@ -197,5 +197,7 @@ class SagTensionSolver:
 				"method change_state has to be run before calling this method"
 			)
 		return self.span_model.compute_L(
-			self.span_length_after_loads, self.elevation_difference_after_loads, p
+			self.span_length_after_loads,
+			self.elevation_difference_after_loads,
+			p,
 		)

@@ -180,8 +180,12 @@ def test_functions_to_solve__different_weather(
 	T_h = sag_tension_calculation.T_h_after_change
 	assert T_h is not None
 	np.testing.assert_allclose(T_h, expected_T_h, atol=1e-5)
-	np.testing.assert_allclose(sag_tension_calculation.L_after_change(), expected_L, atol=1e-5)
-	np.testing.assert_allclose(sag_tension_calculation.p_after_change(), expected_p, atol=1e-5)
+	np.testing.assert_allclose(
+		sag_tension_calculation.L_after_change(), expected_L, atol=1e-5
+	)
+	np.testing.assert_allclose(
+		sag_tension_calculation.p_after_change(), expected_p, atol=1e-5
+	)
 
 
 def test_functions_to_solve__different_temp_ref(
