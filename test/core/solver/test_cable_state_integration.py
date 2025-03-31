@@ -115,7 +115,7 @@ def test_functions_to_solve__same_loads(
 
 
 @pytest.mark.parametrize(
-	"weather,temperature,expected_result",
+	"weather, temperature, expected_T_h, expected_L, expected_p",
 	[
 		(
 			{
@@ -124,6 +124,8 @@ def test_functions_to_solve__same_loads(
 			},
 			np.array([15, 15]),
 			np.array([19109.88, np.nan]),
+			np.array([481.25673597, np.nan]),
+			np.array([2000, np.nan]),
 		),
 		(
 			{
@@ -131,7 +133,9 @@ def test_functions_to_solve__same_loads(
 				"wind_pressure": np.array([0.0, 0.0]),
 			},
 			np.array([15, 15]),
-			np.array([42098.9070, np.nan]),
+			np.array([42098.906999, np.nan]),
+			np.array([481.80145209, np.nan]),
+			np.array([1648.3929652, np.nan]),
 		),
 		(
 			{
@@ -139,8 +143,9 @@ def test_functions_to_solve__same_loads(
 				"wind_pressure": 200 * np.ones(2),
 			},
 			np.array([15, 15]),
-			np.array([31742.24808412, np.nan]),
-			# should be np.array([31745.05101, np.nan])
+			np.array([31745.051094, np.nan]),
+			np.array([481.55593028, np.nan]),
+			np.array([1782.3759651, np.nan]),
 		),
 		(
 			{
@@ -148,7 +153,9 @@ def test_functions_to_solve__same_loads(
 				"wind_pressure": np.array([0.0, 0.0]),
 			},
 			np.array([25, 25]),
-			np.array([18380.1116, np.nan]),
+			np.array([18380.111575, np.nan]),
+			np.array([481.35015024, np.nan]),
+			np.array([1923.6239657, np.nan]),
 		),
 	],
 )
@@ -158,7 +165,9 @@ def test_functions_to_solve__different_weather(
 	factory_neutral_weather_array: Callable[[int], WeatherArray],
 	weather: dict,
 	temperature: np.ndarray,
-	expected_result: np.ndarray,
+	expected_T_h: np.ndarray,
+	expected_L: np.ndarray,
+	expected_p: np.ndarray,
 ) -> None:
 	initial_weather = factory_neutral_weather_array(2)
 
@@ -170,7 +179,9 @@ def test_functions_to_solve__different_weather(
 	sag_tension_calculation.change_state(**weather, temp=temperature)
 	T_h = sag_tension_calculation.T_h_after_change
 	assert T_h is not None
-	np.testing.assert_allclose(T_h, expected_result, atol=1e-5)
+	np.testing.assert_allclose(T_h, expected_T_h, atol=1e-5)
+	np.testing.assert_allclose(sag_tension_calculation.L_after_change(), expected_L, atol=1e-5)
+	np.testing.assert_allclose(sag_tension_calculation.p_after_change(), expected_p, atol=1e-5)
 
 
 def test_functions_to_solve__different_temp_ref(
