@@ -8,11 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.core.models.cable.deformation import (
-	LinearDeformation,
-	PolynomialDeformation,
-)
-from mechaphlowers.core.models.cable.physics import Physics
+from mechaphlowers.core.models.cable.deformation import DeformationRte
 from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.core.solver.cable_state import (
@@ -56,6 +52,11 @@ def cable_array_one_span():
 				"young_modulus": [59] * 2,
 				"dilatation_coefficient": [23] * 2,
 				"temperature_reference": [0] * 2,
+				"a0": [0] * 2,
+				"a1": [59] * 2,
+				"a2": [0] * 2,
+				"a3": [0] * 2,
+				"a4": [0] * 2,
 			}
 		)
 	)
@@ -99,7 +100,6 @@ def get_L_ref_from_arrays(
 	cable_array: CableArray,
 	weather_array: WeatherArray,
 	current_temperature: np.ndarray,
-	deformation_type=LinearDeformation,
 ):
 	cable_loads = CableLoads(cable_array, weather_array)
 	span_model = CatenarySpan(
@@ -109,13 +109,12 @@ def get_L_ref_from_arrays(
 	)
 	span_model.load_coefficient = cable_loads.load_coefficient
 	span_model.linear_weight = cable_array.data.linear_weight.to_numpy()
-	physics = Physics(
+	deformation = DeformationRte(
 		cable_array,
 		span_model.T_mean(),
 		span_model.L(),
-		deformation_type=deformation_type,
 	)
-	return physics.L_ref(current_temperature)
+	return deformation.L_ref(current_temperature)
 
 
 def test_solver__run_solver(
@@ -156,7 +155,6 @@ def test_solver__run_solver__polynomial_model(
 		cable_array_one_span__polynomial,
 		neutral_weather_array_one_span,
 		current_temperature,
-		deformation_type=PolynomialDeformation,
 	)
 
 	sag_tension_calculation = SagTensionSolver(
@@ -164,7 +162,6 @@ def test_solver__run_solver__polynomial_model(
 		cable_array_one_span__polynomial,
 		neutral_weather_array_one_span,
 		unstressed_length,
-		deformation_model=PolynomialDeformation,
 	)
 	sag_tension_calculation.change_state(
 		neutral_weather_array_one_span, current_temperature, "newton"
