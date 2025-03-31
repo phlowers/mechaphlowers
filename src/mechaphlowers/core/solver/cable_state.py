@@ -75,11 +75,12 @@ class SagTensionSolver:
 		solver: str = "newton",
 		**kwargs,
 	) -> None:
-		"""Method that solves the finds the new horizontal tension after a change of parameters.
+		"""Method that solves the finds the new horizontal tension after a change of weather. Parameters are given in SI units.
 		The equation to solve is : $\\delta(T_h) = O$
 		Args:
-			weather_array (WeatherArray): data on wind and ice
-			temp (np.ndarray): current temperature
+			ice_thickness (np.ndarray): new ice_thickness (in m)
+			wind_pressure (np.ndarray): new wind_pressure (in Pa)
+			temp (np.ndarray): new temperature
 			solver (str, optional): resolution method of the equation. Defaults to "newton", which is the only method implemented for now.
 		"""
 
