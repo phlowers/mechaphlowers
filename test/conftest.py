@@ -13,6 +13,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
+projet_dir: Path = Path(__file__).resolve().parents[1]
+source_dir: Path = projet_dir / "src"
+sys.path.insert(0, str(source_dir))
+
 from mechaphlowers.entities.arrays import (
 	CableArray,
 	SectionArray,
@@ -22,10 +26,6 @@ from mechaphlowers.entities.data_container import (
 	DataContainer,
 	factory_data_container,
 )
-
-projet_dir: Path = Path(__file__).resolve().parents[1]
-source_dir: Path = projet_dir / "src"
-sys.path.insert(0, str(source_dir))
 
 
 @pytest.fixture
