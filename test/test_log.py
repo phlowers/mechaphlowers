@@ -5,13 +5,17 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
+from importlib import reload
+
+import mechaphlowers
+
 
 def test_log(caplog):
 	caplog.set_level(logging.INFO)
-	logging.info(f"Hello, Alice!")
-	assert "Hello, Alice!" in caplog.text
-
-	from mechaphlowers import SectionDataFrame
-
-	assert "Mechaphlowers package initialized." in caplog.text
-
+	logging.info("Test log is working")
+	assert "Test log is working" in caplog.text
+	print(caplog.text)
+	with caplog.at_level(logging.DEBUG):
+		reload(mechaphlowers)  # noqa
+		print(caplog.text)
+		assert "Mechaphlowers package initialized." in caplog.text

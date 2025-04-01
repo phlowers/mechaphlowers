@@ -4,10 +4,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
 from copy import copy
 from typing import List, Type
-
-import logging
 
 import numpy as np
 import pandas as pd
@@ -58,7 +57,6 @@ class SectionDataFrame:
 		physics_model: Type[Physics] = Physics,
 		deformation_model: Type[Deformation] = LinearDeformation,
 	):
-
 		self.section: SectionArray = section
 		self.cable: CableArray | None = None
 		self.weather: WeatherArray | None = None
