@@ -17,7 +17,7 @@ class MockDeformation:
 
 class MockSection:
 	def __init__(self, data_shape, deformation=None):
-		self.section = self
+		self.section_array = self
 		self.data = np.zeros(data_shape)
 		self.deformation = deformation
 

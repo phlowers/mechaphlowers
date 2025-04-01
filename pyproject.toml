@@ -91,6 +91,10 @@ quote-style = "preserve"
 # Enable the isort rules.
 extend-select = ["I"]
 
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402"]
+"**/{test,docs,tools}/*" = ["E402"]
+
 [tool.mypy]
 exclude = [
     "virtualenv", ".venv*", "build", "dist", "site-packages", "tests", "docs", "doc", "examples", "example"

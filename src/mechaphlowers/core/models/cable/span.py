@@ -27,13 +27,14 @@ class Span(ABC):
 		self,
 		span_length: np.ndarray,
 		elevation_difference: np.ndarray,
-		p: np.ndarray,
+		sagging_parameter: np.ndarray,
 		load_coefficient: np.ndarray | None = None,
-		linear_weight: np.ndarray | None = None,
+		linear_weight: np.float64 | None = None,
+		**kwargs,
 	) -> None:
 		self.span_length = span_length
 		self.elevation_difference = elevation_difference
-		self.p = p
+		self.sagging_parameter = sagging_parameter
 		self.linear_weight = linear_weight
 		if load_coefficient is None:
 			self.load_coefficient = np.ones_like(span_length)
@@ -176,14 +177,14 @@ class Span(ABC):
 	@staticmethod
 	@abstractmethod
 	def compute_T_h(
-		p: np.ndarray, m: np.ndarray, lambd: np.ndarray
+		p: np.ndarray, m: np.ndarray, lambd: np.float64
 	) -> np.ndarray:
 		"""Computing horizontal tension on the cable using a static method"""
 
 	@staticmethod
 	@abstractmethod
 	def compute_p(
-		T_h: np.ndarray, m: np.ndarray, lambd: np.ndarray
+		T_h: np.ndarray, m: np.ndarray, lambd: np.float64
 	) -> np.ndarray:
 		"""Computing sagging parameter on the cable using a static method"""
 
@@ -211,7 +212,7 @@ class CatenarySpan(Span):
 		xx = x.T
 		# self.p is a vector of size (nb support, ). I need to convert it in a matrix (nb support, 1) to perform matrix operation after.
 		# Ex: self.p = array([20,20,20,20]) -> self.p([:,new_axis]) = array([[20],[20],[20],[20]])
-		pp = self.p[:, np.newaxis]
+		pp = self.sagging_parameter[:, np.newaxis]
 
 		rr = pp * (np.cosh(xx / pp) - 1)
 
@@ -222,7 +223,7 @@ class CatenarySpan(Span):
 		# depedency problem??? use p or T_h?
 		a = self.span_length
 		b = self.elevation_difference
-		p = self.p
+		p = self.sagging_parameter
 		# write if lambd None -> use p instead?
 		# return error if linear_weight = None?
 		return self.compute_x_m(a, b, p)
@@ -230,7 +231,7 @@ class CatenarySpan(Span):
 	def x_n(self):
 		a = self.span_length
 		b = self.elevation_difference
-		p = self.p
+		p = self.sagging_parameter
 		return self.compute_x_n(a, b, p)
 
 	def x(self, resolution: int = 10) -> np.ndarray:
@@ -251,54 +252,54 @@ class CatenarySpan(Span):
 	def L_m(self) -> np.ndarray:
 		a = self.span_length
 		b = self.elevation_difference
-		p = self.p
+		p = self.sagging_parameter
 		# write if lambd None -> use p instead?
 		return self.compute_L_m(a, b, p)
 
 	def L_n(self) -> np.ndarray:
 		a = self.span_length
 		b = self.elevation_difference
-		p = self.p
+		p = self.sagging_parameter
 		return self.compute_L_n(a, b, p)
 
 	def L(self) -> np.ndarray:
 		"""Total length of the cable."""
 		a = self.span_length
 		b = self.elevation_difference
-		p = self.p
+		p = self.sagging_parameter
 		return self.compute_L(a, b, p)
 
 	def T_h(self) -> np.ndarray:
 		if self.linear_weight is None:
 			raise AttributeError("Cannot compute T_h: linear_weight is needed")
 		else:
-			p = self.p
+			p = self.sagging_parameter
 			m = self.load_coefficient
 			return self.compute_T_h(p, m, self.linear_weight)
 
 	def T_v(self, x_one_per_span) -> np.ndarray:
 		# an array of abscissa of the same length as the number of spans is expected
 		T_h = self.T_h()
-		p = self.p
+		p = self.sagging_parameter
 		return self.compute_T_v(x_one_per_span, p, T_h)
 
 	def T_max(self, x_one_per_span) -> np.ndarray:
 		# an array of abscissa of the same length as the number of spans is expected
 		T_h = self.T_h()
-		p = self.p
+		p = self.sagging_parameter
 		return self.compute_T_max(x_one_per_span, p, T_h)
 
 	def T_mean_m(self) -> np.ndarray:
 		a = self.span_length
 		b = self.elevation_difference
-		p = self.p
+		p = self.sagging_parameter
 		T_h = self.T_h()
 		return self.compute_T_mean_m(a, b, p, T_h)
 
 	def T_mean_n(self) -> np.ndarray:
 		a = self.span_length
 		b = self.elevation_difference
-		p = self.p
+		p = self.sagging_parameter
 		T_h = self.T_h()
 		return self.compute_T_mean_n(a, b, p, T_h)
 
@@ -306,12 +307,12 @@ class CatenarySpan(Span):
 		a = self.span_length
 		b = self.elevation_difference
 		T_h = self.T_h()
-		p = self.p
+		p = self.sagging_parameter
 		return self.compute_T_mean(a, b, p, T_h)
 
 	@staticmethod
 	def compute_p(
-		T_h: np.ndarray, m: np.ndarray, lambd: np.ndarray
+		T_h: np.ndarray, m: np.ndarray, lambd: np.float64
 	) -> np.ndarray:
 		return T_h / (m * lambd)
 
@@ -354,7 +355,7 @@ class CatenarySpan(Span):
 
 	@staticmethod
 	def compute_T_h(
-		p: np.ndarray, m: np.ndarray, lambd: np.ndarray
+		p: np.ndarray, m: np.ndarray, lambd: np.float64
 	) -> np.ndarray:
 		return p * m * lambd
 

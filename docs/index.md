@@ -57,7 +57,7 @@ frame.select(["1", "2"]).plot.line3d(fig)
 fig.show()
 
 # first calculus
-# cable data is needed
+# cable data is needed. Arrays must of length 1
 cable_data = pd.DataFrame(
 		{
 			"section": [345.55],
@@ -66,11 +66,21 @@ cable_data = pd.DataFrame(
 			"young_modulus": [59],
 			"dilatation_coefficient": [23],
 			"temperature_reference": [0],
+			"a0": [0],
+			"a1": [59],
+			"a2": [0],
+			"a3": [0],
+			"a4": [0],
+			"b0": [0],
+			"b1": [0],
+			"b2": [0],
+			"b3": [0],
+			"b4": [0],
 		}
 	)
 
-# Generating a cable Array (the loc[...] is a way to repeat the line to correspond to the SectionArray length)
-cable_array = CableArray(cable_data.loc[cable_data.index.repeat(4)].reset_index(drop=True))
+# Generating a cable Array
+cable_array = CableArray(cable_data)
 
 # add cable to SectionDataFrame object
 frame.add_cable(cable_array)

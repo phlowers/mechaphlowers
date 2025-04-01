@@ -6,14 +6,13 @@
 
 import numpy as np
 import pytest
-from pandera.typing import pandas as pdt
+from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.core.models.cable.deformation import DeformationRte
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
-from mechaphlowers.entities.arrays import CableArray
-from mechaphlowers.entities.schemas import CableArrayInput
+from mechaphlowers.entities.data_container import DataContainer
 
 
 @pytest.fixture
@@ -33,50 +32,18 @@ def cable_array_input_data() -> dict[str, list]:
 	}
 
 
-@pytest.fixture
-def a_two_spans() -> np.ndarray:
-	return np.array([500, 500])
-
-
-@pytest.fixture
-def b_two_spans() -> np.ndarray:
-	return np.array([0.0, -5.0])
-
-
-@pytest.fixture
-def p_two_spans() -> np.ndarray:
-	return np.array([2_000, 2_000.0])
-
-
-@pytest.fixture
-def lambd_two_spans() -> np.ndarray:
-	return np.array([9.6, 9.6])
-
-
-@pytest.fixture
-def m_two_spans() -> np.ndarray:
-	return np.array([1, 1])
-
-
-def test_linear_cable_impl(
-	cable_array_input_data: dict,
+def test_deformation_impl(
+	default_data_container_one_span: DataContainer,
 ) -> None:
-	a = np.array([501.3, 499.0])
-	b = np.array([0.0, -5.0])
-	p = np.array([2_112.2, 2_112.0])
-	lambd = np.array([9.6, 9.6])
-	m = np.array([1, 1.1])
-
-	span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+	span_model = CatenarySpan(**default_data_container_one_span.__dict__)
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		cable_array_input_data
+	deformation_model = DeformationRte(
+		**default_data_container_one_span.__dict__,
+		tension_mean=tension_mean,
+		cable_length=cable_length,
 	)
-
-	cable_array = CableArray(input_df)
-	deformation_model = DeformationRte(cable_array, tension_mean, cable_length)
 	current_temperature = np.array([15, 15])
 	deformation_model.epsilon_mecha()
 	deformation_model.epsilon_therm(current_temperature)
@@ -84,46 +51,28 @@ def test_linear_cable_impl(
 	deformation_model.L_ref(current_temperature)
 
 
-def test_deformation_values__first_example() -> None:
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		{
-			"section": [345.55] * 2,
-			"diameter": [22.4] * 2,
-			"linear_weight": [9.55494] * 2,
-			"young_modulus": [59] * 2,
-			"dilatation_coefficient": [23] * 2,
-			"temperature_reference": [0] * 2,
-			"a0": [0] * 2,
-			"a1": [59] * 2,
-			"a2": [0] * 2,
-			"a3": [0] * 2,
-			"a4": [0] * 2,
-		}
-	)
-
-	a = np.array([500] * 2)
-	b = np.array([0.0] * 2)
-	p = np.array([2_000] * 2)
-	m = np.array([1] * 2)
-	linear_weight = np.array([9.55494] * 2)
-
-	span_model = CatenarySpan(
-		a, b, p, load_coefficient=m, linear_weight=linear_weight
-	)
+def test_deformation_values__default_data(
+	default_data_container_one_span: DataContainer,
+) -> None:
+	span_model = CatenarySpan(**default_data_container_one_span.__dict__)
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
-	cable_array = CableArray(input_df)
-	deformation_model = DeformationRte(cable_array, tension_mean, cable_length)
-	current_temperature = np.array([15, 15])
 
-	# Data given by the prototype
+	deformation_model = DeformationRte(
+		**default_data_container_one_span.__dict__,
+		tension_mean=tension_mean,
+		cable_length=cable_length,
+	)
+	current_temperature = np.array([30, 30])
+
 	eps_mecha = deformation_model.epsilon_mecha()
 	eps_therm = deformation_model.epsilon_therm(current_temperature)
 	L_ref = deformation_model.L_ref(current_temperature)
 
+	# Data given by the prototype
 	np.testing.assert_allclose(
 		eps_mecha,
-		np.array([0.00093978, 0.00093978]),
+		np.array([0.00093978, np.nan]),
 		atol=1e-6,
 	)
 	np.testing.assert_allclose(
@@ -131,53 +80,38 @@ def test_deformation_values__first_example() -> None:
 		np.array([0.000345, 0.000345]),
 		atol=1e-6,
 	)
+	# our method L_ref returns L_15 but proto returns L_0 so that's why 480.6392123 is not the displayed value if you are using proto
 	np.testing.assert_allclose(
 		L_ref,
-		np.array([500.65986147, 500.65986147]),
+		np.array([480.6392123, np.nan]),
 		atol=1e-6,
 	)
 
 
 def test_poly_deformation__degree_three(
-	cable_array_input_data: dict,
-	a_two_spans: np.ndarray,
-	b_two_spans: np.ndarray,
-	p_two_spans: np.ndarray,
-	lambd_two_spans: np.ndarray,
-	m_two_spans: np.ndarray,
+	default_data_container_one_span: DataContainer,
 ) -> None:
-	span_model = CatenarySpan(
-		a_two_spans,
-		b_two_spans,
-		p_two_spans,
-		load_coefficient=m_two_spans,
-		linear_weight=lambd_two_spans,
-	)
+	new_poly = Poly([0, 1e9 * 50, 1e9 * -3_000, 1e9 * 44_000, 0])
+	default_data_container_one_span.polynomial_conductor = new_poly
+
+	span_model = CatenarySpan(**default_data_container_one_span.__dict__)
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	cable_array_input_data.update(
-		{
-			"a0": [0] * 2,
-			"a1": [50] * 2,
-			"a2": [-3_000] * 2,
-			"a3": [44_000] * 2,
-			"a4": [0] * 2,
-		}
-	)
-
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		cable_array_input_data
-	)
-
-	cable_array = CableArray(input_df)
-	deformation_model = DeformationRte(cable_array, tension_mean, cable_length)
-	constraint = tension_mean / (
-		np.array(cable_array_input_data["section"]) * 1e-6
+	deformation_model = DeformationRte(
+		**default_data_container_one_span.__dict__,
+		tension_mean=tension_mean,
+		cable_length=cable_length,
 	)
 	current_temperature = np.array([15, 15])
+
+	constraint = (
+		tension_mean / default_data_container_one_span.cable_section_area
+	)
+	constraint = np.fmax(constraint, np.array([0, 0]))
 	deformation_model.resolve_stress_strain_equation(
-		constraint, cable_array.stress_strain_polynomial
+		constraint,
+		default_data_container_one_span.polynomial_conductor,
 	)
 	deformation_model.epsilon_mecha()
 
@@ -185,45 +119,31 @@ def test_poly_deformation__degree_three(
 
 
 def test_poly_deformation__degree_four(
-	cable_array_input_data: dict,
-	a_two_spans: np.ndarray,
-	b_two_spans: np.ndarray,
-	p_two_spans: np.ndarray,
-	lambd_two_spans: np.ndarray,
-	m_two_spans: np.ndarray,
+	default_data_container_one_span: DataContainer,
 ) -> None:
-	span_model = CatenarySpan(
-		a_two_spans,
-		b_two_spans,
-		p_two_spans,
-		load_coefficient=m_two_spans,
-		linear_weight=lambd_two_spans,
+	new_poly = Poly(
+		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
 	)
+	default_data_container_one_span.polynomial_conductor = new_poly
+
+	span_model = CatenarySpan(**default_data_container_one_span.__dict__)
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	cable_array_input_data.update(
-		{
-			"a0": [0] * 2,
-			"a1": [100] * 2,
-			"a2": [-24_000] * 2,
-			"a3": [2_440_000] * 2,
-			"a4": [-90_000_000] * 2,
-		}
-	)
-
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		cable_array_input_data
-	)
-
-	cable_array = CableArray(input_df)
-	deformation_model = DeformationRte(cable_array, tension_mean, cable_length)
-	constraint = tension_mean / (
-		np.array(cable_array_input_data["section"]) * 1e-6
+	deformation_model = DeformationRte(
+		**default_data_container_one_span.__dict__,
+		tension_mean=tension_mean,
+		cable_length=cable_length,
 	)
 	current_temperature = np.array([15, 15])
+
+	constraint = (
+		tension_mean / default_data_container_one_span.cable_section_area
+	)
+	constraint = np.fmax(constraint, np.array([0, 0]))
 	deformation_model.resolve_stress_strain_equation(
-		constraint, cable_array.stress_strain_polynomial
+		constraint,
+		default_data_container_one_span.polynomial_conductor,
 	)
 	deformation_model.epsilon_mecha()
 
@@ -231,83 +151,70 @@ def test_poly_deformation__degree_four(
 
 
 def test_poly_deformation__degree_four__with_max_stress(
-	cable_array_input_data: dict,
-	a_two_spans: np.ndarray,
-	b_two_spans: np.ndarray,
-	p_two_spans: np.ndarray,
-	lambd_two_spans: np.ndarray,
-	m_two_spans: np.ndarray,
+	default_data_container_one_span: DataContainer,
 ) -> None:
-	span_model = CatenarySpan(
-		a_two_spans,
-		b_two_spans,
-		p_two_spans,
-		load_coefficient=m_two_spans,
-		linear_weight=lambd_two_spans,
+	new_poly = Poly(
+		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
 	)
+	default_data_container_one_span.polynomial_conductor = new_poly
+
+	span_model = CatenarySpan(**default_data_container_one_span.__dict__)
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	cable_array_input_data.update(
-		{
-			"a0": [0] * 2,
-			"a1": [100] * 2,
-			"a2": [-24_000] * 2,
-			"a3": [2_440_000] * 2,
-			"a4": [-90_000_000] * 2,
-		}
-	)
-
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		cable_array_input_data
-	)
-
-	cable_array = CableArray(input_df)
-	default_max_stress = np.array([0, 0])
 	deformation_model = DeformationRte(
-		cable_array, tension_mean, default_max_stress, cable_length
+		**default_data_container_one_span.__dict__,
+		tension_mean=tension_mean,
+		cable_length=cable_length,
 	)
-
 	current_temperature = np.array([15, 15])
+
+	constraint = (
+		tension_mean / default_data_container_one_span.cable_section_area
+	)
+	constraint = np.fmax(constraint, np.array([0, 0]))
 	deformation_model.max_stress = np.array([1000, 1e8])
 	deformation_model.epsilon_mecha()
 	deformation_model.epsilon(current_temperature)
 
 
 def test_poly_deformation__no_solutions(
-	cable_array_input_data: dict,
-	a_two_spans: np.ndarray,
-	b_two_spans: np.ndarray,
-	p_two_spans: np.ndarray,
-	lambd_two_spans: np.ndarray,
-	m_two_spans: np.ndarray,
+	default_data_container_one_span: DataContainer,
 ) -> None:
-	span_model = CatenarySpan(
-		a_two_spans,
-		b_two_spans,
-		p_two_spans,
-		load_coefficient=m_two_spans,
-		linear_weight=lambd_two_spans,
+	new_poly = Poly(
+		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
 	)
+	default_data_container_one_span.polynomial_conductor = new_poly
+
+	span_model = CatenarySpan(**default_data_container_one_span.__dict__)
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 
-	cable_array_input_data.update(
-		{
-			"a0": [0] * 2,
-			"a1": [100] * 2,
-			"a2": [-24_000] * 2,
-			"a3": [2_440_000] * 2,
-			"a4": [-90_000_000] * 2,
-		}
+	deformation_model = DeformationRte(
+		**default_data_container_one_span.__dict__,
+		tension_mean=tension_mean,
+		cable_length=cable_length,
 	)
 
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		cable_array_input_data
-	)
-
-	cable_array = CableArray(input_df)
-	deformation_model = DeformationRte(cable_array, tension_mean, cable_length)
 	deformation_model.max_stress = np.array([1000, 1e10])
 	with pytest.raises(ValueError):
 		deformation_model.epsilon_mecha()
+
+
+def test_deformation__data_container(
+	default_data_container_one_span: DataContainer,
+) -> None:
+	span_model = CatenarySpan(**default_data_container_one_span.__dict__)
+	tension_mean = span_model.T_mean()
+	cable_length = span_model.L()
+
+	deformation_model = DeformationRte(
+		**default_data_container_one_span.__dict__,
+		tension_mean=tension_mean,
+		cable_length=cable_length,
+	)
+	current_temperature = np.array([15, 15])
+	deformation_model.epsilon_mecha()
+	deformation_model.epsilon_therm(current_temperature)
+	deformation_model.epsilon(current_temperature)
+	deformation_model.L_ref(current_temperature)

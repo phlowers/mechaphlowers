@@ -13,10 +13,10 @@ from mechaphlowers.core.geometry.references import (
 )
 
 
-def test_cable2span_basic():
+def test_cable2span_basic() -> None:
 	x: np.ndarray = np.array([[1, 2, 3, 4], [10, 12, 14, 16]]).T
 	z: np.ndarray = np.array([[20, 18, 17, 19], [19, 17, 15, 17]]).T
-	beta: np.ndarray = 0
+	beta: float = 0
 
 	xs, ys, zs = cable2span(x, z, beta)
 

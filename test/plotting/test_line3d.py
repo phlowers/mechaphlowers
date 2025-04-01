@@ -4,6 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -11,7 +12,6 @@ import pytest
 
 from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.entities.arrays import (
-	CableArray,
 	SectionArray,
 	WeatherArray,
 )
@@ -67,7 +67,9 @@ def test_plot_line3d__wrong_view_option():
 		frame.plot.line3d(fig, view=22)
 
 
-def test_plot_line3d__with_beta():
+def test_plot_line3d__with_beta(
+	default_cable_array,
+):
 	weather = WeatherArray(
 		pd.DataFrame(
 			{
@@ -76,38 +78,7 @@ def test_plot_line3d__with_beta():
 			}
 		)
 	)
-
-	cable_array = CableArray(
-		pd.DataFrame(
-			{
-				"section": [
-					345.5,
-				]
-				* 4,
-				"diameter": [
-					22.4,
-				]
-				* 4,
-				"linear_weight": [
-					9.6,
-				]
-				* 4,
-				"young_modulus": [
-					59,
-				]
-				* 4,
-				"dilatation_coefficient": [
-					23,
-				]
-				* 4,
-				"temperature_reference": [
-					15,
-				]
-				* 4,
-			}
-		)
-	)
-	frame.add_cable(cable=cable_array)
+	frame.add_cable(cable=default_cable_array)
 	frame.add_weather(weather=weather)
 	frame.cable_loads.load_angle
 	fig = go.Figure()
