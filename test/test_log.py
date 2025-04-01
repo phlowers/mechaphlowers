@@ -14,8 +14,8 @@ def test_log(caplog):
 	caplog.set_level(logging.INFO)
 	logging.info("Test log is working")
 	assert "Test log is working" in caplog.text
-	print(caplog.text)
+
 	with caplog.at_level(logging.DEBUG):
 		reload(mechaphlowers)  # noqa
-		print(caplog.text)
+
 		assert "Mechaphlowers package initialized." in caplog.text
