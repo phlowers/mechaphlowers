@@ -39,3 +39,8 @@ from mechaphlowers import SectionDataFrame
 # 2025-03-28 21:33:42,437 - mechaphlowers - INFO - Mechaphlowers version: ...
 ```
 
+# Loger helper for debug uses
+
+A helper is available to easily create a logger with the name of the current module for debug purposes:
+
+::: mechaphlowers.utils.add_stderr_logger

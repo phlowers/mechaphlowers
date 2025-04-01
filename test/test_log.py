@@ -19,3 +19,9 @@ def test_log(caplog):
 		reload(mechaphlowers)  # noqa
 
 		assert "Mechaphlowers package initialized." in caplog.text
+
+		mechaphlowers.utils.add_stderr_logger(logging.DEBUG)
+		assert (
+			"Added a stderr logging handler to logger: mechaphlowers"
+			in caplog.text
+		)
