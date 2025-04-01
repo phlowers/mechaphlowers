@@ -10,6 +10,7 @@ from importlib.metadata import version
 import pandas as pd
 
 from mechaphlowers.api.frames import SectionDataFrame
+from mechaphlowers.config import options
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -19,4 +20,4 @@ pd.options.mode.copy_on_write = True
 __version__ = version('mechaphlowers')
 
 
-__all__ = ["SectionDataFrame"]
+__all__ = ["SectionDataFrame", "options"]

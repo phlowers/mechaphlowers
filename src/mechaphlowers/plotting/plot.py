@@ -14,7 +14,7 @@ import plotly.graph_objects as go  # type: ignore
 if TYPE_CHECKING:
 	from mechaphlowers.api.frames import SectionDataFrame
 
-MARKER_SIZE = 3
+from mechaphlowers.config import options as cfg
 
 
 def plot_line(fig: go.Figure, points: np.ndarray) -> None:
@@ -30,7 +30,7 @@ def plot_line(fig: go.Figure, points: np.ndarray) -> None:
 			y=points[:, 1],
 			z=points[:, 2],
 			mode="lines+markers",
-			marker=dict(size=MARKER_SIZE),
+			marker=dict(size=cfg.graphics_marker_size),
 			line=dict(width=8, color="red"),
 		)
 	)
@@ -49,7 +49,7 @@ def plot_support(fig: go.Figure, points: np.ndarray) -> None:
 			y=points[:, 1],
 			z=points[:, 2],
 			mode="lines+markers",
-			marker=dict(size=MARKER_SIZE),
+			marker=dict(size=cfg.graphics_marker_size),
 			line=dict(width=8, color="green"),
 		)
 	)
