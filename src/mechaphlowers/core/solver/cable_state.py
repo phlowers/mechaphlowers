@@ -42,8 +42,6 @@ class SagTensionSolver:
 		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
 		unstressed_length: np.ndarray,
-		span_model: Type[Span] = CatenarySpan,
-		deformation_model: Type[IDeformation] = DeformationRte,
 		**kwargs,
 	) -> None:
 		self.span_length = span_length
@@ -57,8 +55,8 @@ class SagTensionSolver:
 		self.temperature_reference = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
 		self.L_ref = unstressed_length
-		self.span_model = span_model
-		self.deformation_model = deformation_model
+		self.span_model: Type[Span] = CatenarySpan
+		self.deformation_model: Type[IDeformation] = DeformationRte
 		self.T_h_after_change: np.ndarray | None = None
 		self.cable_loads = CableLoads(
 			self.diameter,
