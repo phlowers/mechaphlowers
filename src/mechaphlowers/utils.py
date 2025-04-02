@@ -64,7 +64,7 @@ def add_stderr_logger(
 		level (int): The logging level to set for the handler. Default is DEBUG.
 
 	Returns:
-		logging.StreamHandler: the handler after adding it.
+		(logging.StreamHandler): the handler after adding it.
 
 	Examples:
 	            >>> from mechaphlowers import add_stderr_logger
