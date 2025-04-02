@@ -4,6 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
 from copy import copy
 from typing import List, Type
 
@@ -33,6 +34,8 @@ from mechaphlowers.entities.arrays import (
 from mechaphlowers.entities.data_container import DataContainer
 from mechaphlowers.plotting.plot import PlotAccessor
 from mechaphlowers.utils import CachedAccessor
+
+logger = logging.getLogger(__name__)
 
 # This parameter has to be removed later.
 # This is the default resolution for spans when exporting coordinates in get_coords
