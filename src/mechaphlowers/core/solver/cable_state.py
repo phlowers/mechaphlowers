@@ -42,8 +42,6 @@ class SagTensionSolver:
 		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
 		unstressed_length: np.ndarray,
-		span_model: Type[Span] = CatenarySpan,
-		deformation_model: Type[IDeformation] = DeformationRte,
 		**kwargs,
 	) -> None:
 		self.span_length = span_length
@@ -57,8 +55,8 @@ class SagTensionSolver:
 		self.temperature_reference = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
 		self.L_ref = unstressed_length
-		self.span_model = span_model
-		self.deformation_model = deformation_model
+		self.span_model: Type[Span] = CatenarySpan
+		self.deformation_model: Type[IDeformation] = DeformationRte
 		self.T_h_after_change: np.ndarray | None = None
 		self.cable_loads = CableLoads(
 			self.diameter,
@@ -66,6 +64,27 @@ class SagTensionSolver:
 			np.zeros(span_length.shape),
 			np.zeros(span_length.shape),
 		)
+		# lengths in the new cable plane after considering wind pressure
+		self.span_length_after_loads = span_length
+		self.elevation_difference_after_loads = elevation_difference
+
+	def update_loads(
+		self, ice_thickness: np.ndarray, wind_pressure: np.ndarray
+	) -> None:
+		"""Update CableLoads data with new ice_thickness and wind_pressure given in input.
+		Also update span_length_after_loads and elevation_difference_after_loads that may change because of the wind
+
+		Args:
+			ice_thickness (np.ndarray): new ice thickness
+			wind_pressure (np.ndarray): new wind pressure
+		"""
+		self.cable_loads.ice_thickness = ice_thickness
+		self.cable_loads.wind_pressure = wind_pressure
+		beta = self.cable_loads.load_angle
+		a = self.span_length
+		b = self.elevation_difference
+		self.span_length_after_loads = np.sqrt(a**2 + (b * np.sin(beta)) ** 2)
+		self.elevation_difference_after_loads = b * np.cos(beta)
 
 	def change_state(
 		self,
@@ -89,9 +108,7 @@ class SagTensionSolver:
 			solver_method = solver_dict[solver]
 		except KeyError:
 			raise ValueError(f"Incorrect solver name: {solver}")
-		self.cable_loads.ice_thickness = ice_thickness
-		self.cable_loads.wind_pressure = wind_pressure
-
+		self.update_loads(ice_thickness, wind_pressure)
 		m = self.cable_loads.load_coefficient
 		T_h0 = self.span_model.compute_T_h(
 			self.sagging_parameter, m, self.linear_weight
@@ -119,11 +136,16 @@ class SagTensionSolver:
 		"""
 		p = self.span_model.compute_p(T_h, m, self.linear_weight)
 		L = self.span_model.compute_L(
-			self.span_length, self.elevation_difference, p
+			self.span_length_after_loads,
+			self.elevation_difference_after_loads,
+			p,
 		)
 
 		T_mean = self.span_model.compute_T_mean(
-			self.span_length, self.elevation_difference, p, T_h
+			self.span_length_after_loads,
+			self.elevation_difference_after_loads,
+			p,
+			T_h,
 		)
 		epsilon_total = self.deformation_model.compute_epsilon_mecha(
 			T_mean,
@@ -174,5 +196,7 @@ class SagTensionSolver:
 				"method change_state has to be run before calling this method"
 			)
 		return self.span_model.compute_L(
-			self.span_length, self.elevation_difference, p
+			self.span_length_after_loads,
+			self.elevation_difference_after_loads,
+			p,
 		)
