@@ -65,6 +65,7 @@ nav:
       - Data :
           - Catalog: docstring/data/catalog.md
       - Configuration : docstring/config.md
+    - Logging : developer_guide/logging.md
     - Guidelines : developer_guide/guidelines.md
     - Documentation : developer_guide/documentation.md
 
