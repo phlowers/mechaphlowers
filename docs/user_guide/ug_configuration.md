@@ -10,8 +10,8 @@ import mechaphlowers as mph
 frame = mph.SectionDataFrame(section)
 
 # use options to set the graphics resolution and marker size
-mph.options.graphics_marker_size = 10
-mph.options.graphics_resolution = 20
+mph.options.graphics.marker_size = 10
+mph.options.graphics.resolution = 20
 
 # plot then without changing locally those parameters
 fig = go.Figure()
