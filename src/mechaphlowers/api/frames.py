@@ -13,9 +13,6 @@ import pandas as pd
 from typing_extensions import Self
 
 from mechaphlowers.api.state import StateAccessor
-
-# This parameter has to be removed later.
-# This is the default resolution for spans when exporting coordinates in get_coords
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.geometry import references
 
@@ -82,7 +79,7 @@ class SectionDataFrame:
 		spans = self._span_model(**self.data_container.__dict__)
 
 		# compute x_axis
-		x_cable: np.ndarray = spans.x(cfg.graphics_resolution)
+		x_cable: np.ndarray = spans.x(cfg.graphics.resolution)
 
 		# compute z_axis
 		z_cable: np.ndarray = spans.z(x_cable)

@@ -30,7 +30,7 @@ def plot_line(fig: go.Figure, points: np.ndarray) -> None:
 			y=points[:, 1],
 			z=points[:, 2],
 			mode="lines+markers",
-			marker=dict(size=cfg.graphics_marker_size),
+			marker=dict(size=cfg.graphics.marker_size),
 			line=dict(width=8, color="red"),
 		)
 	)
@@ -49,7 +49,7 @@ def plot_support(fig: go.Figure, points: np.ndarray) -> None:
 			y=points[:, 1],
 			z=points[:, 2],
 			mode="lines+markers",
-			marker=dict(size=cfg.graphics_marker_size),
+			marker=dict(size=cfg.graphics.marker_size),
 			line=dict(width=8, color="green"),
 		)
 	)

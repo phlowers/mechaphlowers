@@ -4,6 +4,22 @@ from dataclasses import dataclass
 
 
 @dataclass
+class GraphicsConfig:
+	"""Graphics configuration class."""
+
+	resolution: int = 7
+	marker_size: float = 3.0
+
+
+@dataclass
+class SolverConfig:
+	"""Solver configuration class."""
+
+	sagtension_zeta: int = 10
+	deformation_imag_thresh: float = 1e-5
+
+
+@dataclass
 class Config:
 	"""Configuration class for mechaphlowers settings.
 
@@ -16,8 +32,19 @@ class Config:
 		graphics_marker_size (float): Size of the markers in the graphics.
 	"""
 
-	graphics_resolution: int = 7
-	graphics_marker_size: float = 3.0
+	def __init__(self):
+		self._graphics = GraphicsConfig()
+		self._solver = SolverConfig()
+
+	@property
+	def graphics(self) -> GraphicsConfig:
+		"""Graphics configuration property."""
+		return self._graphics
+
+	@property
+	def solver(self) -> SolverConfig:
+		"""Solver configuration property."""
+		return self._solver
 
 
 # Declare below a ready to use options object

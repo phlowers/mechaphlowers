@@ -42,7 +42,7 @@ def test_section_frame_get_coord(default_section_array_three_spans):
 	coords = frame.get_coord()
 	assert coords.shape == (
 		(len(default_section_array_three_spans.data) - 1)
-		* cfg.graphics_resolution,
+		* cfg.graphics.resolution,
 		3,
 	)
 	assert isinstance(coords, np.ndarray)
