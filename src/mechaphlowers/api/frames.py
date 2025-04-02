@@ -39,7 +39,6 @@ from mechaphlowers.entities.data_container import DataContainer
 from mechaphlowers.plotting.plot import PlotAccessor
 from mechaphlowers.utils import CachedAccessor
 
-
 logger = logging.getLogger(__name__)
 
 
