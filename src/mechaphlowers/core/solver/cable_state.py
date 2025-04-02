@@ -41,6 +41,7 @@ class SagTensionSolver:
 		dilatation_coefficient: np.float64,
 		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
+		polynomial_heart: Poly,
 		unstressed_length: np.ndarray,
 		**kwargs,
 	) -> None:
@@ -54,6 +55,7 @@ class SagTensionSolver:
 		self.dilatation_coefficient = dilatation_coefficient
 		self.temperature_reference = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
+		self.polynomial_heart = polynomial_heart
 		self.L_ref = unstressed_length
 		self.span_model: Type[Span] = CatenarySpan
 		self.deformation_model: Type[IDeformation] = DeformationRte

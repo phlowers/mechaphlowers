@@ -51,6 +51,7 @@ def cable_array_input_data() -> dict[str, list]:
 		"young_modulus": [59],
 		"dilatation_coefficient": [23],
 		"temperature_reference": [15],
+		"section_conductor": [345.55],
 		"a0": [0],
 		"a1": [59],
 		"a2": [0],
@@ -305,6 +306,7 @@ def test_create_cable_array__with_floats(
 			"young_modulus": [59e9],
 			"dilatation_coefficient": [23e-6],
 			"temperature_reference": [15],
+			"section_conductor": [345.5e-6],
 			"a0": [0],
 			"a1": [59e9],
 			"a2": [0],
@@ -373,9 +375,7 @@ def test_create_cable_array__extra_column(
 ) -> None:
 	cable_array_input_data["extra column"] = [0]
 
-	input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-		cable_array_input_data
-	)
+	input_df = pd.DataFrame(cable_array_input_data)
 
 	section = CableArray(input_df)
 

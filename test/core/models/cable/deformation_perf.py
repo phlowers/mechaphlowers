@@ -25,21 +25,24 @@ class DeformationInputDict(TypedDict, total=False):
 	dilatation_coefficient: np.float64
 	temperature_reference: np.float64
 	polynomial_conductor: Poly
+	polynomial_heart: Poly
 
 
 def test_solve_polynom_perf() -> None:
 	spans_number = 10_000
 
-	polynomial = Poly(
+	polynomial_conductor = Poly(
 		[0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
 	)
+	polynomial_heart = Poly([0, 0, 0, 0, 0])
 	input_dict: DeformationInputDict = {
 		"cable_section_area": np.float64(345.5),
 		"linear_weight": np.float64(9.6),
 		"young_modulus": np.float64(59),
 		"dilatation_coefficient": np.float64(23),
 		"temperature_reference": np.float64(15),
-		"polynomial_conductor": polynomial,
+		"polynomial_conductor": polynomial_conductor,
+		"polynomial_heart": polynomial_heart,
 	}
 
 	a = np.array([500] * spans_number)

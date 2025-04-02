@@ -15,23 +15,6 @@ from mechaphlowers.core.models.cable.span import (
 from mechaphlowers.entities.data_container import DataContainer
 
 
-@pytest.fixture
-def cable_array_input_data() -> dict[str, list]:
-	return {
-		"section": [345.5, 345.5],
-		"diameter": [22.4, 22.4],
-		"linear_weight": [9.6, 9.6],
-		"young_modulus": [59, 59],
-		"dilatation_coefficient": [23, 23],
-		"temperature_reference": [15, 15],
-		"a0": [0] * 2,
-		"a1": [59] * 2,
-		"a2": [0] * 2,
-		"a3": [0] * 2,
-		"a4": [0] * 2,
-	}
-
-
 def test_deformation_impl(
 	default_data_container_one_span: DataContainer,
 ) -> None:

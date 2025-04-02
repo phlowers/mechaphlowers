@@ -25,6 +25,7 @@ class IDeformation(ABC):
 		dilatation_coefficient: np.float64,
 		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
+		polynomial_heart: Poly,
 		max_stress: np.ndarray | None = None,
 		**kwargs,
 	):
@@ -36,6 +37,7 @@ class IDeformation(ABC):
 		self.dilatation_coefficient = dilatation_coefficient
 		self.temp_ref = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
+		self.polynomial_heart = polynomial_heart
 
 		if max_stress is None:
 			self.max_stress = np.full(self.cable_length.shape, 0)
