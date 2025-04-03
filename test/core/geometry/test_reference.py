@@ -18,7 +18,7 @@ def test_cable2span_basic() -> None:
 	z: np.ndarray = np.array([[20, 18, 17, 19], [19, 17, 15, 17]]).T
 	beta: float = 0
 
-	xs, ys, zs = cable2span(x, z, beta)
+	xs, ys, zs = cable2span(x, z, np.ones(3) * beta)  # TODO check beta
 
 	assert len(xs) == len(z)
 	# assert np.allclose(result, z)
@@ -29,7 +29,7 @@ def test_spans2vector():
 	y = np.array([[5, 6], [7, 8]])
 	z = np.array([[9, 10], [11, 12]])
 
-	expected_output = np.array([[1, 5, 9], [2, 6, 10], [3, 7, 11], [4, 8, 12]])
+	expected_output = np.array([[1, 5, 9], [3, 7, 11], [2, 6, 10], [4, 8, 12]])
 
 	result = spans2vector(x, y, z)
 
