@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -7,7 +7,8 @@
 from typing import Tuple
 
 import numpy as np
-from scipy.spatial.transform import Rotation as R  # type: ignore
+
+from mechaphlowers.core.geometry.rotation import rotation_quaternion_same_axis
 
 
 def spans2vector(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
@@ -25,20 +26,28 @@ def spans2vector(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
 	    np.ndarray: 3 x n array vector coordinates
 	"""
 
-	cc = np.vstack([x.reshape(-1), y.reshape(-1), z.reshape(-1)]).T
+	cc = np.vstack(
+		[
+			x.reshape(-1, order='F'),
+			y.reshape(-1, order='F'),
+			z.reshape(-1, order='F'),
+		]
+	).T
 	return cc
 
 
 def cable2span(
-	x: np.ndarray, z: np.ndarray, beta: float
+	x: np.ndarray,
+	z: np.ndarray,
+	beta: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 	"""cable2span cable to span is a function that allows to rotate from cable 2D plan to span 3D frame with an angle beta
 
 
 	Args:
 	    x (np.ndarray): n x d array spans x coordinates
-	    z (np.ndarray): n x d array spans x coordinates
-	    beta (float): angle rotation
+	    z (np.ndarray): n x d array spans z coordinates
+	    beta (np.ndarray): n array angle rotation
 
 	Returns:
 	    Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -46,8 +55,6 @@ def cable2span(
 	        - y_span (np.ndarray): Rotated y coordinates in the span 3D frame.
 	        - z_span (np.ndarray): Rotated z coordinates in the span 3D frame.
 	"""
-
-	# TODO: the function here move the whole section with beta angle. This is not the expected behavior when loads will be implemented
 
 	init_shape = z.shape
 	# Warning here, x and z are shaped as (n point per span, d span)
@@ -59,17 +66,21 @@ def cable2span(
 		x.shape[0],
 	)
 
-	rotation_matrix = R.from_euler("x", beta, degrees=True)
-	# span = np.dot(rotation_matrix, np.array([x, elevation_part, z]))
-
 	vector = spans2vector(x, 0 * x, z - elevation_part)
 
-	span = rotation_matrix.apply(vector)
+	# TODO check beta
+	span = rotation_quaternion_same_axis(
+		vector,
+		beta[:-1].repeat(
+			init_shape[0]
+		),  # idea : beta = [b0,..,b0, b1,..,b1,..]
+		np.array([1, 0, 0]),
+	)  # "x" axis
 
 	x_span, y_span, z_span = (
-		span[:, 0].reshape(init_shape),
-		span[:, 1].reshape(init_shape),
-		span[:, 2].reshape(init_shape),
+		span[:, 0].reshape(init_shape, order='F'),
+		span[:, 1].reshape(init_shape, order='F'),
+		span[:, 2].reshape(init_shape, order='F'),
 	)
 
 	z_span += elevation_part

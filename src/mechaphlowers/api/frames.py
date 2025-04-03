@@ -86,10 +86,9 @@ class SectionDataFrame:
 
 		# change frame and drop last value
 		# TODO refactor in a property ?
-		beta = 0
+		beta = np.zeros(x_cable.shape[1])
 		if self.cable_loads is not None:
-			# TODO: here we take the max angle of the cable.
-			beta = self.cable_loads.load_angle.max() * 180 / np.pi
+			beta = self.cable_loads.load_angle * 180 / np.pi
 
 		x_span, y_span, z_span = references.cable2span(
 			x_cable[:, :-1], z_cable[:, :-1], beta=beta
