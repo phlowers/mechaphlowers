@@ -38,8 +38,8 @@ def test_data_container__factory(
 		"line_angle": np.array([0, 360, 90.1, -90.2]),
 		"insulator_length": np.array([0, 4, 3.2, 0]),
 		"span_length": np.array([400, 500.2, 500.0, np.nan]),
-		"ice_thickness": 1e-2 * np.array([1, 2.1, 0.0, 5.4]),
-		"wind_pressure": np.array([240.12, 0.0, 12.0, 53.0]),
+		"ice_thickness": 1e-2 * np.array([1, 2.1, 0.0, np.nan]),
+		"wind_pressure": np.array([240.12, 0.0, 12.0, np.nan]),
 	}
 	expected_result_floats = {
 		"cable_section_area": np.float64(345.55e-6),

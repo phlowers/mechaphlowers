@@ -18,7 +18,7 @@ def test_cable2span_basic() -> None:
 	z: np.ndarray = np.array([[20, 18, 17, 19], [19, 17, 15, 17]]).T
 	beta: float = 0
 
-	xs, ys, zs = cable2span(x, z, np.ones(3) * beta)  # TODO check beta
+	xs, ys, zs = cable2span(x, z, np.ones(2) * beta)  # TODO check beta
 
 	assert len(xs) == len(z)
 	# assert np.allclose(result, z)

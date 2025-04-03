@@ -71,9 +71,7 @@ def cable2span(
 	# TODO check beta
 	span = rotation_quaternion_same_axis(
 		vector,
-		beta[:-1].repeat(
-			init_shape[0]
-		),  # idea : beta = [b0,..,b0, b1,..,b1,..]
+		beta.repeat(init_shape[0]),  # idea : beta = [b0,..,b0, b1,..,b1,..]
 		np.array([1, 0, 0]),
 	)  # "x" axis
 

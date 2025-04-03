@@ -127,8 +127,8 @@ def test_SectionDataFrame__add_weather(
 	weather = WeatherArray(
 		pd.DataFrame(
 			{
-				"ice_thickness": [1, 2.1, 0.0, 5.4],
-				"wind_pressure": [1840.12, 0.0, 12.0, 53.0],
+				"ice_thickness": [1, 2.1, 0.0, np.nan],
+				"wind_pressure": [1840.12, 0.0, 12.0, np.nan],
 			}
 		)
 	)
@@ -151,8 +151,8 @@ def test_SectionDataFrame__add_array(
 	weather_array = WeatherArray(
 		pd.DataFrame(
 			{
-				"ice_thickness": [1, 2.1, 0.0, 5.4],
-				"wind_pressure": [1840.12, 0.0, 12.0, 53.0],
+				"ice_thickness": [1, 2.1, 0.0, np.nan],
+				"wind_pressure": [1840.12, 0.0, 12.0, np.nan],
 			}
 		)
 	)
@@ -210,8 +210,8 @@ def test_SectionDataFrame__add_weather_update_span(
 ):
 	frame = SectionDataFrame(default_section_array_three_spans)
 	weather_dict = {
-		"ice_thickness": np.array([1, 2.1, 0.0, 5.4]),
-		"wind_pressure": np.array([1840.12, 0.0, 12.0, 53.0]),
+		"ice_thickness": np.array([1, 2.1, 0.0, np.nan]),
+		"wind_pressure": np.array([1840.12, 0.0, 12.0, np.nan]),
 	}
 	weather = WeatherArray(pd.DataFrame(weather_dict))
 	cable_loads_input = {
@@ -224,5 +224,7 @@ def test_SectionDataFrame__add_weather_update_span(
 	cable_loads = CableLoads(**cable_loads_input)
 	frame.add_cable(cable=default_cable_array)
 	frame.add_weather(weather=weather)
-	assert (frame.span.load_coefficient == cable_loads.load_coefficient).all()
-	assert (frame.deformation.cable_length == frame.span.L())[0:-1].all()
+	np.testing.assert_equal(
+		frame.span.load_coefficient, cable_loads.load_coefficient
+	)
+	np.testing.assert_equal(frame.deformation.cable_length, frame.span.L())

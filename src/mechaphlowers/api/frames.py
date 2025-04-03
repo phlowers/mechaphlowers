@@ -91,7 +91,7 @@ class SectionDataFrame:
 			beta = self.cable_loads.load_angle * 180 / np.pi
 
 		x_span, y_span, z_span = references.cable2span(
-			x_cable[:, :-1], z_cable[:, :-1], beta=beta
+			x_cable[:, :-1], z_cable[:, :-1], beta=beta[:-1]
 		)
 
 		altitude: np.ndarray = (

@@ -114,8 +114,8 @@ def generic_weather_array_three_spans() -> WeatherArray:
 	return WeatherArray(
 		pd.DataFrame(
 			{
-				"ice_thickness": [1, 2.1, 0.0, 5.4],
-				"wind_pressure": [240.12, 0.0, 12.0, 53.0],
+				"ice_thickness": [1, 2.1, 0.0, np.nan],
+				"wind_pressure": [240.12, 0.0, 12.0, np.nan],
 			}
 		)
 	)

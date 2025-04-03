@@ -114,3 +114,39 @@ input_df = pd.DataFrame({
 cable_array = CableArray(input_df)
 print(cable_array)
 ```
+## External loads
+
+External loads can be added to the cable array.  
+This currently only supports wind loads, but it's easy to extend this by adding more external loads. To add a weather load, you need to create an instance of `WeatherArray` class, and pass it to the SectionDataFrame.
+The following example shows how to add a wind load on the cable.
+
+!!! important
+
+	The ice_thickness and wind_pressure are in cm and Pa respectively.
+	The format of those vectors is span oriented: their size is the same than the section but the last value is not used 
+	That's why we put `np.nan` at the end.
+
+Then you can display the effect of this load with:
+- load_angle
+- resulting_norm
+- load_coefficient
+- ice_load
+- wind_load
+
+```python
+# Define data
+weather = WeatherArray(
+	pd.DataFrame(
+		{
+			"ice_thickness": [1, 2.1, 0.0, np.nan],
+			"wind_pressure": [240.12, 0.0, 12.0, np.nan],
+		}
+	)
+)
+
+# add weather
+frame.add_weather(weather=weather)
+
+# get effects of the load: example with the load_angle
+frame.cable_loads.load_angle
+```

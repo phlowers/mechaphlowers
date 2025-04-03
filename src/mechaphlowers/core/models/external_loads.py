@@ -12,6 +12,19 @@ DEFAULT_ICE_DENSITY = 6_000
 
 
 class CableLoads:
+	"""CableLoads is a class that allows to calculate the loads on the cable due to wind and ice
+
+	Args:
+		diameter (np.float64): diameter of the cable
+		linear_weight (np.float64): linear weight of the cable
+		ice_thickness (np.ndarray): thickness of the ice on the cable
+		wind_pressure (np.ndarray): wind pressure on the cable
+		ice_density (float, optional): density of the ice. Defaults to DEFAULT_ICE_DENSITY.
+		**kwargs: additional arguments
+
+
+	"""
+
 	def __init__(
 		self,
 		diameter: np.float64,
