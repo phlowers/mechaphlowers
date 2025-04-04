@@ -39,6 +39,7 @@ class DataContainer:
 		self.dilatation_coefficient_conductor: np.float64
 		self.dilatation_coefficient_heart: np.float64
 		self.temperature_reference: np.float64
+		self.is_bimetallic: bool
 
 		self.polynomial_conductor: Poly
 		self.polynomial_heart: Poly
@@ -102,6 +103,7 @@ class DataContainer:
 				0
 			]
 		self.temperature_reference = cable_array.data.temperature_reference[0]
+		self.is_bimetallic = cable_array.data.is_bimetallic[0]
 
 		self.polynomial_conductor = Poly(
 			[

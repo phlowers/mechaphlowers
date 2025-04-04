@@ -31,6 +31,7 @@ class IDeformation(ABC):
 		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
 		polynomial_heart: Poly,
+		is_bimetallic: bool,
 		max_stress: np.ndarray | None = None,
 		**kwargs,
 	):
@@ -44,6 +45,7 @@ class IDeformation(ABC):
 		self.temp_ref = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
 		self.polynomial_heart = polynomial_heart
+		self.is_bimetallic = is_bimetallic
 
 		if max_stress is None:
 			self.max_stress = np.full(self.cable_length.shape, 0)
