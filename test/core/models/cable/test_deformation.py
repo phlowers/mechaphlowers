@@ -23,7 +23,7 @@ def test_deformation_impl(
 	cable_length = span_model.L()
 
 	deformation_model = DeformationRte(
-		**default_data_container_one_span.__dict__,
+		data_cable=default_data_container_one_span.data_cable,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
 	)
@@ -82,7 +82,7 @@ def test_poly_deformation__degree_three(
 	cable_length = span_model.L()
 
 	deformation_model = DeformationRte(
-		**default_data_container_one_span.__dict__,
+		data_cable=default_data_container_one_span.data_cable,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
 	)
