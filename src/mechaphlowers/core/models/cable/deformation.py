@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
-from mechaphlowers.entities.data_container import DataCable
+from mechaphlowers.entities.data_container import DataFullCable
 
 IMAGINARY_THRESHOLD = 1e-5
 
@@ -19,7 +19,7 @@ class IDeformation(ABC):
 
 	def __init__(
 		self,
-		data_cable: DataCable,
+		data_cable: DataFullCable,
 		tension_mean: np.ndarray,
 		cable_length: np.ndarray,
 		max_stress: np.ndarray | None = None,
@@ -55,7 +55,7 @@ class IDeformation(ABC):
 	@abstractmethod
 	def compute_epsilon_mecha(
 		T_mean: np.ndarray,
-		data_cable: DataCable,
+		data_cable: DataFullCable,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		"""Computing mechanical strain using a static method"""
@@ -98,11 +98,11 @@ class DeformationRte(IDeformation):
 	# epsilon total
 	def compute_epsilon_mecha(
 		T_mean: np.ndarray,
-		data_cable: DataCable,
+		data_cable: DataFullCable,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		# linear case
-		if data_cable.polynomial_conductor.trim().degree() < 2:
+		if data_cable.conductor.polynomial.trim().degree() < 2:
 			E = data_cable.young_modulus
 			S = data_cable.cable_section_area
 			return T_mean / (E * S)
@@ -112,12 +112,15 @@ class DeformationRte(IDeformation):
 		# change way things work here?
 		else:
 			# test_data
-			data_cable.young_modulus_heart
-			data_cable.dilatation_coefficient
-			data_cable.dilatation_coefficient_conductor
-			data_cable.dilatation_coefficient_heart
+			data_cable.heart.section_material
+			data_cable.heart.polynomial
+			data_cable.heart.young_modulus_material
+			data_cable.heart.dilatation_coefficient_material
+			data_cable.conductor.section_material
+			data_cable.conductor.polynomial
+			data_cable.conductor.young_modulus_material
+			data_cable.conductor.dilatation_coefficient_material
 			data_cable.is_bimetallic
-			data_cable.cable_section_area_conductor
 			return DeformationRte.compute_epsilon_mecha_polynomial(
 				T_mean, data_cable, max_stress
 			)
@@ -126,13 +129,13 @@ class DeformationRte(IDeformation):
 	@staticmethod
 	def compute_epsilon_mecha_polynomial(
 		T_mean: np.ndarray,
-		data_cable: DataCable,
+		data_cable: DataFullCable,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		"""Computes epsilon when the stress-strain relation is polynomial"""
 		S = data_cable.cable_section_area
 		E = data_cable.young_modulus
-		polynomial_conductor = data_cable.polynomial_conductor
+		polynomial_conductor = data_cable.conductor.polynomial
 		sigma = T_mean / S
 		if polynomial_conductor is None:
 			raise ValueError("Polynomial is not defined")

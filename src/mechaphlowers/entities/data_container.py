@@ -10,30 +10,55 @@ from mechaphlowers.entities.arrays import (
 	WeatherArray,
 )
 
+@dataclass
+class DataMaterial:
+	section_material: np.float64
+	polynomial: Poly
+	young_modulus_material: np.float64
+	dilatation_coefficient_material: np.float64
 
 @dataclass
-class DataCable:
+class DataFullCable:
 
 	cable_section_area: np.float64
-	cable_section_area_conductor: np.float64
 	diameter: np.float64
 	linear_weight: np.float64
 	young_modulus: np.float64
-	# young_modulus_conductor: np.float64 
-	young_modulus_heart: Optional[np.float64]
 	dilatation_coefficient: np.float64
-	dilatation_coefficient_conductor: Optional[np.float64]
-	dilatation_coefficient_heart: Optional[np.float64]
 	temperature_reference: np.float64
-	polynomial_conductor: Poly
-	polynomial_heart: Poly
 	is_bimetallic: bool
 
+	conductor: DataMaterial
+	heart: DataMaterial
+
 	def __init__(self, **kwargs):
-		names = set([f.name for f in dataclasses.fields(self)])
+		full_cable_fields = [
+			"cable_section_area",
+			"diameter",
+			"linear_weight",
+			"young_modulus",
+			"dilatation_coefficient",
+			"temperature_reference",
+			"is_bimetallic",
+		]
 		for k, v in kwargs.items():
-			if k in names:
+			if k in full_cable_fields:
 				setattr(self, k, v)
+		attributes_conductor = {
+			"section_material": kwargs["cable_section_area_conductor"],
+			"polynomial": kwargs["polynomial_conductor"],
+			"young_modulus_material": kwargs["young_modulus"] - kwargs["young_modulus_heart"],
+			"dilatation_coefficient_material": kwargs["dilatation_coefficient_conductor"],
+		}
+		attributes_heart = {
+			"section_material": kwargs["cable_section_area"] - kwargs["cable_section_area_conductor"],
+			"polynomial": kwargs["polynomial_heart"],
+			"young_modulus_material": kwargs["young_modulus_heart"],
+			"dilatation_coefficient_material": kwargs["dilatation_coefficient_heart"],
+		}
+		self.conductor = DataMaterial(**attributes_conductor)
+		self.heart = DataMaterial(**attributes_heart)
+		
 
 class DataContainer:
 	"""This class contains data from SectionArray, CableArray and WeatherArray.
@@ -60,6 +85,7 @@ class DataContainer:
 		self.linear_weight: np.float64
 		self.young_modulus: np.float64
 		self.young_modulus_heart: np.float64
+		# problem of consistency: keep heart or conductor?
 		self.dilatation_coefficient: np.float64
 		self.dilatation_coefficient_conductor: np.float64
 		self.dilatation_coefficient_heart: np.float64
@@ -160,8 +186,8 @@ class DataContainer:
 		self.wind_pressure = weather_array.data.wind_pressure.to_numpy()
 
 	@property
-	def data_cable(self) -> DataCable:
-		return DataCable(**self.__dict__)
+	def data_cable(self) -> DataFullCable:
+		return DataFullCable(**self.__dict__)
 
 
 
