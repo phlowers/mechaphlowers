@@ -22,7 +22,12 @@ class IDeformation(ABC):
 		cable_section_area: np.float64,
 		linear_weight: np.float64,
 		young_modulus: np.float64,
+		young_modulus_heart: np.float64,
+		# two young modulus?
 		dilatation_coefficient: np.float64,
+		dilatation_coefficient_conductor: np.float64,
+		dilatation_coefficient_heart: np.float64,
+		# two dilatation coefs?
 		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
 		polynomial_heart: Poly,
@@ -35,6 +40,7 @@ class IDeformation(ABC):
 		self.linear_weight = linear_weight
 		self.young_modulus = young_modulus
 		self.dilatation_coefficient = dilatation_coefficient
+		self.dilatation_coefficient_conductor = dilatation_coefficient_conductor
 		self.temp_ref = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
 		self.polynomial_heart = polynomial_heart
@@ -67,7 +73,8 @@ class IDeformation(ABC):
 		T_mean: np.ndarray,
 		E: np.float64,
 		S: np.float64,
-		polynomial: Poly,
+		polynomial_conductor: Poly,
+		polynomial_heart: Poly,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		"""Computing mechanical strain using a static method"""
@@ -94,9 +101,8 @@ class DeformationRte(IDeformation):
 		T_mean = self.tension_mean
 		E = self.young_modulus
 		S = self.cable_section_area
-		polynomial = self.polynomial_conductor
 		return self.compute_epsilon_mecha(
-			T_mean, E, S, polynomial, self.max_stress
+			T_mean, E, S, self.polynomial_conductor, self.polynomial_heart, self.max_stress
 		)
 
 	def epsilon(self, current_temperature: np.ndarray):
@@ -108,20 +114,25 @@ class DeformationRte(IDeformation):
 		return self.compute_epsilon_therm(current_temperature, temp_ref, alpha)
 
 	@staticmethod
+	# epsilon total
 	def compute_epsilon_mecha(
 		T_mean: np.ndarray,
 		E: np.float64,
 		S: np.float64,
-		polynomial: Poly,
+		polynomial_conductor: Poly,
+		polynomial_heart: Poly,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		# linear case
-		if polynomial.trim().degree() < 2:
+		if polynomial_conductor.trim().degree() < 2:
 			return T_mean / (E * S)
+		# add linear case with two materials
+
 		# polynomial case
+		# change way things work here?
 		else:
 			return DeformationRte.compute_epsilon_mecha_polynomial(
-				T_mean, E, S, polynomial, max_stress
+				T_mean, E, S, polynomial_conductor, polynomial_heart, max_stress
 			)
 
 	@staticmethod
@@ -129,17 +140,49 @@ class DeformationRte(IDeformation):
 		T_mean: np.ndarray,
 		E: np.float64,
 		S: np.float64,
-		polynomial: Poly,
+		polynomial_conductor: Poly,
+		polynomial_heart: Poly,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		"""Computes epsilon when the stress-strain relation is polynomial"""
 		sigma = T_mean / S
-		if polynomial is None:
+		if polynomial_conductor is None:
 			raise ValueError("Polynomial is not defined")
+		# if sigma > sigma_max: sum of polynomials
+		# else:
+		#	compute both eps_plastic + eps_th and compare them
+		#	take the lowest and compute total eps
+		#	compare total eps from first material to eps_pl + eps_th to other material
+
+		# gérer les histoires de contrainte réduite
+
+
+		# epsilon_plastic_conductor = DeformationRte.compute_epsilon_plastic(
+		# 	T_mean, (E - E_heart), S, polynomial_conductor, max_stress
+		# )
+		# epsilon_therm_conductor = DeformationRte.compute_epsilon_therm(theta, temp_ref, alpha_conductor)
+		# epsilon_plastic_heart = DeformationRte.compute_epsilon_plastic(
+		# 	T_mean, E_heart, S, polynomial_heart, max_stress
+		# )
+		# epsilon_therm_heart = DeformationRte.compute_epsilon_therm(theta, temp_ref, alpha_conductor)
+		# epsilon_total_heart = epsilon_plastic_conductor + epsilon_therm_heart + sigma / E
+		# # np.where instead of if
+		# if epsilon_total_heart < epsilon_plastic_conductor + epsilon_therm_conductor:
+		# 	return epsilon_total_heart # or epsilon_mecha
+		# else:	
+		# 	return DeformationRte.compute_epsilon_both_materials()
+
 		epsilon_plastic = DeformationRte.compute_epsilon_plastic(
-			T_mean, E, S, polynomial, max_stress
+			T_mean, E, S, polynomial_conductor, max_stress
 		)
 		return epsilon_plastic + sigma / E
+
+	# @staticmethod
+	# def compute_epsilon_both_materials(
+
+	# ) -> np.ndarray:
+		
+
 
 	@staticmethod
 	def compute_epsilon_plastic(

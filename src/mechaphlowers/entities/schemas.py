@@ -75,7 +75,10 @@ class CableArrayInput(pa.DataFrameModel):
 	diameter: pdt.Series[float] = pa.Field(coerce=True)
 	linear_weight: pdt.Series[float] = pa.Field(coerce=True)
 	young_modulus: pdt.Series[float] = pa.Field(coerce=True)
+	young_modulus_heart: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
+	dilatation_coefficient_conductor: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+	dilatation_coefficient_heart: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	temperature_reference: pdt.Series[float] = pa.Field(coerce=True)
 	section_conductor: pdt.Series[float] = pa.Field(coerce=True)
 	a0: Optional[pdt.Series[float]] = pa.Field(coerce=True)
@@ -88,6 +91,7 @@ class CableArrayInput(pa.DataFrameModel):
 	b2: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	b3: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	b4: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+	is_bimetallic: Optional[pdt.Series[bool]]
 
 
 class WeatherArrayInput(pa.DataFrameModel):

@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+import dataclasses
+from typing import Optional
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
@@ -31,7 +34,10 @@ class DataContainer:
 		self.diameter: np.float64
 		self.linear_weight: np.float64
 		self.young_modulus: np.float64
+		self.young_modulus_heart: np.float64
 		self.dilatation_coefficient: np.float64
+		self.dilatation_coefficient_conductor: np.float64
+		self.dilatation_coefficient_heart: np.float64
 		self.temperature_reference: np.float64
 
 		self.polynomial_conductor: Poly
@@ -82,6 +88,19 @@ class DataContainer:
 		self.dilatation_coefficient = cable_array.data.dilatation_coefficient[
 			0
 		]
+		# TODO: Better way to do this + choose if need ot remove dilatation_coef?
+		if "young_modulus_heart" in cable_array.data:
+			self.young_modulus_heart = cable_array.data.young_modulus_heart[
+				0
+			]
+		if "dilatation_coefficient_conductor" in cable_array.data:
+			self.dilatation_coefficient_conductor = cable_array.data.dilatation_coefficient_conductor[
+				0
+			]
+		if "dilatation_coefficient_heart" in cable_array.data:
+			self.dilatation_coefficient_heart = cable_array.data.dilatation_coefficient_heart[
+				0
+			]
 		self.temperature_reference = cable_array.data.temperature_reference[0]
 
 		self.polynomial_conductor = Poly(
@@ -130,3 +149,4 @@ def factory_data_container(
 	data_container.add_cable_array(cable_array)
 	data_container.add_weather_array(weather_array)
 	return data_container
+
