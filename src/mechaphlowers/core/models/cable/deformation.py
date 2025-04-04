@@ -117,6 +117,7 @@ class DeformationRte(IDeformation):
 			data_cable.dilatation_coefficient_conductor
 			data_cable.dilatation_coefficient_heart
 			data_cable.is_bimetallic
+			data_cable.cable_section_area_conductor
 			return DeformationRte.compute_epsilon_mecha_polynomial(
 				T_mean, data_cable, max_stress
 			)
