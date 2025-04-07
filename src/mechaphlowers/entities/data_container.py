@@ -31,6 +31,7 @@ class DataContainer:
 		self.sagging_temperature: np.ndarray
 
 		self.cable_section_area: np.float64
+		cable_section_area_conductor: np.float64
 		self.diameter: np.float64
 		self.linear_weight: np.float64
 		self.young_modulus: np.float64
@@ -90,6 +91,10 @@ class DataContainer:
 			0
 		]
 		# TODO: Better way to do this + choose if need ot remove dilatation_coef?
+		if "section_conductor" in cable_array.data:
+			self.cable_section_area_conductor = cable_array.data.section_conductor[
+				0
+			]
 		if "young_modulus_heart" in cable_array.data:
 			self.young_modulus_heart = cable_array.data.young_modulus_heart[
 				0

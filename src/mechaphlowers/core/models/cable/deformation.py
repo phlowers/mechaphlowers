@@ -20,6 +20,7 @@ class IDeformation(ABC):
 		tension_mean: np.ndarray,
 		cable_length: np.ndarray,
 		cable_section_area: np.float64,
+		cable_section_area_conductor: np.float64,
 		linear_weight: np.float64,
 		young_modulus: np.float64,
 		young_modulus_heart: np.float64,
@@ -38,10 +39,13 @@ class IDeformation(ABC):
 		self.tension_mean = tension_mean
 		self.cable_length = cable_length
 		self.cable_section_area = cable_section_area
+		self.cable_section_area_conductor = cable_section_area_conductor
 		self.linear_weight = linear_weight
 		self.young_modulus = young_modulus
+		self.young_modulus_heart = young_modulus_heart
 		self.dilatation_coefficient = dilatation_coefficient
 		self.dilatation_coefficient_conductor = dilatation_coefficient_conductor
+		self.dilatation_coefficient_heart = dilatation_coefficient_heart
 		self.temp_ref = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
 		self.polynomial_heart = polynomial_heart
@@ -77,6 +81,7 @@ class IDeformation(ABC):
 		S: np.float64,
 		polynomial_conductor: Poly,
 		polynomial_heart: Poly,
+		is_bimetallic: bool,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		"""Computing mechanical strain using a static method"""
@@ -104,7 +109,7 @@ class DeformationRte(IDeformation):
 		E = self.young_modulus
 		S = self.cable_section_area
 		return self.compute_epsilon_mecha(
-			T_mean, E, S, self.polynomial_conductor, self.polynomial_heart, self.max_stress
+			T_mean, E, S, self.polynomial_conductor, self.polynomial_heart, self.is_bimetallic, self.max_stress
 		)
 
 	def epsilon(self, current_temperature: np.ndarray):
@@ -123,10 +128,13 @@ class DeformationRte(IDeformation):
 		S: np.float64,
 		polynomial_conductor: Poly,
 		polynomial_heart: Poly,
+		is_bimetallic: bool,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		# linear case
 		if polynomial_conductor.trim().degree() < 2:
+			# if is_bimetallic:
+			# 	E = 
 			return T_mean / (E * S)
 		# add linear case with two materials
 
