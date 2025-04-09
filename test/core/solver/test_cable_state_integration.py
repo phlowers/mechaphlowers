@@ -54,7 +54,7 @@ def test_functions_to_solve__same_loads(
 	frame = SectionDataFrame(default_section_array_three_spans)
 	frame.add_cable(default_cable_array)
 
-	weather_dict = {
+	weather_dict: WeatherDict = {
 		"ice_thickness": np.zeros(NB_SPAN),
 		"wind_pressure": np.zeros(NB_SPAN),
 	}

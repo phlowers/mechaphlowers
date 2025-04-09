@@ -68,15 +68,25 @@ class SagTensionSolver:
 		self.span_length_after_loads = span_length
 		self.elevation_difference_after_loads = elevation_difference
 
-	def initial_state(self, current_temperature) -> None:  # TODO: check on proto if sagging temperature here
+	def initial_state(
+		self, current_temperature
+	) -> None:  # TODO: check on proto if sagging temperature here
 		"""Method that computes the initial horizontal tension of the cable."""
 		# load coefficient used comes from the default CableLoads: should be equal to 1
 		initial_span_model = self.span_model_type(
-			self.span_length, self.elevation_difference, self.sagging_parameter, load_coefficient=self.cable_loads.load_coefficient, linear_weight=self.linear_weight
+			self.span_length,
+			self.elevation_difference,
+			self.sagging_parameter,
+			load_coefficient=self.cable_loads.load_coefficient,
+			linear_weight=self.linear_weight,
 		)
 		cable_length = initial_span_model.L()
 		tension_mean = initial_span_model.T_mean()
-		initial_deformation_model = self.deformation_model_type(**self.__dict__, tension_mean=tension_mean, cable_length=cable_length)
+		initial_deformation_model = self.deformation_model_type(
+			**self.__dict__,
+			tension_mean=tension_mean,
+			cable_length=cable_length,
+		)
 		self.L_ref = initial_deformation_model.L_ref(current_temperature)
 
 	def update_loads(
