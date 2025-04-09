@@ -7,8 +7,8 @@
 from typing import Callable, TypedDict
 
 import numpy as np
+import pandas as pd
 import pytest
-from pandera.typing import pandas as pdt
 
 from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.core.solver.cable_state import (
@@ -37,18 +37,13 @@ def create_sag_tension_solver(
 	frame = SectionDataFrame(section_array)
 	frame.add_cable(cable_array)
 	frame.add_weather(weather_array)
-	unstressed_length = frame.state.L_ref(
-		section_array.data.sagging_temperature.to_numpy()
-	)
 
 	data_container = factory_data_container(
 		section_array, cable_array, weather_array
 	)
-
-	return SagTensionSolver(
-		**data_container.__dict__,
-		unstressed_length=unstressed_length,
-	)
+	solver = SagTensionSolver(**data_container.__dict__)
+	solver.initial_state(section_array.data.sagging_temperature.to_numpy())
+	return solver
 
 
 def test_functions_to_solve__same_loads(
@@ -59,35 +54,26 @@ def test_functions_to_solve__same_loads(
 	frame = SectionDataFrame(default_section_array_three_spans)
 	frame.add_cable(default_cable_array)
 
-	weather_array = WeatherArray(
-		pdt.DataFrame(
-			{
-				"ice_thickness": [1, 2.1, 0.0, 0.0],
-				"wind_pressure": np.zeros(NB_SPAN),
-			}
-		)
-	)
+	weather_dict = {
+		"ice_thickness": np.zeros(NB_SPAN),
+		"wind_pressure": np.zeros(NB_SPAN),
+	}
+
+	weather_array = WeatherArray(pd.DataFrame(weather_dict))
 
 	frame.add_weather(weather_array)
-	unstressed_length = frame.state.L_ref(np.array([15] * NB_SPAN))
+	sagging_temperature = np.array([15] * NB_SPAN)
 
 	data_container = factory_data_container(
 		default_section_array_three_spans, default_cable_array, weather_array
 	)
 
-	sag_tension_calculation = SagTensionSolver(
-		**data_container.__dict__,
-		unstressed_length=unstressed_length,
-	)
-
-	weather_dict_final: WeatherDict = {
-		"ice_thickness": 1e-2 * np.array([1, 2.1, 0.0, 0.0]),
-		"wind_pressure": 0 * np.ones(NB_SPAN),
-	}
+	sag_tension_calculation = SagTensionSolver(**data_container.__dict__)
+	sag_tension_calculation.initial_state(sagging_temperature)
 
 	new_temperature = np.array([15] * NB_SPAN)
 	sag_tension_calculation.change_state(
-		**weather_dict_final,
+		**weather_dict,
 		temp=new_temperature,
 	)
 	T_h_state_0 = sag_tension_calculation.T_h_after_change

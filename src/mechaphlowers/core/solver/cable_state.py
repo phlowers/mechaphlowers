@@ -42,7 +42,6 @@ class SagTensionSolver:
 		dilatation_coefficient: np.float64,
 		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
-		unstressed_length: np.ndarray,
 		**kwargs,
 	) -> None:
 		self.span_length = span_length
@@ -55,9 +54,9 @@ class SagTensionSolver:
 		self.dilatation_coefficient = dilatation_coefficient
 		self.temperature_reference = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
-		self.L_ref = unstressed_length
-		self.span_model: Type[Span] = CatenarySpan
-		self.deformation_model: Type[IDeformation] = DeformationRte
+		self.L_ref: np.ndarray
+		self.span_model_type: Type[Span] = CatenarySpan
+		self.deformation_model_type: Type[IDeformation] = DeformationRte
 		self.T_h_after_change: np.ndarray | None = None
 		self.cable_loads = CableLoads(
 			self.diameter,
@@ -68,6 +67,17 @@ class SagTensionSolver:
 		# lengths in the new cable plane after considering wind pressure
 		self.span_length_after_loads = span_length
 		self.elevation_difference_after_loads = elevation_difference
+
+	def initial_state(self, current_temperature) -> None:  # TODO: check on proto if sagging temperature here
+		"""Method that computes the initial horizontal tension of the cable."""
+		# load coefficient used comes from the default CableLoads: should be equal to 1
+		initial_span_model = self.span_model_type(
+			self.span_length, self.elevation_difference, self.sagging_parameter, load_coefficient=self.cable_loads.load_coefficient, linear_weight=self.linear_weight
+		)
+		cable_length = initial_span_model.L()
+		tension_mean = initial_span_model.T_mean()
+		initial_deformation_model = self.deformation_model_type(**self.__dict__, tension_mean=tension_mean, cable_length=cable_length)
+		self.L_ref = initial_deformation_model.L_ref(current_temperature)
 
 	def update_loads(
 		self, ice_thickness: np.ndarray, wind_pressure: np.ndarray
@@ -111,7 +121,7 @@ class SagTensionSolver:
 			raise ValueError(f"Incorrect solver name: {solver}")
 		self.update_loads(ice_thickness, wind_pressure)
 		m = self.cable_loads.load_coefficient
-		T_h0 = self.span_model.compute_T_h(
+		T_h0 = self.span_model_type.compute_T_h(
 			self.sagging_parameter, m, self.linear_weight
 		)
 
@@ -135,25 +145,25 @@ class SagTensionSolver:
 		Therefore, its value should be zero.
 		$\\delta = \\varepsilon_{L} - \\varepsilon_{T}$
 		"""
-		p = self.span_model.compute_p(T_h, m, self.linear_weight)
-		L = self.span_model.compute_L(
+		p = self.span_model_type.compute_p(T_h, m, self.linear_weight)
+		L = self.span_model_type.compute_L(
 			self.span_length_after_loads,
 			self.elevation_difference_after_loads,
 			p,
 		)
 
-		T_mean = self.span_model.compute_T_mean(
+		T_mean = self.span_model_type.compute_T_mean(
 			self.span_length_after_loads,
 			self.elevation_difference_after_loads,
 			p,
 			T_h,
 		)
-		epsilon_total = self.deformation_model.compute_epsilon_mecha(
+		epsilon_total = self.deformation_model_type.compute_epsilon_mecha(
 			T_mean,
 			self.young_modulus,
 			self.cable_section_area,
 			self.polynomial_conductor,
-		) + self.deformation_model.compute_epsilon_therm(
+		) + self.deformation_model_type.compute_epsilon_therm(
 			temp, self.temperature_reference, self.dilatation_coefficient
 		)
 
@@ -185,7 +195,7 @@ class SagTensionSolver:
 			raise ValueError(
 				"method change_state has to be run before calling this method"
 			)
-		return self.span_model.compute_p(
+		return self.span_model_type.compute_p(
 			self.T_h_after_change, m, self.linear_weight
 		)
 
@@ -196,7 +206,7 @@ class SagTensionSolver:
 			raise ValueError(
 				"method change_state has to be run before calling this method"
 			)
-		return self.span_model.compute_L(
+		return self.span_model_type.compute_L(
 			self.span_length_after_loads,
 			self.elevation_difference_after_loads,
 			p,
