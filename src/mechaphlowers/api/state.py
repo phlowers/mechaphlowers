@@ -36,21 +36,4 @@ class StateAccessor:
 			raise ValueError(
 				"Deformation model is not defined: setting cable usually sets deformation model"
 			)
-		# if isinstance(current_temperature, (float, int)):
-		# 	current_temperature = np.full(
-		# 		self.frame.section_array.data.shape[0],
-		# 		float(current_temperature),
-		# 	)
-		# if not isinstance(current_temperature, np.ndarray):
-		# 	raise ValueError(
-		# 		"Current temperature should be a float or an array"
-		# 	)
-		# if isinstance(current_temperature, np.ndarray):
-		# 	if (
-		# 		current_temperature.shape[0]
-		# 		!= self.frame.section_array.data.shape[0]
-		# 	):
-		# 		raise ValueError(
-		# 			"Current temperature should have the same length as the section"
-		# 		)
 		return self.frame.deformation.L_ref()
