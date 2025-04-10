@@ -69,14 +69,20 @@ class SagTensionSolver:
 		self.elevation_difference_after_loads = elevation_difference
 
 	def initial_state(
-		self, current_temperature
+		self, current_temperature: np.ndarray
 	) -> None:  # TODO: check on proto if sagging temperature here
-		"""Method that computes the initial horizontal tension of the cable."""
-		# load coefficient used comes from the default CableLoads: should be equal to 1
+		"""Method that computes the unstressed length and the initial horizontal tension of the cable without any external loads.
+		Store those two values in the class attributes.
+		It should be called after the initialization of the class.
+
+		Args:
+			current_temperature (np.ndarray): _description_
+		"""
 		initial_span_model = self.span_model_type(
 			self.span_length,
 			self.elevation_difference,
 			self.sagging_parameter,
+			# load coefficient used comes from the default CableLoads: should be equal to 1
 			load_coefficient=self.cable_loads.load_coefficient,
 			linear_weight=self.linear_weight,
 		)
@@ -88,6 +94,7 @@ class SagTensionSolver:
 			cable_length=cable_length,
 		)
 		self.L_ref = initial_deformation_model.L_ref(current_temperature)
+		self.T_h_after_change = initial_span_model.T_h()
 
 	def update_loads(
 		self, ice_thickness: np.ndarray, wind_pressure: np.ndarray
@@ -149,7 +156,13 @@ class SagTensionSolver:
 			raise ValueError("Solver did not converge")
 		self.T_h_after_change = solver_result.root
 
-	def _delta(self, T_h, m, temp, L_ref):
+	def _delta(
+		self,
+		T_h: np.ndarray,
+		m: np.ndarray,
+		temp: np.ndarray,
+		L_ref: np.ndarray,
+	) -> np.ndarray:
 		"""Function to solve.
 		This function is the difference between two ways to compute epsilon.
 		Therefore, its value should be zero.
@@ -181,11 +194,11 @@ class SagTensionSolver:
 
 	def _delta_prime(
 		self,
-		Th,
-		m,
-		temp,
-		L_ref,
-	):
+		Th: np.ndarray,
+		m: np.ndarray,
+		temp: np.ndarray,
+		L_ref: np.ndarray,
+	) -> np.ndarray:
 		"""Approximation of the derivative of the function to solve
 		$$\\delta'(T_h) = \\frac{\\delta(T_h + \\zeta) - \\delta(T_h)}{\\zeta}$$
 		"""
@@ -198,7 +211,7 @@ class SagTensionSolver:
 			self._delta(Th + self._ZETA, **kwargs) - self._delta(Th, **kwargs)
 		) / self._ZETA
 
-	def p_after_change(self):
+	def p_after_change(self) -> np.ndarray:
 		"""Compute the new value of the sagging parameter after sag tension calculation"""
 		m = self.cable_loads.load_coefficient
 		if self.T_h_after_change is None:
@@ -209,7 +222,7 @@ class SagTensionSolver:
 			self.T_h_after_change, m, self.linear_weight
 		)
 
-	def L_after_change(self):
+	def L_after_change(self) -> np.ndarray:
 		"""Compute the new value of the length of the cable after sag tension calculation"""
 		p = self.p_after_change()
 		if self.T_h_after_change is None:
