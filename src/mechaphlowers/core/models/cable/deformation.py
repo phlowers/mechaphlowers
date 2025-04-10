@@ -27,6 +27,7 @@ class IDeformation(ABC):
 		dilatation_coefficient: np.float64,
 		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
+		sagging_temperature: np.ndarray,
 		max_stress: np.ndarray | None = None,
 		**kwargs,
 	):
@@ -38,19 +39,17 @@ class IDeformation(ABC):
 		self.dilatation_coefficient = dilatation_coefficient
 		self.temp_ref = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
+		self.sagging_temperature = sagging_temperature
 
 		if max_stress is None:
 			self.max_stress = np.full(self.cable_length.shape, 0)
 
 	@abstractmethod
-	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
+	def L_ref(self) -> np.ndarray:
 		"""Unstressed cable length, at a chosen reference temperature"""
 
 	@abstractmethod
-	def epsilon(
-		self,
-		current_temperature: np.ndarray,
-	) -> np.ndarray:
+	def epsilon(self) -> np.ndarray:
 		"""Total relative strain of the cable."""
 
 	@abstractmethod
@@ -58,7 +57,7 @@ class IDeformation(ABC):
 		"""Mechanical part of the relative strain  of the cable."""
 
 	@abstractmethod
-	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
+	def epsilon_therm(self) -> np.ndarray:
 		"""Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
 
 	@staticmethod
@@ -83,11 +82,9 @@ class IDeformation(ABC):
 class DeformationRte(IDeformation):
 	"""This class implements the deformation model used by RTE."""
 
-	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
+	def L_ref(self) -> np.ndarray:
 		L = self.cable_length
-		epsilon = (
-			self.epsilon_therm(current_temperature) + self.epsilon_mecha()
-		)
+		epsilon = self.epsilon_therm() + self.epsilon_mecha()
 		return L / (1 + epsilon)
 
 	def epsilon_mecha(self) -> np.ndarray:
@@ -99,13 +96,14 @@ class DeformationRte(IDeformation):
 			T_mean, E, S, polynomial, self.max_stress
 		)
 
-	def epsilon(self, current_temperature: np.ndarray):
-		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
+	def epsilon(self):
+		return self.epsilon_mecha() + self.epsilon_therm()
 
-	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
+	def epsilon_therm(self) -> np.ndarray:
+		sagging_temperature = self.sagging_temperature
 		temp_ref = self.temp_ref
 		alpha = self.dilatation_coefficient
-		return self.compute_epsilon_therm(current_temperature, temp_ref, alpha)
+		return self.compute_epsilon_therm(sagging_temperature, temp_ref, alpha)
 
 	@staticmethod
 	def compute_epsilon_mecha(
