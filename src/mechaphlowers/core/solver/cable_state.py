@@ -91,7 +91,7 @@ class SagTensionSolver:
 			tension_mean=tension_mean,
 			cable_length=cable_length,
 		)
-		self.L_ref = initial_deformation_model.L_ref(self.sagging_temperature)
+		self.L_ref = initial_deformation_model.L_ref()
 		self.T_h_after_change = initial_span_model.T_h()
 
 	def update_loads(

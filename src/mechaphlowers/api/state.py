@@ -20,7 +20,7 @@ class StateAccessor:
 	def __init__(self, frame: SectionDataFrame):
 		self.frame: SectionDataFrame = frame
 
-	def L_ref(self, current_temperature: float | np.ndarray) -> np.ndarray:
+	def L_ref(self) -> np.ndarray:
 		"""L_ref values for the current temperature
 
 		Args:
@@ -36,21 +36,21 @@ class StateAccessor:
 			raise ValueError(
 				"Deformation model is not defined: setting cable usually sets deformation model"
 			)
-		if isinstance(current_temperature, (float, int)):
-			current_temperature = np.full(
-				self.frame.section_array.data.shape[0],
-				float(current_temperature),
-			)
-		if not isinstance(current_temperature, np.ndarray):
-			raise ValueError(
-				"Current temperature should be a float or an array"
-			)
-		if isinstance(current_temperature, np.ndarray):
-			if (
-				current_temperature.shape[0]
-				!= self.frame.section_array.data.shape[0]
-			):
-				raise ValueError(
-					"Current temperature should have the same length as the section"
-				)
-		return self.frame.deformation.L_ref(current_temperature)
+		# if isinstance(current_temperature, (float, int)):
+		# 	current_temperature = np.full(
+		# 		self.frame.section_array.data.shape[0],
+		# 		float(current_temperature),
+		# 	)
+		# if not isinstance(current_temperature, np.ndarray):
+		# 	raise ValueError(
+		# 		"Current temperature should be a float or an array"
+		# 	)
+		# if isinstance(current_temperature, np.ndarray):
+		# 	if (
+		# 		current_temperature.shape[0]
+		# 		!= self.frame.section_array.data.shape[0]
+		# 	):
+		# 		raise ValueError(
+		# 			"Current temperature should have the same length as the section"
+		# 		)
+		return self.frame.deformation.L_ref()

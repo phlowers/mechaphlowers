@@ -37,7 +37,7 @@ def get_L_ref_from_arrays(
 		tension_mean=span_model.T_mean(),
 		cable_length=span_model.L(),
 	)
-	return deformation.L_ref(current_temperature)
+	return deformation.L_ref()
 
 
 def test_solver__run_solver(
