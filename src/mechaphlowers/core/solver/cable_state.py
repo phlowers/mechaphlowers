@@ -35,6 +35,7 @@ class SagTensionSolver:
 		span_length: np.ndarray,
 		elevation_difference: np.ndarray,
 		sagging_parameter: np.ndarray,
+		sagging_temperature: np.ndarray,
 		cable_section_area: np.float64,
 		diameter: np.float64,
 		linear_weight: np.float64,
@@ -47,6 +48,7 @@ class SagTensionSolver:
 		self.span_length = span_length
 		self.elevation_difference = elevation_difference
 		self.sagging_parameter = sagging_parameter
+		self.sagging_temperature = sagging_temperature
 		self.cable_section_area = cable_section_area
 		self.diameter = diameter
 		self.linear_weight = linear_weight
@@ -68,15 +70,11 @@ class SagTensionSolver:
 		self.span_length_after_loads = span_length
 		self.elevation_difference_after_loads = elevation_difference
 
-	def initial_state(
-		self, current_temperature: np.ndarray
-	) -> None:  # TODO: check on proto if sagging temperature here
+	def initial_state(self) -> None:
 		"""Method that computes the unstressed length and the initial horizontal tension of the cable without any external loads.
 		Store those two values in the class attributes.
 		It should be called after the initialization of the class.
 
-		Args:
-			current_temperature (np.ndarray): _description_
 		"""
 		initial_span_model = self.span_model_type(
 			self.span_length,
@@ -93,7 +91,7 @@ class SagTensionSolver:
 			tension_mean=tension_mean,
 			cable_length=cable_length,
 		)
-		self.L_ref = initial_deformation_model.L_ref(current_temperature)
+		self.L_ref = initial_deformation_model.L_ref(self.sagging_temperature)
 		self.T_h_after_change = initial_span_model.T_h()
 
 	def update_loads(

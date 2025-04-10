@@ -42,7 +42,7 @@ def create_sag_tension_solver(
 		section_array, cable_array, weather_array
 	)
 	solver = SagTensionSolver(**data_container.__dict__)
-	solver.initial_state(section_array.data.sagging_temperature.to_numpy())
+	solver.initial_state()
 	return solver
 
 
@@ -62,14 +62,13 @@ def test_functions_to_solve__same_loads(
 	weather_array = WeatherArray(pd.DataFrame(weather_dict))
 
 	frame.add_weather(weather_array)
-	sagging_temperature = np.array([15] * NB_SPAN)
 
 	data_container = factory_data_container(
 		default_section_array_three_spans, default_cable_array, weather_array
 	)
 
 	sag_tension_calculation = SagTensionSolver(**data_container.__dict__)
-	sag_tension_calculation.initial_state(sagging_temperature)
+	sag_tension_calculation.initial_state()
 
 	new_temperature = np.array([15] * NB_SPAN)
 	sag_tension_calculation.change_state(
@@ -219,7 +218,6 @@ def test_functions_to_solve__different_temp_ref(
 	np.testing.assert_allclose(T_h_state_1, expected_result_1, atol=0.01)
 
 
-
 def test_functions_to_solve__no_memory_effect(
 	default_section_array_one_span: SectionArray,
 	default_cable_array: CableArray,
@@ -233,22 +231,25 @@ def test_functions_to_solve__no_memory_effect(
 		initial_weather,
 	)
 
-	weather_0 = {
+	weather_0: WeatherDict = {
 		"ice_thickness": 1e-2 * np.ones(2),
 		"wind_pressure": 200 * np.ones(2),
 	}
 	temperature_0 = np.array([25, 25])
 
-	weather_1 = {
+	weather_1: WeatherDict = {
 		"ice_thickness": 2e-2 * np.ones(2),
 		"wind_pressure": 400 * np.ones(2),
 	}
 	temperature_1 = np.array([20, 20])
 
-	sag_tension_calculation_indirect.change_state(**weather_0, temp=temperature_0)
-	sag_tension_calculation_indirect.change_state(**weather_1, temp=temperature_1)
+	sag_tension_calculation_indirect.change_state(
+		**weather_0, temp=temperature_0
+	)
+	sag_tension_calculation_indirect.change_state(
+		**weather_1, temp=temperature_1
+	)
 	T_h_indirect = sag_tension_calculation_indirect.T_h_after_change
-
 
 	sag_tension_calculation_direct = create_sag_tension_solver(
 		default_section_array_one_span,
@@ -256,7 +257,9 @@ def test_functions_to_solve__no_memory_effect(
 		initial_weather,
 	)
 
-	sag_tension_calculation_direct.change_state(**weather_1, temp=temperature_1)
+	sag_tension_calculation_direct.change_state(
+		**weather_1, temp=temperature_1
+	)
 	T_h_direct = sag_tension_calculation_indirect.T_h_after_change
 
 	np.testing.assert_equal(T_h_indirect, T_h_direct)

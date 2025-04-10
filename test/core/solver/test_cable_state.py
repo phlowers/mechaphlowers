@@ -49,7 +49,7 @@ def test_solver__run_solver(
 	sag_tension_calculation = SagTensionSolver(
 		**default_data_container_one_span.__dict__
 	)
-	sag_tension_calculation.initial_state(current_temperature)
+	sag_tension_calculation.initial_state()
 
 	sag_tension_calculation.change_state(
 		**weather_dict_one_span,
@@ -82,7 +82,7 @@ def test_solver__run_solver__polynomial_model(
 	sag_tension_calculation = SagTensionSolver(
 		**default_data_container_one_span.__dict__
 	)
-	sag_tension_calculation.initial_state(current_temperature)
+	sag_tension_calculation.initial_state()
 
 	sag_tension_calculation.change_state(
 		**weather_dict_one_span,
@@ -103,7 +103,7 @@ def test_solver__run_solver_no_solution(
 	sag_tension_calculation = SagTensionSolver(
 		**default_data_container_one_span.__dict__
 	)
-	sag_tension_calculation.initial_state(current_temperature)
+	sag_tension_calculation.initial_state()
 	sag_tension_calculation.L_ref = np.array([1, 1])
 	with pytest.raises(ValueError) as excinfo:
 		sag_tension_calculation.change_state(
@@ -121,7 +121,7 @@ def test_solver__bad_solver(
 	sag_tension_calculation = SagTensionSolver(
 		**default_data_container_one_span.__dict__
 	)
-	sag_tension_calculation.initial_state(current_temperature)
+	sag_tension_calculation.initial_state()
 	with pytest.raises(ValueError) as excinfo:
 		sag_tension_calculation.change_state(
 			**weather_dict_one_span,
