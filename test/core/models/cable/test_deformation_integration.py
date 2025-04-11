@@ -5,8 +5,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
-import pytest
-from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.core.models.cable.deformation import DeformationRte
 from mechaphlowers.core.models.cable.span import (
@@ -68,11 +66,10 @@ def test_deformation_values__default_data(
 		np.array([480.6392123, np.nan]),
 		atol=1e-6,
 	)
-	#Z - narcisse
+	# Z - narcisse
 	# first: L0 = 480.659
 	# CRA 50% L0 = 480.649
-	#récup epsilon plutôt?
-
+	# récup epsilon plutôt?
 
 
 def test_deformation__data_container(

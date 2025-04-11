@@ -273,9 +273,9 @@ class SectionDataFrame:
 
 		# Initialize deformation model
 		self.deformation = self._deformation_model(
-			**self.data_container.__dict__,
 			tension_mean=self.span.T_mean(),
 			cable_length=self.span.L(),
+			data_cable=self.data_container.data_cable,
 		)
 		# TODO: test if L_ref change when span_model T_mean change
 

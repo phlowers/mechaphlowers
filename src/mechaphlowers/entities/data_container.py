@@ -1,6 +1,7 @@
-from dataclasses import dataclass
 import dataclasses
+from dataclasses import dataclass
 from typing import Optional
+
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
@@ -13,13 +14,12 @@ from mechaphlowers.entities.arrays import (
 
 @dataclass
 class DataCable:
-
 	cable_section_area: np.float64
-	cable_section_area_conductor: np.float64
+	cable_section_area_conductor: np.float64  # necessary?
 	diameter: np.float64
 	linear_weight: np.float64
 	young_modulus: np.float64
-	# young_modulus_conductor: np.float64 
+	# young_modulus_conductor: np.float64
 	young_modulus_heart: Optional[np.float64]
 	dilatation_coefficient: np.float64
 	dilatation_coefficient_conductor: Optional[np.float64]
@@ -33,6 +33,7 @@ class DataCable:
 		for k, v in kwargs.items():
 			if k in names:
 				setattr(self, k, v)
+
 
 class DataContainer:
 	"""This class contains data from SectionArray, CableArray and WeatherArray.
@@ -114,21 +115,19 @@ class DataContainer:
 		]
 		# TODO: Better way to do this + choose if need ot remove dilatation_coef?
 		if "section_conductor" in cable_array.data:
-			self.cable_section_area_conductor = cable_array.data.section_conductor[
-				0
-			]
+			self.cable_section_area_conductor = (
+				cable_array.data.section_conductor[0]
+			)
 		if "young_modulus_heart" in cable_array.data:
-			self.young_modulus_heart = cable_array.data.young_modulus_heart[
-				0
-			]
+			self.young_modulus_heart = cable_array.data.young_modulus_heart[0]
 		if "dilatation_coefficient_conductor" in cable_array.data:
-			self.dilatation_coefficient_conductor = cable_array.data.dilatation_coefficient_conductor[
-				0
-			]
+			self.dilatation_coefficient_conductor = (
+				cable_array.data.dilatation_coefficient_conductor[0]
+			)
 		if "dilatation_coefficient_heart" in cable_array.data:
-			self.dilatation_coefficient_heart = cable_array.data.dilatation_coefficient_heart[
-				0
-			]
+			self.dilatation_coefficient_heart = (
+				cable_array.data.dilatation_coefficient_heart[0]
+			)
 		self.temperature_reference = cable_array.data.temperature_reference[0]
 
 		self.polynomial_conductor = Poly(
@@ -161,7 +160,6 @@ class DataContainer:
 		return DataCable(**self.__dict__)
 
 
-
 def factory_data_container(
 	section_array: SectionArray,
 	cable_array: CableArray,
@@ -182,4 +180,3 @@ def factory_data_container(
 	data_container.add_cable_array(cable_array)
 	data_container.add_weather_array(weather_array)
 	return data_container
-

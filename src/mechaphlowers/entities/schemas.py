@@ -77,8 +77,12 @@ class CableArrayInput(pa.DataFrameModel):
 	young_modulus: pdt.Series[float] = pa.Field(coerce=True)
 	young_modulus_heart: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
-	dilatation_coefficient_conductor: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-	dilatation_coefficient_heart: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+	dilatation_coefficient_conductor: Optional[pdt.Series[float]] = pa.Field(
+		coerce=True
+	)
+	dilatation_coefficient_heart: Optional[pdt.Series[float]] = pa.Field(
+		coerce=True
+	)
 	temperature_reference: pdt.Series[float] = pa.Field(coerce=True)
 	section_conductor: pdt.Series[float] = pa.Field(coerce=True)
 	a0: Optional[pdt.Series[float]] = pa.Field(coerce=True)
