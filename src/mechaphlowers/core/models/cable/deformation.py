@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
+from mechaphlowers.entities.data_container import DataCable
 from mechaphlowers.config import options as cfg
 
 IMAGINARY_THRESHOLD = cfg.solver.deformation_imag_thresh  # type: ignore
@@ -19,9 +20,9 @@ class IDeformation(ABC):
 
 	def __init__(
 		self,
+		data_cable: DataCable,
 		tension_mean: np.ndarray,
 		cable_length: np.ndarray,
-		data_cable: DataCable,
 		max_stress: np.ndarray | None = None,
 		**kwargs,
 	):
@@ -237,7 +238,7 @@ class DeformationRte(IDeformation):
 		return (theta - theta_ref) * alpha
 
 
-class SigmaSimple:
+class SigmaFunctionSingleMaterial:
 	def __init__(self, poly, E, alpha_th, T_labo, epsilon_max=0.0):
 		self.poly = poly
 		# self.sigma_max = sigma_max

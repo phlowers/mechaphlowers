@@ -23,9 +23,9 @@ def test_deformation_impl(
 	cable_length = span_model.L()
 
 	deformation_model = DeformationRte(
+		data_cable=default_data_container_one_span.data_cable,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
-		data_cable=default_data_container_one_span.data_cable,
 	)
 	current_temperature = np.array([15, 15])
 	deformation_model.epsilon_mecha()
@@ -42,9 +42,9 @@ def test_deformation_values__default_data(
 	cable_length = span_model.L()
 
 	deformation_model = DeformationRte(
+		data_cable=default_data_container_one_span.data_cable,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
-		data_cable=default_data_container_one_span.data_cable,
 	)
 	current_temperature = np.array([30, 30])
 
@@ -146,9 +146,9 @@ def test_poly_deformation__degree_four__with_max_stress(
 	cable_length = span_model.L()
 
 	deformation_model = DeformationRte(
+		data_cable=default_data_container_one_span.data_cable,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
-		data_cable=default_data_container_one_span.data_cable,
 	)
 	current_temperature = np.array([15, 15])
 
@@ -174,9 +174,9 @@ def test_poly_deformation__no_solutions(
 	cable_length = span_model.L()
 
 	deformation_model = DeformationRte(
+		data_cable=default_data_container_one_span.data_cable,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
-		data_cable=default_data_container_one_span.data_cable,
 	)
 
 	deformation_model.max_stress = np.array([1000, 1e10])
@@ -192,9 +192,9 @@ def test_deformation__data_container(
 	cable_length = span_model.L()
 
 	deformation_model = DeformationRte(
+		data_cable=default_data_container_one_span.data_cable,
 		tension_mean=tension_mean,
 		cable_length=cable_length,
-		data_cable=default_data_container_one_span.data_cable,
 	)
 	current_temperature = np.array([15, 15])
 	deformation_model.epsilon_mecha()

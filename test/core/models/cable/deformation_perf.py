@@ -10,6 +10,7 @@ from typing import TypedDict
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
+from mechaphlowers.entities.data_container import DataCable
 from mechaphlowers.core.models.cable.deformation import (
 	DeformationRte,
 )
@@ -55,7 +56,9 @@ def test_solve_polynom_perf() -> None:
 	tension_mean = span_model.T_mean()
 	cable_length = span_model.L()
 	deformation_model = DeformationRte(
-		**input_dict, tension_mean=tension_mean, cable_length=cable_length
+		data_cable=DataCable(**input_dict),
+		tension_mean=tension_mean,
+		cable_length=cable_length,
 	)
 
 	start_time = time.time()

@@ -21,6 +21,7 @@ from mechaphlowers.core.models.cable.span import (
 	Span,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
+from mechaphlowers.entities.data_container import DataCable
 
 
 class SagTensionSolver:
@@ -57,6 +58,17 @@ class SagTensionSolver:
 		self.temperature_reference = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
 		self.polynomial_heart = polynomial_heart
+		# TODO: temporary measure
+		self.data_cable = DataCable(
+			cable_section_area=cable_section_area,
+			diameter=diameter,
+			linear_weight=linear_weight,
+			young_modulus=young_modulus,
+			dilatation_coefficient=dilatation_coefficient,
+			temperature_reference=temperature_reference,
+			polynomial_conductor=polynomial_conductor,
+			polynomial_heart=polynomial_heart,
+		)
 		self.L_ref = unstressed_length
 		self.span_model: Type[Span] = CatenarySpan
 		self.deformation_model: Type[IDeformation] = DeformationRte
@@ -131,7 +143,7 @@ class SagTensionSolver:
 			raise ValueError("Solver did not converge")
 		self.T_h_after_change = solver_result.root
 
-	def _delta(self, T_h, m, temp, L_ref):
+	def _delta(self, T_h, m, temp, L_ref) -> np.ndarray:
 		"""Function to solve.
 		This function is the difference between two ways to compute epsilon.
 		Therefore, its value should be zero.
@@ -152,9 +164,7 @@ class SagTensionSolver:
 		)
 		epsilon_total = self.deformation_model.compute_epsilon_mecha(
 			T_mean,
-			self.young_modulus,
-			self.cable_section_area,
-			self.polynomial_conductor,
+			self.data_cable,
 		) + self.deformation_model.compute_epsilon_therm(
 			temp, self.temperature_reference, self.dilatation_coefficient
 		)
@@ -167,7 +177,7 @@ class SagTensionSolver:
 		m,
 		temp,
 		L_ref,
-	):
+	) -> np.ndarray:
 		"""Approximation of the derivative of the function to solve
 		$$\\delta'(T_h) = \\frac{\\delta(T_h + \\zeta) - \\delta(T_h)}{\\zeta}$$
 		"""
@@ -180,7 +190,7 @@ class SagTensionSolver:
 			self._delta(Th + self._ZETA, **kwargs) - self._delta(Th, **kwargs)
 		) / self._ZETA
 
-	def p_after_change(self):
+	def p_after_change(self) -> np.ndarray:
 		"""Compute the new value of the sagging parameter after sag tension calculation"""
 		m = self.cable_loads.load_coefficient
 		if self.T_h_after_change is None:
@@ -191,7 +201,7 @@ class SagTensionSolver:
 			self.T_h_after_change, m, self.linear_weight
 		)
 
-	def L_after_change(self):
+	def L_after_change(self) -> np.ndarray:
 		"""Compute the new value of the length of the cable after sag tension calculation"""
 		p = self.p_after_change()
 		if self.T_h_after_change is None:

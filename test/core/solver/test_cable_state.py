@@ -33,7 +33,7 @@ def get_L_ref_from_arrays(
 
 	span_model.load_coefficient = cable_loads.load_coefficient
 	deformation = DeformationRte(
-		**data_container.__dict__,
+		data_cable=data_container.data_cable,
 		tension_mean=span_model.T_mean(),
 		cable_length=span_model.L(),
 	)
