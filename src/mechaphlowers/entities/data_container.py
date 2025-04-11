@@ -11,6 +11,29 @@ from mechaphlowers.entities.arrays import (
 )
 
 
+@dataclass
+class DataCable:
+
+	cable_section_area: np.float64
+	cable_section_area_conductor: np.float64
+	diameter: np.float64
+	linear_weight: np.float64
+	young_modulus: np.float64
+	# young_modulus_conductor: np.float64 
+	young_modulus_heart: Optional[np.float64]
+	dilatation_coefficient: np.float64
+	dilatation_coefficient_conductor: Optional[np.float64]
+	dilatation_coefficient_heart: Optional[np.float64]
+	temperature_reference: np.float64
+	polynomial_conductor: Poly
+	polynomial_heart: Poly
+
+	def __init__(self, **kwargs):
+		names = set([f.name for f in dataclasses.fields(self)])
+		for k, v in kwargs.items():
+			if k in names:
+				setattr(self, k, v)
+
 class DataContainer:
 	"""This class contains data from SectionArray, CableArray and WeatherArray.
 	It allows SectionDataFrame to store all data in one class instead of three separate classes.
@@ -31,7 +54,7 @@ class DataContainer:
 		self.sagging_temperature: np.ndarray
 
 		self.cable_section_area: np.float64
-		cable_section_area_conductor: np.float64
+		self.cable_section_area_conductor: np.float64
 		self.diameter: np.float64
 		self.linear_weight: np.float64
 		self.young_modulus: np.float64
@@ -40,7 +63,6 @@ class DataContainer:
 		self.dilatation_coefficient_conductor: np.float64
 		self.dilatation_coefficient_heart: np.float64
 		self.temperature_reference: np.float64
-		self.is_bimetallic: bool
 
 		self.polynomial_conductor: Poly
 		self.polynomial_heart: Poly
@@ -108,7 +130,6 @@ class DataContainer:
 				0
 			]
 		self.temperature_reference = cable_array.data.temperature_reference[0]
-		self.is_bimetallic = cable_array.data.is_bimetallic[0]
 
 		self.polynomial_conductor = Poly(
 			[
@@ -134,6 +155,11 @@ class DataContainer:
 		"""Take as argument a WeatherArray, and add all data into its attributes"""
 		self.ice_thickness = weather_array.data.ice_thickness.to_numpy()
 		self.wind_pressure = weather_array.data.wind_pressure.to_numpy()
+
+	@property
+	def data_cable(self) -> DataCable:
+		return DataCable(**self.__dict__)
+
 
 
 def factory_data_container(

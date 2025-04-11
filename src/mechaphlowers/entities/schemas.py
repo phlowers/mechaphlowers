@@ -91,7 +91,6 @@ class CableArrayInput(pa.DataFrameModel):
 	b2: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	b3: Optional[pdt.Series[float]] = pa.Field(coerce=True)
 	b4: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-	is_bimetallic: Optional[pdt.Series[bool]]
 
 
 class WeatherArrayInput(pa.DataFrameModel):

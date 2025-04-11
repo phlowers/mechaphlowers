@@ -148,7 +148,6 @@ def default_data_container_one_span() -> DataContainer:
 				"b2": [0],
 				"b3": [0],
 				"b4": [0],
-				"is_bimetallic": False
 			}
 		)
 	)
