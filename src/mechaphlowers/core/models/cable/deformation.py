@@ -9,9 +9,9 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
-from mechaphlowers.entities.data_container import DataCable
+from mechaphlowers.config import options as cfg
 
-IMAGINARY_THRESHOLD = 1e-5
+IMAGINARY_THRESHOLD = cfg.solver.deformation_imag_thresh  # type: ignore
 
 
 class IDeformation(ABC):

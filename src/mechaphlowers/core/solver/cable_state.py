@@ -11,6 +11,7 @@ import numpy as np
 from numpy.polynomial import Polynomial as Poly
 from scipy import optimize  # type: ignore
 
+from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.cable.deformation import (
 	DeformationRte,
 	IDeformation,
@@ -27,7 +28,7 @@ class SagTensionSolver:
 	It computes the horizontal tension of a cable after a change of parameters
 	"""
 
-	_ZETA = 10
+	_ZETA = cfg.solver.sagtension_zeta  # type: ignore
 
 	def __init__(
 		self,
