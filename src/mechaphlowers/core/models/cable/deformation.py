@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
+from mechaphlowers.entities.data_container import DataCable
 from mechaphlowers.config import options as cfg
 
 IMAGINARY_THRESHOLD = cfg.solver.deformation_imag_thresh  # type: ignore
@@ -19,25 +20,15 @@ class IDeformation(ABC):
 
 	def __init__(
 		self,
+		data_cable: DataCable,
 		tension_mean: np.ndarray,
 		cable_length: np.ndarray,
-		cable_section_area: np.float64,
-		linear_weight: np.float64,
-		young_modulus: np.float64,
-		dilatation_coefficient: np.float64,
-		temperature_reference: np.float64,
-		polynomial_conductor: Poly,
 		max_stress: np.ndarray | None = None,
 		**kwargs,
 	):
 		self.tension_mean = tension_mean
 		self.cable_length = cable_length
-		self.cable_section_area = cable_section_area
-		self.linear_weight = linear_weight
-		self.young_modulus = young_modulus
-		self.dilatation_coefficient = dilatation_coefficient
-		self.temp_ref = temperature_reference
-		self.polynomial_conductor = polynomial_conductor
+		self.data_cable = data_cable
 
 		if max_stress is None:
 			self.max_stress = np.full(self.cable_length.shape, 0)
@@ -65,9 +56,7 @@ class IDeformation(ABC):
 	@abstractmethod
 	def compute_epsilon_mecha(
 		T_mean: np.ndarray,
-		E: np.float64,
-		S: np.float64,
-		polynomial: Poly,
+		data_cable: DataCable,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		"""Computing mechanical strain using a static method"""
@@ -92,55 +81,94 @@ class DeformationRte(IDeformation):
 
 	def epsilon_mecha(self) -> np.ndarray:
 		T_mean = self.tension_mean
-		E = self.young_modulus
-		S = self.cable_section_area
-		polynomial = self.polynomial_conductor
+		E = self.data_cable.young_modulus
+		S = self.data_cable.cable_section_area
 		return self.compute_epsilon_mecha(
-			T_mean, E, S, polynomial, self.max_stress
+			T_mean, self.data_cable, self.max_stress
 		)
 
 	def epsilon(self, current_temperature: np.ndarray):
 		return self.epsilon_mecha() + self.epsilon_therm(current_temperature)
 
 	def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
-		temp_ref = self.temp_ref
-		alpha = self.dilatation_coefficient
+		temp_ref = self.data_cable.temperature_reference
+		alpha = self.data_cable.dilatation_coefficient
 		return self.compute_epsilon_therm(current_temperature, temp_ref, alpha)
 
 	@staticmethod
+	# epsilon total
 	def compute_epsilon_mecha(
 		T_mean: np.ndarray,
-		E: np.float64,
-		S: np.float64,
-		polynomial: Poly,
+		data_cable: DataCable,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		# linear case
-		if polynomial.trim().degree() < 2:
+		if data_cable.polynomial_conductor.trim().degree() < 2:
+			E = data_cable.young_modulus
+			S = data_cable.cable_section_area
 			return T_mean / (E * S)
+		# add linear case with two materials
+
 		# polynomial case
+		# change way things work here?
 		else:
+			# test_data
+			data_cable.young_modulus_heart
+			data_cable.dilatation_coefficient
+			data_cable.dilatation_coefficient_conductor
+			data_cable.dilatation_coefficient_heart
+			data_cable.cable_section_area_conductor
 			return DeformationRte.compute_epsilon_mecha_polynomial(
-				T_mean, E, S, polynomial, max_stress
+				T_mean, data_cable, max_stress
 			)
 
 	@staticmethod
 	def compute_epsilon_mecha_polynomial(
 		T_mean: np.ndarray,
-		E: np.float64,
-		S: np.float64,
-		polynomial: Poly,
+		data_cable: DataCable,
 		max_stress: np.ndarray | None = None,
 	) -> np.ndarray:
 		"""Computes epsilon when the stress-strain relation is polynomial"""
+		S = data_cable.cable_section_area
+		E = data_cable.young_modulus
+		polynomial_conductor = data_cable.polynomial_conductor
 		sigma = T_mean / S
-		if polynomial is None:
+		if polynomial_conductor is None:
 			raise ValueError("Polynomial is not defined")
+		# if sigma > sigma_max: sum of polynomials
+		# else:
+		# compute both eps_plastic + eps_th and compare them
+		# take the lowest and compute total eps
+		# compare total eps from first material to eps_pl + eps_th to other material
+
+		# gérer les histoires de contrainte réduite
+
+		# epsilon_plastic_conductor = DeformationRte.compute_epsilon_plastic(
+		# 	T_mean, (E - E_heart), S, polynomial_conductor, max_stress
+		# )
+		# epsilon_therm_conductor = DeformationRte.compute_epsilon_therm(theta, temp_ref, alpha_conductor)
+		# epsilon_plastic_heart = DeformationRte.compute_epsilon_plastic(
+		# 	T_mean, E_heart, S, polynomial_heart, max_stress
+		# )
+		# epsilon_therm_heart = DeformationRte.compute_epsilon_therm(theta, temp_ref, alpha_conductor)
+		# epsilon_total_heart = epsilon_plastic_conductor + epsilon_therm_heart + sigma / E
+		# # np.where instead of if
+		# if epsilon_total_heart < epsilon_plastic_conductor + epsilon_therm_conductor:
+		# 	return epsilon_total_heart # or epsilon_mecha
+		# else:
+		# 	return DeformationRte.compute_epsilon_both_materials()
+
 		epsilon_plastic = DeformationRte.compute_epsilon_plastic(
-			T_mean, E, S, polynomial, max_stress
+			T_mean, E, S, polynomial_conductor, max_stress
 		)
 		return epsilon_plastic + sigma / E
 
+	# @staticmethod
+	# def compute_epsilon_both_materials(
+
+	# ) -> np.ndarray:
+
+	# change input here?
 	@staticmethod
 	def compute_epsilon_plastic(
 		T_mean: np.ndarray,
@@ -208,3 +236,41 @@ class DeformationRte(IDeformation):
 	) -> np.ndarray:
 		"""Computing thermal strain using a static method"""
 		return (theta - theta_ref) * alpha
+
+
+class SigmaFunctionSingleMaterial:
+	def __init__(self, poly, E, alpha_th, T_labo, epsilon_max=0.0):
+		self.poly = poly
+		# self.sigma_max = sigma_max
+		self.E = E
+		self.alpha_th = alpha_th
+		self.T_labo = T_labo
+		self.epsilon_max = epsilon_max
+		self._epsilon_th = 0.0
+
+	@property
+	def sigma_max(self):
+		return self.sigma_poly(self.epsilon_max)
+
+	@property
+	def epsilon_th(self):
+		return self._epsilon_th
+
+	@epsilon_th.setter
+	def epsilon_th(self, T):
+		self._epsilon_th = self.alpha_th * (T - self.T_labo)
+
+	def elastic(self, x):
+		return self.E * x + self.sigma_max - self.E * self.epsilon_max
+
+	def sigma(self, x):
+		out = self.poly(x - self.epsilon_th)
+		out = np.where(
+			out < self.sigma_max, self.elastic(x - self.epsilon_th), out
+		)
+		out = np.where(out < 0, 0, out)
+		return out
+
+	def sigma_poly(self, x):
+		out = self.poly(x)
+		return out

@@ -124,6 +124,7 @@ class CableArray(ElementArray):
 		data_SI = self._data.copy()
 		# section is in mm²
 		data_SI["section"] *= 1e-6
+		data_SI["section_conductor"] *= 1e-6
 		# diameter is in mm
 		data_SI["diameter"] *= 1e-3
 		# young_modulus is in GPa
