@@ -230,7 +230,7 @@ class PlotAccessor:
 				f"{view=} : this argument has to be set to 'full' or 'analysis'"
 			)
 
-		plot_line(fig, self.section.get_coord())
+		plot_line(fig, self.section.get_coordinates())
 
 		support_points = get_support_points(self.section.data)
 		plot_support(fig, support_points)

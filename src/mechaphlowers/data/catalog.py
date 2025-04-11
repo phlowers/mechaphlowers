@@ -30,8 +30,8 @@ class Catalog:
 		to the user: no integrity check is performed on input data.
 
 		Args:
-			filename (str | PathLike): filename of the csv data source
-			key_column_name (str): name of the column used as key (i.e. row identifier)
+		        filename (str | PathLike): filename of the csv data source
+		        key_column_name (str): name of the column used as key (i.e. row identifier)
 		"""
 		filepath = DATA_BASE_PATH / filename
 		self._data = pd.read_csv(filepath, index_col=key_column_name)
@@ -46,13 +46,13 @@ class Catalog:
 		be returned.
 
 		Raises:
-			KeyError: if any of the requested `keys` doesn't match any row in the input data
+		        KeyError: if any of the requested `keys` doesn't match any row in the input data
 
 		Args:
-			keys (list): list of keys
+		        keys (list): list of keys
 
 		Returns:
-			pd.DataFrame: requested rows
+		        pd.DataFrame: requested rows
 		"""
 		try:
 			return self._data.loc[keys]
@@ -71,13 +71,13 @@ class Catalog:
 		be returned.
 
 		Raises:
-			KeyError: if any of the requested `keys` doesn't match any row in the input data
+		        KeyError: if any of the requested `keys` doesn't match any row in the input data
 
 		Args:
-			keys (list): list of keys
+		        keys (list): list of keys
 
 		Returns:
-			CableArray: requested rows
+		        CableArray: requested rows
 		"""
 		df = self.get(keys)
 		return CableArray(df)

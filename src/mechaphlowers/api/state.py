@@ -10,6 +10,9 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from mechaphlowers.core.solver.cable_state import SagTensionSolver
+from mechaphlowers.entities.arrays import WeatherArray
+
 if TYPE_CHECKING:
 	from mechaphlowers.api.frames import SectionDataFrame
 
@@ -19,18 +22,21 @@ class StateAccessor:
 
 	def __init__(self, frame: SectionDataFrame):
 		self.frame: SectionDataFrame = frame
+		self.sag_tension: SagTensionSolver | None = None
+		self.p_after_change: np.ndarray | None = None
+		self.L_after_change: np.ndarray | None = None
 
 	def L_ref(self, current_temperature: float | np.ndarray) -> np.ndarray:
 		"""L_ref values for the current temperature
 
 		Args:
-			current_temperature (float | np.ndarray): current temperature in degrees Celsius
+		        current_temperature (float | np.ndarray): current temperature in degrees Celsius
 
 		Raises:
-			ValueError: if current_temperature is not a float or an array with the same length as the section
+		        ValueError: if current_temperature is not a float or an array with the same length as the section
 
 		Returns:
-			np.ndarray: L_ref values
+		        np.ndarray: L_ref values
 		"""
 		if self.frame.deformation is None:
 			raise ValueError(
@@ -54,3 +60,29 @@ class StateAccessor:
 					"Current temperature should have the same length as the section"
 				)
 		return self.frame.deformation.L_ref(current_temperature)
+
+	def change(
+		self, current_temperature: np.ndarray, weather_loads: WeatherArray
+	) -> None:
+		"""Change the state of the cable
+		Args:
+		        current_temperature (np.ndarray): current temperature in degrees Celsius
+		"""
+		if self.frame.deformation is None:
+			raise ValueError(
+				"Deformation model is not defined: setting cable usually sets deformation model"
+			)
+
+		unstressed_length = self.frame.deformation.L_ref(current_temperature)
+		sag_tension_calculation = SagTensionSolver(
+			**self.frame.data_container.__dict__,
+			unstressed_length=unstressed_length,
+		)
+		sag_tension_calculation.change_state(
+			**weather_loads.to_numpy(),
+			temp=current_temperature,
+			solver="newton",
+		)
+		self.sag_tension = sag_tension_calculation
+		self.p_after_change = sag_tension_calculation.p_after_change()
+		self.L_after_change = sag_tension_calculation.L_after_change()

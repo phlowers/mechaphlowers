@@ -177,13 +177,13 @@ class DeformationRte(IDeformation):
 		"""Find the smallest root that is real and positive for each polynomial
 
 		Args:
-			poly_to_resolve (np.ndarray): array of polynomials to solve
+		        poly_to_resolve (np.ndarray): array of polynomials to solve
 
 		Raises:
-			ValueError: if no real positive root has been found for at least one polynomial.
+		        ValueError: if no real positive root has been found for at least one polynomial.
 
 		Returns:
-			np.ndarray: array of the roots (one per polynomial)
+		        np.ndarray: array of the roots (one per polynomial)
 		"""
 		# Can cause performance issues
 		all_roots = [poly.roots() for poly in poly_to_resolve]

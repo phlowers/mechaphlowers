@@ -40,6 +40,16 @@ class DataContainer:
 		self.ice_thickness: np.ndarray
 		self.wind_pressure: np.ndarray
 
+	def update_from_dict(self, data: dict) -> None:
+		"""Update the attributes of the instance based on a dictionary.
+
+		Args:
+		        data (dict): Dictionary containing attribute names as keys and their values.
+		"""
+		for key, value in data.items():
+			if hasattr(self, key):
+				setattr(self, key, value)
+
 	def add_section_array(self, section_array: SectionArray) -> None:
 		"""Take as argument a SectionArray, and add all data into its attributes"""
 		self.support_name = section_array.data.name.to_numpy()
@@ -67,10 +77,10 @@ class DataContainer:
 		The stress-strain polynomial is created, the coefficients are not kept.
 
 		Args:
-			cable_array (CableArray): the CableArray that contains data.
+		        cable_array (CableArray): the CableArray that contains data.
 
 		Raises:
-			NotImplementedError: raises error if CableArray does not have exactly one row.
+		        NotImplementedError: raises error if CableArray does not have exactly one row.
 		"""
 
 		if len(cable_array.data.section) != 1:
@@ -118,12 +128,12 @@ def factory_data_container(
 	"""Function that creates a DataContainer from arrays.
 
 	Args:
-		section_array (SectionArray): SectionArray
-		cable_array (CableArray): CableArray
-		weather_array (WeatherArray): WeatherArray
+	        section_array (SectionArray): SectionArray
+	        cable_array (CableArray): CableArray
+	        weather_array (WeatherArray): WeatherArray
 
 	Returns:
-		DataContainer: DataContainer instance that contains data from the input arrays
+	        DataContainer: DataContainer instance that contains data from the input arrays
 	"""
 	data_container = DataContainer()
 	data_container.add_section_array(section_array)

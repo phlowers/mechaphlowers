@@ -11,6 +11,51 @@ import numpy as np
 from mechaphlowers.core.geometry.rotation import rotation_quaternion_same_axis
 
 
+def transform_coordinates(
+	x_cable: np.ndarray,
+	z_cable: np.ndarray,
+	beta: np.ndarray,
+	altitude: np.ndarray,
+	span_length: np.ndarray,
+	crossarm_length: np.ndarray,
+	insulator_length: np.ndarray,
+) -> np.ndarray:
+	"""Transform cable coordinates from cable frame to global frame
+
+	Args:
+	        x_cable: Cable x coordinates
+	        z_cable: Cable z coordinates
+	        beta: Load angles in degrees
+	        altitude: Conductor attachment altitudes
+	        span_length: Span lengths
+	        crossarm_length: Crossarm lengths
+	        insulator_length: Insulator lengths
+
+	Returns:
+	        np.ndarray: Transformed coordinates array in point format (x,y,z)
+	"""
+	x_span, y_span, z_span = cable2span(
+		x_cable[:, :-1], z_cable[:, :-1], beta=beta[:-1]
+	)
+
+	x_span, y_span, z_span = translate_cable_to_support(
+		x_span,
+		y_span,
+		z_span,
+		altitude,
+		span_length,
+		crossarm_length,
+		insulator_length,
+	)
+
+	# dont forget to flatten the arrays and stack in a 3xNpoints array
+	# Ex: z_span = array([[10., 20., 30.], [11., 12. ,13.]]) -> z_span.reshape(-1) = array([10., 20., 30., 11., 12., 13.])
+
+	return np.vstack(
+		[x_span.T.reshape(-1), y_span.T.reshape(-1), z_span.T.reshape(-1)]
+	).T
+
+
 def spans2vector(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
 	"""spans2vector is a function that allows to stack x, y and z arrays into a single array
 

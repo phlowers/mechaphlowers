@@ -26,6 +26,14 @@ class SolverConfig:
 
 
 @dataclass
+class ComputeConfig:
+	"""ComputeConfig configuration class."""
+
+	span_model: str = "CatenarySpan"
+	deformation_model: str = "DeformationRte"
+
+
+@dataclass
 class Config:
 	"""Configuration class for mechaphlowers settings.
 
@@ -34,13 +42,14 @@ class Config:
 	`options` is available in the module mechaphlowers.config.
 
 	Attributes:
-		graphics_resolution (int): Resolution of the graphics.
-		graphics_marker_size (float): Size of the markers in the graphics.
+	        graphics_resolution (int): Resolution of the graphics.
+	        graphics_marker_size (float): Size of the markers in the graphics.
 	"""
 
 	def __init__(self):
 		self._graphics = GraphicsConfig()
 		self._solver = SolverConfig()
+		self._compute_config = ComputeConfig()
 
 	@property
 	def graphics(self) -> GraphicsConfig:
@@ -51,6 +60,17 @@ class Config:
 	def solver(self) -> SolverConfig:
 		"""Solver configuration property."""
 		return self._solver
+
+	@property
+	def compute(self) -> ComputeConfig:
+		"""Dataframe configuration property."""
+		return self._compute_config
+
+	class OptionError(Exception):
+		"""Exception raised when an option is not available."""
+
+		def __init__(self, message: str):
+			super().__init__(message)
 
 
 # Declare below a ready to use options object

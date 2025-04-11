@@ -17,6 +17,8 @@ from mechaphlowers.entities.schemas import (
 	WeatherArrayInput,
 )
 
+from mechaphlowers.utils import df2dct
+
 
 class ElementArray(ABC):
 	array_input_type: Type[pa.DataFrameModel]
@@ -45,6 +47,9 @@ class ElementArray(ABC):
 	@abstractmethod
 	def data(self) -> pd.DataFrame:
 		"""Dataframe with updated data: SI units and added columns"""
+
+	def to_numpy(self) -> dict:
+		return df2dct(self.data)
 
 	@property
 	def data_original(self) -> pd.DataFrame:
@@ -107,7 +112,7 @@ class CableArray(ElementArray):
 	"""Physical description of a cable.
 
 	Args:
-		data: Input data
+	        data: Input data
 	"""
 
 	array_input_type: Type[pa.DataFrameModel] = CableArrayInput

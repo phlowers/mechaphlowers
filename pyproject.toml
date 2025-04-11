@@ -80,6 +80,7 @@ distribution = true
 target-version = "py311"
 line-length = 79
 
+
 [tool.ruff.format]
 # Enable reformatting of code snippets in docstrings.
 docstring-code-format = true

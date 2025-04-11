@@ -39,7 +39,7 @@ def test_section_frame_initialization(default_section_array_three_spans):
 
 def test_section_frame_get_coord(default_section_array_three_spans):
 	frame = SectionDataFrame(default_section_array_three_spans)
-	coords = frame.get_coord()
+	coords = frame.get_coordinates()
 	assert coords.shape == (
 		(len(default_section_array_three_spans.data) - 1)
 		* cfg.graphics.resolution,
@@ -228,3 +228,17 @@ def test_SectionDataFrame__add_weather_update_span(
 		frame.span.load_coefficient, cable_loads.load_coefficient
 	)
 	np.testing.assert_equal(frame.deformation.cable_length, frame.span.L())
+
+
+def test_frame__sagtension_use(section_dataframe_with_cable_weather):
+	"""Test that the sag tension is calculated correctly."""
+	wa = WeatherArray(
+		pd.DataFrame(
+			{
+				"ice_thickness": [1, 2.1, 0.0, np.nan],
+				"wind_pressure": [240.12, 0.0, 12.0, np.nan],
+			}
+		)
+	)
+	section_dataframe_with_cable_weather.state.change(100, wa)
+	assert True

@@ -78,3 +78,22 @@ def test_data_container__add_arrays(
 	data_container.add_section_array(default_section_array_three_spans)
 	data_container.add_cable_array(default_cable_array)
 	data_container.add_weather_array(generic_weather_array_three_spans)
+
+
+def test_update_from_dict(default_data_container_one_span):
+	data = {
+		"support_name": np.array(["Support1", "Support2"]),
+		"suspension": np.array([10.5, 12.3]),
+		"non_existing_attribute": "ignored",
+	}
+	default_data_container_one_span.update_from_dict(data)
+	np.testing.assert_array_equal(
+		default_data_container_one_span.support_name,
+		np.array(["Support1", "Support2"]),
+	)
+	np.testing.assert_array_equal(
+		default_data_container_one_span.suspension, np.array([10.5, 12.3])
+	)
+	assert not hasattr(
+		default_data_container_one_span, "non_existing_attribute"
+	)

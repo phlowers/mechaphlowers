@@ -15,12 +15,12 @@ class CableLoads:
 	"""CableLoads is a class that allows to calculate the loads on the cable due to wind and ice
 
 	Args:
-		diameter (np.float64): diameter of the cable
-		linear_weight (np.float64): linear weight of the cable
-		ice_thickness (np.ndarray): thickness of the ice on the cable
-		wind_pressure (np.ndarray): wind pressure on the cable
-		ice_density (float, optional): density of the ice. Defaults to DEFAULT_ICE_DENSITY.
-		**kwargs: additional arguments
+	        diameter (np.float64): diameter of the cable
+	        linear_weight (np.float64): linear weight of the cable
+	        ice_thickness (np.ndarray): thickness of the ice on the cable
+	        wind_pressure (np.ndarray): wind pressure on the cable
+	        ice_density (float, optional): density of the ice. Defaults to DEFAULT_ICE_DENSITY.
+	        **kwargs: additional arguments
 
 
 	"""
@@ -45,7 +45,7 @@ class CableLoads:
 		"""Load angle (in radians)
 
 		Returns:
-			np.ndarray: load angle (beta) for each span
+		        np.ndarray: load angle (beta) for each span
 		"""
 		linear_weight = self.linear_weight
 		ice_load = self.ice_load
@@ -75,7 +75,7 @@ class CableLoads:
 		"""Linear weight of the ice on the cable
 
 		Returns:
-			np.ndarray: linear weight of the ice for each span
+		        np.ndarray: linear weight of the ice for each span
 		"""
 		e = self.ice_thickness
 		D = self.diameter
@@ -86,9 +86,19 @@ class CableLoads:
 		"""Linear force applied on the cable by the wind.
 
 		Returns:
-			np.ndarray: linear force applied on the cable by the wind
+		        np.ndarray: linear force applied on the cable by the wind
 		"""
 		P_w = self.wind_pressure
 		D = self.diameter
 		e = self.ice_thickness
 		return P_w * (D + 2 * e)
+
+	def update_from_dict(self, data: dict) -> None:
+		"""Update the attributes of the instance based on a dictionary.
+
+		Args:
+		        data (dict): Dictionary containing attribute names as keys and their values.
+		"""
+		for key, value in data.items():
+			if hasattr(self, key):
+				setattr(self, key, value)
