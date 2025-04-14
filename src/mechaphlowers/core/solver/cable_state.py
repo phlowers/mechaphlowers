@@ -9,7 +9,11 @@ from typing import Type
 
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
-from scipy import optimize  # type: ignore
+
+try:
+    from scipy import optimize  # type: ignore
+except ImportError:
+    import mechaphlowers.core.numeric.numeric as optimize
 
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.cable.deformation import (
