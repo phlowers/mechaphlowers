@@ -10,13 +10,13 @@ from typing import TypedDict
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
-from mechaphlowers.entities.data_container import DataCable
 from mechaphlowers.core.models.cable.deformation import (
 	DeformationRte,
 )
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 )
+from mechaphlowers.entities.data_container import DataCable
 
 
 class DeformationInputDict(TypedDict, total=False):
@@ -64,7 +64,7 @@ def test_solve_polynom_perf() -> None:
 	start_time = time.time()
 
 	deformation_model.max_stress = np.array([1e8] * (spans_number - 1) + [100])
-	deformation_model.epsilon_mecha()
+	deformation_model.epsilon()
 	exec_time = time.time() - start_time
 	print(f"{spans_number} spans execution time : {exec_time}")
 

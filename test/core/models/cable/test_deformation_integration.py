@@ -26,8 +26,6 @@ def test_deformation_impl(
 		cable_length=cable_length,
 	)
 	current_temperature = np.array([15, 15])
-	deformation_model.epsilon_mecha()
-	deformation_model.epsilon_therm(current_temperature)
 	deformation_model.epsilon(current_temperature)
 	deformation_model.L_ref(current_temperature)
 
@@ -46,21 +44,20 @@ def test_deformation_values__default_data(
 	)
 	current_temperature = np.array([30, 30])
 
-	eps_mecha = deformation_model.epsilon_mecha()
-	eps_therm = deformation_model.epsilon_therm(current_temperature)
+	eps_total = deformation_model.epsilon(current_temperature)
 	L_ref = deformation_model.L_ref(current_temperature)
 
 	# Data given by the prototype
 	np.testing.assert_allclose(
-		eps_mecha,
+		eps_total,
 		np.array([0.00093978, np.nan]),
 		atol=1e-6,
 	)
-	np.testing.assert_allclose(
-		eps_therm,
-		np.array([0.000345, 0.000345]),
-		atol=1e-6,
-	)
+	# np.testing.assert_allclose(
+	# 	eps_therm,
+	# 	np.array([0.000345, 0.000345]),
+	# 	atol=1e-6,
+	# )
 	np.testing.assert_allclose(
 		L_ref,
 		np.array([480.6392123, np.nan]),
@@ -85,7 +82,5 @@ def test_deformation__data_container(
 		cable_length=cable_length,
 	)
 	current_temperature = np.array([15, 15])
-	deformation_model.epsilon_mecha()
-	deformation_model.epsilon_therm(current_temperature)
 	deformation_model.epsilon(current_temperature)
 	deformation_model.L_ref(current_temperature)

@@ -15,6 +15,7 @@ from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.cable.deformation import (
 	DeformationRte,
 	IDeformation,
+	SigmaFunctionSingleMaterial,
 )
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
@@ -44,6 +45,7 @@ class SagTensionSolver:
 		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
 		polynomial_heart: Poly,
+		data_cable: DataCable,
 		unstressed_length: np.ndarray,
 		**kwargs,
 	) -> None:
@@ -59,16 +61,7 @@ class SagTensionSolver:
 		self.polynomial_conductor = polynomial_conductor
 		self.polynomial_heart = polynomial_heart
 		# TODO: temporary measure
-		self.data_cable = DataCable(
-			cable_section_area=cable_section_area,
-			diameter=diameter,
-			linear_weight=linear_weight,
-			young_modulus=young_modulus,
-			dilatation_coefficient=dilatation_coefficient,
-			temperature_reference=temperature_reference,
-			polynomial_conductor=polynomial_conductor,
-			polynomial_heart=polynomial_heart,
-		)
+		self.data_cable = data_cable
 		self.L_ref = unstressed_length
 		self.span_model: Type[Span] = CatenarySpan
 		self.deformation_model: Type[IDeformation] = DeformationRte
@@ -162,11 +155,28 @@ class SagTensionSolver:
 			p,
 			T_h,
 		)
-		epsilon_total = self.deformation_model.compute_epsilon_mecha(
+		conductor_kwargs = {
+			"stress_strain_polynomial": self.data_cable.polynomial_conductor,
+			"young_modulus": self.data_cable.young_modulus_conductor,
+			"dilatation_coefficient": self.data_cable.dilatation_coefficient_conductor,
+			"T_labo": self.data_cable.temperature_reference,
+		}
+		heart_kwargs = {
+			"stress_strain_polynomial": self.data_cable.polynomial_heart,
+			"young_modulus": self.data_cable.young_modulus_heart,
+			"dilatation_coefficient": self.data_cable.dilatation_coefficient_heart,
+			"T_labo": self.data_cable.temperature_reference,
+		}
+		sigma_func_conductor = SigmaFunctionSingleMaterial(
+			**conductor_kwargs
+		)
+		sigma_func_heart = SigmaFunctionSingleMaterial(**heart_kwargs)
+		epsilon_total = self.deformation_model.compute_epsilon(
 			T_mean,
 			self.data_cable,
-		) + self.deformation_model.compute_epsilon_therm(
-			temp, self.temperature_reference, self.dilatation_coefficient
+			temp,
+			sigma_func_conductor,
+			sigma_func_heart
 		)
 
 		return (L / L_ref - 1) - epsilon_total

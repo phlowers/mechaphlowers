@@ -47,6 +47,7 @@ def create_sag_tension_solver(
 
 	return SagTensionSolver(
 		**data_container.__dict__,
+		data_cable=data_container.data_cable,
 		unstressed_length=unstressed_length,
 	)
 
@@ -77,6 +78,7 @@ def test_functions_to_solve__same_loads(
 
 	sag_tension_calculation = SagTensionSolver(
 		**data_container.__dict__,
+		data_cable=data_container.data_cable,
 		unstressed_length=unstressed_length,
 	)
 

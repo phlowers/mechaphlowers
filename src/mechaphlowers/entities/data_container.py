@@ -20,6 +20,7 @@ class DataCable:
 	linear_weight: np.float64
 	young_modulus: np.float64
 	# young_modulus_conductor: np.float64
+	young_modulus_conductor: Optional[np.float64]
 	young_modulus_heart: Optional[np.float64]
 	dilatation_coefficient: np.float64
 	dilatation_coefficient_conductor: Optional[np.float64]
@@ -59,6 +60,7 @@ class DataContainer:
 		self.diameter: np.float64
 		self.linear_weight: np.float64
 		self.young_modulus: np.float64
+		self.young_modulus_conductor: np.float64
 		self.young_modulus_heart: np.float64
 		self.dilatation_coefficient: np.float64
 		self.dilatation_coefficient_conductor: np.float64
@@ -120,6 +122,10 @@ class DataContainer:
 			)
 		if "young_modulus_heart" in cable_array.data:
 			self.young_modulus_heart = cable_array.data.young_modulus_heart[0]
+		if "young_modulus_conductor" in cable_array.data:
+			self.young_modulus_conductor = (
+				cable_array.data.young_modulus_conductor[0]
+			)
 		if "dilatation_coefficient_conductor" in cable_array.data:
 			self.dilatation_coefficient_conductor = (
 				cable_array.data.dilatation_coefficient_conductor[0]

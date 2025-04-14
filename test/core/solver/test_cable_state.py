@@ -52,6 +52,7 @@ def test_solver__run_solver(
 
 	sag_tension_calculation = SagTensionSolver(
 		**default_data_container_one_span.__dict__,
+		data_cable=default_data_container_one_span.data_cable,
 		unstressed_length=unstressed_length,
 	)
 	sag_tension_calculation.change_state(
@@ -89,6 +90,7 @@ def test_solver__run_solver__polynomial_model(
 
 	sag_tension_calculation = SagTensionSolver(
 		**default_data_container_one_span.__dict__,
+		data_cable=default_data_container_one_span.data_cable,
 		unstressed_length=unstressed_length,
 	)
 	sag_tension_calculation.change_state(
@@ -109,6 +111,7 @@ def test_solver__run_solver_no_solution(
 	current_temperature = np.array([15] * 2)
 	sag_tension_calculation = SagTensionSolver(
 		**default_data_container_one_span.__dict__,
+		data_cable=default_data_container_one_span.data_cable,
 		unstressed_length=np.array([1, 1]),
 	)
 	with pytest.raises(ValueError) as excinfo:
@@ -130,6 +133,7 @@ def test_solver__bad_solver(
 
 	sag_tension_calculation = SagTensionSolver(
 		**default_data_container_one_span.__dict__,
+		data_cable=default_data_container_one_span.data_cable,
 		unstressed_length=unstressed_length,
 	)
 
@@ -153,6 +157,7 @@ def test_solver__values_before_solver(
 
 	sag_tension_calculation = SagTensionSolver(
 		**default_data_container_one_span.__dict__,
+		data_cable=default_data_container_one_span.data_cable,
 		unstressed_length=unstressed_length,
 	)
 	assert sag_tension_calculation.T_h_after_change is None
