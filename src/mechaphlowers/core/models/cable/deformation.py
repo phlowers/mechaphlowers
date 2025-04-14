@@ -39,7 +39,7 @@ class IDeformation(ABC):
 		self.dilatation_coefficient = dilatation_coefficient
 		self.temp_ref = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
-		self.sagging_temperature = sagging_temperature
+		self.current_temperature = sagging_temperature
 
 		if max_stress is None:
 			self.max_stress = np.full(self.cable_length.shape, 0)
@@ -100,7 +100,7 @@ class DeformationRte(IDeformation):
 		return self.epsilon_mecha() + self.epsilon_therm()
 
 	def epsilon_therm(self) -> np.ndarray:
-		sagging_temperature = self.sagging_temperature
+		sagging_temperature = self.current_temperature
 		temp_ref = self.temp_ref
 		alpha = self.dilatation_coefficient
 		return self.compute_epsilon_therm(sagging_temperature, temp_ref, alpha)
