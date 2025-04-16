@@ -11,9 +11,9 @@ import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
 try:
-    from scipy import optimize  # type: ignore
+	from scipy import optimize  # type: ignore
 except ImportError:
-    import mechaphlowers.core.numeric.numeric as optimize
+	import mechaphlowers.core.numeric.numeric as optimize
 
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.cable.deformation import (
