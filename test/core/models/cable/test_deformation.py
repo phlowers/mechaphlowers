@@ -194,3 +194,20 @@ def test_deformation__data_container(
 	current_temperature = np.array([15, 15])
 	deformation_model.epsilon(current_temperature)
 	deformation_model.L_ref(current_temperature)
+
+
+def test_deformation__data_container_polynomial_2_materials(
+	data_container_one_span_narcisse: DataContainer,
+) -> None:
+	span_model = CatenarySpan(**data_container_one_span_narcisse.__dict__)
+	tension_mean = span_model.T_mean()
+	cable_length = span_model.L()
+
+	deformation_model = DeformationRte(
+		data_cable=data_container_one_span_narcisse.data_cable,
+		tension_mean=tension_mean,
+		cable_length=cable_length,
+	)
+	current_temperature = np.array([15, 15])
+	deformation_model.epsilon(current_temperature)
+	deformation_model.L_ref(current_temperature)

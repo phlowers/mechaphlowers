@@ -233,3 +233,32 @@ def test_functions_to_solve__different_temp_ref(
 	expected_result_1 = np.array([117961.6142, np.nan])
 	assert T_h_state_1 is not None
 	np.testing.assert_allclose(T_h_state_1, expected_result_1, atol=0.01)
+
+
+
+
+def test_functions_to_solve__narcisse(
+	default_section_array_one_spans: SectionArray,
+	narcisse_cable_array: CableArray,
+	factory_neutral_weather_array: Callable[[int], WeatherArray],
+) -> None:
+	NB_SPAN = 2
+	initial_weather_array = factory_neutral_weather_array(2)
+	new_temperature = np.array([15] * NB_SPAN)
+
+	sag_tension_calculation_0 = create_sag_tension_solver(
+		default_section_array_one_spans,
+		narcisse_cable_array,
+		initial_weather_array,
+	)
+
+	weather_dict_final: WeatherDict = {
+		"ice_thickness": 1.5e-2 * np.ones(NB_SPAN),
+		"wind_pressure": 0 * np.ones(NB_SPAN),
+	}
+
+	sag_tension_calculation_0.change_state(
+		**weather_dict_final, temp=new_temperature
+	)
+	T_h_state_0 = sag_tension_calculation_0.T_h_after_change
+	assert T_h_state_0 is not None

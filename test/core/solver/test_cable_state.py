@@ -165,3 +165,28 @@ def test_solver__values_before_solver(
 		sag_tension_calculation.p_after_change()
 	with pytest.raises(ValueError):
 		sag_tension_calculation.L_after_change()
+
+
+def test_solver__run_solver_polynomial(
+	data_container_one_span_narcisse: DataContainer,
+	weather_dict_one_span: dict,
+) -> None:
+	current_temperature = np.array([15] * 2)
+	unstressed_length = get_L_ref_from_arrays(
+		data_container_one_span_narcisse,
+		current_temperature,
+	)
+
+	sag_tension_calculation = SagTensionSolver(
+		**data_container_one_span_narcisse.__dict__,
+		data_cable=data_container_one_span_narcisse.data_cable,
+		unstressed_length=unstressed_length,
+	)
+	sag_tension_calculation.change_state(
+		**weather_dict_one_span,
+		temp=current_temperature,
+		solver="newton",
+	)
+	# check no error
+	sag_tension_calculation.p_after_change()
+	sag_tension_calculation.L_after_change()

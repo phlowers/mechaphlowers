@@ -60,6 +60,37 @@ def default_cable_array() -> CableArray:
 
 
 @pytest.fixture
+def narcisse_cable_array() -> CableArray:
+	return CableArray(
+		pd.DataFrame(
+			{
+				"section": [600.4],
+				"diameter": [29.56],
+				"linear_weight": [2.2],
+				"young_modulus": [75.565],
+				"young_modulus_heart": [35.034],
+				"young_modulus_conductor": [40.531],
+				"dilatation_coefficient": [1.77],
+				"dilatation_coefficient_conductor": [23],
+				"dilatation_coefficient_heart": [1.1],
+				"temperature_reference": [15],
+				"section_conductor": [486.7],
+				"a0": [0],
+				"a1": [27.804],
+				"a2": [-6590.391],
+				"a3": [672009.160],
+				"a4": [-24561975.349],
+				"b0": [0],
+				"b1": [33.140],
+				"b2": [0],
+				"b3": [0],
+				"b4": [0],
+			}
+		)
+	)
+
+
+@pytest.fixture
 def default_section_array_one_spans() -> SectionArray:
 	section_array = SectionArray(
 		pd.DataFrame(
@@ -150,6 +181,71 @@ def default_data_container_one_span() -> DataContainer:
 				"a4": [0],
 				"b0": [0],
 				"b1": [0],
+				"b2": [0],
+				"b3": [0],
+				"b4": [0],
+			}
+		)
+	)
+
+	section_array = SectionArray(
+		pd.DataFrame(
+			{
+				"name": ["1", "2"],
+				"suspension": [False, False],
+				"conductor_attachment_altitude": [30, 40],
+				"crossarm_length": [0, 0],
+				"line_angle": [0, 0],
+				"insulator_length": [0, 0],
+				"span_length": [480, np.nan],
+				"sagging_parameter": [2000, 2000],
+				"sagging_temperature": [15, 15],
+			}
+		)
+	)
+	section_array.sagging_parameter = 2000
+	section_array.sagging_temperature = 15
+
+	weather_array = WeatherArray(
+		pd.DataFrame(
+			{
+				"ice_thickness": [0.0, 0.0],
+				"wind_pressure": np.zeros(NB_SPAN),
+			}
+		)
+	)
+
+	data_container = factory_data_container(
+		section_array, cable_array, weather_array
+	)
+	return data_container
+
+
+# TODO: use catalog instead
+@pytest.fixture
+def data_container_one_span_narcisse() -> DataContainer:
+	NB_SPAN = 2
+	cable_array = CableArray(
+		pd.DataFrame(
+			{
+				"section": [600.4],
+				"diameter": [29.56],
+				"linear_weight": [2.2],
+				"young_modulus": [75.565],
+				"young_modulus_heart": [35.034],
+				"young_modulus_conductor": [40.531],
+				"dilatation_coefficient": [1.77],
+				"dilatation_coefficient_conductor": [23],
+				"dilatation_coefficient_heart": [1.1],
+				"temperature_reference": [15],
+				"section_conductor": [486.7],
+				"a0": [0],
+				"a1": [27.804],
+				"a2": [-6590.391],
+				"a3": [672009.160],
+				"a4": [-24561975.349],
+				"b0": [0],
+				"b1": [33.140],
 				"b2": [0],
 				"b3": [0],
 				"b4": [0],
