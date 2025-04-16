@@ -270,7 +270,7 @@ class SectionDataFrame:
 
 		# Initialize deformation model
 		self.deformation = self._deformation_model(
-			**self.data_container.__dict__,
+			data_cable=self.data_container.data_cable,
 			tension_mean=self.span.T_mean(),
 			cable_length=self.span.L(),
 		)

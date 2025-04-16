@@ -15,12 +15,14 @@ from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.cable.deformation import (
 	DeformationRte,
 	IDeformation,
+	SigmaFunctionSingleMaterial,
 )
 from mechaphlowers.core.models.cable.span import (
 	CatenarySpan,
 	Span,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
+from mechaphlowers.entities.data_container import DataCable
 
 
 class SagTensionSolver:
@@ -42,6 +44,8 @@ class SagTensionSolver:
 		dilatation_coefficient: np.float64,
 		temperature_reference: np.float64,
 		polynomial_conductor: Poly,
+		polynomial_heart: Poly,
+		data_cable: DataCable,
 		unstressed_length: np.ndarray,
 		**kwargs,
 	) -> None:
@@ -55,6 +59,9 @@ class SagTensionSolver:
 		self.dilatation_coefficient = dilatation_coefficient
 		self.temperature_reference = temperature_reference
 		self.polynomial_conductor = polynomial_conductor
+		self.polynomial_heart = polynomial_heart
+		# TODO: temporary measure
+		self.data_cable = data_cable
 		self.L_ref = unstressed_length
 		self.span_model: Type[Span] = CatenarySpan
 		self.deformation_model: Type[IDeformation] = DeformationRte
@@ -129,7 +136,7 @@ class SagTensionSolver:
 			raise ValueError("Solver did not converge")
 		self.T_h_after_change = solver_result.root
 
-	def _delta(self, T_h, m, temp, L_ref):
+	def _delta(self, T_h, m, temp, L_ref) -> np.ndarray:
 		"""Function to solve.
 		This function is the difference between two ways to compute epsilon.
 		Therefore, its value should be zero.
@@ -148,13 +155,29 @@ class SagTensionSolver:
 			p,
 			T_h,
 		)
-		epsilon_total = self.deformation_model.compute_epsilon_mecha(
+		# TODO: find a better way to do this
+		conductor_kwargs = {
+			"stress_strain_polynomial": self.data_cable.polynomial_conductor,
+			"young_modulus": self.data_cable.young_modulus_conductor,
+			"dilatation_coefficient": self.data_cable.dilatation_coefficient_conductor,
+			"T_labo": self.data_cable.temperature_reference,
+		}
+		heart_kwargs = {
+			"stress_strain_polynomial": self.data_cable.polynomial_heart,
+			"young_modulus": self.data_cable.young_modulus_heart,
+			"dilatation_coefficient": self.data_cable.dilatation_coefficient_heart,
+			"T_labo": self.data_cable.temperature_reference,
+		}
+		sigma_func_conductor = SigmaFunctionSingleMaterial(
+			**conductor_kwargs
+		)
+		sigma_func_heart = SigmaFunctionSingleMaterial(**heart_kwargs)
+		epsilon_total = self.deformation_model.compute_epsilon(
 			T_mean,
-			self.young_modulus,
-			self.cable_section_area,
-			self.polynomial_conductor,
-		) + self.deformation_model.compute_epsilon_therm(
-			temp, self.temperature_reference, self.dilatation_coefficient
+			self.data_cable,
+			temp,
+			sigma_func_conductor,
+			sigma_func_heart
 		)
 
 		return (L / L_ref - 1) - epsilon_total
@@ -165,7 +188,7 @@ class SagTensionSolver:
 		m,
 		temp,
 		L_ref,
-	):
+	) -> np.ndarray:
 		"""Approximation of the derivative of the function to solve
 		$$\\delta'(T_h) = \\frac{\\delta(T_h + \\zeta) - \\delta(T_h)}{\\zeta}$$
 		"""
@@ -178,7 +201,7 @@ class SagTensionSolver:
 			self._delta(Th + self._ZETA, **kwargs) - self._delta(Th, **kwargs)
 		) / self._ZETA
 
-	def p_after_change(self):
+	def p_after_change(self) -> np.ndarray:
 		"""Compute the new value of the sagging parameter after sag tension calculation"""
 		m = self.cable_loads.load_coefficient
 		if self.T_h_after_change is None:
@@ -189,7 +212,7 @@ class SagTensionSolver:
 			self.T_h_after_change, m, self.linear_weight
 		)
 
-	def L_after_change(self):
+	def L_after_change(self) -> np.ndarray:
 		"""Compute the new value of the length of the cable after sag tension calculation"""
 		p = self.p_after_change()
 		if self.T_h_after_change is None:
