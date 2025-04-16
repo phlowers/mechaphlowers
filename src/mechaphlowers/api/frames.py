@@ -35,7 +35,7 @@ from mechaphlowers.entities.arrays import (
 )
 from mechaphlowers.entities.data_container import DataContainer
 from mechaphlowers.plotting.plot import PlotAccessor
-from mechaphlowers.utils import CachedAccessor, df2dct
+from mechaphlowers.utils import CachedAccessor, df_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -307,11 +307,11 @@ class SectionDataFrame:
 
 	def update(self):
 		"""update method to update the state of the object"""
-		update_data = df2dct(self.section_array.data)
+		update_data = df_to_dict(self.section_array.data)
 		if self.weather is not None:
-			update_data = update_data | df2dct(self.weather.data)
+			update_data = update_data | df_to_dict(self.weather.data)
 		if self.cable is not None:
-			update_data = update_data | df2dct(self.cable.data)
+			update_data = update_data | df_to_dict(self.cable.data)
 
 		self.data_container.update_from_dict(update_data)
 		self.span.update_from_dict(self.data_container.__dict__)

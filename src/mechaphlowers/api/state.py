@@ -73,7 +73,9 @@ class StateAccessor:
 				"Deformation model is not defined: setting cable usually sets deformation model"
 			)
 
-		unstressed_length = self.frame.deformation.L_ref(current_temperature)
+		unstressed_length = self.frame.deformation.L_ref(
+			self.frame.data_container.sagging_temperature
+		)
 		sag_tension_calculation = SagTensionSolver(
 			**self.frame.data_container.__dict__,
 			unstressed_length=unstressed_length,

@@ -34,7 +34,7 @@ def transform_coordinates(
 	Returns:
 	        np.ndarray: Transformed coordinates array in point format (x,y,z)
 	"""
-	x_span, y_span, z_span = cable2span(
+	x_span, y_span, z_span = cable_to_span(
 		x_cable[:, :-1], z_cable[:, :-1], beta=beta[:-1]
 	)
 
@@ -56,7 +56,7 @@ def transform_coordinates(
 	).T
 
 
-def spans2vector(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
+def spans_to_vector(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
 	"""spans2vector is a function that allows to stack x, y and z arrays into a single array
 
 	spans are a n x d array where n is the number of points per span and d is the number of spans
@@ -81,7 +81,7 @@ def spans2vector(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
 	return cc
 
 
-def cable2span(
+def cable_to_span(
 	x: np.ndarray,
 	z: np.ndarray,
 	beta: np.ndarray,
@@ -111,7 +111,7 @@ def cable2span(
 		x.shape[0],
 	)
 
-	vector = spans2vector(x, 0 * x, z - elevation_part)
+	vector = spans_to_vector(x, 0 * x, z - elevation_part)
 	span = rotation_quaternion_same_axis(
 		vector,
 		beta.repeat(init_shape[0]),  # idea : beta = [b0,..,b0, b1,..,b1,..]

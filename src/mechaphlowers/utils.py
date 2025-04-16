@@ -88,7 +88,7 @@ def add_stderr_logger(
 	return handler
 
 
-def df2dct(df: pd.DataFrame) -> dict:
+def df_to_dict(df: pd.DataFrame) -> dict:
 	"""Convert a pandas.DataFrame to a dictionary.
 
 	Would be an equivalent to df.to_dict(orient='numpy.ndarray') if it existed.
