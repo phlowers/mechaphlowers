@@ -57,8 +57,6 @@ class SectionDataFrame:
 	def __init__(
 		self,
 		section_array: SectionArray,
-		# span_model: Type[Span] = CatenarySpan,
-		# deformation_model: Type[IDeformation] = DeformationRte,
 	):
 		# Assign
 		self.section_array: SectionArray = section_array
