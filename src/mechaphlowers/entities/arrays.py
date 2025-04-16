@@ -16,7 +16,7 @@ from mechaphlowers.entities.schemas import (
 	SectionArrayInput,
 	WeatherArrayInput,
 )
-from mechaphlowers.utils import df2dct
+from mechaphlowers.utils import df_to_dict
 
 
 class ElementArray(ABC):
@@ -48,7 +48,7 @@ class ElementArray(ABC):
 		"""Dataframe with updated data: SI units and added columns"""
 
 	def to_numpy(self) -> dict:
-		return df2dct(self.data)
+		return df_to_dict(self.data)
 
 	@property
 	def data_original(self) -> pd.DataFrame:
