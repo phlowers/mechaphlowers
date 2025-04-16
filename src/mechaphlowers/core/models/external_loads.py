@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from math import pi
+from typing import Any
 
 import numpy as np
 
@@ -20,7 +21,7 @@ class CableLoads:
 	        ice_thickness (np.ndarray): thickness of the ice on the cable
 	        wind_pressure (np.ndarray): wind pressure on the cable
 	        ice_density (float, optional): density of the ice. Defaults to DEFAULT_ICE_DENSITY.
-	        **kwargs: additional arguments
+	        **kwargs (Any, optional): additional arguments
 
 
 	"""
@@ -32,7 +33,7 @@ class CableLoads:
 		ice_thickness: np.ndarray,
 		wind_pressure: np.ndarray,
 		ice_density: float = DEFAULT_ICE_DENSITY,
-		**kwargs,
+		**kwargs: Any,
 	) -> None:
 		self.diameter = diameter
 		self.linear_weight = linear_weight
