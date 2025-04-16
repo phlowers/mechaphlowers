@@ -7,6 +7,7 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.config import options as cfg
 from mechaphlowers.entities.data_container import DataCable
@@ -17,25 +18,32 @@ IMAGINARY_THRESHOLD = cfg.solver.deformation_imag_thresh  # type: ignore
 class SigmaFunctionSingleMaterial:
 	def __init__(
 		self,
-		stress_strain_polynomial,
+		stress_strain_polynomial: Poly,
 		young_modulus,
 		dilatation_coefficient,
 		T_labo,
-		epsilon_plastic_max=0.0,
-	):
+	) -> None:
 		self.stress_strain_polynomial = stress_strain_polynomial
 		self.young_modulus = young_modulus
 		self.dilatation_coefficient = dilatation_coefficient
 		self.T_labo = T_labo  # rename temp ref?
-		self.epsilon_plastic_max = epsilon_plastic_max
-		self._epsilon_th = 0.0
+		self.epsilon_plastic_max: np.ndarray | None = None
 
 	@property
 	def sigma_max(self):
 		return self.sigma_poly(self.epsilon_plastic_max)
 
+	# TODO: reverse: sigma_max is standard attribute, epsilon is property?
+	@sigma_max.setter
+	def sigma_max(self, value_sigma_max: np.ndarray):
+		self.epsilon_plastic_max = self.epsilon_plastic(value_sigma_max)
+	# add setter for sigma_max
+
 	def epsilon_total(self, sigma, current_temperature):
 		E = self.young_modulus
+		# TODO: unnecessary, but keep anyway?
+		if E == np.float64(0.0):
+			return np.zeros_like(sigma)
 		eps_th = self.epsilon_th(current_temperature)
 		eps_plast = self.epsilon_plastic(sigma)
 		return eps_th + eps_plast + sigma / E
@@ -46,7 +54,10 @@ class SigmaFunctionSingleMaterial:
 		)
 
 	def epsilon_plastic(self, sigma):
-		need_recomputation = sigma < self.sigma_max
+		# TODO : do better than this
+		if self.epsilon_plastic_max is None:
+			self.epsilon_plastic_max = np.zeros_like(sigma)
+		need_recomputation = sigma > self.sigma_max
 		sigma_recomputation = np.extract(need_recomputation, sigma)
 		E = self.young_modulus
 		if len(sigma_recomputation) > 0:
@@ -60,7 +71,7 @@ class SigmaFunctionSingleMaterial:
 			)
 		return self.epsilon_plastic_max
 
-	def sigma_poly(self, x):
+	def sigma_poly(self, x: np.ndarray):
 		out = self.stress_strain_polynomial(x)
 		return out
 
@@ -121,7 +132,20 @@ class IDeformation(ABC):
 		self.data_cable = data_cable
 
 		if max_stress is None:
-			self.max_stress = np.full(self.cable_length.shape, 0)
+			self._max_stress = np.full(self.cable_length.shape, 0)
+
+	# # Keep this in abstract class?
+	@property
+	@abstractmethod
+	def max_stress(self):
+		"""quoi"""
+		pass
+
+	@max_stress.setter
+	@abstractmethod
+	def max_stress(self, value_max_stress):
+		"""feur"""
+		pass
 
 	@abstractmethod
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
@@ -191,6 +215,17 @@ class DeformationRte(IDeformation):
 		)
 		self.sigma_func_heart = SigmaFunctionSingleMaterial(**heart_kwargs)
 
+
+	@property
+	def max_stress(self):
+		return self._max_stress
+
+	@max_stress.setter
+	def max_stress(self, value_max_stress: np.ndarray):
+		self.sigma_func_conductor.sigma_max = value_max_stress
+		if self.sigma_func_heart.young_modulus == np.float64(0):
+			self.sigma_func_heart.sigma_max = value_max_stress
+
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
 		L = self.cable_length
 		epsilon = self.epsilon(current_temperature)
@@ -221,22 +256,21 @@ class DeformationRte(IDeformation):
 	) -> np.ndarray:
 		E = data_cable.young_modulus
 		S = data_cable.cable_section_area
-		# linear case
-		if False:
-		# if data_cable.polynomial_conductor.trim().degree() < 2:
+		sigma = T_mean / S  # global section?
 
-			return T_mean / (E * S)
-		# add linear case with two materials
+		# single material
+		eps_total_cond = sigma_func_conductor.epsilon_total(sigma, current_temperature)
 
-		# polynomial case
-		# change way things work here?
+		if sigma_func_heart.young_modulus == np.float64(0):
+			# TODO: separate two cases?
+			return eps_total_cond
+
+		# two materials
 		else:
-			sigma = T_mean / S  # global section?
-
 			eps_plastic_cond = sigma_func_conductor.epsilon_plastic(sigma)
 			eps_th_cond = sigma_func_conductor.epsilon_th(current_temperature)
-			eps_total_cond = sigma_func_conductor.epsilon_total(sigma, current_temperature)
 			eps_total_heart = sigma_func_heart.epsilon_total(sigma, current_temperature)
+
 			is_only_heart_supported: np.ndarray = (
 				eps_total_heart < eps_plastic_cond + eps_th_cond
 			)

@@ -155,6 +155,7 @@ class SagTensionSolver:
 			p,
 			T_h,
 		)
+		# TODO: find a better way to do this
 		conductor_kwargs = {
 			"stress_strain_polynomial": self.data_cable.polynomial_conductor,
 			"young_modulus": self.data_cable.young_modulus_conductor,

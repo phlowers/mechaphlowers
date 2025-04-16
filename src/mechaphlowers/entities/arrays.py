@@ -129,8 +129,12 @@ class CableArray(ElementArray):
 		data_SI["diameter"] *= 1e-3
 		# young_modulus is in GPa
 		data_SI["young_modulus"] *= 1e9
+		data_SI["young_modulus_heart"] *= 1e9
+		data_SI["young_modulus_conductor"] *= 1e9
 		# dilatation_coefficient is in 10⁻⁶/°C
 		data_SI["dilatation_coefficient"] *= 1e-6
+		data_SI["dilatation_coefficient_heart"] *= 1e-6
+		data_SI["dilatation_coefficient_conductor"] *= 1e-6
 
 		# polynomial coefficients are in GPa
 		for coef in ["a0", "a1", "a2", "a3", "a4"]:
