@@ -112,8 +112,6 @@ def cable2span(
 	)
 
 	vector = spans2vector(x, 0 * x, z - elevation_part)
-
-	# TODO check beta
 	span = rotation_quaternion_same_axis(
 		vector,
 		beta.repeat(init_shape[0]),  # idea : beta = [b0,..,b0, b1,..,b1,..]

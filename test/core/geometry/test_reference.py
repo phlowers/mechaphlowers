@@ -21,7 +21,11 @@ def test_cable2span_basic() -> None:
 	xs, ys, zs = cable2span(x, z, np.ones(2) * beta)  # TODO check beta
 
 	assert len(xs) == len(z)
+	np.testing.assert_allclose(ys, np.zeros_like(ys))
 	# assert np.allclose(result, z)
+	xs, ys, zs = cable2span(x, z, np.array([5.0, 61.3]))  # TODO check beta
+	assert len(xs) == len(z)
+	assert not (ys == 0).all()
 
 
 def test_spans2vector():

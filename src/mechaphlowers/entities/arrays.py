@@ -16,7 +16,6 @@ from mechaphlowers.entities.schemas import (
 	SectionArrayInput,
 	WeatherArrayInput,
 )
-
 from mechaphlowers.utils import df2dct
 
 

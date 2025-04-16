@@ -57,10 +57,10 @@ class SectionDataFrame:
 	def __init__(
 		self,
 		section_array: SectionArray,
-		span_model: Type[Span] = CatenarySpan,
-		deformation_model: Type[IDeformation] = DeformationRte,
+		# span_model: Type[Span] = CatenarySpan,
+		# deformation_model: Type[IDeformation] = DeformationRte,
 	):
-		# Affect
+		# Assign
 		self.section_array: SectionArray = section_array
 
 		# Declare
@@ -135,46 +135,6 @@ class SectionDataFrame:
 			self.data_container.crossarm_length,
 			self.data_container.insulator_length,
 		)
-
-		# # compute x_axis
-		# x_cable: np.ndarray = spans.x(cfg.graphics.resolution)
-
-		# # compute z_axis
-		# z_cable: np.ndarray = spans.z(x_cable)
-
-		# # change frame and drop last value
-		# # TODO refactor in a property ?
-		# beta = np.zeros(x_cable.shape[1])
-		# if self.cable_loads is not None:
-		# 	beta = self.cable_loads.load_angle * 180 / np.pi
-
-		# x_span, y_span, z_span = references.cable2span(
-		# 	x_cable[:, :-1], z_cable[:, :-1], beta=beta[:-1]
-		# )
-
-		# altitude: np.ndarray = (
-		# 	self.data_container.conductor_attachment_altitude
-		# )
-		# span_length: np.ndarray = self.data_container.span_length
-		# crossarm_length: np.ndarray = self.data_container.crossarm_length
-		# insulator_length: np.ndarray = self.data_container.insulator_length
-
-		# # TODO: the content of this function is not generic enough. An upcoming feature will change that.
-		# x_span, y_span, z_span = references.translate_cable_to_support(
-		# 	x_span,
-		# 	y_span,
-		# 	z_span,
-		# 	altitude,
-		# 	span_length,
-		# 	crossarm_length,
-		# 	insulator_length,
-		# )
-
-		# # dont forget to flatten the arrays and stack in a 3xNpoints array
-		# # Ex: z_span = array([[10., 20., 30.], [11., 12. ,13.]]) -> z_span.reshape(-1) = array([10., 20., 30., 11., 12., 13.])
-		# return np.vstack(
-		# 	[x_span.T.reshape(-1), y_span.T.reshape(-1), z_span.T.reshape(-1)]
-		# ).T
 
 	@property
 	def data(self) -> pd.DataFrame:
@@ -370,7 +330,7 @@ class SectionDataFrame:
 	state = CachedAccessor("state", StateAccessor)
 
 	def __copy__(self):
-		out = type(self)(copy(self.section_array), self._span_model)
+		out = type(self)(copy(self.section_array))
 		out.cable = copy(self.cable)
 		out.weather = copy(self.weather)
 		out.data_container = copy(self.data_container)

@@ -127,6 +127,7 @@ The following example shows how to add a wind load on the cable.
 	That's why we put `np.nan` at the end.
 
 Then you can display the effect of this load with:
+
 - load_angle
 - resulting_norm
 - load_coefficient

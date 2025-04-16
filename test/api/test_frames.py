@@ -241,4 +241,14 @@ def test_frame__sagtension_use(section_dataframe_with_cable_weather):
 		)
 	)
 	section_dataframe_with_cable_weather.state.change(100, wa)
-	assert True
+
+	assert section_dataframe_with_cable_weather.state.p_after_change.shape == (
+		4,
+	)
+	assert section_dataframe_with_cable_weather.state.L_after_change.shape == (
+		4,
+	)
+	assert (
+		section_dataframe_with_cable_weather.state.T_h_after_change.shape
+		== (4,)
+	)
