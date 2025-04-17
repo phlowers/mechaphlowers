@@ -11,17 +11,17 @@ import mechaphlowers
 
 
 def test_log(caplog):
-	caplog.set_level(logging.INFO)
-	logging.info("Test log is working")
-	assert "Test log is working" in caplog.text
+    caplog.set_level(logging.INFO)
+    logging.info("Test log is working")
+    assert "Test log is working" in caplog.text
 
-	with caplog.at_level(logging.DEBUG):
-		reload(mechaphlowers)  # noqa
+    with caplog.at_level(logging.DEBUG):
+        reload(mechaphlowers)  # noqa
 
-		assert "Mechaphlowers package initialized." in caplog.text
+        assert "Mechaphlowers package initialized." in caplog.text
 
-		mechaphlowers.utils.add_stderr_logger(logging.DEBUG)
-		assert (
-			"Added a stderr logging handler to logger: mechaphlowers"
-			in caplog.text
-		)
+        mechaphlowers.utils.add_stderr_logger(logging.DEBUG)
+        assert (
+            "Added a stderr logging handler to logger: mechaphlowers"
+            in caplog.text
+        )

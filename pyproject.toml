@@ -86,7 +86,7 @@ line-length = 79
 # Enable reformatting of code snippets in docstrings.
 docstring-code-format = true
 docstring-code-line-length = 79
-indent-style = "tab"
+indent-style = "space"
 quote-style = "preserve"
 
 [tool.ruff.lint]
