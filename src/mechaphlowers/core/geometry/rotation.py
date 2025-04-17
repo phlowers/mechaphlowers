@@ -7,8 +7,8 @@ def hamilton_product_array(
 	"""Hamilton product for array of quaternions. Product is not commutative, order of quaternions is important.
 
 	Args:
-		quaternion0 (np.ndarray): [[w0_0, x0_0, y0_0, z0_0], [w0_1, x0_1, y0_1, z0_1],...]
-		quaternion1 (np.ndarray): [[w1_0, x1_0, y1_0, z1_0], [w1_1, x1_1, y1_1, z1_1],...]
+	        quaternion0 (np.ndarray): [[w0_0, x0_0, y0_0, z0_0], [w0_1, x0_1, y0_1, z0_1],...]
+	        quaternion1 (np.ndarray): [[w1_0, x1_0, y1_0, z1_0], [w1_1, x1_1, y1_1, z1_1],...]
 	"""
 	w0, x0, y0, z0 = np.split(quaternion0, 4, axis=-1)
 	w1, x1, y1, z1 = np.split(quaternion1, 4, axis=-1)
@@ -32,20 +32,20 @@ def rotation_matrix_to_quaternion(
 	unit_vector is rotation_axes that has been normalized
 
 	Args:
-		beta (np.ndarray): array of angles in degrees [beta_0, beta_1]
-		rotation_axes (np.ndarray): array of axes of rotation in 3D (will be normalized) [[r_x0, r_y0, r_z0], [r_x1, r_y1, r_z1], ...]
+	        beta (np.ndarray): array of angles in degrees [beta_0, beta_1]
+	        rotation_axes (np.ndarray): array of axes of rotation in 3D (will be normalized) [[r_x0, r_y0, r_z0], [r_x1, r_y1, r_z1], ...]
 
 	Returns:
-		np.ndarray: [[w0, x0, y0, z0], [w1, x1, y1, z1],...]
+	        np.ndarray: [[w0, x0, y0, z0], [w1, x1, y1, z1],...]
 
 	Examples:
-		Create two quaternions that serve as rotation matrix:
-		rotation of 90° around the axis $\\vec{x}$, and rotation of 180° around the axis $\\vec{z}$
+	        Create two quaternions that serve as rotation matrix:
+	        rotation of 90° around the axis $\\vec{x}$, and rotation of 180° around the axis $\\vec{z}$
 
-		>>> beta = [90, 180]
-		>>> rotation_axes = np.array([[1, 0, 0], [0, 0, 1]])
-		>>> rotation_matrix_to_quaternion(beta, rotation_axes)
-		array([[0.707106781, 0.707106781, 0, 0], [0, 0, 0, 1]])
+	        >>> beta = [90, 180]
+	        >>> rotation_axes = np.array([[1, 0, 0], [0, 0, 1]])
+	        >>> rotation_matrix_to_quaternion(beta, rotation_axes)
+	        array([[0.707106781, 0.707106781, 0, 0], [0, 0, 0, 1]])
 	"""
 	beta_rad = np.radians(beta)
 	# normalize the rotation axis
@@ -71,22 +71,22 @@ def rotation_quaternion_same_axis(
 	All vectors are rotated around the same axis.
 
 	Args:
-		vector (np.ndarray): array of 3D points to rotate [[x0, y0, z0], [x1, y1, z1],...]
-		beta (np.ndarray): array of angles in degrees [beta_0, beta_1, ...]
-		rotation_axis (np.ndarray): single axis of rotation in 3D. Doesn't need to be normalized beforehand [r_x0, r_y0, r_z0]
+	        vector (np.ndarray): array of 3D points to rotate [[x0, y0, z0], [x1, y1, z1],...]
+	        beta (np.ndarray): array of angles in degrees [beta_0, beta_1, ...]
+	        rotation_axis (np.ndarray): single axis of rotation in 3D. Doesn't need to be normalized beforehand [r_x0, r_y0, r_z0]
 
 	Returns:
-		np.ndarray: array of new points that have been rotated by angles beta around rotation_axis
+	        np.ndarray: array of new points that have been rotated by angles beta around rotation_axis
 
 	Examples:
-		Rotation of vector $2\\vec{z}$ by angle of 90° and rotation of vector $\\vec{y}$ by angle of 45°, both around the axis $\\vec{x}$.
+	        Rotation of vector $2\\vec{z}$ by angle of 90° and rotation of vector $\\vec{y}$ by angle of 45°, both around the axis $\\vec{x}$.
 
-		The rotated vectors are: $-2\\vec{y}$ and \\(\\frac{\\sqrt{2}}{2} \\vec{y} + \\frac{\\sqrt{2}}{2} \\vec{z} \\)
-		>>> vector = np.array([[0, 0, 2], [0, 1, 0]])
-		>>> beta = np.array([90, 45])
-		>>> rotation_axis = np.array([1, 0, 0])
-		>>> rotation_quaternion_same_axis(vector, beta, rotation_axis)
-		array([[0,  -2,  0], [0,  0.707106781,  0.707106781]])
+	        The rotated vectors are: $-2\\vec{y}$ and \\(\\frac{\\sqrt{2}}{2} \\vec{y} + \\frac{\\sqrt{2}}{2} \\vec{z} \\)
+	        >>> vector = np.array([[0, 0, 2], [0, 1, 0]])
+	        >>> beta = np.array([90, 45])
+	        >>> rotation_axis = np.array([1, 0, 0])
+	        >>> rotation_quaternion_same_axis(vector, beta, rotation_axis)
+	        array([[0,  -2,  0], [0,  0.707106781,  0.707106781]])
 	"""
 
 	rotation_axes = np.full(vector.shape, rotation_axis)
@@ -101,22 +101,22 @@ def rotation_quaternion(
 	"""Compute rotation of vector using quaternion rotation.
 
 	Args:
-		vector (np.ndarray): array of 3D points to rotate [[x0, y0, z0], [x1, y1, z1],...]
-		beta (np.ndarray): array of angles in degrees [beta_0, beta_1, ...]
-		rotation_axes (np.ndarray): array of axes of rotation in 3D. Doesn't need to be normalized beforehand [[r_x0, r_y0, r_z0], [r_x1, r_y1, r_z1], ...]
+	        vector (np.ndarray): array of 3D points to rotate [[x0, y0, z0], [x1, y1, z1],...]
+	        beta (np.ndarray): array of angles in degrees [beta_0, beta_1, ...]
+	        rotation_axes (np.ndarray): array of axes of rotation in 3D. Doesn't need to be normalized beforehand [[r_x0, r_y0, r_z0], [r_x1, r_y1, r_z1], ...]
 
 	Returns:
-		np.ndarray: array of new points that have been rotated by angles beta around rotation_axes
+	        np.ndarray: array of new points that have been rotated by angles beta around rotation_axes
 
 	Examples:
-		Rotation of vector $2\\vec{z}$ by angle of 90° around the axis $\\vec{x}$, and rotation of vector $\\vec{y}$ by angle of -90° around the axis $\\vec{z}$
+	        Rotation of vector $2\\vec{z}$ by angle of 90° around the axis $\\vec{x}$, and rotation of vector $\\vec{y}$ by angle of -90° around the axis $\\vec{z}$
 
-		The rotated vectors are: $-2\\vec{y}$ and $\\vec{x}$
-		>>> vector = np.array([[0, 0, 2], [0, 1, 0]])
-		>>> beta = np.array([90, -90])
-		>>> rotation_axes = np.array([[1, 0, 0], [0, 0, 1]])
-		>>> rotation_quaternion(vector, beta, rotation_axes)
-		array([[ 0,  -2,  0], [1,  0,  0]])
+	        The rotated vectors are: $-2\\vec{y}$ and $\\vec{x}$
+	        >>> vector = np.array([[0, 0, 2], [0, 1, 0]])
+	        >>> beta = np.array([90, -90])
+	        >>> rotation_axes = np.array([[1, 0, 0], [0, 0, 1]])
+	        >>> rotation_quaternion(vector, beta, rotation_axes)
+	        array([[ 0,  -2,  0], [1,  0,  0]])
 	"""
 	# compute the rotation matrix as quaternion
 	rotation_quaternion = rotation_matrix_to_quaternion(beta, rotation_axes)

@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -7,10 +7,56 @@
 from typing import Tuple
 
 import numpy as np
-from scipy.spatial.transform import Rotation as R  # type: ignore
+
+from mechaphlowers.core.geometry.rotation import rotation_quaternion_same_axis
 
 
-def spans2vector(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
+def transform_coordinates(
+	x_cable: np.ndarray,
+	z_cable: np.ndarray,
+	beta: np.ndarray,
+	altitude: np.ndarray,
+	span_length: np.ndarray,
+	crossarm_length: np.ndarray,
+	insulator_length: np.ndarray,
+) -> np.ndarray:
+	"""Transform cable coordinates from cable frame to global frame
+
+	Args:
+	        x_cable: Cable x coordinates
+	        z_cable: Cable z coordinates
+	        beta: Load angles in degrees
+	        altitude: Conductor attachment altitudes
+	        span_length: Span lengths
+	        crossarm_length: Crossarm lengths
+	        insulator_length: Insulator lengths
+
+	Returns:
+	        np.ndarray: Transformed coordinates array in point format (x,y,z)
+	"""
+	x_span, y_span, z_span = cable_to_span(
+		x_cable[:, :-1], z_cable[:, :-1], beta=beta[:-1]
+	)
+
+	x_span, y_span, z_span = translate_cable_to_support(
+		x_span,
+		y_span,
+		z_span,
+		altitude,
+		span_length,
+		crossarm_length,
+		insulator_length,
+	)
+
+	# dont forget to flatten the arrays and stack in a 3xNpoints array
+	# Ex: z_span = array([[10., 20., 30.], [11., 12. ,13.]]) -> z_span.reshape(-1) = array([10., 20., 30., 11., 12., 13.])
+
+	return np.vstack(
+		[x_span.T.reshape(-1), y_span.T.reshape(-1), z_span.T.reshape(-1)]
+	).T
+
+
+def spans_to_vector(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
 	"""spans2vector is a function that allows to stack x, y and z arrays into a single array
 
 	spans are a n x d array where n is the number of points per span and d is the number of spans
@@ -25,20 +71,28 @@ def spans2vector(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
 	    np.ndarray: 3 x n array vector coordinates
 	"""
 
-	cc = np.vstack([x.reshape(-1), y.reshape(-1), z.reshape(-1)]).T
+	cc = np.vstack(
+		[
+			x.reshape(-1, order='F'),
+			y.reshape(-1, order='F'),
+			z.reshape(-1, order='F'),
+		]
+	).T
 	return cc
 
 
-def cable2span(
-	x: np.ndarray, z: np.ndarray, beta: float
+def cable_to_span(
+	x: np.ndarray,
+	z: np.ndarray,
+	beta: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 	"""cable2span cable to span is a function that allows to rotate from cable 2D plan to span 3D frame with an angle beta
 
 
 	Args:
 	    x (np.ndarray): n x d array spans x coordinates
-	    z (np.ndarray): n x d array spans x coordinates
-	    beta (float): angle rotation
+	    z (np.ndarray): n x d array spans z coordinates
+	    beta (np.ndarray): n array angle rotation
 
 	Returns:
 	    Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -46,8 +100,6 @@ def cable2span(
 	        - y_span (np.ndarray): Rotated y coordinates in the span 3D frame.
 	        - z_span (np.ndarray): Rotated z coordinates in the span 3D frame.
 	"""
-
-	# TODO: the function here move the whole section with beta angle. This is not the expected behavior when loads will be implemented
 
 	init_shape = z.shape
 	# Warning here, x and z are shaped as (n point per span, d span)
@@ -59,17 +111,17 @@ def cable2span(
 		x.shape[0],
 	)
 
-	rotation_matrix = R.from_euler("x", beta, degrees=True)
-	# span = np.dot(rotation_matrix, np.array([x, elevation_part, z]))
-
-	vector = spans2vector(x, 0 * x, z - elevation_part)
-
-	span = rotation_matrix.apply(vector)
+	vector = spans_to_vector(x, 0 * x, z - elevation_part)
+	span = rotation_quaternion_same_axis(
+		vector,
+		beta.repeat(init_shape[0]),  # idea : beta = [b0,..,b0, b1,..,b1,..]
+		np.array([1, 0, 0]),
+	)  # "x" axis
 
 	x_span, y_span, z_span = (
-		span[:, 0].reshape(init_shape),
-		span[:, 1].reshape(init_shape),
-		span[:, 2].reshape(init_shape),
+		span[:, 0].reshape(init_shape, order='F'),
+		span[:, 1].reshape(init_shape, order='F'),
+		span[:, 2].reshape(init_shape, order='F'),
 	)
 
 	z_span += elevation_part

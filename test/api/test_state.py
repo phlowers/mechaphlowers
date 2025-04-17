@@ -22,6 +22,20 @@ class MockSection:
 		self.deformation = deformation
 
 
+class MockWeatherArray:
+	def __init__(self, wind_speed, wind_direction, ice_thickness):
+		self.wind_speed = wind_speed
+		self.wind_direction = wind_direction
+		self.ice_thickness = ice_thickness
+
+
+@pytest.fixture
+def weather_array():
+	return MockWeatherArray(
+		wind_speed=10, wind_direction=180, ice_thickness=0.5
+	)
+
+
 @pytest.fixture
 def section_dataframe_without_deformation():
 	return MockSection((5,), None)
@@ -67,11 +81,45 @@ def test_L_ref_with_correct_array(section_dataframe):
 	np.testing.assert_array_equal(result, current_temperature)
 
 
-def test_L_ref_with_incorrect_array_length(section_dataframe):
-	state_accessor = StateAccessor(section_dataframe)
+def test_L_ref_with_incorrect_array_length(
+	section_dataframe_with_cable_weather,
+):
+	state_accessor = StateAccessor(section_dataframe_with_cable_weather)
 	current_temperature = np.array([25.0, 26.0])
 	with pytest.raises(
 		ValueError,
 		match="Current temperature should have the same length as the section",
 	):
 		state_accessor.L_ref(current_temperature)
+
+
+def test_change_without_deformation(
+	section_dataframe_without_deformation, weather_array
+):
+	state_accessor = StateAccessor(section_dataframe_without_deformation)
+	with pytest.raises(
+		ValueError,
+	):
+		state_accessor.change(
+			np.array([25.0, 26.0, 27.0, 28.0, 29.0]), weather_array
+		)
+
+
+def test_change_with_deformation(
+	section_dataframe_with_cable_weather, generic_weather_array_three_spans
+):
+	state_accessor = StateAccessor(section_dataframe_with_cable_weather)
+	current_temperature = np.array(
+		[
+			25.0,
+			26.0,
+			27.0,
+			28.0,
+		]
+	)
+	state_accessor.change(
+		current_temperature, generic_weather_array_three_spans
+	)
+	assert state_accessor.sag_tension is not None
+	assert isinstance(state_accessor.p_after_change, np.ndarray)
+	assert isinstance(state_accessor.L_after_change, np.ndarray)

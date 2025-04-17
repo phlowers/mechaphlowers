@@ -73,8 +73,8 @@ def test_plot_line3d__with_beta(
 	weather = WeatherArray(
 		pd.DataFrame(
 			{
-				"ice_thickness": [1, 2.1, 0.0, 5.4],
-				"wind_pressure": [240.12, 0.0, 12.0, 53.0],
+				"ice_thickness": [0.0, 60.0, 0.0, np.nan],
+				"wind_pressure": [240.12, 0.0, 600.0, np.nan],
 			}
 		)
 	)

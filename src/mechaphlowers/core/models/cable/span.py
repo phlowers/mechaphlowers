@@ -41,6 +41,16 @@ class Span(ABC):
 		else:
 			self.load_coefficient = load_coefficient
 
+	def update_from_dict(self, data: dict) -> None:
+		"""Update the span model with new data.
+
+		Args:
+		        data (dict): Dictionary containing the new data.
+		"""
+		for key, value in data.items():
+			if hasattr(self, key):
+				setattr(self, key, value)
+
 	@abstractmethod
 	def z(self, x: np.ndarray) -> np.ndarray:
 		"""Altitude of cable points depending on the abscissa.
@@ -64,12 +74,12 @@ class Span(ABC):
 
 		Then, the output is:
 		```
-		z = [
-		    [z0_a, z0_b, z0_c],
-		    [z1_a, z1_b, z1_c],
-		    [z2_a, z2_b, z2_c],
-		    [z3_a, z3_b, z3_c],
-		]
+		              z = [
+		                  [z0_a, z0_b, z0_c],
+		                  [z1_a, z1_b, z1_c],
+		                  [z2_a, z2_b, z2_c],
+		                  [z3_a, z3_b, z3_c],
+		              ]
 		```
 		"""
 
@@ -118,7 +128,7 @@ class Span(ABC):
 		Right now, this tension is constant all along the cable, but that might not be true for elastic catenary model.
 
 		Raises:
-			AttributeError: linear_weight is required
+		        AttributeError: linear_weight is required
 		"""
 
 	@abstractmethod
