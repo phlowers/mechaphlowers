@@ -17,63 +17,63 @@ NB_SPAN = 3
 
 @pytest.fixture
 def cable_data_dict() -> dict:
-	# units are incorrect
-	return {
-		"diameter": 22.4,
-		"linear_weight": 9.6,
-	}
+    # units are incorrect
+    return {
+        "diameter": 22.4,
+        "linear_weight": 9.6,
+    }
 
 
 def test_compute_ice_load(cable_data_dict: dict) -> None:
-	cable_data_dict.update(
-		{
-			"ice_thickness": np.array([1, 2.1, 0.0]),
-			"wind_pressure": np.zeros(NB_SPAN),
-		}
-	)
-	weather_loads = CableLoads(**cable_data_dict)
+    cable_data_dict.update(
+        {
+            "ice_thickness": np.array([1, 2.1, 0.0]),
+            "wind_pressure": np.zeros(NB_SPAN),
+        }
+    )
+    weather_loads = CableLoads(**cable_data_dict)
 
-	weather_loads.ice_load
+    weather_loads.ice_load
 
 
 def test_compute_wind_load(cable_data_dict: dict) -> None:
-	cable_data_dict.update(
-		{
-			"ice_thickness": np.array([1, 2.1, 0.0]),
-			"wind_pressure": np.array([240.12, 0, -240.13]),
-		}
-	)
-	weather_loads = CableLoads(**cable_data_dict)
+    cable_data_dict.update(
+        {
+            "ice_thickness": np.array([1, 2.1, 0.0]),
+            "wind_pressure": np.array([240.12, 0, -240.13]),
+        }
+    )
+    weather_loads = CableLoads(**cable_data_dict)
 
-	weather_loads.wind_load
+    weather_loads.wind_load
 
 
 def test_total_load_coefficient_and_angle(cable_data_dict: dict) -> None:
-	cable_data_dict.update(
-		{
-			"ice_thickness": np.array([1, 2.1, 0.0]),
-			"wind_pressure": np.array([240.12, 0, -240.13]),
-		}
-	)
-	weather_loads = CableLoads(**cable_data_dict)
+    cable_data_dict.update(
+        {
+            "ice_thickness": np.array([1, 2.1, 0.0]),
+            "wind_pressure": np.array([240.12, 0, -240.13]),
+        }
+    )
+    weather_loads = CableLoads(**cable_data_dict)
 
-	weather_loads.load_coefficient
-	weather_loads.load_angle
+    weather_loads.load_coefficient
+    weather_loads.load_angle
 
 
 def test_total_load_coefficient__data_container(
-	default_data_container_one_span: DataContainer,
+    default_data_container_one_span: DataContainer,
 ) -> None:
-	weather = WeatherArray(
-		pd.DataFrame(
-			{
-				"ice_thickness": [1, 2.1],
-				"wind_pressure": [240.12, 0],
-			}
-		)
-	)
-	default_data_container_one_span.add_weather_array(weather)
-	weather_loads = CableLoads(**default_data_container_one_span.__dict__)
+    weather = WeatherArray(
+        pd.DataFrame(
+            {
+                "ice_thickness": [1, 2.1],
+                "wind_pressure": [240.12, 0],
+            }
+        )
+    )
+    default_data_container_one_span.add_weather_array(weather)
+    weather_loads = CableLoads(**default_data_container_one_span.__dict__)
 
-	weather_loads.load_coefficient
-	weather_loads.load_angle
+    weather_loads.load_coefficient
+    weather_loads.load_angle
