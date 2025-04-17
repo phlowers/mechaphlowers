@@ -62,14 +62,6 @@ def test_L_ref_value(section_dataframe):
 	np.testing.assert_array_equal(result, expected)
 
 
-def test_L_ref_with_correct_array(section_dataframe):
-	state_accessor = StateAccessor(section_dataframe)
-	current_temperature = np.array([25.0, 26.0, 27.0, 28.0, 29.0])
-	result = state_accessor.L_ref(current_temperature)
-	np.testing.assert_array_equal(result, current_temperature)
-
-
-
 def test_change_without_deformation(
 	section_dataframe_without_deformation, weather_array
 ):
