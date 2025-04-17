@@ -26,7 +26,7 @@ class StateAccessor:
 		self.p_after_change: np.ndarray | None = None
 		self.L_after_change: np.ndarray | None = None
 
-	def L_ref(self, current_temperature: float | np.ndarray) -> np.ndarray:
+	def L_ref(self) -> np.ndarray:
 		"""L_ref values for the current temperature
 
 		Args:
@@ -42,24 +42,7 @@ class StateAccessor:
 			raise ValueError(
 				"Deformation model is not defined: setting cable usually sets deformation model"
 			)
-		if isinstance(current_temperature, (float, int)):
-			current_temperature = np.full(
-				self.frame.section_array.data.shape[0],
-				float(current_temperature),
-			)
-		if not isinstance(current_temperature, np.ndarray):
-			raise ValueError(
-				"Current temperature should be a float or an array"
-			)
-		if isinstance(current_temperature, np.ndarray):
-			if (
-				current_temperature.shape[0]
-				!= self.frame.section_array.data.shape[0]
-			):
-				raise ValueError(
-					"Current temperature should have the same length as the section"
-				)
-		return self.frame.deformation.L_ref(current_temperature)
+		return self.frame.deformation.L_ref()
 
 	def change(
 		self, current_temperature: np.ndarray, weather_loads: WeatherArray
@@ -73,13 +56,10 @@ class StateAccessor:
 				"Deformation model is not defined: setting cable usually sets deformation model"
 			)
 
-		unstressed_length = self.frame.deformation.L_ref(
-			self.frame.data_container.sagging_temperature
-		)
 		sag_tension_calculation = SagTensionSolver(
 			**self.frame.data_container.__dict__,
-			unstressed_length=unstressed_length,
 		)
+		sag_tension_calculation.initial_state()
 		sag_tension_calculation.change_state(
 			**weather_loads.to_numpy(),
 			temp=current_temperature,

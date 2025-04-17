@@ -56,7 +56,7 @@ def default_cable_array() -> CableArray:
 
 
 @pytest.fixture
-def default_section_array_one_spans() -> SectionArray:
+def default_section_array_one_span() -> SectionArray:
 	section_array = SectionArray(
 		pd.DataFrame(
 			{

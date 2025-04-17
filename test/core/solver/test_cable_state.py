@@ -37,7 +37,7 @@ def get_L_ref_from_arrays(
 		tension_mean=span_model.T_mean(),
 		cable_length=span_model.L(),
 	)
-	return deformation.L_ref(current_temperature)
+	return deformation.L_ref()
 
 
 def test_solver__run_solver(
@@ -45,15 +45,12 @@ def test_solver__run_solver(
 	weather_dict_one_span: dict,
 ) -> None:
 	current_temperature = np.array([15] * 2)
-	unstressed_length = get_L_ref_from_arrays(
-		default_data_container_one_span,
-		current_temperature,
-	)
 
 	sag_tension_calculation = SagTensionSolver(
-		**default_data_container_one_span.__dict__,
-		unstressed_length=unstressed_length,
+		**default_data_container_one_span.__dict__
 	)
+	sag_tension_calculation.initial_state()
+
 	sag_tension_calculation.change_state(
 		**weather_dict_one_span,
 		temp=current_temperature,
@@ -82,15 +79,11 @@ def test_solver__run_solver__polynomial_model(
 	)
 	default_data_container_one_span.polynomial_conductor = new_poly
 
-	unstressed_length = get_L_ref_from_arrays(
-		default_data_container_one_span,
-		current_temperature,
-	)
-
 	sag_tension_calculation = SagTensionSolver(
-		**default_data_container_one_span.__dict__,
-		unstressed_length=unstressed_length,
+		**default_data_container_one_span.__dict__
 	)
+	sag_tension_calculation.initial_state()
+
 	sag_tension_calculation.change_state(
 		**weather_dict_one_span,
 		temp=current_temperature,
@@ -108,9 +101,10 @@ def test_solver__run_solver_no_solution(
 ) -> None:
 	current_temperature = np.array([15] * 2)
 	sag_tension_calculation = SagTensionSolver(
-		**default_data_container_one_span.__dict__,
-		unstressed_length=np.array([1, 1]),
+		**default_data_container_one_span.__dict__
 	)
+	sag_tension_calculation.initial_state()
+	sag_tension_calculation.L_ref = np.array([1, 1])
 	with pytest.raises(ValueError) as excinfo:
 		sag_tension_calculation.change_state(
 			**weather_dict_one_span, temp=current_temperature
@@ -123,16 +117,11 @@ def test_solver__bad_solver(
 	weather_dict_one_span: dict,
 ) -> None:
 	current_temperature = np.array([15] * 2)
-	unstressed_length = get_L_ref_from_arrays(
-		default_data_container_one_span,
-		current_temperature,
-	)
 
 	sag_tension_calculation = SagTensionSolver(
-		**default_data_container_one_span.__dict__,
-		unstressed_length=unstressed_length,
+		**default_data_container_one_span.__dict__
 	)
-
+	sag_tension_calculation.initial_state()
 	with pytest.raises(ValueError) as excinfo:
 		sag_tension_calculation.change_state(
 			**weather_dict_one_span,
@@ -145,16 +134,10 @@ def test_solver__bad_solver(
 def test_solver__values_before_solver(
 	default_data_container_one_span: DataContainer,
 ) -> None:
-	current_temperature = np.array([15] * 2)
-	unstressed_length = get_L_ref_from_arrays(
-		default_data_container_one_span,
-		current_temperature,
+	sag_tension_calculation = SagTensionSolver(
+		**default_data_container_one_span.__dict__
 	)
 
-	sag_tension_calculation = SagTensionSolver(
-		**default_data_container_one_span.__dict__,
-		unstressed_length=unstressed_length,
-	)
 	assert sag_tension_calculation.T_h_after_change is None
 	with pytest.raises(ValueError):
 		sag_tension_calculation.p_after_change()

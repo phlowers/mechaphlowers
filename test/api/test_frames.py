@@ -98,7 +98,7 @@ def test_SectionDataFrame__state(
 	frame = SectionDataFrame(default_section_array_three_spans)
 	frame.add_cable(default_cable_array)
 	assert np.array_equal(
-		frame.state.L_ref(12), frame.deformation.L_ref(12), equal_nan=True
+		frame.state.L_ref(), frame.deformation.L_ref(), equal_nan=True
 	)
 
 

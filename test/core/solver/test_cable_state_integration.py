@@ -7,8 +7,8 @@
 from typing import Callable, TypedDict
 
 import numpy as np
+import pandas as pd
 import pytest
-from pandera.typing import pandas as pdt
 
 from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.core.solver.cable_state import (
@@ -37,18 +37,13 @@ def create_sag_tension_solver(
 	frame = SectionDataFrame(section_array)
 	frame.add_cable(cable_array)
 	frame.add_weather(weather_array)
-	unstressed_length = frame.state.L_ref(
-		section_array.data.sagging_temperature.to_numpy()
-	)
 
 	data_container = factory_data_container(
 		section_array, cable_array, weather_array
 	)
-
-	return SagTensionSolver(
-		**data_container.__dict__,
-		unstressed_length=unstressed_length,
-	)
+	solver = SagTensionSolver(**data_container.__dict__)
+	solver.initial_state()
+	return solver
 
 
 def test_functions_to_solve__same_loads(
@@ -59,35 +54,25 @@ def test_functions_to_solve__same_loads(
 	frame = SectionDataFrame(default_section_array_three_spans)
 	frame.add_cable(default_cable_array)
 
-	weather_array = WeatherArray(
-		pdt.DataFrame(
-			{
-				"ice_thickness": [1, 2.1, 0.0, 0.0],
-				"wind_pressure": np.zeros(NB_SPAN),
-			}
-		)
-	)
+	weather_dict: WeatherDict = {
+		"ice_thickness": np.zeros(NB_SPAN),
+		"wind_pressure": np.zeros(NB_SPAN),
+	}
+
+	weather_array = WeatherArray(pd.DataFrame(weather_dict))
 
 	frame.add_weather(weather_array)
-	unstressed_length = frame.state.L_ref(np.array([15] * NB_SPAN))
 
 	data_container = factory_data_container(
 		default_section_array_three_spans, default_cable_array, weather_array
 	)
 
-	sag_tension_calculation = SagTensionSolver(
-		**data_container.__dict__,
-		unstressed_length=unstressed_length,
-	)
-
-	weather_dict_final: WeatherDict = {
-		"ice_thickness": 1e-2 * np.array([1, 2.1, 0.0, 0.0]),
-		"wind_pressure": 0 * np.ones(NB_SPAN),
-	}
+	sag_tension_calculation = SagTensionSolver(**data_container.__dict__)
+	sag_tension_calculation.initial_state()
 
 	new_temperature = np.array([15] * NB_SPAN)
 	sag_tension_calculation.change_state(
-		**weather_dict_final,
+		**weather_dict,
 		temp=new_temperature,
 	)
 	T_h_state_0 = sag_tension_calculation.T_h_after_change
@@ -160,7 +145,7 @@ def test_functions_to_solve__same_loads(
 	],
 )
 def test_functions_to_solve__different_weather(
-	default_section_array_one_spans: SectionArray,
+	default_section_array_one_span: SectionArray,
 	default_cable_array: CableArray,
 	factory_neutral_weather_array: Callable[[int], WeatherArray],
 	weather: dict,
@@ -172,7 +157,7 @@ def test_functions_to_solve__different_weather(
 	initial_weather = factory_neutral_weather_array(2)
 
 	sag_tension_calculation = create_sag_tension_solver(
-		default_section_array_one_spans,
+		default_section_array_one_span,
 		default_cable_array,
 		initial_weather,
 	)
@@ -189,7 +174,7 @@ def test_functions_to_solve__different_weather(
 
 
 def test_functions_to_solve__different_temp_ref(
-	default_section_array_one_spans: SectionArray,
+	default_section_array_one_span: SectionArray,
 	default_cable_array: CableArray,
 	factory_neutral_weather_array: Callable[[int], WeatherArray],
 ) -> None:
@@ -198,7 +183,7 @@ def test_functions_to_solve__different_temp_ref(
 	new_temperature = np.array([15] * NB_SPAN)
 
 	sag_tension_calculation_0 = create_sag_tension_solver(
-		default_section_array_one_spans,
+		default_section_array_one_span,
 		default_cable_array,
 		initial_weather_array,
 	)
@@ -220,7 +205,7 @@ def test_functions_to_solve__different_temp_ref(
 	new_cable_array._data.temperature_reference = 0
 
 	sag_tension_calculation_1 = create_sag_tension_solver(
-		default_section_array_one_spans,
+		default_section_array_one_span,
 		new_cable_array,
 		initial_weather_array,
 	)
@@ -231,3 +216,50 @@ def test_functions_to_solve__different_temp_ref(
 	expected_result_1 = np.array([117961.6142, np.nan])
 	assert T_h_state_1 is not None
 	np.testing.assert_allclose(T_h_state_1, expected_result_1, atol=0.01)
+
+
+def test_functions_to_solve__no_memory_effect(
+	default_section_array_one_span: SectionArray,
+	default_cable_array: CableArray,
+	factory_neutral_weather_array: Callable[[int], WeatherArray],
+) -> None:
+	initial_weather = factory_neutral_weather_array(2)
+
+	sag_tension_calculation_indirect = create_sag_tension_solver(
+		default_section_array_one_span,
+		default_cable_array,
+		initial_weather,
+	)
+
+	weather_0: WeatherDict = {
+		"ice_thickness": 1e-2 * np.ones(2),
+		"wind_pressure": 200 * np.ones(2),
+	}
+	temperature_0 = np.array([25, 25])
+
+	weather_1: WeatherDict = {
+		"ice_thickness": 2e-2 * np.ones(2),
+		"wind_pressure": 400 * np.ones(2),
+	}
+	temperature_1 = np.array([20, 20])
+
+	sag_tension_calculation_indirect.change_state(
+		**weather_0, temp=temperature_0
+	)
+	sag_tension_calculation_indirect.change_state(
+		**weather_1, temp=temperature_1
+	)
+	T_h_indirect = sag_tension_calculation_indirect.T_h_after_change
+
+	sag_tension_calculation_direct = create_sag_tension_solver(
+		default_section_array_one_span,
+		default_cable_array,
+		initial_weather,
+	)
+
+	sag_tension_calculation_direct.change_state(
+		**weather_1, temp=temperature_1
+	)
+	T_h_direct = sag_tension_calculation_indirect.T_h_after_change
+
+	np.testing.assert_equal(T_h_indirect, T_h_direct)

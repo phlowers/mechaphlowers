@@ -247,6 +247,7 @@ def test_complex_halley():
 	assert_allclose(f(y, *coeffs), 0, atol=1e-6)
 
 
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_zero_der_nz_dp():
 	"""Test secant method with a non-zero dp, but an infinite newton step"""
 	# pick a symmetrical functions and choose a point on the side that with dx
