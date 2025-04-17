@@ -7,6 +7,7 @@
 import logging
 
 import numpy as np
+import pandas as pd
 
 
 def ppnp(arr: np.ndarray, prec: int = 2):
@@ -61,10 +62,10 @@ def add_stderr_logger(
 	debugging. Inspired by the urllib3 library.
 
 	Args:
-		level (int): The logging level to set for the handler. Default is DEBUG.
+	        level (int): The logging level to set for the handler. Default is DEBUG.
 
 	Returns:
-		(logging.StreamHandler): the handler after adding it.
+	        (logging.StreamHandler): the handler after adding it.
 
 	Examples:
 	            >>> from mechaphlowers import add_stderr_logger
@@ -85,3 +86,26 @@ def add_stderr_logger(
 	logger.setLevel(level)
 	logger.debug("Added a stderr logging handler to logger: %s", __name__)
 	return handler
+
+
+def df_to_dict(df: pd.DataFrame) -> dict:
+	"""Convert a pandas.DataFrame to a dictionary.
+
+	Would be an equivalent to df.to_dict(orient='numpy.ndarray') if it existed.
+
+	Parameters
+	----------
+	df : pandas.DataFrame
+
+	Returns
+	-------
+	dict
+	        DESCRIPTION.
+	"""
+	q = df.to_dict(orient="list")
+	for k in q.keys():
+		if len(q[k]) > 1:
+			q[k] = np.array(q[k])
+		else:
+			q[k] = q[k][0]
+	return q

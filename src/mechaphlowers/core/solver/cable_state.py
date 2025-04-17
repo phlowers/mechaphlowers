@@ -9,7 +9,11 @@ from typing import Type
 
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
-from scipy import optimize  # type: ignore
+
+try:
+	from scipy import optimize  # type: ignore
+except ImportError:
+	import mechaphlowers.core.numeric.numeric as optimize
 
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.cable.deformation import (
@@ -101,8 +105,8 @@ class SagTensionSolver:
 		Also update span_length_after_loads and elevation_difference_after_loads that may change because of the wind
 
 		Args:
-			ice_thickness (np.ndarray): new ice thickness
-			wind_pressure (np.ndarray): new wind pressure
+		        ice_thickness (np.ndarray): new ice thickness
+		        wind_pressure (np.ndarray): new wind pressure
 		"""
 		self.cable_loads.ice_thickness = ice_thickness
 		self.cable_loads.wind_pressure = wind_pressure
@@ -123,10 +127,10 @@ class SagTensionSolver:
 		"""Method that solves the finds the new horizontal tension after a change of weather. Parameters are given in SI units.
 		The equation to solve is : $\\delta(T_h) = O$
 		Args:
-			ice_thickness (np.ndarray): new ice_thickness (in m)
-			wind_pressure (np.ndarray): new wind_pressure (in Pa)
-			temp (np.ndarray): new temperature
-			solver (str, optional): resolution method of the equation. Defaults to "newton", which is the only method implemented for now.
+		        ice_thickness (np.ndarray): new ice_thickness (in m)
+		        wind_pressure (np.ndarray): new wind_pressure (in Pa)
+		        temp (np.ndarray): new temperature
+		        solver (str, optional): resolution method of the equation. Defaults to "newton", which is the only method implemented for now.
 		"""
 
 		solver_dict = {"newton": optimize.newton}

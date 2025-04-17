@@ -61,14 +61,14 @@ class CableArrayInput(pa.DataFrameModel):
 	"""Schema for the data expected for a dataframe used to instantiate a CableArray.
 
 	Attributes:
-		section (float): Area of the section, in mm²
-		diameter (float): Diameter of the cable, in mm
-		linear_weight (float): Linear weight, in N/m
-		young_modulus (float): Young modulus in GPa
-		dilatation_coefficient (float): Dilatation coefficient in 10⁻⁶/°C
-		temperature_reference (float): Temperature used to compute unstressed cable length (usually 0°C or 15°C)
-		a0/a1/a2/a3/a4 (float): Coefficients of the relation between stress $\\sigma$ and deformation $\\varepsilon$ for the conductor: $\\sigma = a0 + a1*\\varepsilon + a2*\\varepsilon^2 + a3*\\varepsilon^3 + a4*\\varepsilon^4$
-		b0/b1/b2/b3/b4 (float): Coefficients of the relation between stress $\\sigma$ and deformation $\\varepsilon$ for the heart: $\\sigma = b0 + b1*\\varepsilon + b2*\\varepsilon^2 + b3*\\varepsilon^3 + b4*\\varepsilon^4$
+	        section (float): Area of the section, in mm²
+	        diameter (float): Diameter of the cable, in mm
+	        linear_weight (float): Linear weight, in N/m
+	        young_modulus (float): Young modulus in GPa
+	        dilatation_coefficient (float): Dilatation coefficient in 10⁻⁶/°C
+	        temperature_reference (float): Temperature used to compute unstressed cable length (usually 0°C or 15°C)
+	        a0/a1/a2/a3/a4 (float): Coefficients of the relation between stress $\\sigma$ and deformation $\\varepsilon$ for the conductor: $\\sigma = a0 + a1*\\varepsilon + a2*\\varepsilon^2 + a3*\\varepsilon^3 + a4*\\varepsilon^4$
+	        b0/b1/b2/b3/b4 (float): Coefficients of the relation between stress $\\sigma$ and deformation $\\varepsilon$ for the heart: $\\sigma = b0 + b1*\\varepsilon + b2*\\varepsilon^2 + b3*\\varepsilon^3 + b4*\\varepsilon^4$
 	"""
 
 	section: pdt.Series[float] = pa.Field(coerce=True)
@@ -93,9 +93,11 @@ class WeatherArrayInput(pa.DataFrameModel):
 	"""Schema describing the expected dataframe for instantiating a WeatherArray.
 
 	Attributes:
-		ice_thickness (float): Thickness of the ice layer on the cable, in cm
-		wind_pressure (float): Pressure of the perpendicular component of the wind, in Pa
+	        ice_thickness (float): Thickness of the ice layer on the cable, in cm
+	        wind_pressure (float): Pressure of the perpendicular component of the wind, in Pa
 	"""
 
-	ice_thickness: pdt.Series[float] = pa.Field(coerce=True, ge=0.0)
-	wind_pressure: pdt.Series[float] = pa.Field(coerce=True)
+	ice_thickness: pdt.Series[float] = pa.Field(
+		coerce=True, ge=0.0, nullable=True
+	)
+	wind_pressure: pdt.Series[float] = pa.Field(coerce=True, nullable=True)

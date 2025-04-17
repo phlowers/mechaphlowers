@@ -38,8 +38,8 @@ def test_data_container__factory(
 		"line_angle": np.array([0, 360, 90.1, -90.2]),
 		"insulator_length": np.array([0, 4, 3.2, 0]),
 		"span_length": np.array([400, 500.2, 500.0, np.nan]),
-		"ice_thickness": 1e-2 * np.array([1, 2.1, 0.0, 5.4]),
-		"wind_pressure": np.array([240.12, 0.0, 12.0, 53.0]),
+		"ice_thickness": 1e-2 * np.array([1, 2.1, 0.0, np.nan]),
+		"wind_pressure": np.array([240.12, 0.0, 12.0, np.nan]),
 	}
 	expected_result_floats = {
 		"cable_section_area": np.float64(345.55e-6),
@@ -78,3 +78,22 @@ def test_data_container__add_arrays(
 	data_container.add_section_array(default_section_array_three_spans)
 	data_container.add_cable_array(default_cable_array)
 	data_container.add_weather_array(generic_weather_array_three_spans)
+
+
+def test_update_from_dict(default_data_container_one_span):
+	data = {
+		"support_name": np.array(["Support1", "Support2"]),
+		"suspension": np.array([10.5, 12.3]),
+		"non_existing_attribute": "ignored",
+	}
+	default_data_container_one_span.update_from_dict(data)
+	np.testing.assert_array_equal(
+		default_data_container_one_span.support_name,
+		np.array(["Support1", "Support2"]),
+	)
+	np.testing.assert_array_equal(
+		default_data_container_one_span.suspension, np.array([10.5, 12.3])
+	)
+	assert not hasattr(
+		default_data_container_one_span, "non_existing_attribute"
+	)
