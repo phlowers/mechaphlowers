@@ -273,7 +273,7 @@ def test_functions_to_solve__no_memory_effect(
 
 
 def test_functions_to_solve__narcisse(
-    default_section_array_one_spans: SectionArray,
+    default_section_array_one_span: SectionArray,
     narcisse_cable_array: CableArray,
     factory_neutral_weather_array: Callable[[int], WeatherArray],
 ) -> None:
@@ -282,7 +282,7 @@ def test_functions_to_solve__narcisse(
     new_temperature = np.array([15] * NB_SPAN)
 
     sag_tension_calculation_0 = create_sag_tension_solver(
-        default_section_array_one_spans,
+        default_section_array_one_span,
         narcisse_cable_array,
         initial_weather_array,
     )

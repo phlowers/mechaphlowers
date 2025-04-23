@@ -141,6 +141,7 @@ def test_solver__run_solver_polynomial(
         **data_container_one_span_narcisse.__dict__,
         data_cable=data_container_one_span_narcisse.data_cable,
     )
+    sag_tension_calculation.initial_state()
     sag_tension_calculation.change_state(
         **weather_dict_one_span,
         temp=current_temperature,

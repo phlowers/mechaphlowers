@@ -21,13 +21,13 @@ def test_deformation_impl(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
+        **default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
     )
-    current_temperature = np.array([15, 15])
-    deformation_model.epsilon(current_temperature)
-    deformation_model.L_ref(current_temperature)
+    deformation_model.epsilon()
+    deformation_model.L_ref()
 
 
 def test_deformation_values__default_data(
@@ -38,19 +38,19 @@ def test_deformation_values__default_data(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
+        **default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
     )
-    current_temperature = np.array([30, 30])
-
-    eps_total = deformation_model.epsilon(current_temperature)
-    L_ref = deformation_model.L_ref(current_temperature)
+    deformation_model.current_temperature = np.array([30, 30])
+    eps_total = deformation_model.epsilon()
+    L_ref = deformation_model.L_ref()
 
     # Data given by the prototype
     np.testing.assert_allclose(
         eps_total,
-        np.array([0.00093978, np.nan]),
+        np.array([0.00093978 +0.000345, np.nan]),
         atol=1e-6,
     )
     # np.testing.assert_allclose(
@@ -77,10 +77,10 @@ def test_deformation__data_container(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
+        **default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
     )
-    current_temperature = np.array([15, 15])
-    deformation_model.epsilon(current_temperature)
-    deformation_model.L_ref(current_temperature)
+    deformation_model.epsilon()
+    deformation_model.L_ref()

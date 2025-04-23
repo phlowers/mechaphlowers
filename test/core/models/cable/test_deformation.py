@@ -23,13 +23,13 @@ def test_deformation_impl(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
+        **default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
     )
-    current_temperature = np.array([15, 15])
-    deformation_model.epsilon(current_temperature)
-    deformation_model.L_ref(current_temperature)
+    deformation_model.epsilon()
+    deformation_model.L_ref()
 
 
 # TODO: fix tests
@@ -42,14 +42,14 @@ def test_deformation_values__default_data(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
+        **default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
     )
-    current_temperature = np.array([30, 30])
 
-    eps_tot = deformation_model.epsilon(current_temperature)
-    L_ref = deformation_model.L_ref(current_temperature)
+    eps_tot = deformation_model.epsilon()
+    L_ref = deformation_model.L_ref()
 
     # Data given by the prototype
     np.testing.assert_allclose(
@@ -81,6 +81,7 @@ def test_poly_deformation__degree_three(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
+		**default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
@@ -111,6 +112,7 @@ def test_poly_deformation__degree_four(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
+        **default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
@@ -141,18 +143,18 @@ def test_poly_deformation__degree_four__with_max_stress(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
+        **default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
     )
-    current_temperature = np.array([15, 15])
 
     constraint = (
         tension_mean / default_data_container_one_span.cable_section_area
     )
     constraint = np.fmax(constraint, np.array([0, 0]))
     deformation_model.max_stress = np.array([1000, 1e8])
-    deformation_model.epsilon(current_temperature)
+    deformation_model.epsilon()
 
 
 def test_poly_deformation__no_solutions(
@@ -168,15 +170,15 @@ def test_poly_deformation__no_solutions(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
+        **default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
     )
 
-    current_temperature = np.array([15, 15])
     deformation_model.max_stress = np.array([1000, 1e10])
     with pytest.raises(ValueError):
-        deformation_model.epsilon(current_temperature)
+        deformation_model.epsilon()
 
 
 def test_deformation__data_container(
@@ -187,13 +189,13 @@ def test_deformation__data_container(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
+        **default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
     )
-    current_temperature = np.array([15, 15])
-    deformation_model.epsilon(current_temperature)
-    deformation_model.L_ref(current_temperature)
+    deformation_model.epsilon()
+    deformation_model.L_ref()
 
 
 def test_deformation__data_container_polynomial_2_materials(
@@ -204,10 +206,10 @@ def test_deformation__data_container_polynomial_2_materials(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
+        **data_container_one_span_narcisse.__dict__,
         data_cable=data_container_one_span_narcisse.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
     )
-    current_temperature = np.array([15, 15])
-    deformation_model.epsilon(current_temperature)
-    deformation_model.L_ref(current_temperature)
+    deformation_model.epsilon()
+    deformation_model.L_ref()

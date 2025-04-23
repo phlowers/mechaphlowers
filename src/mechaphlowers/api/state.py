@@ -58,6 +58,7 @@ class StateAccessor:
 
         sag_tension_calculation = SagTensionSolver(
             **self.frame.data_container.__dict__,
+            data_cable=self.frame.data_container.data_cable
         )
         sag_tension_calculation.initial_state()
         sag_tension_calculation.change_state(
