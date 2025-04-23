@@ -32,8 +32,8 @@ class SigmaFunctionSingleMaterial:
 
     # TODO: best way to do this?
     def set_sigma_max(self, sigma_max: np.ndarray):
-        self.sigma_max = sigma_max
         self.epsilon_plastic_max = self.epsilon_plastic(sigma_max)
+        self.sigma_max = sigma_max
 
     def epsilon_total(self, sigma, current_temperature):
         E = self.young_modulus
@@ -227,7 +227,7 @@ class DeformationRte(IDeformation):
     @max_stress.setter
     def max_stress(self, value_max_stress: np.ndarray):
         self.sigma_func_conductor.set_sigma_max(value_max_stress)
-        if self.sigma_func_heart.young_modulus == np.float64(0):
+        if self.sigma_func_heart.young_modulus > np.float64(0):
             self.sigma_func_heart.set_sigma_max(value_max_stress)
 
     def L_ref(self) -> np.ndarray:

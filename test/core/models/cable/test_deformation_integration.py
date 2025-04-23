@@ -13,23 +13,6 @@ from mechaphlowers.core.models.cable.span import (
 from mechaphlowers.entities.data_container import DataContainer
 
 
-def test_deformation_impl(
-    default_data_container_one_span: DataContainer,
-) -> None:
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
-    tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
-
-    deformation_model = DeformationRte(
-        **default_data_container_one_span.__dict__,
-        data_cable=default_data_container_one_span.data_cable,
-        tension_mean=tension_mean,
-        cable_length=cable_length,
-    )
-    deformation_model.epsilon()
-    deformation_model.L_ref()
-
-
 def test_deformation_values__default_data(
     default_data_container_one_span: DataContainer,
 ) -> None:
@@ -53,11 +36,8 @@ def test_deformation_values__default_data(
         np.array([0.00093978 +0.000345, np.nan]),
         atol=1e-6,
     )
-    # np.testing.assert_allclose(
-    # 	eps_therm,
-    # 	np.array([0.000345, 0.000345]),
-    # 	atol=1e-6,
-    # )
+    # our method L_ref returns L_15 but proto returns L_0 so that's why 480.6392123 is not the displayed value if you are using proto
+
     np.testing.assert_allclose(
         L_ref,
         np.array([480.6392123, np.nan]),
@@ -69,18 +49,3 @@ def test_deformation_values__default_data(
     # récup epsilon plutôt?
 
 
-def test_deformation__data_container(
-    default_data_container_one_span: DataContainer,
-) -> None:
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
-    tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
-
-    deformation_model = DeformationRte(
-        **default_data_container_one_span.__dict__,
-        data_cable=default_data_container_one_span.data_cable,
-        tension_mean=tension_mean,
-        cable_length=cable_length,
-    )
-    deformation_model.epsilon()
-    deformation_model.L_ref()
