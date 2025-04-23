@@ -8,79 +8,79 @@ import numpy as np
 
 from mechaphlowers.core.models.cable.deformation import DeformationRte
 from mechaphlowers.core.models.cable.span import (
-	CatenarySpan,
+    CatenarySpan,
 )
 from mechaphlowers.entities.data_container import DataContainer
 
 
 def test_deformation_impl(
-	default_data_container_one_span: DataContainer,
+    default_data_container_one_span: DataContainer,
 ) -> None:
-	span_model = CatenarySpan(**default_data_container_one_span.__dict__)
-	tension_mean = span_model.T_mean()
-	cable_length = span_model.L()
+    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
+    tension_mean = span_model.T_mean()
+    cable_length = span_model.L()
 
-	deformation_model = DeformationRte(
-		data_cable=default_data_container_one_span.data_cable,
-		tension_mean=tension_mean,
-		cable_length=cable_length,
-	)
-	current_temperature = np.array([15, 15])
-	deformation_model.epsilon(current_temperature)
-	deformation_model.L_ref(current_temperature)
+    deformation_model = DeformationRte(
+        data_cable=default_data_container_one_span.data_cable,
+        tension_mean=tension_mean,
+        cable_length=cable_length,
+    )
+    current_temperature = np.array([15, 15])
+    deformation_model.epsilon(current_temperature)
+    deformation_model.L_ref(current_temperature)
 
 
 def test_deformation_values__default_data(
-	default_data_container_one_span: DataContainer,
+    default_data_container_one_span: DataContainer,
 ) -> None:
-	span_model = CatenarySpan(**default_data_container_one_span.__dict__)
-	tension_mean = span_model.T_mean()
-	cable_length = span_model.L()
+    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
+    tension_mean = span_model.T_mean()
+    cable_length = span_model.L()
 
-	deformation_model = DeformationRte(
-		data_cable=default_data_container_one_span.data_cable,
-		tension_mean=tension_mean,
-		cable_length=cable_length,
-	)
-	current_temperature = np.array([30, 30])
+    deformation_model = DeformationRte(
+        data_cable=default_data_container_one_span.data_cable,
+        tension_mean=tension_mean,
+        cable_length=cable_length,
+    )
+    current_temperature = np.array([30, 30])
 
-	eps_total = deformation_model.epsilon(current_temperature)
-	L_ref = deformation_model.L_ref(current_temperature)
+    eps_total = deformation_model.epsilon(current_temperature)
+    L_ref = deformation_model.L_ref(current_temperature)
 
-	# Data given by the prototype
-	np.testing.assert_allclose(
-		eps_total,
-		np.array([0.00093978, np.nan]),
-		atol=1e-6,
-	)
-	# np.testing.assert_allclose(
-	# 	eps_therm,
-	# 	np.array([0.000345, 0.000345]),
-	# 	atol=1e-6,
-	# )
-	np.testing.assert_allclose(
-		L_ref,
-		np.array([480.6392123, np.nan]),
-		atol=1e-6,
-	)
-	# Z - narcisse
-	# first: L0 = 480.659
-	# CRA 50% L0 = 480.649
-	# récup epsilon plutôt?
+    # Data given by the prototype
+    np.testing.assert_allclose(
+        eps_total,
+        np.array([0.00093978, np.nan]),
+        atol=1e-6,
+    )
+    # np.testing.assert_allclose(
+    # 	eps_therm,
+    # 	np.array([0.000345, 0.000345]),
+    # 	atol=1e-6,
+    # )
+    np.testing.assert_allclose(
+        L_ref,
+        np.array([480.6392123, np.nan]),
+        atol=1e-6,
+    )
+    # Z - narcisse
+    # first: L0 = 480.659
+    # CRA 50% L0 = 480.649
+    # récup epsilon plutôt?
 
 
 def test_deformation__data_container(
-	default_data_container_one_span: DataContainer,
+    default_data_container_one_span: DataContainer,
 ) -> None:
-	span_model = CatenarySpan(**default_data_container_one_span.__dict__)
-	tension_mean = span_model.T_mean()
-	cable_length = span_model.L()
+    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
+    tension_mean = span_model.T_mean()
+    cable_length = span_model.L()
 
-	deformation_model = DeformationRte(
-		data_cable=default_data_container_one_span.data_cable,
-		tension_mean=tension_mean,
-		cable_length=cable_length,
-	)
-	current_temperature = np.array([15, 15])
-	deformation_model.epsilon(current_temperature)
-	deformation_model.L_ref(current_temperature)
+    deformation_model = DeformationRte(
+        data_cable=default_data_container_one_span.data_cable,
+        tension_mean=tension_mean,
+        cable_length=cable_length,
+    )
+    current_temperature = np.array([15, 15])
+    deformation_model.epsilon(current_temperature)
+    deformation_model.L_ref(current_temperature)

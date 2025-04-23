@@ -687,6 +687,10 @@ dependencies = [
     { name = "pandas" },
     { name = "pandera" },
     { name = "plotly" },
+]
+
+[package.optional-dependencies]
+full = [
     { name = "scipy" },
 ]
 
@@ -703,6 +707,7 @@ all = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "scipy" },
     { name = "unittest-xml-reporting" },
 ]
 dev = [
@@ -713,6 +718,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "scipy" },
     { name = "unittest-xml-reporting" },
 ]
 docs = [
@@ -733,7 +739,7 @@ requires-dist = [
     { name = "pandas", specifier = "<=2.2.3" },
     { name = "pandera", specifier = "<=0.21.1" },
     { name = "plotly", specifier = "<=5.24.1" },
-    { name = "scipy", specifier = "<=1.14.1" },
+    { name = "scipy", marker = "extra == 'full'", specifier = "<=1.14.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -749,6 +755,7 @@ all = [
     { name = "pytest", specifier = "==8.3.2" },
     { name = "pytest-cov", specifier = "==5.0.0" },
     { name = "ruff", specifier = "==0.6.1" },
+    { name = "scipy", specifier = "<=1.14.1" },
     { name = "unittest-xml-reporting", specifier = "==3.2.0" },
 ]
 dev = [
@@ -759,6 +766,7 @@ dev = [
     { name = "pytest", specifier = "==8.3.2" },
     { name = "pytest-cov", specifier = "==5.0.0" },
     { name = "ruff", specifier = "==0.6.1" },
+    { name = "scipy", specifier = "<=1.14.1" },
     { name = "unittest-xml-reporting", specifier = "==3.2.0" },
 ]
 docs = [
