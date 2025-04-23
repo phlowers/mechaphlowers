@@ -27,17 +27,13 @@ class SigmaFunctionSingleMaterial:
 		self.young_modulus = young_modulus
 		self.dilatation_coefficient = dilatation_coefficient
 		self.T_labo = T_labo  # rename temp ref?
+		self.sigma_max: np.ndarray | None = None
 		self.epsilon_plastic_max: np.ndarray | None = None
 
-	@property
-	def sigma_max(self):
-		return self.sigma_poly(self.epsilon_plastic_max)
-
-	# TODO: reverse: sigma_max is standard attribute, epsilon is property?
-	@sigma_max.setter
-	def sigma_max(self, value_sigma_max: np.ndarray):
-		self.epsilon_plastic_max = self.epsilon_plastic(value_sigma_max)
-	# add setter for sigma_max
+	# TODO: best way to do this?
+	def set_sigma_max(self, sigma_max: np.ndarray):
+		self.sigma_max = sigma_max
+		self.epsilon_plastic_max = self.epsilon_plastic(sigma_max)
 
 	def epsilon_total(self, sigma, current_temperature):
 		E = self.young_modulus
@@ -57,6 +53,8 @@ class SigmaFunctionSingleMaterial:
 		# TODO : do better than this
 		if self.epsilon_plastic_max is None:
 			self.epsilon_plastic_max = np.zeros_like(sigma)
+		if self.sigma_max is None:
+			self.sigma_max = np.zeros_like(sigma)
 		need_recomputation = sigma > self.sigma_max
 		sigma_recomputation = np.extract(need_recomputation, sigma)
 		E = self.young_modulus
@@ -132,7 +130,7 @@ class IDeformation(ABC):
 		self.data_cable = data_cable
 
 		if max_stress is None:
-			self._max_stress = np.full(self.cable_length.shape, 0)
+			self._max_stress = np.full(self.cable_length.shape, 0.0)
 
 	# # Keep this in abstract class?
 	@property
@@ -214,6 +212,7 @@ class DeformationRte(IDeformation):
 			**conductor_kwargs
 		)
 		self.sigma_func_heart = SigmaFunctionSingleMaterial(**heart_kwargs)
+		self.max_stress = self._max_stress
 
 
 	@property
@@ -222,9 +221,9 @@ class DeformationRte(IDeformation):
 
 	@max_stress.setter
 	def max_stress(self, value_max_stress: np.ndarray):
-		self.sigma_func_conductor.sigma_max = value_max_stress
+		self.sigma_func_conductor.set_sigma_max(value_max_stress)
 		if self.sigma_func_heart.young_modulus == np.float64(0):
-			self.sigma_func_heart.sigma_max = value_max_stress
+			self.sigma_func_heart.set_sigma_max(value_max_stress)
 
 	def L_ref(self, current_temperature: np.ndarray) -> np.ndarray:
 		L = self.cable_length
@@ -262,7 +261,7 @@ class DeformationRte(IDeformation):
 		eps_total_cond = sigma_func_conductor.epsilon_total(sigma, current_temperature)
 
 		if sigma_func_heart.young_modulus == np.float64(0):
-			# TODO: separate two cases?
+			# TODO: merge two cases?
 			return eps_total_cond
 
 		# two materials
