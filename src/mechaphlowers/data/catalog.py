@@ -64,7 +64,7 @@ class Catalog:
             return self._data.loc[keys]
         except KeyError as e:
             raise KeyError(
-                f"Error when requesting catalog: {e.args[0]}"
+                f"Error when requesting catalog: {e.args[0]}. Try the .keys() method to gets the available keys?"
             ) from e
 
     def get_as_cable_array(self, keys: list) -> CableArray:
@@ -88,6 +88,10 @@ class Catalog:
         df = self.get(keys)
         return CableArray(df)
         # TODO(ai-qui): make this generic (CableArray vs. generic Catalog)?
+
+    def keys(self) -> list:
+        """Get the keys available in the catalog"""
+        return self._data.index.tolist()
 
     def __str__(self) -> str:
         return self._data.to_string()

@@ -133,3 +133,10 @@ def test_fake_catalog__get_one_row_ot_list() -> None:
     # other cases
     with pytest.raises(TypeError):
         first_row = fake_catalog.get(123)  # type: ignore[arg-type]
+
+
+def test_fake_catalog__keys() -> None:
+    """Test the `keys` method of the FakeCatalog class"""
+    assert len(fake_catalog.keys()) == 800
+    assert "Bulbasaur" in fake_catalog.keys()
+    assert "notPokemon" not in fake_catalog.keys()
