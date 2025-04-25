@@ -29,11 +29,8 @@ class StateAccessor:
     def L_ref(self) -> np.ndarray:
         """L_ref values for the current temperature
 
-        Args:
-                current_temperature (float | np.ndarray): current temperature in degrees Celsius
-
         Raises:
-                ValueError: if current_temperature is not a float or an array with the same length as the section
+                ValueError: if Deformation model is not defined.
 
         Returns:
                 np.ndarray: L_ref values
@@ -45,20 +42,44 @@ class StateAccessor:
         return self.frame.deformation.L_ref()
 
     def change(
-        self, current_temperature: np.ndarray, weather_loads: WeatherArray
+        self,
+        current_temperature: float | np.ndarray,
+        weather_loads: WeatherArray,
     ) -> None:
         """Change the state of the cable
         Args:
-                current_temperature (np.ndarray): current temperature in degrees Celsius
+                current_temperature (float | np.ndarray): current temperature in degrees Celsius
+
+        Raises:
+                ValueError: if Deformation model is no defined or if current_temperature is not a float or an array with the same length as the section
+
         """
         if self.frame.deformation is None:
             raise ValueError(
                 "Deformation model is not defined: setting cable usually sets deformation model"
             )
 
+        if isinstance(current_temperature, (float, int)):
+            current_temperature = np.full(
+                self.frame.section_array.data.shape[0],
+                float(current_temperature),
+            )
+        if not isinstance(current_temperature, np.ndarray):
+            raise ValueError(
+                "Current temperature should be a float or an array"
+            )
+        if isinstance(current_temperature, np.ndarray):
+            if (
+                current_temperature.shape[0]
+                != self.frame.section_array.data.shape[0]
+            ):
+                raise ValueError(
+                    "Current temperature should have the same length as the section"
+                )
+
         sag_tension_calculation = SagTensionSolver(
             **self.frame.data_container.__dict__,
-            data_cable=self.frame.data_container.data_cable
+            data_cable=self.frame.data_container.data_cable,
         )
         sag_tension_calculation.initial_state()
         sag_tension_calculation.change_state(

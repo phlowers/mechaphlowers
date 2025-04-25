@@ -32,7 +32,9 @@ class SigmaFunctionSingleMaterial:
 
     # TODO: best way to do this?
     def set_sigma_max(self, sigma_max: np.ndarray):
-        self.epsilon_plastic_max = self.epsilon_plastic(sigma_max)
+        self.epsilon_plastic_max = self.epsilon_plastic(
+            sigma_max, 15 * np.ones_like(sigma_max)
+        )  # TODO !!!!
         self.sigma_max = sigma_max
 
     def epsilon_total(self, sigma, current_temperature):
@@ -41,7 +43,7 @@ class SigmaFunctionSingleMaterial:
         if E == np.float64(0.0):
             return np.zeros_like(sigma)
         eps_th = self.epsilon_th(current_temperature)
-        eps_plast = self.epsilon_plastic(sigma)
+        eps_plast = self.epsilon_plastic(sigma, current_temperature)
         return eps_th + eps_plast + sigma / E
 
     def epsilon_th(self, current_temperature):
@@ -49,7 +51,7 @@ class SigmaFunctionSingleMaterial:
             current_temperature - self.T_labo
         )
 
-    def epsilon_plastic(self, sigma):
+    def epsilon_plastic(self, sigma, current_temperature):
         # TODO : do better than this
         if self.epsilon_plastic_max is None:
             self.epsilon_plastic_max = np.zeros_like(sigma)
@@ -60,7 +62,7 @@ class SigmaFunctionSingleMaterial:
         E = self.young_modulus
         if len(sigma_recomputation) > 0:
             new_epsilon_plastic_max = self.resolve_stress_strain_equation(
-                sigma_recomputation
+                sigma_recomputation, current_temperature
             ) - (sigma_recomputation / E)
             np.place(
                 self.epsilon_plastic_max,
@@ -73,11 +75,20 @@ class SigmaFunctionSingleMaterial:
         out = self.stress_strain_polynomial(x)
         return out
 
-    def resolve_stress_strain_equation(self, sigma: np.ndarray) -> np.ndarray:
+    def resolve_stress_strain_equation(
+        self, sigma: np.ndarray, current_temperature: np.ndarray
+    ) -> np.ndarray:
         """Solves $\\sigma = Polynomial(\\varepsilon_{plastic})$ for sigma values that need it"""
         # TODO: for loop here instead
-        polynom_array = np.full(sigma.shape, self.stress_strain_polynomial)
-        poly_to_resolve = polynom_array - sigma
+        eps_th = self.epsilon_th(current_temperature)
+        polynomials_array = np.full(sigma.shape, self.stress_strain_polynomial)
+        polynomials_translated = [
+            polynomials_array[index].convert(
+                domain=[eps_th[index] - 1, eps_th[index] + 1]
+            )
+            for index in range(len(polynomials_array))
+        ]
+        poly_to_resolve = polynomials_translated - sigma
         return self.find_smallest_real_positive_root(poly_to_resolve)
 
     @staticmethod
@@ -270,7 +281,9 @@ class DeformationRte(IDeformation):
 
         # two materials
         else:
-            eps_plastic_cond = sigma_func_conductor.epsilon_plastic(sigma)
+            eps_plastic_cond = sigma_func_conductor.epsilon_plastic(
+                sigma, current_temperature
+            )
             eps_th_cond = sigma_func_conductor.epsilon_th(current_temperature)
             eps_total_heart = sigma_func_heart.epsilon_total(
                 sigma, current_temperature

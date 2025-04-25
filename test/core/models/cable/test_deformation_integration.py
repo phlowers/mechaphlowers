@@ -33,7 +33,7 @@ def test_deformation_values__default_data(
     # Data given by the prototype
     np.testing.assert_allclose(
         eps_total,
-        np.array([0.00093978 +0.000345, np.nan]),
+        np.array([0.00093978 + 0.000345, np.nan]),
         atol=1e-6,
     )
     # our method L_ref returns L_15 but proto returns L_0 so that's why 480.6392123 is not the displayed value if you are using proto
@@ -47,5 +47,3 @@ def test_deformation_values__default_data(
     # first: L0 = 480.659
     # CRA 50% L0 = 480.649
     # récup epsilon plutôt?
-
-

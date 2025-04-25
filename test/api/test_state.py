@@ -92,3 +92,6 @@ def test_change_with_deformation(
     assert state_accessor.sag_tension is not None
     assert isinstance(state_accessor.p_after_change, np.ndarray)
     assert isinstance(state_accessor.L_after_change, np.ndarray)
+
+
+# TODO: add tests for change() testing current_temperature type

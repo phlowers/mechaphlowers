@@ -43,7 +43,7 @@ def test_poly_deformation__degree_three(
     cable_length = span_model.L()
 
     deformation_model = DeformationRte(
-		**default_data_container_one_span.__dict__,
+        **default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
         cable_length=cable_length,
@@ -139,7 +139,7 @@ def test_poly_deformation__no_solutions(
     )
 
     with pytest.raises(ValueError):
-    	deformation_model.max_stress = np.array([1e10, 1e10])
+        deformation_model.max_stress = np.array([1e10, 1e10])
 
 
 def test_deformation__data_container(
