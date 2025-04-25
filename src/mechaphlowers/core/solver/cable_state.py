@@ -65,7 +65,7 @@ class SagTensionSolver:
         self.temperature_reference = temperature_reference
         self.polynomial_conductor = polynomial_conductor
         self.polynomial_heart = polynomial_heart
-        # TODO: temporary measure
+        # TODO: use data_cable and remove the other parameters from cable
         self.data_cable = data_cable
         self.L_ref: np.ndarray
         self.span_model_type: Type[Span] = CatenarySpan
@@ -184,21 +184,12 @@ class SagTensionSolver:
             p,
             T_h,
         )
-        # TODO: find a better way to do this
-        conductor_kwargs = {
-            "stress_strain_polynomial": self.data_cable.polynomial_conductor,
-            "young_modulus": self.data_cable.young_modulus_conductor,
-            "dilatation_coefficient": self.data_cable.dilatation_coefficient_conductor,
-            "T_labo": self.data_cable.temperature_reference,
-        }
-        heart_kwargs = {
-            "stress_strain_polynomial": self.data_cable.polynomial_heart,
-            "young_modulus": self.data_cable.young_modulus_heart,
-            "dilatation_coefficient": self.data_cable.dilatation_coefficient_heart,
-            "T_labo": self.data_cable.temperature_reference,
-        }
-        sigma_func_conductor = SigmaFunctionSingleMaterial(**conductor_kwargs)
-        sigma_func_heart = SigmaFunctionSingleMaterial(**heart_kwargs)
+        sigma_func_conductor = SigmaFunctionSingleMaterial(
+            **self.data_cable.conductor_material_dict
+        )
+        sigma_func_heart = SigmaFunctionSingleMaterial(
+            **self.data_cable.heart_material_dict
+        )
         epsilon_total = self.deformation_model_type.compute_epsilon(
             T_mean,
             self.data_cable,

@@ -19,9 +19,9 @@ class SigmaFunctionSingleMaterial:
     def __init__(
         self,
         stress_strain_polynomial: Poly,
-        young_modulus,
-        dilatation_coefficient,
-        T_labo,
+        young_modulus: np.float64,
+        dilatation_coefficient: np.float64,
+        T_labo: np.float64,
     ) -> None:
         self.stress_strain_polynomial = stress_strain_polynomial
         self.young_modulus = young_modulus
@@ -30,14 +30,25 @@ class SigmaFunctionSingleMaterial:
         self.sigma_max: np.ndarray | None = None
         self.epsilon_plastic_max: np.ndarray | None = None
 
-    # TODO: best way to do this?
-    def set_sigma_max(self, sigma_max: np.ndarray):
+    def set_sigma_max(
+        self, sigma_max: np.ndarray, current_temperature: np.ndarray
+    ):
+        """Set the maximum stress for the material and recompute the plastic strain if needed."""
         self.epsilon_plastic_max = self.epsilon_plastic(
-            sigma_max, 15 * np.ones_like(sigma_max)
-        )  # TODO !!!!
+            sigma_max, current_temperature
+        )
         self.sigma_max = sigma_max
 
-    def epsilon_total(self, sigma, current_temperature):
+    def epsilon_total(
+        self, sigma: np.ndarray, current_temperature: np.ndarray
+    ):
+        """Computes the total strain of the material.
+        Args:
+            sigma (np.ndarray): current mean stress
+            current_temperature (np.ndarray): current temperature
+        Returns:
+            np.ndarray: total strain
+        """
         E = self.young_modulus
         # TODO: unnecessary, but keep anyway?
         if E == np.float64(0.0):
@@ -46,12 +57,27 @@ class SigmaFunctionSingleMaterial:
         eps_plast = self.epsilon_plastic(sigma, current_temperature)
         return eps_th + eps_plast + sigma / E
 
-    def epsilon_th(self, current_temperature):
+    def epsilon_th(self, current_temperature: np.ndarray) -> np.ndarray:
+        """Computes the thermal strain of the material.
+        Args:
+            current_temperature (np.ndarray): current temperature
+        Returns:
+            np.ndarray: thermal strain
+        """
         return self.dilatation_coefficient * (
             current_temperature - self.T_labo
         )
 
-    def epsilon_plastic(self, sigma, current_temperature):
+    def epsilon_plastic(
+        self, sigma: np.ndarray, current_temperature: np.ndarray
+    ):
+        """Computes the plastic strain of the material.
+        Args:
+            sigma (np.ndarray): current mean stress
+            current_temperature (np.ndarray): current temperature
+        Returns:
+            np.ndarray: plastic strain
+        """
         # TODO : do better than this
         if self.epsilon_plastic_max is None:
             self.epsilon_plastic_max = np.zeros_like(sigma)
@@ -79,7 +105,6 @@ class SigmaFunctionSingleMaterial:
         self, sigma: np.ndarray, current_temperature: np.ndarray
     ) -> np.ndarray:
         """Solves $\\sigma = Polynomial(\\varepsilon_{plastic})$ for sigma values that need it"""
-        # TODO: for loop here instead
         eps_th = self.epsilon_th(current_temperature)
         polynomials_array = np.full(sigma.shape, self.stress_strain_polynomial)
         polynomials_translated = [
@@ -89,39 +114,37 @@ class SigmaFunctionSingleMaterial:
             for index in range(len(polynomials_array))
         ]
         poly_to_resolve = polynomials_translated - sigma
-        return self.find_smallest_real_positive_root(poly_to_resolve)
+        return np.array(
+            [
+                self.find_smallest_real_positive_root(single_poly_to_resolve)
+                for single_poly_to_resolve in poly_to_resolve
+            ]
+        )
 
     @staticmethod
     def find_smallest_real_positive_root(
-        poly_to_resolve: np.ndarray,
-    ) -> np.ndarray:
-        """Find the smallest root that is real and positive for each polynomial
+        polynomial_to_resolve: Poly,
+    ) -> np.float64:
+        """Find the smallest root that is real and positive for one polynomial
 
         Args:
-                poly_to_resolve (np.ndarray): array of polynomials to solve
+                polynomial_to_resolve (np.ndarray): single polynomial to solve
 
         Raises:
-                ValueError: if no real positive root has been found for at least one polynomial.
+                ValueError: if no real positive root has been found.
 
         Returns:
-                np.ndarray: array of the roots (one per polynomial)
+                np.float64: smallest root (real and positive)
         """
-        # Can cause performance issues
-        all_roots = [poly.roots() for poly in poly_to_resolve]
-
-        all_roots_stacked = np.stack(all_roots)
+        all_roots: np.ndarray = polynomial_to_resolve.roots()
         keep_solution_condition = np.logical_and(
-            abs(all_roots_stacked.imag) < IMAGINARY_THRESHOLD,
-            0.0 <= all_roots_stacked,
+            abs(all_roots.imag) < IMAGINARY_THRESHOLD,
+            0.0 <= all_roots,
         )
-        # Replace roots that are not real nor positive by np.inf
-        real_positive_roots = np.where(
-            keep_solution_condition, all_roots_stacked, np.inf
-        )
-        real_smallest_root = real_positive_roots.min(axis=1).real
-        if np.inf in real_smallest_root:
+        real_positive_roots = all_roots[keep_solution_condition]
+        if real_positive_roots.size == 0:
             raise ValueError("No solution found for at least one span")
-        return real_smallest_root
+        return real_positive_roots.real.min()
 
 
 class IDeformation(ABC):
@@ -133,7 +156,6 @@ class IDeformation(ABC):
         tension_mean: np.ndarray,
         cable_length: np.ndarray,
         sagging_temperature: np.ndarray,
-        # TODO: add setter max_stress to add it to SimpleMaterials?
         max_stress: np.ndarray | None = None,
         **kwargs,
     ):
@@ -213,22 +235,12 @@ class DeformationRte(IDeformation):
             sagging_temperature,
             max_stress,
         )
-        conductor_kwargs = {
-            "stress_strain_polynomial": data_cable.polynomial_conductor,
-            "young_modulus": data_cable.young_modulus_conductor,
-            "dilatation_coefficient": data_cable.dilatation_coefficient_conductor,
-            "T_labo": data_cable.temperature_reference,
-        }
-        heart_kwargs = {
-            "stress_strain_polynomial": data_cable.polynomial_heart,
-            "young_modulus": data_cable.young_modulus_heart,
-            "dilatation_coefficient": data_cable.dilatation_coefficient_heart,
-            "T_labo": data_cable.temperature_reference,
-        }
         self.sigma_func_conductor = SigmaFunctionSingleMaterial(
-            **conductor_kwargs
+            **data_cable.conductor_material_dict
         )
-        self.sigma_func_heart = SigmaFunctionSingleMaterial(**heart_kwargs)
+        self.sigma_func_heart = SigmaFunctionSingleMaterial(
+            **data_cable.heart_material_dict
+        )
         self.max_stress = self._max_stress
 
     @property
@@ -237,9 +249,13 @@ class DeformationRte(IDeformation):
 
     @max_stress.setter
     def max_stress(self, value_max_stress: np.ndarray):
-        self.sigma_func_conductor.set_sigma_max(value_max_stress)
+        self.sigma_func_conductor.set_sigma_max(
+            value_max_stress, self.current_temperature
+        )
         if self.sigma_func_heart.young_modulus > np.float64(0):
-            self.sigma_func_heart.set_sigma_max(value_max_stress)
+            self.sigma_func_heart.set_sigma_max(
+                value_max_stress, self.current_temperature
+            )
 
     def L_ref(self) -> np.ndarray:
         L = self.cable_length

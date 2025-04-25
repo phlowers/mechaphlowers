@@ -1,6 +1,6 @@
 import dataclasses
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TypedDict
 
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
@@ -12,6 +12,13 @@ from mechaphlowers.entities.arrays import (
 )
 
 
+class MaterialDict(TypedDict):
+    stress_strain_polynomial: Poly
+    young_modulus: np.float64
+    dilatation_coefficient: np.float64
+    T_labo: np.float64
+
+
 @dataclass
 class DataCable:
     cable_section_area: np.float64
@@ -19,7 +26,6 @@ class DataCable:
     diameter: np.float64
     linear_weight: np.float64
     young_modulus: np.float64
-    # young_modulus_conductor: np.float64
     young_modulus_conductor: Optional[np.float64]
     young_modulus_heart: Optional[np.float64]
     dilatation_coefficient: np.float64
@@ -34,6 +40,24 @@ class DataCable:
         for k, v in kwargs.items():
             if k in names:
                 setattr(self, k, v)
+
+    @property
+    def conductor_material_dict(self) -> MaterialDict:
+        return {
+            "stress_strain_polynomial": self.polynomial_conductor,
+            "young_modulus": self.young_modulus_conductor,
+            "dilatation_coefficient": self.dilatation_coefficient_conductor,
+            "T_labo": self.temperature_reference,
+        }
+
+    @property
+    def heart_material_dict(self) -> MaterialDict:
+        return {
+            "stress_strain_polynomial": self.polynomial_heart,
+            "young_modulus": self.young_modulus_heart,
+            "dilatation_coefficient": self.dilatation_coefficient_heart,
+            "T_labo": self.temperature_reference,
+        }
 
 
 class DataContainer:

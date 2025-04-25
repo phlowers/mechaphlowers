@@ -24,7 +24,7 @@ from mechaphlowers.entities.data_container import (
 )
 
 
-class WeatherDict(TypedDict, total=False):
+class WeatherDict(TypedDict):
     ice_thickness: np.ndarray
     wind_pressure: np.ndarray
 
