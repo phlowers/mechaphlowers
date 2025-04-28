@@ -50,9 +50,6 @@ class SigmaFunctionSingleMaterial:
             np.ndarray: total strain
         """
         E = self.young_modulus
-        # TODO: unnecessary, but keep anyway?
-        if E == np.float64(0.0):
-            return np.zeros_like(sigma)
         eps_th = self.epsilon_th(current_temperature)
         eps_plast = self.epsilon_plastic(sigma, current_temperature)
         return eps_th + eps_plast + sigma / E

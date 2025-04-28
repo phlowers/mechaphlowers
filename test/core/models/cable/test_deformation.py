@@ -111,10 +111,6 @@ def test_poly_deformation__degree_four__with_max_stress(
         cable_length=cable_length,
     )
 
-    constraint = (
-        tension_mean / default_data_container_one_span.cable_section_area
-    )
-    constraint = np.fmax(constraint, np.array([0, 0]))
     deformation_model.max_stress = np.array([1000, 1e7])
     deformation_model.epsilon()
 
@@ -142,24 +138,7 @@ def test_poly_deformation__no_solutions(
         deformation_model.max_stress = np.array([1e10, 1e10])
 
 
-def test_deformation__data_container(
-    default_data_container_one_span: DataContainer,
-) -> None:
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
-    tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
-
-    deformation_model = DeformationRte(
-        **default_data_container_one_span.__dict__,
-        data_cable=default_data_container_one_span.data_cable,
-        tension_mean=tension_mean,
-        cable_length=cable_length,
-    )
-    deformation_model.epsilon()
-    deformation_model.L_ref()
-
-
-def test_deformation__data_container_polynomial_2_materials(
+def test_deformation__polynomial_2_materials(
     data_container_one_span_narcisse: DataContainer,
 ) -> None:
     span_model = CatenarySpan(**data_container_one_span_narcisse.__dict__)

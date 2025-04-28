@@ -47,3 +47,55 @@ def test_deformation_values__default_data(
     # first: L0 = 480.659
     # CRA 50% L0 = 480.649
     # récup epsilon plutôt?
+
+
+def test_deformation__polynomial_2_materials(
+    data_container_one_span_narcisse: DataContainer,
+) -> None:
+    span_model = CatenarySpan(**data_container_one_span_narcisse.__dict__)
+    tension_mean = span_model.T_mean()
+    cable_length = span_model.L()
+
+    deformation_model = DeformationRte(
+        **data_container_one_span_narcisse.__dict__,
+        data_cable=data_container_one_span_narcisse.data_cable,
+        tension_mean=tension_mean,
+        cable_length=cable_length,
+    )
+    eps_tot = deformation_model.epsilon()
+    L_ref = deformation_model.L_ref()
+
+    # np.testing.assert_allclose(
+    #     eps_tot,
+    #     np.array([0.00097836768, np.nan]),
+    #     atol=1e-6,
+    # )
+
+    np.testing.assert_allclose(
+        L_ref,
+        np.array([480.78634977, np.nan]),
+        atol=1e-6,
+    )
+
+
+def test_deformation__polynomial_2_materials__with_max_stress(
+    data_container_one_span_narcisse: DataContainer,
+) -> None:
+    span_model = CatenarySpan(**data_container_one_span_narcisse.__dict__)
+    tension_mean = span_model.T_mean()
+    cable_length = span_model.L()
+
+    deformation_model = DeformationRte(
+        **data_container_one_span_narcisse.__dict__,
+        data_cable=data_container_one_span_narcisse.data_cable,
+        tension_mean=tension_mean,
+        cable_length=cable_length,
+    )
+    deformation_model.max_stress = np.array([1e6, 1e6])
+    L_ref = deformation_model.L_ref()
+
+    # np.testing.assert_allclose(
+    #     L_ref,
+    #     np.array([480.6392123, np.nan]),
+    #     atol=1e-6,
+    # )
