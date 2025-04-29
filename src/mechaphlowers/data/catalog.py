@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -36,7 +36,7 @@ class Catalog:
         filepath = DATA_BASE_PATH / filename
         self._data = pd.read_csv(filepath, index_col=key_column_name)
 
-    def get(self, keys: list) -> pd.DataFrame:
+    def get(self, keys: list | str) -> pd.DataFrame:
         """Get rows from a list of keys.
 
         If a key is present several times in the `keys` argument, the returned dataframe
@@ -54,11 +54,17 @@ class Catalog:
         Returns:
                 pd.DataFrame: requested rows
         """
+        if isinstance(keys, str):
+            keys = [keys]
+        elif not isinstance(keys, list):
+            raise TypeError(
+                f"Expected a list or str as argument for 'keys', got {type(keys)}"
+            )
         try:
             return self._data.loc[keys]
         except KeyError as e:
             raise KeyError(
-                f"Error when requesting catalog: {e.args[0]}"
+                f"Error when requesting catalog: {e.args[0]}. Try the .keys() method to gets the available keys?"
             ) from e
 
     def get_as_cable_array(self, keys: list) -> CableArray:
@@ -82,6 +88,10 @@ class Catalog:
         df = self.get(keys)
         return CableArray(df)
         # TODO(ai-qui): make this generic (CableArray vs. generic Catalog)?
+
+    def keys(self) -> list:
+        """Get the keys available in the catalog"""
+        return self._data.index.tolist()
 
     def __str__(self) -> str:
         return self._data.to_string()

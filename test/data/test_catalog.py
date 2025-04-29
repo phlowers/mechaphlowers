@@ -106,3 +106,37 @@ def test_sample_cable_catalog__get_as_cable_array() -> None:
 def test_sample_cable_catalog__get_as_cable_array__missing_key() -> None:
     with pytest.raises(KeyError):
         sample_cable_catalog.get_as_cable_array(["wrong_key"])
+
+
+def test_fake_catalog__get_one_row_ot_list() -> None:
+    # string case
+    first_row = fake_catalog.get("Bulbasaur")
+    expected_dataframe = pd.DataFrame(
+        {
+            "#": [1],
+            "Type 1": ["Grass"],
+            "Type 2": ["Poison"],
+            "Total": [318],
+            "HP": [45],
+            "Attack": [49],
+            "Defense": [49],
+            "Sp. Atk": [65],
+            "Sp. Def": [65],
+            "Speed": [45],
+            "Generation": [1],
+            "Legendary": [False],
+        },
+        index=["Bulbasaur"],
+    )
+    expected_dataframe.index.name = "Name"
+    assert_frame_equal(first_row, expected_dataframe)
+    # other cases
+    with pytest.raises(TypeError):
+        first_row = fake_catalog.get(123)  # type: ignore[arg-type]
+
+
+def test_fake_catalog__keys() -> None:
+    """Test the `keys` method of the FakeCatalog class"""
+    assert len(fake_catalog.keys()) == 800
+    assert "Bulbasaur" in fake_catalog.keys()
+    assert "notPokemon" not in fake_catalog.keys()
