@@ -1,3 +1,7 @@
+import dataclasses
+from dataclasses import dataclass
+from typing import Optional, TypedDict
+
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
@@ -6,6 +10,54 @@ from mechaphlowers.entities.arrays import (
     SectionArray,
     WeatherArray,
 )
+
+
+class MaterialDict(TypedDict):
+    stress_strain_polynomial: Poly
+    young_modulus: np.float64
+    dilatation_coefficient: np.float64
+    T_labo: np.float64
+
+
+@dataclass
+class DataCable:
+    cable_section_area: np.float64
+    cable_section_area_conductor: np.float64  # necessary?
+    diameter: np.float64
+    linear_weight: np.float64
+    young_modulus: np.float64
+    young_modulus_conductor: Optional[np.float64]
+    young_modulus_heart: Optional[np.float64]
+    dilatation_coefficient: np.float64
+    dilatation_coefficient_conductor: Optional[np.float64]
+    dilatation_coefficient_heart: Optional[np.float64]
+    temperature_reference: np.float64
+    polynomial_conductor: Poly
+    polynomial_heart: Poly
+
+    def __init__(self, **kwargs):
+        names = set([f.name for f in dataclasses.fields(self)])
+        for k, v in kwargs.items():
+            if k in names:
+                setattr(self, k, v)
+
+    @property
+    def conductor_material_dict(self) -> MaterialDict:
+        return {
+            "stress_strain_polynomial": self.polynomial_conductor,
+            "young_modulus": self.young_modulus_conductor,
+            "dilatation_coefficient": self.dilatation_coefficient_conductor,
+            "T_labo": self.temperature_reference,
+        }
+
+    @property
+    def heart_material_dict(self) -> MaterialDict:
+        return {
+            "stress_strain_polynomial": self.polynomial_heart,
+            "young_modulus": self.young_modulus_heart,
+            "dilatation_coefficient": self.dilatation_coefficient_heart,
+            "T_labo": self.temperature_reference,
+        }
 
 
 class DataContainer:
@@ -28,10 +80,15 @@ class DataContainer:
         self.sagging_temperature: np.ndarray
 
         self.cable_section_area: np.float64
+        self.cable_section_area_conductor: np.float64
         self.diameter: np.float64
         self.linear_weight: np.float64
         self.young_modulus: np.float64
+        self.young_modulus_conductor: np.float64
+        self.young_modulus_heart: np.float64
         self.dilatation_coefficient: np.float64
+        self.dilatation_coefficient_conductor: np.float64
+        self.dilatation_coefficient_heart: np.float64
         self.temperature_reference: np.float64
 
         self.polynomial_conductor: Poly
@@ -92,6 +149,25 @@ class DataContainer:
         self.dilatation_coefficient = cable_array.data.dilatation_coefficient[
             0
         ]
+        # TODO: Better way to do this + choose if need ot remove dilatation_coef?
+        if "section_conductor" in cable_array.data:
+            self.cable_section_area_conductor = (
+                cable_array.data.section_conductor[0]
+            )
+        if "young_modulus_heart" in cable_array.data:
+            self.young_modulus_heart = cable_array.data.young_modulus_heart[0]
+        if "young_modulus_conductor" in cable_array.data:
+            self.young_modulus_conductor = (
+                cable_array.data.young_modulus_conductor[0]
+            )
+        if "dilatation_coefficient_conductor" in cable_array.data:
+            self.dilatation_coefficient_conductor = (
+                cable_array.data.dilatation_coefficient_conductor[0]
+            )
+        if "dilatation_coefficient_heart" in cable_array.data:
+            self.dilatation_coefficient_heart = (
+                cable_array.data.dilatation_coefficient_heart[0]
+            )
         self.temperature_reference = cable_array.data.temperature_reference[0]
 
         self.polynomial_conductor = Poly(
@@ -118,6 +194,10 @@ class DataContainer:
         """Take as argument a WeatherArray, and add all data into its attributes"""
         self.ice_thickness = weather_array.data.ice_thickness.to_numpy()
         self.wind_pressure = weather_array.data.wind_pressure.to_numpy()
+
+    @property
+    def data_cable(self) -> DataCable:
+        return DataCable(**self.__dict__)
 
 
 def factory_data_container(

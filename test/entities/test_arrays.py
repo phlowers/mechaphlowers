@@ -45,11 +45,15 @@ def section_array(section_array_input_data: dict[str, list]) -> SectionArray:
 @pytest.fixture
 def cable_array_input_data() -> dict[str, list]:
     return {
-        "section": [345.5],
+        "section": [345.55],
         "diameter": [22.4],
-        "linear_weight": [9.6],
+        "linear_weight": [9.55494],
         "young_modulus": [59],
+        "young_modulus_conductor": [59],
+        "young_modulus_heart": [0],
         "dilatation_coefficient": [23],
+        "dilatation_coefficient_conductor": [23],
+        "dilatation_coefficient_heart": [0],
         "temperature_reference": [15],
         "a0": [0],
         "a1": [59],
@@ -301,9 +305,13 @@ def test_create_cable_array__with_floats(
         {
             "section": [345.5e-6],
             "diameter": [22.4e-3],
-            "linear_weight": [9.6],
+            "linear_weight": [9.55494],
             "young_modulus": [59e9],
+            "young_modulus_conductor": [59e9],
+            "young_modulus_heart": [0],
             "dilatation_coefficient": [23e-6],
+            "dilatation_coefficient_conductor": [23e-6],
+            "dilatation_coefficient_heart": [0],
             "temperature_reference": [15],
             "a0": [0],
             "a1": [59e9],
@@ -373,9 +381,7 @@ def test_create_cable_array__extra_column(
 ) -> None:
     cable_array_input_data["extra column"] = [0]
 
-    input_df: pdt.DataFrame[CableArrayInput] = pdt.DataFrame(
-        cable_array_input_data
-    )
+    input_df = pd.DataFrame(cable_array_input_data)
 
     section = CableArray(input_df)
 
