@@ -42,10 +42,6 @@ class SigmaFunctionSingleMaterial:
             current_temperature - self.T_labo
         )
 
-    def sigma_poly(self, x: np.ndarray):
-        out = self.stress_strain_polynomial(x)
-        return out
-
 
 class IDeformation(ABC):
     """This abstract class is a base class for models to compute relative cable deformations."""
@@ -143,6 +139,7 @@ class DeformationRte(IDeformation):
     @max_stress.setter
     def max_stress(self, value_max_stress: np.ndarray):
         self._max_stress = value_max_stress
+        # recompute when setting a new max_stress in order to store a new epsilon_plastic
         eps_tot = DeformationRte.solve_epsilon_above_max_stress(
             value_max_stress,
             self.data_cable,
@@ -200,7 +197,6 @@ class DeformationRte(IDeformation):
         sigma = T_mean / S
         # single material case (therefore linear)
         if data_cable.young_modulus_heart == np.float64(0):
-            # TODO: merge two cases?
             eps_mecha = DeformationRte.formula_epsilon_mecha_one_material(
                 T_mean, data_cable.young_modulus, S
             )
@@ -209,6 +205,7 @@ class DeformationRte(IDeformation):
         # two materials
         else:
             # case where analytical solution is enough
+            # compute for all spans even if not necessary
             eps_tot = DeformationRte.compute_epsilon_below_max_stress(
                 sigma,
                 current_temperature,
@@ -216,6 +213,7 @@ class DeformationRte(IDeformation):
                 sigma_func_heart,
             )
             # extract spans where equation resolution is needed
+            # compute only for spans needed, for performance reasons
             need_solving = np.logical_and(
                 sigma > max_stress, np.logical_not(np.isnan(sigma))
             )
@@ -282,6 +280,8 @@ class DeformationRte(IDeformation):
         current_temperature: np.ndarray,
         sigma_func_heart: SigmaFunctionSingleMaterial,
     ) -> np.ndarray:
+        """$$\\varepsilon_{total} = \\frac{\\sigma}{E_{heart}}
+        + \\varepsilon_{plastic, heart} + \\varepsilon_{th, heart}$$"""
         E = sigma_func_heart.young_modulus
         eps_th = sigma_func_heart.epsilon_th(current_temperature)
         eps_plastic = sigma_func_heart.epsilon_plastic_max
@@ -294,6 +294,9 @@ class DeformationRte(IDeformation):
         sigma_func_heart: SigmaFunctionSingleMaterial,
         sigma_func_conductor: SigmaFunctionSingleMaterial,
     ) -> np.ndarray:
+        """$$\\varepsilon_{total} = \\frac{1}{E_{heart} + E_{conductor}} * (\\sigma
+        + (\\varepsilon_{plastic, heart} + \\varepsilon_{th, heart}) * E_{heart}
+        + (\\varepsilon_{plastic, conductor} + \\varepsilon_{th, conductor}) * E_{conductor})$$"""
         E_a = sigma_func_conductor.young_modulus
         eps_th_a = sigma_func_conductor.epsilon_th(current_temperature)
         eps_plastic_a = sigma_func_conductor.epsilon_plastic_max
@@ -314,6 +317,7 @@ class DeformationRte(IDeformation):
         sigma_func_conductor: SigmaFunctionSingleMaterial,
         sigma_func_heart: SigmaFunctionSingleMaterial,
     ) -> np.ndarray:
+        # create arrays of polynomials where eps_th are taken into account
         poly_array_heart = DeformationRte.build_array_polynomials(
             data_cable.polynomial_heart, sigma_func_heart, current_temperature
         )
@@ -328,7 +332,6 @@ class DeformationRte(IDeformation):
             sigma_func_conductor.epsilon_plastic_max
             + sigma_func_conductor.epsilon_th(current_temperature)
         )
-        # TODO: code this in SingleMaterial
         sigma_switch_point = []
         for index in range(len(eps_translated_conductor)):
             eps = eps_translated_conductor[index]
@@ -338,8 +341,10 @@ class DeformationRte(IDeformation):
 
         polynomials_to_resolve = np.where(
             is_only_heart_supported,
-            poly_array_heart - sigma,
-            poly_array_heart + poly_array_conductor - sigma,
+            poly_array_heart - sigma,  # case only heart
+            poly_array_heart
+            + poly_array_conductor
+            - sigma,  # case both materials
         )
         eps_tot = np.array(
             [
@@ -357,16 +362,7 @@ class DeformationRte(IDeformation):
         sigma_func: SigmaFunctionSingleMaterial,
         current_temperature: np.ndarray,
     ) -> np.ndarray:
-        """Creates an array of polynomials. Each polynomial is translated along the x axis by the value of epsilon_th.
-
-        Args:
-            polynomial (Poly): _description_
-            sigma_func (SigmaFunctionSingleMaterial): _description_
-            current_temperature (np.ndarray): _description_
-
-        Returns:
-            np.ndarray: _description_
-        """
+        """Creates an array of polynomials. Each polynomial is translated along the x axis by the value of epsilon_th."""
         eps_th = sigma_func.epsilon_th(current_temperature)
         polynomials_array = np.full(current_temperature.shape, polynomial)
         polynomials_translated = [
