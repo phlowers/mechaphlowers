@@ -16,6 +16,7 @@ IMAGINARY_THRESHOLD = cfg.solver.deformation_imag_thresh  # type: ignore
 
 
 class SigmaFunctionSingleMaterial:
+    # This class may be irrelevant, these methods and attributes could be implemented directly into DeformationRte
     def __init__(
         self,
         stress_strain_polynomial: Poly,
@@ -30,30 +31,6 @@ class SigmaFunctionSingleMaterial:
         self.sigma_max: np.ndarray | None = None
         self.epsilon_plastic_max: np.ndarray | None = None
 
-    def set_sigma_max(
-        self, sigma_max: np.ndarray, current_temperature: np.ndarray
-    ):
-        """Set the maximum stress for the material and recompute the plastic strain if needed."""
-        self.epsilon_plastic_max = self.epsilon_plastic(
-            sigma_max, current_temperature
-        )
-        self.sigma_max = sigma_max
-
-    def epsilon_total(
-        self, sigma: np.ndarray, current_temperature: np.ndarray
-    ):
-        """Computes the total strain of the material.
-        Args:
-            sigma (np.ndarray): current mean stress
-            current_temperature (np.ndarray): current temperature
-        Returns:
-            np.ndarray: total strain
-        """
-        E = self.young_modulus
-        eps_th = self.epsilon_th(current_temperature)
-        eps_plast = self.epsilon_plastic(sigma, current_temperature)
-        return eps_th + eps_plast + sigma / E
-
     def epsilon_th(self, current_temperature: np.ndarray) -> np.ndarray:
         """Computes the thermal strain of the material.
         Args:
@@ -65,83 +42,9 @@ class SigmaFunctionSingleMaterial:
             current_temperature - self.T_labo
         )
 
-    def epsilon_plastic(
-        self, sigma: np.ndarray, current_temperature: np.ndarray
-    ):
-        """Computes the plastic strain of the material.
-        Args:
-            sigma (np.ndarray): current mean stress
-            current_temperature (np.ndarray): current temperature
-        Returns:
-            np.ndarray: plastic strain
-        """
-        # TODO : do better than this
-        if self.epsilon_plastic_max is None:
-            self.epsilon_plastic_max = np.zeros_like(sigma)
-        if self.sigma_max is None:
-            self.sigma_max = np.zeros_like(sigma)
-        need_recomputation = sigma > self.sigma_max
-        sigma_recomputation = np.extract(need_recomputation, sigma)
-        E = self.young_modulus
-        if len(sigma_recomputation) > 0:
-            new_epsilon_plastic_max = self.resolve_stress_strain_equation(
-                sigma_recomputation, current_temperature
-            ) - (sigma_recomputation / E)
-            np.place(
-                self.epsilon_plastic_max,
-                need_recomputation,
-                new_epsilon_plastic_max,
-            )
-        return self.epsilon_plastic_max
-
     def sigma_poly(self, x: np.ndarray):
         out = self.stress_strain_polynomial(x)
         return out
-
-    def resolve_stress_strain_equation(
-        self, sigma: np.ndarray, current_temperature: np.ndarray
-    ) -> np.ndarray:
-        """Solves $\\sigma = Polynomial(\\varepsilon_{plastic})$ for sigma values that need it"""
-        eps_th = self.epsilon_th(current_temperature)
-        polynomials_array = np.full(sigma.shape, self.stress_strain_polynomial)
-        polynomials_translated = [
-            polynomials_array[index].convert(
-                domain=[eps_th[index] - 1, eps_th[index] + 1]
-            )
-            for index in range(len(polynomials_array))
-        ]
-        poly_to_resolve = polynomials_translated - sigma
-        return np.array(
-            [
-                self.find_smallest_real_positive_root(single_poly_to_resolve)
-                for single_poly_to_resolve in poly_to_resolve
-            ]
-        )
-
-    @staticmethod
-    def find_smallest_real_positive_root(
-        polynomial_to_resolve: Poly,
-    ) -> np.float64:
-        """Find the smallest root that is real and positive for one polynomial
-
-        Args:
-                polynomial_to_resolve (np.ndarray): single polynomial to solve
-
-        Raises:
-                ValueError: if no real positive root has been found.
-
-        Returns:
-                np.float64: smallest root (real and positive)
-        """
-        all_roots: np.ndarray = polynomial_to_resolve.roots()
-        keep_solution_condition = np.logical_and(
-            abs(all_roots.imag) < IMAGINARY_THRESHOLD,
-            0.0 <= all_roots,
-        )
-        real_positive_roots = all_roots[keep_solution_condition]
-        if real_positive_roots.size == 0:
-            raise ValueError("No solution found for at least one span")
-        return real_positive_roots.real.min()
 
 
 class IDeformation(ABC):
@@ -161,20 +64,15 @@ class IDeformation(ABC):
         self.data_cable = data_cable
         self.current_temperature = sagging_temperature
 
-        if max_stress is None:
-            self._max_stress = np.full(self.cable_length.shape, 0.0)
-
-    # # Keep this in abstract class?
+    # Keep this in abstract class?
     @property
     @abstractmethod
     def max_stress(self):
-        """quoi"""
         pass
 
     @max_stress.setter
     @abstractmethod
     def max_stress(self, value_max_stress):
-        """feur"""
         pass
 
     @abstractmethod
@@ -184,14 +82,6 @@ class IDeformation(ABC):
     @abstractmethod
     def epsilon(self) -> np.ndarray:
         """Total relative strain of the cable."""
-
-    # @abstractmethod
-    # def epsilon_mecha(self) -> np.ndarray:
-    #     """Mechanical part of the relative strain  of the cable."""
-
-    # @abstractmethod
-    # def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
-    #     """Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
 
     @staticmethod
     @abstractmethod
@@ -204,13 +94,6 @@ class IDeformation(ABC):
         max_stress: np.ndarray | None = None,
     ) -> np.ndarray:
         """Computing mechanical strain using a static method"""
-
-    # @staticmethod
-    # @abstractmethod
-    # def compute_epsilon_therm(
-    #     theta: np.ndarray, theta_ref: np.float64, alpha: np.float64
-    # ) -> np.ndarray:
-    #     """Computing thermal strain using a static method"""
 
 
 class DeformationRte(IDeformation):
@@ -238,21 +121,46 @@ class DeformationRte(IDeformation):
         self.sigma_func_heart = SigmaFunctionSingleMaterial(
             **data_cable.heart_material_dict
         )
-        self.max_stress = self._max_stress
+
+        if max_stress is None:
+            self._max_stress = np.zeros_like(self.cable_length)
+            self.sigma_func_conductor.sigma_max = max_stress
+            self.sigma_func_conductor.epsilon_plastic_max = np.zeros_like(
+                tension_mean
+            )
+            self.sigma_func_heart.sigma_max = max_stress
+            self.sigma_func_heart.epsilon_plastic_max = np.zeros_like(
+                tension_mean
+            )
+        else:
+            # TODO: case not implemented correctly
+            self.max_stress = max_stress
 
     @property
-    def max_stress(self):
+    def max_stress(self) -> np.ndarray:
         return self._max_stress
 
     @max_stress.setter
     def max_stress(self, value_max_stress: np.ndarray):
-        self.sigma_func_conductor.set_sigma_max(
-            value_max_stress, self.current_temperature
+        self._max_stress = value_max_stress
+        eps_tot = DeformationRte.solve_epsilon_above_max_stress(
+            value_max_stress,
+            self.data_cable,
+            self.current_temperature,
+            self.sigma_func_conductor,
+            self.sigma_func_heart,
         )
-        if self.sigma_func_heart.young_modulus > np.float64(0):
-            self.sigma_func_heart.set_sigma_max(
-                value_max_stress, self.current_temperature
+        eps_plastic_conductor = (
+            eps_tot
+            - value_max_stress / self.data_cable.young_modulus_conductor
+        )
+        self.sigma_func_conductor.epsilon_plastic_max = eps_plastic_conductor
+        if self.data_cable.young_modulus_heart != np.float64(0):
+            eps_plastic_heart = (
+                eps_tot
+                - value_max_stress / self.data_cable.young_modulus_heart
             )
+            self.sigma_func_heart.epsilon_plastic_max = eps_plastic_heart
 
     def L_ref(self) -> np.ndarray:
         L = self.cable_length
@@ -280,175 +188,216 @@ class DeformationRte(IDeformation):
         sigma_func_heart: SigmaFunctionSingleMaterial,
         max_stress: np.ndarray | None = None,
     ) -> np.ndarray:
+        if max_stress is None:
+            max_stress = np.zeros_like(T_mean)
+            # not pretty but didn't find better
+            # currently, SagTensionSolver cannot update max_stress because of the use of static methods
+            sigma_func_conductor.sigma_max = max_stress
+            sigma_func_conductor.epsilon_plastic_max = np.zeros_like(T_mean)
+            sigma_func_heart.sigma_max = max_stress
+            sigma_func_heart.epsilon_plastic_max = np.zeros_like(T_mean)
         S = data_cable.cable_section_area
-        sigma = T_mean / S  # global section?
-
-        # single material
-        eps_total_cond = sigma_func_conductor.epsilon_total(
-            sigma, current_temperature
-        )
-
-        if sigma_func_heart.young_modulus == np.float64(0):
+        sigma = T_mean / S
+        # single material case (therefore linear)
+        if data_cable.young_modulus_heart == np.float64(0):
             # TODO: merge two cases?
-            return eps_total_cond
-
+            eps_mecha = DeformationRte.formula_epsilon_mecha_one_material(
+                T_mean, data_cable.young_modulus, S
+            )
+            eps_th = sigma_func_conductor.epsilon_th(current_temperature)
+            return eps_mecha + eps_th
         # two materials
         else:
-            eps_plastic_cond = sigma_func_conductor.epsilon_plastic(
-                sigma, current_temperature
+            # case where analytical solution is enough
+            eps_tot = DeformationRte.compute_epsilon_below_max_stress(
+                sigma,
+                current_temperature,
+                sigma_func_conductor,
+                sigma_func_heart,
             )
-            eps_th_cond = sigma_func_conductor.epsilon_th(current_temperature)
-            eps_total_heart = sigma_func_heart.epsilon_total(
-                sigma, current_temperature
+            # extract spans where equation resolution is needed
+            need_solving = np.logical_and(
+                sigma > max_stress, np.logical_not(np.isnan(sigma))
             )
+            sigma_solving = np.extract(need_solving, sigma)
+            if len(sigma_solving) > 0:
+                eps_tot_solved = DeformationRte.solve_epsilon_above_max_stress(
+                    sigma_solving,
+                    data_cable,
+                    current_temperature,
+                    sigma_func_conductor,
+                    sigma_func_heart,
+                )
+                np.place(
+                    eps_tot,
+                    need_solving,
+                    eps_tot_solved,
+                )
+            return eps_tot
 
-            is_only_heart_supported: np.ndarray = (
-                eps_total_heart < eps_plastic_cond + eps_th_cond
+    @staticmethod
+    def formula_epsilon_mecha_one_material(
+        T_mean: np.ndarray,
+        E: np.float64,
+        S: np.float64,
+    ) -> np.ndarray:
+        return T_mean / (E * S)
+
+    @staticmethod
+    def compute_epsilon_below_max_stress(
+        sigma: np.ndarray,
+        current_temperature: np.ndarray,
+        sigma_func_conductor: SigmaFunctionSingleMaterial,
+        sigma_func_heart: SigmaFunctionSingleMaterial,
+    ) -> np.ndarray:
+        # case where cable is only supported by the heart material
+        eps_total_heart_only = DeformationRte.formula_eps_linear_heart(
+            sigma, current_temperature, sigma_func_heart
+        )
+        # case where both materials need to be taken into account
+        eps_total_both_materials = (
+            DeformationRte.formula_eps_linear_both_materials(
+                sigma,
+                current_temperature,
+                sigma_func_heart,
+                sigma_func_conductor,
             )
+        )
 
-            return np.where(
-                is_only_heart_supported,
-                eps_total_heart,
-                eps_total_heart + eps_total_cond,
+        is_only_heart_supported: np.ndarray = (
+            eps_total_heart_only
+            < sigma_func_conductor.epsilon_plastic_max
+            + sigma_func_conductor.epsilon_th(current_temperature)
+        )
+
+        return np.where(
+            is_only_heart_supported,
+            eps_total_heart_only,
+            eps_total_both_materials,
+        )
+
+    @staticmethod
+    def formula_eps_linear_heart(
+        sigma: np.ndarray,
+        current_temperature: np.ndarray,
+        sigma_func_heart: SigmaFunctionSingleMaterial,
+    ) -> np.ndarray:
+        E = sigma_func_heart.young_modulus
+        eps_th = sigma_func_heart.epsilon_th(current_temperature)
+        eps_plastic = sigma_func_heart.epsilon_plastic_max
+        return sigma / E + eps_th + eps_plastic
+
+    @staticmethod
+    def formula_eps_linear_both_materials(
+        sigma: np.ndarray,
+        current_temperature: np.ndarray,
+        sigma_func_heart: SigmaFunctionSingleMaterial,
+        sigma_func_conductor: SigmaFunctionSingleMaterial,
+    ) -> np.ndarray:
+        E_a = sigma_func_conductor.young_modulus
+        eps_th_a = sigma_func_conductor.epsilon_th(current_temperature)
+        eps_plastic_a = sigma_func_conductor.epsilon_plastic_max
+        E_b = sigma_func_heart.young_modulus
+        eps_th_b = sigma_func_heart.epsilon_th(current_temperature)
+        eps_plastic_b = sigma_func_heart.epsilon_plastic_max
+        return (
+            sigma
+            + (eps_th_a + eps_plastic_a) * E_a
+            + (eps_th_b + eps_plastic_b) * E_b
+        ) / (E_a + E_b)
+
+    @staticmethod
+    def solve_epsilon_above_max_stress(
+        sigma: np.ndarray,
+        data_cable: DataCable,
+        current_temperature: np.ndarray,
+        sigma_func_conductor: SigmaFunctionSingleMaterial,
+        sigma_func_heart: SigmaFunctionSingleMaterial,
+    ) -> np.ndarray:
+        poly_array_heart = DeformationRte.build_array_polynomials(
+            data_cable.polynomial_heart, sigma_func_heart, current_temperature
+        )
+        poly_array_conductor = DeformationRte.build_array_polynomials(
+            data_cable.polynomial_conductor,
+            sigma_func_conductor,
+            current_temperature,
+        )
+
+        # stress value where cable is only supported by heart material if below this value
+        eps_translated_conductor = (
+            sigma_func_conductor.epsilon_plastic_max
+            + sigma_func_conductor.epsilon_th(current_temperature)
+        )
+        # TODO: code this in SingleMaterial
+        sigma_switch_point = []
+        for index in range(len(eps_translated_conductor)):
+            eps = eps_translated_conductor[index]
+            sigma_switch_point.append(poly_array_heart[index](eps))
+
+        is_only_heart_supported = sigma < sigma_switch_point
+
+        polynomials_to_resolve = np.where(
+            is_only_heart_supported,
+            poly_array_heart - sigma,
+            poly_array_heart + poly_array_conductor - sigma,
+        )
+        eps_tot = np.array(
+            [
+                DeformationRte.find_smallest_real_positive_root(
+                    single_poly_to_resolve
+                )
+                for single_poly_to_resolve in polynomials_to_resolve
+            ]
+        )
+        return np.array(eps_tot)
+
+    @staticmethod
+    def build_array_polynomials(
+        polynomial: Poly,
+        sigma_func: SigmaFunctionSingleMaterial,
+        current_temperature: np.ndarray,
+    ) -> np.ndarray:
+        """Creates an array of polynomials. Each polynomial is translated along the x axis by the value of epsilon_th.
+
+        Args:
+            polynomial (Poly): _description_
+            sigma_func (SigmaFunctionSingleMaterial): _description_
+            current_temperature (np.ndarray): _description_
+
+        Returns:
+            np.ndarray: _description_
+        """
+        eps_th = sigma_func.epsilon_th(current_temperature)
+        polynomials_array = np.full(current_temperature.shape, polynomial)
+        polynomials_translated = [
+            polynomials_array[index].convert(
+                domain=[eps_th[index] - 1, eps_th[index] + 1]
             )
+            for index in range(len(polynomials_array))
+        ]
+        return np.array(polynomials_translated)
 
-    # def epsilon_therm(self, current_temperature: np.ndarray) -> np.ndarray:
-    #     temp_ref = self.data_cable.temperature_reference
-    #     alpha = self.data_cable.dilatation_coefficient
-    #     return self.compute_epsilon_therm(current_temperature, temp_ref, alpha)
+    @staticmethod
+    def find_smallest_real_positive_root(
+        polynomial_to_resolve: Poly,
+    ) -> np.float64:
+        """Find the smallest root that is real and positive for one polynomial
 
-    # @staticmethod
-    # # epsilon total
-    # def compute_epsilon_mecha(
-    #     T_mean: np.ndarray,
-    #     data_cable: DataCable,
-    #     max_stress: np.ndarray | None = None,
-    # ) -> np.ndarray:
-    #     # linear case
-    #     if data_cable.polynomial_conductor.trim().degree() < 2:
-    #         E = data_cable.young_modulus
-    #         S = data_cable.cable_section_area
-    #         return T_mean / (E * S)
-    #     # add linear case with two materials
+        Args:
+                polynomial_to_resolve (np.ndarray): single polynomial to solve
 
-    #     # polynomial case
-    #     # change way things work here?
-    #     else:
-    #         # test_data
-    #         data_cable.young_modulus_heart
-    #         data_cable.dilatation_coefficient
-    #         data_cable.dilatation_coefficient_conductor
-    #         data_cable.dilatation_coefficient_heart
-    #         data_cable.cable_section_area_conductor
-    #         return DeformationRte.compute_epsilon_mecha_polynomial(
-    #             T_mean, data_cable, max_stress
-    #         )
+        Raises:
+                ValueError: if no real positive root has been found.
 
-    # @staticmethod
-    # def compute_epsilon_mecha_polynomial(
-    #     T_mean: np.ndarray,
-    #     data_cable: DataCable,
-    #     max_stress: np.ndarray | None = None,
-    # ) -> np.ndarray:
-    #     """Computes epsilon when the stress-strain relation is polynomial"""
-    #     S = data_cable.cable_section_area
-    #     E = data_cable.young_modulus
-    #     polynomial_conductor = data_cable.polynomial_conductor
-    #     sigma = T_mean / S
-    #     if polynomial_conductor is None:
-    #         raise ValueError("Polynomial is not defined")
-    #     # if sigma > sigma_max: sum of polynomials
-    #     # else:
-    #     # compute both eps_plastic + eps_th and compare them
-    #     # take the lowest and compute total eps
-    #     # compare total eps from first material to eps_pl + eps_th to other material
-
-    #     # gérer les histoires de contrainte réduite
-
-    #     # epsilon_plastic_conductor = DeformationRte.compute_epsilon_plastic(
-    #     #     T_mean, (E - E_heart), S, polynomial_conductor, max_stress
-    #     # )
-    #     # epsilon_therm_conductor = DeformationRte.compute_epsilon_therm(theta, temp_ref, alpha_conductor)
-    #     # epsilon_plastic_heart = DeformationRte.compute_epsilon_plastic(
-    #     #     T_mean, E_heart, S, polynomial_heart, max_stress
-    #     # )
-    #     # epsilon_therm_heart = DeformationRte.compute_epsilon_therm(theta, temp_ref, alpha_conductor)
-    #     # epsilon_total_heart = epsilon_plastic_conductor + epsilon_therm_heart + sigma / E
-    #     # # np.where instead of if
-    #     # if epsilon_total_heart < epsilon_plastic_conductor + epsilon_therm_conductor:
-    #     #     return epsilon_total_heart # or epsilon_mecha
-    #     # else:
-    #     #     return DeformationRte.compute_epsilon_both_materials()
-
-    #     epsilon_plastic = DeformationRte.compute_epsilon_plastic(
-    #         T_mean, E, S, polynomial_conductor, max_stress
-    #     )
-    #     return epsilon_plastic + sigma / E
-
-    # @staticmethod
-    # def compute_epsilon_plastic(
-    #     T_mean: np.ndarray,
-    #     E: np.float64,
-    #     S: np.float64,
-    #     polynomial: Poly,
-    #     max_stress: np.ndarray | None = None,
-    # ) -> np.ndarray:
-    #     """Computes elastic permanent strain."""
-    #     sigma = T_mean / S
-    #     if max_stress is None:
-    #         max_stress = np.full(T_mean.shape, 0)
-    #     # epsilon plastic is based on the highest value between sigma and max_stress
-    #     highest_constraint = np.fmax(sigma, max_stress)
-    #     equation_solution = DeformationRte.resolve_stress_strain_equation(
-    #         highest_constraint, polynomial
-    #     )
-    #     equation_solution -= highest_constraint / E
-    #     return equation_solution
-
-    # @staticmethod
-    # def resolve_stress_strain_equation(
-    #     sigma: np.ndarray, polynomial: Poly
-    # ) -> np.ndarray:
-    #     """Solves $\\sigma = Polynomial(\\varepsilon)$"""
-    #     polynom_array = np.full(sigma.shape, polynomial)
-    #     poly_to_resolve = polynom_array - sigma
-    #     return DeformationRte.find_smallest_real_positive_root(poly_to_resolve)
-
-    # @staticmethod
-    # def find_smallest_real_positive_root(
-    #     poly_to_resolve: np.ndarray,
-    # ) -> np.ndarray:
-    #     """Find the smallest root that is real and positive for each polynomial
-
-    #     Args:
-    #         poly_to_resolve (np.ndarray): array of polynomials to solve
-
-    #     Raises:
-    #         ValueError: if no real positive root has been found for at least one polynomial.
-
-    #     Returns:
-    #         np.ndarray: array of the roots (one per polynomial)
-    #     """
-    #     # Can cause performance issues
-    #     all_roots = [poly.roots() for poly in poly_to_resolve]
-
-    #     all_roots_stacked = np.stack(all_roots)
-    #     keep_solution_condition = np.logical_and(
-    #         abs(all_roots_stacked.imag) < IMAGINARY_THRESHOLD,
-    #         0.0 <= all_roots_stacked,
-    #     )
-    #     # Replace roots that are not real nor positive by np.inf
-    #     real_positive_roots = np.where(
-    #         keep_solution_condition, all_roots_stacked, np.inf
-    #     )
-    #     real_smallest_root = real_positive_roots.min(axis=1).real
-    #     if np.inf in real_smallest_root:
-    #         raise ValueError("No solution found for at least one span")
-    #     return real_smallest_root
-
-    # @staticmethod
-    # def compute_epsilon_therm(
-    #     theta: np.ndarray, theta_ref: np.float64, alpha: np.float64
-    # ) -> np.ndarray:
-    #     """Computing thermal strain using a static method"""
-    #     return (theta - theta_ref) * alpha
+        Returns:
+                np.float64: smallest root (real and positive)
+        """
+        all_roots: np.ndarray = polynomial_to_resolve.roots()
+        keep_solution_condition = np.logical_and(
+            abs(all_roots.imag) < IMAGINARY_THRESHOLD,
+            0.0 <= all_roots,
+        )
+        real_positive_roots = all_roots[keep_solution_condition]
+        if real_positive_roots.size == 0:
+            raise ValueError("No solution found for at least one span")
+        return real_positive_roots.real.min()

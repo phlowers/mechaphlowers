@@ -65,11 +65,11 @@ def test_deformation__polynomial_2_materials(
     eps_tot = deformation_model.epsilon()
     L_ref = deformation_model.L_ref()
 
-    # np.testing.assert_allclose(
-    #     eps_tot,
-    #     np.array([0.00097836768, np.nan]),
-    #     atol=1e-6,
-    # )
+    np.testing.assert_allclose(
+        eps_tot,
+        np.array([0.00097836768, np.nan]),
+        atol=1e-6,
+    )
 
     np.testing.assert_allclose(
         L_ref,
@@ -96,6 +96,6 @@ def test_deformation__polynomial_2_materials__with_max_stress(
 
     # np.testing.assert_allclose(
     #     L_ref,
-    #     np.array([480.6392123, np.nan]),
+    #     np.array([480.6392123, np.nan]), # not correct value
     #     atol=1e-6,
     # )

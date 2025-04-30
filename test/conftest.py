@@ -293,7 +293,7 @@ def data_container_one_span_narcisse() -> DataContainer:
             {
                 "section": [600.4],
                 "diameter": [29.56],
-                "linear_weight": [2.1582],
+                "linear_weight": [21.582],  # unit??? kg/m or N/m?
                 "young_modulus": [75.565],
                 "young_modulus_conductor": [40.531],
                 "young_modulus_heart": [35.034],
@@ -309,6 +309,70 @@ def data_container_one_span_narcisse() -> DataContainer:
                 "a4": [-25562000],
                 "b0": [0],
                 "b1": [33.140],
+                "b2": [0],
+                "b3": [0],
+                "b4": [0],
+            }
+        )
+    )
+
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2"],
+                "suspension": [False, False],
+                "conductor_attachment_altitude": [30, 40],
+                "crossarm_length": [0, 0],
+                "line_angle": [0, 0],
+                "insulator_length": [0, 0],
+                "span_length": [480, np.nan],
+                "sagging_parameter": [2000, 2000],
+                "sagging_temperature": [15, 15],
+            }
+        )
+    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+
+    weather_array = WeatherArray(
+        pd.DataFrame(
+            {
+                "ice_thickness": [0.0, 0.0],
+                "wind_pressure": np.zeros(NB_SPAN),
+            }
+        )
+    )
+
+    data_container = factory_data_container(
+        section_array, cable_array, weather_array
+    )
+    return data_container
+
+
+@pytest.fixture
+def data_container_one_span_crocus() -> DataContainer:
+    NB_SPAN = 2
+    cable_array = CableArray(
+        pd.DataFrame(
+            {
+                "section": [400.9],
+                "diameter": [26.16],
+                "linear_weight": [16],
+                "young_modulus": [72000],
+                "young_modulus_conductor": [72000],
+                "young_modulus_heart": [0],  # ?
+                "dilatation_coefficient": [1.76],
+                "dilatation_coefficient_conductor": [23],
+                "dilatation_coefficient_heart": [11.5],
+                "temperature_reference": [15],
+                "section_conductor": [315],
+                "a0": [0],
+                "a1": [72000],
+                "a2": [0],
+                "a3": [0],
+                "a4": [0],
+                "b0": [0],
+                "b1": [0],  # put young modulus value here?
                 "b2": [0],
                 "b3": [0],
                 "b4": [0],
