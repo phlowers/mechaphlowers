@@ -125,7 +125,7 @@ class WindSpeedPressureConverter:
         if speed_average_wind_open_country is None:
             if gust_wind is None:
                 raise TypeError(
-                    "gust_wind or speed_average_wind_open_country need to be not"
+                    "gust_wind or speed_average_wind_open_country need to be not None"
                 )
             else:
                 speed_average_wind_open_country = gust_wind / 1.54 / 3.6

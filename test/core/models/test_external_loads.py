@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.core.models.external_loads import CableLoads
+from mechaphlowers.core.models.external_loads import CableLoads, WindSpeedPressureConverter
 from mechaphlowers.entities.arrays import WeatherArray
 from mechaphlowers.entities.data_container import DataContainer
 
@@ -77,3 +77,39 @@ def test_total_load_coefficient__data_container(
 
     weather_loads.load_coefficient
     weather_loads.load_angle
+
+
+def test_build_converter_with_gust():
+    gust_wind = np.array([50, 30])
+    wind_angle_cable_degrees = np.array([90, 70])
+    tower_height = np.float64(50)
+    voltage = np.float64(90)
+    wind_converter = WindSpeedPressureConverter(
+        wind_angle_cable_degrees, tower_height, voltage, gust_wind=gust_wind
+    )
+    wind_converter.speed_average_wind_open_country
+    wind_converter.get_pressure()
+    wind_converter.get_pressure_rounded()
+
+
+def test_build_converter_with_average_wind():
+    speed_average_wind_open_country = np.array([2, 7])
+    wind_angle_cable_degrees = np.array([90, 70])
+    tower_height = np.float64(50)
+    voltage = np.float64(90)
+    wind_converter = WindSpeedPressureConverter(
+        wind_angle_cable_degrees, tower_height, voltage, speed_average_wind_open_country=speed_average_wind_open_country
+    )
+    np.testing.assert_equal(wind_converter.speed_average_wind_open_country, speed_average_wind_open_country)
+    wind_converter.get_pressure()
+    wind_converter.get_pressure_rounded()
+
+
+def test_build_converter_no_wind():
+    wind_angle_cable_degrees = np.array([90, 70])
+    tower_height = np.float64(50)
+    voltage = np.float64(90)
+    with pytest.raises(TypeError):
+        WindSpeedPressureConverter(
+            wind_angle_cable_degrees, tower_height, voltage
+        )
