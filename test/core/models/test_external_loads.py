@@ -8,7 +8,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.core.models.external_loads import CableLoads, WindSpeedPressureConverter
+from mechaphlowers.core.models.external_loads import (
+    CableLoads,
+    WindSpeedPressureConverter,
+)
 from mechaphlowers.entities.arrays import WeatherArray
 from mechaphlowers.entities.data_container import DataContainer
 
@@ -98,9 +101,15 @@ def test_build_converter_with_average_wind():
     tower_height = np.float64(50)
     voltage = np.float64(90)
     wind_converter = WindSpeedPressureConverter(
-        wind_angle_cable_degrees, tower_height, voltage, speed_average_wind_open_country=speed_average_wind_open_country
+        wind_angle_cable_degrees,
+        tower_height,
+        voltage,
+        speed_average_wind_open_country=speed_average_wind_open_country,
     )
-    np.testing.assert_equal(wind_converter.speed_average_wind_open_country, speed_average_wind_open_country)
+    np.testing.assert_equal(
+        wind_converter.speed_average_wind_open_country,
+        speed_average_wind_open_country,
+    )
     wind_converter.get_pressure()
     wind_converter.get_pressure_rounded()
 
