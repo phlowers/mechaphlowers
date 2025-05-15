@@ -6,7 +6,7 @@
 
 import numpy as np
 
-from mechaphlowers.core.models.cable.deformation import DeformationRte
+from mechaphlowers.core.models.cable.deformation import DeformationRte, DeformationRteRefactor
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
 )
@@ -20,7 +20,7 @@ def test_deformation_values__default_data(
     tension_mean = span_model.T_mean()
     cable_length = span_model.L()
 
-    deformation_model = DeformationRte(
+    deformation_model = DeformationRteRefactor(
         **default_data_container_one_span.__dict__,
         data_cable=default_data_container_one_span.data_cable,
         tension_mean=tension_mean,
