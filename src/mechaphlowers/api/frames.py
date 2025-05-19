@@ -82,7 +82,6 @@ class SectionDataFrame:
         deformation_model: Type[IDeformation] | None = None,
     ):
         """init_type_model method to initialize type model"""
-        print("ini")
         if span_model is None:
             try:
                 self._span_model = map_model_options[

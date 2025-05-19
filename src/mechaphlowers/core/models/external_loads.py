@@ -145,23 +145,26 @@ class WindSpeedPressureConverter:
             h = self.tower_height * 2 / 3
 
         roughness = {"0": 0.005, "II": 0.05, "III": 0.2}
-        length = np.float64(roughness[self.category_surface_roughness])
-
-        k: np.float64 = 0.19 * (length / 0.05) ** 0.07
-        V = (
+        z0 = np.float64(roughness[self.category_surface_roughness])
+        # roughness distance
+        k_r: np.float64 = 0.19 * (z0 / 0.05) ** 0.07
+        V_m = (
             self._speed_average_wind_open_country
-            * k
-            * np.log(h / length)
+            * k_r
+            * np.log(h / z0)
             * np.sin(self.wind_angle_cable_degrees / 180 * math.pi)
         )
-        Iv: np.float64 = 1 / np.log(h / length)
-
-        work_coefficient = 1.0
+        Iv: np.float64 = 1 / np.log(h / z0)
+        # Iv: turbulence intensity
+        force_coefficient = 1.0
         if self.work is True:
-            work_coefficient = 1.2
+            force_coefficient = 1.2
+
+        # air density
+        rho = 1.25
 
         wind_load_pa = (
-            0.5 * 1.25 * V**2 * (1 + 7 * Iv) * 2 / 3 * work_coefficient
+            0.5 * rho * V_m**2 * (1 + 7 * Iv) * 2 / 3 * force_coefficient
         )
         return wind_load_pa
 
