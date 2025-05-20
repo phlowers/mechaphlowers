@@ -35,6 +35,39 @@ $$
 
 Another way to see the cable plane is to rotate the cable plane.
 
+### Line angles and arm lengths
+
+![Image not available](./assets/angle_line_direct.drawio.png "Cable plane image")
+
+We want to compute $a_{cable}$ and $b_{cable}$ depending on $a$, the line angles, the arm lengths and the chain deplacements
+
+$C_i$ and $C_{i+1}$ are the points where cable is attached at the end of the suspension chains, respectively on left and right support
+
+$A_i$ and $A_{i+1}$ are the points of the end of the arms, respectively on left and right support
+
+$S_i$ and $S_{i+1}$ are the points on the support where the arms are attached
+
+![Image not available](./assets/angle_line_points.drawio.png "Cable plane image")
+
+![Image not available](./assets/angle_line_side.drawio.png "Cable plane image")
+
+
+$a_{cable} = \|C_lC_{i+1}\|$
+
+We want the coordinates of $C_i$ and $C_{i+1}$ in the span frame of the support $i$
+
+
+In order to get $A_i$, we use point $A_i'$, which is the equivalent point if there wasn't any line angle.\
+Coordinates of $A_i'$ are simply $(x_{S_i}, L_l, z_{S_i})$.\
+Then we can get $A_i$ by applying a rotation of $-\frac{\gamma_{l}}{2}$ around the z axis.
+
+Same thing for $A_{i+1}$, we use point $A_{i+1}'$.\
+Coordinates of $A_{i+1}'$ are $(x_{S_{i+1}}, L_l, z_{S_{i+1}})$.\
+Then we can get $A_{i+1}$ by applying a rotation of $+\frac{\gamma_{l}}{2}$ around the z axis.
+
+From coordinates of $A_i$ and $A_{i+1}$, you can get coordinates of $C_i$ and $C_{i+1}$, by adding $dep_x$ and $dep_y$ to their coordinates. 
+
+$dep_z$ can be calculated using the two other coordinates and the insulator length (TODO).
 
 ### Catenary model
 
