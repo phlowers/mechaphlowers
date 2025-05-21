@@ -5,11 +5,11 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
-from typing import Self, Type
 
 import numpy as np
 import pandas as pd
 import pandera as pa
+from typing_extensions import Self, Type
 
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
