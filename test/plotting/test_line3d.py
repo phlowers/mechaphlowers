@@ -39,27 +39,27 @@ section.sagging_temperature = 15
 frame = SectionDataFrame(section)
 
 
-def test_plot_line3d__all_line():
+def test_plot_line3d__all_line() -> None:
     fig = go.Figure()
     frame.plot.line3d(fig)
     # fig.show() # deactivate for auto unit testing
     assert True  # Just trying to see if the previous code raises
 
 
-def test_plot_line3d__subset():
+def test_plot_line3d__subset() -> None:
     fig = go.Figure()
     frame.select(["1", "2"]).plot.line3d(fig)
     # fig.show() # deactivate for auto unit testing
     assert True  # Just trying to see if the previous code raises
 
 
-def test_plot_line3d__view_option():
+def test_plot_line3d__view_option() -> None:
     fig = go.Figure()
     frame.plot.line3d(fig, view="full")
     assert True  # Just trying to see if the previous code raises
 
 
-def test_plot_line3d__wrong_view_option():
+def test_plot_line3d__wrong_view_option() -> None:
     fig = go.Figure()
     with pytest.raises(ValueError):
         frame.plot.line3d(fig, view="wrong_parameter")

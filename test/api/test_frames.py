@@ -31,13 +31,15 @@ class CableLoadsInputDict(TypedDict, total=False):
     wind_pressure: np.ndarray
 
 
-def test_section_frame_initialization(default_section_array_three_spans):
+def test_section_frame_initialization(
+    default_section_array_three_spans,
+) -> None:
     frame = SectionDataFrame(default_section_array_three_spans)
     assert frame.section_array == default_section_array_three_spans
     assert isinstance(frame._span_model, type(CatenarySpan))
 
 
-def test_section_frame_get_coord(default_section_array_three_spans):
+def test_section_frame_get_coord(default_section_array_three_spans) -> None:
     frame = SectionDataFrame(default_section_array_three_spans)
     coords = frame.get_coordinates()
     assert coords.shape == (
@@ -69,7 +71,9 @@ def test_select_spans__wrong_input(
         frame.select(case)
 
 
-def test_select_spans__passing_input(default_section_array_three_spans):
+def test_select_spans__passing_input(
+    default_section_array_three_spans,
+) -> None:
     frame = SectionDataFrame(default_section_array_three_spans)
     frame_selected = frame.select(["support 1", "three"])
     assert len(frame_selected.data) == 3
@@ -86,7 +90,7 @@ def test_select_spans__passing_input(default_section_array_three_spans):
     )
 
 
-def test_SectionDataFrame__copy(default_section_array_three_spans):
+def test_SectionDataFrame__copy(default_section_array_three_spans) -> None:
     frame = SectionDataFrame(default_section_array_three_spans)
     copy(frame)
     assert isinstance(frame, SectionDataFrame)
@@ -232,7 +236,7 @@ def test_SectionDataFrame__add_weather_update_span(
     np.testing.assert_equal(frame.deformation.cable_length, frame.span.L())  # type: ignore[union-attr]
 
 
-def test_frame__sagtension_use(section_dataframe_with_cable_weather):
+def test_frame__sagtension_use(section_dataframe_with_cable_weather) -> None:
     """Test that the sag tension is calculated correctly."""
     wa = WeatherArray(
         pd.DataFrame(

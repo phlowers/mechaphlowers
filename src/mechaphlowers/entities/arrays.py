@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
-from typing import Type
+from typing import Self, Type
 
 import numpy as np
 import pandas as pd
@@ -39,7 +39,7 @@ class ElementArray(ABC):
     def __str__(self) -> str:
         return self._data.to_string()
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         return type(self)(self._data)
 
     @property
@@ -100,7 +100,7 @@ class SectionArray(ElementArray):
                 sagging_temperature=self.sagging_temperature,
             )
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         copy_obj = super().__copy__()
         copy_obj.sagging_parameter = self.sagging_parameter
         copy_obj.sagging_temperature = self.sagging_temperature

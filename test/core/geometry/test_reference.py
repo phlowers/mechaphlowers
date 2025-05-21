@@ -28,7 +28,7 @@ def test_cable2span_basic() -> None:
     assert not (ys == 0).all()
 
 
-def test_spans2vector():
+def test_spans2vector() -> None:
     x = np.array([[1, 2], [3, 4]])
     y = np.array([[5, 6], [7, 8]])
     z = np.array([[9, 10], [11, 12]])
@@ -42,7 +42,7 @@ def test_spans2vector():
     ), f"Expected {expected_output}, but got {result}"
 
 
-def test_spans2vector_empty():
+def test_spans2vector_empty() -> None:
     x = np.array([[]])
     y = np.array([[]])
     z = np.array([[]])
@@ -54,7 +54,7 @@ def test_spans2vector_empty():
     assert result.size == 0
 
 
-def test_spans2vector_single_point():
+def test_spans2vector_single_point() -> None:
     x = np.array([[1]])
     y = np.array([[2]])
     z = np.array([[3]])
@@ -68,7 +68,7 @@ def test_spans2vector_single_point():
     ), f"Expected {expected_output}, but got {result}"
 
 
-def test_translate_cable_to_support():
+def test_translate_cable_to_support() -> None:
     altitude = np.array([50.0, 40.0, 20.0, 10.0])
     span_length = np.array([100.0, 200.0, 300.0, np.nan])
     crossarm_length = np.array([5.0, 2.0, 3.0, np.nan])
