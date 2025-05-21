@@ -66,7 +66,7 @@ class SectionDataFrame:
         self.weather: WeatherArray | None = None
         self.data_container: DataContainer = DataContainer()
         self.cable_loads: CableLoads | None = None
-        self.span: Span | None = None
+        self.span: Span
         self.deformation: IDeformation | None = None
         self._span_model: Type[Span]
         self._deformation_model: Type[IDeformation]
@@ -231,7 +231,7 @@ class SectionDataFrame:
 
     def update_cable(self):
         """update_cable method to update the cable-related properties"""
-        self.span.linear_weight = self.cable.data.linear_weight.to_numpy()  # type: ignore[union-attr]
+        self.span.linear_weight = self.cable.data.linear_weight[0]  # type: ignore[union-attr]
 
     def add_weather(self, weather: WeatherArray):
         """add_weather method to add a new weather to the SectionDataFrame

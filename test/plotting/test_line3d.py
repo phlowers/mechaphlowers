@@ -80,7 +80,7 @@ def test_plot_line3d__with_beta(
     )
     frame.add_cable(cable=default_cable_array)
     frame.add_weather(weather=weather)
-    frame.cable_loads.load_angle
+    frame.cable_loads.load_angle  # type: ignore[union-attr]
     fig = go.Figure()
     frame.plot.line3d(fig)
     # fig.show() # deactivate for auto unit testing
