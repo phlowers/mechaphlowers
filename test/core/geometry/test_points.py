@@ -8,6 +8,7 @@ import numpy as np
 import plotly.graph_objects as go
 from mechaphlowers.core.geometry.points import Points
 from pytest import fixture
+from numpy.testing import assert_allclose
 
 def plot_points(fig, points):
 
@@ -19,7 +20,7 @@ def plot_points(fig, points):
                                 name='Points'))
     
 @fixture
-def points_fixture():
+def coords_fixture():
     return np.array(
         [[ 100.        ,  -40.        ,   30.        ],
         [ 183.33333333,  -40.        ,   22.13841697],
@@ -50,8 +51,49 @@ def points_fixture():
         [1416.66666667,  460.        ,   57.95322568],
         [1500.        ,  460.        ,   70.        ]]).reshape((4,7,3))
     
-def test_plot(points_fixture):
+def test_plot(coords_fixture):
     fig = go.Figure()
-    plot_points(fig, points_fixture.reshape(-1,3))
+    plot_points(fig, coords_fixture.reshape(-1,3))
+    
+    # fig.show()
+
+
+def test_translate_all(coords_fixture):
+    expected_translated_coords = coords_fixture.copy()
+    points = Points(coords_fixture)
+    translation_vector = np.array([0,1,0])
+    points.translate_all(translation_vector)
+
+    translation = np.full(expected_translated_coords.shape, [0,1,0])
+    expected_translated_coords += translation
+
+    assert_allclose(points.coords, expected_translated_coords)
+
+
+
+def test_translate_layer(coords_fixture):
+    expected_translated_coords = coords_fixture.copy()
+    points = Points(coords_fixture)
+    translation_vector = np.array([0,1,0])
+    points.translate_layer(translation_vector, 3)
+
+    translation = np.full(expected_translated_coords[3].shape, [0,1,0])
+    expected_translated_coords[3] += translation
+
+    assert_allclose(points.coords, expected_translated_coords)
+
+
+def test_flatten(coords_fixture):
+    points = Points(coords_fixture)
+    assert(points.flatten().shape == (28,3)) 
+    
+def test_rotate(coords_fixture):
+    points = Points(coords_fixture)
+    line_angles = np.array([180, 90, 180, 90])
+    rotation_axes = np.array([[0,0,1]] * 4)
+    points.rotate(line_angles, rotation_axes)
+
+    fig = go.Figure()
+    plot_points(fig, coords_fixture.reshape(-1,3))
     
     fig.show()
