@@ -88,12 +88,14 @@ def test_flatten(coords_fixture):
     assert(points.flatten().shape == (28,3)) 
     
 def test_rotate(coords_fixture):
-    points = Points(coords_fixture)
-    line_angles = np.array([180, 90, 180, 90])
-    rotation_axes = np.array([[0,0,1]] * 4)
-    points.rotate(line_angles, rotation_axes)
 
     fig = go.Figure()
     plot_points(fig, coords_fixture.reshape(-1,3))
+    points = Points(coords_fixture)
+    line_angles = np.array([180, 90, 180, 0])
+    rotation_axes = np.array([[0,0,1]] * 4)
+    points.rotate(line_angles, rotation_axes)
+
+    plot_points(fig, points.flatten())
     
-    fig.show()
+    # fig.show()

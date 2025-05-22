@@ -34,11 +34,12 @@ class Points:
         return points.reshape(-1,3)
         
     def unflatten(self, flattened_points: np.ndarray):
-        self.coords = flattened_points.reshape(self.coords.shape)
+        return flattened_points.reshape(self.coords.shape)
 
     def rotate(self, line_angles: np.ndarray, rotation_axes: np.ndarray):
         flattened_points = self.flatten()
         angles_packed = np.ones((self.coords.shape[1], self.coords.shape[0])) * line_angles
         line_angle_array = angles_packed.T.reshape(-1)
-        coords_rotated = rotation_quaternion(flattened_points, line_angle_array, rotation_axes)
-        self.points = self.unflatten(coords_rotated)
+        rotation_axes_array = np.repeat(rotation_axes, self.coords.shape[1], axis=0)
+        coords_rotated = rotation_quaternion(flattened_points, line_angle_array, rotation_axes_array)
+        self.coords = self.unflatten(coords_rotated)
