@@ -36,10 +36,28 @@ class Points:
     def unflatten(self, flattened_points: np.ndarray):
         return flattened_points.reshape(self.coords.shape)
 
-    def rotate(self, line_angles: np.ndarray, rotation_axes: np.ndarray):
-        flattened_points = self.flatten()
-        angles_packed = np.ones((self.coords.shape[1], self.coords.shape[0])) * line_angles
-        line_angle_array = angles_packed.T.reshape(-1)
+    def rotate_one_angle_per_layer(self, line_angles_layer: np.ndarray, rotation_axes: np.ndarray):
+        line_angles_points = np.repeat(line_angles_layer, self.coords.shape[1], axis=0)
         rotation_axes_array = np.repeat(rotation_axes, self.coords.shape[1], axis=0)
-        coords_rotated = rotation_quaternion(flattened_points, line_angle_array, rotation_axes_array)
+        flattened_points = self.flatten()
+        coords_rotated = rotation_quaternion(flattened_points, line_angles_points, rotation_axes_array)
         self.coords = self.unflatten(coords_rotated)
+
+    def rotate_one_angle_per_point(self, line_angles_points: np.ndarray, rotation_axes: np.ndarray):
+        rotation_axes_array = np.repeat(rotation_axes, self.coords.shape[1], axis=0)
+        flattened_points = self.flatten()
+        coords_rotated = rotation_quaternion(flattened_points, line_angles_points, rotation_axes_array)
+        self.coords = self.unflatten(coords_rotated)
+    
+    def rotate_same_axis(self, line_angles_layer: np.ndarray, rotation_axis: np.ndarray):
+        line_angle_array = np.repeat(line_angles_layer, self.coords.shape[1], axis=0)
+        flattened_points = self.flatten()
+        coords_rotated = rotation_quaternion_same_axis(flattened_points, line_angle_array, rotation_axis)
+        self.coords = self.unflatten(coords_rotated)
+
+    def nan_points(self):
+        a,b,c = self.coords.shape
+        return np.hstack([self.coords, np.nan*np.ones((a,1,c))])
+       
+    def coords_for_plot(self):
+        return self._flatten(self.nan_points())

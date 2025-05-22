@@ -87,15 +87,43 @@ def test_flatten(coords_fixture):
     points = Points(coords_fixture)
     assert(points.flatten().shape == (28,3)) 
     
-def test_rotate(coords_fixture):
+def test_rotate_layer(coords_fixture):
 
     fig = go.Figure()
     plot_points(fig, coords_fixture.reshape(-1,3))
     points = Points(coords_fixture)
     line_angles = np.array([180, 90, 180, 0])
     rotation_axes = np.array([[0,0,1]] * 4)
-    points.rotate(line_angles, rotation_axes)
+    points.rotate_one_angle_per_layer(line_angles, rotation_axes)
 
-    plot_points(fig, points.flatten())
+    plot_points(fig, points.coords_for_plot())
+    
+    # fig.show()
+
+
+def test_rotate_point(coords_fixture):
+
+    fig = go.Figure()
+    plot_points(fig, coords_fixture.reshape(-1,3))
+    points = Points(coords_fixture)
+    line_angles = np.array([20] * points.flatten().shape[0])
+    rotation_axes = np.array([[0,0,1]] * 4)
+    points.rotate_one_angle_per_point(line_angles, rotation_axes)
+
+    plot_points(fig, points.coords_for_plot())
+    
+    # fig.show()
+
+
+def test_rotate_point_same_axis(coords_fixture):
+
+    fig = go.Figure()
+    plot_points(fig, coords_fixture.reshape(-1,3))
+    points = Points(coords_fixture)
+    line_angles = np.array([180, 90, 180, 0])
+    rotation_axis = np.array([0,0,1])
+    points.rotate_same_axis(line_angles, rotation_axis)
+
+    plot_points(fig, points.coords_for_plot())
     
     # fig.show()
