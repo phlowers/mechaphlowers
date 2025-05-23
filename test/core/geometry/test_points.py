@@ -6,7 +6,7 @@
 
 import numpy as np
 import plotly.graph_objects as go
-from mechaphlowers.core.geometry.points import Points
+from mechaphlowers.core.geometry.points import Points, Frame
 from pytest import fixture
 from numpy.testing import assert_allclose
 
@@ -18,6 +18,18 @@ def plot_points(fig, points):
                                 mode='markers+lines',
                                 marker=dict(size=4,),# color='red'),
                                 name='Points'))
+    
+    
+def plot_frame( fig, frame, one_object = False):
+    
+    pp = np.hstack((frame.origin, frame.origin+frame.x_axis, np.nan*np.ones_like(frame.origin),frame.origin, frame.origin+frame.y_axis, np.nan*np.ones_like(frame.origin), frame.origin,frame.origin+frame.z_axis, np.nan*np.ones_like(frame.origin)))
+    if one_object:
+        pp = pp.reshape(-1, 3)
+        fig.add_trace(go.Scatter3d(x=pp[:,0], y=pp[:,1], z = pp[:,2], mode='lines', marker=dict(size=5, color='blue'), name="Frame"))
+    else:
+        for i in range(pp.shape[0]):
+            fig.add_trace(go.Scatter3d(x=pp[i].reshape(-1,3)[:,0], y=pp[i].reshape(-1,3)[:,1], z = pp[i].reshape(-1,3)[:,2], mode='lines', marker=dict(size=5, color='blue'), name=f"R{str(i)}"))
+    return fig
     
 @fixture
 def coords_fixture():
@@ -127,3 +139,43 @@ def test_rotate_point_same_axis(coords_fixture):
     plot_points(fig, points.coords_for_plot())
     
     # fig.show()
+    
+    
+def test_plot_frame(coords_fixture):
+    frame = Frame(np.array([[0,0,0], [1,1,1], [1,1,1], [2,1,1]]))
+    
+    fig = go.Figure()
+    
+    plot_frame(fig, frame)
+
+    
+    # fig.show()
+    
+def test_rotate_frame_same_axis(coords_fixture):
+    frame = Frame(np.array([[0,0,0], [1,1,1], [1,1,1], [2,1,1]]))
+    fig = go.Figure()
+    plot_frame(fig, frame)
+
+
+    line_angles = np.array([180, 90, 180, 0])
+    rotation_axis = np.array([0,0,1])
+    frame.rotate_one_angle_per_layer(line_angles, rotation_axis)
+
+    plot_frame(fig, frame)
+
+    
+    # fig.show()
+
+
+def test_points_frame_rotate_layer(coords_fixture):
+    frame = Frame(np.array([[0,0,0], [1,1,1], [1,1,1], [2,1,1]]))
+    fig = go.Figure()
+    plot_points(fig, coords_fixture.reshape(-1,3))
+    points = Points(coords_fixture)
+    line_angles = np.array([180, 90, 180, 0])
+    rotation_axes = np.array([[0,0,1]] * 4)
+    points.rotate_one_angle_per_layer(line_angles, rotation_axes)
+
+    plot_points(fig, points.coords_for_plot())
+    plot_frame(fig, frame)
+    # fig.show()  
