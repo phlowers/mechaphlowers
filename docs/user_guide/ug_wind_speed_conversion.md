@@ -1,5 +1,10 @@
 # Wind speed to wind pressure conversion
 
+The goal of this tool is to convert wind speed into wind pressure.\
+Wind speed is the data usually given by weather forecast, but our library uses wind pressure for calculations.\
+The wind pressure depends on others parameters: roughness, studied height, wind angle, force coefficient.
+
+
 ### Inputs:
 
 - $th$ : tower height (in m)

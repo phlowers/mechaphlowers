@@ -14,10 +14,13 @@ from mechaphlowers.core.models.external_loads import (
 def test_convert_gust_wind():
     gust_wind = np.array([50, 30])
     wind_angle_cable_degrees = np.array([90, 70])
-    tower_height = np.float64(50)
-    voltage = np.float64(90)
+    tower_height = np.array([20, 50])
+    voltage = 90
     wind_converter = WindSpeedPressureConverter(
-        wind_angle_cable_degrees, tower_height, voltage, gust_wind=gust_wind
+        tower_height,
+        gust_wind=gust_wind,
+        wind_angle_cable_degrees=wind_angle_cable_degrees,
+        voltage=voltage,
     )
     np.testing.assert_equal(
         wind_converter.speed_average_wind_open_country, np.array([9, 5.4])
@@ -31,13 +34,13 @@ def test_convert_gust_wind():
 def test_convert_average_wind():
     speed_average_wind_open_country = np.array([7, 10])
     wind_angle_cable_degrees = np.array([90, 70])
-    tower_height = np.float64(50)
-    voltage = np.float64(90)
+    tower_height = np.array([20, 50])
+    voltage = 90
     wind_converter = WindSpeedPressureConverter(
-        wind_angle_cable_degrees,
         tower_height,
-        voltage,
         speed_average_wind_open_country=speed_average_wind_open_country,
+        wind_angle_cable_degrees=wind_angle_cable_degrees,
+        voltage=voltage,
     )
     np.testing.assert_equal(
         wind_converter.get_pressure_rounded(), np.array([70, 120])
