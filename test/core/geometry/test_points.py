@@ -20,15 +20,15 @@ def plot_points(fig, points):
                                 name='Points'))
     
     
-def plot_frame( fig, frame, one_object = False):
+def plot_frame( fig, frame, one_object = False, color='blue'):
     
     pp = np.hstack((frame.origin, frame.origin+frame.x_axis, np.nan*np.ones_like(frame.origin),frame.origin, frame.origin+frame.y_axis, np.nan*np.ones_like(frame.origin), frame.origin,frame.origin+frame.z_axis, np.nan*np.ones_like(frame.origin)))
     if one_object:
         pp = pp.reshape(-1, 3)
-        fig.add_trace(go.Scatter3d(x=pp[:,0], y=pp[:,1], z = pp[:,2], mode='lines', marker=dict(size=5, color='blue'), name="Frame"))
+        fig.add_trace(go.Scatter3d(x=pp[:,0], y=pp[:,1], z = pp[:,2], mode='lines', marker=dict(size=5, color=color), name="Frame"))
     else:
         for i in range(pp.shape[0]):
-            fig.add_trace(go.Scatter3d(x=pp[i].reshape(-1,3)[:,0], y=pp[i].reshape(-1,3)[:,1], z = pp[i].reshape(-1,3)[:,2], mode='lines', marker=dict(size=5, color='blue'), name=f"R{str(i)}"))
+            fig.add_trace(go.Scatter3d(x=pp[i].reshape(-1,3)[:,0], y=pp[i].reshape(-1,3)[:,1], z = pp[i].reshape(-1,3)[:,2], mode='lines', marker=dict(size=5, color=color), name=f"R{str(i)}"))
     return fig
     
 @fixture
@@ -106,7 +106,7 @@ def test_rotate_layer(coords_fixture):
     points = Points(coords_fixture)
     line_angles = np.array([180, 90, 180, 0])
     rotation_axes = np.array([[0,0,1]] * 4)
-    points.rotate_one_angle_per_layer(line_angles, rotation_axes)
+    points.rotate_all(line_angles, rotation_axes)
 
     plot_points(fig, points.coords_for_plot())
     
@@ -151,31 +151,33 @@ def test_plot_frame(coords_fixture):
     
     # fig.show()
     
-def test_rotate_frame_same_axis(coords_fixture):
-    frame = Frame(np.array([[0,0,0], [1,1,1], [1,1,1], [2,1,1]]))
-    fig = go.Figure()
-    plot_frame(fig, frame)
 
-
-    line_angles = np.array([180, 90, 180, 0])
-    rotation_axis = np.array([0,0,1])
-    frame.rotate_one_angle_per_layer(line_angles, rotation_axis)
-
-    plot_frame(fig, frame)
-
-    
-    # fig.show()
-
-
-def test_points_frame_rotate_layer(coords_fixture):
+def test_points_rotate_frame(coords_fixture):
     frame = Frame(np.array([[0,0,0], [1,1,1], [1,1,1], [2,1,1]]))
     fig = go.Figure()
     plot_points(fig, coords_fixture.reshape(-1,3))
-    points = Points(coords_fixture)
-    line_angles = np.array([180, 90, 180, 0])
-    rotation_axes = np.array([[0,0,1]] * 4)
-    points.rotate_one_angle_per_layer(line_angles, rotation_axes)
-
-    plot_points(fig, points.coords_for_plot())
     plot_frame(fig, frame)
-    # fig.show()  
+    points = Points(coords_fixture, frame)
+    line_angles = np.array([180, 90, 45, 0])
+    rotation_axes = np.array([[0,0,1]] * 4)
+    points.rotate_all(line_angles, rotation_axes)
+
+    points.rotate_frame(-line_angles, rotation_axes)
+    plot_points(fig, points.coords_for_plot())
+    plot_frame(fig, points.frame, color='red')
+    # fig.show()
+    
+
+def test_points_translate_frame(coords_fixture):
+    frame = Frame(np.array([[0,0,0], [1,1,1], [1,1,1], [2,1,1]]))
+    fig = go.Figure()
+    plot_points(fig, coords_fixture.reshape(-1,3))
+    plot_frame(fig, frame)
+    points = Points(coords_fixture, frame)
+    translation_vector = np.array([[50,0,0], [0,50,0], [0,0,50], [25,25,0]])
+    points.translate_all(translation_vector)
+
+    points.translate_frame(-translation_vector)
+    plot_points(fig, points.coords_for_plot())
+    plot_frame(fig, points.frame, color='red')
+    # fig.show()
