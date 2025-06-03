@@ -127,3 +127,29 @@ def test_build_converter_no_wind():
             tower_height=tower_height,
             voltage=voltage,
         )
+
+
+def test_build_converter_both_wind_values():
+    # test that if both gust_wind and speed_average_wind_open_country are provided,
+    # the speed_average_wind_open_country is used for pressure calculation
+    gust_wind = np.array([0, 0])
+    speed_average_wind_open_country = np.array([13, 9])
+    wind_angle_cable_degrees = np.array([90, 70])
+    tower_height = np.array([20, 50])
+    voltage = 90
+    wind_converter = WindSpeedPressureConverter(
+        tower_height=tower_height,
+        gust_wind=gust_wind,
+        speed_average_wind_open_country=speed_average_wind_open_country,
+        wind_angle_cable_degrees=wind_angle_cable_degrees,
+        voltage=voltage,
+    )
+    np.testing.assert_equal(
+        wind_converter.speed_average_wind_open_country,
+        speed_average_wind_open_country,
+    )
+    wind_converter.get_pressure()
+    np.testing.assert_equal(
+        wind_converter.get_pressure_rounded(),
+        np.array([230, 100]),
+    )

@@ -107,8 +107,19 @@ class CableLoads:
 
 
 class WindSpeedPressureConverter:
+    """WindSpeedPressureConverter is a class that allows to convert wind speed to wind pressure
+
+    Args:
+        tower_height (np.ndarray): height of the tower in meters
+        gust_wind (np.ndarray | None, optional): gust wind speed in km/h. Defaults to None.
+        speed_average_wind_open_country (np.ndarray | None, optional): average wind speed in open country in m/s. Defaults to None.
+        wind_angle_cable_degrees (np.ndarray, optional): angle of the wind on the cable in degrees. Defaults to 90.
+        voltage (int, optional): voltage of the line in kV. Defaults to 400.
+        category_surface_roughness (Literal["0", "II", "IIIa"], optional): category of surface roughness. Defaults to "II".
+        work (bool, optional): if True, the converter is used for work conditions. Defaults to False.
+    """
+
     def __init__(
-        # allow floats?
         self,
         tower_height: np.ndarray,  # in m
         gust_wind: np.ndarray | None = None,  # in km/h
@@ -141,9 +152,13 @@ class WindSpeedPressureConverter:
 
     @property
     def speed_average_wind_open_country(self):
+        """Returns a rounded value of the average wind speed in open country to the nearest tenth.
+        This value is used for display purposes, but the actual value used in calculations is not rounded.
+        """
         return np.round(self._speed_average_wind_open_country, 1)
 
     def get_pressure(self) -> np.ndarray:
+        """Calculates the wind pressure in Pa based on the average wind speed, max tower height, voltage, surface roughness, and work condition."""
         if self.voltage <= 90:
             h = self.tower_height_max * 3 / 4
         else:
@@ -175,4 +190,5 @@ class WindSpeedPressureConverter:
         return wind_load_pa
 
     def get_pressure_rounded(self) -> np.ndarray:
+        """Returns the wind pressure rounded to the nearest 10 Pa."""
         return np.round(self.get_pressure() / 10) * 10
