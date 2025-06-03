@@ -73,7 +73,7 @@ def test_plot(coords_fixture):
 def test_translate_all(coords_fixture):
     expected_translated_coords = coords_fixture.copy()
     points = Points(coords_fixture)
-    translation_vector = np.array([0,1,0])
+    translation_vector = np.array([[0,1,0]] * 4)
     points.translate_all(translation_vector)
 
     translation = np.full(expected_translated_coords.shape, [0,1,0])
@@ -170,6 +170,8 @@ def test_points_rotate_frame(coords_fixture):
 
 def test_points_translate_frame(coords_fixture):
     frame = Frame(np.array([[0,0,0], [1,1,1], [1,1,1], [2,1,1]]))
+
+    # frame = Frame(np.array([[0.,0.,0.], [1.,1.,1.], [1.,1.,1.], [2.,1.,1.]]))
     fig = go.Figure()
     plot_points(fig, coords_fixture.reshape(-1,3))
     plot_frame(fig, frame)

@@ -64,12 +64,13 @@ class Frame:
         return flattened_points.reshape(self.axis.shape)
     
     def translate_current(self, translation_vector: np.ndarray):
-        # careful: should use axes instead of absolute coords
+        # translation_vector has coords in current frame
+        # rotate translation vector to current frame, using the rotation axis and angle from absolute frame
         translation_vector_current_frame = rotation_quaternion(translation_vector, -self.angle_rotation, self.rotation_axis)
-        self.origin += translation_vector_current_frame
+        self.origin = self.origin + translation_vector_current_frame
     
     def translate_absolute(self, translation_vector: np.ndarray):
-        # use absolute coords
+        # translation_vector in absolute coords
         self.origin += translation_vector
     
     # frame rotation: around itself
