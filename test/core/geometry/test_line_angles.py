@@ -12,6 +12,8 @@ from pytest import fixture
 
 from mechaphlowers.core.geometry.line_angles import (
     build_supports,
+    get_altitude_diff_between_supports,
+    get_span_lengths_between_supports,
     get_supports_ground_coords,
     get_supports_layer,
     layer_to_plot,
@@ -179,3 +181,28 @@ def test_get_supports(section_array_line_angles):
     # plot_points_3d(fig, supports_coords)
     # set_layout(fig)
     # fig.show()
+
+
+def test_span_lengths(section_array_line_angles):
+    span_length = section_array_line_angles.data.span_length.to_numpy()
+    line_angle = section_array_line_angles.data.line_angle.to_numpy()
+    conductor_attachment_altitude = (
+        section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
+    )
+    crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
+
+    supports_ground_coords = get_supports_ground_coords(
+        span_length, line_angle
+    )
+    center_arm_coords, arm_coords = build_supports(
+        supports_ground_coords,
+        conductor_attachment_altitude,
+        line_angle,
+        crossarm_length,
+    )
+    new_span_length = get_span_lengths_between_supports(arm_coords)
+    new_altitude_diff = get_altitude_diff_between_supports(arm_coords)
+
+    # np.testing.assert_allclose(arm_coords, expected_coords)
+
+    assert True

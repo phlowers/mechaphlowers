@@ -87,10 +87,31 @@ def layer_to_plot(supports_layers):
     """Convert the support coordinates to a format suitable for plotting."""
     return supports_layers.reshape(-1, 3, order='F')
 
-def get_lengths_between_supports(
-    supports_ground_coords: np.ndarray,
+
+def get_span_lengths_between_supports(
+    attachment_coords: np.ndarray,
 ) -> np.ndarray:
     """Get the lengths between the supports."""
-    lengths = np.diff(supports_ground_coords)
-
+    attachment_coords_x_y = attachment_coords[
+        :, :2
+    ]  # Keep only x and y coordinates
+    # Calculate the lengths between consecutive attachment points
+    lengths = np.linalg.norm(
+        attachment_coords_x_y - np.roll(attachment_coords_x_y, -1, axis=0),
+        axis=1,
+    )
+    lengths[-1] = np.nan
     return lengths
+
+
+def get_altitude_diff_between_supports(
+    attachment_coords: np.ndarray,
+) -> np.ndarray:
+    """Get the lengths between the supports."""
+    attachment_coords_z = attachment_coords[:, 2]  # Keep only z coordinates
+    # Calculate the altitude differences between consecutive attachment points
+    alt_diff = abs(
+        attachment_coords_z - np.roll(attachment_coords_z, -1, axis=0)
+    )
+    alt_diff[-1] = np.nan
+    return alt_diff
