@@ -13,6 +13,7 @@ from mechaphlowers.core.geometry.line_angles import (
     get_attachment_coords,
     get_edge_arm_coords,
     get_elevation_diff_between_supports,
+    get_insulator_layer,
     get_span_lengths_between_supports,
     get_supports_coords,
     get_supports_ground_coords,
@@ -318,6 +319,50 @@ class Points:
         return Points(coords)
 
 
+class CablePlane:
+    """This class handles the parameters for defining the cable plane"""
+
+    def __init__(
+        self,
+        span_length: np.ndarray,
+        conductor_attachment_altitude: np.ndarray,
+        crossarm_length: np.ndarray,
+        insulator_length: np.ndarray,
+        line_angle: np.ndarray,
+    ):
+        (
+            self.supports_ground_coords,
+            self.center_arm_coords,
+            self.arm_coords,
+            self.attachment_coords,
+        ) = get_supports_coords(
+            span_length,
+            line_angle,
+            conductor_attachment_altitude,
+            crossarm_length,
+            insulator_length
+        )
+
+        self.a = span_length
+        self.line_angle = line_angle
+        self.b = conductor_attachment_altitude
+        self.crossarm_length = crossarm_length
+        self.insulator_length = insulator_length
+        self._beta = np.array([])
+
+    @property
+    def a_prime(self):
+        return get_span_lengths_between_supports(self.attachment_coords)
+
+    @property
+    def b_prime(self):
+        return get_elevation_diff_between_supports(self.attachment_coords)
+
+    @property
+    def alpha(self) -> np.ndarray:
+        return compute_span_azimuth(self.attachment_coords)
+
+
 class SectionPoints:
     def __init__(
         self,
@@ -325,7 +370,7 @@ class SectionPoints:
         conductor_attachment_altitude,
         crossarm_length,
         insulator_length,
-        line_angle,
+        line_angle, *args, **kwargs
     ):
         (
             self.supports_ground_coords,
@@ -339,24 +384,30 @@ class SectionPoints:
             crossarm_length,
             insulator_length,
         )
-        self.a = span_length
+        self.plane = CablePlane(
+            span_length,
+            conductor_attachment_altitude,
+            crossarm_length,
+            insulator_length,
+            line_angle,
+        )
+        
+        # self.a = span_length
         self.line_angle = line_angle
-        self.b = conductor_attachment_altitude
+        # self.b = conductor_attachment_altitude
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
         self._beta = np.array([])
 
     def init_span(self, span_model: Span):
         self.span_model = span_model
+        self.update_ab()
         self.set_cable_coordinates()
 
-    @property
-    def a_prime(self):
-        return get_span_lengths_between_supports(self.attachment_coords)
+    def update_ab(self):
+        self.span_model.span_length = self.plane.a_prime
+        self.span_model.elevation_difference = self.plane.b_prime
 
-    @property
-    def b_prime(self):
-        return get_elevation_diff_between_supports(self.attachment_coords)
 
     def set_cable_coordinates(self, resolution: int = 7):
         self.x_cable: np.ndarray = self.span_model.x(resolution)
@@ -378,31 +429,27 @@ class SectionPoints:
             raise ValueError("Beta must be a 1D array")
         self._beta = value
 
-    @property
-    def alpha(self) -> np.ndarray:
-        return compute_span_azimuth(self.attachment_coords)
-
-    def cable_frame(self):
+    def span_in_cable_frame(self):
         x_span, y_span, z_span = cable_to_beta_plane(
             self.x_cable[:, :-1], self.z_cable[:, :-1], beta=self.beta[:-1]
         )
         return x_span, y_span, z_span
 
-    def crossarm_frame(self):
-        x_span, y_span, z_span = self.cable_frame()
+    def span_in_crossarm_frame(self):
+        x_span, y_span, z_span = self.span_in_cable_frame()
         x_span, y_span, z_span = cable_to_crossarm_frame(
-            x_span, y_span, z_span, self.alpha[:-1]
+            x_span, y_span, z_span, self.plane.alpha[:-1]
         )
         return x_span, y_span, z_span
 
-    def section_frame(self):
-        x_span, y_span, z_span = self.crossarm_frame()
+    def span_in_section_frame(self):
+        x_span, y_span, z_span = self.span_in_crossarm_frame()
         x_span, y_span, z_span = translate_cable_to_support(
             x_span,
             y_span,
             z_span,
-            self.b,
-            self.a,
+            self.plane.b,
+            self.plane.a,
             self.crossarm_length,
             self.insulator_length,
             self.line_angle,
@@ -411,11 +458,11 @@ class SectionPoints:
 
     def get_spans(self, frame) -> Points:
         if frame == "cable":
-            x_span, y_span, z_span = self.cable_frame()
+            x_span, y_span, z_span = self.span_in_cable_frame()
         elif frame == "crossarm":
-            x_span, y_span, z_span = self.crossarm_frame()
+            x_span, y_span, z_span = self.span_in_crossarm_frame()
         elif frame == "section":
-            x_span, y_span, z_span = self.section_frame()
+            x_span, y_span, z_span = self.span_in_section_frame()
         else:
             raise ValueError("Frame must be 'cable', 'crossarm' or 'section'")
 
@@ -427,6 +474,13 @@ class SectionPoints:
             self.supports_ground_coords,
             self.center_arm_coords,
             self.arm_coords,
-            self.attachment_coords,
         )
         return Points.from_coords(supports_layers)
+    
+    def get_insulators(self) -> Points:
+        """Get the insulators in the global frame."""
+        insulator_layers = get_insulator_layer(
+            self.arm_coords,
+            self.attachment_coords,
+        )
+        return Points.from_coords(insulator_layers)

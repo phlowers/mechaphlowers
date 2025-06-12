@@ -75,34 +75,34 @@ def get_supports_layer(
     supports_ground_coords: np.ndarray,
     center_arm_coords: np.ndarray,
     edge_arm_coords: np.ndarray,
-    attachment_coords: np.ndarray,
 ) -> np.ndarray:
     """Get the supports in the global frame."""
-    # support_layers = (
-    #     np.zeros(
-    #         (
-    #             4,
-    #             supports_ground_coords.shape[0],
-    #             supports_ground_coords.shape[1],
-    #         )
-    #     )
-    #     * np.nan
-    # )
-    # support_layers[0, :, :] = supports_ground_coords
-    # support_layers[1, :, :] = center_arm_coords
-    # support_layers[2, :, :] = edge_arm_coords
-    # support_layers[3, :, :] = attachment_coords
+
     return np.stack(
         (
             supports_ground_coords,
             center_arm_coords,
+            edge_arm_coords,
+
+        ),
+        axis=1,
+    )
+    
+def get_insulator_layer(
+    edge_arm_coords: np.ndarray,
+    attachment_coords: np.ndarray,
+) -> np.ndarray:
+    """Get the supports in the global frame."""
+
+    return np.stack(
+        (
             edge_arm_coords,
             attachment_coords,
         ),
         axis=1,
     )
 
-    # return support_layers
+
 
 
 def layer_to_plot(supports_layers):

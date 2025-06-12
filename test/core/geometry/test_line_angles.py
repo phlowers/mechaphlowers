@@ -258,44 +258,12 @@ def test_get_supports_coords(section_array_line_angles):
 
 
 def test_span_absolute_coords_new_obj(section_array_line_angles):
-    # ---- Same code than previous test ----""
-    span_length = section_array_line_angles.data.span_length.to_numpy()
-    line_angle = section_array_line_angles.data.line_angle.to_numpy()
-    conductor_attachment_altitude = (
-        section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
-    )
-    crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
-    insulator_length = (
-        section_array_line_angles.data.insulator_length.to_numpy()
-    )
 
-    (
-        supports_ground_coords,
-        center_arm_coords,
-        arm_coords,
-        attachment_coords,
-    ) = get_supports_coords(
-        span_length,
-        line_angle,
-        conductor_attachment_altitude,
-        crossarm_length,
-        insulator_length,
-    )
-
-    new_span_length = get_span_lengths_between_supports(attachment_coords)
-    new_elevation_diff = get_elevation_diff_between_supports(attachment_coords)
-    # ----------
 
     span_model = CatenarySpan(**section_array_line_angles.to_numpy())
-    span_model.span_length = new_span_length
-    span_model.elevation_difference = new_elevation_diff
-
+    
     s = SectionPoints(
-        span_length,
-        conductor_attachment_altitude,
-        crossarm_length,
-        insulator_length,
-        line_angle,
+        **section_array_line_angles.to_numpy(),
     )
 
     s.init_span(span_model)
@@ -306,6 +274,7 @@ def test_span_absolute_coords_new_obj(section_array_line_angles):
     plot_points_3d(fig, s.get_spans("section").points(True))
 
     plot_points_3d(fig, s.get_supports().points(True))
+    plot_points_3d(fig, s.get_insulators().points(True))
 
     set_layout(fig)
     fig.show()
