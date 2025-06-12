@@ -11,16 +11,26 @@ from numpy.testing import assert_allclose
 from pytest import fixture
 
 from mechaphlowers.core.geometry.line_angles import (
-    get_altitude_diff_between_supports,
+    compute_span_azimuth,
+    get_elevation_diff_between_supports,
     get_attachment_coords,
     get_edge_arm_coords,
     get_span_lengths_between_supports,
+    get_supports_coords,
     get_supports_ground_coords,
     get_supports_layer,
     layer_to_plot,
 )
 from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.core.geometry.references import (
+    SectionPoints,
+    cable_to_beta_plane,
+    cable_to_crossarm_frame,
+    spans_to_vector,
+    translate_cable_to_support,
+)
+from mechaphlowers.plotting.plot import set_layout
 
 
 def plot_points_3d(fig, points):
@@ -31,7 +41,7 @@ def plot_points_3d(fig, points):
             z=points[:, 2],
             mode='markers+lines',
             marker=dict(
-                size=10,
+                size=3,
             ),  # color='red'),
             name='Points',
         )
@@ -62,7 +72,7 @@ def section_array_line_angles():
                 "conductor_attachment_altitude": np.array([30, 40, 60, 70]),
                 "crossarm_length": np.array([40, 20, -30, -50]),
                 "line_angle": np.array([0, -45, 60, -30]),
-                "insulator_length": np.array([0, 5, 10, 0]),
+                "insulator_length": np.array([0, 5, 82, 0]),
                 "span_length": np.array([500, 460, 520, np.nan]),
             }
         )
@@ -216,7 +226,7 @@ def test_span_lengths(section_array_line_angles):
         crossarm_length,
     )
     new_span_length = get_span_lengths_between_supports(arm_coords)
-    new_altitude_diff = get_altitude_diff_between_supports(arm_coords)
+    new_altitude_diff = get_elevation_diff_between_supports(arm_coords)
 
     expected_span_length = np.array(
         [508.10969425, 484.69692488, 522.53577119, np.nan]
@@ -224,6 +234,82 @@ def test_span_lengths(section_array_line_angles):
     expected_altitude_diff = np.array([10, 20, 10, np.nan])
     np.testing.assert_allclose(new_span_length, expected_span_length)
     np.testing.assert_allclose(new_altitude_diff, expected_altitude_diff)
+
+
+def test_get_supports_coords(section_array_line_angles):
+    span_length = section_array_line_angles.data.span_length.to_numpy()
+    line_angle = section_array_line_angles.data.line_angle.to_numpy()
+    conductor_attachment_altitude = (
+        section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
+    )
+    crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
+    insulator_length = (
+        section_array_line_angles.data.insulator_length.to_numpy()
+    )
+
+    ground_cds, center_arm_cds, arm_cds, attachment_cds = get_supports_coords(
+        span_length,
+        line_angle,
+        conductor_attachment_altitude,
+        crossarm_length,
+        insulator_length,
+    )
+    assert True
+
+
+def test_span_absolute_coords_new_obj(section_array_line_angles):
+    # ---- Same code than previous test ----""
+    span_length = section_array_line_angles.data.span_length.to_numpy()
+    line_angle = section_array_line_angles.data.line_angle.to_numpy()
+    conductor_attachment_altitude = (
+        section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
+    )
+    crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
+    insulator_length = (
+        section_array_line_angles.data.insulator_length.to_numpy()
+    )
+
+    (
+        supports_ground_coords,
+        center_arm_coords,
+        arm_coords,
+        attachment_coords,
+    ) = get_supports_coords(
+        span_length,
+        line_angle,
+        conductor_attachment_altitude,
+        crossarm_length,
+        insulator_length,
+    )
+
+    new_span_length = get_span_lengths_between_supports(attachment_coords)
+    new_elevation_diff = get_elevation_diff_between_supports(attachment_coords)
+    # ----------
+
+    span_model = CatenarySpan(**section_array_line_angles.to_numpy())
+    span_model.span_length = new_span_length
+    span_model.elevation_difference = new_elevation_diff
+
+    s = SectionPoints(
+        span_length,
+        conductor_attachment_altitude,
+        crossarm_length,
+        insulator_length,
+        line_angle,
+    )
+
+    s.init_span(span_model)
+
+    fig = go.Figure()
+    plot_points_3d(fig, s.get_spans("cable").points(True))
+    plot_points_3d(fig, s.get_spans("crossarm").points(True))
+    plot_points_3d(fig, s.get_spans("section").points(True))
+
+    plot_points_3d(fig, s.get_supports().points(True))
+
+    set_layout(fig)
+    fig.show()
+    assert True
 
 
 def test_span_absolute_coords(section_array_line_angles):
@@ -234,18 +320,183 @@ def test_span_absolute_coords(section_array_line_angles):
         section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
     )
     crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
+    insulator_length = (
+        section_array_line_angles.data.insulator_length.to_numpy()
+    )
 
-    supports_ground_coords = get_supports_ground_coords(
-        span_length, line_angle
-    )
-    center_arm_coords, arm_coords = get_edge_arm_coords(
+    (
         supports_ground_coords,
-        conductor_attachment_altitude,
+        center_arm_coords,
+        arm_coords,
+        attachment_coords,
+    ) = get_supports_coords(
+        span_length,
         line_angle,
+        conductor_attachment_altitude,
         crossarm_length,
+        insulator_length,
     )
-    new_span_length = get_span_lengths_between_supports(arm_coords)
-    new_altitude_diff = get_altitude_diff_between_supports(arm_coords)
+
+    new_span_length = get_span_lengths_between_supports(attachment_coords)
+    new_elevation_diff = get_elevation_diff_between_supports(attachment_coords)
     # ----------
 
     span_model = CatenarySpan(**section_array_line_angles.to_numpy())
+    span_model.span_length = new_span_length
+    span_model.elevation_difference = new_elevation_diff
+
+    x = span_model.x(21)
+    z = span_model.z(x)
+
+    pts = spans_to_vector(x, x * 0, z)
+
+    fig = go.Figure()
+    # plot_points_3d(fig, pts)
+    # fig.show()
+
+    # get pts for spans
+
+    beta = np.array([50.0, 10.0, 0.0, np.nan])
+    x_span, y_span, z_span = cable_to_beta_plane(
+        x[:, :-1], z[:, :-1], beta=beta[:-1]
+    )
+
+    pts = spans_to_vector(x_span, y_span, z_span)
+
+    # just to verify cable frame
+    plot_points_3d(fig, pts)
+
+    alpha = compute_span_azimuth(attachment_coords)
+    x_span, y_span, z_span = cable_to_crossarm_frame(
+        x_span, y_span, z_span, alpha[:-1]
+    )
+
+    pts = spans_to_vector(x_span, y_span, z_span)
+    # just to verify spans in crossarm frame
+    plot_points_3d(fig, pts)
+
+    x_span, y_span, z_span = translate_cable_to_support(
+        x_span,
+        y_span,
+        z_span,
+        conductor_attachment_altitude,
+        span_length,
+        crossarm_length,
+        insulator_length,
+        line_angle,
+    )
+
+    pts = spans_to_vector(x_span, y_span, z_span)
+    # final span plot
+    plot_points_3d(fig, pts)
+
+    supports_layer = get_supports_layer(
+        supports_ground_coords,
+        center_arm_coords,
+        arm_coords,
+        attachment_coords,
+    )
+    supports_coords = layer_to_plot(supports_layer)
+    plot_points_3d(fig, supports_coords)
+
+    set_layout(fig)
+
+    fig.show()
+    fig.to_html()
+
+    assert True
+
+
+def test_span_absolute_coords_(section_array_line_angles):
+    # ---- Same code than previous test ----""
+    span_length = section_array_line_angles.data.span_length.to_numpy()
+    line_angle = section_array_line_angles.data.line_angle.to_numpy()
+    conductor_attachment_altitude = (
+        section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
+    )
+    crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
+    insulator_length = (
+        section_array_line_angles.data.insulator_length.to_numpy()
+    )
+
+    (
+        supports_ground_coords,
+        center_arm_coords,
+        arm_coords,
+        attachment_coords,
+    ) = get_supports_coords(
+        span_length,
+        line_angle,
+        conductor_attachment_altitude,
+        crossarm_length,
+        insulator_length,
+    )
+
+    new_span_length = get_span_lengths_between_supports(attachment_coords)
+    new_elevation_diff = get_elevation_diff_between_supports(attachment_coords)
+    # ----------
+
+    span_model = CatenarySpan(**section_array_line_angles.to_numpy())
+    span_model.span_length = new_span_length
+    span_model.elevation_difference = new_elevation_diff
+
+    x = span_model.x(21)
+    z = span_model.z(x)
+
+    pts = spans_to_vector(x, x * 0, z)
+
+    fig = go.Figure()
+    # plot_points_3d(fig, pts)
+    # fig.show()
+
+    # get pts for spans
+
+    beta = np.array([50.0, 10.0, 0.0, np.nan])
+    x_span, y_span, z_span = cable_to_beta_plane(
+        x[:, :-1], z[:, :-1], beta=beta[:-1]
+    )
+
+    pts = spans_to_vector(x_span, y_span, z_span)
+
+    # just to verify cable frame
+    plot_points_3d(fig, pts)
+
+    alpha = compute_span_azimuth(attachment_coords)
+    x_span, y_span, z_span = cable_to_crossarm_frame(
+        x_span, y_span, z_span, alpha[:-1]
+    )
+
+    pts = spans_to_vector(x_span, y_span, z_span)
+    # just to verify spans in crossarm frame
+    plot_points_3d(fig, pts)
+
+    x_span, y_span, z_span = translate_cable_to_support(
+        x_span,
+        y_span,
+        z_span,
+        conductor_attachment_altitude,
+        span_length,
+        crossarm_length,
+        insulator_length,
+        line_angle,
+    )
+
+    pts = spans_to_vector(x_span, y_span, z_span)
+    # final span plot
+    plot_points_3d(fig, pts)
+
+    supports_layer = get_supports_layer(
+        supports_ground_coords,
+        center_arm_coords,
+        arm_coords,
+        attachment_coords,
+    )
+    supports_coords = layer_to_plot(supports_layer)
+    plot_points_3d(fig, supports_coords)
+
+    set_layout(fig)
+
+    fig.show()
+    fig.to_html()
+
+    assert True

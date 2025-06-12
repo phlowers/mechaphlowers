@@ -122,7 +122,16 @@ class SectionDataFrame:
 
         beta = np.zeros(x_cable.shape[1])
         if self.cable_loads is not None:
+            logger.warning("no cable loads applied. Section is displayed in preview mode.")
             beta = self.cable_loads.load_angle * 180 / np.pi
+            
+        x_span, y_span, z_span = references.cable_to_beta_plane(
+            x_cable[:, :-1], z_cable[:, :-1], beta=beta[:-1]
+        )
+        
+        # alpha = compute_span_azimuth(attachment_coords)
+        # x_span, y_span, z_span = cable_to_crossarm_frame(x_span, y_span, z_span, alpha[:-1])
+    
 
         return references.transform_coordinates(
             x_cable,
