@@ -257,14 +257,21 @@ def test_get_supports_coords(section_array_line_angles):
     assert True
 
 
+
+
+
+
+
 def test_span_absolute_coords_new_obj(section_array_line_angles):
 
 
     span_model = CatenarySpan(**section_array_line_angles.to_numpy())
     
     s = SectionPoints(
-        **section_array_line_angles.to_numpy(),
+        span_model=span_model, **section_array_line_angles.to_numpy()
     )
+    
+    
 
     s.init_span(span_model)
 

@@ -370,7 +370,7 @@ class SectionPoints:
         conductor_attachment_altitude,
         crossarm_length,
         insulator_length,
-        line_angle, *args, **kwargs
+        line_angle, span_model, **_
     ):
         (
             self.supports_ground_coords,
@@ -398,6 +398,7 @@ class SectionPoints:
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
         self._beta = np.array([])
+        self.span_model = span_model
 
     def init_span(self, span_model: Span):
         self.span_model = span_model
