@@ -148,33 +148,4 @@ def test_translate_cable_to_support():
     np.testing.assert_almost_equal(z_1, z_out)
 
 
-
-
-# def test_cable_to_crossarm():
-    
-    
-def test_point_class():
-    """Test the Point class."""
-    from mechaphlowers.core.geometry.references import Points
-    x = np.array([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]]).T
-    y = np.array([[0.0, 0.0, 0.0, 0.0], [-1.0, -1.0, -1.0, -1.0]]).T
-    z = np.array([[10.0, 20.0, 30.0, 40.0], [40.0, 30.0, 20.0, 10.0]]).T
-
-    from mechaphlowers.core.geometry.references import vectors_to_coords
-    coords = vectors_to_coords(x, y, z)
-    p1 = Points.from_coords(coords)
-    
-    x_p1, y_p1, z_p1 = p1.vectors
-
-    np.testing.assert_almost_equal(x_p1, x)
-    np.testing.assert_almost_equal(y_p1, y)
-    np.testing.assert_almost_equal(z_p1, z)
-    
-    assert p1.points().shape == (2*x.shape[0], 3)
-    assert p1.points(stack=True).shape == (2*y.shape[0]+2, 3)
-    
-    p2 = Points.from_vectors(x, y, z)
-    np.testing.assert_almost_equal(p1.coords, p2.coords)
-    
-    
     

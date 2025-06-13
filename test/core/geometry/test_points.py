@@ -1,224 +1,162 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
-# SPDX-License-Identifier: MPL-2.0
+
 
 import numpy as np
-import plotly.graph_objects as go
-from numpy.testing import assert_allclose
+import pandas as pd
 from pytest import fixture
 
-from mechaphlowers.core.geometry.points import Frame, Points
-
-
-def plot_points(fig, points):
-    fig.add_trace(
-        go.Scatter3d(
-            x=points[:, 0],
-            y=points[:, 1],
-            z=points[:, 2],
-            mode='markers+lines',
-            marker=dict(
-                size=4,
-            ),  # color='red'),
-            name='Points',
-        )
-    )
-
-
-def plot_frame(fig, frame, one_object=False, color='blue'):
-    pp = np.hstack(
-        (
-            frame.origin,
-            frame.origin + frame.x_axis,
-            np.nan * np.ones_like(frame.origin),
-            frame.origin,
-            frame.origin + frame.y_axis,
-            np.nan * np.ones_like(frame.origin),
-            frame.origin,
-            frame.origin + frame.z_axis,
-            np.nan * np.ones_like(frame.origin),
-        )
-    )
-    if one_object:
-        pp = pp.reshape(-1, 3)
-        fig.add_trace(
-            go.Scatter3d(
-                x=pp[:, 0],
-                y=pp[:, 1],
-                z=pp[:, 2],
-                mode='lines',
-                marker=dict(size=5, color=color),
-                name="Frame",
-            )
-        )
-    else:
-        for i in range(pp.shape[0]):
-            fig.add_trace(
-                go.Scatter3d(
-                    x=pp[i].reshape(-1, 3)[:, 0],
-                    y=pp[i].reshape(-1, 3)[:, 1],
-                    z=pp[i].reshape(-1, 3)[:, 2],
-                    mode='lines',
-                    marker=dict(size=5, color=color),
-                    name=f"R{str(i)}",
-                )
-            )
-    return fig
+from mechaphlowers.core.geometry.points import Points, SectionPoints, stack_nan, vectors_to_coords
+from mechaphlowers.core.models.cable.span import CatenarySpan
+from mechaphlowers.entities.arrays import SectionArray
 
 
 @fixture
-def coords_fixture():
-    return np.array(
-        [
-            [100.0, -40.0, 30.0],
-            [183.33333333, -40.0, 22.13841697],
-            [266.66666667, -40.0, 17.75890716],
-            [350.0, -40.0, 16.85386616],
-            [433.33333333, -40.0, 19.42172249],
-            [516.66666667, -40.0, 25.46693488],
-            [600.0, -40.0, 35.0],
-            [100.0, -10.0, 30.0],
-            [183.33333333, -10.0, 22.13841697],
-            [266.66666667, -10.0, 17.75890716],
-            [350.0, -10.0, 16.85386616],
-            [433.33333333, -10.0, 19.42172249],
-            [516.66666667, -10.0, 25.46693488],
-            [600.0, -10.0, 35.0],
-            [500.0, -40.0, 35.0],
-            [583.33333333, -40.0, 28.80643923],
-            [666.66666667, -40.0, 26.0905585],
-            [750.0, -40.0, 26.84764206],
-            [833.33333333, -40.0, 31.07900449],
-            [916.66666667, -40.0, 38.79199295],
-            [1000.0, -40.0, 50.0],
-            [1000.0, 460.0, 50.0],
-            [1083.33333333, 460.0, 44.63915405],
-            [1166.66666667, 460.0, 42.75431097],
-            [1250.0, 460.0, 44.342198],
-            [1333.33333333, 460.0, 49.40557229],
-            [1416.66666667, 460.0, 57.95322568],
-            [1500.0, 460.0, 70.0],
-        ]
-    ).reshape((4, 7, 3))
-
-
-def test_plot(coords_fixture):
-    fig = go.Figure()
-    plot_points(fig, coords_fixture.reshape(-1, 3))
-
-    # fig.show()
-
-
-def test_translate_all(coords_fixture):
-    expected_translated_coords = coords_fixture.copy()
-    points = Points(coords_fixture)
-    translation_vector = np.array([[0, 1, 0]] * 4)
-    points.translate_all(translation_vector)
-
-    translation = np.full(expected_translated_coords.shape, [0, 1, 0])
-    expected_translated_coords += translation
-
-    assert_allclose(points.coords, expected_translated_coords)
-
-
-def test_translate_layer(coords_fixture):
-    expected_translated_coords = coords_fixture.copy()
-    points = Points(coords_fixture)
-    translation_vector = np.array([0, 1, 0])
-    points.translate_layer(translation_vector, 3)
-
-    translation = np.full(expected_translated_coords[3].shape, [0, 1, 0])
-    expected_translated_coords[3] += translation
-
-    assert_allclose(points.coords, expected_translated_coords)
-
-
-def test_flatten(coords_fixture):
-    points = Points(coords_fixture)
-    assert points.flatten().shape == (28, 3)
-
-
-def test_rotate_layer(coords_fixture):
-    fig = go.Figure()
-    plot_points(fig, coords_fixture.reshape(-1, 3))
-    points = Points(coords_fixture)
-    line_angles = np.array([180, 90, 180, 0])
-    rotation_axes = np.array([[0, 0, 1]] * 4)
-    points.rotate_all(line_angles, rotation_axes)
-
-    plot_points(fig, points.coords_for_plot())
-
-    # fig.show()
-
-
-def test_rotate_point(coords_fixture):
-    fig = go.Figure()
-    plot_points(fig, coords_fixture.reshape(-1, 3))
-    points = Points(coords_fixture)
-    line_angles = np.array([20] * points.flatten().shape[0])
-    rotation_axes = np.array([[0, 0, 1]] * 4)
-    points.rotate_one_angle_per_point(line_angles, rotation_axes)
-
-    plot_points(fig, points.coords_for_plot())
-
-    # fig.show()
-
-
-def test_rotate_point_same_axis(coords_fixture):
-    fig = go.Figure()
-    plot_points(fig, coords_fixture.reshape(-1, 3))
-    points = Points(coords_fixture)
-    line_angles = np.array([180, 90, 180, 0])
-    rotation_axis = np.array([0, 0, 1])
-    points.rotate_same_axis(line_angles, rotation_axis)
-
-    plot_points(fig, points.coords_for_plot())
-
-    # fig.show()
-
-
-def test_plot_frame(coords_fixture):
-    frame = Frame(np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1], [2, 1, 1]]))
-
-    fig = go.Figure()
-
-    plot_frame(fig, frame)
-
-    # fig.show()
-
-
-def test_points_rotate_frame(coords_fixture):
-    frame = Frame(np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1], [2, 1, 1]]))
-    fig = go.Figure()
-    plot_points(fig, coords_fixture.reshape(-1, 3))
-    plot_frame(fig, frame)
-    points = Points(coords_fixture, frame)
-    line_angles = np.array([180, 90, 45, 0])
-    rotation_axes = np.array([[0, 0, 1]] * 4)
-    points.rotate_all(line_angles, rotation_axes)
-
-    points.rotate_frame(-line_angles, rotation_axes)
-    plot_points(fig, points.coords_for_plot())
-    plot_frame(fig, points.frame, color='red')
-    # fig.show()
-
-
-def test_points_translate_frame(coords_fixture):
-    frame = Frame(np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1], [2, 1, 1]]))
-
-    # frame = Frame(np.array([[0.,0.,0.], [1.,1.,1.], [1.,1.,1.], [2.,1.,1.]]))
-    fig = go.Figure()
-    plot_points(fig, coords_fixture.reshape(-1, 3))
-    plot_frame(fig, frame)
-    points = Points(coords_fixture, frame)
-    translation_vector = np.array(
-        [[50, 0, 0], [0, 50, 0], [0, 0, 50], [25, 25, 0]]
+def section_array_line_angles():
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["support 1", "2", "three", "support 4"]),
+                "suspension": np.array([False, True, True, False]),
+                "conductor_attachment_altitude": np.array([30, 40, 60, 70]),
+                "crossarm_length": np.array([40, 20, -30, -50]),
+                "line_angle": np.array([0, -45, 60, -30]),
+                "insulator_length": np.array([0, 5, 82, 0]),
+                "span_length": np.array([500, 460, 520, np.nan]),
+            }
+        )
     )
-    points.translate_all(translation_vector)
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    return section_array
 
-    points.translate_frame(-translation_vector)
-    plot_points(fig, points.coords_for_plot())
-    plot_frame(fig, points.frame, color='red')
+
+def test_stack_nan():
+    """Test the stack_nan function."""
+    
+    coords = np.array([[[-2.34427201e+02,  0.00000000e+00,  1.37547654e+01],
+        [-1.49742252e+02,  0.00000000e+00,  5.60830465e+00],
+        [-6.50573031e+01,  0.00000000e+00,  1.05820648e+00],
+        [ 1.96276459e+01,  0.00000000e+00,  9.63118943e-02],
+        [ 1.04312595e+02,  0.00000000e+00,  2.72089608e+00],
+        [ 1.88997544e+02,  0.00000000e+00,  8.93666533e+00],
+        [ 2.73682493e+02,  0.00000000e+00,  1.87547654e+01]],
+
+       [[-4.76437543e+02,  0.00000000e+00,  5.70170544e+01],
+        [-3.95654723e+02,  0.00000000e+00,  3.92634649e+01],
+        [-3.14871902e+02,  0.00000000e+00,  2.48373168e+01],
+        [-2.34089081e+02,  0.00000000e+00,  1.37150711e+01],
+        [-1.53306260e+02,  0.00000000e+00,  5.87857990e+00],
+        [-7.25234393e+01,  0.00000000e+00,  1.31505640e+00],
+        [ 8.25938147e+00,  0.00000000e+00,  1.70543698e-02]],
+       
+        [[-4.76437543e+02,  0.00000000e+00,  5.70170544e+01],
+        [-3.95654723e+02,  0.00000000e+00,  3.92634649e+01],
+        [-3.14871902e+02,  0.00000000e+00,  2.48373168e+01],
+        [-2.34089081e+02,  0.00000000e+00,  1.37150711e+01],
+        [-1.53306260e+02,  0.00000000e+00,  5.87857990e+00],
+        [-7.25234393e+01,  0.00000000e+00,  1.31505640e+00],
+        [ 8.25938147e+00,  0.00000000e+00,  1.70543698e-02]],
+
+       [[ 8.80823413e+01,  0.00000000e+00,  1.93993824e+00],
+        [ 1.75171637e+02,  0.00000000e+00,  7.67618085e+00],
+        [ 2.62260932e+02,  0.00000000e+00,  1.72198528e+01],
+        [ 3.49350227e+02,  0.00000000e+00,  3.05890530e+01],
+        [ 4.36439522e+02,  0.00000000e+00,  4.78091353e+01],
+        [ 5.23528817e+02,  0.00000000e+00,  6.89127565e+01],
+        [ 6.10618113e+02,  0.00000000e+00,  9.39399382e+01]]])
+    
+    expected_output = np.array([[-2.34427201e+02,  0.00000000e+00,  1.37547654e+01],
+       [-1.49742252e+02,  0.00000000e+00,  5.60830465e+00],
+       [-6.50573031e+01,  0.00000000e+00,  1.05820648e+00],
+       [ 1.96276459e+01,  0.00000000e+00,  9.63118943e-02],
+       [ 1.04312595e+02,  0.00000000e+00,  2.72089608e+00],
+       [ 1.88997544e+02,  0.00000000e+00,  8.93666533e+00],
+       [ 2.73682493e+02,  0.00000000e+00,  1.87547654e+01],
+       [            np.nan,             np.nan,             np.nan],
+       [-4.76437543e+02,  0.00000000e+00,  5.70170544e+01],
+       [-3.95654723e+02,  0.00000000e+00,  3.92634649e+01],
+       [-3.14871902e+02,  0.00000000e+00,  2.48373168e+01],
+       [-2.34089081e+02,  0.00000000e+00,  1.37150711e+01],
+       [-1.53306260e+02,  0.00000000e+00,  5.87857990e+00],
+       [-7.25234393e+01,  0.00000000e+00,  1.31505640e+00],
+       [ 8.25938147e+00,  0.00000000e+00,  1.70543698e-02],
+       [            np.nan,             np.nan,             np.nan],
+        [-4.76437543e+02,  0.00000000e+00,  5.70170544e+01],
+        [-3.95654723e+02,  0.00000000e+00,  3.92634649e+01],
+        [-3.14871902e+02,  0.00000000e+00,  2.48373168e+01],
+        [-2.34089081e+02,  0.00000000e+00,  1.37150711e+01],
+        [-1.53306260e+02,  0.00000000e+00,  5.87857990e+00],
+        [-7.25234393e+01,  0.00000000e+00,  1.31505640e+00],
+        [ 8.25938147e+00,  0.00000000e+00,  1.70543698e-02],
+        [            np.nan,             np.nan,             np.nan],
+       [ 8.80823413e+01,  0.00000000e+00,  1.93993824e+00],
+       [ 1.75171637e+02,  0.00000000e+00,  7.67618085e+00],
+       [ 2.62260932e+02,  0.00000000e+00,  1.72198528e+01],
+       [ 3.49350227e+02,  0.00000000e+00,  3.05890530e+01],
+       [ 4.36439522e+02,  0.00000000e+00,  4.78091353e+01],
+       [ 5.23528817e+02,  0.00000000e+00,  6.89127565e+01],
+       [ 6.10618113e+02,  0.00000000e+00,  9.39399382e+01],
+       [            np.nan,             np.nan,             np.nan]])
+    
+
+    result = stack_nan(coords)
+    assert result.shape[1] == coords.shape[2]
+    assert result.shape[0] == (coords.shape[1]+1)*coords.shape[0]
+    np.testing.assert_allclose(result, expected_output)
+
+
+
+def test_point_class():
+    """Test the Point class."""
+    
+    x = np.array([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]]).T
+    y = np.array([[0.0, 0.0, 0.0, 0.0], [-1.0, -1.0, -1.0, -1.0]]).T
+    z = np.array([[10.0, 20.0, 30.0, 40.0], [40.0, 30.0, 20.0, 10.0]]).T
+
+    coords = vectors_to_coords(x, y, z)
+    p1 = Points.from_coords(coords)
+    
+    x_p1, y_p1, z_p1 = p1.vectors
+
+    np.testing.assert_almost_equal(x_p1, x)
+    np.testing.assert_almost_equal(y_p1, y)
+    np.testing.assert_almost_equal(z_p1, z)
+    
+    assert p1.points().shape == (2*x.shape[0], 3)
+    assert p1.points(stack=True).shape == (2*y.shape[0]+2, 3)
+    
+    p2 = Points.from_vectors(x, y, z)
+    np.testing.assert_almost_equal(p1.coords, p2.coords)
+    
+    
+
+
+def test_span_absolute_coords_new_obj(section_array_line_angles):
+
+
+    span_model = CatenarySpan(**section_array_line_angles.to_numpy())
+    
+    s = SectionPoints(
+        span_model=span_model, **section_array_line_angles.to_numpy()
+    )
+    
+    s.get_spans("cable").points(True)
+    s.get_spans("crossarm").points(True)
+    s.get_spans("section").points(True)
+    s.get_supports().points(True)
+    s.get_insulators().points(True)
+
+    s.init_span(span_model)
+
+    # from plotly import graph_objects as go 
+    # from mechaphlowers.plotting.plot import plot_points_3d, set_layout
+    # fig = go.Figure()
+    # plot_points_3d(fig, s.get_spans("cable").points(True))
+    # plot_points_3d(fig, s.get_spans("crossarm").points(True))
+    # plot_points_3d(fig, s.get_spans("section").points(True))
+
+    # plot_points_3d(fig, s.get_supports().points(True))
+    # plot_points_3d(fig, s.get_insulators().points(True))
+
+    # set_layout(fig)
     # fig.show()
+    assert True

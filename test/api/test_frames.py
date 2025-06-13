@@ -37,17 +37,6 @@ def test_section_frame_initialization(default_section_array_three_spans):
     assert isinstance(frame._span_model, type(CatenarySpan))
 
 
-def test_section_frame_get_coord(default_section_array_three_spans):
-    frame = SectionDataFrame(default_section_array_three_spans)
-    coords = frame.get_coordinates()
-    assert coords.shape == (
-        (len(default_section_array_three_spans.data) - 1)
-        * cfg.graphics.resolution,
-        3,
-    )
-    assert isinstance(coords, np.ndarray)
-
-
 @pytest.mark.parametrize(
     "error,case",
     [

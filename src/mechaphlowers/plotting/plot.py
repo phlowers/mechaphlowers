@@ -9,12 +9,53 @@ from typing import TYPE_CHECKING, Dict, Literal
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go  # type: ignore
+import plotly.graph_objects as go
+
+from mechaphlowers.core.geometry.points import SectionPoints  # type: ignore
 
 if TYPE_CHECKING:
     from mechaphlowers.api.frames import SectionDataFrame
 
 from mechaphlowers.config import options as cfg
+
+
+def plot_points_3d(fig, points, color=None, width=3, size=None, name="Points"):
+    fig.add_trace(
+        go.Scatter3d(
+            x=points[:, 0],
+            y=points[:, 1],
+            z=points[:, 2],
+            mode='markers+lines',
+            marker=dict(
+                size=cfg.graphics.marker_size if size is None else size,
+                color=color
+            ),  
+            line=dict(color=color, width=width),
+            name=name
+            ),
+        )
+    
+
+
+def plot_points_2d(fig, points, color=None, width=3, size=None, name="Points"):
+    if size is None:
+        size = cfg.graphics.marker_size
+    fig.add_trace(
+        go.Scatter(
+            x=points[:, 0],
+            y=points[:, 1],
+            mode='markers+lines',
+            marker=dict(
+                size=cfg.graphics.marker_size if size is None else size,
+                color=color
+            ),  
+            line=dict(color=color, width=width),
+            name=name,
+            ),
+        )
+    
+
+
 
 
 def plot_line(fig: go.Figure, points: np.ndarray) -> None:
@@ -24,16 +65,8 @@ def plot_line(fig: go.Figure, points: np.ndarray) -> None:
         fig (go.Figure): plotly figure
         points (np.ndarray): points of all the cables of the section in point format (3 x n)
     """
-    fig.add_trace(
-        go.Scatter3d(
-            x=points[:, 0],
-            y=points[:, 1],
-            z=points[:, 2],
-            mode="lines+markers",
-            marker=dict(size=cfg.graphics.marker_size),
-            line=dict(width=8, color="red"),
-        )
-    )
+    
+    plot_points_3d(fig, points, color="red", width=8, name="Cable")
 
 
 def plot_support(fig: go.Figure, points: np.ndarray) -> None:
@@ -43,16 +76,8 @@ def plot_support(fig: go.Figure, points: np.ndarray) -> None:
         fig (go.Figure): plotly figure
         points (np.ndarray): points of all the supports of the section in point format (3 x n)
     """
-    fig.add_trace(
-        go.Scatter3d(
-            x=points[:, 0],
-            y=points[:, 1],
-            z=points[:, 2],
-            mode="lines+markers",
-            marker=dict(size=cfg.graphics.marker_size),
-            line=dict(width=8, color="green"),
-        )
-    )
+    plot_points_3d(fig, points, color="green", width=8, name="Supports")
+
 
 
 def plot_insulator(fig: go.Figure, points: np.ndarray) -> None:
@@ -62,16 +87,8 @@ def plot_insulator(fig: go.Figure, points: np.ndarray) -> None:
         fig (go.Figure): plotly figure
         points (np.ndarray): points of all the insulators of the section in point format (3 x n)
     """
-    fig.add_trace(
-        go.Scatter3d(
-            x=points[:, 0],
-            y=points[:, 1],
-            z=points[:, 2],
-            mode="lines+markers",
-            marker=dict(size=5),
-            line=dict(width=8, color="orange"),
-        )
-    )
+    plot_points_3d(fig, points, color="orange", width=8, name="Insulators")
+    
 
 
 def get_support_points(data: pd.DataFrame) -> np.ndarray:
@@ -229,13 +246,15 @@ class PlotAccessor:
             raise ValueError(
                 f"{view=} : this argument has to be set to 'full' or 'analysis'"
             )
+        spans = self.section._span_model(**self.section.data_container.__dict__)
+        section_pts = SectionPoints(
+        span_model=spans, **self.section.data_container.__dict__
+        )
+        
+        plot_line(fig, section_pts.get_spans("section").points(True))
 
-        plot_line(fig, self.section.get_coordinates())
+        plot_support(fig, section_pts.get_supports().points(True))
 
-        support_points = get_support_points(self.section.data)
-        plot_support(fig, support_points)
-
-        insulator_points = get_insulator_points(self.section.data)
-        plot_insulator(fig, insulator_points)
+        plot_insulator(fig, section_pts.get_insulators().points(True))
 
         set_layout(fig, auto=_auto)

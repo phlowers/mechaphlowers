@@ -5,15 +5,65 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from typing import Tuple
+
 import numpy as np
 
 from mechaphlowers.core.geometry.rotation import (
     rotation_quaternion_same_axis,
 )
 
-# class LineAngles:
-#     def __init__(self, section_array: SectionArray):
-#         self.section_array = section_array
+"""Line angles module
+
+Collections of technical functions and helpers to take into account angles in the coordinates computation of objects.
+"""
+
+def compute_span_azimuth(
+    attachment_coords: np.ndarray,
+):
+    """compute_span_azimuth 
+
+    Compute the azimuth angle of the span between two attachment points.
+    The azimuth angle is the angle between the x-axis and the line connecting two attachment points in the xy-plane.
+    The angle is computed in degrees and rotation is counter-clockwise (trigonometric).
+
+    Args:
+        attachment_coords (np.ndarray): Attachment coordinates of the span.
+
+    Returns:
+        np.ndarray: 1D array of shape (n,) representing the azimuth angle of the span in degrees.
+    """
+    vector_attachment_to_next = (
+        np.roll(attachment_coords[:, :-1], -1, axis=0)
+        - attachment_coords[:, :-1]
+    )
+    full_x_axis = np.full_like(vector_attachment_to_next, np.array([1, 0]))
+    rotation_angles = angle_between_vectors(
+        full_x_axis,
+        vector_attachment_to_next,
+    )
+
+    return rotation_angles * 180 / np.pi
+
+
+def angle_between_vectors(
+    vector_a: np.ndarray, vector_b: np.ndarray
+) -> np.ndarray:
+    """Calculate the angle between two 2D vectors.
+    
+    Arguments:
+        vector_a: A 2D array of shape (n, 2) representing the first set of vectors.
+        vector_b: A 2D array of shape (n, 2) representing the second set of vectors.
+        
+    Returns:
+        A 1D array of angles in radians, where each angle corresponds to the angle between the vectors at the same index.
+        """
+    cross_product = np.cross(vector_a, vector_b)
+    norm_a = np.linalg.norm(vector_a, axis=1)
+    norm_b = np.linalg.norm(vector_b, axis=1)
+    sin_angle = cross_product / (norm_a * norm_b)
+    # Clip the value to avoid numerical errors outside the range [-1, 1]
+    sin_angle = np.clip(sin_angle, -1.0, 1.0)
+    return np.arcsin(sin_angle)
 
 
 def get_supports_ground_coords(
@@ -105,9 +155,7 @@ def get_insulator_layer(
 
 
 
-def layer_to_plot(supports_layers):
-    """Convert the support coordinates to a format suitable for plotting."""
-    return supports_layers.reshape(-1, 3, order='F')
+
 
 
 def get_span_lengths_between_supports(
@@ -167,30 +215,3 @@ def get_supports_coords(
     )
 
 
-def compute_span_azimuth(
-    attachment_coords: np.ndarray,
-):
-    vector_attachment_to_next = (
-        np.roll(attachment_coords[:, :-1], -1, axis=0)
-        - attachment_coords[:, :-1]
-    )
-    full_x_axis = np.full_like(vector_attachment_to_next, np.array([1, 0]))
-    rotation_angles = angle_between_vectors(
-        full_x_axis,
-        vector_attachment_to_next,
-    )
-
-    return rotation_angles * 180 / np.pi
-
-
-def angle_between_vectors(
-    vector_a: np.ndarray, vector_b: np.ndarray
-) -> np.ndarray:
-    """Calculate the angle between two vectors."""
-    cross_product = np.cross(vector_a, vector_b)
-    norm_a = np.linalg.norm(vector_a, axis=1)
-    norm_b = np.linalg.norm(vector_b, axis=1)
-    sin_angle = cross_product / (norm_a * norm_b)
-    # Clip the value to avoid numerical errors outside the range [-1, 1]
-    sin_angle = np.clip(sin_angle, -1.0, 1.0)
-    return np.arcsin(sin_angle)
