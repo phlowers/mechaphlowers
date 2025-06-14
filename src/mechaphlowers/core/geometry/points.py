@@ -25,7 +25,9 @@ def stack_nan(coords: np.ndarray) -> np.ndarray:
     )
 
 
-def vectors_to_coords(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
+def vectors_to_coords(
+    x: np.ndarray, y: np.ndarray, z: np.ndarray
+) -> np.ndarray:
     return np.array([x, y, z]).T
 
 
