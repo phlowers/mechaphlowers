@@ -6,7 +6,6 @@
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 from numpy.testing import assert_allclose
 from pytest import fixture
 
@@ -20,7 +19,7 @@ from mechaphlowers.core.geometry.line_angles import (
     get_supports_ground_coords,
     get_supports_layer,
 )
-from mechaphlowers.core.geometry.points import layer_to_plot
+from mechaphlowers.core.geometry.points import coords_to_points
 from mechaphlowers.entities.arrays import SectionArray
 
 
@@ -129,7 +128,7 @@ def test_get_supports(section_array_line_angles):
         center_arm_coords,
         edge_arm_coords,
     )
-    supports_coords = layer_to_plot(supports_layer)
+    supports_coords = coords_to_points(supports_layer)
 
     expected_coords = np.array(
         [

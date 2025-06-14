@@ -17,10 +17,11 @@ from mechaphlowers.core.geometry.rotation import (
 Collections of technical functions and helpers to take into account angles in the coordinates computation of objects.
 """
 
+
 def compute_span_azimuth(
     attachment_coords: np.ndarray,
 ):
-    """compute_span_azimuth 
+    """compute_span_azimuth
 
     Compute the azimuth angle of the span between two attachment points.
     The azimuth angle is the angle between the x-axis and the line connecting two attachment points in the xy-plane.
@@ -49,14 +50,14 @@ def angle_between_vectors(
     vector_a: np.ndarray, vector_b: np.ndarray
 ) -> np.ndarray:
     """Calculate the angle between two 2D vectors.
-    
+
     Arguments:
         vector_a: A 2D array of shape (n, 2) representing the first set of vectors.
         vector_b: A 2D array of shape (n, 2) representing the second set of vectors.
-        
+
     Returns:
         A 1D array of angles in radians, where each angle corresponds to the angle between the vectors at the same index.
-        """
+    """
     cross_product = np.cross(vector_a, vector_b)
     norm_a = np.linalg.norm(vector_a, axis=1)
     norm_b = np.linalg.norm(vector_b, axis=1)
@@ -90,7 +91,7 @@ def get_edge_arm_coords(
     conductor_attachment_altitude: np.ndarray,
     line_angle: np.ndarray,
     crossarm_length: np.ndarray,
-) -> np.ndarray:
+) -> Tuple[np.ndarray, np.ndarray]:
     """Build the supports in the global frame."""
     center_arm_coords = supports_ground_coords.copy()
     center_arm_coords[:, 2] = conductor_attachment_altitude
@@ -133,11 +134,11 @@ def get_supports_layer(
             supports_ground_coords,
             center_arm_coords,
             edge_arm_coords,
-
         ),
         axis=1,
     )
-    
+
+
 def get_insulator_layer(
     edge_arm_coords: np.ndarray,
     attachment_coords: np.ndarray,
@@ -151,11 +152,6 @@ def get_insulator_layer(
         ),
         axis=1,
     )
-
-
-
-
-
 
 
 def get_span_lengths_between_supports(
@@ -213,5 +209,3 @@ def get_supports_coords(
         arm_coords,
         attachment_coords,
     )
-
-

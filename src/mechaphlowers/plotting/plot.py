@@ -8,8 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, Literal
 
 import numpy as np
-import pandas as pd
-import plotly.graph_objects as go
+import plotly.graph_objects as go  # type: ignore[import-untyped]
 
 from mechaphlowers.core.geometry.points import SectionPoints  # type: ignore
 

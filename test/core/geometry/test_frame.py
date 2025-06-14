@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
-import plotly.graph_objects as go
+import plotly.graph_objects as go  # type: ignore[import-untyped]
 from numpy.testing import assert_allclose
 from pytest import fixture
 

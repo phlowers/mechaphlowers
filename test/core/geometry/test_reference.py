@@ -18,12 +18,16 @@ def test_cable2span_basic() -> None:
     z: np.ndarray = np.array([[20, 18, 17, 19], [19, 17, 15, 17]]).T
     beta: float = 0
 
-    xs, ys, zs = cable_to_beta_plane(x, z, np.ones(2) * beta)  # TODO check beta
+    xs, ys, zs = cable_to_beta_plane(
+        x, z, np.ones(2) * beta
+    )  # TODO check beta
 
     assert len(xs) == len(z)
     np.testing.assert_allclose(ys, np.zeros_like(ys))
     # assert np.allclose(result, z)
-    xs, ys, zs = cable_to_beta_plane(x, z, np.array([5.0, 61.3]))  # TODO check beta
+    xs, ys, zs = cable_to_beta_plane(
+        x, z, np.array([5.0, 61.3])
+    )  # TODO check beta
     assert len(xs) == len(z)
     assert not (ys == 0).all()
 
@@ -141,11 +145,9 @@ def test_translate_cable_to_support():
         span_length,
         crossarm_length,
         insulator_length,
+        line_angle=np.array([0, 0, 0, np.nan]),
     )
 
     np.testing.assert_almost_equal(x_1, x_out)
     np.testing.assert_almost_equal(y_1, y_out)
     np.testing.assert_almost_equal(z_1, z_out)
-
-
-    

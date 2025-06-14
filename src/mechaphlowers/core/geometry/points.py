@@ -1,4 +1,4 @@
-from typing import Self, Tuple
+from typing import Self, Tuple  # type: ignore[attr-defined]
 
 import numpy as np
 
@@ -25,13 +25,13 @@ def stack_nan(coords: np.ndarray) -> np.ndarray:
     )
 
 
-def vectors_to_coords(x, y, z):
+def vectors_to_coords(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
     return np.array([x, y, z]).T
 
 
-def layer_to_plot(supports_layers):
+def coords_to_points(coords: np.ndarray) -> np.ndarray:
     """Convert the support coordinates to a format suitable for plotting."""
-    return supports_layers.reshape(-1, 3, order='F')
+    return coords.reshape(-1, 3, order='F')
 
 
 class Points:
@@ -64,7 +64,7 @@ class Points:
             np.ndarray: A 2D array of shape (number of points, 3) where each row is a point (x, y, z).
         """
         if stack is False:
-            return layer_to_plot(self.coords)
+            return coords_to_points(self.coords)
         else:
             return stack_nan(self.coords)
 
@@ -82,21 +82,22 @@ class Points:
         """Return the number of points."""
         return self.coords.shape[0]
 
-    @staticmethod
-    def from_vectors(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> Self:
+    @classmethod
+    def from_vectors(cls, x: np.ndarray, y: np.ndarray, z: np.ndarray) -> Self:
+        # Mypy does not support the Self type from typing
         """Create Points from a vector of coordinates."""
         if x.ndim != 2 or y.ndim != 2 or z.ndim != 2:
             raise ValueError("x, y, and z must be 2D arrays")
 
-        return Points(vectors_to_coords(x, y, z))
+        return cls(vectors_to_coords(x, y, z))
 
-    @staticmethod
-    def from_coords(coords: np.ndarray) -> Self:
+    @classmethod
+    def from_coords(cls, coords: np.ndarray) -> Self:
         """Create Points from separate x, y, and z coordinates.
         Args:
             coords (np.ndarray): A 3D array of shape (layers, n_points, 3) where each row is a point (x, y, z).
         """
-        return Points(coords)
+        return cls(coords)
 
 
 class SectionPoints:

@@ -12,7 +12,6 @@ import pandas as pd
 import pytest
 
 from mechaphlowers.api.frames import SectionDataFrame
-from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
 )
