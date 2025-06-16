@@ -14,6 +14,8 @@ There are three format used:
 !!! note
     The points format can be generated with a stack_nan option, which stacks the points of all layers on top of each other, separated by NaN. In this way, scatters of each objects can be plotted separately in a single plot. And the layers are preserved.
 
+![Image not available](./assets/coordinates_format.drawio.png "array format chart")
+
 ## Provided classes
 
 ### Points
