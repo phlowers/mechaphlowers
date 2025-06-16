@@ -11,6 +11,7 @@ from pytest import fixture
 
 from mechaphlowers.core.geometry.line_angles import (
     angle_between_vectors,
+    angle_between_vectors_dot,
     compute_span_azimuth,
     get_edge_arm_coords,
     get_elevation_diff_between_supports,
@@ -220,11 +221,11 @@ def test_compute_span_azimuth():
 
 def test_angle_between_vectors():
     # Define input vectors
-    vector_a = np.array([[1, 0], [0, 1]]).T
-    vector_b = np.array([[0, 1], [1, 0]]).T
+    vector_a = np.array([[1, 0], [0, 1]])
+    vector_b = np.array([[0, 1], [1, 0]])
 
     # Call the function
-    result = angle_between_vectors(vector_a, vector_b)
+    result = angle_between_vectors_dot(vector_a, vector_b)
 
     # Define the expected result
     expected_result = np.array([np.pi / 2, -np.pi / 2])
@@ -233,13 +234,28 @@ def test_angle_between_vectors():
     np.testing.assert_array_almost_equal(result, expected_result, decimal=5)
 
 
-def test_angle_between_vectors_parallel():
-    # Define input vectors that are parallel
-    vector_a = np.array([[1, 0], [0, 1]]).T
-    vector_b = np.array([[2, 0], [0, 2]]).T
+def test_angle_between_vectors_above_90():
+    # Define input vectors
+    vector_a = np.array([[1, 0], [-1, 1]])
+    vector_b = np.array([[-1, 1], [1, 0]])
 
     # Call the function
-    result = angle_between_vectors(vector_a, vector_b)
+    result = angle_between_vectors_dot(vector_a, vector_b)
+
+    # Define the expected result
+    expected_result = np.array([3 * np.pi / 4, -3 * np.pi / 4])
+
+    # Assert that the result matches the expected result
+    np.testing.assert_array_almost_equal(result, expected_result, decimal=5)
+
+
+def test_angle_between_vectors_parallel():
+    # Define input vectors that are parallel
+    vector_a = np.array([[1, 0], [0, 1]])
+    vector_b = np.array([[2, 0], [0, 2]])
+
+    # Call the function
+    result = angle_between_vectors_dot(vector_a, vector_b)
 
     # Define the expected result
     expected_result = np.array([0, 0])
@@ -250,33 +266,11 @@ def test_angle_between_vectors_parallel():
 
 def test_angle_between_vectors_antiparallel():
     # Define input vectors that are antiparallel
-    vector_a = np.array(
-        [
-            [
-                1,
-                0,
-            ],
-            [
-                0,
-                1,
-            ],
-        ]
-    ).T
-    vector_b = np.array(
-        [
-            [
-                -1,
-                0,
-            ],
-            [
-                0,
-                -1,
-            ],
-        ]
-    ).T
+    vector_a = np.array([[1, 0], [0, 1]])
+    vector_b = -vector_a
 
     # Call the function
-    result = angle_between_vectors(vector_a, vector_b)
+    result = angle_between_vectors_dot(vector_a, vector_b)
 
     # Define the expected result
     expected_result = np.array([np.pi, np.pi])

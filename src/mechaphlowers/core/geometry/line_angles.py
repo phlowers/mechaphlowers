@@ -67,12 +67,43 @@ def angle_between_vectors(
     return np.arcsin(sin_angle)
 
 
+def angle_between_vectors_dot(
+    vector_a: np.ndarray, vector_b: np.ndarray
+) -> np.ndarray:
+    """Calculate the angle between two 2D vectors.
+
+    Arguments:
+        vector_a: A 2D array of shape (n, 2) representing the first set of vectors.
+        vector_b: A 2D array of shape (n, 2) representing the second set of vectors.
+
+    Returns:
+        A 1D array of angles in radians, where each angle corresponds to the angle between the vectors at the same index.
+    """
+    dot_product = np.vecdot(vector_a, vector_b)
+    norm_a = np.linalg.norm(vector_a, axis=1)
+    norm_b = np.linalg.norm(vector_b, axis=1)
+    sin_angle = dot_product / (norm_a * norm_b)
+    # Clip the value to avoid numerical errors outside the range [-1, 1]
+    sin_angle = np.clip(sin_angle, -1.0, 1.0)
+    # Use the sign of the cross product to determine the direction of the angle
+    return np.arccos(sin_angle) * np.sign(np.cross(vector_a, vector_b))
+
+
 def get_supports_ground_coords(
     span_length: np.ndarray, line_angle: np.ndarray
 ) -> np.ndarray:
-    """Get the coordinates of the supports in the global frame."""
+    """Get the coordinates of the supports in the global frame. These are the coordinates of the barycenter of the support, at ground.
+
+    Args:
+        span_length (np.ndarray): span lengths between supports (input from SectionArray)
+        line_angle (np.ndarray): line angles (input from SectionArray)
+
+    Returns:
+        np.ndarray: 2D array of shape (n, 3) representing the coordinates of the supports in the global frame.
+    """
     line_angle_sums = np.cumsum(line_angle)
     supports_ground_coords = np.zeros((span_length.size, 3))
+    # Creates the translations vectors: these are the vectors between two supports
     translations_vectors = np.zeros((span_length.size, 3))
     translations_vectors[:, 0] = span_length
     translations_vectors = rotation_quaternion_same_axis(
@@ -80,8 +111,10 @@ def get_supports_ground_coords(
         line_angle_sums,
         rotation_axis=np.array([0, 0, 1]),
     )
+    # Computes the coordinates of the supports by adding successive translation vectors
     supports_ground_coords = np.cumsum(translations_vectors, axis=0)
     supports_ground_coords = np.roll(supports_ground_coords, 1, axis=0)
+    # Ensure that the first coordinates are (0,0,0), and not (nan,nan,nan)
     supports_ground_coords[0, :] = np.array([0, 0, 0])
     return supports_ground_coords
 
@@ -92,18 +125,34 @@ def get_edge_arm_coords(
     line_angle: np.ndarray,
     crossarm_length: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Build the supports in the global frame."""
+    """Build the supports and arms in the global frame.
+
+    Args:
+        supports_ground_coords (np.ndarray): coordinates of ground supports (output of `get_supports_ground_coords()`)
+        conductor_attachment_altitude (np.ndarray): attachment altitude (input from SectionArray)
+        line_angle (np.ndarray): line angles (input from SectionArray)
+        crossarm_length (np.ndarray): crossarm lengths (input from SectionArray)
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Returns two 2D arrays of shape (n, 3):
+            - center_arm_coords: coordinates of the intersection of arms and supports in the global frame
+            - edge_arm_coords: coordinates of the edge of the arms in the global frame
+    """
+    # Create the coordinates of the intersection of the arms and the supports by adding attachmeent altitude
     center_arm_coords = supports_ground_coords.copy()
     center_arm_coords[:, 2] = conductor_attachment_altitude
-    line_angle_sums = np.cumsum(line_angle)
 
+    line_angle_sums = np.cumsum(line_angle)
+    # Create translation vectors, which are the vectors that follows the arm
     arm_translation_vectors = np.zeros((line_angle.size, 3))
     arm_translation_vectors[:, 1] = crossarm_length
+    # Rotate the translation vectors into the global frame
     arm_translation_vectors = rotation_quaternion_same_axis(
         arm_translation_vectors,
         line_angle_sums,
         rotation_axis=np.array([0, 0, 1]),
     )
+    # Rotate the translation vectors to take into account the angle of the line
     arm_translation_vectors = rotation_quaternion_same_axis(
         arm_translation_vectors,
         -line_angle / 2,
@@ -116,7 +165,16 @@ def get_attachment_coords(
     edge_arm_coords: np.ndarray,
     insulator_length: np.ndarray,
 ) -> np.ndarray:
-    """Get the coordinates of the attachment points in the global frame."""
+    """Get the coordinates of the attachment points in the global frame. These are the coordinates of the end of the suspension insulators.
+    Currently, we assume that isulators set are vetical.
+
+    Args:
+        edge_arm_coords (np.ndarray): coordinates of the edge of the arms (output of `get_edge_arm_coords()`)
+        insulator_length (np.ndarray): insulator lengths (input from SectionArray)
+
+    Returns:
+        np.ndarray: coordinates of the attachment points in the global frame.
+    """
     attachment_coords = edge_arm_coords.copy()
     attachment_coords[:, 2] = attachment_coords[:, 2] - insulator_length
     return attachment_coords
@@ -127,7 +185,7 @@ def get_supports_layer(
     center_arm_coords: np.ndarray,
     edge_arm_coords: np.ndarray,
 ) -> np.ndarray:
-    """Get the supports in the global frame."""
+    """Stack the coordinates of the supports and the arms in the global frame."""
 
     return np.stack(
         (
@@ -143,7 +201,7 @@ def get_insulator_layer(
     edge_arm_coords: np.ndarray,
     attachment_coords: np.ndarray,
 ) -> np.ndarray:
-    """Get the supports in the global frame."""
+    """Stack the coordinates of the insulators in the global frame."""
 
     return np.stack(
         (
