@@ -45,7 +45,8 @@ dev = [
     "pytest-cov==5.0.0",
     "unittest-xml-reporting==3.2.0",
     "pandas-stubs==2.2.3.241009",
-    "scipy<=1.14.1"
+    "scipy<=1.14.1",
+    "dash==3.0.4"
 ]
 test = [
     "pytest==8.3.2",

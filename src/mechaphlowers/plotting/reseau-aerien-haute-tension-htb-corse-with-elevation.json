@@ -1,0 +1,622 @@
+[
+    {
+        "geo_point_2d": {
+            "lon": 8.706313250000001,
+            "lat": 42.123857349999994
+        },
+        "nom_ligne": "porte 1-2",
+        "start": 1,
+        "end": 2,
+        "elevation": 108.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.708505299999999,
+            "lat": 42.124899049999996
+        },
+        "nom_ligne": "porte 2-3",
+        "start": 2,
+        "end": 3,
+        "elevation": 213.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.70964335,
+            "lat": 42.126212100000004
+        },
+        "nom_ligne": "porte 3-4",
+        "start": 3,
+        "end": 4,
+        "elevation": 158.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.71149675,
+            "lat": 42.128340550000004
+        },
+        "nom_ligne": "porte 4-5",
+        "start": 4,
+        "end": 5,
+        "elevation": 157.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.71503195,
+            "lat": 42.132396150000005
+        },
+        "nom_ligne": "porte 5-6",
+        "start": 5,
+        "end": 6,
+        "elevation": 152.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.7178215,
+            "lat": 42.13559895
+        },
+        "nom_ligne": "porte 6-7",
+        "start": 6,
+        "end": 7,
+        "elevation": 207.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.719272,
+            "lat": 42.13726174999999
+        },
+        "nom_ligne": "porte 7-8",
+        "start": 7,
+        "end": 8,
+        "elevation": 237.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.72072225,
+            "lat": 42.13892164999999
+        },
+        "nom_ligne": "porte 8-9",
+        "start": 8,
+        "end": 9,
+        "elevation": 196.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.7229241,
+            "lat": 42.1414542
+        },
+        "nom_ligne": "porte 9-10",
+        "start": 9,
+        "end": 10,
+        "elevation": 108.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.72691855,
+            "lat": 42.14508445
+        },
+        "nom_ligne": "porte 10-11",
+        "start": 10,
+        "end": 11,
+        "elevation": 81.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.730938349999999,
+            "lat": 42.14804425
+        },
+        "nom_ligne": "porte 11-12",
+        "start": 11,
+        "end": 12,
+        "elevation": 144.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.73445555,
+            "lat": 42.150628499999996
+        },
+        "nom_ligne": "porte 12-13",
+        "start": 12,
+        "end": 13,
+        "elevation": 123.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.7381646,
+            "lat": 42.1533559
+        },
+        "nom_ligne": "porte 13-14",
+        "start": 13,
+        "end": 14,
+        "elevation": 119.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.74115475,
+            "lat": 42.155552650000004
+        },
+        "nom_ligne": "porte 14-15",
+        "start": 14,
+        "end": 15,
+        "elevation": 128.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.74402745,
+            "lat": 42.157663150000005
+        },
+        "nom_ligne": "porte 15-16",
+        "start": 15,
+        "end": 16,
+        "elevation": 126.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.7469243,
+            "lat": 42.159787
+        },
+        "nom_ligne": "porte 16-17",
+        "start": 16,
+        "end": 17,
+        "elevation": 137.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.74990655,
+            "lat": 42.1619765
+        },
+        "nom_ligne": "porte 17-18",
+        "start": 17,
+        "end": 18,
+        "elevation": 128.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.7538975,
+            "lat": 42.1639101
+        },
+        "nom_ligne": "porte 18-19",
+        "start": 18,
+        "end": 19,
+        "elevation": 135.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.75822365,
+            "lat": 42.165062250000005
+        },
+        "nom_ligne": "porte 19-20",
+        "start": 19,
+        "end": 20,
+        "elevation": 158.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.7644101,
+            "lat": 42.16670045
+        },
+        "nom_ligne": "porte 20-21",
+        "start": 20,
+        "end": 21,
+        "elevation": 198.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.7699559,
+            "lat": 42.16817025
+        },
+        "nom_ligne": "porte 21-22",
+        "start": 21,
+        "end": 22,
+        "elevation": 257.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.77379715,
+            "lat": 42.1691926
+        },
+        "nom_ligne": "porte 22-23",
+        "start": 22,
+        "end": 23,
+        "elevation": 263.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.778091199999999,
+            "lat": 42.1714448
+        },
+        "nom_ligne": "porte 23-24",
+        "start": 23,
+        "end": 24,
+        "elevation": 293.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.78155945,
+            "lat": 42.17430305
+        },
+        "nom_ligne": "porte 24-25",
+        "start": 24,
+        "end": 25,
+        "elevation": 390.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.784366200000001,
+            "lat": 42.17661605
+        },
+        "nom_ligne": "porte 25-26",
+        "start": 25,
+        "end": 26,
+        "elevation": 465.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.786097999999999,
+            "lat": 42.178117400000005
+        },
+        "nom_ligne": "porte 26-27",
+        "start": 26,
+        "end": 27,
+        "elevation": 540.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.787715500000001,
+            "lat": 42.1797508
+        },
+        "nom_ligne": "porte 27-28",
+        "start": 27,
+        "end": 28,
+        "elevation": 546.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.7900888,
+            "lat": 42.182142299999995
+        },
+        "nom_ligne": "porte 28-29",
+        "start": 28,
+        "end": 29,
+        "elevation": 557.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.79254765,
+            "lat": 42.184625049999994
+        },
+        "nom_ligne": "porte 29-30",
+        "start": 29,
+        "end": 30,
+        "elevation": 614.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.794866200000001,
+            "lat": 42.1869678
+        },
+        "nom_ligne": "porte 30-31",
+        "start": 30,
+        "end": 31,
+        "elevation": 731.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.796987699999999,
+            "lat": 42.189108250000004
+        },
+        "nom_ligne": "porte 31-32",
+        "start": 31,
+        "end": 32,
+        "elevation": 818.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.7998501,
+            "lat": 42.19200205
+        },
+        "nom_ligne": "porte 32-33",
+        "start": 32,
+        "end": 33,
+        "elevation": 856.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.80258205,
+            "lat": 42.19476145
+        },
+        "nom_ligne": "porte 33-34",
+        "start": 33,
+        "end": 34,
+        "elevation": 810.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.804701099999999,
+            "lat": 42.196899699999996
+        },
+        "nom_ligne": "porte 34-35",
+        "start": 34,
+        "end": 35,
+        "elevation": 804.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8072456,
+            "lat": 42.199467150000004
+        },
+        "nom_ligne": "porte 35-36",
+        "start": 35,
+        "end": 36,
+        "elevation": 796.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.80998625,
+            "lat": 42.20223915
+        },
+        "nom_ligne": "porte 36-37",
+        "start": 36,
+        "end": 37,
+        "elevation": 813.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.81223615,
+            "lat": 42.204509200000004
+        },
+        "nom_ligne": "porte 37-38",
+        "start": 37,
+        "end": 38,
+        "elevation": 831.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.814082849999998,
+            "lat": 42.20636445
+        },
+        "nom_ligne": "porte 38-39",
+        "start": 38,
+        "end": 39,
+        "elevation": 855.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8167101,
+            "lat": 42.20900925
+        },
+        "nom_ligne": "porte 39-40",
+        "start": 39,
+        "end": 40,
+        "elevation": 877.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8196688,
+            "lat": 42.211992699999996
+        },
+        "nom_ligne": "porte 40-41",
+        "start": 40,
+        "end": 41,
+        "elevation": 904.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.822118249999999,
+            "lat": 42.21446665
+        },
+        "nom_ligne": "porte 41-42",
+        "start": 41,
+        "end": 42,
+        "elevation": 941.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.824411,
+            "lat": 42.216778399999995
+        },
+        "nom_ligne": "porte 42-43",
+        "start": 42,
+        "end": 43,
+        "elevation": 996.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.82717555,
+            "lat": 42.2195737
+        },
+        "nom_ligne": "porte 43-44",
+        "start": 43,
+        "end": 44,
+        "elevation": 1000.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.829727949999999,
+            "lat": 42.222140550000006
+        },
+        "nom_ligne": "porte 44-45",
+        "start": 44,
+        "end": 45,
+        "elevation": 1098.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.83126245,
+            "lat": 42.2233808
+        },
+        "nom_ligne": "porte 45-46",
+        "start": 45,
+        "end": 46,
+        "elevation": 1117.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.83323935,
+            "lat": 42.2244485
+        },
+        "nom_ligne": "porte 46-47",
+        "start": 46,
+        "end": 47,
+        "elevation": 1117.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8367273,
+            "lat": 42.22631575
+        },
+        "nom_ligne": "porte 47-48",
+        "start": 47,
+        "end": 48,
+        "elevation": 1046.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8401311,
+            "lat": 42.228142649999995
+        },
+        "nom_ligne": "porte 48-49",
+        "start": 48,
+        "end": 49,
+        "elevation": 1010.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8439144,
+            "lat": 42.23018005
+        },
+        "nom_ligne": "porte 49-50",
+        "start": 49,
+        "end": 50,
+        "elevation": 936.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.847496150000001,
+            "lat": 42.23210115
+        },
+        "nom_ligne": "porte 50-51",
+        "start": 50,
+        "end": 51,
+        "elevation": 941.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8500032,
+            "lat": 42.2334478
+        },
+        "nom_ligne": "porte 51-52",
+        "start": 51,
+        "end": 52,
+        "elevation": 865.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8543177,
+            "lat": 42.23576635000001
+        },
+        "nom_ligne": "porte 52-53",
+        "start": 52,
+        "end": 53,
+        "elevation": 833.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8594839,
+            "lat": 42.238538000000005
+        },
+        "nom_ligne": "porte 53-54",
+        "start": 53,
+        "end": 54,
+        "elevation": 840.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.862812900000002,
+            "lat": 42.24032055
+        },
+        "nom_ligne": "porte 54-55",
+        "start": 54,
+        "end": 55,
+        "elevation": 889.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.865562400000002,
+            "lat": 42.242865800000004
+        },
+        "nom_ligne": "porte 55-56",
+        "start": 55,
+        "end": 56,
+        "elevation": 880.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.86888755,
+            "lat": 42.246718400000006
+        },
+        "nom_ligne": "porte 56-57",
+        "start": 56,
+        "end": 57,
+        "elevation": 918.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.87121115,
+            "lat": 42.24940405
+        },
+        "nom_ligne": "porte 57-58",
+        "start": 57,
+        "end": 58,
+        "elevation": 984.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.87372695,
+            "lat": 42.2523148
+        },
+        "nom_ligne": "porte 58-59",
+        "start": 58,
+        "end": 59,
+        "elevation": 983.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8773886,
+            "lat": 42.25654135
+        },
+        "nom_ligne": "porte 59-60",
+        "start": 59,
+        "end": 60,
+        "elevation": 1055.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8828165,
+            "lat": 42.25918515
+        },
+        "nom_ligne": "porte 60-61",
+        "start": 60,
+        "end": 61,
+        "elevation": 1126.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8890313,
+            "lat": 42.2600574
+        },
+        "nom_ligne": "porte 61-62",
+        "start": 61,
+        "end": 62,
+        "elevation": 1302.0
+    },
+    {
+        "geo_point_2d": {
+            "lon": 8.8934149,
+            "lat": 42.260971749999996
+        },
+        "nom_ligne": "porte 62-63",
+        "start": 62,
+        "end": 63,
+        "elevation": 1428.0
+    }
+]
