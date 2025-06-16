@@ -492,67 +492,61 @@ def create_map2(df, size_section, size_multiple):
 
 def create_map3(df, size_section, size_multiple):
     
-    mph.options.graphics.resolution = res = 10
-
-    section = SectionArray(data=df)
-
-    # set sagging parameter and temperatur 
-    section.sagging_parameter = 800
-    section.sagging_temperature = 15
-
-    # Provide section to SectionDataFrame
-    frame = SectionDataFrame(section)
-    cable_array = CableArray(
-    pd.DataFrame(
-        {
-            "section": [345.55],
-            "diameter": [22.4],
-            "linear_weight": [9.55494],
-            "young_modulus": [59],
-            "dilatation_coefficient": [23],
-            "temperature_reference": [15],
-            "a0": [0],
-            "a1": [59],
-            "a2": [0],
-            "a3": [0],
-            "a4": [0],
-            "b0": [0],
-            "b1": [0],
-            "b2": [0],
-            "b3": [0],
-            "b4": [0],
-        }
-    )
-    )
-    frame.add_cable(cable_array)
-
-
-    weather = WeatherArray(
-        pd.DataFrame(
-            {
-                "ice_thickness": [0]*size_section,
-                "wind_pressure": [540.12, 0.0, 212.0, 53.0, 0.]*size_multiple,
-            }
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(current_dir, "./reseau-aerien-haute-tension-htb-corse-with-elevation.json"), "r") as f:
+        data = json.load(f)
+        markers = data
+    
+    # Calculate cumulative distances and prepare elevation data
+    cumulative_distance = [0]  # Start at 0
+    elevations = [markers[0]['elevation']]  # First elevation
+    
+    for i in range(1, len(markers)):
+        # Calculate distance to previous point
+        distance = haversine_distance(
+            markers[i-1]['geo_point_2d']['lat'],
+            markers[i-1]['geo_point_2d']['lon'],
+            markers[i]['geo_point_2d']['lat'],
+            markers[i]['geo_point_2d']['lon']
         )
-    )
-    frame.add_weather(weather=weather)
+        # Add to cumulative distance
+        cumulative_distance.append(cumulative_distance[-1] + distance)
+        # Add elevation
+        elevations.append(markers[i]['elevation'])
 
-    # Display figure
+    # Create the figure
     fig = go.Figure()
-    frame.plot.line3d(fig, "full")
+    
+    # Add the main line plot
+    fig.add_trace(go.Scatter(
+        x=cumulative_distance,
+        y=elevations,
+        mode='lines+markers',
+        name='Elevation Profile',
+        line=dict(color='#1f77b4', width=2),
+        marker=dict(size=8, color='#1f77b4'),
+        hovertemplate='Distance: %{x:.2f} km<br>Elevation: %{y:.2f} m<extra></extra>'
+    ))
+
+    # Update layout
     fig.update_layout(
+        title='Elevation Profile of Power Line',
+        xaxis_title='Cumulative Distance (km)',
+        yaxis_title='Elevation (m)',
         width=1200,
         height=500,
-        autosize=False,
         showlegend=False,
-        margin=dict(l=0, r=0, t=0, b=0),
-        scene=dict(
-            aspectmode='manual',
-            aspectratio=dict(x=3, y=0.2, z=0.5),
-            camera=dict(
-                center=dict(x=0, y=0, z=0),
-                eye=dict(x=0.02, y=-2, z=0.2)
-            )
+        hovermode='closest',
+        margin=dict(l=50, r=50, t=50, b=50),
+        xaxis=dict(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='LightGray'
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='LightGray'
         )
     )
 
@@ -578,6 +572,15 @@ def main():
         dcc.Graph(
             id='map2',
             figure=create_map(df),
+            config={
+                'displayModeBar': True,
+                'displaylogo': False,
+                'modeBarButtonsToRemove': ['pan2d', 'select2d', 'lasso2d', 'autoScale2d']
+            }
+        ),
+        dcc.Graph(
+            id='map3',
+            figure=create_map3(df, size_section, size_multiple),
             config={
                 'displayModeBar': True,
                 'displaylogo': False,
