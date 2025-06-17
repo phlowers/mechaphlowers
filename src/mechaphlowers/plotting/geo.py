@@ -74,6 +74,8 @@ def create_map(df):
     
     # Create marker traces
     marker_traces = []
+    lambert_coords = []  # Store Lambert 93 coordinates
+
 
     for i, marker in enumerate(markers):
         # Calculate distance and bearing to next point if it exists
@@ -97,6 +99,12 @@ def create_map(df):
             distance_info = f"<br>Distance to next: {distance:.2f} km"
             bearing_info = f"<br>Bearing to next: {bearing:.1f}° ({direction})"
             elevation_info = f"<br>Elevation: {marker['elevation']:.2f} m"
+            x, y = gps_to_lambert93(
+                marker['geo_point_2d']['lat'],
+                marker['geo_point_2d']['lon']
+            )
+            lambert_coords.append((x, y))
+
 
         marker_traces.append(
             go.Scattermapbox(
@@ -116,6 +124,7 @@ def create_map(df):
                             distance_info +
                             bearing_info + 
                             elevation_info +
+                            f"<br>Lambert X: {x:.2f}<br>Lambert Y: {y:.2f}"
                             '<extra></extra>',
                 name=f"{marker['nom_ligne']} - {marker['geo_point_2d']['lat']}-{marker['geo_point_2d']['lon']}"
             )
@@ -490,6 +499,64 @@ def create_map2(df, size_section, size_multiple):
 
 
 
+def gps_to_lambert93(lat, lon):
+    """
+    Convert GPS coordinates (latitude/longitude) to Lambert 93 coordinates
+    Based on the official French coordinate system
+    
+    Parameters:
+    lat: float - Latitude in decimal degrees
+    lon: float - Longitude in decimal degrees
+    
+    Returns:
+    tuple: (x, y) coordinates in Lambert 93 (in meters)
+    """
+    # Constants for Lambert 93
+    a = 6378137.0  # Semi-major axis of the ellipsoid (in meters)
+    e = 0.08181919106  # First eccentricity of the ellipsoid
+    n = 0.7256077650  # Lambert 93 projection parameter
+    c = 11754255.426  # Lambert 93 projection parameter
+    xs = 700000.0  # X coordinate of the origin (in meters)
+    ys = 12655612.050  # Y coordinate of the origin (in meters)
+    lon0 = math.radians(3.0)  # Longitude of origin (in radians)
+    lat0 = math.radians(46.5)  # Latitude of origin (in radians)
+    
+    # Convert input coordinates to radians
+    lat = math.radians(lat)
+    lon = math.radians(lon)
+    
+    # Calculate intermediate values
+    e2 = e * e
+    lat0_sin = math.sin(lat0)
+    lat0_cos = math.cos(lat0)
+    
+    # Calculate the conformal latitude
+    lat_sin = math.sin(lat)
+    lat_cos = math.cos(lat)
+    
+    # Calculate the conformal latitude
+    lat_c = 2 * math.atan(math.tan(math.pi/4 + lat/2) * 
+                         math.pow((1 - e * lat_sin) / (1 + e * lat_sin), e/2)) - math.pi/2
+    
+    # Calculate the conformal latitude of the origin
+    lat0_c = 2 * math.atan(math.tan(math.pi/4 + lat0/2) * 
+                          math.pow((1 - e * lat0_sin) / (1 + e * lat0_sin), e/2)) - math.pi/2
+    
+    # Calculate the radius of the conformal sphere
+    r = c * math.pow(math.tan(math.pi/4 + lat0_c/2), n)
+    
+    # Calculate the radius of the conformal sphere at the point
+    r_p = c * math.pow(math.tan(math.pi/4 + lat_c/2), n)
+    
+    # Calculate the angle between the meridian of origin and the point
+    theta = n * (lon - lon0)
+    
+    # Calculate the Lambert 93 coordinates
+    x = xs + r_p * math.sin(theta)
+    y = ys - r_p * math.cos(theta)
+    
+    return x, y
+
 def create_map3(df, size_section, size_multiple):
     
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -500,19 +567,28 @@ def create_map3(df, size_section, size_multiple):
     # Calculate cumulative distances and prepare elevation data
     cumulative_distance = [0]  # Start at 0
     elevations = [markers[0]['elevation']]  # First elevation
+    lambert_coords = []  # Store Lambert 93 coordinates
     
-    for i in range(1, len(markers)):
-        # Calculate distance to previous point
-        distance = haversine_distance(
-            markers[i-1]['geo_point_2d']['lat'],
-            markers[i-1]['geo_point_2d']['lon'],
+    for i in range(len(markers)):
+        # Convert GPS to Lambert 93
+        x, y = gps_to_lambert93(
             markers[i]['geo_point_2d']['lat'],
             markers[i]['geo_point_2d']['lon']
         )
-        # Add to cumulative distance
-        cumulative_distance.append(cumulative_distance[-1] + distance)
-        # Add elevation
-        elevations.append(markers[i]['elevation'])
+        lambert_coords.append((x, y))
+        
+        if i > 0:
+            # Calculate distance to previous point
+            distance = haversine_distance(
+                markers[i-1]['geo_point_2d']['lat'],
+                markers[i-1]['geo_point_2d']['lon'],
+                markers[i]['geo_point_2d']['lat'],
+                markers[i]['geo_point_2d']['lon']
+            )
+            # Add to cumulative distance
+            cumulative_distance.append(cumulative_distance[-1] + distance)
+            # Add elevation
+            elevations.append(markers[i]['elevation'])
 
     # Create the figure
     fig = go.Figure()
@@ -525,7 +601,9 @@ def create_map3(df, size_section, size_multiple):
         name='Elevation Profile',
         line=dict(color='#1f77b4', width=2),
         marker=dict(size=8, color='#1f77b4'),
-        hovertemplate='Distance: %{x:.2f} km<br>Elevation: %{y:.2f} m<extra></extra>'
+        hovertemplate='Marker: %{customdata[0]}<br>Distance: %{x:.2f} km<br>Elevation: %{y:.2f} m<br>Lambert X: %{customdata[1][0]:.2f}<br>Lambert Y: %{customdata[1][1]:.2f}<extra></extra>',
+        customdata=list(zip(range(len(markers)), lambert_coords)),  # Add marker indices as custom data
+        # customdata2=lambert_coords  # Add Lambert coordinates as custom data
     ))
 
     # Update layout
@@ -560,15 +638,15 @@ def main():
     size_section = size_multiple*5
     df = generate_section_array(size_section)
     app.layout = html.Div([
-        dcc.Graph(
-            id='map',
-            figure=create_map2(df, size_section, size_multiple),
-            config={
-                'displayModeBar': True,
-                'displaylogo': False,
-                'modeBarButtonsToRemove': ['pan2d', 'select2d', 'lasso2d', 'autoScale2d']
-            }
-        ),
+        # dcc.Graph(
+        #     id='map',
+        #     figure=create_map2(df, size_section, size_multiple),
+        #     config={
+        #         'displayModeBar': True,
+        #         'displaylogo': False,
+        #         'modeBarButtonsToRemove': ['pan2d', 'select2d', 'lasso2d', 'autoScale2d']
+        #     }
+        # ),
         dcc.Graph(
             id='map2',
             figure=create_map(df),
