@@ -159,13 +159,14 @@ def test_span_absolute_coords_new_obj(section_array_line_angles):
 
     # from plotly import graph_objects as go
     # from mechaphlowers.plotting.plot import plot_points_3d, set_layout
-    # fig = go.Figure()
-    # plot_points_3d(fig, s.get_spans("cable").points(True))
-    # plot_points_3d(fig, s.get_spans("crossarm").points(True))
-    # plot_points_3d(fig, s.get_spans("section").points(True))
 
-    # plot_points_3d(fig, s.get_supports().points(True))
-    # plot_points_3d(fig, s.get_insulators().points(True))
+    # fig = go.Figure()
+    # plot_points_3d(fig, s.get_spans("cable").points(True), name="Cable frame")
+    # plot_points_3d(fig, s.get_spans("crossarm").points(True), name="Crossarm frame")
+    # plot_points_3d(fig, s.get_spans("section").points(True), name="Section frame")
+
+    # plot_points_3d(fig, s.get_supports().points(True), name="Supports")
+    # plot_points_3d(fig, s.get_insulators().points(True), name="Insulators")
 
     # set_layout(fig)
     # fig.show()

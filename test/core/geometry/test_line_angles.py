@@ -280,8 +280,8 @@ def test_angle_between_vectors_antiparallel():
 
 def test_angle_between_vectors_zero_vector():
     # Define input vectors with a zero vector
-    vector_a = np.array([[1, 0, 0], [0, 1, 0]]).T
-    vector_b = np.array([[0, 0, 0], [0, 0, 0]]).T
+    vector_a = np.array([[1, 0], [0, 1], [0, 0]])
+    vector_b = np.array([[0, 0], [0, 0], [0, 0]])
 
     # Call the function
     result = angle_between_vectors(vector_a, vector_b)
@@ -292,8 +292,8 @@ def test_angle_between_vectors_zero_vector():
 
 def test_angle_between_vectors_same_vector():
     # Define input vectors that are the same
-    vector_a = np.array([[1, 0, 0], [0, 1, 0]]).T
-    vector_b = np.array([[1, 0, 0], [0, 1, 0]]).T
+    vector_a = np.array([[1, 0], [0, 1], [0, 0]])
+    vector_b = np.array([[1, 0], [0, 1], [0, 0]])
 
     # Call the function
     result = angle_between_vectors(vector_a, vector_b)

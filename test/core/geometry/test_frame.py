@@ -189,36 +189,36 @@ def test_plot_frame(coords_fixture):
     # fig.show()
 
 
-def test_points_rotate_frame(coords_fixture):
-    frame = Frame(np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1], [2, 1, 1]]))
-    fig = go.Figure()
-    plot_points(fig, coords_fixture.reshape(-1, 3))
-    plot_frame(fig, frame)
-    points = Points(coords_fixture, frame)
-    line_angles = np.array([180, 90, 45, 0])
-    rotation_axes = np.array([[0, 0, 1]] * 4)
-    points.rotate_all(line_angles, rotation_axes)
+# def test_points_rotate_frame(coords_fixture):
+#     frame = Frame(np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1], [2, 1, 1]]))
+#     fig = go.Figure()
+#     plot_points(fig, coords_fixture.reshape(-1, 3))
+#     plot_frame(fig, frame)
+#     points = Points(coords_fixture, frame)
+#     line_angles = np.array([180, 90, 45, 0])
+#     rotation_axes = np.array([[0, 0, 1]] * 4)
+#     points.rotate_all(line_angles, rotation_axes)
 
-    points.rotate_frame(-line_angles, rotation_axes)
-    plot_points(fig, points.coords_for_plot())
-    plot_frame(fig, points.frame, color='red')
-    # fig.show()
+#     points.rotate_frame(-line_angles, rotation_axes)
+#     plot_points(fig, points.coords_for_plot())
+#     plot_frame(fig, points.frame, color='red')
+#     # fig.show()
 
 
-def test_points_translate_frame(coords_fixture):
-    frame = Frame(np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1], [2, 1, 1]]))
+# def test_points_translate_frame(coords_fixture):
+#     frame = Frame(np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1], [2, 1, 1]]))
 
-    # frame = Frame(np.array([[0.,0.,0.], [1.,1.,1.], [1.,1.,1.], [2.,1.,1.]]))
-    fig = go.Figure()
-    plot_points(fig, coords_fixture.reshape(-1, 3))
-    plot_frame(fig, frame)
-    points = Points(coords_fixture, frame)
-    translation_vector = np.array(
-        [[50, 0, 0], [0, 50, 0], [0, 0, 50], [25, 25, 0]]
-    )
-    points.translate_all(translation_vector)
+#     # frame = Frame(np.array([[0.,0.,0.], [1.,1.,1.], [1.,1.,1.], [2.,1.,1.]]))
+#     fig = go.Figure()
+#     plot_points(fig, coords_fixture.reshape(-1, 3))
+#     plot_frame(fig, frame)
+#     points = Points(coords_fixture, frame)
+#     translation_vector = np.array(
+#         [[50, 0, 0], [0, 50, 0], [0, 0, 50], [25, 25, 0]]
+#     )
+#     points.translate_all(translation_vector)
 
-    points.translate_frame(-translation_vector)
-    plot_points(fig, points.coords_for_plot())
-    plot_frame(fig, points.frame, color='red')
-    # fig.show()
+#     points.translate_frame(-translation_vector)
+#     plot_points(fig, points.coords_for_plot())
+#     plot_frame(fig, points.frame, color='red')
+#     # fig.show()

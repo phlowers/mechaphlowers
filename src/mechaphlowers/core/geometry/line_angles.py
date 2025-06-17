@@ -20,7 +20,7 @@ Collections of technical functions and helpers to take into account angles in th
 
 def compute_span_azimuth(
     attachment_coords: np.ndarray,
-):
+) -> np.ndarray:
     """compute_span_azimuth
 
     Compute the azimuth angle of the span between two attachment points.
@@ -31,7 +31,7 @@ def compute_span_azimuth(
         attachment_coords (np.ndarray): Attachment coordinates of the span.
 
     Returns:
-        np.ndarray: 1D array of shape (n,) representing the azimuth angle of the span in degrees.
+        1D array of shape (n,) representing the azimuth angle of the span in degrees.
     """
     vector_attachment_to_next = (
         np.roll(attachment_coords[:, :-1], -1, axis=0)
@@ -62,8 +62,10 @@ def angle_between_vectors(
     dot_product = np.vecdot(vector_a, vector_b)
     angle_result = np.arctan2(cross_product, dot_product)
     # Return NaN if either vector is null
-    is_vector_null = np.logical_or((vector_a == 0).all(axis=1), (vector_b == 0).all(axis=1))
-    return np.where(is_vector_null, np.nan, angle_result)  
+    is_vector_null = np.logical_or(
+        (vector_a == 0).all(axis=1), (vector_b == 0).all(axis=1)
+    )
+    return np.where(is_vector_null, np.nan, angle_result)
 
 
 def get_supports_ground_coords(
@@ -76,7 +78,7 @@ def get_supports_ground_coords(
         line_angle (np.ndarray): line angles (input from SectionArray)
 
     Returns:
-        np.ndarray: 2D array of shape (n, 3) representing the coordinates of the supports in the global frame.
+        2D array of shape (n, 3) representing the coordinates of the supports in the global frame.
     """
     line_angle_sums = np.cumsum(line_angle)
     supports_ground_coords = np.zeros((span_length.size, 3))
@@ -111,7 +113,7 @@ def get_edge_arm_coords(
         crossarm_length (np.ndarray): crossarm lengths (input from SectionArray)
 
     Returns:
-        Tuple[np.ndarray, np.ndarray]: Returns two 2D arrays of shape (n, 3):
+        Returns two 2D arrays of shape (n, 3):
             - center_arm_coords: coordinates of the intersection of arms and supports in the global frame
             - edge_arm_coords: coordinates of the edge of the arms in the global frame
     """

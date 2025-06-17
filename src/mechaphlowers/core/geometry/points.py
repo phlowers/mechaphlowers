@@ -267,7 +267,7 @@ class SectionPoints:
         Get the spans Points in the specified frame.
 
         Args:
-            frame (Literal[&quot;cable&quot;, &quot;crossarm&quot;, &quot;section&quot;]): frame
+            frame (Literal['cable', 'crossarm', 'section']): frame
 
         Raises:
             ValueError: If the frame is not one of 'cable', 'crossarm', or 'section'.

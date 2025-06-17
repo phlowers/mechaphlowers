@@ -58,6 +58,7 @@ nav:
             - References : docstring/core/geometry/references.md
             - Rotation : docstring/core/geometry/rotation.md
             - Coordinate systems : docstring/core/geometry/points.md
+            - Line angles : docstring/core/geometry/line_angles.md
           - Models : 
             - Cable :
               - Span : docstring/core/models/cable/span.md

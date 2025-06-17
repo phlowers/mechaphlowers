@@ -81,7 +81,21 @@ Collections of technical functions to transform coordinates from the different f
 
 def cable_to_crossarm_frame(
     x: np.ndarray, y: np.ndarray, z: np.ndarray, alpha: np.ndarray
-):
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """cable_to_crossarm_frame is a function that rotates the cable coordinates from the cable frame to the crossarm frame
+    The crossarm frame is the frame
+
+    Args:
+        x (np.ndarray): n x d array spans x coordinates
+        y (np.ndarray): n x d array spans y coordinates
+        z (np.ndarray): n x d array spans z coordinates
+        alpha (np.ndarray): _description_
+
+    Returns:
+            x_span: Rotated x coordinates in the crossarm frame.
+            y_span: Rotated y coordinates in the crossarm frame.
+            z_span: Rotated z coordinates in the crossarm frame.
+    """
     x0 = x[0, :]
     y0 = y[0, :]
 
@@ -105,7 +119,7 @@ def cable_to_crossarm_frame(
 
 
 def spans_to_vector(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
-    """spans2vector is a function that allows to stack x, y and z arrays into a single array
+    """spans_to_vector is a function that allows to stack x, y and z arrays into a single array
 
     spans are a n x d array where n is the number of points per span and d is the number of spans
     vector are a n x 3 array where n is the number of points per span and 3 is the number of coordinates
@@ -134,7 +148,7 @@ def cable_to_beta_plane(
     z: np.ndarray,
     beta: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """cable2span cable to span is a function that allows to rotate from cable 2D plan to span 3D frame with an angle beta
+    """cable_to_beta_plane is a function that allows to rotate from cable 2D plan to span 3D frame with an angle beta
 
 
     Args:
@@ -143,10 +157,9 @@ def cable_to_beta_plane(
         beta (np.ndarray): n array angle rotation
 
     Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray]:
-            - x_span (np.ndarray): Rotated x coordinates in the span 3D frame.
-            - y_span (np.ndarray): Rotated y coordinates in the span 3D frame.
-            - z_span (np.ndarray): Rotated z coordinates in the span 3D frame.
+            x_span: Rotated x coordinates in the span 3D frame.
+            y_span: Rotated y coordinates in the span 3D frame.
+            z_span: Rotated z coordinates in the span 3D frame.
     """
 
     init_shape = z.shape
@@ -239,8 +252,6 @@ def translate_cable_to_support(
     # )
     # # why pad ? cumsum(...) = array([100., 300.]) and we need a zero to start
     # # pad(...) = array([0., 100., 300.])
-
-    # return x_span, y_span, z_span
 
 
 class CablePlane:
