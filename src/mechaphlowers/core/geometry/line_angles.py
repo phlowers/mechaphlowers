@@ -42,7 +42,7 @@ def compute_span_azimuth(
         full_x_axis,
         vector_attachment_to_next,
     )
-
+    rotation_angles[-1] = np.nan
     return rotation_angles * 180 / np.pi
 
 
@@ -59,34 +59,11 @@ def angle_between_vectors(
         A 1D array of angles in radians, where each angle corresponds to the angle between the vectors at the same index.
     """
     cross_product = np.cross(vector_a, vector_b)
-    norm_a = np.linalg.norm(vector_a, axis=1)
-    norm_b = np.linalg.norm(vector_b, axis=1)
-    sin_angle = cross_product / (norm_a * norm_b)
-    # Clip the value to avoid numerical errors outside the range [-1, 1]
-    sin_angle = np.clip(sin_angle, -1.0, 1.0)
-    return np.arcsin(sin_angle)
-
-
-def angle_between_vectors_dot(
-    vector_a: np.ndarray, vector_b: np.ndarray
-) -> np.ndarray:
-    """Calculate the angle between two 2D vectors.
-
-    Arguments:
-        vector_a: A 2D array of shape (n, 2) representing the first set of vectors.
-        vector_b: A 2D array of shape (n, 2) representing the second set of vectors.
-
-    Returns:
-        A 1D array of angles in radians, where each angle corresponds to the angle between the vectors at the same index.
-    """
     dot_product = np.vecdot(vector_a, vector_b)
-    norm_a = np.linalg.norm(vector_a, axis=1)
-    norm_b = np.linalg.norm(vector_b, axis=1)
-    sin_angle = dot_product / (norm_a * norm_b)
-    # Clip the value to avoid numerical errors outside the range [-1, 1]
-    sin_angle = np.clip(sin_angle, -1.0, 1.0)
-    # Use the sign of the cross product to determine the direction of the angle
-    return np.arccos(sin_angle) * np.sign(np.cross(vector_a, vector_b))
+    angle_result = np.arctan2(cross_product, dot_product)
+    # Return NaN if either vector is null
+    is_vector_null = np.logical_or((vector_a == 0).all(axis=1), (vector_b == 0).all(axis=1))
+    return np.where(is_vector_null, np.nan, angle_result)  
 
 
 def get_supports_ground_coords(
