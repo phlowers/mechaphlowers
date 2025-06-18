@@ -18,15 +18,13 @@ def test_convert_gust_wind():
     voltage = 90
     wind_converter = WindSpeedPressureConverter(
         tower_height,
-        gust_wind=gust_wind,
-        wind_angle_cable_degrees=wind_angle_cable_degrees,
+        gust=gust_wind,
+        angle_cable_degrees=wind_angle_cable_degrees,
         voltage=voltage,
     )
+    np.testing.assert_equal(wind_converter.speed_average, np.array([9, 5.4]))
     np.testing.assert_equal(
-        wind_converter.speed_average_wind_open_country, np.array([9, 5.4])
-    )
-    np.testing.assert_equal(
-        wind_converter.get_pressure_rounded(), np.array([110, 40])
+        wind_converter.pressure_rounded, np.array([110, 40])
     )
 
 
@@ -37,12 +35,12 @@ def test_convert_average_wind():
     voltage = 90
     wind_converter = WindSpeedPressureConverter(
         tower_height,
-        speed_average_wind_open_country=speed_average_wind_open_country,
-        wind_angle_cable_degrees=wind_angle_cable_degrees,
+        speed_average_open_country=speed_average_wind_open_country,
+        angle_cable_degrees=wind_angle_cable_degrees,
         voltage=voltage,
     )
     np.testing.assert_equal(
-        wind_converter.get_pressure_rounded(), np.array([70, 120])
+        wind_converter.pressure_rounded, np.array([70, 120])
     )
 
 
@@ -54,12 +52,12 @@ def test_convert_work_high_voltage():
     category_surface_roughness = "IIIa"
     wind_converter = WindSpeedPressureConverter(
         tower_height,
-        speed_average_wind_open_country=speed_average_wind_open_country,
-        wind_angle_cable_degrees=wind_angle_cable_degrees,
+        speed_average_open_country=speed_average_wind_open_country,
+        angle_cable_degrees=wind_angle_cable_degrees,
         voltage=voltage,
         category_surface_roughness=category_surface_roughness,
         work=True,
     )
     np.testing.assert_equal(
-        wind_converter.get_pressure_rounded(), np.array([50, 130])
+        wind_converter.pressure_rounded, np.array([50, 130])
     )

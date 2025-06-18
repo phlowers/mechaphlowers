@@ -122,42 +122,41 @@ class WindSpeedPressureConverter:
     def __init__(
         self,
         tower_height: np.ndarray,  # in m
-        gust_wind: np.ndarray | None = None,  # in km/h
-        speed_average_wind_open_country: np.ndarray | None = None,  # in m/s
-        wind_angle_cable_degrees: np.ndarray | None = None,
+        gust: np.ndarray | None = None,  # in km/h
+        speed_average_open_country: np.ndarray | None = None,  # in m/s
+        angle_cable_degrees: np.ndarray | None = None,
         voltage: int = 400,  # in kV
         category_surface_roughness: Literal["0", "II", "IIIa"] = "II",
         work: bool = False,
     ):
         self.tower_height = tower_height
         self.tower_height_max = np.max(tower_height)
-        if speed_average_wind_open_country is None:
-            if gust_wind is None:
+        if speed_average_open_country is None:
+            if gust is None:
                 raise TypeError(
                     "gust_wind or speed_average_wind_open_country need to be not None"
                 )
             else:
-                speed_average_wind_open_country = gust_wind / 1.54 / 3.6
+                speed_average_open_country = gust / 1.54 / 3.6
         # if gust_wind and speed_average_wind_open_country are both given, speed_average_wind_open_country is used
-        self.gust_wind = gust_wind
-        self._speed_average_wind_open_country = speed_average_wind_open_country
-        if wind_angle_cable_degrees is None:
-            wind_angle_cable_degrees = np.full_like(
-                90, speed_average_wind_open_country
-            )
-        self.wind_angle_cable_degrees = wind_angle_cable_degrees
+        self.gust = gust
+        self._speed_average_open_country = speed_average_open_country
+        if angle_cable_degrees is None:
+            angle_cable_degrees = np.full_like(90, speed_average_open_country)
+        self.angle_cable_degrees = angle_cable_degrees
         self.voltage = voltage
         self.category_surface_roughness = category_surface_roughness
         self.work = work
 
     @property
-    def speed_average_wind_open_country(self):
-        """Returns a rounded value of the average wind speed in open country to the nearest tenth.
+    def speed_average(self) -> np.ndarray:
+        """Returns a rounded value of the average wind speed in open country to the nearest tenth. Value in m/s
         This value is used for display purposes, but the actual value used in calculations is not rounded.
         """
-        return np.round(self._speed_average_wind_open_country, 1)
+        return np.round(self._speed_average_open_country, 1)
 
-    def get_pressure(self) -> np.ndarray:
+    @property
+    def pressure(self) -> np.ndarray:
         """Calculates the wind pressure in Pa based on the average wind speed, max tower height, voltage, surface roughness, and work condition."""
         if self.voltage <= 90:
             h = self.tower_height_max * 3 / 4
@@ -170,10 +169,10 @@ class WindSpeedPressureConverter:
         # terrain factor
         k_r: np.float64 = 0.19 * (z0 / 0.05) ** 0.07
         V_m = (
-            self._speed_average_wind_open_country
+            self._speed_average_open_country
             * k_r
             * np.log(h / z0)
-            * np.sin(self.wind_angle_cable_degrees / 180 * math.pi)
+            * np.sin(self.angle_cable_degrees / 180 * math.pi)
         )
         # Iv: turbulence intensity
         Iv: np.float64 = 1 / np.log(h / z0)
@@ -189,6 +188,7 @@ class WindSpeedPressureConverter:
         )
         return wind_load_pa
 
-    def get_pressure_rounded(self) -> np.ndarray:
+    @property
+    def pressure_rounded(self) -> np.ndarray:
         """Returns the wind pressure rounded to the nearest 10 Pa."""
-        return np.round(self.get_pressure() / 10) * 10
+        return np.round(self.pressure / 10) * 10

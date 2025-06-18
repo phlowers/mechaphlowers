@@ -89,13 +89,13 @@ def test_build_converter_with_gust():
     voltage = 90
     wind_converter = WindSpeedPressureConverter(
         tower_height,
-        gust_wind=gust_wind,
-        wind_angle_cable_degrees=wind_angle_cable_degrees,
+        gust=gust_wind,
+        angle_cable_degrees=wind_angle_cable_degrees,
         voltage=voltage,
     )
-    wind_converter.speed_average_wind_open_country
-    wind_converter.get_pressure()
-    wind_converter.get_pressure_rounded()
+    wind_converter.speed_average
+    wind_converter.pressure
+    wind_converter.pressure_rounded
 
 
 def test_build_converter_with_average_wind():
@@ -105,16 +105,16 @@ def test_build_converter_with_average_wind():
     voltage = 90
     wind_converter = WindSpeedPressureConverter(
         tower_height,
-        speed_average_wind_open_country=speed_average_wind_open_country,
-        wind_angle_cable_degrees=wind_angle_cable_degrees,
+        speed_average_open_country=speed_average_wind_open_country,
+        angle_cable_degrees=wind_angle_cable_degrees,
         voltage=voltage,
     )
     np.testing.assert_equal(
-        wind_converter.speed_average_wind_open_country,
+        wind_converter.speed_average,
         speed_average_wind_open_country,
     )
-    wind_converter.get_pressure()
-    wind_converter.get_pressure_rounded()
+    wind_converter.pressure
+    wind_converter.pressure_rounded
 
 
 def test_build_converter_no_wind():
@@ -123,7 +123,7 @@ def test_build_converter_no_wind():
     voltage = 90
     with pytest.raises(TypeError):
         WindSpeedPressureConverter(
-            wind_angle_cable_degrees=wind_angle_cable_degrees,
+            angle_cable_degrees=wind_angle_cable_degrees,
             tower_height=tower_height,
             voltage=voltage,
         )
@@ -139,17 +139,17 @@ def test_build_converter_both_wind_values():
     voltage = 90
     wind_converter = WindSpeedPressureConverter(
         tower_height=tower_height,
-        gust_wind=gust_wind,
-        speed_average_wind_open_country=speed_average_wind_open_country,
-        wind_angle_cable_degrees=wind_angle_cable_degrees,
+        gust=gust_wind,
+        speed_average_open_country=speed_average_wind_open_country,
+        angle_cable_degrees=wind_angle_cable_degrees,
         voltage=voltage,
     )
     np.testing.assert_equal(
-        wind_converter.speed_average_wind_open_country,
+        wind_converter.speed_average,
         speed_average_wind_open_country,
     )
-    wind_converter.get_pressure()
+    wind_converter.pressure
     np.testing.assert_equal(
-        wind_converter.get_pressure_rounded(),
+        wind_converter.pressure_rounded,
         np.array([230, 100]),
     )
