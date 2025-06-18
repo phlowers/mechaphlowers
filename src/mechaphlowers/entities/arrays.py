@@ -27,9 +27,9 @@ class ElementArray(ABC):
         self._data: pd.DataFrame = _data
 
     def _drop_extra_columns(self, input_data: pd.DataFrame) -> pd.DataFrame:
-        """Return a copy of the input pdt.DataFrame, without irrelevant columns.
+        """Return a copy of the input pd.DataFrame, without irrelevant columns.
 
-        Note: This has no impact on the input pdt.DataFrame.
+        Note: This has no impact on the input pd.DataFrame.
         """
         # We need to convert Model into Schema because the strict attribute doesn't exist for Model
         array_input_schema = self.array_input_type.to_schema()

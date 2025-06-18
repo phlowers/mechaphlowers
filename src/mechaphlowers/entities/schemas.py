@@ -7,6 +7,7 @@
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 import pandera as pa
 from pandera.typing import pandas as pdt
 
@@ -41,7 +42,7 @@ class SectionArrayInput(pa.DataFrameModel):
         For now, set the insulator length to 0 for tension supports to suppress this error."""
     )
     def insulator_length_is_zero_if_not_suspension(
-        cls, df: pdt.DataFrame
+        cls, df: pd.DataFrame
     ) -> pdt.Series[bool]:
         return (df["suspension"] | (df["insulator_length"] == 0)).pipe(
             pdt.Series[bool]
@@ -53,7 +54,7 @@ class SectionArrayInput(pa.DataFrameModel):
         So, specifying a span_length in the last row doesn't make any sense.
         Please set span_length to "not a number" (numpy.nan) to suppress this error.""",
     )
-    def no_span_length_for_last_row(cls, df: pdt.DataFrame) -> bool:
+    def no_span_length_for_last_row(cls, df: pd.DataFrame) -> bool:
         return df.tail(1)["span_length"].isin([0, np.nan]).all()
 
 
