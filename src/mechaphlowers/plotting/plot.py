@@ -8,13 +8,49 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, Literal
 
 import numpy as np
-import pandas as pd
-import plotly.graph_objects as go  # type: ignore
+import plotly.graph_objects as go  # type: ignore[import-untyped]
+
+from mechaphlowers.core.geometry.points import SectionPoints  # type: ignore
 
 if TYPE_CHECKING:
     from mechaphlowers.api.frames import SectionDataFrame
 
 from mechaphlowers.config import options as cfg
+
+
+def plot_points_3d(fig, points, color=None, width=3, size=None, name="Points"):
+    fig.add_trace(
+        go.Scatter3d(
+            x=points[:, 0],
+            y=points[:, 1],
+            z=points[:, 2],
+            mode='markers+lines',
+            marker=dict(
+                size=cfg.graphics.marker_size if size is None else size,
+                color=color,
+            ),
+            line=dict(color=color, width=width),
+            name=name,
+        ),
+    )
+
+
+def plot_points_2d(fig, points, color=None, width=3, size=None, name="Points"):
+    if size is None:
+        size = cfg.graphics.marker_size
+    fig.add_trace(
+        go.Scatter(
+            x=points[:, 0],
+            y=points[:, 1],
+            mode='markers+lines',
+            marker=dict(
+                size=cfg.graphics.marker_size if size is None else size,
+                color=color,
+            ),
+            line=dict(color=color, width=width),
+            name=name,
+        ),
+    )
 
 
 def plot_line(fig: go.Figure, points: np.ndarray) -> None:
@@ -24,16 +60,8 @@ def plot_line(fig: go.Figure, points: np.ndarray) -> None:
         fig (go.Figure): plotly figure
         points (np.ndarray): points of all the cables of the section in point format (3 x n)
     """
-    fig.add_trace(
-        go.Scatter3d(
-            x=points[:, 0],
-            y=points[:, 1],
-            z=points[:, 2],
-            mode="lines+markers",
-            marker=dict(size=cfg.graphics.marker_size),
-            line=dict(width=8, color="red"),
-        )
-    )
+
+    plot_points_3d(fig, points, color="red", width=8, name="Cable")
 
 
 def plot_support(fig: go.Figure, points: np.ndarray) -> None:
@@ -43,16 +71,7 @@ def plot_support(fig: go.Figure, points: np.ndarray) -> None:
         fig (go.Figure): plotly figure
         points (np.ndarray): points of all the supports of the section in point format (3 x n)
     """
-    fig.add_trace(
-        go.Scatter3d(
-            x=points[:, 0],
-            y=points[:, 1],
-            z=points[:, 2],
-            mode="lines+markers",
-            marker=dict(size=cfg.graphics.marker_size),
-            line=dict(width=8, color="green"),
-        )
-    )
+    plot_points_3d(fig, points, color="green", width=8, name="Supports")
 
 
 def plot_insulator(fig: go.Figure, points: np.ndarray) -> None:
@@ -62,112 +81,7 @@ def plot_insulator(fig: go.Figure, points: np.ndarray) -> None:
         fig (go.Figure): plotly figure
         points (np.ndarray): points of all the insulators of the section in point format (3 x n)
     """
-    fig.add_trace(
-        go.Scatter3d(
-            x=points[:, 0],
-            y=points[:, 1],
-            z=points[:, 2],
-            mode="lines+markers",
-            marker=dict(size=5),
-            line=dict(width=8, color="orange"),
-        )
-    )
-
-
-def get_support_points(data: pd.DataFrame) -> np.ndarray:
-    """function to plot simple support with ground, attachment and crossarm.
-
-    Args:
-        data (pd.DataFrame): SectionArray or SectionDataFrame data property
-
-    Returns:
-        np.ndarray: 3 x (3 x 2  segment to plot x N) with N number of support point for the data input
-        Warning: every support is followed by a nan line to separate the traces on figure
-    """
-
-    x = np.pad(np.cumsum(data.span_length.to_numpy()[:-1]), (1, 0), "constant")
-    init_xshape = len(x)
-    y = np.zeros_like(x)
-    z = np.zeros_like(x)
-
-    # get support points
-    # ground points
-    pp0 = np.vstack([x, y, z])
-
-    # up points
-    pp_up = pp0.copy()
-    alt = data.conductor_attachment_altitude.to_numpy()
-    pp_up[2, :] = alt
-
-    # crossarm points
-    pp_arm = pp_up.copy()
-    lateral_shift = data.crossarm_length.to_numpy()
-    pp_arm[1, :] = lateral_shift
-
-    # insulators set points
-    pp_insulator = pp_arm.copy()
-    altitude_shift = data.insulator_length.to_numpy()
-    pp_insulator[2, :] += -altitude_shift
-
-    # add nan to separate
-    pp_final = np.concatenate(
-        [
-            pp0.T,
-            pp_up.T,
-            np.nan * pp0.T,
-            pp_up.T,
-            pp_arm.T,
-            np.nan * pp0.T,
-        ],
-        axis=1,
-    )
-
-    # initxshape x 3 because each segment is composed by 3 points (pp0, pp_up, nan) x 2 because 2 segments, 3 for x,y,z
-    return pp_final.reshape(init_xshape * 3 * 2, 3)
-
-
-def get_insulator_points(data: pd.DataFrame) -> np.ndarray:
-    """function to plot very simple 2-points-insulator with crossarm and attachment down.
-
-    Args:
-        data (pd.DataFrame): SectionArray or SectionDataFrame data property
-
-    Returns:
-        np.ndarray: (3 x 1 segment to plot x N) and N number of support point for the data input
-        Warning: every support is followed by a nan line to separate the traces on figure
-    """
-
-    x = np.pad(np.cumsum(data.span_length.to_numpy()[:-1]), (1, 0), "constant")
-    init_xshape = len(x)
-    y = np.zeros_like(x)
-    z = np.zeros_like(x)
-
-    # get support points
-    # ground points
-    pp0 = np.vstack([x, y, z])
-    # move to altitude
-    alt = data.conductor_attachment_altitude.to_numpy()
-    pp0[2, :] = alt
-    # move at the end of crossarm
-    lateral_shift = data.crossarm_length.to_numpy()
-    pp0[1, :] = lateral_shift
-
-    # insulators set end points
-    pp_insulator = pp0.copy()
-    altitude_shift = data.insulator_length.to_numpy()
-    pp_insulator[2, :] += -altitude_shift
-
-    # add nan to separate
-    pp_final = np.concatenate(
-        [
-            pp0.T,
-            pp_insulator.T,
-            np.nan * pp0.T,
-        ],
-        axis=1,
-    )
-    # initxshape x 3 because each segment is composed by 3 points (pp0, pp_up, nan) x 1 because 1 segment, 3 for x,y,z
-    return pp_final.reshape(init_xshape * 3 * 1, 3)
+    plot_points_3d(fig, points, color="orange", width=8, name="Insulators")
 
 
 def set_layout(fig: go.Figure, auto: bool = True) -> None:
@@ -229,13 +143,17 @@ class PlotAccessor:
             raise ValueError(
                 f"{view=} : this argument has to be set to 'full' or 'analysis'"
             )
+        spans = self.section._span_model(
+            **self.section.data_container.__dict__
+        )
+        section_pts = SectionPoints(
+            span_model=spans, **self.section.data_container.__dict__
+        )
 
-        plot_line(fig, self.section.get_coordinates())
+        plot_line(fig, section_pts.get_spans("section").points(True))
 
-        support_points = get_support_points(self.section.data)
-        plot_support(fig, support_points)
+        plot_support(fig, section_pts.get_supports().points(True))
 
-        insulator_points = get_insulator_points(self.section.data)
-        plot_insulator(fig, insulator_points)
+        plot_insulator(fig, section_pts.get_insulators().points(True))
 
         set_layout(fig, auto=_auto)
