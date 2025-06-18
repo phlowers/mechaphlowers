@@ -45,7 +45,7 @@ def create_sag_tension_solver(
     solver.initial_state()
     return solver
 
-
+@pytest.mark.functional
 def test_functions_to_solve__same_loads(
     default_section_array_three_spans: SectionArray,
     default_cable_array: CableArray,
@@ -98,7 +98,7 @@ def test_functions_to_solve__same_loads(
         atol=1e-5,
     )
 
-
+@pytest.mark.functional
 @pytest.mark.parametrize(
     "weather, temperature, expected_T_h, expected_L, expected_p",
     [
@@ -144,6 +144,8 @@ def test_functions_to_solve__same_loads(
         ),
     ],
 )
+
+@pytest.mark.functional
 def test_functions_to_solve__different_weather(
     default_section_array_one_span: SectionArray,
     default_cable_array: CableArray,
@@ -172,7 +174,7 @@ def test_functions_to_solve__different_weather(
         sag_tension_calculation.p_after_change(), expected_p, atol=1e-5
     )
 
-
+@pytest.mark.functional
 def test_functions_to_solve__different_temp_ref(
     default_section_array_one_span: SectionArray,
     default_cable_array: CableArray,
@@ -217,7 +219,7 @@ def test_functions_to_solve__different_temp_ref(
     assert T_h_state_1 is not None
     np.testing.assert_allclose(T_h_state_1, expected_result_1, atol=0.01)
 
-
+@pytest.mark.functional
 def test_functions_to_solve__no_memory_effect(
     default_section_array_one_span: SectionArray,
     default_cable_array: CableArray,

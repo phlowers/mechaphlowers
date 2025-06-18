@@ -111,6 +111,10 @@ filterwarnings = [
     # see https://github.com/unionai-oss/pandera/issues/1845
     'ignore:use `parametric(<base>, <func>)` as a type instead',
 ]
+marker = [
+    "unit: mark test as a unit test",
+    "functional: mark test as a functional test",
+]
 
 [tool.coverage.run]
 source = ['src']
