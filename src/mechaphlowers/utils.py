@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -38,9 +39,9 @@ class CachedAccessor:
     For accessor, the class's __init__ method assume to get the object in parameter
     """
 
-    def __init__(self, name: str, accessor: object) -> None:
+    def __init__(self, name: str, accessor: Callable) -> None:
         self._name: str = name
-        self._accessor: object = accessor
+        self._accessor: Callable = accessor
 
     def __get__(self, obj, cls):
         if obj is None:

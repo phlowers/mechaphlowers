@@ -10,7 +10,7 @@ from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.config import options
 
 
-def test_config_on_plot(default_section_array_three_spans):
+def test_config_on_plot(default_section_array_three_spans) -> None:
     frame = SectionDataFrame(default_section_array_three_spans)
     fig = go.Figure()
     options.graphics.resolution = 20

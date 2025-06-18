@@ -31,13 +31,15 @@ class CableLoadsInputDict(TypedDict, total=False):
     wind_pressure: np.ndarray
 
 
-def test_section_frame_initialization(default_section_array_three_spans):
+def test_section_frame_initialization(
+    default_section_array_three_spans,
+) -> None:
     frame = SectionDataFrame(default_section_array_three_spans)
     assert frame.section_array == default_section_array_three_spans
     assert isinstance(frame._span_model, type(CatenarySpan))
 
 
-def test_section_frame_get_coord(default_section_array_three_spans):
+def test_section_frame_get_coord(default_section_array_three_spans) -> None:
     frame = SectionDataFrame(default_section_array_three_spans)
     coords = frame.get_coordinates()
     assert coords.shape == (
@@ -69,7 +71,9 @@ def test_select_spans__wrong_input(
         frame.select(case)
 
 
-def test_select_spans__passing_input(default_section_array_three_spans):
+def test_select_spans__passing_input(
+    default_section_array_three_spans,
+) -> None:
     frame = SectionDataFrame(default_section_array_three_spans)
     frame_selected = frame.select(["support 1", "three"])
     assert len(frame_selected.data) == 3
@@ -86,7 +90,7 @@ def test_select_spans__passing_input(default_section_array_three_spans):
     )
 
 
-def test_SectionDataFrame__copy(default_section_array_three_spans):
+def test_SectionDataFrame__copy(default_section_array_three_spans) -> None:
     frame = SectionDataFrame(default_section_array_three_spans)
     copy(frame)
     assert isinstance(frame, SectionDataFrame)
@@ -98,7 +102,9 @@ def test_SectionDataFrame__state(
     frame = SectionDataFrame(default_section_array_three_spans)
     frame.add_cable(default_cable_array)
     assert np.array_equal(
-        frame.state.L_ref(), frame.deformation.L_ref(), equal_nan=True
+        frame.state.L_ref(),
+        frame.deformation.L_ref(),  # type: ignore[union-attr]
+        equal_nan=True,
     )
 
 
@@ -109,7 +115,7 @@ def test_SectionDataFrame__add_cable(
     frame = SectionDataFrame(default_section_array_three_spans)
     with pytest.raises(TypeError):
         # wrong input type
-        frame.add_cable(1)
+        frame.add_cable(1)  # type: ignore[arg-type]
     with pytest.raises(NotImplementedError):
         wrong_length_array = CableArray(
             default_cable_array._data.loc[
@@ -166,10 +172,10 @@ def test_SectionDataFrame__add_array(
 
     # Wrong object type
     with pytest.raises(TypeError):
-        frame._add_array(default_cable_array._data, pd.DataFrame)
+        frame._add_array(default_cable_array._data, pd.DataFrame)  # type: ignore[arg-type]
     # Testez les exceptions
     with pytest.raises(TypeError):
-        frame._add_array("not_an_array", CableArray)
+        frame._add_array("not_an_array", CableArray)  # type: ignore[arg-type]
 
 
 def test_select_spans__after_added_arrays(
@@ -198,7 +204,7 @@ def test_SectionDataFrame__data(
     assert not frame.data.equals(frame.section_array.data)
     assert (
         frame.data.shape[1]
-        == frame.cable.data.shape[1] + frame.section_array.data.shape[1]
+        == frame.cable.data.shape[1] + frame.section_array.data.shape[1]  # type: ignore[union-attr]
     )
     assert frame.data.dilatation_coefficient.iloc[-1] == 23e-6
     assert frame.data.a1.iloc[-1] == 59e9
@@ -227,10 +233,10 @@ def test_SectionDataFrame__add_weather_update_span(
     np.testing.assert_equal(
         frame.span.load_coefficient, cable_loads.load_coefficient
     )
-    np.testing.assert_equal(frame.deformation.cable_length, frame.span.L())
+    np.testing.assert_equal(frame.deformation.cable_length, frame.span.L())  # type: ignore[union-attr]
 
 
-def test_frame__sagtension_use(section_dataframe_with_cable_weather):
+def test_frame__sagtension_use(section_dataframe_with_cable_weather) -> None:
     """Test that the sag tension is calculated correctly."""
     wa = WeatherArray(
         pd.DataFrame(

@@ -80,7 +80,7 @@ def test_data_container__add_arrays(
     data_container.add_weather_array(generic_weather_array_three_spans)
 
 
-def test_update_from_dict(default_data_container_one_span):
+def test_update_from_dict(default_data_container_one_span) -> None:
     data = {
         "support_name": np.array(["Support1", "Support2"]),
         "suspension": np.array([10.5, 12.3]),
