@@ -108,43 +108,6 @@ class SectionDataFrame:
         """init_span_model method to initialize span model"""
         self.span = self._span_model(**self.data_container.__dict__)
 
-    # def get_coordinates(self) -> np.ndarray:
-    #     """Get x,y,z cables coordinates
-
-    #     Returns:
-    #             np.ndarray: x,y,z array in point format
-    #     """
-    #     spans = self._span_model(**self.data_container.__dict__)
-
-    #     s = SectionPoints(
-    #     span_model=spans, **self.data_container.__dict__
-    #     )
-
-    #     x_cable: np.ndarray = spans.x(cfg.graphics.resolution)
-    #     z_cable: np.ndarray = spans.z(x_cable)
-
-    #     beta = np.zeros(x_cable.shape[1])
-    #     if self.cable_loads is not None:
-    #         logger.warning("no cable loads applied. Section is displayed in preview mode.")
-    #         beta = self.cable_loads.load_angle * 180 / np.pi
-
-    #     x_span, y_span, z_span = references.cable_to_beta_plane(
-    #         x_cable[:, :-1], z_cable[:, :-1], beta=beta[:-1]
-    #     )
-
-    #     # alpha = compute_span_azimuth(attachment_coords)
-    #     # x_span, y_span, z_span = cable_to_crossarm_frame(x_span, y_span, z_span, alpha[:-1])
-
-    #     return references.transform_coordinates(
-    #         x_cable,
-    #         z_cable,
-    #         beta,
-    #         self.data_container.conductor_attachment_altitude,
-    #         self.data_container.span_length,
-    #         self.data_container.crossarm_length,
-    #         self.data_container.insulator_length,
-    #     )
-
     @property
     def data(self) -> pd.DataFrame:
         """data property to get the data of the SectionDataFrame object with or without cable data

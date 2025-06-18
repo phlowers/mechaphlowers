@@ -56,7 +56,7 @@ The `SectionPoints` class is used to handle all the points of a section.
 It is useful to get the points of a section in a specific format.  
 The class provides helpers to get the points in different frames:
     - cable frame
-    - crossarm frame
+    - localsection frame
     - support frame
     - section frame
 

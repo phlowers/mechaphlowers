@@ -246,3 +246,47 @@ def get_supports_coords(
         arm_coords,
         attachment_coords,
     )
+
+
+class CablePlane:
+    """This class handles the parameters for defining the cable plane"""
+
+    def __init__(
+        self,
+        span_length: np.ndarray,
+        conductor_attachment_altitude: np.ndarray,
+        crossarm_length: np.ndarray,
+        insulator_length: np.ndarray,
+        line_angle: np.ndarray,
+    ):
+        (
+            self.supports_ground_coords,
+            self.center_arm_coords,
+            self.arm_coords,
+            self.attachment_coords,
+        ) = get_supports_coords(
+            span_length,
+            line_angle,
+            conductor_attachment_altitude,
+            crossarm_length,
+            insulator_length,
+        )
+
+        self.a = span_length
+        self.line_angle = line_angle
+        self.b = conductor_attachment_altitude
+        self.crossarm_length = crossarm_length
+        self.insulator_length = insulator_length
+        self._beta = np.array([])
+
+    @property
+    def a_prime(self) -> np.ndarray:
+        return get_span_lengths_between_supports(self.attachment_coords)
+
+    @property
+    def b_prime(self) -> np.ndarray:
+        return get_elevation_diff_between_supports(self.attachment_coords)
+
+    @property
+    def alpha(self) -> np.ndarray:
+        return compute_span_azimuth(self.attachment_coords)

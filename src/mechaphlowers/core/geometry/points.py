@@ -5,14 +5,14 @@ from typing_extensions import Literal  # type: ignore[attr-defined]
 
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.geometry.line_angles import (
+    CablePlane,
     get_insulator_layer,
+    get_supports_coords,
     get_supports_layer,
 )
 from mechaphlowers.core.geometry.references import (
-    CablePlane,
     cable_to_beta_plane,
-    cable_to_crossarm_frame,
-    get_supports_coords,
+    cable_to_localsection_frame,
     translate_cable_to_support,
 )
 from mechaphlowers.core.models.cable.span import Span
@@ -234,11 +234,11 @@ class SectionPoints:
         )
         return x_span, y_span, z_span
 
-    def span_in_crossarm_frame(
+    def span_in_localsection_frame(
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         x_span, y_span, z_span = self.span_in_cable_frame()
-        x_span, y_span, z_span = cable_to_crossarm_frame(
+        x_span, y_span, z_span = cable_to_localsection_frame(
             x_span, y_span, z_span, self.plane.alpha[:-1]
         )
         return x_span, y_span, z_span
@@ -246,7 +246,7 @@ class SectionPoints:
     def span_in_section_frame(
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        x_span, y_span, z_span = self.span_in_crossarm_frame()
+        x_span, y_span, z_span = self.span_in_localsection_frame()
         x_span, y_span, z_span = translate_cable_to_support(
             x_span,
             y_span,
@@ -278,7 +278,7 @@ class SectionPoints:
         if frame == "cable":
             x_span, y_span, z_span = self.span_in_cable_frame()
         elif frame == "crossarm":
-            x_span, y_span, z_span = self.span_in_crossarm_frame()
+            x_span, y_span, z_span = self.span_in_localsection_frame()
         elif frame == "section":
             x_span, y_span, z_span = self.span_in_section_frame()
         else:

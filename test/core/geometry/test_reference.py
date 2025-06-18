@@ -8,7 +8,7 @@ import numpy as np
 
 from mechaphlowers.core.geometry.references import (
     cable_to_beta_plane,
-    spans_to_vector,
+    vectors_to_points,
     translate_cable_to_support,
 )
 
@@ -39,7 +39,7 @@ def test_spans2vector():
 
     expected_output = np.array([[1, 5, 9], [3, 7, 11], [2, 6, 10], [4, 8, 12]])
 
-    result = spans_to_vector(x, y, z)
+    result = vectors_to_points(x, y, z)
 
     assert np.array_equal(
         result, expected_output
@@ -53,7 +53,7 @@ def test_spans2vector_empty():
 
     # expected_output = np.array([[]]) so we check that size == 0
 
-    result = spans_to_vector(x, y, z)
+    result = vectors_to_points(x, y, z)
 
     assert result.size == 0
 
@@ -65,7 +65,7 @@ def test_spans2vector_single_point():
 
     expected_output = np.array([[1, 2, 3]])
 
-    result = spans_to_vector(x, y, z)
+    result = vectors_to_points(x, y, z)
 
     assert np.array_equal(
         result, expected_output
