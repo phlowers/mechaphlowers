@@ -8,8 +8,8 @@ import numpy as np
 
 from mechaphlowers.core.geometry.references import (
     cable_to_beta_plane,
-    vectors_to_points,
     translate_cable_to_support,
+    vectors_to_points,
 )
 
 
