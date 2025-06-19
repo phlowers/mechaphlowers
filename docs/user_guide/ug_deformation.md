@@ -1,5 +1,26 @@
 # Deformation
 
+## Description
+
+The deformation act at cable level. The process involves the strain stress curve, with different usecases regarding the cable physics. Three cases:
+- one material cable with linear behavior
+- two materials cable with linear behavior
+- two materials cable with non-linear behavior
+
+### One material cable with linear behavior
+
+The strain stress curve is a straight line. The deformation is computed as follows:
+$$
+\begin{align}
+    \sigma &= E_{c} \cdot \varepsilon \\
+    \varepsilon &= \frac{\delta}{L_{ref}} \\
+\end{align}
+$$
+## Usage
+
+
+## Implementation
+
 The deformation class implements the cable deformation models described in [Cable modeling](ug_cable_model.md#physics-based-cable-model).
 
 This class is called in two situations:
