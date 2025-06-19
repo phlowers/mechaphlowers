@@ -223,6 +223,7 @@ class CatenarySpan(Span):
         # self.p is a vector of size (nb support, ). I need to convert it in a matrix (nb support, 1) to perform matrix operation after.
         # Ex: self.p = array([20,20,20,20]) -> self.p([:,new_axis]) = array([[20],[20],[20],[20]])
         pp = self.sagging_parameter[:, np.newaxis]
+        # pp = Th / (load_coef * linear_weight) ?
 
         rr = pp * (np.cosh(xx / pp) - 1)
 

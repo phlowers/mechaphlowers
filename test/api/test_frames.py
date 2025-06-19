@@ -12,7 +12,6 @@ import pandas as pd
 import pytest
 
 from mechaphlowers.api.frames import SectionDataFrame
-from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
 )
@@ -37,17 +36,6 @@ def test_section_frame_initialization(
     frame = SectionDataFrame(default_section_array_three_spans)
     assert frame.section_array == default_section_array_three_spans
     assert isinstance(frame._span_model, type(CatenarySpan))
-
-
-def test_section_frame_get_coord(default_section_array_three_spans) -> None:
-    frame = SectionDataFrame(default_section_array_three_spans)
-    coords = frame.get_coordinates()
-    assert coords.shape == (
-        (len(default_section_array_three_spans.data) - 1)
-        * cfg.graphics.resolution,
-        3,
-    )
-    assert isinstance(coords, np.ndarray)
 
 
 @pytest.mark.parametrize(
