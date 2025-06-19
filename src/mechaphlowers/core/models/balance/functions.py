@@ -10,6 +10,9 @@ def L(p, x_n, x_m):
 def x_m(a, b, p):
     return -a / 2 + p * np.arcsinh(b / (2 * p * np.sinh(a / (2 * p))))
 
+def x_n(a, b, p):
+    return x_m(a,b,p) + a
+
 def z(x, p, x_m):
     # repeating value to perform multidim operation
     xx = x.T + x_m # >>> why + x_m?
