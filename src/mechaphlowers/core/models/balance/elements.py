@@ -6,6 +6,7 @@ from enum import Enum
 import numpy as np
 
 import mechaphlowers.core.models.balance.functions as f
+import mechaphlowers.core.numeric.numeric as optimize
 
 
 class NodeType(Enum):
@@ -85,9 +86,18 @@ class Span:
         return np.reshape(out, -1, order = 'F')
     
     def minimize_function(self):
-        self.update_span()
-        self.vector_force()
         
+        def _delta(dz_se_only):
+            self.nodes.dz[0] = dz_se_only[0]
+            self.nodes.dz[-1] = dz_se_only[-1]
+            self.update_span()
+            force_vector = self.vector_force()
+            
+            return np.linalg.norm(force_vector)
+            
+        dz = optimize.newton(_delta, np.array([.0001, .0001]))
+            
+
         
  
     
