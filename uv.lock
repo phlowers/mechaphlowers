@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -708,6 +709,7 @@ all = [
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "scipy" },
+    { name = "types-requests" },
     { name = "unittest-xml-reporting" },
 ]
 dev = [
@@ -719,6 +721,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "scipy" },
+    { name = "types-requests" },
     { name = "unittest-xml-reporting" },
 ]
 docs = [
@@ -741,6 +744,7 @@ requires-dist = [
     { name = "plotly", specifier = "<=5.24.1" },
     { name = "scipy", marker = "extra == 'full'", specifier = "<=1.14.1" },
 ]
+provides-extras = ["full"]
 
 [package.metadata.requires-dev]
 all = [
@@ -756,6 +760,7 @@ all = [
     { name = "pytest-cov", specifier = "==5.0.0" },
     { name = "ruff", specifier = "==0.6.1" },
     { name = "scipy", specifier = "<=1.14.1" },
+    { name = "types-requests", specifier = "==2.32.4.20250611" },
     { name = "unittest-xml-reporting", specifier = "==3.2.0" },
 ]
 dev = [
@@ -767,6 +772,7 @@ dev = [
     { name = "pytest-cov", specifier = "==5.0.0" },
     { name = "ruff", specifier = "==0.6.1" },
     { name = "scipy", specifier = "<=1.14.1" },
+    { name = "types-requests", specifier = "==2.32.4.20250611" },
     { name = "unittest-xml-reporting", specifier = "==3.2.0" },
 ]
 docs = [
@@ -1890,6 +1896,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/54/26/516311b02b5a215e721155fb65db8a965d061372e388d6125ebce8d674b0/types_pytz-2024.2.0.20241221.tar.gz", hash = "sha256:06d7cde9613e9f7504766a0554a270c369434b50e00975b3a4a0f6eed0f2c1a9", size = 10213 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/74/db/c92ca6920cccd9c2998b013601542e2ac5e59bc805bcff94c94ad254b7df/types_pytz-2024.2.0.20241221-py3-none-any.whl", hash = "sha256:8fc03195329c43637ed4f593663df721fef919b60a969066e22606edf0b53ad5", size = 10008 },
+]
+
+[[package]]
+name = "types-requests"
+version = "2.32.4.20250611"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6d/7f/73b3a04a53b0fd2a911d4ec517940ecd6600630b559e4505cc7b68beb5a0/types_requests-2.32.4.20250611.tar.gz", hash = "sha256:741c8777ed6425830bf51e54d6abe245f79b4dcb9019f1622b773463946bf826", size = 23118 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3d/ea/0be9258c5a4fa1ba2300111aa5a0767ee6d18eb3fd20e91616c12082284d/types_requests-2.32.4.20250611-py3-none-any.whl", hash = "sha256:ad2fe5d3b0cb3c2c902c8815a70e7fb2302c4b8c1f77bdcd738192cdb3878072", size = 20643 },
 ]
 
 [[package]]
