@@ -18,9 +18,9 @@ def z(x, p, x_m):
     xx = x.T + x_m # >>> why + x_m?
     # self.p is a vector of size (nb support, ). I need to convert it in a matrix (nb support, 1) to perform matrix operation after.
     # Ex: self.p = array([20,20,20,20]) -> self.p([:,new_axis]) = array([[20],[20],[20],[20]])
-    pp = p[:, np.newaxis]
+    # pp = p[:, np.newaxis]
 
-    rr = pp * (np.cosh(xx / pp) - 1)
+    rr = p * (np.cosh(xx / p) - 1)
 
     # reshaping back to p,x -> (vertical, horizontal)
     return rr.T

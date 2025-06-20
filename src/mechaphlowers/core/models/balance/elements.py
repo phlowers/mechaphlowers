@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 import numpy as np
+import pandas as pd
 
 import mechaphlowers.core.models.balance.functions as f
 import mechaphlowers.core.numeric.numeric as optimize
@@ -16,24 +17,39 @@ class NodeType(Enum):
 
 @dataclass
 class Cable:
-    section: np.ndarray
+    section: np.ndarray # input in mm ?
     lineic_weight: np.ndarray
     dilation_coefficient: np.ndarray
     young_modulus: np.ndarray
 
 
-@dataclass
 class Span:
-    a: np.ndarray
-    b: np.ndarray
-    length_0: np.ndarray
-    cable_temperature: np.ndarray
-    reglage: np.ndarray
-    nodes: Nodes
-    finition: bool = False
-    _parameter: np.ndarray
-    cable: Cable
+    def __init__(
+        self,
+        # a: np.ndarray,
+        # b: np.ndarray,
+        # length_0: np.ndarray,
+        cable_temperature: np.ndarray,
+        nodes: Nodes,
+        parameter: np.ndarray = None,
+        cable: Cable = None,
+        reglage: bool = True,
+        finition: bool = False,
+    ):
+        # self.a
+        # self.b
+        # self.length_0
+        self.cable_temperature = cable_temperature
+        self.reglage = reglage
+        self.nodes = nodes
+        self.finition = finition
+        self._parameter = parameter*np.ones(len(self.nodes)-1)
+        self.cable = cable
+        
+        self.update_span()
+        self.nodes.compute_forces(self.Th, self.Tv_d, self.Tv_g, self.parameter)
     
+    @property
     def Th(self):
         if not self.reglage:
             c_param = self.cardan(self.a, self.b, self.length_0, self.cable_temperature)
@@ -42,17 +58,21 @@ class Span:
         else:
             c_param = self._parameter
             
-        Th = c_param * self.cable.lineic_weight
+        Th = c_param * self.cable.lineic_weight * np.ones(len(self.nodes)-1)
         
         x_m = f.x_m(self.a, self.b, c_param)
         x_n = f.x_n(self.a, self.b, c_param)
         
         self._Tv_g = -Th * (np.sinh(x_m / c_param)) # moins ?
         self._Tv_d = Th * (np.sinh(x_n / c_param))
+        
+        return Th
     
+    @property
     def Tv_g(self):
         return self._Tv_g
     
+    @property
     def Tv_d(self):
         return self._Tv_d
     
@@ -68,15 +88,28 @@ class Span:
     
     def update_span(self):
         """transmet_portee"""
-        self.a = self.nodes.x + self.nodes.dx - np.roll(self.nodes.x + self.nodes.dx, 1)
-        self.b = self.nodes.z + self.nodes.dz + np.roll(self.nodes.z + self.nodes.dz, 1)
+        # warning for dev : we dont use the first element of span vectors for the moment
+        a = self.nodes._x + self.nodes.dx - np.roll(self.nodes._x + self.nodes.dx, 1)
+        b = self.nodes._z + self.nodes.dz - np.roll(self.nodes._z + self.nodes.dz, 1)
+        self.a = a[1:]
+        self.b = b[1:]
         
     def z_from_x_2ddl(self):
         # Assuming this is a placeholder for the actual implementation
-        x_m = f.x_m(self.a, self.b, self.parameter)
-        new_x = -np.roll(self.nodes.x + self.nodes.dx, 1) + self.nodes.x + self.nodes.dx
-        new_z = np.roll(self.nodes.z + self.nodes.dz, 1) + f.z(new_x, self.parameter, x_m) - f.z(0, self.parameter, x_m)
-        return np.where(self.nodes.ntype == 2, new_z, np.zeros_like(new_z))
+        # warning here : this is not the same as the function update_span (i+1) - (i-1) instead of (i) - (i-1)
+        a = np.roll(self.nodes.x + self.nodes.dx, -1) - np.roll(self.nodes.x + self.nodes.dx, 1)
+        b = np.roll(self.nodes.z + self.nodes.dz, -1) - np.roll(self.nodes.z + self.nodes.dz, 1)
+        
+        
+        z = self.nodes.z
+        x_m = f.x_m(a, b, self.parameter)
+        zdz_im1 = np.roll(self.nodes.z + self.nodes.dz, 1)
+        xdx_im1 = np.roll(self.nodes.x + self.nodes.dx,1)
+        xdx_i = self.nodes.x + self.nodes.dx
+        
+        z_i = zdz_im1 + f.z(xdx_i - xdx_im1, self.parameter, x_m) - f.z(0*xdx_i, self.parameter, x_m)
+
+        return np.where(self.nodes.ntype == 1, z_i, z)
     
 
     
@@ -85,58 +118,89 @@ class Span:
         out = np.vstack((self.nodes.Fx, self.nodes.Fz, self.nodes.My))
         return np.reshape(out, -1, order = 'F')
     
-    def minimize_function(self):
+    def _delta(self, dz_se_only):
+        self.nodes.dz[0] = dz_se_only[0]
+        self.nodes.dz[-1] = dz_se_only[-1]
+        # self.update_span()
+        self.z_from_x_2ddl()
+        force_vector = self.vector_force()
         
-        def _delta(dz_se_only):
-            self.nodes.dz[0] = dz_se_only[0]
-            self.nodes.dz[-1] = dz_se_only[-1]
-            self.update_span()
-            force_vector = self.vector_force()
+        return force_vector
+    
+    def compute_balance(self):
+        
+
+        
+        def norm_delta(dz_se_only):
+            return np.linalg.norm(self._delta(dz_se_only))
             
-            return np.linalg.norm(force_vector)
-            
-        dz = optimize.newton(_delta, np.array([.0001, .0001]))
+        dz = optimize.newton(norm_delta, np.array([.0001, .0001]))
+        
+        
+    def __repr__(self):
+        
+        data = {
+            'parameter': self.parameter,
+            'cable_temperature': self.cable_temperature,
+            'Th': self.Th,
+            'Tv_d': self.Tv_d,
+            'Tv_g': self.Tv_g,
+        }
+        out = pd.DataFrame(data)
+        
+        return str(out)
+
+    
+    def __str__(self):
+        return self.__repr__()
             
 
         
  
     
     
-@dataclass
 class Nodes:
-    num: np.ndarray
-    ntype: np.ndarray
-    L_chain: np.ndarray
-    weight_chain: np.ndarray
-    _x: np.ndarray
-    z: np.ndarray
-    dx: np.ndarray
-    dz: np.ndarray
-    load: np.ndarray
+    def __init__(
+        self,
+        # num: np.ndarray,
+        ntype: np.ndarray,
+        L_chain: np.ndarray,
+        weight_chain: np.ndarray,
+        x: np.ndarray,
+        z: np.ndarray,
+        # dx: np.ndarray,
+        # dz: np.ndarray,
+        load: np.ndarray
+    ):
+        self.num = np.arange(len(ntype))
+        self.ntype = ntype
+        self.L_chain = L_chain
+        self.weight_chain = weight_chain
+        self._x = x
+        self._z = z
+        self.dx = np.zeros_like(x)
+        self.dz = np.zeros_like(z)
+        self.load = load
+        # self.dz = dz
+        self.init_L()
+        # self.compute()
     
+    def __len__(self):
+        return len(self.num)
     
     @property
     def x(self):
         return self._x + self.L_anchor_chain
     
+    @property
+    def z(self):
+        return self._z
+    
     def init_L(self):
-        self.L_anchor_chain = np.zeros_like(self.x)
+        self.L_anchor_chain = np.zeros_like(self._x)
         self.L_anchor_chain[0] = self.L_chain[0]
         self.L_anchor_chain[-1] = -self.L_chain[-1]
-        
-    
-    def compute(self):
-        self.compute_forces()
-        self.compute_moments()
-        
-    # def Fx(self):
-    #     pass
-    
-    # def Fz(self):
-    #     pass
-    
-    # def My(self):
-    #     pass
+
     
     def compute_dx_dz(self):
         L = self.L_chain
@@ -154,9 +218,18 @@ class Nodes:
         # Placeholder for force computation logic
         # case 1: ntype == 1
         self.compute_dx_dz()
+        
+        Th_i = np.concat((np.array([0]), Th))
+        Th_ip1 = np.concat((Th, np.array([0])))
+        Tv_d_i = np.concat((np.array([0]), Tv_d))
+        Tv_g_ip1 = np.concat((Tv_g, np.array([0])))
+        
+        Fx = -Th_i + Th_ip1 # -Th_i + Th_i
+        Fz = -Tv_d_i + Tv_g_ip1 + self.weight_chain/2 + self.load # -Tvd_i + Tvg_i
+        
         def compute_forces_2ddl():
-            Fx = -Th + np.roll(Th, -1)
-            Fz = -Tv_d + np.roll(Tv_g, -1) + self.load # >> n_charge
+            Fx = np.roll(Th, -1) - Th # Th_i+1 - Th_i
+            Fz = Tv_d + np.roll(Tv_g, 1) + self.load # >> n_charge
             My = 0
             return Fx, Fz, My
         
@@ -164,8 +237,8 @@ class Nodes:
         # case 2: ntype == 2
         def compute_forces_1ddlvertical(): 
             
-            Fx = -Th + np.roll(Th, -1)
-            Fz = -Tv_d + np.roll(Tv_g, -1) + parameter # >>> n_p/2 ??
+            Fx = np.roll(Th, -1) - Th
+            Fz = -Tv_d + np.roll(Tv_g, -1) + self.weight_chain/2 # -Tvd_i + Tvg_i+1 + parameter/2
             My = Fz * self.dx - Fx *(L - self.dz)
             return Fx, Fz, My
         
@@ -174,16 +247,16 @@ class Nodes:
         def compute_forces_1ddlhorizontal_starting():
             # case 2: ntype == 2
 
-            Fx = np.roll(Th, -1)
-            Fz = np.roll(Tv_g, -1) + parameter/2
-            My = Fz *(L + self.dx)+Fx*self.dz
+            Fx = np.roll(Th, -1) # Th_i+1
+            Fz = np.roll(Tv_g, 0) + self.weight_chain/2 # Tvg_i+1 + parameter/2
+            My = Fz *(L + self.dx)+Fx*self.dz 
             return Fx, Fz, My
         
         # case 3: ntype == 3 + ending
         def compute_forces_1ddlhorizontal_ending():
             
-            Fx = Th
-            Fz = Tv_d + parameter/2
+            Fx = -Th # -Th_i
+            Fz = Tv_d + self.weight_chain/2
             My = Fz * (L - self.dx) - Fx * self.dz
             return Fx, Fz, My
         
@@ -222,7 +295,62 @@ class Nodes:
         
     #     np.where(self.ntype == 2, self.Fx(), 0)
     
-    
+    def __repr__(self):
+        
+        data = {
+            'num': self.num,
+            'ntype': self.ntype,
+            'L_chain': self.L_chain,
+            'weight_chain': self.weight_chain,
+            'x': self.x,
+            'z': self.z,
+            'dx': self.dx,
+            'dz': self.dz,
+            'load': self.load,
+            'Fx': self.Fx,
+            'Fz': self.Fz,
+            'My': self.My
+        }
+        out = pd.DataFrame(data)
+        
+        return str(out)
 
     
+    def __str__(self):
+        return self.__repr__()
 
+
+class SolverBalance:
+    
+    eps = 1e-4
+    max_iter = 250
+    
+    
+    def __init__(self, section):
+        self.section = section
+        # self.f = self._d
+    
+    def solve(self, x0=np.array([0, 0,]) ):
+        eps = self.eps
+        
+        for i in range(self.max_iter):
+
+            
+            force_vector = self.section._delta(x0)
+                        
+            d_force_vector = self.section._delta(x0+eps)
+            
+            delta = force_vector / (d_force_vector - force_vector)
+            
+            x0 = (x0 - eps) - delta * eps
+        
+        
+        
+        # def _delta(dz_se_only):
+        #     self.nodes.dz[0] = dz_se_only[0]
+        #     self.nodes.dz[-1] = dz_se_only[-1]
+        #     # self.update_span()
+            
+        #     force_vector = self.vector_force()
+            
+        #     return np.linalg.norm(force_vector)
