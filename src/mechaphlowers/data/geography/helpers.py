@@ -7,6 +7,7 @@
 from typing import Union
 
 import numpy as np
+import requests
 
 
 def gps_to_lambert93(
@@ -156,3 +157,188 @@ def lambert93_to_gps(
     latitude = long_rad / np.pi * 180
 
     return (latitude, longitude)
+
+
+def gps_to_elevation(
+    lat: np.typing.NDArray[np.float64], lon: np.typing.NDArray[np.float64]
+) -> np.typing.NDArray[np.float64]:
+    """
+    Fetch elevation data for a list of locations using Open-Elevation API
+
+    Args:
+        lat (np.typing.NDArray[np.float64]): Latitude of the location in degrees
+        lon (np.typing.NDArray[np.float64]): Longitude of the location in degrees
+
+    Returns:
+        np.typing.NDArray[np.float64]: Elevation in meters
+    """
+    url = "https://api.open-elevation.com/api/v1/lookup"
+
+    # Format locations for the API
+    payload = {"locations": [{"latitude": lat, "longitude": lon}]}
+
+    try:
+        response = requests.post(url, json=payload)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        data = response.json()
+        return np.array([result["elevation"] for result in data["results"]])
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching elevation data: {e}")
+        return np.zeros(len(lat))  # Return zeros if request fails
+
+
+def reverse_haversine(
+    lat: np.typing.NDArray[np.float64],
+    lon: np.typing.NDArray[np.float64],
+    bearing: np.typing.NDArray[np.float64],
+    distance: np.typing.NDArray[np.float64],
+) -> tuple[np.typing.NDArray[np.float64], np.typing.NDArray[np.float64]]:
+    """
+    Implementation of the reverse of Haversine formula. Takes one set of
+    latitude/longitude as a start point, a bearing, and a distance, and
+    returns the resultant lat/long pair.
+
+    Args:
+        lat (np.typing.NDArray[np.float64]): Starting latitude in degrees
+        lon (np.typing.NDArray[np.float64]): Starting longitude in degrees
+        bearing (np.typing.NDArray[np.float64]): Bearing in degrees
+        distance (np.typing.NDArray[np.float64]): Distance in kilometers
+
+    Returns:
+        tuple[np.typing.NDArray[np.float64], np.typing.NDArray[np.float64]]: Tuple containing the latitude and longitude of the result
+    """
+    R = 6378.137  # Radius of Earth in km
+
+    lat1 = np.radians(lat)
+    lon1 = np.radians(lon)
+    angdist = distance / R
+    theta = np.radians(bearing)
+
+    lat2 = np.degrees(
+        np.arcsin(
+            np.sin(lat1) * np.cos(angdist)
+            + np.cos(lat1) * np.sin(angdist) * np.cos(theta)
+        )
+    )
+
+    lon2 = np.degrees(
+        lon1
+        + np.arctan2(
+            np.sin(theta) * np.sin(angdist) * np.cos(lat1),
+            np.cos(angdist) - np.sin(lat1) * np.sin(np.radians(lat2)),
+        )
+    )
+
+    return (lat2, lon2)
+
+
+def haversine(
+    lat1: np.typing.NDArray[np.float64],
+    lon1: np.typing.NDArray[np.float64],
+    lat2: np.typing.NDArray[np.float64],
+    lon2: np.typing.NDArray[np.float64],
+) -> np.typing.NDArray[np.float64]:
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    Args:
+        lat1 (np.typing.NDArray[np.float64]): Latitude of point A in degrees
+        lon1 (np.typing.NDArray[np.float64]): Longitude of point A in degrees
+        lat2 (np.typing.NDArray[np.float64]): Latitude of point B in degrees
+        lon2 (np.typing.NDArray[np.float64]): Longitude of point B in degrees
+
+    Returns:
+        np.typing.NDArray[np.float64]: Distance in kilometers
+    """
+    # Convert decimal degrees to radians
+    lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
+
+    # Haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = (
+        np.sin(dlat / 2) ** 2
+        + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+    )
+    c = 2 * np.arcsin(np.sqrt(a))
+    r = 6371  # Radius of earth in kilometers
+    return c * r
+
+
+def gps_to_bearing(
+    lat1: np.typing.NDArray[np.float64],
+    lon1: np.typing.NDArray[np.float64],
+    lat2: np.typing.NDArray[np.float64],
+    lon2: np.typing.NDArray[np.float64],
+) -> np.typing.NDArray[np.float64]:
+    """
+    Calculate the bearing between two points
+    Returns bearing in degrees from north (0-360)
+    Args:
+        lat1 (np.typing.NDArray[np.float64]): Latitude of point A in degrees
+        lon1 (np.typing.NDArray[np.float64]): Longitude of point A in degrees
+        lat2 (np.typing.NDArray[np.float64]): Latitude of point B in degrees
+        lon2 (np.typing.NDArray[np.float64]): Longitude of point B in degrees
+
+    Returns:
+        np.typing.NDArray[np.float64]: Bearing angle in degrees from north (0-360)
+    """
+    lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
+
+    dlon = lon2 - lon1
+    y = np.sin(dlon) * np.cos(lat2)
+    x = np.cos(lat1) * np.sin(lat2) - np.sin(lat1) * np.cos(lat2) * np.cos(
+        dlon
+    )
+    bearing = np.arctan2(y, x)
+    bearing = np.degrees(bearing)
+    bearing = (bearing + 360) % 360
+    return bearing
+
+
+def bearing_to_direction(bearing: np.typing.NDArray[np.float64]) -> str:
+    """
+    Convert bearing angle to cardinal direction name
+    Args:
+        bearing (np.typing.NDArray[np.float64]): Bearing angle in degrees
+
+    Returns:
+        str: Cardinal direction name
+    """
+    directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+    index = np.round(bearing / 45) % 8
+    return directions[int(index)]
+
+
+def distances_to_gps(
+    lat_a: np.typing.NDArray[np.float64],
+    lon_a: np.typing.NDArray[np.float64],
+    x_meters: np.typing.NDArray[np.float64],
+    y_meters: np.typing.NDArray[np.float64],
+) -> tuple[np.typing.NDArray[np.float64], np.typing.NDArray[np.float64]]:
+    """
+    Calculate GPS coordinates of point B given point A's coordinates and x,y distances in meters.
+
+    Args:
+        lat_a (np.typing.NDArray[np.float64]): Latitude of point A in degrees
+        lon_a (np.typing.NDArray[np.float64]): Longitude of point A in degrees
+        x_meters (np.typing.NDArray[np.float64]): Distance from west to east in meters (positive = east, negative = west)
+        y_meters (np.typing.NDArray[np.float64]): Distance from south to north in meters (positive = north, negative = south)
+
+    Returns:
+        tuple[np.typing.NDArray[np.float64], np.typing.NDArray[np.float64]]: Tuple containing the latitude and longitude of point B
+    """
+    # Convert distances to degrees
+    # 1 degree of latitude is approximately 111,111 meters
+    lat_change = y_meters / 111111.0
+
+    # 1 degree of longitude varies with latitude
+    # At the equator, 1 degree is about 111,111 meters
+    # At other latitudes, multiply by cos(latitude)
+    lon_change = x_meters / (111111.0 * np.cos(np.radians(lat_a)))
+
+    # Calculate new coordinates
+    lat_b = lat_a + lat_change
+    lon_b = lon_a + lon_change
+
+    return lat_b, lon_b
