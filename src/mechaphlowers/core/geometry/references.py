@@ -25,7 +25,7 @@ def cable_to_localsection_frame(
     x: np.ndarray, y: np.ndarray, z: np.ndarray, alpha: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """cable_to_localsection_frame is a function that rotates the cable coordinates from the cable frame to the localsection frame
-    The localsection frame is the the section frame with origin at the left support of the cable.
+    The localsection frame is the the section frame with origin at the left support of the cable, but with the same axes than the section frame.
 
     Args:
         x (np.ndarray): n x d array spans x coordinates

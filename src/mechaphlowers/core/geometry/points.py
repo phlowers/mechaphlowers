@@ -19,7 +19,7 @@ from mechaphlowers.core.models.cable.span import Span
 
 
 def stack_nan(coords: np.ndarray) -> np.ndarray:
-    """Stack NaN values to the coords array to ensure consistent shapeh when plot and separate layers in a 2D array."""
+    """Stack NaN values to the coords array to ensure consistent shape when plot and separate layers in a 2D array."""
     stack_array = np.zeros((coords.shape[0], 1, coords.shape[2])) * np.nan
     return np.concatenate((coords, stack_array), axis=1).reshape(
         -1, 3, order='C'
@@ -229,6 +229,8 @@ class SectionPoints:
         self._beta = value
 
     def span_in_cable_frame(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Get spans as vectors in the cable frame."""
+        # Rotate the cable with an angle to represent the wind
         x_span, y_span, z_span = cable_to_beta_plane(
             self.x_cable[:, :-1], self.z_cable[:, :-1], beta=self.beta[:-1]
         )
@@ -237,6 +239,7 @@ class SectionPoints:
     def span_in_localsection_frame(
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Get spans as vectors in the localsection frame."""
         x_span, y_span, z_span = self.span_in_cable_frame()
         x_span, y_span, z_span = cable_to_localsection_frame(
             x_span, y_span, z_span, self.plane.alpha[:-1]
@@ -246,6 +249,7 @@ class SectionPoints:
     def span_in_section_frame(
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Get spans as vectors in the section frame."""
         x_span, y_span, z_span = self.span_in_localsection_frame()
         x_span, y_span, z_span = translate_cable_to_support(
             x_span,
@@ -260,29 +264,31 @@ class SectionPoints:
         return x_span, y_span, z_span
 
     def get_spans(
-        self, frame: Literal["cable", "crossarm", "section"]
+        self, frame: Literal["cable", "localsection", "section"]
     ) -> Points:
         """get_spans
 
         Get the spans Points in the specified frame.
 
         Args:
-            frame (Literal['cable', 'crossarm', 'section']): frame
+            frame (Literal['cable', 'localsection', 'section']): frame
 
         Raises:
-            ValueError: If the frame is not one of 'cable', 'crossarm', or 'section'.
+            ValueError: If the frame is not one of 'cable', 'localsection', or 'section'.
 
         Returns:
             Points: Points object containing the spans in the specified frame.
         """
         if frame == "cable":
             x_span, y_span, z_span = self.span_in_cable_frame()
-        elif frame == "crossarm":
+        elif frame == "localsection":
             x_span, y_span, z_span = self.span_in_localsection_frame()
         elif frame == "section":
             x_span, y_span, z_span = self.span_in_section_frame()
         else:
-            raise ValueError("Frame must be 'cable', 'crossarm' or 'section'")
+            raise ValueError(
+                "Frame must be 'cable', 'localsection' or 'section'"
+            )
 
         return Points.from_vectors(x_span, y_span, z_span)
 
