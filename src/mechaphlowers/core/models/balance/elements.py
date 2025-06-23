@@ -227,6 +227,23 @@ class Nodes:
         Fx = -Th_i + Th_ip1 # -Th_i + Th_i
         Fz = -Tv_d_i + Tv_g_ip1 + self.weight_chain/2 + self.load # -Tvd_i + Tvg_i
         
+        # base_build = np.concat(np.array([0,1]*int((len(self)-2-1)/2)), np.array([0]))
+        base_build = np.array([0,1]*int((len(self)-2-1)/2))
+        base_build = np.concat((base_build, np.array([0])))
+        
+        
+        force_3d = np.vstack((Fx, np.zeros_like(Fx), Fz)).T
+        moment_length_3d = np.vstack((base_build*self.dx[1:-1], np.zeros_like(base_build), base_build*(self.L_chain[1:-1]-self.dz[1:-1]))).T
+        moment_length_3d = np.vstack((
+            np.array([self.L_chain[0]+self.dx[0], 0, self.dz[0]]).T,
+            moment_length_3d,
+            np.array([self.L_chain[0]-self.dx[-1], 0, self.dz[-1]]).T,
+            
+        ))
+        
+        M = np.cross(moment_length_3d, force_3d)
+        My = M[:,1]
+        
         def compute_forces_2ddl():
             Fx = np.roll(Th, -1) - Th # Th_i+1 - Th_i
             Fz = Tv_d + np.roll(Tv_g, 1) + self.load # >> n_charge
