@@ -225,7 +225,7 @@ class Nodes:
         Tv_g_ip1 = np.concat((Tv_g, np.array([0])))
         
         Fx = -Th_i + Th_ip1 # -Th_i + Th_i
-        Fz = -Tv_d_i + Tv_g_ip1 + self.weight_chain/2 + self.load # -Tvd_i + Tvg_i
+        Fz = Tv_d_i + Tv_g_ip1 + self.weight_chain/2 + self.load # -Tvd_i + Tvg_i
         
         # base_build = np.concat(np.array([0,1]*int((len(self)-2-1)/2)), np.array([0]))
         base_build = np.array([0,1]*int((len(self)-2-1)/2))
@@ -241,65 +241,65 @@ class Nodes:
             
         ))
         
-        M = np.cross(moment_length_3d, force_3d)
+        M = np.cross(force_3d, moment_length_3d)
         My = M[:,1]
         
-        def compute_forces_2ddl():
-            Fx = np.roll(Th, -1) - Th # Th_i+1 - Th_i
-            Fz = Tv_d + np.roll(Tv_g, 1) + self.load # >> n_charge
-            My = 0
-            return Fx, Fz, My
+        # def compute_forces_2ddl():
+        #     Fx = np.roll(Th, -1) - Th # Th_i+1 - Th_i
+        #     Fz = Tv_d + np.roll(Tv_g, 1) + self.load # >> n_charge
+        #     My = 0
+        #     return Fx, Fz, My
         
-        L = self.L_chain
-        # case 2: ntype == 2
-        def compute_forces_1ddlvertical(): 
+        # L = self.L_chain
+        # # case 2: ntype == 2
+        # def compute_forces_1ddlvertical(): 
             
-            Fx = np.roll(Th, -1) - Th
-            Fz = -Tv_d + np.roll(Tv_g, -1) + self.weight_chain/2 # -Tvd_i + Tvg_i+1 + parameter/2
-            My = Fz * self.dx - Fx *(L - self.dz)
-            return Fx, Fz, My
+        #     Fx = np.roll(Th, -1) - Th
+        #     Fz = -Tv_d + np.roll(Tv_g, -1) + self.weight_chain/2 # -Tvd_i + Tvg_i+1 + parameter/2
+        #     My = Fz * self.dx - Fx *(L - self.dz)
+        #     return Fx, Fz, My
         
-        # case 3: ntype == 3 + starting
+        # # case 3: ntype == 3 + starting
         
-        def compute_forces_1ddlhorizontal_starting():
-            # case 2: ntype == 2
+        # def compute_forces_1ddlhorizontal_starting():
+        #     # case 2: ntype == 2
 
-            Fx = np.roll(Th, -1) # Th_i+1
-            Fz = np.roll(Tv_g, 0) + self.weight_chain/2 # Tvg_i+1 + parameter/2
-            My = Fz *(L + self.dx)+Fx*self.dz 
-            return Fx, Fz, My
+        #     Fx = np.roll(Th, -1) # Th_i+1
+        #     Fz = np.roll(Tv_g, 0) + self.weight_chain/2 # Tvg_i+1 + parameter/2
+        #     My = Fz *(L + self.dx)+Fx*self.dz 
+        #     return Fx, Fz, My
         
-        # case 3: ntype == 3 + ending
-        def compute_forces_1ddlhorizontal_ending():
+        # # case 3: ntype == 3 + ending
+        # def compute_forces_1ddlhorizontal_ending():
             
-            Fx = -Th # -Th_i
-            Fz = Tv_d + self.weight_chain/2
-            My = Fz * (L - self.dx) - Fx * self.dz
-            return Fx, Fz, My
+        #     Fx = -Th # -Th_i
+        #     Fz = Tv_d + self.weight_chain/2
+        #     My = Fz * (L - self.dx) - Fx * self.dz
+        #     return Fx, Fz, My
         
         
         
-        Fx2, Fz2, My2 = compute_forces_2ddl()
-        Fx1v, Fz1v, My1v = compute_forces_1ddlvertical()
-        Fx1hs, Fz1hs, My1hs = compute_forces_1ddlhorizontal_starting()
-        Fx1he, Fz1he, My1he = compute_forces_1ddlhorizontal_ending()
+        # Fx2, Fz2, My2 = compute_forces_2ddl()
+        # Fx1v, Fz1v, My1v = compute_forces_1ddlvertical()
+        # Fx1hs, Fz1hs, My1hs = compute_forces_1ddlhorizontal_starting()
+        # Fx1he, Fz1he, My1he = compute_forces_1ddlhorizontal_ending()
         
-        Fx = Fx2
-        Fz = Fz2
-        My = My2
+        # Fx = Fx2
+        # Fz = Fz2
+        # My = My2
         
-        Fx = np.where(self.ntype == 2, Fx1v, Fx)
-        Fx[0] = Fx1hs[0]
-        Fx[-1] = Fx1he[-1]
+        # Fx = np.where(self.ntype == 2, Fx1v, Fx)
+        # Fx[0] = Fx1hs[0]
+        # Fx[-1] = Fx1he[-1]
         
-        Fz = np.where(self.ntype == 2, Fz1v, Fz)
-        Fz[0] = Fz1hs[0]
-        Fz[-1] = Fz1he[-1]
+        # Fz = np.where(self.ntype == 2, Fz1v, Fz)
+        # Fz[0] = Fz1hs[0]
+        # Fz[-1] = Fz1he[-1]
         
-        My = np.where(self.ntype == 2, My1v, My)
-        My[0] = My1hs[0]
-        My[-1] = My1he[-1]
-        # Fz = np.where(self.nodes.ntype == 2, compute_for
+        # My = np.where(self.ntype == 2, My1v, My)
+        # My[0] = My1hs[0]
+        # My[-1] = My1he[-1]
+        # # Fz = np.where(self.nodes.ntype == 2, compute_for
         
         self.Fx = Fx
         self.Fz = Fz

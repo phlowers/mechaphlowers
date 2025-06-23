@@ -16,7 +16,7 @@ def section_2d_note(cable_AM600):
         weight_chain=np.array([1000, 0, 500, 0, 500, 0, 1000]),
         x=np.array([0, 8, 500, 595, 800, 980, 1200]),
         z=np.array([30, 0, 50, 0, 60, 0, 65]),
-        load=np.array([0, 5000, 0, 0, 0, 0, 0]),
+        load=np.array([0, 0, 0, 0, 0, 0, 0]),
     )
     
     return Span(
