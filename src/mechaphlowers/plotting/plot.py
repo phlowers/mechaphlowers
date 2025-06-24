@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Dict, Literal
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go  # type: ignore
+import plotly.graph_objects as go
 
 if TYPE_CHECKING:
     from mechaphlowers.api.frames import SectionDataFrame

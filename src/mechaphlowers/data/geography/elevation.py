@@ -21,10 +21,7 @@ def gps_to_elevation(
     # Format locations for the API
     payload = {
         "locations": [
-            {
-                "latitude": lat,
-                "longitude": lon,
-            }
+            {"latitude": lat, "longitude": lon} for lat, lon in zip(lat, lon)
         ]
     }
 

@@ -4,9 +4,53 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import json
+import logging
+from pathlib import Path
 from typing import Union
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
+
+
+# Cache file path for persistent storage
+_cache_file_path = Path.home() / ".mechaphlowers" / "elevation_cache.json"
+
+# Cache for elevation data to avoid duplicate API requests
+_elevation_cache = {}
+
+
+def _load_elevation_cache():
+    """
+    Load elevation cache from file.
+    """
+    global _elevation_cache
+    try:
+        if _cache_file_path.exists():
+            with open(_cache_file_path, "r") as f:
+                _elevation_cache = json.load(f)
+        else:
+            _elevation_cache = {}
+    except (json.JSONDecodeError, IOError) as e:
+        logger.warning(
+            f"Warning: Could not load elevation cache from {_cache_file_path}: {e}"
+        )
+        _elevation_cache = {}
+
+
+def _save_elevation_cache():
+    """
+    Save elevation cache to file.
+    """
+    try:
+        _cache_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(_cache_file_path, "w") as f:
+            json.dump(_elevation_cache, f)
+    except IOError as e:
+        logger.warning(
+            f"Warning: Could not save elevation cache to {_cache_file_path}: {e}"
+        )
 
 
 def gps_to_lambert93(
@@ -280,7 +324,7 @@ def bearing_to_direction(
     """
     directions = np.array(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])
     index = np.round(bearing / 45) % 8
-    return directions[int(index)]
+    return np.array([directions[int(i)] for i in index])
 
 
 def distances_to_gps(
