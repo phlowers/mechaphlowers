@@ -4,10 +4,51 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import json
+import os
+from pathlib import Path
 from typing import Union
 
 import numpy as np
 import requests
+
+# Cache file path for persistent storage
+_cache_file_path = Path.home() / ".mechaphlowers" / "elevation_cache.json"
+
+# Cache for elevation data to avoid duplicate API requests
+_elevation_cache = {}
+
+
+def _load_elevation_cache():
+    """
+    Load elevation cache from file.
+    """
+    global _elevation_cache
+    try:
+        if _cache_file_path.exists():
+            with open(_cache_file_path, "r") as f:
+                _elevation_cache = json.load(f)
+        else:
+            _elevation_cache = {}
+    except (json.JSONDecodeError, IOError) as e:
+        print(
+            f"Warning: Could not load elevation cache from {_cache_file_path}: {e}"
+        )
+        _elevation_cache = {}
+
+
+def _save_elevation_cache():
+    """
+    Save elevation cache to file.
+    """
+    try:
+        _cache_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(_cache_file_path, "w") as f:
+            json.dump(_elevation_cache, f)
+    except IOError as e:
+        print(
+            f"Warning: Could not save elevation cache to {_cache_file_path}: {e}"
+        )
 
 
 def gps_to_lambert93(
@@ -163,7 +204,11 @@ def gps_to_elevation(
     lat: np.typing.NDArray[np.float64], lon: np.typing.NDArray[np.float64]
 ) -> np.typing.NDArray[np.float64]:
     """
-    Fetch elevation data for a list of locations using Open-Elevation API
+    Fetch elevation data for a list of locations using Open-Elevation API.
+
+    This function caches results to avoid making duplicate API requests for the same
+    coordinates. The cache persists across program runs by storing data in a file
+    located at ~/.mechaphlowers/elevation_cache.json.
 
     Args:
         lat (np.typing.NDArray[np.float64]): Latitude of the location in degrees
@@ -172,19 +217,50 @@ def gps_to_elevation(
     Returns:
         np.typing.NDArray[np.float64]: Elevation in meters
     """
+    import hashlib
+
     url = "https://api.open-elevation.com/api/v1/lookup"
 
-    # Format locations for the API
-    payload = {"locations": [{"latitude": lat, "longitude": lon}]}
+    _load_elevation_cache()
+
+    # Convert inputs to numpy arrays if they aren't already
+    lat = np.asarray(lat, dtype=np.float64)
+    lon = np.asarray(lon, dtype=np.float64)
+
+    # Create locations list for the API
+    locations = [
+        {"latitude": float(lat.item(i)), "longitude": float(lon.item(i))}
+        for i in range(lat.size)
+    ]
+    payload = {"locations": locations}
+
+    # Create a cache key from the payload
+    # Convert to JSON string for consistent hashing
+    # hash the cache key
+    cache_key = hashlib.sha256(
+        json.dumps(payload, sort_keys=True).encode()
+    ).hexdigest()
+
+    # Check if we have cached results
+    if cache_key in _elevation_cache and not os.environ.get('PYTEST_VERSION'):
+        return _elevation_cache[cache_key]
 
     try:
         response = requests.post(url, json=payload)
         response.raise_for_status()  # Raise an exception for bad status codes
         data = response.json()
-        return np.array([result["elevation"] for result in data["results"]])
+        elevations = [result["elevation"] for result in data["results"]]
+
+        # Cache the results
+        _elevation_cache[cache_key] = elevations
+
+        # Save cache to file for persistence
+        _save_elevation_cache()
+
+        return np.array(elevations)
     except requests.exceptions.RequestException as e:
         print(f"Error fetching elevation data: {e}")
-        return np.zeros(len(lat))  # Return zeros if request fails
+        return np.zeros(lat.size)  # Return zeros if request fails
 
 
 def reverse_haversine(
@@ -296,18 +372,18 @@ def gps_to_bearing(
     return bearing
 
 
-def bearing_to_direction(bearing: np.typing.NDArray[np.float64]) -> str:
+def bearing_to_direction(bearing: np.typing.NDArray[np.float64]) -> np.ndarray:
     """
     Convert bearing angle to cardinal direction name
     Args:
         bearing (np.typing.NDArray[np.float64]): Bearing angle in degrees
 
     Returns:
-        str: Cardinal direction name
+        np.ndarray: Array of cardinal direction names
     """
     directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
     index = np.round(bearing / 45) % 8
-    return directions[int(index)]
+    return np.array([directions[int(i)] for i in index])
 
 
 def distances_to_gps(
