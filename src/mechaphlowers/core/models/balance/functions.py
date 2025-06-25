@@ -33,8 +33,11 @@ def T_moy(p, L, x_n, x_m, lineic_weight):
     return p * lineic_weight * (a + (np.sinh(2*x_n / p) - np.sinh(2*x_m / p))*p/2) / L /2
 
 
-def z_from_x_2ddl(span):
+# def z_from_x_2ddl(span):
 
-    span.compute()
-    span
-    return b * np.sinh(x / p) / np.sinh(a / (2 * p))
+#     span.compute()
+#     span
+#     return b * np.sinh(x / p) / np.sinh(a / (2 * p))
+
+
+
