@@ -77,8 +77,8 @@ class Span:
         x_m = f.x_m(self.a, self.b, c_param)
         x_n = f.x_n(self.a, self.b, c_param)
         
-        self._Tv_g = -Th * (np.sinh(x_m / c_param)) # moins ?
-        self._Tv_d = Th * (np.sinh(x_n / c_param))
+        self._Tv_g = Th * (np.sinh(x_m / c_param)) 
+        self._Tv_d = -Th * (np.sinh(x_n / c_param))
         self._Th = Th
         
         return Th
@@ -266,12 +266,12 @@ class Nodes:
         self.num = np.arange(len(ntype))
         self.ntype = ntype
         self.L_chain = L_chain
-        self.weight_chain = weight_chain
+        self.weight_chain = -weight_chain
         self._x = x
         self._z = z
         self.dx = np.zeros_like(x, dtype=np.float64)
         self.dz = np.zeros_like(z, dtype=np.float64)
-        self._load = load
+        self._load = -load
         self.no_load = False
         # self.dz = dz
         self.init_L()
@@ -293,7 +293,7 @@ class Nodes:
     
     @property
     def x(self):
-        return self._x + self.L_anchor_chain
+        return self._x + self.x_anchor_chain
     
     @property
     def z(self):
@@ -304,9 +304,11 @@ class Nodes:
         self._z = value
     
     def init_L(self):
-        self.L_anchor_chain = np.zeros_like(self._x)
-        self.L_anchor_chain[0] = self.L_chain[0]
-        self.L_anchor_chain[-1] = -self.L_chain[-1]
+        self.x_anchor_chain = np.zeros_like(self._x)
+        self.x_anchor_chain[0] = self.L_chain[0]
+        self.x_anchor_chain[-1] = -self.L_chain[-1]
+        self.z_suspension_chain = np.zeros_like(self._x)
+        self.z_suspension_chain[1:-1] = -self.L_chain[1:-1]
 
     
     def compute_dx_dz(self):
@@ -342,15 +344,15 @@ class Nodes:
         
         
         force_3d = np.vstack((Fx, np.zeros_like(Fx), Fz)).T
-        moment_length_3d = np.vstack((base_build*self.dx[1:-1], np.zeros_like(base_build), base_build*(self.L_chain[1:-1]-self.dz[1:-1]))).T
-        moment_length_3d = np.vstack((
-            np.array([self.L_chain[0]+self.dx[0], 0, -self.dz[0]]).T,
-            moment_length_3d,
-            np.array([self.L_chain[0]-self.dx[-1], 0, self.dz[-1]]).T,
+        lever_arm = np.vstack((base_build*self.dx[1:-1], np.zeros_like(base_build), base_build*(self.z_suspension_chain[1:-1]+self.dz[1:-1]))).T
+        lever_arm = np.vstack((
+            np.array([self.x_anchor_chain[0]+self.dx[0], 0, self.dz[0]]).T,
+            lever_arm,
+            np.array([self.x_anchor_chain[-1]+self.dx[-1], 0, self.dz[-1]]).T,
             
         ))
         
-        M = np.cross(force_3d, moment_length_3d)
+        M = np.cross(lever_arm, force_3d)
         My = M[:,1]
         
         self.Fx = Fx
@@ -415,10 +417,12 @@ class SolverBalance:
     
     def solve(self, x0=np.array([0, 0,]) ):
         eps = self.eps
+        force_vector_0 = self.section._delta(x0)
         
         for i in range(self.max_iter):
 
-            self.section.z_from_x_2ddl()         
+            self.section.z_from_x_2ddl() 
+            
             force_vector = self.section._delta(x0)
                         
             d_force_vector = self.section._delta(x0+eps)
@@ -430,7 +434,7 @@ class SolverBalance:
             if np.linalg.norm(force_vector) < 1.:
                 break
         
-        return self.section.dz
+        return self.section.nodes.dz
             
             
         
