@@ -73,8 +73,8 @@ import numpy as np
 import pandas as pd
 
 from mechaphlowers.core.geometry.points import SectionPoints
-from mechaphlowers.core.geometry.section_array import SectionArray
-from mechaphlowers.core.geometry.span_model import CatenarySpan
+from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.core.models.cable.span import CatenarySpan
 
 section_array = SectionArray(
         pd.DataFrame(
@@ -89,33 +89,33 @@ section_array = SectionArray(
             }
         )
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
+section_array.sagging_parameter = 2000
+section_array.sagging_temperature = 15
 
-span_model = CatenarySpan(**section_array.data_container.to_dict())
+span_model = CatenarySpan(**section_array.to_numpy())
 
-    s = SectionPoints(
-        span_model=span_model, 
-        **section_array.data_container.to_dict()
-    )
+s = SectionPoints(
+    span_model=span_model, 
+    **section_array.to_numpy()
+)
 
 
-    from plotly import graph_objects as go
-    from mechaphlowers.plotting.plot import plot_points_3d, set_layout
-    fig = go.Figure()
-    # plot spans in cable frames
-    plot_points_3d(fig, s.get_spans("cable").points(True))
-    # plot spans in crossarm frames
-    plot_points_3d(fig, s.get_spans("crossarm").points(True))
-    # plot spans in section frames
-    plot_points_3d(fig, s.get_spans("section").points(True))
+from plotly import graph_objects as go
+from mechaphlowers.plotting.plot import plot_points_3d, set_layout
+fig = go.Figure()
+# plot spans in cable frames
+plot_points_3d(fig, s.get_spans("cable").points(True))
+# plot spans in crossarm frames
+plot_points_3d(fig, s.get_spans("localsection").points(True))
+# plot spans in section frames
+plot_points_3d(fig, s.get_spans("section").points(True))
 
-    # plot supports and insulators in section frames
-    plot_points_3d(fig, s.get_supports().points(True))
-    plot_points_3d(fig, s.get_insulators().points(True))
+# plot supports and insulators in section frames
+plot_points_3d(fig, s.get_supports().points(True))
+plot_points_3d(fig, s.get_insulators().points(True))
 
-    set_layout(fig)
-    fig.show()
+set_layout(fig)
+fig.show()
 ```
 
 ## How does span engine work?
