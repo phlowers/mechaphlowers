@@ -74,7 +74,8 @@ class Span:
     def Th(self):
         self.update_tensions()
         return self._Th
-        
+    
+    # TODO: méthode sur appelée, mettre en lru_cache ?   
     def update_tensions(self):
         if not self.reglage:
             c_param = self.cardan(self.a, self.b, self.length_0, self.cable_temperature)
