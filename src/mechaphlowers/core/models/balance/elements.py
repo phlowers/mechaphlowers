@@ -55,9 +55,20 @@ class Span:
         self.update_span()
         self.nodes.compute_forces(self.Th, self.Tv_d, self.Tv_g, self.parameter)
         self.nodes.no_load = False
+        
+        SolverBalance(self).adjusting_Lref()
+        
+        self._L_ref = RealSpan(self).real_span()
+        
     
 
+    @property
+    def L_ref(self):
+        return self._L_ref
+    
 
+    def update_length(self):
+        RealSpan(self).real_span()
     
     @property
     def Th(self):
@@ -217,32 +228,51 @@ class RealSpan:
         self.span = span
     
     def real_span(self):
-# a = noeud(i + 1).x + noeud(i + 1).dx - noeud(i - 1).x - noeud(i - 1).dx
+        
+        # TODO: this part take the hypothesis that there is one of two node of ntype 1.
+        # we should change this to be more general
+        
         a = np.roll(self.span.nodes.x + self.span.nodes.dx, -1) - np.roll(self.span.nodes.x + self.span.nodes.dx, 1)
         b = np.roll(self.span.nodes.z + self.span.nodes.dz, -1) - np.roll(self.span.nodes.z + self.span.nodes.dz, 1)
-# b = noeud(i + 1).z + noeud(i + 1).dz - noeud(i - 1).z - noeud(i - 1).dz
 
-# lon1 = longueur(param_reglage, a + pt_x_m(a, b, param_reglage), pt_x_m(a, b, param_reglage))
-        lon1 = f.L(self.span.parameter, a+f.x_m(a, b, self.span.parameter), f.x_m(a, b, self.span.parameter))
-# Tm1 = T_moy(param_reglage, a + pt_x_m(a, b, param_reglage), pt_x_m(a, b, param_reglage), lon1)
-        Tm1 = f.T_moy(self.span.parameter, a+f.x_m(a, b, self.span.parameter), f.x_m(a, b, self.span.parameter))
-# lon1 = lon1 / (1 + Temp * cable.coef_dilat + Tm1 / cable.mod_young / cable.Section)
+        parameter_np1 = np.hstack((self.span.parameter, self.span.parameter[-1]))
+
+        lon1 = f.L(parameter_np1, a+f.x_m(a, b, parameter_np1), f.x_m(a, b, parameter_np1))
+
+        Tm1 = f.T_moy(
+            p=parameter_np1, 
+            L=lon1,
+            x_n=a+f.x_m(a, b, parameter_np1), 
+            x_m=f.x_m(a, b, parameter_np1),
+            lineic_weight=self.span.cable.lineic_weight,
+            )
+
         lon1 = lon1 / (1 + self.span.cable.dilation_coefficient * self.span.cable_temperature + Tm1 / self.span.cable.young_modulus  / self.span.cable.section)
 
-# pos_charge = noeud(i).x - noeud(i - 1).x - noeud(i - 1).dx
         pos_charge = self.span.nodes.x - np.roll(self.span.nodes.x,1) - np.roll(self.span.nodes.dx,1)
 
-# lon2 = longueur(param_reglage, pos_charge + pt_x_m(a, b, param_reglage), pt_x_m(a, b, param_reglage))
-        lon2 = f.L(self.span.parameter, pos_charge+f.x_m(a, b, self.span.parameter), f.x_m(a, b, self.span.parameter))
-# Tm2 = T_moy(param_reglage, pos_charge + pt_x_m(a, b, param_reglage), pt_x_m(a, b, param_reglage), lon2)
-        Tm2 = f.T_moy(self.span.parameter, pos_charge+f.x_m(a, b, self.span.parameter), f.x_m(a, b, self.span.parameter))
-# lon2 = lon2 / (1 + Temp * cable.coef_dilat + Tm2 / cable.mod_young / cable.Section)
+        lon2 = f.L(parameter_np1, pos_charge+f.x_m(a, b, parameter_np1), f.x_m(a, b, parameter_np1))
+
+        Tm2 = f.T_moy(
+            p=parameter_np1, 
+            x_n=pos_charge+f.x_m(a, b, parameter_np1), 
+            x_m=f.x_m(a, b, parameter_np1), 
+            L=lon2,
+            lineic_weight=self.span.cable.lineic_weight,
+            )
+
         lon2 = lon2 / (1 + self.span.cable.dilation_coefficient * self.span.cable_temperature + Tm2 / self.span.cable.young_modulus  / self.span.cable.section)
-# portee(i).L0 = lon2
-        L0_i = lon2
-# portee(i + 1).L0 = lon1 - lon2
-        L0_ip1 = lon1 - lon2
-        self.L0 = np.where(self.span.nodes.ntype==1, L0_i, L0_ip1)
+        
+        # we need np.array([lon2[1], lon1-lon2[1], lon2[3], ...])
+        L_ref = np.reshape(
+            np.vstack( # stacking the two array vertically and taking only 1/2 node
+                (
+                    lon2[1::2], 
+                    lon1[1::2] - lon2[1::2])
+                ),
+            -1, order='F') # order='F' is for fortran order to flatten the array to get the good form
+        
+        return L_ref
 
         
         
@@ -415,7 +445,7 @@ class SolverBalance:
         self.section: Span = section
         # self.f = self._d
     
-    def solve(self, x0=np.array([0, 0,]) ):
+    def adjusting_Lref(self, x0=np.array([0, 0,]) ):
         eps = self.eps
         force_vector_0 = self.section._delta(x0)
         
