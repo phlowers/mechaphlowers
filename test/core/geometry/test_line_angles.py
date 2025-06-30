@@ -30,7 +30,7 @@ def section_array_line_angles():
             {
                 "name": np.array(["support 1", "2", "three", "support 4"]),
                 "suspension": np.array([False, True, True, False]),
-                "conductor_attachment_altitude": np.array([30, 40, 60, 70]),
+                "conductor_attachment_altitude": np.array([30, 35, -22, 70]),
                 "crossarm_length": np.array([40, 20, -30, -50]),
                 "line_angle": np.array([0, -45, 60, -30]),
                 "insulator_length": np.array([0, 5, 82, 0]),
@@ -69,6 +69,9 @@ def test_get_supports_ground_coords(section_array_line_angles):
 def test_build_supports(section_array_line_angles):
     span_length = section_array_line_angles.data.span_length.to_numpy()
     line_angle = section_array_line_angles.data.line_angle.to_numpy()
+    insulator_length = (
+        section_array_line_angles.data.insulator_length.to_numpy()
+    )
     conductor_attachment_altitude = (
         section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
     )
@@ -80,8 +83,9 @@ def test_build_supports(section_array_line_angles):
     center_arm_coords, arm_coords = get_edge_arm_coords(
         supports_ground_coords,
         conductor_attachment_altitude,
-        line_angle,
         crossarm_length,
+        line_angle,
+        insulator_length,
     )
 
     expected_coords = np.array(
@@ -108,6 +112,9 @@ def test_get_supports(section_array_line_angles):
     """Get the supports in the support frame."""
     span_length = section_array_line_angles.data.span_length.to_numpy()
     line_angle = section_array_line_angles.data.line_angle.to_numpy()
+    insulator_length = (
+        section_array_line_angles.data.insulator_length.to_numpy()
+    )
     conductor_attachment_altitude = (
         section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
     )
@@ -119,8 +126,9 @@ def test_get_supports(section_array_line_angles):
     center_arm_coords, edge_arm_coords = get_edge_arm_coords(
         supports_ground_coords,
         conductor_attachment_altitude,
-        line_angle,
         crossarm_length,
+        line_angle,
+        insulator_length,
     )
 
     supports_layer = get_supports_layer(
@@ -153,6 +161,10 @@ def test_get_supports(section_array_line_angles):
 def test_span_lengths(section_array_line_angles):
     span_length = section_array_line_angles.data.span_length.to_numpy()
     line_angle = section_array_line_angles.data.line_angle.to_numpy()
+    insulator_length = (
+        section_array_line_angles.data.insulator_length.to_numpy()
+    )
+
     conductor_attachment_altitude = (
         section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
     )
@@ -164,8 +176,9 @@ def test_span_lengths(section_array_line_angles):
     center_arm_coords, arm_coords = get_edge_arm_coords(
         supports_ground_coords,
         conductor_attachment_altitude,
-        line_angle,
         crossarm_length,
+        line_angle,
+        insulator_length,
     )
     new_span_length = get_span_lengths_between_supports(arm_coords)
     new_altitude_diff = get_elevation_diff_between_supports(arm_coords)
