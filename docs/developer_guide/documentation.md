@@ -33,6 +33,30 @@ You have to complete the folder docstring with the subrepositories you want. At 
 
     The file has to be placed inside subrepositories reflecting the code folders architecture. The name of the .md file containing the anchor needs to correspond to the .py file to document.
 
+## Opening plotly figures
+
+Plotly figures are not rendered in the documentation but available in html. A json version is available in the same folder in order to modify the figure if needed.  
+To open plotly figures, you need to use the following code :
+
+```python
+from plotly import io as pio
+
+# open it
+fig = pio.read_json("./docs/user_guide/assets/how_span_engine_work.json")
+
+# modify it
+fig._data[0]['marker']['size'] = 2
+fig._data[1]['marker']['size'] = 2
+fig._data[2]['marker']['size'] = 2
+fig._data[3]['marker']['size'] = 2
+
+# verify
+fig.show()
+
+# save it
+fig.write_html("./docs/user_guide/assets/how_span_engine_work.html")
+fig.write_json("./docs/user_guide/assets/how_span_engine_work.json")
+```
 
 ## Configuration
 
