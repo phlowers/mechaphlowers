@@ -170,4 +170,3 @@ def test_span_absolute_coords_new_obj(section_array_line_angles):
 
     # set_layout(fig)
     # fig.show()
-    assert True

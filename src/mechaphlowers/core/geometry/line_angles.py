@@ -81,7 +81,6 @@ def get_supports_ground_coords(
         2D array of shape (n, 3) representing the coordinates of the supports in the global frame.
     """
     line_angle_sums = np.cumsum(line_angle)
-    supports_ground_coords = np.zeros((span_length.size, 3))
     # Creates the translations vectors: these are the vectors between two supports
     translations_vectors = np.zeros((span_length.size, 3))
     translations_vectors[:, 0] = span_length
