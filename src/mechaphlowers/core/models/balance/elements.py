@@ -184,9 +184,31 @@ class Span:
         out = np.array(out)        
         return out # np.reshape(out, -1, order = 'F')
     
-    def _delta(self, dz_se_only):
+    def _delta_init_L(self, dz_se_only):
         self.nodes.dz[0] = dz_se_only[0]
         self.nodes.dz[-1] = dz_se_only[-1]
+        # self.update_span()
+        # self.z_from_x_2ddl()
+        self.update_span()
+        self.update_tensions()
+        force_vector = self.vector_force()
+        
+        return force_vector
+    
+    def _delta_dz(self, dz):
+        self.nodes.dz[0] = dz[0]
+        self.nodes.dz[-1] = dz[-1]
+        # self.update_span()
+        # self.z_from_x_2ddl()
+        self.update_span()
+        self.update_tensions()
+        force_vector = self.vector_force()
+        
+        return force_vector
+    
+    def _delta_dx(self, dx):
+        self.nodes.dx[0] = dx[0]
+        self.nodes.dx[-1] = dx[-1]
         # self.update_span()
         # self.z_from_x_2ddl()
         self.update_span()
@@ -200,7 +222,7 @@ class Span:
 
         
         def norm_delta(dz_se_only):
-            return np.linalg.norm(self._delta(dz_se_only))
+            return np.linalg.norm(self._delta_init_L(dz_se_only))
             
         dz = optimize.newton(norm_delta, np.array([.0001, .0001]))
         
@@ -448,15 +470,15 @@ class SolverBalance:
     
     def adjusting_Lref(self, x0=np.array([0, 0,]) ):
         eps = self.eps
-        force_vector_0 = self.section._delta(x0)
+        force_vector_0 = self.section._delta_init_L(x0)
         
         for i in range(self.max_iter):
 
             self.section.z_from_x_2ddl() 
             
-            force_vector = self.section._delta(x0)
+            force_vector = self.section._delta_init_L(x0)
                         
-            d_force_vector = self.section._delta(x0+eps)
+            d_force_vector = self.section._delta_init_L(x0+eps)
             
             delta = force_vector[[0,-1]] / (d_force_vector[[0,-1]] - force_vector[[0,-1]])
             
@@ -481,6 +503,102 @@ class SolverBalance:
         #     return np.linalg.norm(force_vector)
         
         
-        
-        
-        
+def initialize_relaxation(nodes:Nodes, mask: np.ndarray, min_relaxation: float = .5):
+    relaxation = (nodes.x - np.roll(nodes.x, 1)) / (np.roll(nodes.x, -1) - np.roll(nodes.x, 1))
+    relaxation = relaxation[mask]
+    relaxation = np.minimum(relaxation, 1-relaxation) # just absolute value ?
+    
+    if (relaxation < .01).any():
+        raise ValueError("Load is too close to edge to solve")
+    
+    return 1-np.nanmin(np.append(relaxation, min_relaxation))
+
+def solver_balance(section: Span, temperature=0, ):
+    # get span temperature
+    # input loads
+    section.nodes.no_load = False
+    # update ?
+    section.cable_temperature = temperature*np.ones_like(section.cable_temperature)
+    # TODO: update cable temperature or new variable ?
+    
+    # compute relaxation
+    relaxation = initialize_relaxation(section.nodes, mask=section.nodes.ntype==1)
+    
+    eps = .00001
+    
+    finition = False
+    
+    x0 = np.zeros_like(section.nodes.x)
+    
+    # build jacobian matrix
+    section.z_from_x_2ddl()
+    
+    force_vector = section.vector_force()
+
+    # masks for the jacobian
+    # case 1 : two lines : one for dx one for dz
+     
+            
+    dx_derivative, dz_derivative = compute_derivative(section, eps, x0)
+    
+    dF_dx = (dx_derivative - force_vector) / eps
+    dF_dz = (dz_derivative - force_vector) / eps
+    
+    aa = np.array(section.nodes.ntype, copy=True)  
+    # lenght_pattern = 2*len(aa[aa==1]) + len(aa[aa==2]) + len(aa[aa==3])
+    
+    # _base_matrix = np.repeat(aa, np.where(aa==1, 2,1))
+    
+    insert_idx = np.where(aa==1)[0]
+    
+    aa = np.insert(aa, insert_idx, 2*np.ones(len(insert_idx)))
+    
+    aa[aa==1] = 3
+    
+
+    
+    dF_dx_m = np.multiply(
+        np.tile(dF_dx, (len(aa),1)).T, 
+        aa==2
+    ).T
+    dF_dz_m = np.multiply(
+        np.tile(dF_dz, (len(aa),1)).T, 
+        aa==3
+    ).T
+    
+    jacobian = dF_dx_m + dF_dz_m
+    
+    correction = np.inv(jacobian) @ force_vector
+
+    # ww = np.tile(aa, (5,1))
+#     np.multiply(ww , np.array([[0,1,0,0,1]]).T)
+    #   >> array([[0, 0, 0, 0, 0, 0, 0],
+    #            [3, 2, 2, 2, 2, 2, 3],
+    #            [0, 0, 0, 0, 0, 0, 0],
+    #            [0, 0, 0, 0, 0, 0, 0],
+    #            [3, 2, 2, 2, 2, 2, 3]])
+    
+    
+
+def compute_derivative(section:Span, eps, x0):
+    # force_vector = section._delta_dx(x0)           
+    dx_d = section._delta_dx(x0+eps)
+    section._delta_dx(x0-eps)
+    
+    # force_vector = section._delta_dz(x0)           
+    dz_d = section._delta_dz(x0+eps)
+    section._delta_dz(x0-eps)
+   
+    return dx_d, dz_d
+    
+    
+    
+
+
+
+
+
+    
+    
+    
+    
