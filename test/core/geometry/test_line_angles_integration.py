@@ -6,6 +6,7 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from mechaphlowers.core.geometry.line_angles import (
     CablePlane,
@@ -13,20 +14,56 @@ from mechaphlowers.core.geometry.line_angles import (
 from mechaphlowers.entities.arrays import SectionArray
 
 
-def test_attachments_coords_0():
-    section_array = SectionArray(
-        pd.DataFrame(
+@pytest.mark.parametrize(
+    "section_array_dict,expected_a_prime,expected_b_prime",
+    [
+        (
             {
-                "name": np.array(["support 1", "2", "three", "support 4"]),
+                "name": np.array(["one", "two", "three", "four"]),
                 "suspension": np.array([False, True, True, False]),
-                "conductor_attachment_altitude": np.array([30, 40, 60, 70]),
+                "conductor_attachment_altitude": np.array([30, 40, 60, 75]),
                 "crossarm_length": np.array([40, 20, 30, 50]),
                 "line_angle": np.array([0, -45, 9, -27]),
-                "insulator_length": np.array([0, 0, 0, 0]),
+                "insulator_length": np.array([0, 3, 8, 0]),
                 "span_length": np.array([500, 460, 520, np.nan]),
-            }
-        )
-    )
+            },
+            np.array([508.10969425, 465.44026071, 529.64910093, np.nan]),
+            np.array([10, 20, 15, np.nan]),
+        ),
+        (
+            {
+                "name": np.array(["one", "two", "three", "four"]),
+                "suspension": np.array([False, True, True, False]),
+                "conductor_attachment_altitude": np.array([30, 40, 60, 75]),
+                "crossarm_length": np.array([-40, -20, -30, -50]),
+                "line_angle": np.array([0, -18, 9, -27]),
+                "insulator_length": np.array([0, 3, 8, 0]),
+                "span_length": np.array([500, 460, 520, np.nan]),
+            },
+            np.array([497.28363069, 459.33732276, 511.02416757, np.nan]),
+            np.array([10, 20, 15, np.nan]),
+        ),
+        (
+            {
+                "name": np.array(["one", "two", "three", "four"]),
+                "suspension": np.array([False, True, True, False]),
+                "conductor_attachment_altitude": np.array([30, 40, 60, 75]),
+                "crossarm_length": np.array([-40, -20, -30, -50]),
+                "line_angle": np.array([-13.5, 18, -9, 27]),
+                "insulator_length": np.array([0, 3, 8, 0]),
+                "span_length": np.array([500, 460, 520, np.nan]),
+            },
+            np.array([498.82705114, 460.88677819, 529.64910093, np.nan]),
+            np.array([10, 20, 15, np.nan]),
+        ),
+    ],
+)
+def test_span_lengths_values(
+    section_array_dict: dict,
+    expected_a_prime: np.ndarray,
+    expected_b_prime: np.ndarray,
+):
+    section_array = SectionArray(pd.DataFrame(section_array_dict))
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
@@ -47,7 +84,6 @@ def test_attachments_coords_0():
     )
 
     a_prime = cable_plane.a_prime
-    a_prime_expected = np.array(
-        [508.10969425, 465.44026071, 529.64910093, np.nan]
-    )
-    np.testing.assert_allclose(a_prime, a_prime_expected)
+    b_prime = cable_plane.b_prime
+    np.testing.assert_allclose(a_prime, expected_a_prime,rtol=0, atol=1e-6)
+    np.testing.assert_allclose(b_prime, expected_b_prime)
