@@ -73,7 +73,7 @@ def test_spans2vector_single_point() -> None:
 
 
 def test_translate_cable_to_support() -> None:
-    altitude = np.array([50.0, 40.0, 20.0, 10.0])
+    altitude = np.array([48.0, 39.0, 19.0, 10.0])
     span_length = np.array([100.0, 200.0, 300.0, np.nan])
     crossarm_length = np.array([5.0, 2.0, 3.0, np.nan])
     insulator_length = np.array([2.0, 1.0, 1.0, np.nan])

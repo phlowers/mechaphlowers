@@ -167,14 +167,12 @@ def translate_cable_to_support(
     _, edge_arm_coords = get_edge_arm_coords(
         supports_ground_coords=supports_ground_coords,
         conductor_attachment_altitude=altitude,
-        line_angle=line_angle,
         crossarm_length=crossarm_length,
-    )
-
-    attachment_coords = get_attachment_coords(
-        edge_arm_coords=edge_arm_coords,
+        line_angle=line_angle,
         insulator_length=insulator_length,
     )
+
+    attachment_coords = get_attachment_coords(edge_arm_coords, altitude)
 
     z_span += -z_span[0, :] + attachment_coords[:-1, 2]
     y_span += -y_span[0, :] + attachment_coords[:-1, 1]
