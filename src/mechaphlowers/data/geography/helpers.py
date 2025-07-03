@@ -7,7 +7,6 @@
 from typing import Union
 
 import numpy as np
-import requests
 
 
 def gps_to_lambert93(
@@ -159,34 +158,6 @@ def lambert93_to_gps(
     return (latitude, longitude)
 
 
-def gps_to_elevation(
-    lat: np.typing.NDArray[np.float64], lon: np.typing.NDArray[np.float64]
-) -> np.typing.NDArray[np.float64]:
-    """
-    Fetch elevation data for a list of locations using Open-Elevation API
-
-    Args:
-        lat (np.typing.NDArray[np.float64]): Latitude of the location in degrees
-        lon (np.typing.NDArray[np.float64]): Longitude of the location in degrees
-
-    Returns:
-        np.typing.NDArray[np.float64]: Elevation in meters
-    """
-    url = "https://api.open-elevation.com/api/v1/lookup"
-
-    # Format locations for the API
-    payload = {"locations": [{"latitude": lat, "longitude": lon}]}
-
-    try:
-        response = requests.post(url, json=payload)
-        response.raise_for_status()  # Raise an exception for bad status codes
-        data = response.json()
-        return np.array([result["elevation"] for result in data["results"]])
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching elevation data: {e}")
-        return np.zeros(len(lat))  # Return zeros if request fails
-
-
 def reverse_haversine(
     lat: np.typing.NDArray[np.float64],
     lon: np.typing.NDArray[np.float64],
@@ -248,7 +219,7 @@ def haversine(
         lon2 (np.typing.NDArray[np.float64]): Longitude of point B in degrees
 
     Returns:
-        np.typing.NDArray[np.float64]: Distance in kilometers
+        np.typing.NDArray[np.float64]: Distance in meters
     """
     # Convert decimal degrees to radians
     lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
@@ -261,7 +232,7 @@ def haversine(
         + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
     )
     c = 2 * np.arcsin(np.sqrt(a))
-    r = 6371  # Radius of earth in kilometers
+    r = 6371000  # Radius of earth in meters
     return c * r
 
 
@@ -296,16 +267,18 @@ def gps_to_bearing(
     return bearing
 
 
-def bearing_to_direction(bearing: np.typing.NDArray[np.float64]) -> str:
+def bearing_to_direction(
+    bearing: np.typing.NDArray[np.float64],
+) -> np.typing.NDArray[np.str_]:
     """
     Convert bearing angle to cardinal direction name
     Args:
         bearing (np.typing.NDArray[np.float64]): Bearing angle in degrees
 
     Returns:
-        str: Cardinal direction name
+        np.typing.NDArray[np.str_]: Cardinal direction name
     """
-    directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+    directions = np.array(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])
     index = np.round(bearing / 45) % 8
     return directions[int(index)]
 
