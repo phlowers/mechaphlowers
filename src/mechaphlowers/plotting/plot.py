@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -25,29 +25,11 @@ def plot_points_3d(fig, points, color=None, width=3, size=None, name="Points"):
             y=points[:, 1],
             z=points[:, 2],
             mode='markers+lines',
-            marker=dict(
-                size=cfg.graphics.marker_size if size is None else size,
-                color=color,
-            ),
-            line=dict(color=color, width=width),
-            name=name,
-        ),
-    )
-
-
-def plot_points_2d(fig, points, color=None, width=3, size=None, name="Points"):
-    if size is None:
-        size = cfg.graphics.marker_size
-    fig.add_trace(
-        go.Scatter(
-            x=points[:, 0],
-            y=points[:, 1],
-            mode='markers+lines',
-            marker=dict(
-                size=cfg.graphics.marker_size if size is None else size,
-                color=color,
-            ),
-            line=dict(color=color, width=width),
+            marker={
+                'size': cfg.graphics.marker_size if size is None else size,
+                'color': color,
+            },
+            line={'color': color, 'width': width},
             name=name,
         ),
     )
@@ -98,21 +80,17 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
     zoom: float = (
         0.1 if auto else 1
     )  # perhaps this approx of the zoom will not be adequate for all cases
-    aspect_ratio: Dict = dict(x=1, y=0.05, z=0.5)
+    aspect_ratio = {'x': 1, 'y': 0.05, 'z': 0.5}
 
     fig.update_layout(
-        scene=dict(
-            aspectratio=aspect_ratio,
-            aspectmode=aspect_mode,
-            camera=dict(
-                up=dict(x=0, y=0, z=1),
-                eye=dict(
-                    x=0,
-                    y=-1 / zoom,
-                    z=0,
-                ),
-            ),
-        )
+        scene={
+            'aspectratio': aspect_ratio,
+            'aspectmode': aspect_mode,
+            'camera': {
+                'up': {'x': 0, 'y': 0, 'z': 1},
+                'eye': {'x': 0, 'y': -1 / zoom, 'z': 0},
+            },
+        }
     )
 
 
@@ -149,7 +127,10 @@ class PlotAccessor:
         section_pts = SectionPoints(
             span_model=spans, **self.section.data_container.__dict__
         )
-
+        beta = np.zeros_like(spans.span_length)
+        if self.section.cable_loads is not None:
+            beta = self.section.cable_loads.load_angle * 180 / np.pi
+        section_pts.beta = beta
         plot_line(fig, section_pts.get_spans("section").points(True))
 
         plot_support(fig, section_pts.get_supports().points(True))
