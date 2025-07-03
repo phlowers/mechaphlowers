@@ -7,7 +7,6 @@
 from typing import Union
 
 import numpy as np
-import requests
 
 
 def gps_to_lambert93(
@@ -159,34 +158,6 @@ def lambert93_to_gps(
     return (latitude, longitude)
 
 
-def gps_to_elevation(
-    lat: np.typing.NDArray[np.float64], lon: np.typing.NDArray[np.float64]
-) -> np.typing.NDArray[np.float64]:
-    """
-    Fetch elevation data for a list of locations using Open-Elevation API
-
-    Args:
-        lat (np.typing.NDArray[np.float64]): Latitude of the location in degrees
-        lon (np.typing.NDArray[np.float64]): Longitude of the location in degrees
-
-    Returns:
-        np.typing.NDArray[np.float64]: Elevation in meters
-    """
-    url = "https://api.open-elevation.com/api/v1/lookup"
-
-    # Format locations for the API
-    payload = {"locations": [{"latitude": lat, "longitude": lon}]}
-
-    try:
-        response = requests.post(url, json=payload)
-        response.raise_for_status()  # Raise an exception for bad status codes
-        data = response.json()
-        return np.array([result["elevation"] for result in data["results"]])
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching elevation data: {e}")
-        return np.zeros(len(lat))  # Return zeros if request fails
-
-
 def reverse_haversine(
     lat: np.typing.NDArray[np.float64],
     lon: np.typing.NDArray[np.float64],
@@ -199,15 +170,15 @@ def reverse_haversine(
     returns the resultant lat/long pair.
 
     Args:
-        lat (np.typing.NDArray[np.float64]): Starting latitude in degrees
-        lon (np.typing.NDArray[np.float64]): Starting longitude in degrees
-        bearing (np.typing.NDArray[np.float64]): Bearing in degrees
-        distance (np.typing.NDArray[np.float64]): Distance in kilometers
+        lat (np.typing.NDArray[np.float64]): Starting latitude in decimal degrees
+        lon (np.typing.NDArray[np.float64]): Starting longitude in decimal degrees
+        bearing (np.typing.NDArray[np.float64]): Bearing in decimal degrees
+        distance (np.typing.NDArray[np.float64]): Distance in meters
 
     Returns:
         tuple[np.typing.NDArray[np.float64], np.typing.NDArray[np.float64]]: Tuple containing the latitude and longitude of the result
     """
-    R = 6378.137  # Radius of Earth in km
+    R = 6378137  # Radius of Earth in meters
 
     lat1 = np.radians(lat)
     lon1 = np.radians(lon)
@@ -242,13 +213,13 @@ def haversine(
     Calculate the great circle distance between two points
     on the earth (specified in decimal degrees)
     Args:
-        lat1 (np.typing.NDArray[np.float64]): Latitude of point A in degrees
-        lon1 (np.typing.NDArray[np.float64]): Longitude of point A in degrees
-        lat2 (np.typing.NDArray[np.float64]): Latitude of point B in degrees
-        lon2 (np.typing.NDArray[np.float64]): Longitude of point B in degrees
+        lat1 (np.typing.NDArray[np.float64]): Latitude of point A in decimal degrees
+        lon1 (np.typing.NDArray[np.float64]): Longitude of point A in decimal degrees
+        lat2 (np.typing.NDArray[np.float64]): Latitude of point B in decimal degrees
+        lon2 (np.typing.NDArray[np.float64]): Longitude of point B in decimal degrees
 
     Returns:
-        np.typing.NDArray[np.float64]: Distance in kilometers
+        np.typing.NDArray[np.float64]: Distance in meters
     """
     # Convert decimal degrees to radians
     lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
@@ -261,7 +232,7 @@ def haversine(
         + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
     )
     c = 2 * np.arcsin(np.sqrt(a))
-    r = 6371  # Radius of earth in kilometers
+    r = 6371000  # Radius of earth in meters
     return c * r
 
 
@@ -275,10 +246,10 @@ def gps_to_bearing(
     Calculate the bearing between two points
     Returns bearing in degrees from north (0-360)
     Args:
-        lat1 (np.typing.NDArray[np.float64]): Latitude of point A in degrees
-        lon1 (np.typing.NDArray[np.float64]): Longitude of point A in degrees
-        lat2 (np.typing.NDArray[np.float64]): Latitude of point B in degrees
-        lon2 (np.typing.NDArray[np.float64]): Longitude of point B in degrees
+        lat1 (np.typing.NDArray[np.float64]): Latitude of point A in decimal degrees
+        lon1 (np.typing.NDArray[np.float64]): Longitude of point A in decimal degrees
+        lat2 (np.typing.NDArray[np.float64]): Latitude of point B in decimal degrees
+        lon2 (np.typing.NDArray[np.float64]): Longitude of point B in decimal degrees
 
     Returns:
         np.typing.NDArray[np.float64]: Bearing angle in degrees from north (0-360)
@@ -296,16 +267,18 @@ def gps_to_bearing(
     return bearing
 
 
-def bearing_to_direction(bearing: np.typing.NDArray[np.float64]) -> str:
+def bearing_to_direction(
+    bearing: np.typing.NDArray[np.float64],
+) -> np.typing.NDArray[np.str_]:
     """
     Convert bearing angle to cardinal direction name
     Args:
-        bearing (np.typing.NDArray[np.float64]): Bearing angle in degrees
+        bearing (np.typing.NDArray[np.float64]): Bearing angle in decimal degrees
 
     Returns:
-        str: Cardinal direction name
+        np.typing.NDArray[np.str_]: Cardinal direction name
     """
-    directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+    directions = np.array(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])
     index = np.round(bearing / 45) % 8
     return directions[int(index)]
 
@@ -320,8 +293,8 @@ def distances_to_gps(
     Calculate GPS coordinates of point B given point A's coordinates and x,y distances in meters.
 
     Args:
-        lat_a (np.typing.NDArray[np.float64]): Latitude of point A in degrees
-        lon_a (np.typing.NDArray[np.float64]): Longitude of point A in degrees
+        lat_a (np.typing.NDArray[np.float64]): Latitude of point A in decimal degrees
+        lon_a (np.typing.NDArray[np.float64]): Longitude of point A in decimal degrees
         x_meters (np.typing.NDArray[np.float64]): Distance from west to east in meters (positive = east, negative = west)
         y_meters (np.typing.NDArray[np.float64]): Distance from south to north in meters (positive = north, negative = south)
 
