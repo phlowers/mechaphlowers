@@ -81,7 +81,6 @@ def get_supports_ground_coords(
         2D array of shape (n, 3) representing the coordinates of the supports in the global frame.
     """
     line_angle_sums = np.cumsum(line_angle)
-    supports_ground_coords = np.zeros((span_length.size, 3))
     # Creates the translations vectors: these are the vectors between two supports
     translations_vectors = np.zeros((span_length.size, 3))
     translations_vectors[:, 0] = span_length
@@ -101,8 +100,9 @@ def get_supports_ground_coords(
 def get_edge_arm_coords(
     supports_ground_coords: np.ndarray,
     conductor_attachment_altitude: np.ndarray,
-    line_angle: np.ndarray,
     crossarm_length: np.ndarray,
+    line_angle: np.ndarray,
+    insulator_length: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Build the supports and arms in the global frame.
 
@@ -119,7 +119,7 @@ def get_edge_arm_coords(
     """
     # Create the coordinates of the intersection of the arms and the supports by adding attachmeent altitude
     center_arm_coords = supports_ground_coords.copy()
-    center_arm_coords[:, 2] = conductor_attachment_altitude
+    center_arm_coords[:, 2] = conductor_attachment_altitude + insulator_length
 
     line_angle_sums = np.cumsum(line_angle)
     # Create translation vectors, which are the vectors that follows the arm
@@ -142,7 +142,7 @@ def get_edge_arm_coords(
 
 def get_attachment_coords(
     edge_arm_coords: np.ndarray,
-    insulator_length: np.ndarray,
+    conductor_attachment_altitude: np.ndarray,
 ) -> np.ndarray:
     """Get the coordinates of the attachment points in the global frame. These are the coordinates of the end of the suspension insulators.
     Currently, we assume that isulators set are vetical.
@@ -155,7 +155,7 @@ def get_attachment_coords(
         np.ndarray: coordinates of the attachment points in the global frame.
     """
     attachment_coords = edge_arm_coords.copy()
-    attachment_coords[:, 2] = attachment_coords[:, 2] - insulator_length
+    attachment_coords[:, 2] = conductor_attachment_altitude
     return attachment_coords
 
 
@@ -234,11 +234,12 @@ def get_supports_coords(
     center_arm_coords, arm_coords = get_edge_arm_coords(
         supports_ground_coords,
         conductor_attachment_altitude,
-        line_angle,
         crossarm_length,
+        line_angle,
+        insulator_length,
     )
     attachment_coords = get_attachment_coords(
-        edge_arm_coords=arm_coords, insulator_length=insulator_length
+        arm_coords, conductor_attachment_altitude
     )
     return (
         supports_ground_coords,
