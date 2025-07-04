@@ -10,7 +10,7 @@ from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.config import options
 
 
-def test_config_on_plot(default_section_array_three_spans):
+def test_config_on_plot(default_section_array_three_spans) -> None:
     frame = SectionDataFrame(default_section_array_three_spans)
     fig = go.Figure()
     options.graphics.resolution = 20
@@ -19,7 +19,7 @@ def test_config_on_plot(default_section_array_three_spans):
     assert (
         fig._data[0].get('marker').get('size') == options.graphics.marker_size
     )
-    assert fig._data[0].get('x').shape[0] == options.graphics.resolution * (
-        default_section_array_three_spans.data.shape[0] - 1
-    )
+    assert fig._data[0].get('x').shape[0] == (
+        options.graphics.resolution + 1
+    ) * (default_section_array_three_spans.data.shape[0] - 1)
     # fig.show() # deactivate for auto unit testing

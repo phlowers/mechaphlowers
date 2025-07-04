@@ -14,8 +14,6 @@ from typing_extensions import Self
 
 from mechaphlowers.api.state import StateAccessor
 from mechaphlowers.config import options
-from mechaphlowers.config import options as cfg
-from mechaphlowers.core.geometry import references
 
 # if TYPE_CHECKING:
 from mechaphlowers.core.models.cable.deformation import (
@@ -66,7 +64,7 @@ class SectionDataFrame:
         self.weather: WeatherArray | None = None
         self.data_container: DataContainer = DataContainer()
         self.cable_loads: CableLoads | None = None
-        self.span: Span | None = None
+        self.span: Span
         self.deformation: IDeformation | None = None
         self._span_model: Type[Span]
         self._deformation_model: Type[IDeformation]
@@ -82,7 +80,6 @@ class SectionDataFrame:
         deformation_model: Type[IDeformation] | None = None,
     ):
         """init_type_model method to initialize type model"""
-        print("ini")
         if span_model is None:
             try:
                 self._span_model = map_model_options[
@@ -106,33 +103,9 @@ class SectionDataFrame:
         else:
             self._deformation_model = deformation_model  # type: ignore[no-redef,assignment]
 
-    def init_span_model(self):
+    def init_span_model(self) -> None:
         """init_span_model method to initialize span model"""
         self.span = self._span_model(**self.data_container.__dict__)
-
-    def get_coordinates(self) -> np.ndarray:
-        """Get x,y,z cables coordinates
-
-        Returns:
-                np.ndarray: x,y,z array in point format
-        """
-        spans = self._span_model(**self.data_container.__dict__)
-        x_cable: np.ndarray = spans.x(cfg.graphics.resolution)
-        z_cable: np.ndarray = spans.z(x_cable)
-
-        beta = np.zeros(x_cable.shape[1])
-        if self.cable_loads is not None:
-            beta = self.cable_loads.load_angle * 180 / np.pi
-
-        return references.transform_coordinates(
-            x_cable,
-            z_cable,
-            beta,
-            self.data_container.conductor_attachment_altitude,
-            self.data_container.span_length,
-            self.data_container.crossarm_length,
-            self.data_container.insulator_length,
-        )
 
     @property
     def data(self) -> pd.DataFrame:
@@ -229,11 +202,11 @@ class SectionDataFrame:
         self.update_cable()
         self.init_deformation_model()
 
-    def update_cable(self):
+    def update_cable(self) -> None:
         """update_cable method to update the cable-related properties"""
-        self.span.linear_weight = self.cable.data.linear_weight.to_numpy()  # type: ignore[union-attr]
+        self.span.linear_weight = self.cable.data.linear_weight[0]  # type: ignore[union-attr]
 
-    def add_weather(self, weather: WeatherArray):
+    def add_weather(self, weather: WeatherArray) -> None:
         """add_weather method to add a new weather to the SectionDataFrame
 
         Args:
@@ -254,7 +227,7 @@ class SectionDataFrame:
         self.data_container.add_weather_array(weather)
         self.update_weather()
 
-    def update_weather(self):
+    def update_weather(self) -> None:
         """update_weather method to update the weather-related properties"""
         self.cable_loads = CableLoads(**self.data_container.__dict__)  # type: ignore[union-attr,arg-type]
         self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr]
@@ -293,7 +266,7 @@ class SectionDataFrame:
         # Add array to the SectionDataFrame
         self.__setattr__(property_map[type_var], var)
 
-    def init_deformation_model(self):
+    def init_deformation_model(self) -> None:
         """initialize_deformation method to initialize deformation model"""
         if self.cable is None:
             raise ValueError("Cable has to be added before deformation model")
@@ -305,7 +278,7 @@ class SectionDataFrame:
         )
         # TODO: test if L_ref change when span_model T_mean change
 
-    def update(self):
+    def update(self) -> None:
         """update method to update the state of the object"""
         update_data = df_to_dict(self.section_array.data)
         if self.weather is not None:
@@ -327,7 +300,7 @@ class SectionDataFrame:
 
     state = CachedAccessor("state", StateAccessor)
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         out = type(self)(copy(self.section_array))
         out.cable = copy(self.cable)
         out.weather = copy(self.weather)

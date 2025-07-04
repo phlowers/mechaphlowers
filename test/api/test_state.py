@@ -49,13 +49,15 @@ def section_dataframe():
 # ---------Tests---------
 
 
-def test_Deformation_is_not_defined(section_dataframe_without_deformation):
+def test_Deformation_is_not_defined(
+    section_dataframe_without_deformation,
+) -> None:
     state_accessor = StateAccessor(section_dataframe_without_deformation)
     with pytest.raises(ValueError):
         state_accessor.L_ref()
 
 
-def test_L_ref_value(section_dataframe):
+def test_L_ref_value(section_dataframe) -> None:
     state_accessor = StateAccessor(section_dataframe)
     result = state_accessor.L_ref()
     expected = np.array([1, 2, 3])

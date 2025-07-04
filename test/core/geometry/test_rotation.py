@@ -8,7 +8,7 @@ from mechaphlowers.core.geometry.rotation import (
 )
 
 
-def test_hamilton_array():
+def test_hamilton_array() -> None:
     q0 = np.array(
         [[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [0, 1, 0, 0], [1, 2, 0, 3]]
     )
@@ -29,7 +29,7 @@ def test_hamilton_array():
     assert (result == expected_result).all()
 
 
-def test_rotation_matrix_quaternion__simple_axis():
+def test_rotation_matrix_quaternion__simple_axis() -> None:
     beta = np.array([90, 180])
     rotation_matrix_0 = rotation_matrix_to_quaternion(
         beta, np.array([[1, 0, 0], [0, 2, 0]])
@@ -43,7 +43,7 @@ def test_rotation_matrix_quaternion__simple_axis():
     np.testing.assert_array_almost_equal(rotation_matrix_0, expected_result)
 
 
-def test_rotation_multiple__same_axis():
+def test_rotation_multiple__same_axis() -> None:
     vector_0 = np.array(
         [
             [0, 1, 1],
@@ -77,7 +77,7 @@ def test_rotation_multiple__same_axis():
     np.testing.assert_array_almost_equal(vector_rotated_1, expected_result_1)
 
 
-def test_rotation_multiple__different_axis():
+def test_rotation_multiple__different_axis() -> None:
     vector = np.array(
         [
             [1, 5, 1],

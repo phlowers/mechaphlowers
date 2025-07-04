@@ -10,7 +10,7 @@ from importlib import reload
 import mechaphlowers
 
 
-def test_log(caplog):
+def test_log(caplog) -> None:
     caplog.set_level(logging.INFO)
     logging.info("Test log is working")
     assert "Test log is working" in caplog.text

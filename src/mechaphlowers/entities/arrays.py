@@ -5,11 +5,11 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
-from typing import Type
 
 import numpy as np
 import pandas as pd
 import pandera as pa
+from typing_extensions import Self, Type
 
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
@@ -27,9 +27,9 @@ class ElementArray(ABC):
         self._data: pd.DataFrame = _data
 
     def _drop_extra_columns(self, input_data: pd.DataFrame) -> pd.DataFrame:
-        """Return a copy of the input pdt.DataFrame, without irrelevant columns.
+        """Return a copy of the input pd.DataFrame, without irrelevant columns.
 
-        Note: This has no impact on the input pdt.DataFrame.
+        Note: This has no impact on the input pd.DataFrame.
         """
         # We need to convert Model into Schema because the strict attribute doesn't exist for Model
         array_input_schema = self.array_input_type.to_schema()
@@ -39,7 +39,7 @@ class ElementArray(ABC):
     def __str__(self) -> str:
         return self._data.to_string()
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         return type(self)(self._data)
 
     @property
@@ -100,7 +100,7 @@ class SectionArray(ElementArray):
                 sagging_temperature=self.sagging_temperature,
             )
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         copy_obj = super().__copy__()
         copy_obj.sagging_parameter = self.sagging_parameter
         copy_obj.sagging_temperature = self.sagging_temperature

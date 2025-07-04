@@ -146,7 +146,7 @@ def test_catenary_span_model__tensions__no_elevation_difference() -> None:
     assert abs(span_model.T_mean()[0] - 19159.78784541) < 0.01
 
 
-def test_catenary_span_model__geometric_output():
+def test_catenary_span_model__geometric_output() -> None:
     a = np.array([500])
     b = np.array([0])
     p = np.array([2_000])

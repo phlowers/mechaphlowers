@@ -8,7 +8,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.core.models.external_loads import CableLoads
+from mechaphlowers.core.models.external_loads import (
+    CableLoads,
+    WindSpeedPressureConverter,
+)
 from mechaphlowers.entities.arrays import WeatherArray
 from mechaphlowers.entities.data_container import DataContainer
 
@@ -77,3 +80,76 @@ def test_total_load_coefficient__data_container(
 
     weather_loads.load_coefficient
     weather_loads.load_angle
+
+
+def test_build_converter_with_gust():
+    gust_wind = np.array([50, 30])
+    wind_angle_cable_degrees = np.array([90, 70])
+    tower_height = np.array([20, 50])
+    voltage = 90
+    wind_converter = WindSpeedPressureConverter(
+        tower_height,
+        gust=gust_wind,
+        angle_cable_degrees=wind_angle_cable_degrees,
+        voltage=voltage,
+    )
+    wind_converter.speed_average
+    wind_converter.pressure
+    wind_converter.pressure_rounded
+
+
+def test_build_converter_with_average_wind():
+    speed_average_wind_open_country = np.array([2, 7])
+    wind_angle_cable_degrees = np.array([90, 70])
+    tower_height = np.array([20, 50])
+    voltage = 90
+    wind_converter = WindSpeedPressureConverter(
+        tower_height,
+        speed_average_open_country=speed_average_wind_open_country,
+        angle_cable_degrees=wind_angle_cable_degrees,
+        voltage=voltage,
+    )
+    np.testing.assert_equal(
+        wind_converter.speed_average,
+        speed_average_wind_open_country,
+    )
+    wind_converter.pressure
+    wind_converter.pressure_rounded
+
+
+def test_build_converter_no_wind():
+    wind_angle_cable_degrees = np.array([90, 70])
+    tower_height = np.array([20, 50])
+    voltage = 90
+    with pytest.raises(TypeError):
+        WindSpeedPressureConverter(
+            angle_cable_degrees=wind_angle_cable_degrees,
+            tower_height=tower_height,
+            voltage=voltage,
+        )
+
+
+def test_build_converter_both_wind_values():
+    # test that if both gust_wind and speed_average_wind_open_country are provided,
+    # the speed_average_wind_open_country is used for pressure calculation
+    gust_wind = np.array([0, 0])
+    speed_average_wind_open_country = np.array([13, 9])
+    wind_angle_cable_degrees = np.array([90, 70])
+    tower_height = np.array([20, 50])
+    voltage = 90
+    wind_converter = WindSpeedPressureConverter(
+        tower_height=tower_height,
+        gust=gust_wind,
+        speed_average_open_country=speed_average_wind_open_country,
+        angle_cable_degrees=wind_angle_cable_degrees,
+        voltage=voltage,
+    )
+    np.testing.assert_equal(
+        wind_converter.speed_average,
+        speed_average_wind_open_country,
+    )
+    wind_converter.pressure
+    np.testing.assert_equal(
+        wind_converter.pressure_rounded,
+        np.array([230, 100]),
+    )
