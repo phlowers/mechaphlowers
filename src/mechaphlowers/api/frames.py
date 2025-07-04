@@ -230,7 +230,7 @@ class SectionDataFrame:
     def update_weather(self) -> None:
         """update_weather method to update the weather-related properties"""
         self.cable_loads = CableLoads(**self.data_container.__dict__)  # type: ignore[union-attr,arg-type]
-        self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr]
+        self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr] # ???do this here?
         self.init_deformation_model()
 
     # How to manage case where type_var = SectionArray

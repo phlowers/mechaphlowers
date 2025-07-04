@@ -94,9 +94,13 @@ class SectionArray(ElementArray):
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
             )
         else:
+            sagging_parameter = np.repeat(
+                np.float64(self.sagging_parameter), self._data.shape[0]
+            )
+            sagging_parameter[-1] = np.nan
             return self._data.assign(
                 elevation_difference=self.compute_elevation_difference(),
-                sagging_parameter=self.sagging_parameter,
+                sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
             )
 
