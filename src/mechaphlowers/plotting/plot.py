@@ -58,11 +58,12 @@ def plot_points_2d(
             x=x,
             y=y,
             mode='markers+lines',
-            marker=dict(
-                size=cfg.graphics.marker_size if size is None else size,
-                color=color,
-            ),
-            line=dict(color=color, width=width),
+            marker={
+                'size': cfg.graphics.marker_size if size is None else size,
+                'color': color,
+            },
+            line={'color': color, 'width': width},
+            name=name,
         )
     )
 
