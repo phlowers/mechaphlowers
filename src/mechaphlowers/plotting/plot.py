@@ -18,7 +18,14 @@ if TYPE_CHECKING:
 from mechaphlowers.config import options as cfg
 
 
-def plot_points_3d(fig, points, color=None, width=3, size=None, name="Points"):
+def plot_points_3d(
+    fig: go.Figure,
+    points: np.ndarray,
+    color=None,
+    width=3,
+    size=None,
+    name="Points",
+):
     fig.add_trace(
         go.Scatter3d(
             x=points[:, 0],
@@ -32,6 +39,31 @@ def plot_points_3d(fig, points, color=None, width=3, size=None, name="Points"):
             line={'color': color, 'width': width},
             name=name,
         ),
+    )
+
+
+def plot_points_2d(
+    fig: go.Figure,
+    x: np.ndarray,
+    y: np.ndarray,
+    color=None,
+    width=3,
+    size=None,
+    name="Points",
+):
+    if size is None:
+        size = cfg.graphics.marker_size
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=y,
+            mode='markers+lines',
+            marker=dict(
+                size=cfg.graphics.marker_size if size is None else size,
+                color=color,
+            ),
+            line=dict(color=color, width=width),
+        )
     )
 
 
