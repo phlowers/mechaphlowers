@@ -8,9 +8,6 @@ import numpy as np
 import pytest
 from numpy.polynomial import Polynomial as Poly
 
-from mechaphlowers.core.models.cable.deformation import DeformationRte
-from mechaphlowers.core.models.cable.span import CatenarySpan
-from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.core.solver.cable_state import (
     SagTensionSolver,
 )
@@ -25,21 +22,6 @@ def weather_dict_one_span():
     }
 
 
-def get_L_ref_from_arrays(
-    data_container: DataContainer, current_temperature: np.ndarray
-):
-    cable_loads = CableLoads(**data_container.__dict__)
-    span_model = CatenarySpan(**data_container.__dict__)
-
-    span_model.load_coefficient = cable_loads.load_coefficient
-    deformation = DeformationRte(
-        **data_container.__dict__,
-        tension_mean=span_model.T_mean(),
-        cable_length=span_model.L(),
-    )
-    return deformation.L_ref()
-
-
 def test_solver__run_solver(
     default_data_container_one_span: DataContainer,
     weather_dict_one_span: dict,
@@ -47,7 +29,8 @@ def test_solver__run_solver(
     current_temperature = np.array([15] * 2)
 
     sag_tension_calculation = SagTensionSolver(
-        **default_data_container_one_span.__dict__
+        **default_data_container_one_span.__dict__,
+        data_cable=default_data_container_one_span.data_cable,
     )
     sag_tension_calculation.initial_state()
 
@@ -80,7 +63,8 @@ def test_solver__run_solver__polynomial_model(
     default_data_container_one_span.polynomial_conductor = new_poly
 
     sag_tension_calculation = SagTensionSolver(
-        **default_data_container_one_span.__dict__
+        **default_data_container_one_span.__dict__,
+        data_cable=default_data_container_one_span.data_cable,
     )
     sag_tension_calculation.initial_state()
 
@@ -101,7 +85,8 @@ def test_solver__run_solver_no_solution(
 ) -> None:
     current_temperature = np.array([15] * 2)
     sag_tension_calculation = SagTensionSolver(
-        **default_data_container_one_span.__dict__
+        **default_data_container_one_span.__dict__,
+        data_cable=default_data_container_one_span.data_cable,
     )
     sag_tension_calculation.initial_state()
     sag_tension_calculation.L_ref = np.array([1, 1])
@@ -119,7 +104,8 @@ def test_solver__bad_solver(
     current_temperature = np.array([15] * 2)
 
     sag_tension_calculation = SagTensionSolver(
-        **default_data_container_one_span.__dict__
+        **default_data_container_one_span.__dict__,
+        data_cable=default_data_container_one_span.data_cable,
     )
     sag_tension_calculation.initial_state()
     with pytest.raises(ValueError) as excinfo:
@@ -135,11 +121,32 @@ def test_solver__values_before_solver(
     default_data_container_one_span: DataContainer,
 ) -> None:
     sag_tension_calculation = SagTensionSolver(
-        **default_data_container_one_span.__dict__
+        **default_data_container_one_span.__dict__,
+        data_cable=default_data_container_one_span.data_cable,
     )
-
     assert sag_tension_calculation.T_h_after_change is None
     with pytest.raises(ValueError):
         sag_tension_calculation.p_after_change()
     with pytest.raises(ValueError):
         sag_tension_calculation.L_after_change()
+
+
+def test_solver__run_solver_polynomial(
+    data_container_one_span_narcisse: DataContainer,
+    weather_dict_one_span: dict,
+) -> None:
+    current_temperature = np.array([15] * 2)
+
+    sag_tension_calculation = SagTensionSolver(
+        **data_container_one_span_narcisse.__dict__,
+        data_cable=data_container_one_span_narcisse.data_cable,
+    )
+    sag_tension_calculation.initial_state()
+    sag_tension_calculation.change_state(
+        **weather_dict_one_span,
+        temp=current_temperature,
+        solver="newton",
+    )
+    # check no error
+    sag_tension_calculation.p_after_change()
+    sag_tension_calculation.L_after_change()

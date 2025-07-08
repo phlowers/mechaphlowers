@@ -24,7 +24,7 @@ from mechaphlowers.entities.data_container import (
 )
 
 
-class WeatherDict(TypedDict, total=False):
+class WeatherDict(TypedDict):
     ice_thickness: np.ndarray
     wind_pressure: np.ndarray
 
@@ -41,7 +41,10 @@ def create_sag_tension_solver(
     data_container = factory_data_container(
         section_array, cable_array, weather_array
     )
-    solver = SagTensionSolver(**data_container.__dict__)
+    solver = SagTensionSolver(
+        **data_container.__dict__,
+        data_cable=data_container.data_cable,
+    )
     solver.initial_state()
     return solver
 
@@ -67,7 +70,11 @@ def test_functions_to_solve__same_loads(
         default_section_array_three_spans, default_cable_array, weather_array
     )
 
-    sag_tension_calculation = SagTensionSolver(**data_container.__dict__)
+    sag_tension_calculation = SagTensionSolver(
+        **data_container.__dict__,
+        data_cable=data_container.data_cable,
+    )
+
     sag_tension_calculation.initial_state()
 
     new_temperature = np.array([15] * NB_SPAN)
@@ -263,3 +270,31 @@ def test_functions_to_solve__no_memory_effect(
     T_h_direct = sag_tension_calculation_indirect.T_h_after_change
 
     np.testing.assert_equal(T_h_indirect, T_h_direct)
+
+
+def test_functions_to_solve__narcisse(
+    default_section_array_one_span: SectionArray,
+    narcisse_cable_array: CableArray,
+    factory_neutral_weather_array: Callable[[int], WeatherArray],
+) -> None:
+    NB_SPAN = 2
+    initial_weather_array = factory_neutral_weather_array(2)
+    new_temperature = np.array([15] * NB_SPAN)
+
+    sag_tension_calculation_0 = create_sag_tension_solver(
+        default_section_array_one_span,
+        narcisse_cable_array,
+        initial_weather_array,
+    )
+
+    weather_dict_final: WeatherDict = {
+        # TODO: does not find solution with 1.5 ice thickness
+        "ice_thickness": 1e-2 * np.ones(NB_SPAN),
+        "wind_pressure": 0 * np.ones(NB_SPAN),
+    }
+
+    sag_tension_calculation_0.change_state(
+        **weather_dict_final, temp=new_temperature
+    )
+    T_h_state_0 = sag_tension_calculation_0.T_h_after_change
+    assert T_h_state_0 is not None
