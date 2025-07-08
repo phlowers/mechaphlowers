@@ -219,7 +219,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "line_angle": [0, 360, 90.1, -90.2],
             "insulator_length": [0, 4, 3.2, 0],
             "span_length": [1, 500.2, 500.05, np.nan],
-            "elevation_difference": [-1.2, -4.32, 3.32, np.nan],
+            "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15] * 4,
         },
