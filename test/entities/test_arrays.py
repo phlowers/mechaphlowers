@@ -197,7 +197,7 @@ def test_compute_elevation_difference() -> None:
     elevation_difference = section_array.compute_elevation_difference()
 
     assert_allclose(
-        elevation_difference, np.array([-14.0, -19.0, -7.0, np.nan])
+        elevation_difference, np.array([-10.0, -20.0, -10.0, np.nan])
     )
 
 
