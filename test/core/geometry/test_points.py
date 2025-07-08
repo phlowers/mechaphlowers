@@ -170,3 +170,31 @@ def test_span_absolute_coords_new_obj(section_array_line_angles):
 
     # set_layout(fig)
     # fig.show()
+
+
+def test_span_with_wind(section_array_line_angles):
+    span_model = CatenarySpan(**section_array_line_angles.to_numpy())
+
+    s = SectionPoints(
+        span_model=span_model, **section_array_line_angles.to_numpy()
+    )
+    s.beta = np.array([45, -45, 60, -60])
+    points_cable_frame = s.get_spans("cable").points(True)
+    y_spans = points_cable_frame[:, 1]
+    y_spans_no_nans = y_spans[~np.isnan(y_spans)]
+    # from plotly import graph_objects as go
+    # from mechaphlowers.plotting.plot import plot_points_3d, set_layout
+
+    # fig = go.Figure()
+    # plot_points_3d(fig, s.get_spans("cable").points(True), name="Cable frame")
+    # plot_points_3d(fig, s.get_spans("localsection").points(True), name="Localsection frame")
+    # plot_points_3d(fig, s.get_spans("section").points(True), name="Section frame")
+
+    # plot_points_3d(fig, s.get_supports().points(True), name="Supports")
+    # plot_points_3d(fig, s.get_insulators().points(True), name="Insulators")
+
+    # set_layout(fig)
+    # fig.show()
+
+    # Check that the y-coordinates of the spans are not all the same: the wind is active
+    assert ~((y_spans_no_nans == y_spans_no_nans[0]).all())
