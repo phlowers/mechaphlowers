@@ -142,13 +142,13 @@ $$L_{ref} = \frac{L}{1+\varepsilon_{total}}$$
 
 #### Linear elasticity model
 
-In this section, we assume the cable exhibits linear elasticity and can be described by a linear relation between stress $\sigma = T_{mean}/S$ and strain $\varepsilon_{mecha}$.
+In this section, we assume the cable exhibits linear elasticity and can be described by a linear relationship between stress $\sigma = T_{mean}/S$ and strain $\varepsilon_{mecha}$.
 
 $$\varepsilon_{mecha} = \varepsilon_{m} = \frac{\sigma}{E} = \frac{T_{mean}}{E\cdot S}$$
 
 #### Polynomial model
 
-In this section, we assume that stress and strain are linked by a polynomial relation: 
+In this section, we assume that stress and strain are linked by a polynomial relationship: 
 
 $$\sigma = a0 + a1 \cdot \varepsilon_{m} + a2 \cdot \varepsilon_{m}^2 + a3 \cdot \varepsilon_{m}^3 + a4 \cdot \varepsilon_{m}^4$$
 
