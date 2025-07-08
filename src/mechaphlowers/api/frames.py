@@ -230,7 +230,13 @@ class SectionDataFrame:
     def update_weather(self) -> None:
         """update_weather method to update the weather-related properties"""
         self.cable_loads = CableLoads(**self.data_container.__dict__)  # type: ignore[union-attr,arg-type]
-        self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr] # ???do this here?
+        self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr]
+        # Run change state solver in order to update sagging parameter
+        self.state.change(
+            self.data_container.sagging_temperature, self.weather
+        )
+        # Data format is unusual:
+        # self.weather is used as argument, but using data_container instead should be better
         self.init_deformation_model()
 
     # How to manage case where type_var = SectionArray
