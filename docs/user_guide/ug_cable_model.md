@@ -82,7 +82,7 @@ $$
 
 The cable equation has an impact on mechanical tension definition. The mechanical tension is separated into two parts:
 
-1. The horizontal component 
+* The horizontal component 
 
 $$
     T_h = p \cdot mass \cdot \lambda
@@ -90,7 +90,7 @@ $$
 
 With $m$ the load coefficient. No load on cable means $mass = 1$. It is constant along the cable.
 
-2. The vertical component
+* The vertical component
 
 $$
     T_v(x) = T_h \cdot \sinh \left( \frac{x}{p} \right)
@@ -155,19 +155,19 @@ stress. More complex behaviors (e.g., plasticity) can be added in the future.
 
 The cable's strain results from two sources, mechanical tensions and temperature changes:
 
-1. Mechanical strain due to tension $T_{mean}$:
+* Mechanical strain due to tension $T_{mean}$:
 
-   $$
+$$
    \varepsilon_{mecha} = \frac{T_{mean}}{E \cdot S}
-   $$
+$$
 
-2. Thermal strain due to temperature $\theta$:
+* Thermal strain due to temperature $\theta$:
 
-   $$
+$$
    \varepsilon_{therm} = (\theta - \theta_{ref}) \cdot \alpha_{th}
-   $$
+$$
 
-   where $\theta_{ref}$ is the reference temperature used to define the unstressed cable length
+where $\theta_{ref}$ is the reference temperature used to define the unstressed cable length
 
 The total strain is:
 
