@@ -7,8 +7,9 @@
 from unittest.mock import Mock, patch
 
 import numpy as np
+import pytest
 
-from mechaphlowers.data.geography.elevation import OpenElevationService
+from mechaphlowers.data.geography.elevation import get_elevation
 
 
 @patch('mechaphlowers.data.geography.elevation.requests.post')
@@ -33,8 +34,7 @@ def test_gps_to_elevation(mock_post):
     )  # Paris, Marseille, Lyon
     lon = np.array([2.3522, 5.3698, 4.8357], dtype=np.float64)
 
-    service = OpenElevationService()
-    elevations = service.get_elevation(lat, lon)
+    elevations = get_elevation(lat, lon)
 
     # Check that the function was called with correct parameters
     mock_post.assert_called_once()
@@ -50,3 +50,16 @@ def test_gps_to_elevation(mock_post):
     assert elevations.shape == (3,)
     assert elevations.dtype == np.float64
     assert np.allclose(elevations, np.array([35.0, 12.0, 173.0]))
+
+
+def test_get_elevation_no_requests():
+    """Test get_elevation when requests is not installed."""
+    # Remove requests from sys.modules
+    # sys.modules['requests'] = None
+
+    import mechaphlowers.data.geography.elevation as elevation
+
+    elevation.requests_installed = False
+
+    with pytest.raises(ImportError):
+        get_elevation(np.array([0]), np.array([0]))

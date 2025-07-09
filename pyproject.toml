@@ -1,12 +1,8 @@
 [project]
 name = "mechaphlowers"
-dynamic = ["version"]
+dynamic = ["version"]  
 description = "Physical calculation package for the mechanics and geometry of power lines"
-authors = [
-    { name = "Adrien Goeller" },
-    { name = "Aimee Quinaou" },
-    { name = "Jeremy Wang" },
-]
+authors = [{name = "Adrien Goeller"}, {name = "Aimee Quinaou"}, {name = "Jeremy Wang"}]
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -28,7 +24,6 @@ dependencies = [
     "pandera<=0.21.1",
     "plotly<=5.24.1",
     "multimethod<2.0",
-    "requests==2.32.4",
 ]
 
 [project.urls]
@@ -37,7 +32,7 @@ Issues = "https://github.com/phlowers/mechaphlowers/issues"
 Documentation = "https://phlowers.readthedocs.io/projects/mechaphlowers/"
 
 [project.optional-dependencies]
-full = ["scipy<=1.14.1"]
+full = ["scipy<=1.14.1", "requests==2.32.4"]
 
 [dependency-groups]
 dev = [
@@ -52,13 +47,17 @@ dev = [
     "scipy<=1.14.1",
     "types-requests==2.32.4.20250611",
 ]
-test = ["pytest==8.3.2", "pytest-cov==5.0.0"]
+test = [
+    "pytest==8.3.2",
+    "pytest-cov==5.0.0",
+    "requests==2.32.4",
+    ]
 docs = [
     "mkdocs==1.6.1",
     "mkdocstrings[python]==0.26.2",
     "mkdocs-material==9.5.43",
-    "mkdocs-jupyter==0.25.1",
-]
+    "mkdocs-jupyter==0.25.1"
+    ]
 
 all = [
     { include-group = 'dev' },
@@ -75,7 +74,7 @@ build-backend = "pdm.backend"
 ### Tools configuration
 
 [tool.pdm]
-version = { source = "scm", version_format = "pdm_build:format_version" }
+version = { source = "scm", version_format = "pdm_build:format_version"}
 distribution = true
 
 
@@ -101,16 +100,7 @@ extend-select = ["I"]
 
 [tool.mypy]
 exclude = [
-    "virtualenv",
-    ".venv*",
-    "build",
-    "dist",
-    "site-packages",
-    "tests",
-    "docs",
-    "doc",
-    "examples",
-    "example",
+    "virtualenv", ".venv*", "build", "dist", "site-packages", "tests", "docs", "doc", "examples", "example"
 ]
 
 ## Test framework

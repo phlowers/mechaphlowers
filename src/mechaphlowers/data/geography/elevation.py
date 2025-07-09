@@ -7,7 +7,15 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
-import requests
+
+requests_installed = False
+
+try:
+    import requests
+
+    requests_installed = True
+except ImportError:
+    pass
 
 OPEN_ELEVATION_API_URL = "https://api.open-elevation.com/api/v1/lookup"
 
@@ -41,9 +49,6 @@ class IElevationService(ABC):
 class OpenElevationService(IElevationService):
     """Implementation of elevation service using Open-Elevation API."""
 
-    def __init__(self, api_url: str = OPEN_ELEVATION_API_URL):
-        self.api_url = api_url
-
     def get_elevation(
         self,
         lat: np.ndarray,
@@ -59,6 +64,10 @@ class OpenElevationService(IElevationService):
         Returns:
             np.ndarray: Elevation in meters
         """
+        if not requests_installed:
+            raise ImportError(
+                "requests is not installed, use the full installation to use this service"
+            )
 
         # Format locations for the API
         payload = {
@@ -71,7 +80,7 @@ class OpenElevationService(IElevationService):
         }
 
         try:
-            response = requests.post(self.api_url, json=payload)
+            response = requests.post(OPEN_ELEVATION_API_URL, json=payload)
             response.raise_for_status()  # Raise an exception for bad status codes
             data = response.json()
             return np.array(
@@ -80,3 +89,9 @@ class OpenElevationService(IElevationService):
         except requests.exceptions.RequestException as e:
             print(f"Error fetching elevation data: {e}")
             return np.zeros(len(lat))  # Return zeros if request fails
+
+    def __call__(self, lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
+        return self.get_elevation(lat, lon)
+
+
+get_elevation = OpenElevationService()
