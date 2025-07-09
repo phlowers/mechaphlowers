@@ -73,15 +73,15 @@ The steps are as follows:
 3. Calculate the strain:
    - The first method from the reference length:
    
-   $$ 
-   {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0}
-   $$
+$$ 
+    {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0}
+$$
    
    - The second method from the strain-stress relationship:  
    
-   $$
+$$
    {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th}
-   $$
+$$
 
 4. Determine the remaining error: since strain depends on $T_h$, determine the error function for iterative solutions:
 
