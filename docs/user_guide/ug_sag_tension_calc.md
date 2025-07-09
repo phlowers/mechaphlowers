@@ -8,26 +8,27 @@ A cable is subject to three main types of external loads:
 
 1. The wind load, denoted as $Q_w$:
 
-$$
-Q_w = P_w \cdot (D + 2 \cdot e)
-$$
+   $$
+   Q_w = P_w \cdot (D + 2 \cdot e)
+   $$
 
-with:
-    - $D$ the cable diameter, 
-    - $e$ the ice thickness,  
-    - and $P_w$ the wind pressure.
+   where:
+   
+   * $D$ the cable diameter
+   * $e$ the ice thickness
+   * $P_w$ the wind pressure
 
 2. The ice weight per unit length, denoted as $Q_{ice}$:
 
-$$
-    Q_{ice} = \rho_{ice} \cdot \pi \cdot e \cdot (e + D)
-$$
+   $$
+   Q_{ice} = \rho_{ice} \cdot \pi \cdot e \cdot (e + D)
+   $$
 
-with:
-    - $D$ the cable diameter,
-    - $e$ the ice thickness,
-    - and $\rho_{ice}$ the ice density, typically ranging from $2000$ to $9500\ \mathrm{N/m^3}$. By default, $6000\ \mathrm{N/m^3}$.
+   where:
 
+    * $D$ the cable diameter
+    * $e$ the ice thickness
+    * $\rho_{ice}$ the ice density, typically ranging from $2000$ to $9500\ \mathrm{N/m^3}$ (default is $6000\ \mathrm{N/m^3}$)
 3. The cable linear weight, denoted as $\lambda$, that reflects the intrinsic weight of the cable per unit length.
 
 Thus, the total resultant force $R$, acting on the cable, is calculated as:
@@ -64,15 +65,25 @@ $$
 We want to determine the new horizontal tension when additional loads and/or thermal changes are applied on the cable.
 The steps are as follows:
 
-1. Update the cable plane by calculating the new angle ($\beta$).
+1. Update the cable plane:
+    * Calculate the new angle ($\beta$)
 
 2. Adjust sagging parameters:
-    - Compute $a'$ and $b'$ (adjusted span length and height difference).  
-    - Update the cable's effective length, $L'$.
+    * Compute $a'$ and $b'$ (adjusted span length and height difference)
+    * Update the cable's effective length, $L'$
 
 3. Calculate the strain:
-    - The first method from the reference length: $ {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0} $
-    - The second method from the strain-stress relationship: $ {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th} $
+    * First method from the reference length:
+      
+      $$
+      {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0}
+      $$
+
+    * Second method from the strain-stress relationship:
+      
+      $$
+      {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th}
+      $$
 
 4. Determine the remaining error: since strain depends on $T_h$, determine the error function for iterative solutions:
 
@@ -84,18 +95,18 @@ $$
 
 To solve $f(T_h) = 0$ for horizontal tension:
 
-1. Approximate the derivative:  
+1. Approximate the derivative:
 
-$$
-    f'(T_h) \approx \frac{f(T_{h0} + \zeta) - f(T_{h0})}{\zeta}
-$$
+   $$
+   f'(T_h) \approx \frac{f(T_{h0} + \zeta) - f(T_{h0})}{\zeta}
+   $$
 
-with $\zeta = 10\ \mathrm{N}$ as a step size.
+   where $\zeta = 10\ \mathrm{N}$ is the step size.
 
 2. Iterative solution formula:
 
-$$
-    {T_h}_{n+1} = {T_h}_n - \frac{f({T_h}_n)}{f'({T_h}_n)}
-$$  
+   $$
+   {T_h}_{n+1} = {T_h}_n - \frac{f({T_h}_n)}{f'({T_h}_n)}
+   $$
 
 3. Converge to the result: start with an initial guess ${T_h}_0 = T_{h0}$ and iterate until $f(T_h)$ approaches zero.

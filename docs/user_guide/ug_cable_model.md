@@ -157,17 +157,17 @@ The cable's strain results from two sources, mechanical tensions and temperature
 
 1. Mechanical strain due to tension $T_{mean}$:
 
-$$
-    \varepsilon_{mecha} = \frac{T_{mean}}{E \cdot S}
-$$
+   $$
+   \varepsilon_{mecha} = \frac{T_{mean}}{E \cdot S}
+   $$
 
 2. Thermal strain due to temperature $\theta$:
 
-$$
-    \varepsilon_{therm} = (\theta - \theta_{ref}) \cdot \alpha_{th}
-$$
+   $$
+   \varepsilon_{therm} = (\theta - \theta_{ref}) \cdot \alpha_{th}
+   $$
 
-Where $\theta_{ref}$ is the reference temperature used to define the unstressed cable length.
+   where $\theta_{ref}$ is the reference temperature used to define the unstressed cable length
 
 The total strain is:
 
@@ -180,4 +180,3 @@ With the unstressed cable length $L_{ref}$:
 $$
     L_{ref} = \frac{L}{1 + \varepsilon_{total}}
 $$
-
