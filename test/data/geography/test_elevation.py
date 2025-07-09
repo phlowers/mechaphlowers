@@ -8,12 +8,12 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
-from mechaphlowers.data.geography.elevation import gps_to_elevation
+from mechaphlowers.data.geography.elevation import OpenElevationService
 
 
 @patch('mechaphlowers.data.geography.elevation.requests.post')
 def test_gps_to_elevation(mock_post):
-    """Test gps_to_elevation."""
+    """Test OpenElevationService."""
 
     # Mock successful API response
     mock_response = Mock()
@@ -33,7 +33,8 @@ def test_gps_to_elevation(mock_post):
     )  # Paris, Marseille, Lyon
     lon = np.array([2.3522, 5.3698, 4.8357], dtype=np.float64)
 
-    elevations = gps_to_elevation(lat, lon)
+    service = OpenElevationService()
+    elevations = service.get_elevation(lat, lon)
 
     # Check that the function was called with correct parameters
     mock_post.assert_called_once()

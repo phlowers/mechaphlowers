@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.11, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -607,6 +608,7 @@ dependencies = [
     { name = "pandas" },
     { name = "pandera" },
     { name = "plotly" },
+    { name = "requests" },
 ]
 
 [package.optional-dependencies]
@@ -661,6 +663,7 @@ requires-dist = [
     { name = "pandas", specifier = "<=2.2.3" },
     { name = "pandera", specifier = "<=0.21.1" },
     { name = "plotly", specifier = "<=5.24.1" },
+    { name = "requests", specifier = "==2.32.4" },
     { name = "scipy", marker = "extra == 'full'", specifier = "<=1.14.1" },
 ]
 provides-extras = ["full"]

@@ -1,38 +1,82 @@
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+
+from abc import ABC, abstractmethod
+
 import numpy as np
 import requests
 
 OPEN_ELEVATION_API_URL = "https://api.open-elevation.com/api/v1/lookup"
 
 
-def gps_to_elevation(
-    lat: np.typing.NDArray[np.float64], lon: np.typing.NDArray[np.float64]
-) -> np.typing.NDArray[np.float64]:
-    """
-    Fetch elevation data for a list of locations using Open-Elevation API
+class IElevationService(ABC):
+    """Abstract base class for elevation services.
 
-    Args:
-        lat (np.typing.NDArray[np.float64]): Latitude of the location in degrees
-        lon (np.typing.NDArray[np.float64]): Longitude of the location in degrees
-
-    Returns:
-        np.typing.NDArray[np.float64]: Elevation in meters
+    This interface defines the contract for services that provide elevation data
+    based on GPS coordinates.
     """
 
-    # Format locations for the API
-    payload = {
-        "locations": [
-            {
-                "latitude": lat,
-                "longitude": lon,
-            }
-        ]
-    }
+    @abstractmethod
+    def get_elevation(
+        self,
+        lat: np.ndarray,
+        lon: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Fetch elevation data for a list of locations.
 
-    try:
-        response = requests.post(OPEN_ELEVATION_API_URL, json=payload)
-        response.raise_for_status()  # Raise an exception for bad status codes
-        data = response.json()
-        return np.array([result["elevation"] for result in data["results"]])
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching elevation data: {e}")
-        return np.zeros(len(lat))  # Return zeros if request fails
+        Args:
+            lat (np.ndarray): Latitude of the location in degrees
+            lon (np.ndarray): Longitude of the location in degrees
+
+        Returns:
+            np.ndarray: Elevation in meters
+        """
+        pass
+
+
+class OpenElevationService(IElevationService):
+    """Implementation of elevation service using Open-Elevation API."""
+
+    def __init__(self, api_url: str = OPEN_ELEVATION_API_URL):
+        self.api_url = api_url
+
+    def get_elevation(
+        self,
+        lat: np.ndarray,
+        lon: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Fetch elevation data for a list of locations using Open-Elevation API
+
+        Args:
+            lat (np.ndarray): Latitude of the location in degrees
+            lon (np.ndarray): Longitude of the location in degrees
+
+        Returns:
+            np.ndarray: Elevation in meters
+        """
+
+        # Format locations for the API
+        payload = {
+            "locations": [
+                {
+                    "latitude": lat,
+                    "longitude": lon,
+                }
+            ]
+        }
+
+        try:
+            response = requests.post(self.api_url, json=payload)
+            response.raise_for_status()  # Raise an exception for bad status codes
+            data = response.json()
+            return np.array(
+                [result["elevation"] for result in data["results"]]
+            )
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching elevation data: {e}")
+            return np.zeros(len(lat))  # Return zeros if request fails
