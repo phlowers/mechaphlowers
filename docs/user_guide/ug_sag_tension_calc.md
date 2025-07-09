@@ -13,9 +13,9 @@ Q_w = P_w \cdot (D + 2 \cdot e)
 $$
 
 with:
-- $D$ the cable diameter, 
-- $e$ the ice thickness,  
-- and $P_w$ the wind pressure.
+   - $D$ the cable diameter, 
+   - $e$ the ice thickness,  
+   - and $P_w$ the wind pressure.
 
 2. The ice weight per unit length, denoted as $Q_{ice}$:
 
@@ -24,9 +24,9 @@ $$
 $$
 
 with :
-- $D$ the cable diameter,
-- $e$ the ice thickness,
-- and $\rho_{ice}$ the ice density, typically ranging from $2000$ to $9500\ \mathrm{N/m^3}$. By default, $6000\ \mathrm{N/m^3}$.
+   - $D$ the cable diameter,
+   - $e$ the ice thickness,
+   - and $\rho_{ice}$ the ice density, typically ranging from $2000$ to $9500\ \mathrm{N/m^3}$. By default, $6000\ \mathrm{N/m^3}$.
 
 3. The cable linear weight, denoted as $\lambda$, that reflects the intrinsic weight of the cable per unit length.
 
@@ -67,10 +67,12 @@ The steps are as follows:
 1. Update the cable plane by calculating the new angle ($\beta$).
 
 2. Adjust sagging parameters:
-   - Compute $a'$ and $b'$ (adjusted span length and height difference),  
+
+   - Compute $a'$ and $b'$ (adjusted span length and height difference).  
    - Update the cable's effective length, $L'$.
 
 3. Calculate the strain:
+
    - The first method from the reference length: $ {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0} $
    - The second method from the strain-stress relationship: $ {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th} $
 
@@ -91,7 +93,6 @@ $$
 $$
 
 with $\zeta = 10\ \mathrm{N}$ as a step size.
-
 
 2. Iterative solution formula:
 

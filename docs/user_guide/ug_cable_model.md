@@ -88,7 +88,7 @@ $$
     T_h = p \cdot mass \cdot \lambda
 $$
 
-with $m$ the load coefficient. No load on cable means $mass = 1$. It is constant along the cable.
+With $m$ the load coefficient. No load on cable means $mass = 1$. It is constant along the cable.
 
 2. The vertical component
 
@@ -175,7 +175,7 @@ $$
     \varepsilon_{total} = \varepsilon_{mecha} + \varepsilon_{therm} = \frac{\Delta L}{L_{ref}} = \frac{L - L_{ref}}{L_{ref}}
 $$
 
-with the unstressed cable length $L_{ref}$:
+With the unstressed cable length $L_{ref}$:
 
 $$
     L_{ref} = \frac{L}{1 + \varepsilon_{total}}
