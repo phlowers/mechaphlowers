@@ -5,33 +5,31 @@ but our library uses wind pressure for calculations. The wind pressure depends o
 studied height, wind angle, force coefficient.
 
 
-### Inputs:
+### Inputs
 
-- $th$ the tower height (in m)
-- $z_0$ the roughness length (in m)
-- $V_{b,0}$ the basic wind velocity (in m/s), i.e., mean wind speed during 10 minutes, at 10 m altitude, monitored in an open country.
-
-
-### Variables:
-
-- $C_f$: force coefficient. Equals to $1.2$ for weaker winds in works conditions, equals to $1$ for stronger winds
-- $C_SC_D$: structural factor, equals to $\frac{2}{3}$. Takes into account the fact that the wind does not blow at max speed on all spans.
-- $h$  : studied height (in m)
-- $k_r$ : terrain factor
-- $V_m$ : mean wind velocity at given height (in m/s)
-- $I_v$ : turbulence intensity
-- $q_p$ : peak wind pressure (in Pa)
-
-### Formulas:
-
-For 90kV/63kV :
-$h = th * \frac{3}{4}$
-
-For 225kV/400kV :
-$h = th * \frac{2}{3}$
+- $th$ the tower height (in $m$)
+- $z_0$ the roughness length (in $m$)
+- $V_{b,0}$ the basic wind velocity (in $m/s$), i.e., mean wind speed during 10 minutes, at 10 m altitude, monitored in an open country.
 
 
-The roughness length $z_0$ depends of the type of terrain:
+### Variables
+
+- $C_f$ the force coefficient, equals to $1.2$ for weaker winds in working conditions, equals to $1$ for stronger winds.
+- $C_SC_D$ the structural factor, equals to $\frac{2}{3}$. It takes into account the fact that the wind does not blow
+at max speed on all spans.
+- $h$ the studied height (in $m$)
+- $k_r$ the terrain factor
+- $V_m$ the mean wind velocity at a given height (in $m/s$)
+- $I_v$ the turbulence intensity
+- $q_p$ the peak wind pressure (in $Pa$)
+
+### Formulas
+
+For 90kV/63kV voltage levels, we take $h = th * \frac{3}{4}$.
+
+For 225kV/400kV voltage levels, we take $h = th * \frac{2}{3}$.
+
+The roughness length $z_0$ depends on the type of terrain:
 
 | terrain category | 0     | II   | III |
 | ---------------- | ----- | ---- | --- |
@@ -45,7 +43,9 @@ $$ I_v = \frac{1}{\ln(\frac{h}{z_0})}$$
 
 Finally, the peak pressure equals to:
 
-$$ q_p = \frac{1}{2} * \rho * V_{m}^2 * (1 + 7 * I_v) * C_SC_D * C_f$$
+$$
+    q_p = \frac{1}{2} * \rho * V_{m}^2 * (1 + 7 * I_v) * C_SC_D * C_f
+$$
 
 
 ### References

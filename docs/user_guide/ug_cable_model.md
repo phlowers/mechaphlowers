@@ -90,7 +90,7 @@ $$
 
 with $m$ the load coefficient. No load on cable means $mass = 1$. It is constant along the cable.
 
-1. The vertical component
+2. The vertical component
 
 $$
     T_v(x) = T_h \cdot \sinh \left( \frac{x}{p} \right)
