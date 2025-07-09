@@ -1,4 +1,4 @@
-# Input data format
+# Input data
 
 ## Line Section
 

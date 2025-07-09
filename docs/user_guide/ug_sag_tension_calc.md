@@ -68,7 +68,7 @@ The steps are as follows:
    - Second method from the strain-stress relationship:  
      $$ {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th} $$
 
-4. Determine tensile error: since strain depends on $T_h$, determine the error function for iterative solutions:  
+4. Determine the remaining error: since strain depends on $T_h$, determine the error function for iterative solutions:  
 $$
     f(T_h) = {\varepsilon_{total}}_L - {\varepsilon_{total}}_T
 $$
