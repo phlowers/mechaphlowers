@@ -112,7 +112,9 @@ $M$ and $N$, through integrals, as well as the overall mean tension. The mean te
 $$
 {T_{mean}}_m = \frac{-x_m \cdot T_h + L_m \cdot {T_{max}}_m}{2 \cdot L_m}
 $$
+
 and
+
 $$
 {T_{mean}}_n = \frac{x_n \cdot T_h + L_n \cdot {T_{max}}_n}{2 \cdot L_n}
 $$
