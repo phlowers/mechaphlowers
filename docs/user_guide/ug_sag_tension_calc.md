@@ -17,7 +17,7 @@ with:
 - $e$ the ice thickness,  
 - and $P_w$ the wind pressure.
 
-2. The ice weight per unit length, denoted as $Q_{ice}$:
+1. The ice weight per unit length, denoted as $Q_{ice}$:
 
 $$
     Q_{ice} = \rho_{ice} \cdot \pi \cdot e \cdot (e + D)
@@ -28,7 +28,7 @@ with :
 - $e$ the ice thickness,
 - and $\rho_{ice}$ the ice density, typically ranging from $2000$ to $9500\ \mathrm{N/m^3}$. By default, $6000\ \mathrm{N/m^3}$.
 
-3. The cable linear weight, denoted as $\lambda$, that reflects the intrinsic weight of the cable per unit length.
+1. The cable linear weight, denoted as $\lambda$, that reflects the intrinsic weight of the cable per unit length.
 
 Thus, the total resultant force $R$, acting on the cable, is calculated as:
 
@@ -66,11 +66,11 @@ The steps are as follows:
 
 1. Update the cable plane by calculating the new angle ($\beta$).
 
-2. Adjust sagging parameters:
+1. Adjust sagging parameters:
    - Compute $a'$ and $b'$ (adjusted span length and height difference),  
    - Update the cable's effective length, $L'$.
 
-3. Calculate the strain:
+1. Calculate the strain:
    - The first method from the reference length:
    
 $$ 
@@ -83,7 +83,7 @@ $$
    {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th}
 $$
 
-4. Determine the remaining error: since strain depends on $T_h$, determine the error function for iterative solutions:
+1. Determine the remaining error: since strain depends on $T_h$, determine the error function for iterative solutions:
 
 $$
     f(T_h) = {\varepsilon_{total}}_L - {\varepsilon_{total}}_T
@@ -102,10 +102,10 @@ $$
 with $\zeta = 10\ \mathrm{N}$ as a step size.
 
 
-2. Iterative solution formula:
+1. Iterative solution formula:
 
 $$
     {T_h}_{n+1} = {T_h}_n - \frac{f({T_h}_n)}{f'({T_h}_n)}
 $$  
 
-3. Converge to the result: start with an initial guess ${T_h}_0 = T_{h0}$ and iterate until $f(T_h)$ approaches zero.
+1. Converge to the result: start with an initial guess ${T_h}_0 = T_{h0}$ and iterate until $f(T_h)$ approaches zero.
