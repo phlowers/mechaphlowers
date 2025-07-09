@@ -4,55 +4,89 @@
 
 ![Image not available](./assets/cable_external_loads.drawio.png "External loads on cable image")
 
-There are 3 external loads:
+A cable is subject to three main types of external loads:
 
-- $Q_w$ the wind load:  
-    - $Q_w = P_w \cdot (D + 2 \cdot e)$
-    - Depending on cable diameter $D$, ice thickness $e$ and wind pressure $P_w$
-- $Q_{ice}$ the linear ice weight:
-    - $Q_{ice} = \rho_{ice} \cdot \pi \cdot e  \cdot (e+D)$
-    - Depending on the cable diameter $D$ and ice thickness $e$
-    - $\rho_{ice}$ is the ice density and can vary from 2000 to 9500 $N/m^3$. The default value is set to 6000 $N/m^3$
-- $\lambda$ the cable linear weight
+1. The wind load, denoted as $Q_w$:  
+$$ 
+    Q_w = P_w \cdot (D + 2 \cdot e)
+$$
+with:
+- $D$ the cable diameter, 
+- $e$ the ice thickness,  
+- and $P_w$ the wind pressure.
 
-The resultant of forces, R is equal to: $R = \sqrt{(Q_{ice}+\lambda)^2+ Q_w^2}$
+2. The ice weight per unit length, denoted as $Q_{ice}$:
+$$
+    Q_{ice} = \rho_{ice} \cdot \pi \cdot e \cdot (e + D)
+$$
+with :
+- $D$ the cable diameter,
+- $e$ the ice thickness,
+- and $\rho_{ice}$ the ice density, typically ranging from $2000$ to $9500\ \mathrm{N/m^3}$. By default, $6000\ \mathrm{N/m^3}$.
+
+3. The cable linear weight, denoted as $\lambda$, that reflects the intrinsic weight of the cable per unit length.
+
+Thus, the total resultant force $R$, acting on the cable, is calculated as:  
+$$
+    R = \sqrt{(Q_{ice} + \lambda)^2 + Q_w^2}
+$$
 
 ## Load coefficient
 
-The load coefficient is then defined as: $m = R/\lambda$
+The load coefficient $mass$ quantifies the impact of the external loads on the horizontal tension. It is defined as:  
+$$
+    mass = \frac{R}{\lambda}
+$$
 
-Which has been already defined in the cable model part for the relation between the sagging parameter, $\lambda$ and the horizontal tension:
-
-$$p = \frac{T_h}{m \cdot \lambda}$$
+The connection between the sagging parameter $p$, the cable linear weight $\lambda$, and the horizontal tension $T_h$,
+already defined in the [cable modeling section](ug_cable_model.md), is:  
+$$
+    p = \frac{T_h}{mass \cdot \lambda}
+$$
 
 ## Load angle
 
-The load angle $\beta$ can be calculated as:
-
-$$ \beta = \arctan \frac{Q_w}{Q_{ice} + \lambda}$$
+The load angle $\beta$ indicates the direction of the resultant $R$:  
+$$
+    \beta = \arctan \left( \frac{Q_w}{Q_{ice} + \lambda} \right)
+$$
 
 ## Sag-tension calculation algorithm
 
-The problem to solve is to calculate the new horizontal tension when additional loads and/or thermal changes are applied on the cable.
+We want to determine the new horizontal tension when additional loads and/or thermal changes are applied on the cable.
+The steps are as follows:
 
-1. calculate the new beta and define the new cable plane
-2. calculate $a'$ and $b'$ and then calculate $L'$
-3. There are two ways to calculate the strain of the cable:  
-    - From $L_0$ definition: ${\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0}$
-    - From strain-stress relation with $T_{mean}$: ${\varepsilon_{total}}_T = \frac{T_{mean}}{E\cdot S} + \theta \cdot \alpha_{th}$
+1. Update the cable plane by calculating the new angle ($\beta$).
 
-4. ${\varepsilon_{total}}_L$ and ${\varepsilon_{total}}_T$ are depending on $T_h$. An error function on $T_h$ estimation can be written:
-    - $f(T_h) = {\varepsilon_{total}}_L - {\varepsilon_{total}}_T$
+2. Adjust sagging parameters:
+   - Compute $a'$ and $b'$ (adjusted span length and height difference),  
+   - Update the cable's effective length, $L'$.
 
-### Example resolution method: Newton-Raphson schema
+3. Calculate the strain:
+   - First method from the reference length:  
+     $$ {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0} $$
+   - Second method from the strain-stress relationship:  
+     $$ {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th} $$
 
-Problem: find the root of $f(T_h) = 0$
+4. Determine tensile error: since strain depends on $T_h$, determine the error function for iterative solutions:  
+$$
+    f(T_h) = {\varepsilon_{total}}_L - {\varepsilon_{total}}_T
+$$
 
-5. Use numeric derivative approximation $f'(T_h0) = \frac{f(T_h0 + \zeta) - f(T_h0)}{\zeta}$ with $\zeta = 10N$
+## Example: resolution using Newton-Raphson method
 
-6. The following series converges to the result:
+To solve $f(T_h) = 0$ for horizontal tension:
 
-$${T_h}_{n+1} = {T_h}_{n} - \frac{f({T_h}_{n})}{f'({T_h}_{n})}$$
+1. Approximate the derivative:  
+$$
+    f'(T_h) \approx \frac{f(T_{h0} + \zeta) - f(T_{h0})}{\zeta}
+$$  
+with $\zeta = 10\ \mathrm{N}$ as a step size.
 
-with ${T_h}_{0} = T_h0$ the horizontal tension in the initial condition.
 
+2. Iterative solution formula:  
+$$
+    {T_h}_{n+1} = {T_h}_n - \frac{f({T_h}_n)}{f'({T_h}_n)}
+$$  
+
+3. Converge to the result: start with an initial guess ${T_h}_0 = T_{h0}$ and iterate until $f(T_h)$ approaches zero.

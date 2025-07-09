@@ -2,7 +2,7 @@
 
 ## Line Section
 
-This paragraph describes the format of the input data needed to perform calculations about a line section in mechaphlowers.
+This paragraph describes the input data and the associated format needed to perform calculations on a line section in mechaphlowers.
 
 !!! Units
 
@@ -20,7 +20,7 @@ In mechaphlowers a line section is described by the following data:
     - the line angle (in degrees)
     - the insulator length
 - for each span:
-    - the span length, denoted later as $a$
+    - the span length, denoted later as $a$.
 
 !!! important
 
@@ -65,7 +65,7 @@ You may use the following code to define this data and load it so that it can be
 
 ## Cable
 
-This paragraph describes the format of the input data needed about the cable properties in mechaphlowers.
+This paragraph describes the input data and the associated format needed about the cable properties in mechaphlowers.
 
 A Cable is described using the following data:
 
@@ -78,7 +78,7 @@ A Cable is described using the following data:
 - coefficients of the polynomial model between stress and deformation in $GPa$
 
 
-Similarly to line section data, input data should be organized in a table. However the number of rows should be equal to 1: the attributes of a cable are the same on any span.
+Similarly to line section data, input data should be organized in a table. However, the number of rows should be equal to 1: the attributes of a cable are the same on any span.
 
 |section|diameter|linear_weight|young_modulus|dilatation_coefficient|temperature_reference|a0|a1|a2|a3|a4|b0|b1|b2|b3|b4|
 |---|-----|--|--|--|-|-|--|-----|-------|-----------|-|-|-|-|-|
@@ -116,8 +116,7 @@ print(cable_array)
 ```
 ## External loads
 
-External loads can be added to the cable array.  
-This currently only supports wind loads, but it's easy to extend this by adding more external loads. To add a weather load, you need to create an instance of `WeatherArray` class, and pass it to the SectionDataFrame.
+External loads can be added to the cable array. We only support wind loads, but it's easy to extend this by adding more external loads. To add a weather load, you need to create an instance of `WeatherArray` class, and pass it to the SectionDataFrame.
 The following example shows how to add a wind load on the cable.
 
 !!! important
