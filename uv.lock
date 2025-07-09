@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.11, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -611,6 +612,7 @@ dependencies = [
 
 [package.optional-dependencies]
 full = [
+    { name = "requests" },
     { name = "scipy" },
 ]
 
@@ -628,6 +630,7 @@ all = [
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "scipy" },
+    { name = "types-requests" },
     { name = "unittest-xml-reporting" },
 ]
 dev = [
@@ -639,6 +642,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "scipy" },
+    { name = "types-requests" },
     { name = "unittest-xml-reporting" },
 ]
 docs = [
@@ -659,8 +663,10 @@ requires-dist = [
     { name = "pandas", specifier = "<=2.2.3" },
     { name = "pandera", specifier = "<=0.21.1" },
     { name = "plotly", specifier = "<=5.24.1" },
+    { name = "requests", marker = "extra == 'full'", specifier = "==2.32.4" },
     { name = "scipy", marker = "extra == 'full'", specifier = "<=1.14.1" },
 ]
+provides-extras = ["full"]
 
 [package.metadata.requires-dev]
 all = [
@@ -676,6 +682,7 @@ all = [
     { name = "pytest-cov", specifier = "==5.0.0" },
     { name = "ruff", specifier = "==0.6.1" },
     { name = "scipy", specifier = "<=1.14.1" },
+    { name = "types-requests", specifier = "==2.32.4.20250611" },
     { name = "unittest-xml-reporting", specifier = "==3.2.0" },
 ]
 dev = [
@@ -687,6 +694,7 @@ dev = [
     { name = "pytest-cov", specifier = "==5.0.0" },
     { name = "ruff", specifier = "==0.6.1" },
     { name = "scipy", specifier = "<=1.14.1" },
+    { name = "types-requests", specifier = "==2.32.4.20250611" },
     { name = "unittest-xml-reporting", specifier = "==3.2.0" },
 ]
 docs = [
@@ -1707,6 +1715,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/bd/72/b0e711fd90409f5a76c75349055d3eb19992c110f0d2d6aabbd6cfbc14bf/types_pytz-2025.2.0.20250516.tar.gz", hash = "sha256:e1216306f8c0d5da6dafd6492e72eb080c9a166171fa80dd7a1990fd8be7a7b3", size = 10940 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c1/ba/e205cd11c1c7183b23c97e4bcd1de7bc0633e2e867601c32ecfc6ad42675/types_pytz-2025.2.0.20250516-py3-none-any.whl", hash = "sha256:e0e0c8a57e2791c19f718ed99ab2ba623856b11620cb6b637e5f62ce285a7451", size = 10136 },
+]
+
+[[package]]
+name = "types-requests"
+version = "2.32.4.20250611"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6d/7f/73b3a04a53b0fd2a911d4ec517940ecd6600630b559e4505cc7b68beb5a0/types_requests-2.32.4.20250611.tar.gz", hash = "sha256:741c8777ed6425830bf51e54d6abe245f79b4dcb9019f1622b773463946bf826", size = 23118 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3d/ea/0be9258c5a4fa1ba2300111aa5a0767ee6d18eb3fd20e91616c12082284d/types_requests-2.32.4.20250611-py3-none-any.whl", hash = "sha256:ad2fe5d3b0cb3c2c902c8815a70e7fb2302c4b8c1f77bdcd738192cdb3878072", size = 20643 },
 ]
 
 [[package]]

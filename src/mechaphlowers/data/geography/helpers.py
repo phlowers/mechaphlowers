@@ -156,3 +156,162 @@ def lambert93_to_gps(
     latitude = long_rad / np.pi * 180
 
     return (latitude, longitude)
+
+
+def reverse_haversine(
+    lat: np.ndarray,
+    lon: np.ndarray,
+    bearing: np.ndarray,
+    distance: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Implementation of the reverse of Haversine formula. Takes one set of
+    latitude/longitude as a start point, a bearing, and a distance, and
+    returns the resultant lat/long pair.
+
+    Args:
+        lat (np.ndarray): Starting latitude in decimal degrees
+        lon (np.ndarray): Starting longitude in decimal degrees
+        bearing (np.ndarray): Bearing in decimal degrees
+        distance (np.ndarray): Distance in meters
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Tuple containing the latitude and longitude of the result
+    """
+    R = 6378137  # Radius of Earth in meters
+
+    lat1 = np.radians(lat)
+    lon1 = np.radians(lon)
+    angdist = distance / R
+    theta = np.radians(bearing)
+
+    lat2 = np.degrees(
+        np.arcsin(
+            np.sin(lat1) * np.cos(angdist)
+            + np.cos(lat1) * np.sin(angdist) * np.cos(theta)
+        )
+    )
+
+    lon2 = np.degrees(
+        lon1
+        + np.arctan2(
+            np.sin(theta) * np.sin(angdist) * np.cos(lat1),
+            np.cos(angdist) - np.sin(lat1) * np.sin(np.radians(lat2)),
+        )
+    )
+
+    return (lat2, lon2)
+
+
+def haversine(
+    lat1: np.ndarray,
+    lon1: np.ndarray,
+    lat2: np.ndarray,
+    lon2: np.ndarray,
+) -> np.ndarray:
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    Args:
+        lat1 (np.ndarray): Latitude of point A in decimal degrees
+        lon1 (np.ndarray): Longitude of point A in decimal degrees
+        lat2 (np.ndarray): Latitude of point B in decimal degrees
+        lon2 (np.ndarray): Longitude of point B in decimal degrees
+
+    Returns:
+        np.ndarray: Distance in meters
+    """
+    # Convert decimal degrees to radians
+    lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
+
+    # Haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = (
+        np.sin(dlat / 2) ** 2
+        + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+    )
+    c = 2 * np.arcsin(np.sqrt(a))
+    r = 6371000  # Radius of earth in meters
+    return c * r
+
+
+def gps_to_bearing(
+    lat1: np.ndarray,
+    lon1: np.ndarray,
+    lat2: np.ndarray,
+    lon2: np.ndarray,
+) -> np.ndarray:
+    """
+    Calculate the bearing between two points
+    Returns bearing in degrees from north (0-360)
+    Args:
+        lat1 (np.ndarray): Latitude of point A in decimal degrees
+        lon1 (np.ndarray): Longitude of point A in decimal degrees
+        lat2 (np.ndarray): Latitude of point B in decimal degrees
+        lon2 (np.ndarray): Longitude of point B in decimal degrees
+
+    Returns:
+        np.ndarray: Bearing angle in degrees from north (0-360)
+    """
+    lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
+
+    dlon = lon2 - lon1
+    y = np.sin(dlon) * np.cos(lat2)
+    x = np.cos(lat1) * np.sin(lat2) - np.sin(lat1) * np.cos(lat2) * np.cos(
+        dlon
+    )
+    bearing = np.arctan2(y, x)
+    bearing = np.degrees(bearing)
+    bearing = (bearing + 360) % 360
+    return bearing
+
+
+def bearing_to_direction(
+    bearing: np.ndarray,
+) -> np.ndarray:
+    """
+    Convert bearing angle to cardinal direction name
+    Args:
+        bearing (np.ndarray): Bearing angle in decimal degrees
+
+    Returns:
+        np.ndarray: Cardinal direction name
+    """
+    directions = np.array(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])
+    index = np.round(bearing / 45) % 8
+    return directions[int(index)]
+
+
+def distances_to_gps(
+    lat_a: np.ndarray,
+    lon_a: np.ndarray,
+    x_meters: np.ndarray,
+    y_meters: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Calculate GPS coordinates of point B given point A's coordinates and x,y distances in meters.
+
+    Args:
+        lat_a (np.ndarray): Latitude of point A in decimal degrees
+        lon_a (np.ndarray): Longitude of point A in decimal degrees
+        x_meters (np.ndarray): Distance from west to east in meters (positive = east, negative = west)
+        y_meters (np.ndarray): Distance from south to north in meters (positive = north, negative = south)
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Tuple containing the latitude and longitude of point B
+    """
+    # Convert distances to degrees
+    # 1 degree of latitude is approximately 111,111 meters
+    lat_change = y_meters / 111111.0
+
+    # 1 degree of longitude varies with latitude
+    # At the equator, 1 degree is about 111,111 meters
+    # At other latitudes, multiply by cos(latitude)
+    lon_change = x_meters / (111111.0 * np.cos(np.radians(lat_a)))
+
+    # Calculate new coordinates
+    lat_b = lat_a + lat_change
+    lon_b = lon_a + lon_change
+
+    return lat_b, lon_b
