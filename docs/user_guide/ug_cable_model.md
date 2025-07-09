@@ -117,9 +117,9 @@ $$
 {T_{mean}}_n = \frac{x_n \cdot T_h + L_n \cdot {T_{max}}_n}{2 \cdot L_n}
 $$
 
-where $x_m, x_n$ are the horizontal positions, $T_h$ is the constant horizontal tension,
-and $L_m, L_n$ are the cable lengths around the extremities. The overall mean tension is the
-weighted average of the extremity tensions:
+Where $x_m, x_n$ are the horizontal positions at $M$ and $N$, $T_h$ is the constant horizontal tension,
+and $L_m, L_n$ are the cable lengths around the extremities. The tensions reached their maximum at the extremities. 
+The overall mean tension is the weighted average of the extremity tensions:
 
 $$
 T_{mean} = \frac{{T_{mean}}_m \cdot L_m + {T_{mean}}_n \cdot L_n}{L}
