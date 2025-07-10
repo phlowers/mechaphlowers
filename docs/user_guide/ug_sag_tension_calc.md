@@ -65,14 +65,13 @@ The steps are as follows:
     - Compute $a'$ and $b'$ (adjusted span length and height difference)
     - Update the cable's effective length, $L'$
 
-* Calculate the strain:
-The first method is from the reference length:
+* Calculate the strain from two methods. The first method is from the reference length:
 
 $$
     {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0}
 $$
 
-The second method from the strain-stress relationship:
+And the second method from the strain-stress relationship:
 
 $$
     {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th}
