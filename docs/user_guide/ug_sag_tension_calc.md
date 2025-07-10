@@ -66,13 +66,16 @@ The steps are as follows:
     - Update the cable's effective length, $L'$
 
 * Calculate the strain:
-    - First method from the reference length:
+The first method is from the reference length:
+
 $$
     {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0}
 $$
-    - Second method from the strain-stress relationship:
+
+The second method from the strain-stress relationship:
+
 $$
-{\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th}
+    {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th}
 $$
 
 * Determine the remaining error: since strain depends on $T_h$, determine the error function for iterative solutions:
