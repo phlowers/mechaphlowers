@@ -626,8 +626,10 @@ all = [
     { name = "mkdocstrings", extra = ["python"] },
     { name = "mypy" },
     { name = "pandas-stubs" },
+    { name = "plotly-stubs" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "requests" },
     { name = "ruff" },
     { name = "scipy" },
     { name = "types-requests" },
@@ -638,6 +640,7 @@ dev = [
     { name = "ipython" },
     { name = "mypy" },
     { name = "pandas-stubs" },
+    { name = "plotly-stubs" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
@@ -654,6 +657,7 @@ docs = [
 test = [
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "requests" },
 ]
 
 [package.metadata]
@@ -678,8 +682,10 @@ all = [
     { name = "mkdocstrings", extras = ["python"], specifier = "==0.26.2" },
     { name = "mypy", specifier = "==1.11.2" },
     { name = "pandas-stubs", specifier = "==2.2.3.241009" },
+    { name = "plotly-stubs", specifier = "==0.0.5" },
     { name = "pytest", specifier = "==8.3.2" },
     { name = "pytest-cov", specifier = "==5.0.0" },
+    { name = "requests", specifier = "==2.32.4" },
     { name = "ruff", specifier = "==0.6.1" },
     { name = "scipy", specifier = "<=1.14.1" },
     { name = "types-requests", specifier = "==2.32.4.20250611" },
@@ -690,6 +696,7 @@ dev = [
     { name = "ipython", specifier = "==8.26.0" },
     { name = "mypy", specifier = "==1.11.2" },
     { name = "pandas-stubs", specifier = "==2.2.3.241009" },
+    { name = "plotly-stubs", specifier = "==0.0.5" },
     { name = "pytest", specifier = "==8.3.2" },
     { name = "pytest-cov", specifier = "==5.0.0" },
     { name = "ruff", specifier = "==0.6.1" },
@@ -706,6 +713,7 @@ docs = [
 test = [
     { name = "pytest", specifier = "==8.3.2" },
     { name = "pytest-cov", specifier = "==5.0.0" },
+    { name = "requests", specifier = "==2.32.4" },
 ]
 
 [[package]]
@@ -1134,6 +1142,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/79/4f/428f6d959818d7425a94c190a6b26fbc58035cbef40bf249be0b62a9aedd/plotly-5.24.1.tar.gz", hash = "sha256:dbc8ac8339d248a4bcc36e08a5659bacfe1b079390b8953533f4eb22169b4bae", size = 9479398 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/ae/580600f441f6fc05218bd6c9d5794f4aef072a7d9093b291f1c50a9db8bc/plotly-5.24.1-py3-none-any.whl", hash = "sha256:f67073a1e637eb0dc3e46324d9d51e2fe76e9727c892dde64ddf1e1b51f29089", size = 19054220 },
+]
+
+[[package]]
+name = "plotly-stubs"
+version = "0.0.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/15/c1/3448098574d0bd352f157081137aa75e595466875361b69ad32b3e9f49e2/plotly_stubs-0.0.5.tar.gz", hash = "sha256:1f373acfd137a09b45a6e68adec0406c62347b5114b5f8f5529a27c0d3e418c5", size = 45908 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/02/f66f264c7cfc11eacddd5304b89fdf21f298260024f976e9232836bba163/plotly_stubs-0.0.5-py3-none-any.whl", hash = "sha256:2db5c784835e48aa7cd70165eb6ce1880d5fd149a32064182e3afe5d28e3f1f3", size = 92780 },
 ]
 
 [[package]]
