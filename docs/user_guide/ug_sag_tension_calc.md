@@ -64,18 +64,18 @@ $$
 We want to determine the new horizontal tension when additional loads and/or thermal changes are applied on the cable.
 The steps are as follows:
 
-1. Update the cable plane:
-    * Calculate the new angle ($\beta$)
+* Update the cable plane:
+   * Calculate the new angle ($\beta$)
 
-2. Adjust sagging parameters:
-    * Compute $a'$ and $b'$ (adjusted span length and height difference)
-    * Update the cable's effective length, $L'$
+* Adjust sagging parameters:
+   * Compute $a'$ and $b'$ (adjusted span length and height difference)
+   * Update the cable's effective length, $L'$
 
-3. Calculate the strain:
-    * First method from the reference length: $ {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0} $
-    * Second method from the strain-stress relationship: $ {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th} $
+* Calculate the strain:
+   * First method from the reference length: $ {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0} $
+   * Second method from the strain-stress relationship: $ {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th} $
 
-4. Determine the remaining error: since strain depends on $T_h$, determine the error function for iterative solutions:
+* Determine the remaining error: since strain depends on $T_h$, determine the error function for iterative solutions:
 
 $$
     f(T_h) = {\varepsilon_{total}}_L - {\varepsilon_{total}}_T
@@ -85,7 +85,7 @@ $$
 
 To solve $f(T_h) = 0$ for horizontal tension:
 
-1. Approximate the derivative:
+* Approximate the derivative:
 
 $$
    f'(T_h) \approx \frac{f(T_{h0} + \zeta) - f(T_{h0})}{\zeta}
@@ -93,10 +93,10 @@ $$
 
 where $\zeta = 10\ \mathrm{N}$ is the step size.
 
-2. Iterative solution formula:
+* Iterative solution formula:
 
 $$
    {T_h}_{n+1} = {T_h}_n - \frac{f({T_h}_n)}{f'({T_h}_n)}
 $$
 
-3. Converge to the result: start with an initial guess ${T_h}_0 = T_{h0}$ and iterate until $f(T_h)$ approaches zero.
+* Converge to the result: start with an initial guess ${T_h}_0 = T_{h0}$ and iterate until $f(T_h)$ approaches zero.
