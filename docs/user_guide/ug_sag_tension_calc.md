@@ -12,10 +12,7 @@ $$
    Q_w = P_w \cdot (D + 2 \cdot e)
 $$
 
-where:
-    - $D$ the cable diameter
-    - $e$ the ice thickness
-    - $P_w$ the wind pressure
+where $D$ is the cable diameter, $e$ the ice thickness and $P_w$ the wind pressure.
 
 * The ice weight per unit length, denoted as $Q_{ice}$:
 
@@ -23,12 +20,10 @@ $$
    Q_{ice} = \rho_{ice} \cdot \pi \cdot e \cdot (e + D)
 $$
 
-where:
-     - $D$ the cable diameter
-     - $e$ the ice thickness
-     - $\rho_{ice}$ the ice density, typically ranging from $2000$ to $9500\ \mathrm{N/m^3}$ (default is $6000\ \mathrm{N/m^3}$)
+where $D$ is the cable diameter, $e$ the ice thickness and $\rho_{ice}$ the ice density,
+typically ranging from $2000$ to $9500\ \mathrm{N/m^3}$ (default value is $6000\ \mathrm{N/m^3}$).
 
-3.The cable linear weight, denoted as $\lambda$, that reflects the intrinsic weight of the cable per unit length.
+* The cable linear weight, denoted as $\lambda$, that reflects the intrinsic weight of the cable per unit length.
 
 Thus, the total resultant force $R$, acting on the cable, is calculated as:
 
@@ -71,8 +66,14 @@ The steps are as follows:
     - Update the cable's effective length, $L'$
 
 * Calculate the strain:
-    - First method from the reference length: $ {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0} $
-    - Second method from the strain-stress relationship: $ {\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th} $
+    - First method from the reference length:
+$$
+    {\varepsilon_{total}}_L = \frac{\Delta L}{L_0} = \frac{L' - L_0}{L_0}
+$$
+    - Second method from the strain-stress relationship:
+$$
+{\varepsilon_{total}}_T = \frac{T_{mean}}{E \cdot S} + \theta \cdot \alpha_{th}
+$$
 
 * Determine the remaining error: since strain depends on $T_h$, determine the error function for iterative solutions:
 
