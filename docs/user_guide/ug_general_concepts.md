@@ -1,6 +1,6 @@
 # General concepts
 
-MechaPhlowers is a library specialized in performing mechanical and geometrical calculations for power lines. The models are designed to be as simple and accurate as possible: whenever appropriate, calculations are performed in 2D planes.
+Mechaphlowers is a library specialized in performing mechanical and geometrical calculations for power lines. The models are designed to be as simple and accurate as possible: whenever appropriate, calculations are performed in 2D planes.
 
 Granularity is important: the power line is divided into sections, which are further divided into spans, considered as the smallest units for calculations. Only one phase is studied at a time. A phase consists of a single conductor, a bundle of wires, or an earth wire. Henceforth, the generic term cable will be used to refer to such objects.
 
@@ -45,8 +45,8 @@ Other coordinate systems may be added in the future.
 
 There are two frames associated with the support:
 
-- The span frame: $\mathcal{R}_{span}$
-- The crossarm frame: $\mathcal{R}_{crossarm}$
+- The span frame $\mathcal{R}_{span}$
+- The crossarm frame $\mathcal{R}_{crossarm}$
 
 Those frames are oriented with the z-axis up and the y-axis along the crossarm, pointing inward from the pylon.
 

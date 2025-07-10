@@ -1,17 +1,17 @@
-# Input data format
+# Input data
 
 ## Line Section
 
-This paragraph describes the format of the input data needed to perform calculations about a line section in mechaphlowers.
+This paragraph describes the input data and the associated format needed to perform calculations on a line section in mechaphlowers.
 
 !!! Units
 
     Unless specified otherwise, all units will be those of the International System of Units (SI).
     A list of these units can be found [here](https://en.wikipedia.org/wiki/International_System_of_Units).
 
-In mechaphlowers a line section is described by following data:
+In mechaphlowers a line section is described by the following data:
 
-- a sagging parameter
+- a sagging parameter, denoted later as $p$,
 - a sagging temperature (in Celsius degrees)
 - for each support:
     - a boolean named `suspension` describing whether it's a suspension or tension support
@@ -20,7 +20,7 @@ In mechaphlowers a line section is described by following data:
     - the line angle (in degrees)
     - the insulator length
 - for each span:
-    - the length of the span.
+    - the span length, denoted later as $a$.
 
 !!! important
 
@@ -29,7 +29,7 @@ In mechaphlowers a line section is described by following data:
 
 Input data should be organized in a table (for example a pandas dataframe), where each row describes one support with its following span, except the last row which only describes the last support (since it doesn't have a "following" span). Hence the last span length is expected to be "not a number", typically `numpy.nan`.
 
-For example, a line section could be described by following table:
+For example, a line section could be described by the following table:
 
 |name|suspension|conductor_attachment_altitude|crossarm_length|line_angle|insulator_length|span_length|
 |---------------|------|----|---|--|--|------|
@@ -41,9 +41,9 @@ For example, a line section could be described by following table:
 
     Since the conductor attachment altitude is measured from the sea level, it may be negative.
 
-In this example the span length between the first and second supports is 500m, and the span length between the second and third support is 800m. The line angle in the middle of the section is of 10 degrees.
+In this example the span length between the first and second supports is 500 m, and the span length between the second and third support is 800 m. The line angle in the middle of the section is of 10 degrees.
 
-You may use following code to define this data and load it so that it can be used by mechaphlowers:
+You may use the following code to define this data and load it so that it can be used by mechaphlowers:
 
     import pandas as pd
     import numpy as np
@@ -65,26 +65,26 @@ You may use following code to define this data and load it so that it can be use
 
 ## Cable
 
-This paragraph describes the format of the input data needed about the cable properties in mechaphlowers.
+This paragraph describes the input data and the associated format needed about the cable properties in mechaphlowers.
 
 A Cable is described using the following data:
 
-- section in $mm^2$
-- diameter in $mm$
-- linear weight in $N/m$
-- Young modulus in $GPa$
+- section in $mm^2$, denoted later as $S$
+- diameter in $mm$, denoted later as $D$
+- linear weight in $N/m$, denoted later as $\lambda$
+- Young modulus in $GPa$, denoted later as $E$
 - temperature of reference in $°C$
-- dilatation coefficient in $°C^{-1}$
+- dilatation coefficient in $°C^{-1}$, denoted later as $\alpha_{th}$
 - coefficients of the polynomial model between stress and deformation in $GPa$
 
 
-Similarly to line section data, input data should be organized in a table. However the number of rows should be equal to 1: the attributes of a cable are the same on any span.
+Similarly to line section data, input data should be organized in a table. However, the number of rows should be equal to 1: the attributes of a cable are the same on any span.
 
 |section|diameter|linear_weight|young_modulus|dilatation_coefficient|temperature_reference|a0|a1|a2|a3|a4|b0|b1|b2|b3|b4|
 |---|-----|--|--|--|-|-|--|-----|-------|-----------|-|-|-|-|-|
 |450|30.5 |14|45|23|0|0|15|45000|2300000|-1800000000|0|0|0|0|0|
 
-You may use following code to define this data and load it so that it can be used by mechaphlowers:
+You may use the following code to define this data and load it so that it can be used by mechaphlowers:
 
 ```
 import pandas as pd
@@ -116,8 +116,7 @@ print(cable_array)
 ```
 ## External loads
 
-External loads can be added to the cable array.  
-This currently only supports wind loads, but it's easy to extend this by adding more external loads. To add a weather load, you need to create an instance of `WeatherArray` class, and pass it to the SectionDataFrame.
+External loads can be added to the cable array. We only support wind loads, but it's easy to extend this by adding more external loads. To add a weather load, you need to create an instance of `WeatherArray` class, and pass it to the SectionDataFrame.
 The following example shows how to add a wind load on the cable.
 
 !!! important

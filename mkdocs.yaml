@@ -40,9 +40,9 @@ nav:
   - Getting Started: home/home.md
   - User Guide: 
       - Introduction : user_guide/ug_general_concepts.md
-      - Input data format: user_guide/ug_input.md
+      - Input data: user_guide/ug_input.md
       - Coordinates system: user_guide/ug_coordinates_system.md
-      - Cable modelling : user_guide/ug_cable_model.md
+      - Cable modeling : user_guide/ug_cable_model.md
       - Sag-tension calculation : user_guide/ug_sag_tension_calc.md
       - Deformation : user_guide/ug_deformation.md
       - Wind speed conversion : user_guide/ug_wind_speed_conversion.md
