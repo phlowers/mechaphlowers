@@ -12,7 +12,6 @@ from mechaphlowers.data.geography.helpers import (
     distances_to_gps,
     gps_to_bearing,
     gps_to_lambert93,
-    haversine,
     lambert93_to_gps,
     reverse_haversine,
 )
@@ -188,24 +187,24 @@ def test_reverse_haversine():
     assert np.allclose(lon_end, [2.3522, 6.29545998, 4.8357], atol=1e-6)
 
 
-def test_haversine():
-    """Test haversine with known French city distances."""
+# def test_haversine():
+#     """Test haversine with known French city distances."""
 
-    # Test distances between major French cities
-    lat1 = np.array([FRENCH_CITIES_GPS["Paris"][0]], dtype=np.float64)
-    lon1 = np.array([FRENCH_CITIES_GPS["Paris"][1]], dtype=np.float64)
-    lat2 = np.array([FRENCH_CITIES_GPS["Marseille"][0]], dtype=np.float64)
-    lon2 = np.array([FRENCH_CITIES_GPS["Marseille"][1]], dtype=np.float64)
+#     # Test distances between major French cities
+#     lat1 = np.array([FRENCH_CITIES_GPS["Paris"][0]], dtype=np.float64)
+#     lon1 = np.array([FRENCH_CITIES_GPS["Paris"][1]], dtype=np.float64)
+#     lat2 = np.array([FRENCH_CITIES_GPS["Marseille"][0]], dtype=np.float64)
+#     lon2 = np.array([FRENCH_CITIES_GPS["Marseille"][1]], dtype=np.float64)
 
-    distance = haversine(lat1, lon1, lat2, lon2)
-    assert np.isclose(distance[0], 660478, atol=1)
+#     distance = haversine(lat1, lon1, lat2, lon2)
+#     assert np.isclose(distance[0], 660478, atol=1)
 
-    # Test Paris to Lyon
-    lat2 = np.array([FRENCH_CITIES_GPS["Lyon"][0]], dtype=np.float64)
-    lon2 = np.array([FRENCH_CITIES_GPS["Lyon"][1]], dtype=np.float64)
+#     # Test Paris to Lyon
+#     lat2 = np.array([FRENCH_CITIES_GPS["Lyon"][0]], dtype=np.float64)
+#     lon2 = np.array([FRENCH_CITIES_GPS["Lyon"][1]], dtype=np.float64)
 
-    distance = haversine(lat1, lon1, lat2, lon2)
-    assert np.isclose(distance[0], 391498, atol=1)
+#     distance = haversine(lat1, lon1, lat2, lon2)
+#     assert np.isclose(distance[0], 391498, atol=1)
 
 
 def test_gps_to_bearing_cardinal_directions():

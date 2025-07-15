@@ -280,7 +280,7 @@ def bearing_to_direction(
     """
     directions = np.array(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])
     index = np.round(bearing / 45) % 8
-    return directions[int(index)]
+    return directions[index.astype(int)]
 
 
 def distances_to_gps(
