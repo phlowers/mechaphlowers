@@ -34,8 +34,6 @@ $$
     b' = b \cdot \cos \beta
 $$
 
-Another way to see the cable plane is to rotate the cable plane.
-
 ### Catenary model
 
 #### 1. Cable equation
@@ -83,10 +81,10 @@ The cable equation has an impact on mechanical tension definition. The mechanica
 * The horizontal component 
 
 $$
-    T_h = p \cdot m \cdot \lambda
+    T_h = p \cdot k_{load} \cdot \lambda
 $$
 
-With $m$ the load coefficient. No load on cable means $m = 1$. It is constant along the cable.
+With $m$ the load coefficient. No load on cable means $k_{load} = 1$. It is constant along the cable.
 
 * The vertical component
 

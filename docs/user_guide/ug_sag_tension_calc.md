@@ -36,14 +36,14 @@ $$
 The load coefficient $m$ quantifies the impact of the external loads on the horizontal tension. It is defined as:
 
 $$
-    m = \frac{R}{\lambda}
+    k_{load} = \frac{R}{\lambda}
 $$
 
 The connection between the sagging parameter $p$, the cable linear weight $\lambda$, and the horizontal tension $T_h$,
 already defined in the [cable modeling section](ug_cable_model.md), is:
 
 $$
-    p = \frac{T_h}{m \cdot \lambda}
+    p = \frac{T_h}{k_{load} \cdot \lambda}
 $$
 
 ## Load angle
