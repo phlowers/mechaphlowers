@@ -111,9 +111,9 @@ class WindSpeedPressureConverter:
 
     Args:
         tower_height (np.ndarray): height of the tower in meters
-        gust_wind (np.ndarray | None, optional): gust wind speed in km/h. Defaults to None.
-        speed_average_wind_open_country (np.ndarray | None, optional): average wind speed in open country in m/s. Defaults to None.
-        wind_angle_cable_degrees (np.ndarray, optional): angle of the wind on the cable in degrees. Defaults to 90.
+        gust (np.ndarray | None, optional): gust wind speed in km/h. Defaults to None.
+        speed_average_open_country (np.ndarray | None, optional): average wind speed in open country in m/s. Defaults to None.
+        angle_cable_degrees (np.ndarray, optional): angle of the wind on the cable in degrees. Defaults to 90.
         voltage (int, optional): voltage of the line in kV. Defaults to 400.
         category_surface_roughness (Literal["0", "II", "IIIa"], optional): category of surface roughness. Defaults to "II".
         work (bool, optional): if True, the converter is used for work conditions. Defaults to False.
