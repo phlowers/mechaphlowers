@@ -139,9 +139,9 @@ class SagTensionSolver:
         except KeyError:
             raise ValueError(f"Incorrect solver name: {solver}")
         self.update_loads(ice_thickness, wind_pressure)
-        m = self.cable_loads.load_coefficient
+        k_load = self.cable_loads.load_coefficient
         T_h0 = self.span_model_type.compute_T_h(
-            self.sagging_parameter, m, self.linear_weight
+            self.sagging_parameter, k_load, self.linear_weight
         )
 
         # TODO adapt code to use other solving methods
@@ -150,7 +150,7 @@ class SagTensionSolver:
             self._delta,
             T_h0,
             fprime=self._delta_prime,
-            args=(m, temp, self.L_ref),
+            args=(k_load, temp, self.L_ref),
             tol=1e-5,
             full_output=True,
         )
@@ -161,7 +161,7 @@ class SagTensionSolver:
     def _delta(
         self,
         T_h: np.ndarray,
-        m: np.ndarray,
+        k_load: np.ndarray,
         temp: np.ndarray,
         L_ref: np.ndarray,
     ) -> np.ndarray:
@@ -170,7 +170,7 @@ class SagTensionSolver:
         Therefore, its value should be zero.
         $\\delta = \\varepsilon_{L} - \\varepsilon_{T}$
         """
-        p = self.span_model_type.compute_p(T_h, m, self.linear_weight)
+        p = self.span_model_type.compute_p(T_h, k_load, self.linear_weight)
         L = self.span_model_type.compute_L(
             self.span_length_after_loads,
             self.elevation_difference_after_loads,
@@ -197,7 +197,7 @@ class SagTensionSolver:
     def _delta_prime(
         self,
         Th: np.ndarray,
-        m: np.ndarray,
+        k_load: np.ndarray,
         temp: np.ndarray,
         L_ref: np.ndarray,
     ) -> np.ndarray:
@@ -205,7 +205,7 @@ class SagTensionSolver:
         $$\\delta'(T_h) = \\frac{\\delta(T_h + \\zeta) - \\delta(T_h)}{\\zeta}$$
         """
         kwargs = {
-            "m": m,
+            "k_load": k_load,
             "temp": temp,
             "L_ref": L_ref,
         }
@@ -215,13 +215,13 @@ class SagTensionSolver:
 
     def p_after_change(self) -> np.ndarray:
         """Compute the new value of the sagging parameter after sag tension calculation"""
-        m = self.cable_loads.load_coefficient
+        k_load = self.cable_loads.load_coefficient
         if self.T_h_after_change is None:
             raise ValueError(
                 "method change_state has to be run before calling this method"
             )
         return self.span_model_type.compute_p(
-            self.T_h_after_change, m, self.linear_weight
+            self.T_h_after_change, k_load, self.linear_weight
         )
 
     def L_after_change(self) -> np.ndarray:

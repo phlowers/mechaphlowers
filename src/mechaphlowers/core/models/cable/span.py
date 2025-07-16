@@ -187,14 +187,14 @@ class Span(ABC):
     @staticmethod
     @abstractmethod
     def compute_T_h(
-        p: np.ndarray, m: np.ndarray, lambd: np.float64
+        p: np.ndarray, k_load: np.ndarray, lambd: np.float64
     ) -> np.ndarray:
         """Computing horizontal tension on the cable using a static method"""
 
     @staticmethod
     @abstractmethod
     def compute_p(
-        T_h: np.ndarray, m: np.ndarray, lambd: np.float64
+        T_h: np.ndarray, k_load: np.ndarray, lambd: np.float64
     ) -> np.ndarray:
         """Computing sagging parameter on the cable using a static method"""
 
@@ -285,8 +285,8 @@ class CatenarySpan(Span):
             raise AttributeError("Cannot compute T_h: linear_weight is needed")
         else:
             p = self.sagging_parameter
-            m = self.load_coefficient
-            return self.compute_T_h(p, m, self.linear_weight)
+            k_load = self.load_coefficient
+            return self.compute_T_h(p, k_load, self.linear_weight)
 
     def T_v(self, x_one_per_span) -> np.ndarray:
         # an array of abscissa of the same length as the number of spans is expected
@@ -323,9 +323,9 @@ class CatenarySpan(Span):
 
     @staticmethod
     def compute_p(
-        T_h: np.ndarray, m: np.ndarray, lambd: np.float64
+        T_h: np.ndarray, k_load: np.ndarray, lambd: np.float64
     ) -> np.ndarray:
-        return T_h / (m * lambd)
+        return T_h / (k_load * lambd)
 
     @staticmethod
     def compute_x_m(
@@ -366,9 +366,9 @@ class CatenarySpan(Span):
 
     @staticmethod
     def compute_T_h(
-        p: np.ndarray, m: np.ndarray, lambd: np.float64
+        p: np.ndarray, k_load: np.ndarray, lambd: np.float64
     ) -> np.ndarray:
-        return p * m * lambd
+        return p * k_load * lambd
 
     @staticmethod
     def compute_T_v(

@@ -44,34 +44,34 @@ $$
     z(x) = p \cdot \left( \cosh \left( \frac{x}{p} \right) - 1 \right)
 $$
 
-To extract the appropriate curve segment, the extremum abscissa values ($x_m$ and $x_n$) must be calculated as functions of the sagging parameter $p$ within the cable's plane. $x = 0$  represents the center of the cable.  
+To extract the appropriate curve segment, the extremum abscissa values ($x_M$ and $x_N$) must be calculated as functions of the sagging parameter $p$ within the cable's plane. $x = 0$  represents the center of the cable.  
 Let $M$ be the left hanging point and $N$ the right hanging point. The cable plane, as defined in the general concepts, is recalled here.  
 $a$ and $b$ are expressed in the vertical plane. The following equations use $a'$ and $b'$, so they can be applied without considering $\beta$:
 
 $$
-    x_m = -\frac{a'}{2}+p \cdot asinh \left( \frac{b'}{2 \cdot p \cdot \sinh⁡ \left( \frac{a'}{2 \cdot p} \right)}  \right)
+    x_M = -\frac{a'}{2}+p \cdot asinh \left( \frac{b'}{2 \cdot p \cdot \sinh⁡ \left( \frac{a'}{2 \cdot p} \right)}  \right)
 $$
 
 $$
-    x_n = a' + x_m
+    x_N = a' + x_M
 $$
 
 The cable length $L$ can be divided into two parts:
 
 $$
-    L = L_m + L_n
+    L = L_M + L_N
 $$
 
 where
 
 $$
-    L_m = -p \cdot \sinh \left( \frac{x_m}{p} \right)
+    L_M = -p \cdot \sinh \left( \frac{x_M}{p} \right)
 $$
 
 and 
 
 $$
-    L_n = p \cdot \sinh \left( \frac{x_n}{p} \right)
+    L_N = p \cdot \sinh \left( \frac{x_N}{p} \right)
 $$
 
 #### 2. Tension
@@ -84,7 +84,7 @@ $$
     T_h = p \cdot k_{load} \cdot \lambda
 $$
 
-With $m$ the load coefficient. No load on cable means $k_{load} = 1$. It is constant along the cable.
+With $k_{load}$ the load coefficient. No load on cable means $k_{load} = 1$. It is constant along the cable.
 
 * The vertical component
 
@@ -104,29 +104,29 @@ $$
 
 To understand the tension distribution along the cable, we calculate the overall mean tension.  
 In order to do that, we can separate the cable in two halves, at $x=0$, the lowest point of the cable.  
-Then, we can calculate ${T_{mean}}_m$ and ${T_{mean}}_n$, the mean tensions on the left and right parts of the cable respectively. They are given by the following formulas: 
+Then, we can calculate ${T_{mean}}_M$ and ${T_{mean}}_N$, the mean tensions on the left and right parts of the cable respectively. They are given by the following formulas: 
 
 $$
-{T_{mean}}_m = \frac{-x_m \cdot T_h + L_m \cdot {T_{max}}_m}{2 \cdot L_m}
+{T_{mean}}_M = \frac{-x_M \cdot T_h + L_M \cdot {T_{max}}_M}{2 \cdot L_M}
 $$
 
 and
 
 $$
-{T_{mean}}_n = \frac{x_n \cdot T_h + L_n \cdot {T_{max}}_n}{2 \cdot L_n}
+{T_{mean}}_N = \frac{x_N \cdot T_h + L_N \cdot {T_{max}}_N}{2 \cdot L_N}
 $$
 
-where $x_m, x_n$ are the horizontal positions at $M$ and $N$, $T_h$ is the constant horizontal tension,
-and $L_m, L_n$ are the cable lengths around the extremities. 
+where $x_M, x_N$ are the horizontal positions at $M$ and $N$, $T_h$ is the constant horizontal tension,
+and $L_M, L_N$ are the cable lengths around the extremities. 
 
  
 The overall mean tension is the weighted average of the mean tensions on the left and on the right:
 
 $$
-T_{mean} = \frac{{T_{mean}}_m \cdot L_m + {T_{mean}}_n \cdot L_n}{L}
+T_{mean} = \frac{{T_{mean}}_M \cdot L_M + {T_{mean}}_N \cdot L_N}{L}
 $$
 
-with $L = L_m + L_n$ the total cable length. These expressions provide a global and local understanding of
+with $L = L_M + L_N$ the total cable length. These expressions provide a global and local understanding of
 how the forces are distributed along the cable, essential for analyzing strain and deformation.
 
 ### Additional models
