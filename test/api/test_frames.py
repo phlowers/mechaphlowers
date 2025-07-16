@@ -246,3 +246,34 @@ def test_frame__sagtension_use(section_dataframe_with_cable_weather) -> None:
         section_dataframe_with_cable_weather.state.T_h_after_change.shape
         == (4,)
     )
+
+
+def test_frame__update_paramater_wind(
+    section_dataframe_with_cable_weather,
+) -> None:
+    """Test that the sag tension is calculated correctly."""
+    wa = WeatherArray(
+        pd.DataFrame(
+            {
+                "ice_thickness": [1, 2.1, 0.0, np.nan],
+                "wind_pressure": [240.12, 0.0, 12.0, np.nan],
+            }
+        )
+    )
+    x = np.linspace(-200, 200, 20)
+    section_dataframe_with_cable_weather.state.change(100, wa)
+    z_span_after_state_change = section_dataframe_with_cable_weather.span.z(x)
+
+    expected_span = CatenarySpan(
+        **section_dataframe_with_cable_weather.data_container.__dict__
+    )
+    expected_span.sagging_parameter = (
+        section_dataframe_with_cable_weather.state.p_after_change
+    )
+    expected_z = expected_span.z(x)
+
+    np.testing.assert_allclose(
+        section_dataframe_with_cable_weather.span.sagging_parameter,
+        expected_span.sagging_parameter,
+    )
+    np.testing.assert_allclose(z_span_after_state_change, expected_z)

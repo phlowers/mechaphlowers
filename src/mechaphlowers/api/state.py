@@ -69,3 +69,4 @@ class StateAccessor:
         self.p_after_change = sag_tension_calculation.p_after_change()
         self.L_after_change = sag_tension_calculation.L_after_change()
         self.T_h_after_change = sag_tension_calculation.T_h_after_change
+        self.frame.span.sagging_parameter = self.p_after_change

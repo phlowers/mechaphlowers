@@ -13,9 +13,7 @@ from mechaphlowers.core.models.cable.span import (
 from mechaphlowers.entities.data_container import DataContainer
 
 
-def test_catenary_span_model__no_error_lengths(
-    default_data_container_one_span,
-) -> None:
+def test_catenary_span_model__no_error_lengths() -> None:
     a = np.array([501.3, 499.0])  # test here int and float
     b = np.array([0.0, -5.0])
     p = np.array([2_112.2, 2_112.0])
