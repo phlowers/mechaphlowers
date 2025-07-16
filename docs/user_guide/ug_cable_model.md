@@ -46,11 +46,9 @@ $$
     z(x) = p \cdot \left( \cosh \left( \frac{x}{p} \right) - 1 \right)
 $$
 
-To extract the appropriate curve segment, the extremum abscissa values ($x_m$ and $x_n$) must be calculated as
-functions of the sagging parameter $p$ within the cable's plane. $x = 0$  represents the center of the cable. Let $M$ be
-the left hanging point and $N$ the right hanging point. The cable plane, as defined in the general concepts, is recalled
-here. $a$ and $b$ are expressed in the vertical plane. The following equations use $a'$ and $b'$, so they can be applied
-without considering $\beta$:
+To extract the appropriate curve segment, the extremum abscissa values ($x_m$ and $x_n$) must be calculated as functions of the sagging parameter $p$ within the cable's plane. $x = 0$  represents the center of the cable.  
+Let $M$ be the left hanging point and $N$ the right hanging point. The cable plane, as defined in the general concepts, is recalled here.  
+$a$ and $b$ are expressed in the vertical plane. The following equations use $a'$ and $b'$, so they can be applied without considering $\beta$:
 
 $$
     x_m = -\frac{a'}{2}+p \cdot asinh \left( \frac{b'}{2 \cdot p \cdot \sinh⁡ \left( \frac{a'}{2 \cdot p} \right)}  \right)
@@ -85,10 +83,10 @@ The cable equation has an impact on mechanical tension definition. The mechanica
 * The horizontal component 
 
 $$
-    T_h = p \cdot mass \cdot \lambda
+    T_h = p \cdot m \cdot \lambda
 $$
 
-With $m$ the load coefficient. No load on cable means $mass = 1$. It is constant along the cable.
+With $m$ the load coefficient. No load on cable means $m = 1$. It is constant along the cable.
 
 * The vertical component
 
@@ -106,8 +104,9 @@ $$
     T_{max}(x) = T_h \cdot \cosh⁡ \left( \frac{x}{p} \right)
 $$
 
-To understand the tension distribution along the cable, we calculate the mean tensions at its extremities
-$M$ and $N$, through integrals, as well as the overall mean tension. The mean tensions at $M$ (left) and $N$ (right) are given by:
+To understand the tension distribution along the cable, we calculate the overall mean tension.  
+In order to do that, we can separate the cable in two halves, at $x=0$, the lowest point of the cable.  
+Then, we can calculate ${T_{mean}}_m$ and ${T_{mean}}_n$, the mean tensions on the left and right parts of the cable respectively. They are given by the following formulas: 
 
 $$
 {T_{mean}}_m = \frac{-x_m \cdot T_h + L_m \cdot {T_{max}}_m}{2 \cdot L_m}
@@ -119,9 +118,11 @@ $$
 {T_{mean}}_n = \frac{x_n \cdot T_h + L_n \cdot {T_{max}}_n}{2 \cdot L_n}
 $$
 
-Where $x_m, x_n$ are the horizontal positions at $M$ and $N$, $T_h$ is the constant horizontal tension,
-and $L_m, L_n$ are the cable lengths around the extremities. The tensions reached their maximum at the extremities. 
-The overall mean tension is the weighted average of the extremity tensions:
+where $x_m, x_n$ are the horizontal positions at $M$ and $N$, $T_h$ is the constant horizontal tension,
+and $L_m, L_n$ are the cable lengths around the extremities. 
+
+ 
+The overall mean tension is the weighted average of the mean tensions on the left and on the right:
 
 $$
 T_{mean} = \frac{{T_{mean}}_m \cdot L_m + {T_{mean}}_n \cdot L_n}{L}
@@ -151,7 +152,8 @@ how the forces are distributed along the cable, essential for analyzing strain a
 ### Linear elasticity model
 
 In this section, the cable is assumed to exhibit linear elasticity, meaning its strain is directly proportional to
-stress. More complex behaviors (e.g., plasticity) can be added in the future.
+stress.  
+More complex behaviors (e.g., plasticity) can be added in the future.
 
 The cable's strain results from two sources, mechanical tensions and temperature changes:
 

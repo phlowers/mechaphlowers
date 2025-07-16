@@ -9,8 +9,8 @@ studied height, wind angle, force coefficient.
 
 - $th$ the tower height (in $m$)
 - $z_0$ the roughness length (in $m$)
-- $V_{b,0}$ the basic wind velocity (in $m/s$), i.e., mean wind speed during 10 minutes, at 10 m altitude, monitored in an open country.
-
+- $V_{b,0}$ the basic wind velocity (in $m/s$), defined as the mean wind speed measured over 10 minutes at a height of 10 m in open terrain.
+- $\delta$ the angle between the wind direction and the cable (in degrees). The wind exerts the greatest effect when $\delta = 90^\circ$.
 
 ### Variables
 
@@ -37,7 +37,7 @@ The roughness length $z_0$ depends on the type of terrain:
 
 $$ k_r = 0.19 * \ln(\frac{z_0}{z_{0,II}}) ^ {0.07}$$ 
 
-$$ V_m = V_{b,0} * k_r * \ln(\frac{h}{z_0}) * \sin(AngleWind)$$
+$$ V_m = V_{b,0} * k_r * \ln(\frac{h}{z_0}) * \sin(\delta)$$
 
 $$ I_v = \frac{1}{\ln(\frac{h}{z_0})}$$
 

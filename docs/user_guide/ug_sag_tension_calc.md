@@ -33,17 +33,17 @@ $$
 
 ## Load coefficient
 
-The load coefficient $mass$ quantifies the impact of the external loads on the horizontal tension. It is defined as:
+The load coefficient $m$ quantifies the impact of the external loads on the horizontal tension. It is defined as:
 
 $$
-    mass = \frac{R}{\lambda}
+    m = \frac{R}{\lambda}
 $$
 
 The connection between the sagging parameter $p$, the cable linear weight $\lambda$, and the horizontal tension $T_h$,
 already defined in the [cable modeling section](ug_cable_model.md), is:
 
 $$
-    p = \frac{T_h}{mass \cdot \lambda}
+    p = \frac{T_h}{m \cdot \lambda}
 $$
 
 ## Load angle
