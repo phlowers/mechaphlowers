@@ -1,6 +1,6 @@
-# Mechaphlower Coordinates System
+# Mechaphlowers Coordinates System
 
-Mechaphlower provides a set of tools to handle coordinates in 3D space.  
+Mechaphlowers provides a set of tools to handle coordinates in 3D space.  
 The philosophy is to store the same objects with the same resolution as layers of a coordinate system. In this way, calculations can be performed on all layers at once.
 
 ## Formats

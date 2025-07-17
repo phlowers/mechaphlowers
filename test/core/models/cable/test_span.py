@@ -115,10 +115,12 @@ def test_catenary_span_model__tensions__wrong_dimension_array() -> None:
     a = np.array([500, 500])
     b = np.array([0.0, 0.0])
     p = np.array([2_000, 2_000])
-    m = np.array([1, 1])
+    k_load = np.array([1, 1])
     lambd = np.float64(9.6)
 
-    span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+    span_model = CatenarySpan(
+        a, b, p, load_coefficient=k_load, linear_weight=lambd
+    )
 
     x = np.array([2, 3, 4])
 
@@ -133,9 +135,11 @@ def test_catenary_span_model__tensions__no_elevation_difference() -> None:
     b = np.array([0])
     p = np.array([2_000])
     lambd = np.float64(9.55494)
-    m = np.array([1])
+    k_load = np.array([1])
 
-    span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+    span_model = CatenarySpan(
+        a, b, p, load_coefficient=k_load, linear_weight=lambd
+    )
     x_m = span_model.x_m()
 
     # Data given by the prototype
@@ -149,9 +153,11 @@ def test_catenary_span_model__geometric_output() -> None:
     b = np.array([0])
     p = np.array([2_000])
     lambd = np.float64(9.55494)
-    m = np.array([1])
+    k_load = np.array([1])
 
-    span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+    span_model = CatenarySpan(
+        a, b, p, load_coefficient=k_load, linear_weight=lambd
+    )
 
     assert (span_model.x_m() + 250.0) < 0.01
     assert (span_model.x_n() - 250.0) < 0.01

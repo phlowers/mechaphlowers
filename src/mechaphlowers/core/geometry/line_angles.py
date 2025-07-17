@@ -109,8 +109,10 @@ def get_edge_arm_coords(
     Args:
         supports_ground_coords (np.ndarray): coordinates of ground supports (output of `get_supports_ground_coords()`)
         conductor_attachment_altitude (np.ndarray): attachment altitude (input from SectionArray)
-        line_angle (np.ndarray): line angles (input from SectionArray)
         crossarm_length (np.ndarray): crossarm lengths (input from SectionArray)
+        line_angle (np.ndarray): line angles (input from SectionArray)
+        insulator_length (np.ndarray): insulator lengths (input from SectionArray)
+
 
     Returns:
         Returns two 2D arrays of shape (n, 3):
@@ -149,7 +151,7 @@ def get_attachment_coords(
 
     Args:
         edge_arm_coords (np.ndarray): coordinates of the edge of the arms (output of `get_edge_arm_coords()`)
-        insulator_length (np.ndarray): insulator lengths (input from SectionArray)
+        conductor_attachment_altitude (np.ndarray): attachment altitude (input from SectionArray)
 
     Returns:
         np.ndarray: coordinates of the attachment points in the global frame.
