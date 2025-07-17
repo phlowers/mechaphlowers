@@ -8,7 +8,11 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
-from mechaphlowers.data.catalog import fake_catalog, sample_cable_catalog
+from mechaphlowers.data.catalog import (
+    build_catalog_from_yaml,
+    fake_catalog,
+    sample_cable_catalog,
+)
 
 
 def test_fake_catalog__get_mistyping() -> None:
@@ -140,3 +144,7 @@ def test_fake_catalog__keys() -> None:
     assert len(fake_catalog.keys()) == 800
     assert "Bulbasaur" in fake_catalog.keys()
     assert "notPokemon" not in fake_catalog.keys()
+
+
+def test_yaml():
+    build_catalog_from_yaml("sample_cable_database.yaml")

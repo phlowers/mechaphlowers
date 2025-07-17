@@ -608,6 +608,7 @@ dependencies = [
     { name = "pandas" },
     { name = "pandera" },
     { name = "plotly" },
+    { name = "pyyaml" },
 ]
 
 [package.optional-dependencies]
@@ -628,6 +629,7 @@ all = [
     { name = "pandas-stubs" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "requests" },
     { name = "ruff" },
     { name = "scipy" },
     { name = "types-requests" },
@@ -654,6 +656,7 @@ docs = [
 test = [
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "requests" },
 ]
 
 [package.metadata]
@@ -663,6 +666,7 @@ requires-dist = [
     { name = "pandas", specifier = "<=2.2.3" },
     { name = "pandera", specifier = "<=0.21.1" },
     { name = "plotly", specifier = "<=5.24.1" },
+    { name = "pyyaml", specifier = "<=6.0.2" },
     { name = "requests", marker = "extra == 'full'", specifier = "==2.32.4" },
     { name = "scipy", marker = "extra == 'full'", specifier = "<=1.14.1" },
 ]
@@ -680,6 +684,7 @@ all = [
     { name = "pandas-stubs", specifier = "==2.2.3.241009" },
     { name = "pytest", specifier = "==8.3.2" },
     { name = "pytest-cov", specifier = "==5.0.0" },
+    { name = "requests", specifier = "==2.32.4" },
     { name = "ruff", specifier = "==0.6.1" },
     { name = "scipy", specifier = "<=1.14.1" },
     { name = "types-requests", specifier = "==2.32.4.20250611" },
@@ -706,6 +711,7 @@ docs = [
 test = [
     { name = "pytest", specifier = "==8.3.2" },
     { name = "pytest-cov", specifier = "==5.0.0" },
+    { name = "requests", specifier = "==2.32.4" },
 ]
 
 [[package]]

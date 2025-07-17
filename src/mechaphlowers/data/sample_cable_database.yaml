@@ -1,0 +1,21 @@
+Name: sable_cable
+csv_path: "sample_cable_database.csv"
+catalog_type: Catalog
+key_column_name: name
+
+columns:
+  - name: string
+  - section: float
+
+
+columns_mapping:
+  - stress_strain_a0: a0
+  - stress_strain_a1: a1
+  - stress_strain_a2: a2
+  - stress_strain_a3: a3
+  - stress_strain_a4: a4
+  - stress_strain_b0: b0
+  - stress_strain_b1: b1
+  - stress_strain_b2: b2
+  - stress_strain_b3: b3
+  - stress_strain_b4: b4
