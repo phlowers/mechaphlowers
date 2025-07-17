@@ -1,10 +1,10 @@
-Name: sable_cable
+Name: sample_cable
 csv_path: "sample_cable_database.csv"
 catalog_type: Catalog
 key_column_name: name
 
 columns:
-  - name: string
+  - data_source: str
   - section: float
 
 

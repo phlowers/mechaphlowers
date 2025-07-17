@@ -9,6 +9,7 @@ from os import PathLike
 from pathlib import Path
 
 import pandas as pd
+import pandera as pa
 import yaml  # type: ignore[import-untyped]
 
 from mechaphlowers.entities.arrays import CableArray
@@ -26,6 +27,8 @@ class Catalog:
         self,
         filename: str | PathLike,
         key_column_name: str,
+        df_schema: pa.DataFrameSchema
+        | None = None,  # keep None for now, need ot think later if mandatory arg
         rename_map: dict = {},
     ) -> None:
         """Initialize catalog from a csv file.
@@ -41,6 +44,8 @@ class Catalog:
         """
         filepath = DATA_BASE_PATH / filename
         self._data = pd.read_csv(filepath, index_col=key_column_name)
+        if df_schema is not None:
+            df_schema.validate(self._data)
         self._data = self._data.rename(columns=rename_map)
 
     def get(self, keys: list | str) -> pd.DataFrame:
@@ -130,6 +135,14 @@ def build_catalog_from_yaml(
     with open(yaml_filepath, "r") as file:
         data = yaml.safe_load(file)
 
+    df_schema = pa.DataFrameSchema(
+        {
+            key: pa.Column(value)
+            for list_item in data["columns"]
+            for (key, value) in list_item.items()
+        }
+    )
+
     if rename:
         rename_map = {
             key: value
@@ -138,7 +151,9 @@ def build_catalog_from_yaml(
         }
     else:
         rename_map = {}
-    return Catalog(data["csv_path"], data["key_column_name"], rename_map)
+    return Catalog(
+        data["csv_path"], data["key_column_name"], df_schema, rename_map
+    )
 
 
 fake_catalog = Catalog("pokemon.csv", key_column_name="Name")
