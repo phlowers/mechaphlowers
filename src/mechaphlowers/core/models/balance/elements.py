@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from functools import lru_cache
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,8 @@ import pandas as pd
 from mechaphlowers.core.models.balance import numeric
 import mechaphlowers.core.models.balance.functions as f
 import mechaphlowers.core.numeric.numeric as optimize
+
+from mechaphlowers.utils import ppnp
 
 
 class NodeType(Enum):
@@ -52,6 +55,10 @@ class Span:
         # self.nodes.compute_forces(self.Th, self.Tv_d, self.Tv_g, self.parameter)
         self.nodes.no_load = True
         self.init_Lref_mode = False
+        # TODO: during L_ref computation, perhaps set cable_temperature = 0
+        # TODO: temperature here is tuning temperature / only in the real span part
+        # TODO: there is another temperature : change state
+        
         self.update_span()
         self.nodes.compute_forces(self.Th, self.Tv_d, self.Tv_g, self.parameter)
         self.nodes.no_load = False
@@ -78,9 +85,11 @@ class Span:
     # TODO: méthode sur appelée, mettre en lru_cache ?   
     def update_tensions(self):
         if not self.reglage:
-            c_param = self.cardan(self.a, self.b, self.length_0, self.cable_temperature)
+            c_param = self.cardan(self.a, self.b, self.L_ref, self.cable_temperature)
+            self._parameter = c_param
             if self.finition:
-                c_param = self.find_parameter(self.parameter, self.a, self.b, self.length_0, self.cable_temperature)
+                c_param = self.find_parameter(self.parameter, self.a, self.b, self.L_ref, self.cable_temperature)
+                self._parameter = c_param
         else:
             c_param = self._parameter
             
@@ -97,13 +106,17 @@ class Span:
     
     @property
     def Tv_g(self):
-        self.update_tensions()
+        # self.update_tensions()
         return self._Tv_g
     
     @property
     def Tv_d(self):
-        self.update_tensions()
+        # self.update_tensions()
         return self._Tv_d
+    
+    def get_approximative_parameter(self):
+        self._parameter = self.cardan(self.a, self.b, self.L_ref, self.cable_temperature)
+        
     
     def cardan(self, a, b, L0, cable_temperature):
         circle_chord = (a**2 + b**2)**0.5
@@ -112,24 +125,116 @@ class Span:
         
         p3 = factor * L0
         p2 = L0 - circle_chord + self.cable.dilation_coefficient * cable_temperature * L0
-        p1 = 0
+        p1 = 0 *L0
         p0 = -a**4 / 24 / circle_chord
         
         # cubic_roots(np.array([[-1, -3, 2, 3], [-10, -3, 2, 7]]))
         # we have to do p3 * x**3 + p2 * x**2 + p1 * x + p0 = 0
         # p = p3 | p2 | p1 | p0
         # then 
-        
+        p = np.vstack((p3, p2, p1, p0)).T
         roots = numeric.cubic_roots(p)
-        return roots
+        return roots.real
     
     @property
     def parameter(self):
         return self._parameter
 
+
+
+# param = param_init
+
+# compteur = 0
+
+# Do ' méthode Newton
+
+#     compteur = compteur + 1 ' au cas où ça plante...
+    
+#     mem = param
+
+#     x_m = -port / 2 + param * WorksheetFunction.Asinh(deniv / (2 * param * WorksheetFunction.Sinh(port / 2 / param)))
+#     x_n = x_m + port
+    
+#     lon = param * WorksheetFunction.Sinh(x_n / param) - param * WorksheetFunction.Sinh(x_m / param)
+    
+#     Tmoy = param * cable.pds_lin * (port + (WorksheetFunction.Sinh(2 * x_n / param) - WorksheetFunction.Sinh(2 * x_m / param)) * param / 2) / lon / 2
+    
+#     delta1 = ((lon - L0) / L0 - (cable.coef_dilat * T + Tmoy / (cable.mod_young) / cable.Section))
+    
+#     param = param + 1
+    
+#     x_m = -port / 2 + param * WorksheetFunction.Asinh(deniv / (2 * param * WorksheetFunction.Sinh(port / 2 / param)))
+#     x_n = x_m + port
+    
+#     lon = param * WorksheetFunction.Sinh(x_n / param) - param * WorksheetFunction.Sinh(x_m / param)
+    
+#     Tmoy = param * cable.pds_lin * (port + (WorksheetFunction.Sinh(2 * x_n / param) - WorksheetFunction.Sinh(2 * x_m / param)) * param / 2) / lon / 2
+    
+#     delta2 = ((lon - L0) / L0 - (cable.coef_dilat * T + Tmoy / (cable.mod_young) / cable.Section))
+    
+#     param = (param - 1) - delta1 / (delta2 - delta1)
+
+# Loop Until Abs(mem - param) < 0.001 Or compteur > 100
+
+# trouve = param
+
+# If compteur = 101 Then
+#     msgbox "plante Newton"
+#     Stop
+# End If
+
+
+
+    # @f.np_cache(maxsize=256)
     def find_parameter(self, parameter, a, b, L0, cable_temperature):
-        pass
-     
+        param = parameter
+        
+        n_iter = 50
+        
+        for i in range(n_iter):
+            x_m = f.x_m(a,b,param)
+            x_n = f.x_n(a,b,param)
+            lon = f.L(param, x_n, x_m)
+            Tm1 = f.T_moy(
+                p=param, 
+                L=lon,
+                x_n=a+f.x_m(a, b, param), 
+                x_m=f.x_m(a, b, param),
+                lineic_weight=self.cable.lineic_weight,
+                )
+            
+            delta1 = ((lon - self.L_ref) / self.L_ref - (self.cable.dilation_coefficient * self.cable_temperature + Tm1 / (self.cable.young_modulus) / self.cable.section))
+            
+            mem = param
+            param = param + 1
+            
+            x_m = f.x_m(a,b,param)
+            x_n = f.x_n(a,b,param)
+            lon = f.L(param, x_n, x_m)
+            Tm1 = f.T_moy(
+                p=param, 
+                L=lon,
+                x_n=a+f.x_m(a, b, param), 
+                x_m=f.x_m(a, b, param),
+                lineic_weight=self.cable.lineic_weight,
+                )
+            
+            delta2 = ((lon - self.L_ref) / self.L_ref - (self.cable.dilation_coefficient * self.cable_temperature + Tm1 / (self.cable.young_modulus) / self.cable.section))
+            
+            param = (param - 1) - delta1 / (delta2 - delta1)
+            # print(f"delta param {str(mem - param)}")
+#TODO: tune the threshold
+            if np.linalg.norm(mem - param) < .1*param.size:
+                print("--end--")
+                print(f"{i=}, {param=}")
+                break
+            if i == n_iter:
+                print("max iter reached")
+        # print(f"delta param {str(np.linalg.norm(mem - param))}")
+        # print("param = ", param)
+        
+        return param    
+         
     
     def update_span(self):
         """transmet_portee"""
@@ -167,12 +272,16 @@ class Span:
     
 
     
-    def vector_force(self):
-        self.nodes.compute_forces(self.Th, self.Tv_d, self.Tv_g, self.parameter)
+    def vector_force(self, update_dx_dz = True):
+        self.nodes.compute_forces(self.Th, self.Tv_d, self.Tv_g, self.parameter, update_dx_dz=update_dx_dz)
         # out = np.vstack((self.nodes.Fx, self.nodes.Fz, self.nodes.My))
         
         # manual fix to go on
         # TODO: vectorize
+        out = self.build_vector_force()        
+        return out 
+
+    def build_vector_force(self):
         out = []
         for i in range(0, len(self.nodes.Fx)):
             if self.nodes.ntype[i] == 1:
@@ -181,8 +290,8 @@ class Span:
             if self.nodes.ntype[i] == 2 or self.nodes.ntype[i] == 3:
                 out.append(self.nodes.My[i])
                 
-        out = np.array(out)        
-        return out # np.reshape(out, -1, order = 'F')
+        out = np.array(out)
+        return out# np.reshape(out, -1, order = 'F')
     
     def _delta_init_L(self, dz_se_only):
         self.nodes.dz[0] = dz_se_only[0]
@@ -196,24 +305,46 @@ class Span:
         return force_vector
     
     def _delta_dz(self, dz):
-        self.nodes.dz[0] = dz[0]
-        self.nodes.dz[-1] = dz[-1]
+        
+        f1 = self.vector_force(False)
+        self.nodes.dz += dz
         # self.update_span()
         # self.z_from_x_2ddl()
+        
+        self.nodes.compute_dx_dz()
+        self.update_span() # transmet_portee: update a and b
+        
+
+        # self.get_approximative_parameter()
+        self.update_tensions() # Th : cardan for parameter then compute Th, Tvd, Tvg
+
+        force_vector = self.vector_force(update_dx_dz=False)
+        
+        self.nodes.dz -= dz
+        # TODO: check why the state f2 is not the same as f1
+        self.nodes.compute_dx_dz()
         self.update_span()
+
         self.update_tensions()
-        force_vector = self.vector_force()
+        f2 = self.vector_force(update_dx_dz=False)
         
         return force_vector
     
     def _delta_dx(self, dx):
-        self.nodes.dx[0] = dx[0]
-        self.nodes.dx[-1] = dx[-1]
+        self.nodes.dx += dx
         # self.update_span()
         # self.z_from_x_2ddl()
         self.update_span()
+        self.nodes.compute_dx_dz()
         self.update_tensions()
-        force_vector = self.vector_force()
+        
+        force_vector = self.vector_force(update_dx_dz=False)
+        
+        
+        self.nodes.dx -= dx
+        # self.nodes.compute_dx_dz()
+        # self.update_span()
+        # self.update_tensions()
         
         return force_vector
     
@@ -365,7 +496,12 @@ class Nodes:
 
     
     def compute_dx_dz(self):
+
         L = self.L_chain
+        
+        # print(L**2 - self.dz **2)
+        # print(L**2 - self.dx **2)
+        
         dz2 = L - (L**2-self.dx**2)**.5
         dx1s = -L + (L**2 - self.dz **2)**.5
         dx1e = -(L**2 - self.dz**2)**.5 + L
@@ -378,10 +514,11 @@ class Nodes:
         
     
     
-    def compute_forces(self, Th, Tv_d, Tv_g, parameter):
+    def compute_forces(self, Th, Tv_d, Tv_g, parameter, update_dx_dz=True):
         # Placeholder for force computation logic
         # case 1: ntype == 1
-        self.compute_dx_dz()
+        if update_dx_dz:
+            self.compute_dx_dz()
         
         Th_i = np.concat((np.array([0]), Th))
         Th_ip1 = np.concat((Th, np.array([0])))
@@ -516,9 +653,21 @@ def initialize_relaxation(nodes:Nodes, mask: np.ndarray, min_relaxation: float =
 def solver_balance(section: Span, temperature=0, ):
     # get span temperature
     # input loads
+    section.reglage = False
     section.nodes.no_load = False
-    # update ?
     section.cable_temperature = temperature*np.ones_like(section.cable_temperature)
+    
+    #TODO:
+    # section.trouve
+    
+    # cardan then update force
+    section.get_approximative_parameter()
+    
+    section.update_tensions()
+    section.update_span()
+    
+    # update ?
+    
     # TODO: update cable temperature or new variable ?
     
     # compute relaxation
@@ -526,50 +675,157 @@ def solver_balance(section: Span, temperature=0, ):
     
     eps = .00001
     
+    # only for values 
     finition = False
     
     x0 = np.zeros_like(section.nodes.x)
     
     # build jacobian matrix
-    section.z_from_x_2ddl()
+    # section.z_from_x_2ddl()
     
     force_vector = section.vector_force()
 
     # masks for the jacobian
     # case 1 : two lines : one for dx one for dz
-     
+    
+    n_iter = range(1,100)
+    force_vector = section.vector_force()
+    vector_eps = np.zeros_like(section.nodes.dx)
+    pre_jacobian = np.zeros((len(force_vector),len(force_vector)))
+    
+    ## set relaxation to 0 for the moment
+    # relaxation = 0.
+    
+    for compteur in n_iter:
+        
+        
+
+        
+        
+        
+        df_list = []
+        
+        for i in range(len(section.nodes.ntype)):
+            vector_eps[i] += eps 
+            # print(vector_eps)
+            # print(force_vector)
+            # print("eee"*10)
             
-    dx_derivative, dz_derivative = compute_derivative(section, eps, x0)
-    
-    dF_dx = (dx_derivative - force_vector) / eps
-    dF_dz = (dz_derivative - force_vector) / eps
-    
-    aa = np.array(section.nodes.ntype, copy=True)  
-    # lenght_pattern = 2*len(aa[aa==1]) + len(aa[aa==2]) + len(aa[aa==3])
-    
-    # _base_matrix = np.repeat(aa, np.where(aa==1, 2,1))
-    
-    insert_idx = np.where(aa==1)[0]
-    
-    aa = np.insert(aa, insert_idx, 2*np.ones(len(insert_idx)))
-    
-    aa[aa==1] = 3
-    
+            if section.nodes.ntype[i] == 3:
+                
+                dz_d = section._delta_dz(vector_eps)
+                vector_eps[i] -= eps 
+                dF_dz = (dz_d - force_vector) / eps  
+                df_list.append(dF_dz)
+                # print(dz_d)
+            elif section.nodes.ntype[i] == 2:
+                dx_d = section._delta_dx(vector_eps)
+                vector_eps[i] -= eps 
+                dF_dx = (dx_d - force_vector) / eps 
+                df_list.append(dF_dx)
+                # print(dx_d)
+            elif section.nodes.ntype[i] == 1:
+                
+                dx_d = section._delta_dx(vector_eps)
+                dF_dx = (dx_d - force_vector) / eps 
+                df_list.append(dF_dx)
+                # print(dx_d)
+                
+                dz_d = section._delta_dz(vector_eps)
+                vector_eps[i] -= eps 
+                dF_dz = (dz_d - force_vector) / eps  
+                df_list.append(dF_dz)
+                # print(dz_d)
+                   
+            # dx_derivative, dz_derivative = compute_derivative(section, vector_eps)
+            # vector_eps[i] -= eps    
+        
+            # dF_dx = (dx_derivative - force_vector) / eps
+            # dF_dz = (dz_derivative - force_vector) / eps
 
-    
-    dF_dx_m = np.multiply(
-        np.tile(dF_dx, (len(aa),1)).T, 
-        aa==2
-    ).T
-    dF_dz_m = np.multiply(
-        np.tile(dF_dz, (len(aa),1)).T, 
-        aa==3
-    ).T
-    
-    jacobian = dF_dx_m + dF_dz_m
-    
-    correction = np.inv(jacobian) @ force_vector
+            # if section.nodes.ntype[i] == 3:
+            #     df_list.append(dF_dz)
+            # elif section.nodes.ntype[i] == 2:
+            #     df_list.append(dF_dx)
+            # elif section.nodes.ntype[i] == 1:
+            #     df_list.append(dF_dx)
+            #     df_list.append(dF_dz)
 
+
+        jacobian = np.array(df_list)
+            
+
+
+        # print("##"*10)
+        # print(section.nodes.dx)
+        # print(section.nodes.dz)
+            
+            
+        
+        # aa = np.array(section.nodes.ntype, copy=True)
+        # insert_idx = np.where(aa==1)[0]
+        # aa = np.insert(aa, insert_idx, 20*np.ones(len(insert_idx)))
+        
+        # insert_idx = np.where(aa==3)[0]
+        # aa = np.insert(aa, insert_idx, 0*np.ones(len(insert_idx)))
+        
+        # insert_idx = np.where(aa==2)[0]
+        # aa = np.insert(aa, insert_idx, 30*np.ones(len(insert_idx)))
+        # aa[aa==2] = 0
+        # aa[aa==20] = 2
+        # aa[aa==30] = 3
+        # print(aa!=0)
+        # jacobian = pre_jacobian[aa!=0]
+        
+        mem = np.linalg.norm(force_vector)
+        correction = np.linalg.inv(jacobian.T) @ force_vector
+
+        
+        i = 0
+        for j in range(len(section.nodes.ntype)):
+            
+            #TODO: modify to delete update_tensions
+            if section.nodes.ntype[j] == 3:
+                section.nodes.dz[j] -= correction[i]*(1-relaxation**compteur)
+                i += 1
+                
+            if section.nodes.ntype[j] == 2:
+                section.nodes.dx[j] -= correction[i]*(1-relaxation**compteur)
+                i += 1
+            if section.nodes.ntype[j] == 1:
+                section.nodes.dx[j] -= correction[i]*(1-relaxation**compteur)
+                section.nodes.dz[j] -= correction[i+1]*(1-relaxation**compteur)
+                i += 2
+            section.nodes.compute_dx_dz()
+        section.update_tensions()
+        
+        # section.update_span()
+        section.update_span()
+        force_vector = section.vector_force()
+
+        norm_d_param = np.abs(np.linalg.norm(force_vector)**2 - mem**2)
+                
+        print("**"*10)
+        print(compteur)
+        # print(correction)
+        print("force vector norm: ", np.linalg.norm(force_vector)**2)
+        print(f"{norm_d_param=}")
+        # print("-"*10)
+        # print(section.nodes.dx)
+        # print(section.nodes.dz)
+
+        
+        if norm_d_param < 100_000:
+            section.finition = True
+        if norm_d_param < .1:
+            print("--end--"*10)
+            print(norm_d_param)
+            break
+        if n_iter == compteur:
+            print("max iteration reached")
+            print(norm_d_param)
+        
+    print(f"force vector norm: {np.linalg.norm(force_vector)}")
     # ww = np.tile(aa, (5,1))
 #     np.multiply(ww , np.array([[0,1,0,0,1]]).T)
     #   >> array([[0, 0, 0, 0, 0, 0, 0],
@@ -580,14 +836,17 @@ def solver_balance(section: Span, temperature=0, ):
     
     
 
-def compute_derivative(section:Span, eps, x0):
-    # force_vector = section._delta_dx(x0)           
-    dx_d = section._delta_dx(x0+eps)
-    section._delta_dx(x0-eps)
+def compute_derivative(section:Span, eps,):
+    # force_vector = section._delta_dx(x0)
+    mask_on_x = np.int32(section.nodes.ntype!=3)
+    mask_on_z = np.int32(section.nodes.ntype!=2)
+               
+    dx_d = section._delta_dx(eps*mask_on_x)
+    # section._delta_dx(eps)
     
     # force_vector = section._delta_dz(x0)           
-    dz_d = section._delta_dz(x0+eps)
-    section._delta_dz(x0-eps)
+    dz_d = section._delta_dz(eps*mask_on_z)
+    # section._delta_dz(eps)
    
     return dx_d, dz_d
     
