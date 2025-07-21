@@ -5,10 +5,12 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import pandas as pd
+import pandera as pa
 import pytest
 from pandas.testing import assert_frame_equal
 
 from mechaphlowers.data.catalog import (
+    Catalog,
     build_catalog_from_yaml,
     fake_catalog,
     sample_cable_catalog,
@@ -148,3 +150,53 @@ def test_fake_catalog__keys() -> None:
 
 def test_yaml():
     build_catalog_from_yaml("sample_cable_database.yaml")
+
+
+def test_fake_catalog_rename():
+    rename_dict = {
+        "Name": "Nom",
+        "Attack": "Attaque",
+        "Speed": "Vitesse",
+        "Generation": "Génération",
+        "Legendary": "Légendaire",
+    }
+    pkmn_catalog = Catalog(
+        "pokemon.csv", key_column_name="Name", rename_map=rename_dict
+    )
+    translated_columns = {"Attaque", "Vitesse", "Génération", "Légendaire"}
+
+    assert translated_columns.issubset(set(pkmn_catalog._data.columns))
+    assert pkmn_catalog._data.index.names == ["Nom"]
+
+
+def test_fake_catalog_type_checking():
+    df_schema = pa.DataFrameSchema(
+        {
+            "Attack": pa.Column(int),
+            "Speed": pa.Column(int),
+            "Generation": pa.Column(int),
+            "Legendary": pa.Column(bool),
+        },
+        # coerce=True
+    )
+    Catalog("pokemon.csv", key_column_name="Name", df_schema=df_schema)
+
+
+def test_fake_catalog_type_checking__wrong_type():
+    df_schema = pa.DataFrameSchema(
+        {
+            "Speed": pa.Column(bool),
+        },
+    )
+    with pytest.raises(pa.errors.SchemaError):
+        Catalog("pokemon.csv", key_column_name="Name", df_schema=df_schema)
+
+
+def test_fake_catalog_type_checking__missing_arg():
+    df_schema = pa.DataFrameSchema(
+        {
+            "wrong_arg": pa.Column(int),
+        },
+    )
+    with pytest.raises(pa.errors.SchemaError):
+        Catalog("pokemon.csv", key_column_name="Name", df_schema=df_schema)

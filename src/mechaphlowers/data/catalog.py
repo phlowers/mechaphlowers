@@ -47,6 +47,8 @@ class Catalog:
         if df_schema is not None:
             df_schema.validate(self._data)
         self._data = self._data.rename(columns=rename_map)
+        if key_column_name in rename_map:
+            self._data.index.names = [rename_map[key_column_name]]
 
     def get(self, keys: list | str) -> pd.DataFrame:
         """Get rows from a list of keys.
@@ -140,7 +142,8 @@ def build_catalog_from_yaml(
             key: pa.Column(value)
             for list_item in data["columns"]
             for (key, value) in list_item.items()
-        }
+        },
+        # coerce=True,
     )
 
     if rename:
