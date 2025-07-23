@@ -4,7 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-
+import logging
+import warnings
 from os import PathLike
 from pathlib import Path
 
@@ -19,6 +20,8 @@ from mechaphlowers.entities.arrays import CableArray
 # in order to later be able to find the data files stored in this folder.
 DATA_BASE_PATH = Path(__file__).absolute().parent
 
+logger = logging.getLogger(__name__)
+
 
 class Catalog:
     """Generic wrapper for tabular data read from a csv file, indexed by a `key` column."""
@@ -27,9 +30,8 @@ class Catalog:
         self,
         filename: str | PathLike,
         key_column_name: str,
-        df_schema: pa.DataFrameSchema
-        | None = None,  # keep None for now, need ot think later if mandatory arg
-        rename_map: dict = {},
+        types_dict: dict | None = None,
+        rename_dict: dict | None = None,
     ) -> None:
         """Initialize catalog from a csv file.
 
@@ -42,13 +44,36 @@ class Catalog:
                 filename (str | PathLike): filename of the csv data source
                 key_column_name (str): name of the column used as key (i.e. row identifier)
         """
+        if types_dict is None:
+            types_dict = {}
+        if rename_dict is None:
+            rename_dict = {}
         filepath = DATA_BASE_PATH / filename
-        self._data = pd.read_csv(filepath, index_col=key_column_name)
-        if df_schema is not None:
-            df_schema.validate(self._data)
-        self._data = self._data.rename(columns=rename_map)
-        if key_column_name in rename_map:
-            self._data.index.names = [rename_map[key_column_name]]
+        df_schema = pa.DataFrameSchema(
+            {key: pa.Column(value) for (key, value) in types_dict.items()},
+        )
+        # forcing key index to be a str. Key index should not be in types_dict
+        types_dict[key_column_name] = 'str'
+        self._data = pd.read_csv(
+            filepath, index_col=key_column_name, dtype=types_dict
+        )
+
+        # validating the pandera schema. Useful for checking missing fields
+        df_schema.validate(self._data)
+        self._data = self._data.rename(columns=rename_dict)
+        # also renaming index column
+        if key_column_name in rename_dict:
+            self._data.index.names = [rename_dict[key_column_name]]
+
+        # removing duplicates, and warn if any duplicates found
+        duplicated = self._data.index.duplicated()
+        if duplicated.any():
+            self._data = self._data[~duplicated]
+            logger.warning(f'Duplicate key index found for catalog {filename}')
+            warnings.warn(
+                f'Duplicate key index found for catalog {filename}',
+                UserWarning,
+            )
 
     def get(self, keys: list | str) -> pd.DataFrame:
         """Get rows from a list of keys.
@@ -137,14 +162,11 @@ def build_catalog_from_yaml(
     with open(yaml_filepath, "r") as file:
         data = yaml.safe_load(file)
 
-    df_schema = pa.DataFrameSchema(
-        {
-            key: pa.Column(value)
-            for list_item in data["columns"]
-            for (key, value) in list_item.items()
-        },
-        # coerce=True,
-    )
+    types_dict = {
+        key: value
+        for list_item in data["columns"]
+        for (key, value) in list_item.items()
+    }
 
     if rename:
         rename_map = {
@@ -155,10 +177,12 @@ def build_catalog_from_yaml(
     else:
         rename_map = {}
     return Catalog(
-        data["csv_path"], data["key_column_name"], df_schema, rename_map
+        data["csv_path"], data["key_column_name"], types_dict, rename_map
     )
 
 
 fake_catalog = Catalog("pokemon.csv", key_column_name="Name")
-iris_catalog = Catalog("iris_dataset.csv", key_column_name="sepal length (cm)")
+iris_catalog = Catalog(
+    "iris_dataset.csv", key_column_name="sepal length (cm)", types_dict={}
+)
 sample_cable_catalog = build_catalog_from_yaml("sample_cable_database.yaml")

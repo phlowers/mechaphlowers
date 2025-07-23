@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import warnings
+
 import pandas as pd
 import pandera as pa
 import pytest
@@ -13,6 +15,7 @@ from mechaphlowers.data.catalog import (
     Catalog,
     build_catalog_from_yaml,
     fake_catalog,
+    iris_catalog,
     sample_cable_catalog,
 )
 
@@ -150,6 +153,7 @@ def test_fake_catalog__keys() -> None:
 
 def test_yaml():
     build_catalog_from_yaml("sample_cable_database.yaml")
+    assert True
 
 
 def test_fake_catalog_rename():
@@ -161,7 +165,7 @@ def test_fake_catalog_rename():
         "Legendary": "Légendaire",
     }
     pkmn_catalog = Catalog(
-        "pokemon.csv", key_column_name="Name", rename_map=rename_dict
+        "pokemon.csv", key_column_name="Name", rename_dict=rename_dict
     )
     translated_columns = {"Attaque", "Vitesse", "Génération", "Légendaire"}
 
@@ -169,34 +173,38 @@ def test_fake_catalog_rename():
     assert pkmn_catalog._data.index.names == ["Nom"]
 
 
-def test_fake_catalog_type_checking():
-    df_schema = pa.DataFrameSchema(
-        {
-            "Attack": pa.Column(int),
-            "Speed": pa.Column(int),
-            "Generation": pa.Column(int),
-            "Legendary": pa.Column(bool),
-        },
-        # coerce=True
-    )
-    Catalog("pokemon.csv", key_column_name="Name", df_schema=df_schema)
+def test_type_valdiation():
+    types_dict = {
+        "Attack": int,
+        "Speed": 'float',
+        "Generation": 'int',
+        "Legendary": bool,
+    }
+    Catalog("pokemon.csv", key_column_name="Name", types_dict=types_dict)
 
 
-def test_fake_catalog_type_checking__wrong_type():
-    df_schema = pa.DataFrameSchema(
-        {
-            "Speed": pa.Column(bool),
-        },
-    )
-    with pytest.raises(pa.errors.SchemaError):
-        Catalog("pokemon.csv", key_column_name="Name", df_schema=df_schema)
+def test__read_csv__wrong_type():
+    types_dict = {
+        "Speed": bool,
+    }
+    with pytest.raises(ValueError):
+        Catalog("pokemon.csv", key_column_name="Name", types_dict=types_dict)
 
 
 def test_fake_catalog_type_checking__missing_arg():
-    df_schema = pa.DataFrameSchema(
-        {
-            "wrong_arg": pa.Column(int),
-        },
-    )
+    types_dict = {"wrong_arg": int}
     with pytest.raises(pa.errors.SchemaError):
-        Catalog("pokemon.csv", key_column_name="Name", df_schema=df_schema)
+        Catalog("pokemon.csv", key_column_name="Name", types_dict=types_dict)
+
+
+def test_iris_catalog__drop_duplicates():
+    extract_df = iris_catalog.get("5.1")
+    assert len(extract_df) == 1
+
+
+def test_duplicated_warning():
+    with warnings.catch_warnings(record=True) as warning:
+        Catalog("iris_dataset.csv", key_column_name="sepal length (cm)")
+        assert len(warning) == 1
+        assert warning[0].category is UserWarning
+        assert "iris_dataset.csv" in str(warning[0].message)
