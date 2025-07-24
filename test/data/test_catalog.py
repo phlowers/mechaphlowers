@@ -15,7 +15,6 @@ from mechaphlowers.data.catalog import (
     Catalog,
     build_catalog_from_yaml,
     fake_catalog,
-    iris_catalog,
     sample_cable_catalog,
 )
 
@@ -101,7 +100,7 @@ def test_fake_catalog__get_nothing() -> None:
 
 
 def test_sample_cable_catalog__get_as_cable_array() -> None:
-    cable_array = sample_cable_catalog.get_as_cable_array(
+    cable_array = sample_cable_catalog.get_as_object(
         ["ASTER600", "PETUNIA600"]
     )
 
@@ -114,7 +113,7 @@ def test_sample_cable_catalog__get_as_cable_array() -> None:
 
 def test_sample_cable_catalog__get_as_cable_array__missing_key() -> None:
     with pytest.raises(KeyError):
-        sample_cable_catalog.get_as_cable_array(["wrong_key"])
+        sample_cable_catalog.get_as_object(["wrong_key"])
 
 
 def test_fake_catalog__get_one_row_ot_list() -> None:
@@ -180,7 +179,7 @@ def test_type_valdiation():
         "Generation": 'int',
         "Legendary": bool,
     }
-    Catalog("pokemon.csv", key_column_name="Name", types_dict=types_dict)
+    Catalog("pokemon.csv", key_column_name="Name", columns_types=types_dict)
 
 
 def test__read_csv__wrong_type():
@@ -188,16 +187,26 @@ def test__read_csv__wrong_type():
         "Speed": bool,
     }
     with pytest.raises(ValueError):
-        Catalog("pokemon.csv", key_column_name="Name", types_dict=types_dict)
+        Catalog(
+            "pokemon.csv", key_column_name="Name", columns_types=types_dict
+        )
 
 
 def test_fake_catalog_type_checking__missing_arg():
     types_dict = {"wrong_arg": int}
     with pytest.raises(pa.errors.SchemaError):
-        Catalog("pokemon.csv", key_column_name="Name", types_dict=types_dict)
+        Catalog(
+            "pokemon.csv", key_column_name="Name", columns_types=types_dict
+        )
 
 
+@pytest.mark.filterwarnings("ignore::UserWarning")
 def test_iris_catalog__drop_duplicates():
+    iris_catalog = Catalog(
+        "iris_dataset.csv",
+        key_column_name="sepal length (cm)",
+        columns_types={},
+    )
     extract_df = iris_catalog.get("5.1")
     assert len(extract_df) == 1
 

@@ -1,6 +1,5 @@
-Name: sample_cable
 csv_path: "sample_cable_database.csv"
-catalog_type: Catalog
+catalog_type: cable_catalog
 key_column_name: name
 
 columns:
