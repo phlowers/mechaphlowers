@@ -5,16 +5,20 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
-from typing import Literal
 import warnings
 from os import PathLike
 from pathlib import Path
+from typing import Literal, get_args
 
 import pandas as pd
 import pandera as pa
 import yaml  # type: ignore[import-untyped]
 
-from mechaphlowers.entities.arrays import CableArray
+from mechaphlowers.entities.arrays import (
+    CableArray,
+    ElementArray,
+    WeatherArray,
+)
 
 # Resolve the 'data' folder
 # which is the parent folder of this script
@@ -23,7 +27,12 @@ DATA_BASE_PATH = Path(__file__).absolute().parent
 
 logger = logging.getLogger(__name__)
 
-catalog_to_object = {"cable_catalog": CableArray}
+CatalogType = Literal['', "cable_catalog", "weather_catalog"]
+list_object_conversion = [None, CableArray, WeatherArray]
+catalog_to_object = dict(
+    zip(list(get_args(CatalogType)), list_object_conversion)
+)
+
 
 class Catalog:
     """Generic wrapper for tabular data read from a csv file, indexed by a `key` column."""
@@ -32,7 +41,7 @@ class Catalog:
         self,
         filename: str | PathLike,
         key_column_name: str,
-        catalog_type='',  # Literal[enum(object_dict.keys())] = '',
+        catalog_type: CatalogType = '',
         columns_types: dict | None = None,
         rename_dict: dict | None = None,
     ) -> None:
@@ -66,7 +75,6 @@ class Catalog:
         df_schema.validate(self._data)
         self.rename_columns(key_column_name, rename_dict)
         self.remove_duplicates(filename)
-
 
     def rename_columns(self, key_column_name, rename_dict):
         self._data = self._data.rename(columns=rename_dict)
@@ -116,9 +124,7 @@ class Catalog:
                 f"Error when requesting catalog: {e.args[0]}. Try the .keys() method to gets the available keys?"
             ) from e
 
-    def get_as_object(
-        self, keys: list
-    ):  # -> catalog_to_object[self.catalog_type]:
+    def get_as_object(self, keys: list) -> ElementArray:
         """Get rows from a list of keys.
 
         If a key is present several times in the `keys` argument, the returned dataframe
@@ -137,8 +143,16 @@ class Catalog:
                 keys (list): list of keys
 
         Returns:
-                requested object
+                object: requested object, that depends on `catalog_type`
         """
+        try:
+            catalog_to_object[self.catalog_type]
+        except KeyError:
+            raise KeyError(
+                f"Catalog type '{self.catalog_type}' is not supported. "
+                "Supported types are: "
+                f"{list(catalog_to_object.keys())}"
+            )
         df = self.get(keys)
         return catalog_to_object[self.catalog_type](df)
 
@@ -150,23 +164,13 @@ class Catalog:
         return self._data.to_string()
 
 
-# keep this?
-def build_catalog(filename: str | PathLike, key_column_name: str) -> Catalog:
-    """Build a catalog from the default data files.
-
-    Returns:
-            Catalog: a catalog instance with the default data files
-    """
-    return Catalog(filename, key_column_name)
-
-
 def build_catalog_from_yaml(
     yaml_filename: str | PathLike, rename=True
 ) -> Catalog:
     """Build a catalog from a yaml file.
 
     Args:
-        path_yaml (str | PathLike): path to the yaml file
+        yaml_filename (str | PathLike): path to the yaml file
 
     Returns:
         Catalog: a catalog instance with the data from the yaml file
@@ -176,12 +180,14 @@ def build_catalog_from_yaml(
     with open(yaml_filepath, "r") as file:
         data = yaml.safe_load(file)
 
+    # fetch data for type validation
     columns_types = {
         key: value
         for list_item in data["columns"]
         for (key, value) in list_item.items()
     }
 
+    # fetch data for renaming columns
     if rename:
         rename_dict = {
             key: value
