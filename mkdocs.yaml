@@ -46,6 +46,7 @@ nav:
       - Sag-tension calculation : user_guide/ug_sag_tension_calc.md
       - Deformation : user_guide/ug_deformation.md
       - Wind speed conversion : user_guide/ug_wind_speed_conversion.md
+      - Data catalog : user_guide/ug_catalog.md
       - Configuration : user_guide/ug_configuration.md
   - Developer guide:
     - API Reference:

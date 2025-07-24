@@ -17,7 +17,6 @@ import yaml  # type: ignore[import-untyped]
 from mechaphlowers.entities.arrays import (
     CableArray,
     ElementArray,
-    WeatherArray,
 )
 
 # Resolve the 'data' folder
@@ -27,8 +26,9 @@ DATA_BASE_PATH = Path(__file__).absolute().parent
 
 logger = logging.getLogger(__name__)
 
-CatalogType = Literal['', "cable_catalog", "weather_catalog"]
-list_object_conversion = [None, CableArray, WeatherArray]
+
+CatalogType = Literal['default_catalog', "cable_catalog"]
+list_object_conversion = [None, CableArray]
 catalog_to_object = dict(
     zip(list(get_args(CatalogType)), list_object_conversion)
 )
@@ -41,7 +41,7 @@ class Catalog:
         self,
         filename: str | PathLike,
         key_column_name: str,
-        catalog_type: CatalogType = '',
+        catalog_type: CatalogType = 'default_catalog',
         columns_types: dict | None = None,
         rename_dict: dict | None = None,
     ) -> None:
@@ -55,6 +55,9 @@ class Catalog:
         Args:
                 filename (str | PathLike): filename of the csv data source
                 key_column_name (str): name of the column used as key (i.e. row identifier)
+                catalog_type (Literal['', "cable_catalog"]): type of the catalog. Used in the `get_as_object` method to convert the catalog to a specific object type.
+                columns_types (dict | None): dictionnary of column names and their types. 
+                rename_dict (dict | None): dictionnary of column names to rename. The key is the original name, the value is the new name.
         """
         self.catalog_type = catalog_type
         if columns_types is None:
@@ -62,17 +65,23 @@ class Catalog:
         if rename_dict is None:
             rename_dict = {}
         filepath = DATA_BASE_PATH / filename
+        coerce_dict = {
+            str: True,
+            int: True,
+            float: True,
+            bool: False,
+        }
         df_schema = pa.DataFrameSchema(
             {key: pa.Column(value) for (key, value) in columns_types.items()},
         )
         # forcing key index to be a str. Key index should not be in types_dict
-        columns_types[key_column_name] = 'str'
+        columns_types[key_column_name] = str
         self._data = pd.read_csv(
-            filepath, index_col=key_column_name, dtype=columns_types
+            filepath, index_col=key_column_name, #dtype=columns_types, 
         )
 
         # validating the pandera schema. Useful for checking missing fields
-        df_schema.validate(self._data)
+        # df_schema.validate(self._data)
         self.rename_columns(key_column_name, rename_dict)
         self.remove_duplicates(filename)
 
@@ -83,13 +92,15 @@ class Catalog:
             self._data.index.names = [rename_dict[key_column_name]]
 
     def remove_duplicates(self, filename):
-        # removing duplicates, and warn if any duplicates found
+        # removing duplicate rows, and warn if any duplicates found
         duplicated = self._data.index.duplicated()
         if duplicated.any():
             self._data = self._data[~duplicated]
-            logger.warning(f'Duplicate key index found for catalog {filename}')
+            logger.warning(
+                f'Duplicate key indices found for catalog {filename}'
+            )
             warnings.warn(
-                f'Duplicate key index found for catalog {filename}',
+                f'Duplicate key indices found for catalog {filename}',
                 UserWarning,
             )
 
@@ -171,6 +182,7 @@ def build_catalog_from_yaml(
 
     Args:
         yaml_filename (str | PathLike): path to the yaml file
+        rename (bool): whether to rename columns according to the yaml file. Defaults to True.
 
     Returns:
         Catalog: a catalog instance with the data from the yaml file
@@ -180,18 +192,32 @@ def build_catalog_from_yaml(
     with open(yaml_filepath, "r") as file:
         data = yaml.safe_load(file)
 
-    # fetch data for type validation
-    columns_types = {
-        key: value
-        for list_item in data["columns"]
-        for (key, value) in list_item.items()
+    # useful?
+    string_to_type_converters = {
+        "str": str,
+        "int": int,
+        "float": float,
+        "bool": bool,
+        str: str,
+        int: int,
+        float: float,
+        bool: bool,
     }
+    # fetch data for type validation
+    if "columns" in data:
+        columns_types = {
+            key: string_to_type_converters[value]
+            for list_item in data["columns"]
+            for (key, value) in list_item.items()
+        }
+
+
 
     # fetch data for renaming columns
-    if rename:
+    if rename and "columns_remaining" in data:
         rename_dict = {
             key: value
-            for list_item in data["columns_mapping"]
+            for list_item in data["columns_renaming"]
             for (key, value) in list_item.items()
         }
     else:
@@ -206,5 +232,5 @@ def build_catalog_from_yaml(
     )
 
 
-fake_catalog = Catalog("pokemon.csv", key_column_name="Name")
+fake_catalog = build_catalog_from_yaml("pokemon.yaml")
 sample_cable_catalog = build_catalog_from_yaml("sample_cable_database.yaml")

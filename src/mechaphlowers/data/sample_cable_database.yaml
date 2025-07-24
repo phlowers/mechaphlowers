@@ -5,9 +5,23 @@ key_column_name: name
 columns:
   - data_source: str
   - section: float
+  - diameter: float
+  - young_modulus: float
+  - linear_weight: float
+  - dilatation_coefficient: float
+  - temperature_reference: float
+  - stress_strain_a0: float
+  - stress_strain_a1: float
+  - stress_strain_a2: float
+  - stress_strain_a3: float
+  - stress_strain_a4: float
+  - stress_strain_b0: float
+  - stress_strain_b1: float
+  - stress_strain_b2: float
+  - stress_strain_b3: float
+  - stress_strain_b4: float
 
-
-columns_mapping:
+columns_renaming:
   - stress_strain_a0: a0
   - stress_strain_a1: a1
   - stress_strain_a2: a2
