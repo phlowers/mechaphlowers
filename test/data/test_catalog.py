@@ -14,7 +14,6 @@ from pandas.testing import assert_frame_equal
 
 from mechaphlowers.data.catalog import (
     Catalog,
-    build_catalog_from_yaml,
     fake_catalog,
     sample_cable_catalog,
 )
