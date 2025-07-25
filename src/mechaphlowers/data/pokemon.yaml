@@ -16,5 +16,5 @@ columns:
   - Legendary: bool
 
 columns_renaming:
-#   - Type 1: First Type
-#   - Type 2: Second Type
+  - Type 1: First Type
+  - Type 2: Second Type

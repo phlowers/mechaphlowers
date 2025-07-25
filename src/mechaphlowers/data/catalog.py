@@ -56,7 +56,7 @@ class Catalog:
                 filename (str | PathLike): filename of the csv data source
                 key_column_name (str): name of the column used as key (i.e. row identifier)
                 catalog_type (Literal['', "cable_catalog"]): type of the catalog. Used in the `get_as_object` method to convert the catalog to a specific object type.
-                columns_types (dict | None): dictionnary of column names and their types. 
+                columns_types (dict | None): dictionnary of column names and their types.
                 rename_dict (dict | None): dictionnary of column names to rename. The key is the original name, the value is the new name.
         """
         self.catalog_type = catalog_type
@@ -71,17 +71,31 @@ class Catalog:
             float: True,
             bool: False,
         }
+        # Warning: booleans are not treated correctly in order to avoid issues with empty values.
+        # TODO: Maybe remove this filter if we consider that empty values on boolean columns does not exist, or fix this
+        dtype_dict_without_bool = {
+            key: value
+            for (key, value) in columns_types.items()
+            if value is not bool
+        }
         df_schema = pa.DataFrameSchema(
-            {key: pa.Column(value) for (key, value) in columns_types.items()},
+            {
+                key: pa.Column(value, nullable=True, coerce=coerce_dict[value])
+                for (key, value) in dtype_dict_without_bool.items()
+            },
+            index=pa.Index(str),
         )
         # forcing key index to be a str. Key index should not be in types_dict
-        columns_types[key_column_name] = str
+        dtype_dict_without_bool[key_column_name] = str
+
         self._data = pd.read_csv(
-            filepath, index_col=key_column_name, #dtype=columns_types, 
+            filepath,
+            index_col=key_column_name,
+            dtype=dtype_dict_without_bool,
         )
 
         # validating the pandera schema. Useful for checking missing fields
-        # df_schema.validate(self._data)
+        df_schema.validate(self._data)
         self.rename_columns(key_column_name, rename_dict)
         self.remove_duplicates(filename)
 
@@ -192,7 +206,6 @@ def build_catalog_from_yaml(
     with open(yaml_filepath, "r") as file:
         data = yaml.safe_load(file)
 
-    # useful?
     string_to_type_converters = {
         "str": str,
         "int": int,
@@ -210,8 +223,6 @@ def build_catalog_from_yaml(
             for list_item in data["columns"]
             for (key, value) in list_item.items()
         }
-
-
 
     # fetch data for renaming columns
     if rename and "columns_remaining" in data:
