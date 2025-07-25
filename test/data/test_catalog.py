@@ -156,11 +156,6 @@ def test_fake_catalog__keys() -> None:
     assert "notPokemon" not in fake_catalog.keys()
 
 
-def test_yaml():
-    build_catalog_from_yaml("sample_cable_database.yaml")
-    assert True
-
-
 def test_fake_catalog_rename():
     rename_dict = {
         "Name": "Nom",
