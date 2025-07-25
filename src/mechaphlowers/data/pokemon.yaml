@@ -1,5 +1,5 @@
-csv_path: "pokemon.csv"
-catalog_type: null
+csv_name: "pokemon.csv"
+catalog_type: default_catalog
 key_column_name: Name
 
 columns:

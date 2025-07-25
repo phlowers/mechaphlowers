@@ -112,6 +112,11 @@ def test_sample_cable_catalog__get_as_cable_array() -> None:
     cable_array.data.index
 
 
+def test_fake_catalog__get_as_object() -> None:
+    with pytest.raises(KeyError):
+        fake_catalog.get_as_object(["Bulbasaur"])
+
+
 def test_sample_cable_catalog__get_as_cable_array__missing_key() -> None:
     with pytest.raises(KeyError):
         sample_cable_catalog.get_as_object(["wrong_key"])

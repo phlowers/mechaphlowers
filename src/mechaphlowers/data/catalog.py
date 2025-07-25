@@ -27,7 +27,7 @@ DATA_BASE_PATH = Path(__file__).absolute().parent
 logger = logging.getLogger(__name__)
 
 
-CatalogType = Literal['default_catalog', "cable_catalog"]
+CatalogType = Literal['default_catalog', 'cable_catalog']
 list_object_conversion = [None, CableArray]
 catalog_to_object = dict(
     zip(list(get_args(CatalogType)), list_object_conversion)
@@ -65,12 +65,6 @@ class Catalog:
         if rename_dict is None:
             rename_dict = {}
         filepath = DATA_BASE_PATH / filename
-        coerce_dict = {
-            str: True,
-            int: True,
-            float: True,
-            bool: False,
-        }
         # Warning: booleans are not treated correctly in order to avoid issues with empty values.
         # TODO: Maybe remove this filter if we consider that empty values on boolean columns does not exist, or fix this
         dtype_dict_without_bool = {
@@ -78,26 +72,36 @@ class Catalog:
             for (key, value) in columns_types.items()
             if value is not bool
         }
-        df_schema = pa.DataFrameSchema(
-            {
-                key: pa.Column(value, nullable=True, coerce=coerce_dict[value])
-                for (key, value) in dtype_dict_without_bool.items()
-            },
-            index=pa.Index(str),
-        )
+
         # forcing key index to be a str. Key index should not be in types_dict
-        dtype_dict_without_bool[key_column_name] = str
+        dtype_dict_with_key = dtype_dict_without_bool.copy()
+        dtype_dict_with_key[key_column_name] = str
 
         self._data = pd.read_csv(
             filepath,
             index_col=key_column_name,
-            dtype=dtype_dict_without_bool,
+            dtype=dtype_dict_with_key,
         )
-
         # validating the pandera schema. Useful for checking missing fields
-        df_schema.validate(self._data)
+        self.validate_types(dtype_dict_without_bool)
         self.rename_columns(key_column_name, rename_dict)
         self.remove_duplicates(filename)
+
+    def validate_types(self, dtype_dict: dict) -> None:
+        coerce_dict = {
+            str: True,
+            int: True,
+            float: True,
+            bool: False,
+        }
+        df_schema = pa.DataFrameSchema(
+            {
+                key: pa.Column(value, nullable=True, coerce=coerce_dict[value])
+                for (key, value) in dtype_dict.items()
+            },
+            index=pa.Index(str),
+        )
+        df_schema.validate(self._data)
 
     def rename_columns(self, key_column_name, rename_dict):
         self._data = self._data.rename(columns=rename_dict)
@@ -170,13 +174,14 @@ class Catalog:
         Returns:
                 object: requested object, that depends on `catalog_type`
         """
-        try:
-            catalog_to_object[self.catalog_type]
-        except KeyError:
+        if (
+            self.catalog_type == "default_catalog"
+            or self.catalog_type not in catalog_to_object
+        ):
             raise KeyError(
-                f"Catalog type '{self.catalog_type}' is not supported. "
+                f"Catalog type '{self.catalog_type}' is not supported for get_as_object(). "
                 "Supported types are: "
-                f"{list(catalog_to_object.keys())}"
+                f"{list(catalog_to_object.keys())[1:]}"
             )
         df = self.get(keys)
         return catalog_to_object[self.catalog_type](df)
@@ -235,7 +240,7 @@ def build_catalog_from_yaml(
         rename_dict = {}
     catalog_type = data["catalog_type"]
     return Catalog(
-        data["csv_path"],
+        data["csv_name"],
         data["key_column_name"],
         catalog_type,
         columns_types,
