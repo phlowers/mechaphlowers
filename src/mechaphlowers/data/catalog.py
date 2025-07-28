@@ -55,7 +55,7 @@ class Catalog:
         Args:
                 filename (str | PathLike): filename of the csv data source
                 key_column_name (str): name of the column used as key (i.e. row identifier)
-                catalog_type (Literal['', "cable_catalog"]): type of the catalog. Used in the `get_as_object` method to convert the catalog to a specific object type.
+                catalog_type (Literal['default_catalog', "cable_catalog"]): type of the catalog. Used in the `get_as_object` method to convert the catalog to a specific object type.
                 columns_types (dict | None): dictionnary of column names and their types.
                 rename_dict (dict | None): dictionnary of column names to rename. The key is the original name, the value is the new name.
         """
@@ -88,6 +88,11 @@ class Catalog:
         self.remove_duplicates(filename)
 
     def validate_types(self, dtype_dict: dict) -> None:
+        """Validate the types of the dataframe. Boolean columns are not checked.
+
+        Args:
+            dtype_dict (dict): dictionary of column names and their types, without the key index and the boolean columns.
+        """
         coerce_dict = {
             str: True,
             int: True,
@@ -103,13 +108,24 @@ class Catalog:
         )
         df_schema.validate(self._data)
 
-    def rename_columns(self, key_column_name, rename_dict):
+    def rename_columns(self, key_column_name: str, rename_dict: dict) -> None:
+        """Rename the columns and the index of the catalog
+
+        Args:
+            key_column_name (str): name of the key index
+            rename_dict (dict): dictionnary of all column names that need to be renamed. This can include the key index.
+        """
         self._data = self._data.rename(columns=rename_dict)
         # also renaming index column
         if key_column_name in rename_dict:
             self._data.index.names = [rename_dict[key_column_name]]
 
-    def remove_duplicates(self, filename):
+    def remove_duplicates(self, filename: str | PathLike) -> None:
+        """Remove duplicate rows, and warn if any duplicates found.
+
+        Args:
+            filename (str | PathLike): filename of the csv data source (used only for logging a warning)
+        """
         # removing duplicate rows, and warn if any duplicates found
         duplicated = self._data.index.duplicated()
         if duplicated.any():
@@ -228,9 +244,10 @@ def build_catalog_from_yaml(
             for list_item in data["columns"]
             for (key, value) in list_item.items()
         }
-
+    else:
+        columns_types = {}
     # fetch data for renaming columns
-    if rename and "columns_remaining" in data:
+    if rename and "columns_renaming" in data:
         rename_dict = {
             key: value
             for list_item in data["columns_renaming"]
@@ -248,5 +265,5 @@ def build_catalog_from_yaml(
     )
 
 
-fake_catalog = build_catalog_from_yaml("pokemon.yaml")
+fake_catalog = build_catalog_from_yaml("pokemon.yaml", rename=False)
 sample_cable_catalog = build_catalog_from_yaml("sample_cable_database.yaml")

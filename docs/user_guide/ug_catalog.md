@@ -2,11 +2,11 @@
 
 ## Adding new catalogs
 
-You can put new catalogs in .csv format in folder `src/mechaphlowers/data/`
+You can add new catalogs in `.csv` format to the folder `src/mechaphlowers/data/`.
 
-In order to configure how mechaphlowers will read them, you will need to join a .yaml file that refers the csv catalog, also in folder `src/mechaphlowers/data/`.
+To configure how Mechaphlowers will read them, you need to provide a corresponding `.yaml` file that references the CSV catalog, also placed in the `src/mechaphlowers/data/` folder.
 
-Then, to instantiate this new catalog in the code, you can define it in `src/mechaphlowers/data/catalog.py` using function `build_catalog_from_yaml()`
+To instantiate this new catalog in the code, define it in `src/mechaphlowers/data/catalog.py` using the function `build_catalog_from_yaml()`:
 
 ```python
 new_catalog = build_catalog_from_yaml("new_catalog_config_file.yaml")
@@ -43,13 +43,11 @@ columns_renaming:
 - `catalog_type`: used for extracting catalog into mechaphlowers object. Types currently allowed: 'default_catalog', 'cable_catalog'
 - `key_column_name`: name of the column considered as key index 
 - `columns`: list of all columns with their type
-- `columns_renaming`: dictionnary to rename columns `original_name: new_name`. Type checking is made before renaming, so "columns" contains the original columns names.
+- `columns_renaming`: a dictionary that maps original column names to their new names using the format `original_name: new_name`. Type checking is performed before renaming, so "columns" should list the original column names.
 
 
 !!! note "Key column"
-	You don't have to put the key column in field "column", it is always considered as a string.
+  You don't have to put the key column in the field "columns"; it is always considered as a string.
 
 !!! warning "Booleans"
-	To avoid issues when empty value in boolean columns, booleans columns are not validated.
-
-## 
+	To avoid issues when empty value in boolean columns, booleans columns are not type checked.
