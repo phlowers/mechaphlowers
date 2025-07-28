@@ -7,9 +7,8 @@
 from mechaphlowers.data.initializer.array_importer import ImporterRte
 
 
-
 def test_import_data_from_proto():
-	importer = ImporterRte("section_import_from_proto_utf8.csv")
-	importer.section_array
-	importer.cable_array
-	importer.weather_array
+    importer = ImporterRte("section_import_from_proto_utf8.csv")
+    importer.section_array
+    importer.cable_array
+    importer.weather_array

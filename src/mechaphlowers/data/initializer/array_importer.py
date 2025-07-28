@@ -23,26 +23,22 @@ DATA_BASE_PATH = Path(__file__).absolute().parent
 
 class Importer(ABC):
     """Base class for importers."""
-    
+
     @property
     @abstractmethod
     def section_array(self) -> SectionArray:
-        """Get SectionArray from csv file
-        """
-    
+        """Get SectionArray from csv file"""
 
     @property
     @abstractmethod
     def cable_array(self) -> CableArray:
-        """Get CableArray from csv file
-        """
-    
+        """Get CableArray from csv file"""
+
     @property
     @abstractmethod
     def weather_array(self) -> WeatherArray:
-        """Get Weather from csv file
-        """
-       
+        """Get Weather from csv file"""
+
 
 class ImporterRte(Importer):
     """Importer for RTE data."""
