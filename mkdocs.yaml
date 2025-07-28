@@ -69,7 +69,7 @@ nav:
           - Solver :
             - Cable state : docstring/core/solver/cable_state.md
       - Data :
-          - Catalog: docstring/data/catalog.md
+          - Catalog: docstring/data/catalog/catalog.md
           - Geography : docstring/data/geography/helpers.md
       - Configuration : docstring/config.md
     - Logging : developer_guide/logging.md
