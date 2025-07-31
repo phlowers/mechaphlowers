@@ -8,7 +8,9 @@
 from abc import ABC, abstractmethod
 from os import PathLike
 from pathlib import Path
+from typing import Tuple
 
+import numpy as np
 import pandas as pd
 
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
@@ -67,35 +69,38 @@ class ImporterRte(Importer):
 
         self.get_data_last_column()
 
+    # new_temperature is not extracted but can be accessed through ImporterRte
     def get_data_last_column(self) -> None:
         last_column = list(self.raw_df["nb_portées"])
-        self.data_last_column = {
-            "nb_spans": int(last_column[0]),
-            "sagging_temperature": int(last_column[6]),
-            "sagging_parameter": int(last_column[8]),
-            "new_temperature": int(last_column[12]),
-            "wind_pressure": int(last_column[14]),
-            "ice_thickness": int(last_column[16]),
+        self.data_numeric_values = {
+            "sagging_temperature": float(last_column[6]),
+            "sagging_parameter": float(last_column[8]),
+            "new_temperature": float(last_column[12]),
+            "wind_pressure": float(last_column[14]),
+            "ice_thickness": float(last_column[16]),
         }
+        self.nb_spans = int(last_column[0])
         self.name_cable = str(last_column[2])
 
     @property
     def section_array(self) -> SectionArray:
         renamed_df = self.raw_df.rename(columns=self.translation_map_fr)
+        # Convert VRAI/FAUX from french .xlsx file into pythonic True/False
         renamed_df["suspension"] = renamed_df["suspension"].map(
             lambda value: True if value == "VRAI" else False
         )
 
-        # convert arm length + angle_line grad -> deg
+        # change sign of crossarm_length and line_angle to match mechaphlowers (anticlockwise sense)
         renamed_df["crossarm_length"] = -renamed_df["crossarm_length"]
+        # convert line_angle from grad to degrees
         renamed_df["line_angle"] = -renamed_df["line_angle"] * 0.9
 
         section_array = SectionArray(renamed_df)
 
-        section_array.sagging_parameter = self.data_last_column[
+        section_array.sagging_parameter = self.data_numeric_values[
             "sagging_parameter"
         ]
-        section_array.sagging_temperature = self.data_last_column[
+        section_array.sagging_temperature = self.data_numeric_values[
             "sagging_temperature"
         ]
         return section_array
@@ -106,15 +111,26 @@ class ImporterRte(Importer):
 
     @property
     def weather_array(self) -> WeatherArray:
-        ice_thickness = self.data_last_column["ice_thickness"]
-        wind_pressure = self.data_last_column["wind_pressure"]
-        nb_spans = self.data_last_column["nb_spans"]
+        ice_thickness = self.data_numeric_values["ice_thickness"]
+        wind_pressure = self.data_numeric_values["wind_pressure"]
         weather_array = WeatherArray(
             pd.DataFrame(
                 {
-                    "ice_thickness": [ice_thickness] * nb_spans,
-                    "wind_pressure": [wind_pressure] * nb_spans,
+                    "ice_thickness": [ice_thickness] * self.nb_spans,
+                    "wind_pressure": [wind_pressure] * self.nb_spans,
                 }
             )
         )
         return weather_array
+
+    @property
+    def new_temperature(self) -> np.ndarray:
+        new_temperature_float = self.data_numeric_values["new_temperature"]
+        return np.array([new_temperature_float] * self.nb_spans)
+
+
+def import_data_from_proto(
+    filename: str | PathLike,
+) -> Tuple[SectionArray, CableArray, WeatherArray]:
+    importer = ImporterRte(filename)
+    return importer.section_array, importer.cable_array, importer.weather_array
