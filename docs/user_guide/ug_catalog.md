@@ -47,7 +47,7 @@ columns_renaming:
 
 
 !!! note "Key column"
-  You don't have to put the key column in the field "columns"; it is always considered as a string.
+    You don't have to put the key column in the field "columns"; it is always considered as a string.
 
 !!! warning "Booleans"
-	To avoid issues when empty value in boolean columns, booleans columns are not type checked.
+    To avoid issues when empty value in boolean columns, booleans columns are not type checked.
