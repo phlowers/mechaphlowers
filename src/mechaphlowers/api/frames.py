@@ -326,3 +326,40 @@ class SectionDataFrame:
             pass
 
         return out
+
+
+class MultipleSection:
+    def __init__(self, section_array: SectionArray):
+        self.section_data_frames: dict[int, SectionDataFrame] = {}
+        section_df = section_array.data_original
+        grouped_df = section_df.groupby(section_df["section_number"])
+        for index in grouped_df.groups:
+            section_array_sliced = SectionArray(grouped_df.get_group(index))
+            section_array_sliced.sagging_parameter = (
+                section_array.sagging_parameter
+            )
+            section_array_sliced.sagging_temperature = (
+                section_array.sagging_temperature
+            )
+            self.section_data_frames[index] = SectionDataFrame(  # type: ignore
+                section_array_sliced
+            )
+
+    def get(self, section_number: int) -> SectionDataFrame:
+        return self.section_data_frames[section_number]
+
+    def add_cable(self, section_number: int, cable_array: CableArray):
+        section_data_frame = self.get(section_number)
+        section_data_frame.add_cable(cable_array)
+
+    def add_weather(self, section_number: int, weather_array: WeatherArray):
+        section_data_frame = self.get(section_number)
+        section_data_frame.add_weather(weather_array)
+
+    def add_cable_all(self, cable_array: CableArray):
+        for section_index in self.section_data_frames:
+            self.add_cable(section_index, cable_array)
+
+    def add_weather_all(self, weather_array: WeatherArray):
+        for section_index in self.section_data_frames:
+            self.add_weather(section_index, weather_array)

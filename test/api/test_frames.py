@@ -11,13 +11,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.api.frames import SectionDataFrame
+from mechaphlowers.api.frames import MultipleSection, SectionDataFrame
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import (
     CableArray,
+    SectionArray,
     WeatherArray,
 )
 
@@ -277,3 +278,59 @@ def test_frame__update_paramater_wind(
         expected_span.sagging_parameter,
     )
     np.testing.assert_allclose(z_span_after_state_change, expected_z)
+
+
+def test_multiple_frames(
+    default_cable_array,
+    generic_weather_array_three_spans,
+    factory_neutral_weather_array,
+):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["support 1", "2", "three", "support 4"] * 2),
+                "suspension": np.array([False, True, True, False] * 2),
+                "conductor_attachment_altitude": np.array(
+                    [2.2, 5, -0.12, 0] * 2
+                ),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1] * 2),
+                "line_angle": np.array([0, 360, 90.1, -90.2] * 2),
+                "insulator_length": np.array([0, 4, 3.2, 0] * 2),
+                "span_length": np.array([400, 500.2, 500.0, np.nan] * 2),
+                "section_number": np.array([1] * 4 + [2] * 4),
+            }
+        )
+    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+
+    cable_array_1 = CableArray(
+        pd.DataFrame(
+            {
+                "section": [500.0],
+                "diameter": [30.0],
+                "linear_weight": [13.0],
+                "young_modulus": [59],
+                "dilatation_coefficient": [23],
+                "temperature_reference": [15],
+                "a0": [0],
+                "a1": [59],
+                "a2": [0],
+                "a3": [0],
+                "a4": [0],
+                "b0": [0],
+                "b1": [0],
+                "b2": [0],
+                "b3": [0],
+                "b4": [0],
+            }
+        )
+    )
+
+    weather_array_empty = factory_neutral_weather_array(4)
+
+    multiple_section = MultipleSection(section_array)
+    multiple_section.add_cable_all(default_cable_array)
+    multiple_section.add_weather_all(weather_array_empty)
+    multiple_section.add_cable(1, cable_array_1)
+    multiple_section.add_weather(2, generic_weather_array_three_spans)

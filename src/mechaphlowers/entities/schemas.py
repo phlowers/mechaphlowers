@@ -34,6 +34,8 @@ class SectionArrayInput(pa.DataFrameModel):
     line_angle: pdt.Series[float] = pa.Field(coerce=True)
     insulator_length: pdt.Series[float] = pa.Field(coerce=True)
     span_length: pdt.Series[float] = pa.Field(nullable=True, coerce=True)
+    section_number: Optional[pdt.Series[int]] = pa.Field(coerce=True)
+    section_type: Optional[pdt.Series[str]]
 
     @pa.dataframe_check(
         description="""Though tension supports also have insulators,
