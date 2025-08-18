@@ -193,26 +193,22 @@ class SagTensionSolver:
         """
         return (self._delta(Th + self._ZETA) - self._delta(Th)) / self._ZETA
 
+    # TODO: check for bugs: what if models are initialized again before calling p/L_after_change
+
+    # TODO: check what happens if 2 change states in a row
+
     def p_after_change(self) -> np.ndarray:
         """Compute the new value of the sagging parameter after sag tension calculation"""
-        k_load = self.cable_loads.load_coefficient
         if self.T_h_after_change is None:
             raise ValueError(
                 "method change_state has to be run before calling this method"
             )
-        return self.span_model_type.compute_p(
-            self.T_h_after_change, k_load, self.linear_weight
-        )
+        return self.span_model.sagging_parameter
 
     def L_after_change(self) -> np.ndarray:
         """Compute the new value of the length of the cable after sag tension calculation"""
-        p = self.p_after_change()
         if self.T_h_after_change is None:
             raise ValueError(
                 "method change_state has to be run before calling this method"
             )
-        return self.span_model_type.compute_L(
-            self.span_length_after_loads,
-            self.elevation_difference_after_loads,
-            p,
-        )
+        return self.span_model.L()
