@@ -225,6 +225,11 @@ def test_functions_to_solve__no_memory_effect(
     default_cable_array: CableArray,
     factory_neutral_weather_array: Callable[[int], WeatherArray],
 ) -> None:
+    """Create two solvers.
+    One that goest through state 0 then state 1.
+    An other that goes through state 1.
+    Results should be the same for both solvers.
+    """
     initial_weather = factory_neutral_weather_array(2)
 
     sag_tension_calculation_indirect = create_sag_tension_solver(
@@ -252,6 +257,8 @@ def test_functions_to_solve__no_memory_effect(
         **weather_1, new_temperature=temperature_1
     )
     T_h_indirect = sag_tension_calculation_indirect.T_h_after_change
+    p_indirect = sag_tension_calculation_indirect.p_after_change()
+    L_indirect = sag_tension_calculation_indirect.L_after_change()
 
     sag_tension_calculation_direct = create_sag_tension_solver(
         default_section_array_one_span,
@@ -262,6 +269,46 @@ def test_functions_to_solve__no_memory_effect(
     sag_tension_calculation_direct.change_state(
         **weather_1, new_temperature=temperature_1
     )
-    T_h_direct = sag_tension_calculation_indirect.T_h_after_change
+    T_h_direct = sag_tension_calculation_direct.T_h_after_change
+    p_direct = sag_tension_calculation_direct.p_after_change()
+    L_direct = sag_tension_calculation_direct.L_after_change()
+    assert T_h_indirect is not None
+    assert T_h_direct is not None
+    np.testing.assert_allclose(T_h_indirect, T_h_direct)
+    np.testing.assert_allclose(p_indirect, p_direct)
+    np.testing.assert_allclose(L_indirect, L_direct)
 
-    np.testing.assert_equal(T_h_indirect, T_h_direct)
+
+def test_functions_to_solve__reset_to_initial_state(
+    default_section_array_one_span: SectionArray,
+    default_cable_array: CableArray,
+    factory_neutral_weather_array: Callable[[int], WeatherArray],
+) -> None:
+    """Test that checks that going back to initial state after an intermedial state, gives the same result:
+    initial state -> weather state -> initial state
+    The two initial states should have the same result.
+    """
+    initial_weather = factory_neutral_weather_array(2)
+
+    sag_tension_calculation = create_sag_tension_solver(
+        default_section_array_one_span,
+        default_cable_array,
+        initial_weather,
+    )
+    T_h_initial_state_0 = sag_tension_calculation.T_h_after_change
+
+    weather: WeatherDict = {
+        "ice_thickness": 2e-2 * np.ones(2),
+        "wind_pressure": 400 * np.ones(2),
+    }
+    temperature = np.array([20, 20])
+
+    sag_tension_calculation.change_state(
+        **weather, new_temperature=temperature
+    )
+
+    sag_tension_calculation.initial_state()
+    T_h_initial_state_1 = sag_tension_calculation.T_h_after_change
+    assert T_h_initial_state_0 is not None
+    assert T_h_initial_state_1 is not None
+    np.testing.assert_allclose(T_h_initial_state_0, T_h_initial_state_1)

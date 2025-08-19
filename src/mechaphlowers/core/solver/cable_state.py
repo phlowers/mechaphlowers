@@ -64,15 +64,19 @@ class SagTensionSolver:
         self.span_model_type: Type[Span] = CatenarySpan
         self.deformation_model_type: Type[IDeformation] = DeformationRte
         self.T_h_after_change: np.ndarray | None = None
-        self.cable_loads = CableLoads(
-            self.diameter,
-            self.linear_weight,
-            np.zeros(span_length.shape),
-            np.zeros(span_length.shape),
-        )
+        self.initialize_cable_loads()
         # lengths in the new cable plane after considering wind pressure
         self.span_length_after_loads = span_length
         self.elevation_difference_after_loads = elevation_difference
+
+    def initialize_cable_loads(self):
+        "Initialize a cable_loads with no weather"
+        self.cable_loads = CableLoads(
+            self.diameter,
+            self.linear_weight,
+            np.zeros(self.span_length.shape),
+            np.zeros(self.span_length.shape),
+        )
 
     def initial_state(self) -> None:
         """Method that computes the unstressed length and the initial horizontal tension of the cable without any external loads.
@@ -80,6 +84,7 @@ class SagTensionSolver:
         It should be called after the initialization of the class.
 
         """
+        self.initialize_cable_loads()
         self.span_model = self.span_model_type(
             self.span_length,
             self.elevation_difference,
