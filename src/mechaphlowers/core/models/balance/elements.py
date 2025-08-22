@@ -36,12 +36,12 @@ class Span:
         parameter: np.ndarray = None,
         cable: Cable = None,
         reglage: bool = True,
-        finition: bool = False,
+        # finition: bool = False,
     ):
         self.cable_temperature = cable_temperature
         self.reglage = reglage
         self.nodes = nodes
-        self.finition = finition
+        # self.finition = finition
         self._parameter = parameter * np.ones(len(self.nodes) - 1)
         self.cable = cable
         self.nodes.no_load = True
@@ -482,43 +482,15 @@ class Nodes:
         self.z_suspension_chain = np.zeros_like(self._x)
         self.z_suspension_chain[1:-1] = -self.L_chain[1:-1]
 
+
     def compute_dx_dz(self):
-        # TODO: mask
+
         L = self.L_chain
 
-        # print(L**2 - self.dz **2)
-        # print(L**2 - self.dx **2)
+        self.dz[self.mask.mask(2)] = L[self.mask.mask(2)] - (L[self.mask.mask(2)]**2 - self.dx[self.mask.mask(2)]**2) ** 0.5
+        self.dx[self.mask.mask(3)] = -L[self.mask.mask(3)] + (L[self.mask.mask(3)]**2 - self.dz[self.mask.mask(3)]**2) ** 0.5
+        self.dx[self.mask.mask(4)] = -((L[self.mask.mask(4)]**2 - self.dz[self.mask.mask(4)]**2) ** 0.5) + L[self.mask.mask(4)]
 
-        dz2 = L - (L**2 - self.dx**2) ** 0.5
-        dx1s = -L + (L**2 - self.dz**2) ** 0.5
-        dx1e = -((L**2 - self.dz**2) ** 0.5) + L
-
-        self.dz = np.where(self.ntype == 2, dz2, self.dz)
-        self.dx[0] = dx1s[0]
-        self.dx[-1] = dx1e[-1]
-
-    # def compute_dx_dz(self):
-    #     # TODO: mask
-    #     L = self.L_chain
-
-    #     # print(L**2 - self.dz **2)
-    #     # print(L**2 - self.dx **2)
-    #     if len(L) != 7:
-    #         print(len(L))
-
-    #     self.dz[self.mask.mask(2)] = L[self.mask.mask(2)] - (L[self.mask.mask(2)]**2 - self.dx[self.mask.mask(2)]**2) ** 0.5
-    #     self.dx[self.mask.mask(3)] = -L[self.mask.mask(3)] + (L[self.mask.mask(3)]**2 - self.dz[self.mask.mask(3)]**2) ** 0.5
-    #     self.dx[self.mask.mask(4)] = -((L[self.mask.mask(4)]**2 - self.dz[self.mask.mask(4)]**2) ** 0.5) + L[self.mask.mask(4)]
-
-    #     # dz2 = L - (L**2 - self.dx**2) ** 0.5
-    #     # dx1s = -L + (L**2 - self.dz**2) ** 0.5
-    #     # dx1e = -((L**2 - self.dz**2) ** 0.5) + L
-
-    #     # self.dz = np.where(self.ntype == 2, dz2, self.dz)
-    #     # self.dx[0] = dx1s[0]
-    #     # self.dx[-1] = dx1e[-1]
-
-    #     # assert True
 
     def compute_forces(self, Th, Tv_d, Tv_g, parameter, update_dx_dz=True):
         # Placeholder for force computation logic
@@ -782,7 +754,7 @@ class SolverBalance2:
         eps = 0.00001
 
         # only for values
-        finition = False
+        # finition = False
 
         x0 = np.zeros_like(section.nodes.x)
 
@@ -798,87 +770,45 @@ class SolverBalance2:
 
         force_vector = section.vector_force()
         vector_eps = np.zeros_like(section.nodes.dx)
-        pre_jacobian = np.zeros((len(force_vector), len(force_vector)))
+        # pre_jacobian = np.zeros((len(force_vector), len(force_vector)))
 
         self.init_force = force_vector
-
-        ## set relaxation to 0 for the moment
-        # relaxation = 0.
-
+        from typing import Literal
         for compteur in n_iter:
             df_list = []
 
             for i in range(len(section.nodes.ntype)):
                 vector_eps[i] += eps
-                # print(vector_eps)
-                # print(force_vector)
-                # print("eee"*10)
+
 
                 if section.nodes.ntype[i] == 3 or section.nodes.ntype[i] == 4:
                     dz_d = section._delta_dz(vector_eps)
                     vector_eps[i] -= eps
                     dF_dz = (dz_d - force_vector) / eps
                     df_list.append(dF_dz)
-                    # print(dz_d)
+
                 elif section.nodes.ntype[i] == 2:
                     dx_d = section._delta_dx(vector_eps)
                     vector_eps[i] -= eps
                     dF_dx = (dx_d - force_vector) / eps
                     df_list.append(dF_dx)
-                    # print(dx_d)
+
                 elif section.nodes.ntype[i] == 1:
                     dx_d = section._delta_dx(vector_eps)
                     dF_dx = (dx_d - force_vector) / eps
                     df_list.append(dF_dx)
-                    # print(dx_d)
 
                     dz_d = section._delta_dz(vector_eps)
                     vector_eps[i] -= eps
                     dF_dz = (dz_d - force_vector) / eps
                     df_list.append(dF_dz)
-                    # print(dz_d)
-
-                # dx_derivative, dz_derivative = compute_derivative(section, vector_eps)
-                # vector_eps[i] -= eps
-
-                # dF_dx = (dx_derivative - force_vector) / eps
-                # dF_dz = (dz_derivative - force_vector) / eps
-
-                # if section.nodes.ntype[i] == 3:
-                #     df_list.append(dF_dz)
-                # elif section.nodes.ntype[i] == 2:
-                #     df_list.append(dF_dx)
-                # elif section.nodes.ntype[i] == 1:
-                #     df_list.append(dF_dx)
-                #     df_list.append(dF_dz)
+ 
 
             jacobian = np.array(df_list)
 
-            # print("##"*10)
-            # print(section.nodes.dx)
-            # print(section.nodes.dz)
-
-            # aa = np.array(section.nodes.ntype, copy=True)
-            # insert_idx = np.where(aa==1)[0]
-            # aa = np.insert(aa, insert_idx, 20*np.ones(len(insert_idx)))
-
-            # insert_idx = np.where(aa==3)[0]
-            # aa = np.insert(aa, insert_idx, 0*np.ones(len(insert_idx)))
-
-            # insert_idx = np.where(aa==2)[0]
-            # aa = np.insert(aa, insert_idx, 30*np.ones(len(insert_idx)))
-            # aa[aa==2] = 0
-            # aa[aa==20] = 2
-            # aa[aa==30] = 3
-            # print(aa!=0)
-            # jacobian = pre_jacobian[aa!=0]
 
             mem = np.linalg.norm(force_vector)
             correction = np.linalg.inv(jacobian.T) @ force_vector
-
-
-            # from copy import deepcopy
-            # s_c = deepcopy(section)
 
 
             section.nodes.dz -= mp.filter_coord(mp.filter_vector(correction, 33),"z") * (
@@ -904,34 +834,7 @@ class SolverBalance2:
             
             
             section.nodes.compute_dx_dz()
-            
-            
-            
-            
-
-            # i = 0
-            # for j in range(len(section.nodes.ntype)):
-            #     # TODO: modify to delete update_tensions
-            #     if section.nodes.ntype[j] == 3:
-            #         section.nodes.dz[j] -= correction[i] * (
-            #             1 - relaxation**compteur
-            #         )
-            #         i += 1
-
-            #     if section.nodes.ntype[j] == 2:
-            #         section.nodes.dx[j] -= correction[i] * (
-            #             1 - relaxation**compteur
-            #         )
-            #         i += 1
-            #     if section.nodes.ntype[j] == 1:
-            #         section.nodes.dx[j] -= correction[i] * (
-            #             1 - relaxation**compteur
-            #         )
-            #         section.nodes.dz[j] -= correction[i + 1] * (
-            #             1 - relaxation**compteur
-            #         )
-            #         i += 2
-            #     section.nodes.compute_dx_dz()
+           
             section.update_tensions()
 
             # section.update_span()
@@ -986,22 +889,22 @@ class SolverBalance2:
     #            [0, 0, 0, 0, 0, 0, 0],
     #            [3, 2, 2, 2, 2, 2, 3]])
 
-    def compute_derivative(
-        section: Span,
-        eps,
-    ):
-        # force_vector = section._delta_dx(x0)
-        mask_on_x = np.int32(section.nodes.ntype != 3)
-        mask_on_z = np.int32(section.nodes.ntype != 2)
+    # def compute_derivative(
+    #     section: Span,
+    #     eps,
+    # ):
+    #     # force_vector = section._delta_dx(x0)
+    #     mask_on_x = np.int32(section.nodes.ntype != 3)
+    #     mask_on_z = np.int32(section.nodes.ntype != 2)
 
-        dx_d = section._delta_dx(eps * mask_on_x)
-        # section._delta_dx(eps)
+    #     dx_d = section._delta_dx(eps * mask_on_x)
+    #     # section._delta_dx(eps)
 
-        # force_vector = section._delta_dz(x0)
-        dz_d = section._delta_dz(eps * mask_on_z)
-        # section._delta_dz(eps)
+    #     # force_vector = section._delta_dz(x0)
+    #     dz_d = section._delta_dz(eps * mask_on_z)
+    #     # section._delta_dz(eps)
 
-        return dx_d, dz_d
+    #     return dx_d, dz_d
 
     def __call__(self, section, temperature):
         self.solver_balance(section, temperature)
