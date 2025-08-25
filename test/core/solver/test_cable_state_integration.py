@@ -296,6 +296,8 @@ def test_functions_to_solve__reset_to_initial_state(
         initial_weather,
     )
     T_h_initial_state_0 = sag_tension_calculation.T_h_after_change
+    p_initial_state_0 = sag_tension_calculation.p_after_change()
+    L_initial_state_0 = sag_tension_calculation.L_after_change()
 
     weather: WeatherDict = {
         "ice_thickness": 2e-2 * np.ones(2),
@@ -309,6 +311,10 @@ def test_functions_to_solve__reset_to_initial_state(
 
     sag_tension_calculation.initial_state()
     T_h_initial_state_1 = sag_tension_calculation.T_h_after_change
+    p_initial_state_1 = sag_tension_calculation.p_after_change()
+    L_initial_state_1 = sag_tension_calculation.L_after_change()
     assert T_h_initial_state_0 is not None
     assert T_h_initial_state_1 is not None
     np.testing.assert_allclose(T_h_initial_state_0, T_h_initial_state_1)
+    np.testing.assert_allclose(p_initial_state_0, p_initial_state_1)
+    np.testing.assert_allclose(L_initial_state_0, L_initial_state_1)
