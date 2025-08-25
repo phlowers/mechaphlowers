@@ -120,7 +120,9 @@ class DeformationRte(IDeformation):
         equation_solution -= highest_constraint / E
         return equation_solution
 
-    def resolve_stress_strain_equation(self, highest_constraint: np.ndarray) -> np.ndarray:
+    def resolve_stress_strain_equation(
+        self, highest_constraint: np.ndarray
+    ) -> np.ndarray:
         """Solves $\\sigma = Polynomial(\\varepsilon)$"""
         polynomial = self.polynomial_conductor
 
