@@ -30,7 +30,7 @@ class Span(ABC):
         sagging_parameter: np.ndarray,
         load_coefficient: np.ndarray | None = None,
         linear_weight: np.float64 | None = None,
-        **kwargs,
+        **_,
     ) -> None:
         self.span_length = span_length
         self.elevation_difference = elevation_difference

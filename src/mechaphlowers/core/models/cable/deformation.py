@@ -29,7 +29,7 @@ class IDeformation(ABC):
         polynomial_conductor: Poly,
         sagging_temperature: np.ndarray,
         max_stress: np.ndarray | None = None,
-        **kwargs,
+        **_,
     ):
         self.tension_mean = tension_mean
         self.cable_length = cable_length
@@ -60,24 +60,6 @@ class IDeformation(ABC):
     def epsilon_therm(self) -> np.ndarray:
         """Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
 
-    @staticmethod
-    @abstractmethod
-    def compute_epsilon_mecha(
-        T_mean: np.ndarray,
-        E: np.float64,
-        S: np.float64,
-        polynomial: Poly,
-        max_stress: np.ndarray | None = None,
-    ) -> np.ndarray:
-        """Computing mechanical strain using a static method"""
-
-    @staticmethod
-    @abstractmethod
-    def compute_epsilon_therm(
-        theta: np.ndarray, theta_ref: np.float64, alpha: np.float64
-    ) -> np.ndarray:
-        """Computing thermal strain using a static method"""
-
 
 class DeformationRte(IDeformation):
     """This class implements the deformation model used by RTE."""
@@ -92,9 +74,12 @@ class DeformationRte(IDeformation):
         E = self.young_modulus
         S = self.cable_section_area
         polynomial = self.polynomial_conductor
-        return self.compute_epsilon_mecha(
-            T_mean, E, S, polynomial, self.max_stress
-        )
+        # linear case
+        if polynomial.trim().degree() < 2:
+            return T_mean / (E * S)
+        # polynomial case
+        else:
+            return self.epsilon_mecha_polynomial()
 
     def epsilon(self):
         return self.epsilon_mecha() + self.epsilon_therm()
@@ -103,73 +88,48 @@ class DeformationRte(IDeformation):
         sagging_temperature = self.current_temperature
         temp_ref = self.temp_ref
         alpha = self.dilatation_coefficient
-        return self.compute_epsilon_therm(sagging_temperature, temp_ref, alpha)
+        return (sagging_temperature - temp_ref) * alpha
 
-    @staticmethod
-    def compute_epsilon_mecha(
-        T_mean: np.ndarray,
-        E: np.float64,
-        S: np.float64,
-        polynomial: Poly,
-        max_stress: np.ndarray | None = None,
-    ) -> np.ndarray:
-        # linear case
-        if polynomial.trim().degree() < 2:
-            return T_mean / (E * S)
-        # polynomial case
-        else:
-            return DeformationRte.compute_epsilon_mecha_polynomial(
-                T_mean, E, S, polynomial, max_stress
-            )
-
-    @staticmethod
-    def compute_epsilon_mecha_polynomial(
-        T_mean: np.ndarray,
-        E: np.float64,
-        S: np.float64,
-        polynomial: Poly,
-        max_stress: np.ndarray | None = None,
-    ) -> np.ndarray:
+    def epsilon_mecha_polynomial(self) -> np.ndarray:
         """Computes epsilon when the stress-strain relation is polynomial"""
+        T_mean = self.tension_mean
+        E = self.young_modulus
+        S = self.cable_section_area
+
         sigma = T_mean / S
-        if polynomial is None:
+        if self.polynomial_conductor is None:
             raise ValueError("Polynomial is not defined")
-        epsilon_plastic = DeformationRte.compute_epsilon_plastic(
-            T_mean, E, S, polynomial, max_stress
-        )
+        epsilon_plastic = self.epsilon_plastic()
         return epsilon_plastic + sigma / E
 
-    @staticmethod
-    def compute_epsilon_plastic(
-        T_mean: np.ndarray,
-        E: np.float64,
-        S: np.float64,
-        polynomial: Poly,
-        max_stress: np.ndarray | None = None,
-    ) -> np.ndarray:
+    def epsilon_plastic(self) -> np.ndarray:
         """Computes elastic permanent strain."""
+        T_mean = self.tension_mean
+        E = self.young_modulus
+        S = self.cable_section_area
+        max_stress = self.max_stress
+
         sigma = T_mean / S
         if max_stress is None:
             max_stress = np.full(T_mean.shape, 0)
         # epsilon plastic is based on the highest value between sigma and max_stress
         highest_constraint = np.fmax(sigma, max_stress)
-        equation_solution = DeformationRte.resolve_stress_strain_equation(
-            highest_constraint, polynomial
+        equation_solution = self.resolve_stress_strain_equation(
+            highest_constraint
         )
         equation_solution -= highest_constraint / E
         return equation_solution
 
-    @staticmethod
-    def resolve_stress_strain_equation(
-        sigma: np.ndarray, polynomial: Poly
-    ) -> np.ndarray:
+    def resolve_stress_strain_equation(self, highest_constraint: np.ndarray) -> np.ndarray:
         """Solves $\\sigma = Polynomial(\\varepsilon)$"""
-        polynom_array = np.full(sigma.shape, polynomial)
-        poly_to_resolve = polynom_array - sigma
-        return DeformationRte.find_smallest_real_positive_root(poly_to_resolve)
+        polynomial = self.polynomial_conductor
 
-    @staticmethod
+        polynom_array = np.full(highest_constraint.shape, polynomial)
+        poly_to_resolve = polynom_array - highest_constraint
+        return self.find_smallest_real_positive_root(poly_to_resolve)
+
     def find_smallest_real_positive_root(
+        self,
         poly_to_resolve: np.ndarray,
     ) -> np.ndarray:
         """Find the smallest root that is real and positive for each polynomial
@@ -199,10 +159,3 @@ class DeformationRte(IDeformation):
         if np.inf in real_smallest_root:
             raise ValueError("No solution found for at least one span")
         return real_smallest_root
-
-    @staticmethod
-    def compute_epsilon_therm(
-        theta: np.ndarray, theta_ref: np.float64, alpha: np.float64
-    ) -> np.ndarray:
-        """Computing thermal strain using a static method"""
-        return (theta - theta_ref) * alpha
