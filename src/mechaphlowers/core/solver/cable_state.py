@@ -47,7 +47,7 @@ class SagTensionSolver:
         dilatation_coefficient: np.float64,
         temperature_reference: np.float64,
         polynomial_conductor: Poly,
-        **kwargs,
+        **_,
     ) -> None:
         self.span_length = span_length
         self.elevation_difference = elevation_difference
@@ -135,7 +135,7 @@ class SagTensionSolver:
         wind_pressure: np.ndarray,
         new_temperature: np.ndarray,
         solver: str = "newton",
-        **kwargs,
+        **_,
     ) -> None:
         """Method that solves the finds the new horizontal tension after a change of weather. Parameters are given in SI units.
         The equation to solve is : $\\delta(T_h) = O$
