@@ -768,12 +768,11 @@ class SolverBalance2:
 
         n_iter = range(1, 100)
 
-        force_vector = section.vector_force()
         vector_eps = np.zeros_like(section.nodes.dx)
         # pre_jacobian = np.zeros((len(force_vector), len(force_vector)))
 
         self.init_force = force_vector
-        from typing import Literal
+
         for compteur in n_iter:
             df_list = []
 
@@ -836,9 +835,8 @@ class SolverBalance2:
             section.nodes.compute_dx_dz()
            
             section.update_tensions()
-
-            # section.update_span()
             section.update_span()
+
             force_vector = section.vector_force()
 
             norm_d_param = np.abs(np.linalg.norm(force_vector) ** 2 - mem**2)

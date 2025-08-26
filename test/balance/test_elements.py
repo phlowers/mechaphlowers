@@ -128,6 +128,8 @@ def test_element_no_load(section_2d_note):
        180.24810945, 217.54589161])
     )
 
+
+    # old verification with point close to chain
     section_2d_note.cardan(5.03061294, -.6208218539,5.0632788,15) # 1510.824 with vba
     section_2d_note.cardan(5.03062809, -0.62083289,5.06327961,15) # 1517.11 with python
 
