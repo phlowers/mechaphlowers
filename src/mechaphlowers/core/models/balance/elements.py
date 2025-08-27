@@ -11,14 +11,6 @@ from mechaphlowers.core.models.balance import numeric
 import mechaphlowers.core.models.balance.functions as f
 import mechaphlowers.core.numeric.numeric as optimize
 
-from mechaphlowers.utils import ppnp
-
-
-class NodeType(Enum):
-    DDL_2 = 1
-    DDL_1V = 2
-    DDL_1H = 3
-
 
 @dataclass
 class Cable:
@@ -31,24 +23,22 @@ class Cable:
 class Span:
     def __init__(
         self,
-        cable_temperature: np.ndarray,
+        sagging_temperature: np.ndarray,
         nodes: Nodes,
         parameter: np.ndarray = None,
         cable: Cable = None,
-        reglage: bool = True,
-        # finition: bool = False,
+        adjustment: bool = True,
     ):
-        self.cable_temperature = cable_temperature
-        self.reglage = reglage
+        self.sagging_temperature = sagging_temperature
+        self.adjustment = adjustment
         self.nodes = nodes
-        # self.finition = finition
         self._parameter = parameter * np.ones(len(self.nodes) - 1)
         self.cable = cable
         self.nodes.no_load = True
         self.init_Lref_mode = False
         # TODO: during L_ref computation, perhaps set cable_temperature = 0
-        # TODO: temperature here is tuning temperature / only in the real span part
-        # TODO: there is another temperature : change state
+        # temperature here is tuning temperature / only in the real span part
+        # there is another temperature : change state
 
         self.update_span()
         self.nodes.compute_forces(
@@ -56,7 +46,7 @@ class Span:
         )
         self.nodes.no_load = False
 
-        SolverBalance(self).adjusting_Lref()
+        SolverAdjustment(self).adjusting_Lref()
 
         self._L_ref = RealSpan(self).real_span()
 
@@ -72,20 +62,18 @@ class Span:
         self.update_tensions()
         return self._Th
 
-    # TODO: méthode sur appelée, mettre en lru_cache ?
     def update_tensions(self):
-        if not self.reglage:
+        if not self.adjustment:
             c_param = self.cardan(
-                self.a, self.b, self.L_ref, self.cable_temperature
+                self.a, self.b, self.L_ref, self.sagging_temperature
             )
-            # self._parameter = c_param
-            # if self.finition:
+
             c_param = self.find_parameter(
                 c_param,
                 self.a,
                 self.b,
                 self.L_ref,
-                self.cable_temperature,
+                self.sagging_temperature,
             )
             self._parameter = c_param
         else:
@@ -104,17 +92,15 @@ class Span:
 
     @property
     def Tv_g(self):
-        # self.update_tensions()
         return self._Tv_g
 
     @property
     def Tv_d(self):
-        # self.update_tensions()
         return self._Tv_d
 
     def get_approximative_parameter(self):
         self._parameter = self.cardan(
-            self.a, self.b, self.L_ref, self.cable_temperature
+            self.a, self.b, self.L_ref, self.sagging_temperature
         )
 
     def cardan(self, a, b, L0, cable_temperature):
@@ -164,7 +150,7 @@ class Span:
             )
 
             delta1 = (lon - self.L_ref) / self.L_ref - (
-                self.cable.dilation_coefficient * self.cable_temperature
+                self.cable.dilation_coefficient * self.sagging_temperature
                 + Tm1 / (self.cable.young_modulus) / self.cable.section
             )
 
@@ -183,7 +169,7 @@ class Span:
             )
 
             delta2 = (lon - self.L_ref) / self.L_ref - (
-                self.cable.dilation_coefficient * self.cable_temperature
+                self.cable.dilation_coefficient * self.sagging_temperature
                 + Tm1 / (self.cable.young_modulus) / self.cable.section
             )
 
@@ -244,24 +230,26 @@ class Span:
             self.parameter,
             update_dx_dz=update_dx_dz,
         )
-        # out = np.vstack((self.nodes.Fx, self.nodes.Fz, self.nodes.My))
 
-        # manual fix to go on
-        # TODO: vectorize
         out = self.build_vector_force()
         return out
 
     def build_vector_force(self):
+        # TODO: vectorize
         out = []
         for i in range(0, len(self.nodes.Fx)):
             if self.nodes.ntype[i] == 1:
                 out.append(self.nodes.Fx[i])
                 out.append(self.nodes.Fz[i])
-            if self.nodes.ntype[i] == 2 or self.nodes.ntype[i] == 3 or self.nodes.ntype[i] == 4:
+            if (
+                self.nodes.ntype[i] == 2
+                or self.nodes.ntype[i] == 3
+                or self.nodes.ntype[i] == 4
+            ):
                 out.append(self.nodes.My[i])
 
         out = np.array(out)
-        return out  # np.reshape(out, -1, order = 'F')
+        return out
 
     def _delta_init_L(self, dz_se_only):
         self.nodes.dz[0] = dz_se_only[0]
@@ -273,7 +261,6 @@ class Span:
         return force_vector
 
     def _delta_dz(self, dz):
-
         self.nodes.dz += dz
         self.nodes.compute_dx_dz()
         self.update_span()  # transmet_portee: update a and b
@@ -285,6 +272,8 @@ class Span:
         self.nodes.dz -= dz
 
         self.nodes.compute_dx_dz()
+        # TODO: coherence with _delta_dx after other usecases
+        # TODO: here the following steps have been removed but the span object is not set in the same state.
         # self.update_span()
         # self.update_tensions()
 
@@ -301,22 +290,17 @@ class Span:
         force_vector = self.vector_force(update_dx_dz=False)
 
         self.nodes.dx -= dx
+        # TODO: here the following steps have been removed but the span object is not set in the same state.
         # self.nodes.compute_dx_dz()
         # self.update_span()
         # self.update_tensions()
 
         return force_vector
 
-    def compute_balance(self):
-        def norm_delta(dz_se_only):
-            return np.linalg.norm(self._delta_init_L(dz_se_only))
-
-        dz = optimize.newton(norm_delta, np.array([0.0001, 0.0001]))
-
     def __repr__(self):
         data = {
             'parameter': self.parameter,
-            'cable_temperature': self.cable_temperature,
+            'cable_temperature': self.sagging_temperature,
             'Th': self.Th,
             'Tv_d': self.Tv_d,
             'Tv_g': self.Tv_g,
@@ -365,7 +349,7 @@ class RealSpan:
         lon1 = lon1 / (
             1
             + self.span.cable.dilation_coefficient
-            * self.span.cable_temperature
+            * self.span.sagging_temperature
             + Tm1 / self.span.cable.young_modulus / self.span.cable.section
         )
 
@@ -392,7 +376,7 @@ class RealSpan:
         lon2 = lon2 / (
             1
             + self.span.cable.dilation_coefficient
-            * self.span.cable_temperature
+            * self.span.sagging_temperature
             + Tm2 / self.span.cable.young_modulus / self.span.cable.section
         )
 
@@ -409,30 +393,26 @@ class RealSpan:
 
 
 class Masks:
-    # check if first and last support are clamped
     def __init__(self, ntype):
+        # first and last support are supposed to be clamped
         self._ntype = ntype
         self._ntype[-1] = 4
-    
+
     def mask(self, ntype):
         return self._ntype == ntype
-    
+
     def filter(self, vector, ntype):
         return np.where(self._ntype == ntype, vector, 0)
-        
 
 
 class Nodes:
     def __init__(
         self,
-        # num: np.ndarray,
         ntype: np.ndarray,
         L_chain: np.ndarray,
         weight_chain: np.ndarray,
         x: np.ndarray,
         z: np.ndarray,
-        # dx: np.ndarray,
-        # dz: np.ndarray,
         load: np.ndarray,
     ):
         self.num = np.arange(len(ntype))
@@ -445,9 +425,8 @@ class Nodes:
         self.dz = np.zeros_like(z, dtype=np.float64)
         self._load = -load
         self.no_load = False
-        # self.dz = dz
         self.init_L()
-        # self.compute()
+
         self.mask = Masks(ntype)
 
     @property
@@ -482,19 +461,30 @@ class Nodes:
         self.z_suspension_chain = np.zeros_like(self._x)
         self.z_suspension_chain[1:-1] = -self.L_chain[1:-1]
 
-
     def compute_dx_dz(self):
-
         L = self.L_chain
 
-        self.dz[self.mask.mask(2)] = L[self.mask.mask(2)] - (L[self.mask.mask(2)]**2 - self.dx[self.mask.mask(2)]**2) ** 0.5
-        self.dx[self.mask.mask(3)] = -L[self.mask.mask(3)] + (L[self.mask.mask(3)]**2 - self.dz[self.mask.mask(3)]**2) ** 0.5
-        self.dx[self.mask.mask(4)] = -((L[self.mask.mask(4)]**2 - self.dz[self.mask.mask(4)]**2) ** 0.5) + L[self.mask.mask(4)]
-
+        self.dz[self.mask.mask(2)] = (
+            L[self.mask.mask(2)]
+            - (L[self.mask.mask(2)] ** 2 - self.dx[self.mask.mask(2)] ** 2)
+            ** 0.5
+        )
+        self.dx[self.mask.mask(3)] = (
+            -L[self.mask.mask(3)]
+            + (L[self.mask.mask(3)] ** 2 - self.dz[self.mask.mask(3)] ** 2)
+            ** 0.5
+        )
+        self.dx[self.mask.mask(4)] = (
+            -(
+                (L[self.mask.mask(4)] ** 2 - self.dz[self.mask.mask(4)] ** 2)
+                ** 0.5
+            )
+            + L[self.mask.mask(4)]
+        )
 
     def compute_forces(self, Th, Tv_d, Tv_g, parameter, update_dx_dz=True):
         # Placeholder for force computation logic
-        # case 1: ntype == 1
+
         if update_dx_dz:
             self.compute_dx_dz()
 
@@ -503,12 +493,9 @@ class Nodes:
         Tv_d_i = np.concat((np.array([0]), Tv_d))
         Tv_g_ip1 = np.concat((Tv_g, np.array([0])))
 
-        Fx = -Th_i + Th_ip1  # -Th_i + Th_i
-        Fz = (
-            Tv_d_i + Tv_g_ip1 + self.weight_chain / 2 + self.load
-        )  # -Tvd_i + Tvg_i
+        Fx = -Th_i + Th_ip1
+        Fz = Tv_d_i + Tv_g_ip1 + self.weight_chain / 2 + self.load
 
-        # base_build = np.concat(np.array([0,1]*int((len(self)-2-1)/2)), np.array([0]))
         base_build = np.array([0, 1] * int((len(self) - 2 - 1) / 2))
         base_build = np.concat((base_build, np.array([0])))
 
@@ -539,12 +526,7 @@ class Nodes:
         self.Fz = Fz
         self.My = My
 
-        return Fx, Fz, My  # veteur combiné des forces et moments
-
-    # self compute_forces(self):
-    #     Fx =
-
-    #     np.where(self.ntype == 2, self.Fx(), 0)
+        return Fx, Fz, My  # combined vector of forces and torques
 
     def debug(self):
         data = {
@@ -606,14 +588,10 @@ class MapVectorToNodeSpace:
         self.mask_vector_to_nodes = cat_num.T.reshape(-1)[
             self.mask_tensor_flat_to_vector
         ]
-        
-        self.mask_x = np.isin(
-                self.mask_vector_to_nodes, [33, 11, 23, 43]
-            )
-        
-        self.mask_z = np.isin(
-                self.mask_vector_to_nodes, [33, 12, 23, 43]
-            )
+
+        self.mask_x = np.isin(self.mask_vector_to_nodes, [33, 11, 23, 43])
+
+        self.mask_z = np.isin(self.mask_vector_to_nodes, [33, 12, 23, 43])
 
         return cat_num
 
@@ -624,6 +602,7 @@ class MapVectorToNodeSpace:
             vector,
             0,
         )
+
     def filter_vector(self, vector, ntype=1):
         if len(vector) != len(self.mask_vector_to_nodes):
             print("Error: vector length is not equal to mask")
@@ -632,7 +611,7 @@ class MapVectorToNodeSpace:
             vector,
             0,
         )
-        
+
     def filter_coord(self, vector, coord="x"):
         if coord == "x":
             return vector[self.mask_x]
@@ -648,14 +627,12 @@ class MapVectorToNodeSpace:
         ]
 
 
-class SolverBalance:
+class SolverAdjustment:
     eps = 1e-4
     max_iter = 250
 
     def __init__(self, section):
         self.section: Span = section
-
-        # self.f = self._d
 
     def adjusting_Lref(
         self,
@@ -667,6 +644,8 @@ class SolverBalance:
         ),
     ):
         eps = self.eps
+
+        # TODO: to be removed after other usecases tests
         force_vector_0 = self.section._delta_init_L(x0)
 
         for i in range(self.max_iter):
@@ -687,15 +666,6 @@ class SolverBalance:
 
         return self.section.nodes.dz
 
-        # def _delta(dz_se_only):
-        #     self.nodes.dz[0] = dz_se_only[0]
-        #     self.nodes.dz[-1] = dz_se_only[-1]
-        #     # self.update_span()
-
-        #     force_vector = self.vector_force()
-
-        #     return np.linalg.norm(force_vector)
-
 
 def initialize_relaxation(
     nodes: Nodes, mask: np.ndarray, min_relaxation: float = 0.5
@@ -714,7 +684,7 @@ def initialize_relaxation(
     return 1 - np.nanmin(np.append(relaxation, min_relaxation))
 
 
-class SolverBalance2:
+class SolverBalance:
     def __init__(self):
         self.mem_loop = []
 
@@ -723,122 +693,113 @@ class SolverBalance2:
         section: Span,
         temperature=0,
     ):
-        # get span temperature
-        # input loads
-        section.reglage = False
+
+        section.adjustment = False
         section.nodes.no_load = False
-        section.cable_temperature = temperature * np.ones_like(
-            section.cable_temperature
+        section.sagging_temperature = temperature * np.ones_like(
+            section.sagging_temperature
         )
         puissance = 3
         mp = MapVectorToNodeSpace(section.nodes)
 
-        # TODO:
-        # section.trouve
-
         # cardan then update force
         section.get_approximative_parameter()
-
         section.update_tensions()
         section.update_span()
-
-        # update ?
-
-        # TODO: update cable temperature or new variable ?
 
         # compute relaxation
         relaxation = initialize_relaxation(
             section.nodes, mask=section.nodes.ntype == 1
         )
 
-        eps = 0.00001
-
-        # only for values
-        # finition = False
-
-        x0 = np.zeros_like(section.nodes.x)
-
-        # build jacobian matrix
-        # section.z_from_x_2ddl()
-
+        # initialisation 
+        perturb = 0.00001
         force_vector = section.vector_force()
-
-        # masks for the jacobian
-        # case 1 : two lines : one for dx one for dz
-
         n_iter = range(1, 100)
-
-        vector_eps = np.zeros_like(section.nodes.dx)
-        # pre_jacobian = np.zeros((len(force_vector), len(force_vector)))
-
+        vector_perturb = np.zeros_like(section.nodes.dx)
+        # for debug we record init_force
         self.init_force = force_vector
 
+        # starting optimisation loop
         for compteur in n_iter:
+
+            # compute jacobian
             df_list = []
 
             for i in range(len(section.nodes.ntype)):
-                vector_eps[i] += eps
+                vector_perturb[i] += perturb
 
-
+                # TODO: refactor if/elif ? + node logic should not be in the solver
                 if section.nodes.ntype[i] == 3 or section.nodes.ntype[i] == 4:
-                    dz_d = section._delta_dz(vector_eps)
-                    vector_eps[i] -= eps
-                    dF_dz = (dz_d - force_vector) / eps
+                    dz_d = section._delta_dz(vector_perturb)
+                    vector_perturb[i] -= perturb
+                    dF_dz = (dz_d - force_vector) / perturb
                     df_list.append(dF_dz)
 
                 elif section.nodes.ntype[i] == 2:
-                    dx_d = section._delta_dx(vector_eps)
-                    vector_eps[i] -= eps
-                    dF_dx = (dx_d - force_vector) / eps
+                    dx_d = section._delta_dx(vector_perturb)
+                    vector_perturb[i] -= perturb
+                    dF_dx = (dx_d - force_vector) / perturb
                     df_list.append(dF_dx)
 
                 elif section.nodes.ntype[i] == 1:
-                    dx_d = section._delta_dx(vector_eps)
-                    dF_dx = (dx_d - force_vector) / eps
+                    dx_d = section._delta_dx(vector_perturb)
+                    dF_dx = (dx_d - force_vector) / perturb
                     df_list.append(dF_dx)
 
-                    dz_d = section._delta_dz(vector_eps)
-                    vector_eps[i] -= eps
-                    dF_dz = (dz_d - force_vector) / eps
+                    dz_d = section._delta_dz(vector_perturb)
+                    vector_perturb[i] -= perturb
+                    dF_dz = (dz_d - force_vector) / perturb
                     df_list.append(dF_dz)
- 
 
             jacobian = np.array(df_list)
-
-
+            
+            # memorize for norm 
             mem = np.linalg.norm(force_vector)
+            
+            # correction calculus
+            # TODO: check the cross product matrix / vector
             correction = np.linalg.inv(jacobian.T) @ force_vector
 
+            # compute correction         
+            section.nodes.dz -= mp.filter_coord(
+                mp.filter_vector(correction, 33), "z"
+            ) * (1 - relaxation ** (compteur**puissance))
+            section.nodes.dz -= mp.filter_coord(
+                mp.filter_vector(correction, 43), "z"
+            ) * (1 - relaxation ** (compteur**puissance))
+            section.nodes.dx -= mp.filter_coord(
+                mp.filter_vector(correction, 23), "x"
+            ) * (1 - relaxation ** (compteur**puissance))
+            section.nodes.dx -= mp.filter_coord(
+                mp.filter_vector(correction, 11), "x"
+            ) * (1 - relaxation ** (compteur**puissance))
+            section.nodes.dz -= mp.filter_coord(
+                mp.filter_vector(correction, 12), "z"
+            ) * (1 - relaxation ** (compteur**puissance))
+            
+            # constaint on chain length
+            mask_limit_x = (section.nodes.ntype == 2) & (
+                np.abs(section.nodes.dx) >= section.nodes.L_chain
+            )
+            mask_limit_z = (section.nodes.ntype == 3) & (
+                np.abs(section.nodes.dz) >= section.nodes.L_chain
+            )
 
-            section.nodes.dz -= mp.filter_coord(mp.filter_vector(correction, 33),"z") * (
-                        1 - relaxation**(compteur**puissance)
-                    )
-            section.nodes.dz -= mp.filter_coord(mp.filter_vector(correction, 43),"z") * (
-                        1 - relaxation**(compteur**puissance)
-                    )
-            section.nodes.dx -= mp.filter_coord(mp.filter_vector(correction, 23),"x") * (
-                        1 - relaxation**(compteur**puissance)
-                    )
-            section.nodes.dx -= mp.filter_coord(mp.filter_vector(correction, 11),"x") * (
-                        1 - relaxation**(compteur**puissance)
-                    )
-            section.nodes.dz -= mp.filter_coord(mp.filter_vector(correction, 12),"z") * (
-                        1 - relaxation**(compteur**puissance)
-                    )
-            mask_limit_x = (section.nodes.ntype == 2) & (np.abs(section.nodes.dx) >= section.nodes.L_chain)
-            mask_limit_z = (section.nodes.ntype == 3) & (np.abs(section.nodes.dz) >= section.nodes.L_chain)
-            
-            section.nodes.dx[mask_limit_x] = np.sign(section.nodes.dx[mask_limit_x]) * (section.nodes.L_chain[mask_limit_x] - .01)
-            section.nodes.dx[mask_limit_z] = np.sign(section.nodes.dx[mask_limit_z]) * (section.nodes.L_chain[mask_limit_z] - .01)
-            
-            
+            section.nodes.dx[mask_limit_x] = np.sign(
+                section.nodes.dx[mask_limit_x]
+            ) * (section.nodes.L_chain[mask_limit_x] - 0.01)
+            section.nodes.dx[mask_limit_z] = np.sign(
+                section.nodes.dx[mask_limit_z]
+            ) * (section.nodes.L_chain[mask_limit_z] - 0.01)
+
+            # update
             section.nodes.compute_dx_dz()
-           
             section.update_tensions()
             section.update_span()
 
+            # compute value to minimize
             force_vector = section.vector_force()
-
             norm_d_param = np.abs(np.linalg.norm(force_vector) ** 2 - mem**2)
 
             print("**" * 10)
@@ -861,11 +822,7 @@ class SolverBalance2:
                 }
             )
 
-            # if norm_d_param < 100_000:
-            #     section.finition = True
-            # else:
-            #     self.i_finition = compteur
-
+            # check value to minimze to break the loop
             if norm_d_param < 0.1:
                 # print("--end--"*10)
                 # print(norm_d_param)
@@ -878,31 +835,3 @@ class SolverBalance2:
         self.final_dx = section.nodes.dx
         self.final_dz = section.nodes.dz
         self.final_force = force_vector
-        # ww = np.tile(aa, (5,1))
-
-    #     np.multiply(ww , np.array([[0,1,0,0,1]]).T)
-    #   >> array([[0, 0, 0, 0, 0, 0, 0],
-    #            [3, 2, 2, 2, 2, 2, 3],
-    #            [0, 0, 0, 0, 0, 0, 0],
-    #            [0, 0, 0, 0, 0, 0, 0],
-    #            [3, 2, 2, 2, 2, 2, 3]])
-
-    # def compute_derivative(
-    #     section: Span,
-    #     eps,
-    # ):
-    #     # force_vector = section._delta_dx(x0)
-    #     mask_on_x = np.int32(section.nodes.ntype != 3)
-    #     mask_on_z = np.int32(section.nodes.ntype != 2)
-
-    #     dx_d = section._delta_dx(eps * mask_on_x)
-    #     # section._delta_dx(eps)
-
-    #     # force_vector = section._delta_dz(x0)
-    #     dz_d = section._delta_dz(eps * mask_on_z)
-    #     # section._delta_dz(eps)
-
-    #     return dx_d, dz_d
-
-    def __call__(self, section, temperature):
-        self.solver_balance(section, temperature)

@@ -1,9 +1,9 @@
 from mechaphlowers.core.models.balance.elements import (
     Cable,
-    SolverBalance,
+    SolverAdjustment,
     Span,
     Nodes,
-    SolverBalance2,
+    SolverBalance,
     MapVectorToNodeSpace,
 )
 import numpy as np
@@ -29,7 +29,7 @@ def section_2d_note(cable_AM600):
 
     return Span(
         parameter=1500,
-        cable_temperature=15,
+        sagging_temperature=15,
         nodes=nodes,
         cable=cable_AM600,
     )
@@ -49,7 +49,7 @@ def section_2d_250m_load(cable_AM600):
 
     return Span(
         parameter=1500,
-        cable_temperature=15,
+        sagging_temperature=15,
         nodes=nodes,
         cable=cable_AM600,
     )
@@ -69,7 +69,7 @@ def section_2d_250m_no_load(cable_AM600):
 
     return Span(
         parameter=1500,
-        cable_temperature=15,
+        sagging_temperature=15,
         nodes=nodes,
         cable=cable_AM600,
     )
@@ -98,40 +98,55 @@ def section_2d_250m_no_load(cable_AM600):
 def test_element_no_load(section_2d_note):
     # load = section_2d_note.nodes.load
 
-
     print("\n")
     print(section_2d_note)
     print(section_2d_note.nodes)
 
     # Testing initialization
-    x=np.array([3.00, 8.00, 500.00, 595.00, 800.00, 980.00, 1197.00])
-    z=np.array([30.00, 28.95, 50.00, 46.67, 60.00, 49.01, 65.00])
-    dx=np.array([-0.03, 0.00, 0.00, 0.00, 0.00, 0.00, 0.04])
-    dz=np.array([-0.43, 0.00, 0.00, 0.00, 0.00, 0.00, -0.48])
+    x = np.array([3.00, 8.00, 500.00, 595.00, 800.00, 980.00, 1197.00])
+    z = np.array([30.00, 28.95, 50.00, 46.67, 60.00, 49.01, 65.00])
+    dx = np.array([-0.03, 0.00, 0.00, 0.00, 0.00, 0.00, 0.04])
+    dz = np.array([-0.43, 0.00, 0.00, 0.00, 0.00, 0.00, -0.48])
 
-    Th=np.array([26504.9, 26505.0, 26505.0, 26505.0, 26505.0, 26505.0])
-    Tv_g=-np.array([3315.8, 3226.2, 1769.9, 90.0, 3215.0, 26.6]) # minus because of orientation of force to the ground in the reference
-    Tv_d=-np.array([-3226.2, 5514.4, -90.0, 3542.8, -26.6, 3821.6]) # minus because of orientation of force to the ground in the reference
+    Th = np.array([26504.9, 26505.0, 26505.0, 26505.0, 26505.0, 26505.0])
+    Tv_g = -np.array(
+        [3315.8, 3226.2, 1769.9, 90.0, 3215.0, 26.6]
+    )  # minus because of orientation of force to the ground in the reference
+    Tv_d = -np.array(
+        [-3226.2, 5514.4, -90.0, 3542.8, -26.6, 3821.6]
+    )  # minus because of orientation of force to the ground in the reference
 
-    np.testing.assert_allclose(section_2d_note.nodes.x , x, atol=0.01)
-    np.testing.assert_allclose(section_2d_note.nodes.z , z, atol=0.01)
-    np.testing.assert_allclose(section_2d_note.nodes.dx , dx, atol=0.01)
-    np.testing.assert_allclose(section_2d_note.nodes.dz , dz, atol=0.01)
+    np.testing.assert_allclose(section_2d_note.nodes.x, x, atol=0.01)
+    np.testing.assert_allclose(section_2d_note.nodes.z, z, atol=0.01)
+    np.testing.assert_allclose(section_2d_note.nodes.dx, dx, atol=0.01)
+    np.testing.assert_allclose(section_2d_note.nodes.dz, dz, atol=0.01)
 
-    np.testing.assert_allclose(section_2d_note.Th , Th, atol=0.1)
-    np.testing.assert_allclose(section_2d_note.Tv_d , Tv_d, atol=0.1)
-    np.testing.assert_allclose(section_2d_note.Tv_g , Tv_g, atol=0.1)
+    np.testing.assert_allclose(section_2d_note.Th, Th, atol=0.1)
+    np.testing.assert_allclose(section_2d_note.Tv_d, Tv_d, atol=0.1)
+    np.testing.assert_allclose(section_2d_note.Tv_g, Tv_g, atol=0.1)
 
     # testing RealSpan formulas
-    np.testing.assert_allclose( section_2d_note.L_ref ,
-                               np.array([  5.06327961, 494.12046026,  94.97159033, 205.36991365,
-       180.24810945, 217.54589161])
+    np.testing.assert_allclose(
+        section_2d_note.L_ref,
+        np.array(
+            [
+                5.06327961,
+                494.12046026,
+                94.97159033,
+                205.36991365,
+                180.24810945,
+                217.54589161,
+            ]
+        ),
     )
 
-
     # old verification with point close to chain
-    section_2d_note.cardan(5.03061294, -.6208218539,5.0632788,15) # 1510.824 with vba
-    section_2d_note.cardan(5.03062809, -0.62083289,5.06327961,15) # 1517.11 with python
+    section_2d_note.cardan(
+        5.03061294, -0.6208218539, 5.0632788, 15
+    )  # 1510.824 with vba
+    section_2d_note.cardan(
+        5.03062809, -0.62083289, 5.06327961, 15
+    )  # 1517.11 with python
 
     ### Test relaxation and solver
     # solver_balance(section_2d_note, 15)
@@ -369,9 +384,9 @@ def test_element_balance_load_temperature_90(section_2d_250m_load):
 
     # load = section_2d_note.nodes.load
 
-    sb = SolverBalance2()
+    sb = SolverBalance()
     ### Test relaxation and solver
-    sb(section_2d_250m_load, 90)
+    sb.solver_balance(section_2d_250m_load, 90)
 
     # np.testing.assert_allclose(sb.init_force, init_force, rtol=1e-3)
     np.testing.assert_allclose(sb.final_dx, final_dx, rtol=1e-4)
@@ -384,7 +399,6 @@ def test_element_balance_load_temperature_90(section_2d_250m_load):
 
     # assert sb.i_finition == i_finition
     assert nb_iter == len(sb.mem_loop)
-
 
 
 def test_MapVectorToNodeSpace(section_2d_250m_load):
@@ -436,7 +450,5 @@ def test_MapVectorToNodeSpace(section_2d_250m_load):
     np.testing.assert_allclose(
         mp.filter_to_nodes_values(cat_num_vector, 4), filter_nodes_equal_4
     )
-    
-    
 
     assert True
