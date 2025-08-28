@@ -228,7 +228,7 @@ class Span:
             self.Tv_d,
             self.Tv_g,
             self.parameter,
-            update_dx_dz=update_dx_dz,
+            update_dx_dy_dz=update_dx_dz,
         )
 
         out = self.build_vector_force()
@@ -262,7 +262,7 @@ class Span:
 
     def _delta_dz(self, dz):
         self.nodes.dz += dz
-        self.nodes.compute_dx_dz()
+        self.nodes.compute_dx_dy_dz()
         self.update_span()  # transmet_portee: update a and b
 
         self.update_tensions()  # Th : cardan for parameter then compute Th, Tvd, Tvg
@@ -271,7 +271,7 @@ class Span:
 
         self.nodes.dz -= dz
 
-        self.nodes.compute_dx_dz()
+        self.nodes.compute_dx_dy_dz()
         # TODO: coherence with _delta_dx after other usecases
         # TODO: here the following steps have been removed but the span object is not set in the same state.
         # self.update_span()
@@ -284,7 +284,7 @@ class Span:
         # self.update_span()
         # self.z_from_x_2ddl()
         self.update_span()
-        self.nodes.compute_dx_dz()
+        self.nodes.compute_dx_dy_dz()
         self.update_tensions()
 
         force_vector = self.vector_force(update_dx_dz=False)
@@ -420,8 +420,10 @@ class Nodes:
         self.L_chain = L_chain
         self.weight_chain = -weight_chain
         self._x = x
+        self._y = np.zeros_like(x, dtype=np.float64)
         self._z = z
         self.dx = np.zeros_like(x, dtype=np.float64)
+        self.dy = np.zeros_like(x, dtype=np.float64)
         self.dz = np.zeros_like(z, dtype=np.float64)
         self._load = -load
         self.no_load = False
@@ -447,8 +449,12 @@ class Nodes:
         return self._x + self.x_anchor_chain
 
     @property
+    def y(self):
+        return self._y
+
+    @property
     def z(self):
-        return self._z
+        return self._z 
 
     @z.setter
     def z(self, value):
@@ -461,39 +467,55 @@ class Nodes:
         self.z_suspension_chain = np.zeros_like(self._x)
         self.z_suspension_chain[1:-1] = -self.L_chain[1:-1]
 
-    def compute_dx_dz(self):
+
+    def compute_dx_dy_dz(self):
         L = self.L_chain
-
+        # TODO: add y in formulas
+        # self.dz[self.mask.mask(2)] = (
+        #     L[self.mask.mask(2)]
+        #     - (L[self.mask.mask(2)] ** 2 - self.dx[self.mask.mask(2)] ** 2)
+        #     ** 0.5
+        # )
         self.dz[self.mask.mask(2)] = (
-            L[self.mask.mask(2)]
-            - (L[self.mask.mask(2)] ** 2 - self.dx[self.mask.mask(2)] ** 2)
-            ** 0.5
-        )
+            L[self.mask.mask(3)] ** 2 - self.dx[self.mask.mask(3)] ** 2 - self.dy[self.mask.mask(3)] ** 2
+            ) ** 0.5
+        # self.dx[self.mask.mask(3)] = (
+        #     -L[self.mask.mask(3)]
+        #     + (L[self.mask.mask(3)] ** 2 - self.dz[self.mask.mask(3)] ** 2)
+        #     ** 0.5
+        # )
         self.dx[self.mask.mask(3)] = (
-            -L[self.mask.mask(3)]
-            + (L[self.mask.mask(3)] ** 2 - self.dz[self.mask.mask(3)] ** 2)
-            ** 0.5
-        )
-        self.dx[self.mask.mask(4)] = (
-            -(
-                (L[self.mask.mask(4)] ** 2 - self.dz[self.mask.mask(4)] ** 2)
-                ** 0.5
-            )
-            + L[self.mask.mask(4)]
-        )
+            L[self.mask.mask(3)] ** 2 - self.dy[self.mask.mask(3)] ** 2 - self.dz[self.mask.mask(3)] ** 2
+            ) ** 0.5
+        
+        # self.dx[self.mask.mask(4)] = (
+        #     -(
+        #         (L[self.mask.mask(4)] ** 2 - self.dz[self.mask.mask(4)] ** 2)
+        #         ** 0.5
+        #     )
+        #     + L[self.mask.mask(4)]
+        # )
 
-    def compute_forces(self, Th, Tv_d, Tv_g, parameter, update_dx_dz=True):
+        self.dx[self.mask.mask(4)] = (
+            L[self.mask.mask(4)] ** 2 - self.dy[self.mask.mask(4)] ** 2 - self.dz[self.mask.mask(4)] ** 2
+            ) ** 0.5
+        
+
+    def compute_forces(self, Th, Tv_d, Tv_g, parameter, update_dx_dy_dz=True):
         # Placeholder for force computation logic
 
-        if update_dx_dz:
-            self.compute_dx_dz()
+        if update_dx_dy_dz:
+            self.compute_dx_dy_dz()
 
         Th_i = np.concat((np.array([0]), Th))
         Th_ip1 = np.concat((Th, np.array([0])))
         Tv_d_i = np.concat((np.array([0]), Tv_d))
         Tv_g_ip1 = np.concat((Tv_g, np.array([0])))
 
+        # TODO: add projections?
         Fx = -Th_i + Th_ip1
+        # Placeholder
+        Fy = -Th_i + Th_ip1
         Fz = Tv_d_i + Tv_g_ip1 + self.weight_chain / 2 + self.load
 
         base_build = np.array([0, 1] * int((len(self) - 2 - 1) / 2))
@@ -520,12 +542,17 @@ class Nodes:
         )
 
         M = np.cross(lever_arm, force_3d)
+        Mx = M[:, 0]
         My = M[:, 1]
 
         self.Fx = Fx
+        self.Fy = Fy
         self.Fz = Fz
+        self.Mx = Mx
         self.My = My
 
+
+        # TODO: Return more?
         return Fx, Fz, My  # combined vector of forces and torques
 
     def debug(self):
@@ -615,6 +642,8 @@ class MapVectorToNodeSpace:
     def filter_coord(self, vector, coord="x"):
         if coord == "x":
             return vector[self.mask_x]
+        # if coord == "y":
+        #     return vector[self.mask_]
         if coord == "z":
             return vector[self.mask_z]
 
@@ -794,7 +823,7 @@ class SolverBalance:
             ) * (section.nodes.L_chain[mask_limit_z] - 0.01)
 
             # update
-            section.nodes.compute_dx_dz()
+            section.nodes.compute_dx_dy_dz()
             section.update_tensions()
             section.update_span()
 
