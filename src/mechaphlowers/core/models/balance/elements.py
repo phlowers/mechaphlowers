@@ -87,6 +87,8 @@ class Span:
         self._Tv_g = Th * (np.sinh(x_m / c_param))
         self._Tv_d = -Th * (np.sinh(x_n / c_param))
         self._Th = Th
+        
+        self.update_projections()
 
         return Th
 
@@ -94,10 +96,20 @@ class Span:
         # TODO: alpha and beta
         alpha = np.zeros_like(self._Th)
         beta = np.zeros_like(self._Th)
-        
-        # proj_angle = 
+
+        # TODO: code duplicated with update_span() in order to avoid bugs about update order
+        proj_d_i = self.nodes.proj_d
+        proj_g_ip1 = np.roll(self.nodes.proj_g, 1)
+        proj_diff = (proj_d_i - proj_g_ip1)[:,1:]
+
+        # x: initial input to calculate span_length
+        span_length = np.ediff1d(self.nodes._x)
+        inter1 = span_length + proj_diff[0]
+        inter2 = proj_diff[1]
+        self.proj_angle = np.atan2(inter1, inter2)
+
         # update instead of recreate?
-        # self.vector_projection = VectorProjection(self._Th, self._Tv_d, self._Tv_g, alpha, beta, )
+        self.vector_projection = VectorProjection(self._Th, self._Tv_d, self._Tv_g, alpha, beta, self.proj_angle)
 
     @property
     def Tv_g(self):
@@ -200,10 +212,20 @@ class Span:
         else:
             x = self.nodes.x
             z = self.nodes.z
-        a = x + self.nodes.dx - np.roll(x + self.nodes.dx, 1)
-        b = z + self.nodes.dz - np.roll(z + self.nodes.dz, 1)
-        self.a = a[1:]
+        # warning: counting from right to left
+        proj_d_i = self.nodes.proj_d
+        proj_g_ip1 = np.roll(self.nodes.proj_g, 1)
+        proj_diff = (proj_d_i - proj_g_ip1)[:,1:]
+
+        # x: initial input to calculate span_length
+        span_length = np.ediff1d(self.nodes._x)
+        inter1 = span_length + proj_diff[0]
+        inter2 = proj_diff[1]
+
+        self.a = (inter1 ** 2 + inter2 ** 2) **0.5
+        b = z + self.nodes.dz - np.roll(z + self.nodes.dz, 1) 
         self.b = b[1:]
+        self.proj_angle = np.atan2(inter1, inter2)
 
     def z_from_x_2ddl(self, inplace=True):
         # Assuming this is a placeholder for the actual implementation
