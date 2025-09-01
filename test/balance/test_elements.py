@@ -12,7 +12,8 @@ from pytest import fixture
 
 @fixture
 def cable_AM600():
-    return Cable(600.4, 17.67, 0.000023, 60e3)
+    return Cable(600.4, 17.67, 0.000023, 60e3, 31.86, 320)
+
 
 @fixture
 def section_2d_note(cable_AM600):
@@ -21,10 +22,20 @@ def section_2d_note(cable_AM600):
         ntype=np.array([3, 1, 2, 1, 2, 1, 3]),
         L_chain=np.array([3, 0, 3, 0, 3, 0, 3]),
         weight_chain=np.array([1000, 0, 500, 0, 500, 0, 1000]),
-        arm_length = np.array([0, 0, 3, 0, 3, 0, 0]),
-        line_angle = np.array([0, 0, 0, 0, 0, 0, 0,]),
+        arm_length=np.array([0, 0, 3, 0, 3, 0, 0]),
+        line_angle=np.array(
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ]
+        ),
         x=np.array([0, 250, 500, 750, 800, 1000, 1200]),
-        z=np.array([30, 0, 50, 0, 60, 0, 65]), # = z0
+        z=np.array([30, 0, 50, 0, 60, 0, 65]),  # = z0
         load=np.array([0, 0, 0, 0, 0, 0, 0]),
     )
 
@@ -34,8 +45,6 @@ def section_2d_note(cable_AM600):
         nodes=nodes,
         cable=cable_AM600,
     )
-
-
 
 
 def test_element_no_load(section_2d_note):
@@ -84,6 +93,36 @@ def test_element_no_load(section_2d_note):
     # )
 
 
+@fixture
+def section_2d_250m_load(cable_AM600):
+    nodes = Nodes(
+        # num=np.arange(0,),
+        ntype=np.array([3, 1, 2, 1, 2, 1, 3]),
+        L_chain=np.array([3, 0, 3, 0, 3, 0, 3]),
+        weight_chain=np.array([1000, 0, 500, 0, 500, 0, 1000]),
+        arm_length=np.array([20, 0, 20, 0, 20, 0, 20]),
+        line_angle=np.array(
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ]
+        ),
+        x=np.array([0, 250, 500, 595, 800, 980, 1200]),
+        z=np.array([30, 0, 50, 0, 60, 0, 65]),
+        load=np.array([0, 5_000, 0, 0, 0, 0, 0]),
+    )
+
+    return Span(
+        parameter=1500,
+        sagging_temperature=15,
+        nodes=nodes,
+        cable=cable_AM600,
+    )
 
 
 def test_element_balance_load_temperature_90(section_2d_250m_load):

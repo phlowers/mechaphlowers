@@ -21,8 +21,7 @@ class Cable:
     young_modulus: np.ndarray
     diameter: np.ndarray
     cra: np.ndarray
-    
-    
+
 
 class Span:
     def __init__(
@@ -38,13 +37,13 @@ class Span:
         self.nodes = nodes
         self._parameter = parameter * np.ones(len(self.nodes) - 1)
         self.cable = cable
-        self.cable_loads: CableLoads  = CableLoads(
+        self.cable_loads: CableLoads = CableLoads(
             cable.diameter,
             cable.lineic_weight,
             np.zeros_like(cable.diameter),
-            np.zeros_like(cable.diameter)
+            np.zeros_like(cable.diameter),
         )
-        
+
         self.nodes.no_load = True
         self.init_Lref_mode = False
         # TODO: during L_ref computation, perhaps set cable_temperature = 0
@@ -61,12 +60,16 @@ class Span:
 
         self._L_ref = RealSpan(self).real_span()
 
-    @property        
+    @property
     def alpha(self):
         beta = self.cable_loads.load_angle
-        return np.acos(
-            self.a / (self.a**2 + self.b**2 * np.sin(beta)**2 )**0.5
-            ) * np.sign(beta) * np.sign(self.b)
+        return (
+            np.acos(
+                self.a / (self.a**2 + self.b**2 * np.sin(beta) ** 2) ** 0.5
+            )
+            * np.sign(beta)
+            * np.sign(self.b)
+        )
 
     @property
     def L_ref(self):
@@ -105,25 +108,32 @@ class Span:
         self._Tv_g = Th * (np.sinh(x_m / c_param))
         self._Tv_d = -Th * (np.sinh(x_n / c_param))
         self._Th = Th
-        
+
         self.update_projections()
 
         return Th
 
     def update_projections(self):
-        # TODO: alpha and beta
+        # TODO: alpha and beta
         alpha = self.alpha
         beta = self.cable_loads.load_angle
 
         self.compute_inter()
-        # update instead of recreate?
-        self.nodes.vector_projection.set_all(self._Th, self._Tv_d, self._Tv_g, alpha, beta, self.proj_angle)
+        self.nodes.vector_projection.set_all(
+            self._Th,
+            self._Tv_d,
+            self._Tv_g,
+            alpha,
+            beta,
+            self.nodes.line_angle,
+            self.proj_angle,
+        )
 
     def compute_inter(self):
         # warning: counting from right to left
         proj_d_i = self.nodes.proj_d
-        proj_g_ip1 = np.roll(self.nodes.proj_g, 1)
-        proj_diff = (proj_d_i - proj_g_ip1)[:,1:]            
+        proj_g_ip1 = np.roll(self.nodes.proj_g, -1)
+        proj_diff = (proj_d_i - proj_g_ip1)[:, 1:]
         # x: initial input to calculate span_length
         span_length = np.ediff1d(self.nodes._x)
         self.inter1 = span_length + proj_diff[0]
@@ -234,10 +244,9 @@ class Span:
 
         self.compute_inter()
 
-        self.a = (self.inter1 ** 2 + self.inter2 ** 2) **0.5
-        b = z + self.nodes.dz - np.roll(z + self.nodes.dz, 1) 
+        self.a = (self.inter1**2 + self.inter2**2) ** 0.5
+        b = z + self.nodes.dz - np.roll(z + self.nodes.dz, 1)
         self.b = b[1:]
-        
 
     def z_from_x_2ddl(self, inplace=True):
         # Assuming this is a placeholder for the actual implementation
@@ -279,6 +288,8 @@ class Span:
 
     def build_vector_force(self):
         # TODO: vectorize
+
+        # TODO: add Fy and Mx
         out = []
         for i in range(0, len(self.nodes.Fx)):
             if self.nodes.ntype[i] == 1:
@@ -476,7 +487,7 @@ class Nodes:
         self._load = -load
         self.no_load = False
         self.init_L()
-        
+
         self.vector_projection = VectorProjection()
 
         self.mask = Masks(ntype)
@@ -504,7 +515,7 @@ class Nodes:
 
     @property
     def z(self):
-        return self._z 
+        return self._z
 
     @z.setter
     def z(self, value):
@@ -513,8 +524,12 @@ class Nodes:
     @property
     def proj_g(self):
         arm_length = self.arm_length
-        proj_s_axis = -(arm_length + self.dy) * np.sin(self.line_angle / 2) + (self.dx) * np.cos(self.line_angle / 2)
-        proj_t_axis = (arm_length + self.dy) * np.cos(self.line_angle / 2) + (self.dx) * np.sin(self.line_angle / 2)
+        proj_s_axis = -(arm_length + self.dy) * np.sin(self.line_angle / 2) + (
+            self.dx
+        ) * np.cos(self.line_angle / 2)
+        proj_t_axis = (arm_length + self.dy) * np.cos(self.line_angle / 2) + (
+            self.dx
+        ) * np.sin(self.line_angle / 2)
 
         # order s/t?
         return np.array([proj_s_axis, proj_t_axis])
@@ -522,13 +537,15 @@ class Nodes:
     @property
     def proj_d(self):
         arm_length = self.arm_length
-        proj_s_axis = (arm_length + self.dy) * np.sin(self.line_angle / 2) + (self.dx) * np.cos(self.line_angle / 2)
-        proj_t_axis = (arm_length + self.dy) * np.cos(self.line_angle / 2) - (self.dx) * np.sin(self.line_angle / 2)
+        proj_s_axis = (arm_length + self.dy) * np.sin(self.line_angle / 2) + (
+            self.dx
+        ) * np.cos(self.line_angle / 2)
+        proj_t_axis = (arm_length + self.dy) * np.cos(self.line_angle / 2) - (
+            self.dx
+        ) * np.sin(self.line_angle / 2)
 
         # order s/t?
         return np.array([proj_s_axis, proj_t_axis])
-
-
 
     def init_L(self):
         self.x_anchor_chain = np.zeros_like(self._x)
@@ -537,39 +554,27 @@ class Nodes:
         self.z_suspension_chain = np.zeros_like(self._x)
         self.z_suspension_chain[1:-1] = -self.L_chain[1:-1]
 
-
     def compute_dx_dy_dz(self):
         L = self.L_chain
-        # TODO: add y in formulas
-        # self.dz[self.mask.mask(2)] = (
-        #     L[self.mask.mask(2)]
-        #     - (L[self.mask.mask(2)] ** 2 - self.dx[self.mask.mask(2)] ** 2)
-        #     ** 0.5
-        # )
+
         self.dz[self.mask.mask(2)] = (
-            L[self.mask.mask(3)] ** 2 - self.dx[self.mask.mask(3)] ** 2 - self.dy[self.mask.mask(3)] ** 2
-            ) ** 0.5
-        # self.dx[self.mask.mask(3)] = (
-        #     -L[self.mask.mask(3)]
-        #     + (L[self.mask.mask(3)] ** 2 - self.dz[self.mask.mask(3)] ** 2)
-        #     ** 0.5
-        # )
+            L[self.mask.mask(3)] ** 2
+            - self.dx[self.mask.mask(3)] ** 2
+            - self.dy[self.mask.mask(3)] ** 2
+        ) ** 0.5
+
         self.dx[self.mask.mask(3)] = (
-            L[self.mask.mask(3)] ** 2 - self.dy[self.mask.mask(3)] ** 2 - self.dz[self.mask.mask(3)] ** 2
-            ) ** 0.5
-        
-        # self.dx[self.mask.mask(4)] = (
-        #     -(
-        #         (L[self.mask.mask(4)] ** 2 - self.dz[self.mask.mask(4)] ** 2)
-        #         ** 0.5
-        #     )
-        #     + L[self.mask.mask(4)]
-        # )
+            L[self.mask.mask(3)] ** 2
+            - self.dy[self.mask.mask(3)] ** 2
+            - self.dz[self.mask.mask(3)] ** 2
+        ) ** 0.5
+
 
         self.dx[self.mask.mask(4)] = (
-            L[self.mask.mask(4)] ** 2 - self.dy[self.mask.mask(4)] ** 2 - self.dz[self.mask.mask(4)] ** 2
-            ) ** 0.5
-        
+            L[self.mask.mask(4)] ** 2
+            - self.dy[self.mask.mask(4)] ** 2
+            - self.dz[self.mask.mask(4)] ** 2
+        ) ** 0.5
 
     def compute_forces(self, Th, Tv_d, Tv_g, parameter, update_dx_dy_dz=True):
         # Placeholder for force computation logic
@@ -577,16 +582,35 @@ class Nodes:
         if update_dx_dy_dz:
             self.compute_dx_dy_dz()
 
-        Th_i = np.concat((np.array([0]), Th))
-        Th_ip1 = np.concat((Th, np.array([0])))
-        Tv_d_i = np.concat((np.array([0]), Tv_d))
-        Tv_g_ip1 = np.concat((Tv_g, np.array([0])))
 
-        # TODO: add projections?
-        Fx = -Th_i + Th_ip1
-        # Placeholder
-        Fy = -Th_i + Th_ip1
-        Fz = Tv_d_i + Tv_g_ip1 + self.weight_chain / 2 + self.load
+        s_right, t_right, z_right = self.vector_projection.T_line_plane_right()
+        T_line_plane_left = self.vector_projection.T_line_plane_left()
+        s_left, t_left, z_left = T_line_plane_left
+        s_left_rolled, t_left_rolled, z_left_rolled = np.roll(T_line_plane_left, -1, axis=1)
+
+        gamma = (self.line_angle / 2) [1:]
+
+        # Not entierly sure about indices and left/right
+
+        # index 1 ou 0?
+        Fx_first = s_left[0] * np.cos((self.line_angle / 2)[0]) - t_left[0] * np.sin((self.line_angle / 2)[0])
+        Fy_first = t_left[0] * np.cos((self.line_angle / 2)[0]) - s_left[0] * np.sin((self.line_angle / 2)[0])
+        Fz_first = z_left[0] + self.weight_chain[0] / 2 # also add load?
+
+
+        Fx_suspension = (s_right + s_left_rolled) * np.cos(gamma) - (-t_right + t_left_rolled) * np.sin(gamma)
+        Fy_suspension = (t_right + t_left_rolled) * np.cos(gamma) - (s_right - s_left_rolled) * np.sin(gamma)
+        Fz_suspension = z_right + z_left_rolled  + self.weight_chain[1:] / 2
+
+        Fx_last = (s_right[-1]) * np.cos(gamma[-1]) - (-t_right[-1]) * np.sin(gamma[-1])
+        Fy_last = (t_right[-1]) * np.cos(gamma[-1]) - (s_right[-1]) * np.sin(gamma[-1])
+        Fz_last = z_right[-1] + self.weight_chain[-1] / 2
+
+        Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
+        Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
+        Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
+
+
 
         base_build = np.array([0, 1] * int((len(self) - 2 - 1) / 2))
         base_build = np.concat((base_build, np.array([0])))
@@ -620,7 +644,6 @@ class Nodes:
         self.Fz = Fz
         self.Mx = Mx
         self.My = My
-
 
         # TODO: Return more?
         return Fx, Fz, My  # combined vector of forces and torques
@@ -792,7 +815,6 @@ class SolverBalance:
         section: Span,
         temperature=0,
     ):
-
         section.adjustment = False
         section.nodes.no_load = False
         section.sagging_temperature = temperature * np.ones_like(
@@ -811,7 +833,7 @@ class SolverBalance:
             section.nodes, mask=section.nodes.ntype == 1
         )
 
-        # initialisation 
+        # initialisation
         perturb = 0.00001
         force_vector = section.vector_force()
         n_iter = range(1, 100)
@@ -821,7 +843,6 @@ class SolverBalance:
 
         # starting optimisation loop
         for compteur in n_iter:
-
             # compute jacobian
             df_list = []
 
@@ -852,15 +873,15 @@ class SolverBalance:
                     df_list.append(dF_dz)
 
             jacobian = np.array(df_list)
-            
-            # memorize for norm 
+
+            # memorize for norm
             mem = np.linalg.norm(force_vector)
-            
+
             # correction calculus
             # TODO: check the cross product matrix / vector
             correction = np.linalg.inv(jacobian.T) @ force_vector
 
-            # compute correction         
+            # compute correction
             section.nodes.dz -= mp.filter_coord(
                 mp.filter_vector(correction, 33), "z"
             ) * (1 - relaxation ** (compteur**puissance))
@@ -876,7 +897,7 @@ class SolverBalance:
             section.nodes.dz -= mp.filter_coord(
                 mp.filter_vector(correction, 12), "z"
             ) * (1 - relaxation ** (compteur**puissance))
-            
+
             # constaint on chain length
             mask_limit_x = (section.nodes.ntype == 2) & (
                 np.abs(section.nodes.dx) >= section.nodes.L_chain
@@ -936,7 +957,6 @@ class SolverBalance:
         self.final_force = force_vector
 
 
-
 class VectorProjection:
     def __init__(self):
         pass
@@ -945,12 +965,12 @@ class VectorProjection:
         self.Th = Th
         self.Tv_d = Tv_d
         self.Tv_g = Tv_g
-        
+
     def set_angles(self, alpha, beta, line_angle):
         self.alpha = alpha
         self.beta = beta
         self.line_angle = line_angle
-        
+
     def set_proj_angle(self, proj_angle):
         self.proj_angle = proj_angle
 
@@ -960,7 +980,7 @@ class VectorProjection:
         self.set_proj_angle(proj_angle)
 
     # properties?
-    def T_attachments_plane_g(self):
+    def T_attachments_plane_left(self):
         beta = self.beta
         Th = self.Th
         Tv_g = self.Tv_g
@@ -971,19 +991,19 @@ class VectorProjection:
         # order x, y, z ?
         return np.array([lg, hg, vg])
 
-    def T_attachments_plane_d(self):
+    def T_attachments_plane_right(self):
         beta = self.beta
         Th = self.Th
         Tv_d = self.Tv_d
         alpha = self.alpha
         vd = Tv_d * np.cos(beta) + Th * np.sin(beta) * np.sin(alpha)
         hd = Tv_d * np.sin(beta) - Th * np.cos(beta) * np.sin(alpha)
-        ld = - Th * np.cos(alpha)
+        ld = -Th * np.cos(alpha)
         # order x, y, z ?
         return np.array([ld, hd, vd])
 
-    def T_line_plane_g(self):
-        lg, hg, vg = self.T_attachments_plane_g()
+    def T_line_plane_left(self):
+        lg, hg, vg = self.T_attachments_plane_left()
         proj_angle = self.proj_angle
         r_s_g = lg * np.cos(proj_angle) - hg * np.sin(proj_angle)
         r_t_g = lg * np.sin(proj_angle) + hg * np.cos(proj_angle)
@@ -991,8 +1011,8 @@ class VectorProjection:
         # order between s and t?
         return np.array([r_s_g, r_t_g, r_z_g])
 
-    def T_line_plane_d(self):
-        ld, hd, vd = self.T_attachments_plane_d()
+    def T_line_plane_right(self):
+        ld, hd, vd = self.T_attachments_plane_right()
         proj_angle = self.proj_angle
         r_s_d = ld * np.cos(proj_angle) - hd * np.sin(proj_angle)
         r_t_d = ld * np.sin(proj_angle) + hd * np.cos(proj_angle)
