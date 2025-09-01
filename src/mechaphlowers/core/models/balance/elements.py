@@ -9,6 +9,7 @@ import pandas as pd
 
 from mechaphlowers.core.models.balance import numeric
 import mechaphlowers.core.models.balance.functions as f
+from mechaphlowers.core.models.external_loads import CableLoads
 import mechaphlowers.core.numeric.numeric as optimize
 
 
@@ -18,7 +19,10 @@ class Cable:
     lineic_weight: np.ndarray
     dilation_coefficient: np.ndarray
     young_modulus: np.ndarray
-
+    diameter: np.ndarray
+    cra: np.ndarray
+    
+    
 
 class Span:
     def __init__(
@@ -34,6 +38,13 @@ class Span:
         self.nodes = nodes
         self._parameter = parameter * np.ones(len(self.nodes) - 1)
         self.cable = cable
+        self.cable_loads: CableLoads  = CableLoads(
+            cable.diameter,
+            cable.lineic_weight,
+            np.zeros_like(cable.diameter),
+            np.zeros_like(cable.diameter)
+        )
+        
         self.nodes.no_load = True
         self.init_Lref_mode = False
         # TODO: during L_ref computation, perhaps set cable_temperature = 0
@@ -49,6 +60,13 @@ class Span:
         SolverAdjustment(self).adjusting_Lref()
 
         self._L_ref = RealSpan(self).real_span()
+
+    @property        
+    def alpha(self):
+        beta = self.cable_loads.load_angle
+        return np.acos(
+            self.a / (self.a**2 + self.b**2 * np.sin(beta)**2 )**0.5
+            ) * np.sign(beta) * np.sign(self.b)
 
     @property
     def L_ref(self):
@@ -94,22 +112,23 @@ class Span:
 
     def update_projections(self):
         # TODO: alpha and beta
-        alpha = np.zeros_like(self._Th)
-        beta = np.zeros_like(self._Th)
+        alpha = self.alpha
+        beta = self.cable_loads.load_angle
 
-        # TODO: code duplicated with update_span() in order to avoid bugs about update order
+        self.compute_inter()
+        # update instead of recreate?
+        self.nodes.vector_projection.set_all(self._Th, self._Tv_d, self._Tv_g, alpha, beta, self.proj_angle)
+
+    def compute_inter(self):
+        # warning: counting from right to left
         proj_d_i = self.nodes.proj_d
         proj_g_ip1 = np.roll(self.nodes.proj_g, 1)
-        proj_diff = (proj_d_i - proj_g_ip1)[:,1:]
-
+        proj_diff = (proj_d_i - proj_g_ip1)[:,1:]            
         # x: initial input to calculate span_length
         span_length = np.ediff1d(self.nodes._x)
-        inter1 = span_length + proj_diff[0]
-        inter2 = proj_diff[1]
-        self.proj_angle = np.atan2(inter1, inter2)
-
-        # update instead of recreate?
-        self.vector_projection = VectorProjection(self._Th, self._Tv_d, self._Tv_g, alpha, beta, self.proj_angle)
+        self.inter1 = span_length + proj_diff[0]
+        self.inter2 = proj_diff[1]
+        self.proj_angle = np.atan2(self.inter1, self.inter2)
 
     @property
     def Tv_g(self):
@@ -212,20 +231,13 @@ class Span:
         else:
             x = self.nodes.x
             z = self.nodes.z
-        # warning: counting from right to left
-        proj_d_i = self.nodes.proj_d
-        proj_g_ip1 = np.roll(self.nodes.proj_g, 1)
-        proj_diff = (proj_d_i - proj_g_ip1)[:,1:]
 
-        # x: initial input to calculate span_length
-        span_length = np.ediff1d(self.nodes._x)
-        inter1 = span_length + proj_diff[0]
-        inter2 = proj_diff[1]
+        self.compute_inter()
 
-        self.a = (inter1 ** 2 + inter2 ** 2) **0.5
+        self.a = (self.inter1 ** 2 + self.inter2 ** 2) **0.5
         b = z + self.nodes.dz - np.roll(z + self.nodes.dz, 1) 
         self.b = b[1:]
-        self.proj_angle = np.atan2(inter1, inter2)
+        
 
     def z_from_x_2ddl(self, inplace=True):
         # Assuming this is a placeholder for the actual implementation
@@ -464,6 +476,8 @@ class Nodes:
         self._load = -load
         self.no_load = False
         self.init_L()
+        
+        self.vector_projection = VectorProjection()
 
         self.mask = Masks(ntype)
 
@@ -924,14 +938,26 @@ class SolverBalance:
 
 
 class VectorProjection:
-    def __init__(self, Th, Tv_d, Tv_g, alpha, beta, proj_angle, line_angle):
+    def __init__(self):
+        pass
+
+    def set_tensions(self, Th, Tv_d, Tv_g):
         self.Th = Th
         self.Tv_d = Tv_d
         self.Tv_g = Tv_g
+        
+    def set_angles(self, alpha, beta, line_angle):
         self.alpha = alpha
         self.beta = beta
-        self.proj_angle = proj_angle
         self.line_angle = line_angle
+        
+    def set_proj_angle(self, proj_angle):
+        self.proj_angle = proj_angle
+
+    def set_all(self, Th, Tv_d, Tv_g, alpha, beta, line_angle, proj_angle):
+        self.set_tensions(Th, Tv_d, Tv_g)
+        self.set_angles(alpha, beta, line_angle)
+        self.set_proj_angle(proj_angle)
 
     # properties?
     def T_attachments_plane_g(self):
