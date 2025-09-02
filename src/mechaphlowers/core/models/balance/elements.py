@@ -52,9 +52,12 @@ class Span:
         # there is another temperature : change state
 
         self.update_span()
-        self.nodes.compute_forces(
-            self.Th, self.Tv_d, self.Tv_g, self.parameter
+        self.nodes.vector_projection.set_tensions(
+            self.Th, self.Tv_d, self.Tv_g
         )
+        self.nodes.compute_forces(True)
+
+    def adjust(self):
         self.nodes.no_load = False
 
         SolverAdjustment(self).adjusting_Lref()
@@ -249,73 +252,54 @@ class Span:
         b = z + self.nodes.dz - np.roll(z + self.nodes.dz, 1)
         self.b = b[1:]
 
-    def z_from_x_2ddl(self, inplace=True):
-        # Assuming this is a placeholder for the actual implementation
-        # warning here : this is not the same as the function update_span (i+1) - (i-1) instead of (i) - (i-1)
-        a = np.roll(self.nodes.x + self.nodes.dx, -1) - np.roll(
-            self.nodes.x + self.nodes.dx, 1
-        )
-        b = np.roll(self.nodes.z + self.nodes.dz, -1) - np.roll(
-            self.nodes.z + self.nodes.dz, 1
-        )
+    # def z_from_x_2ddl(self, inplace=True):
+    #     # Assuming this is a placeholder for the actual implementation
+    #     # warning here : this is not the same as the function update_span (i+1) - (i-1) instead of (i) - (i-1)
+    #     a = np.roll(self.nodes.x + self.nodes.dx, -1) - np.roll(
+    #         self.nodes.x + self.nodes.dx, 1
+    #     )
+    #     b = np.roll(self.nodes.z + self.nodes.dz, -1) - np.roll(
+    #         self.nodes.z + self.nodes.dz, 1
+    #     )
 
-        z = self.nodes.z
-        parameter_np1 = np.hstack((self.parameter, self.parameter[-1]))
-        x_m = f.x_m(a, b, parameter_np1)
-        zdz_im1 = np.roll(self.nodes.z + self.nodes.dz, 1)
-        xdx_im1 = np.roll(self.nodes.x + self.nodes.dx, 1)
-        xdx_i = self.nodes.x + self.nodes.dx
+    #     z = self.nodes.z
+    #     parameter_np1 = np.hstack((self.parameter, self.parameter[-1]))
+    #     x_m = f.x_m(a, b, parameter_np1)
+    #     zdz_im1 = np.roll(self.nodes.z + self.nodes.dz, 1)
+    #     xdx_im1 = np.roll(self.nodes.x + self.nodes.dx, 1)
+    #     xdx_i = self.nodes.x + self.nodes.dx
 
-        z_i = (
-            zdz_im1
-            + f.z(xdx_i - xdx_im1, parameter_np1, x_m)
-            - f.z(0 * xdx_i, parameter_np1, x_m)
-        )
-        if inplace is True:
-            self.nodes.z = np.where(self.nodes.ntype == 1, z_i, z)
-        return np.where(self.nodes.ntype == 1, z_i, z)
+    #     z_i = (
+    #         zdz_im1
+    #         + f.z(xdx_i - xdx_im1, parameter_np1, x_m)
+    #         - f.z(0 * xdx_i, parameter_np1, x_m)
+    #     )
+    #     if inplace is True:
+    #         self.nodes.z = np.where(self.nodes.ntype == 1, z_i, z)
+    #     return np.where(self.nodes.ntype == 1, z_i, z)
 
     def vector_force(self, update_dx_dz=True):
-        self.nodes.compute_forces(
+        self.nodes.vector_projection.set_tensions(
             self.Th,
             self.Tv_d,
             self.Tv_g,
-            self.parameter,
+        )
+        self.nodes.compute_forces(
             update_dx_dy_dz=update_dx_dz,
         )
 
-        out = self.build_vector_force()
+        out = np.array([self.nodes.Mx, self.nodes.My]).flatten('F')
         return out
 
-    def build_vector_force(self):
-        # TODO: vectorize
 
-        # TODO: add Fy and Mx
-        # out = []
-        # for i in range(0, len(self.nodes.Fx)):
-        #     if self.nodes.ntype[i] == 1:
-        #         out.append(self.nodes.Fx[i])
-        #         out.append(self.nodes.Fz[i])
-        #     if (
-        #         self.nodes.ntype[i] == 2
-        #         or self.nodes.ntype[i] == 3
-        #         or self.nodes.ntype[i] == 4
-        #     ):
-        #         out.append(self.nodes.My[i])
-        # out = np.array(out)
+    # def _delta_init_L(self, dz_se_only):
+    #     self.nodes.dz[0] = dz_se_only[0]
+    #     self.nodes.dz[-1] = dz_se_only[-1]
+    #     self.update_span()
+    #     self.update_tensions()
+    #     force_vector = self.vector_force()
 
-        # out = np.array([self.nodes.Fx, self.nodes.Fy, self.nodes.Fz, self.nodes.Mx, self.nodes.My, self.nodes.Mz])
-        out = np.array([self.nodes.Mx, self.nodes.My, self.nodes.Mz])
-        return out
-
-    def _delta_init_L(self, dz_se_only):
-        self.nodes.dz[0] = dz_se_only[0]
-        self.nodes.dz[-1] = dz_se_only[-1]
-        self.update_span()
-        self.update_tensions()
-        force_vector = self.vector_force()
-
-        return force_vector
+        # return force_vector
 
     def _delta_dz(self, dz):
         self.nodes.dz += dz
@@ -335,6 +319,25 @@ class Span:
         # self.update_tensions()
 
         return force_vector
+
+    def _delta_dy(self, dy):
+        self.nodes.dy += dy
+        # self.update_span()
+        # self.z_from_x_2ddl()
+        self.update_span()
+        self.nodes.compute_dx_dy_dz()
+        self.update_tensions()
+
+        force_vector = self.vector_force(update_dx_dz=False)
+
+        self.nodes.dy -= dy
+        # TODO: here the following steps have been removed but the span object is not set in the same state.
+        # self.nodes.compute_dx_dz()
+        # self.update_span()
+        # self.update_tensions()
+
+        return force_vector
+
 
     def _delta_dx(self, dx):
         self.nodes.dx += dx
@@ -579,7 +582,7 @@ class Nodes:
             - self.dz[self.mask.mask(4)] ** 2
         ) ** 0.5
 
-    def compute_forces(self, Th, Tv_d, Tv_g, parameter, update_dx_dy_dz=True):
+    def compute_forces(self, update_dx_dy_dz=True):
         # Placeholder for force computation logic
 
         if update_dx_dy_dz:
@@ -613,30 +616,11 @@ class Nodes:
         Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
         Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
 
-
-
-        base_build = np.array([0, 1] * int((len(self) - 2 - 1) / 2))
-        base_build = np.concat((base_build, np.array([0])))
-
-        force_3d = np.vstack((Fx, np.zeros_like(Fx), Fz)).T
-        lever_arm = np.vstack(
-            (
-                base_build * self.dx[1:-1],
-                np.zeros_like(base_build),
-                base_build * (self.z_suspension_chain[1:-1] + self.dz[1:-1]),
-            )
-        ).T
-        lever_arm = np.vstack(
-            (
-                np.array(
-                    [self.x_anchor_chain[0] + self.dx[0], 0, self.dz[0]]
-                ).T,
-                lever_arm,
-                np.array(
-                    [self.x_anchor_chain[-1] + self.dx[-1], 0, self.dz[-1]]
-                ).T,
-            )
-        )
+        lever_arm = np.array([self.dx, self.dy, self.dz]).T
+        # size : (nb nodes , 3 for 3D)
+        
+        force_3d = np.vstack((Fx, Fy, Fz)).T
+        
 
         M = np.cross(lever_arm, force_3d)
         Mx = M[:, 0]
