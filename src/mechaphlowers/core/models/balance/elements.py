@@ -60,7 +60,7 @@ class Span:
     def adjust(self):
         self.nodes.no_load = False
 
-        SolverAdjustment(self).adjusting_Lref()
+        SolverBalance().solver_balance_3d(self)
 
         self._L_ref = RealSpan(self).real_span()
 
@@ -635,9 +635,6 @@ class Nodes:
         self.Mz = Mz
 
 
-        # TODO: Return more?
-        return Fx, Fz, My  # combined vector of forces and torques
-
     def debug(self):
         data = {
             'z': self.dz,
@@ -767,34 +764,138 @@ class SolverAdjustment:
         return self.section.nodes.dz
 
 
-def initialize_relaxation(
-    nodes: Nodes, mask: np.ndarray, min_relaxation: float = 0.5
-):
-    relaxation = (nodes.x - np.roll(nodes.x, 1)) / (
-        np.roll(nodes.x, -1) - np.roll(nodes.x, 1)
-    )
-    relaxation = relaxation[mask]
-    relaxation = np.minimum(
-        relaxation, 1 - relaxation
-    )  # just absolute value ?
-
-    if (relaxation < 0.0001).any():
-        raise ValueError("Load is too close to edge to solve")
-
-    return 1 - np.nanmin(np.append(relaxation, min_relaxation))
-
 
 class SolverBalance:
-    def __init__(self):
+    def __init__(self, adjustment=True):
         self.mem_loop = []
+        self.adjustment = adjustment
 
-    def solver_balance(
+    def solver_balance_3d(
         self,
         section: Span,
         temperature=0,
     ):
-        section.adjustment = False
-        section.nodes.no_load = False
+        puissance = 3
+        
+        section.update_tensions()
+        section.update_span()
+        
+        # initialisation
+        perturb = 0.00001
+        force_vector = section.vector_force()
+        n_iter = range(1, 100)
+        vector_perturb = np.zeros_like(section.nodes.dx)
+        # for debug we record init_force
+        self.init_force = force_vector
+        relaxation = .5
+        
+        
+        # starting optimisation loop
+        for compteur in n_iter:
+            # compute jacobian
+            df_list = []
+
+            for i in range(len(section.nodes.ntype)):
+                vector_perturb[i] += perturb
+
+                # TODO: refactor if/elif ? + node logic should not be in the solver
+                if i == 0 or i == len(section.nodes.ntype):
+                    dz_d = section._delta_dz(vector_perturb)
+                    vector_perturb[i] -= perturb
+                    dF_dz = (dz_d - force_vector) / perturb
+                    df_list.append(dF_dz)
+                    
+                    dy_d = section._delta_dy(vector_perturb)
+                    vector_perturb[i] -= perturb
+                    dF_dy = (dy_d - force_vector) / perturb
+                    df_list.append(dF_dy)
+
+                else:
+                    dx_d = section._delta_dx(vector_perturb)
+                    vector_perturb[i] -= perturb
+                    dF_dx = (dx_d - force_vector) / perturb
+                    df_list.append(dF_dx)
+                    
+                    dy_d = section._delta_dy(vector_perturb)
+                    vector_perturb[i] -= perturb
+                    dF_dy = (dy_d - force_vector) / perturb
+                    df_list.append(dF_dy)
+            jacobian = np.array(df_list)
+
+            # memorize for norm
+            mem = np.linalg.norm(force_vector)
+
+            # correction calculus
+            # TODO: check the cross product matrix / vector
+            correction = np.linalg.inv(jacobian.T) @ force_vector
+            
+            
+            section.nodes.dx[1:-1] = section.nodes.dx[1:-1] - correction * (1 - relaxation ** (compteur ** puissance))
+            section.nodes.dy[1:-1] = section.nodes.dy[1:-1] - correction * (1 - relaxation ** (compteur ** puissance))
+            section.nodes.dz[1:-1] = -(section.nodes.L_chain[1:-1] ** 2 - section.nodes.dx[1:-1] ** 2 - section.nodes.dy[1:-1] ** 2) ** 0.5
+            
+            section.nodes.dz[[0,-1]] = section.nodes.dz[[0,-1]] - correction * (1 - relaxation ** (compteur ** puissance))
+            section.nodes.dy[[0,-1]] = section.nodes.dy[[0,-1]] - correction * (1 - relaxation ** (compteur ** puissance))
+            section.nodes.dx[0] = (section.nodes.L_chain[0] ** 2 - section.nodes.dz[0] ** 2 - section.nodes.dy[0] ** 2) ** 0.5
+            section.nodes.dx[-1] = -(section.nodes.L_chain[-1] ** 2 - section.nodes.dz[-1] ** 2 - section.nodes.dy[-1] ** 2) ** 0.5
+
+            
+            # update
+            section.nodes.compute_dx_dy_dz()
+            section.update_tensions()
+            section.update_span()
+
+            # compute value to minimize
+            force_vector = section.vector_force()
+            norm_d_param = np.abs(np.linalg.norm(force_vector) ** 2 - mem**2)
+
+            print("**" * 10)
+            print(compteur)
+            # print(correction)
+            print("force vector norm: ", np.linalg.norm(force_vector) ** 2)
+            print(f"{norm_d_param=}")
+            # print("-"*10)
+            # print(section.nodes.dx)
+            # print(section.nodes.dz)
+
+            self.mem_loop.append(
+                {
+                    "num_loop": compteur,
+                    "norm_d_param": norm_d_param,
+                    "force": force_vector,
+                    "dx": section.nodes.dx,
+                    "dz": section.nodes.dz,
+                    "correction": correction,
+                }
+            )
+
+            # check value to minimze to break the loop
+            if norm_d_param < 0.1:
+                # print("--end--"*10)
+                # print(norm_d_param)
+                break
+            if n_iter == compteur:
+                print("max iteration reached")
+                print(norm_d_param)
+
+        print(f"force vector norm: {np.linalg.norm(force_vector)}")
+        self.final_dx = section.nodes.dx
+        self.final_dz = section.nodes.dz
+        self.final_force = force_vector
+
+        
+        
+
+    def solver_balance_2d(
+        self,
+        section: Span,
+        temperature=0,
+    ):
+        
+        
+        
+        # section.adjustment = False
+        # section.nodes.no_load = False
         section.sagging_temperature = temperature * np.ones_like(
             section.sagging_temperature
         )
@@ -828,27 +929,28 @@ class SolverBalance:
                 vector_perturb[i] += perturb
 
                 # TODO: refactor if/elif ? + node logic should not be in the solver
-                if section.nodes.ntype[i] == 3 or section.nodes.ntype[i] == 4:
+                if i == 0 or i == len(section.nodes.ntype):
                     dz_d = section._delta_dz(vector_perturb)
                     vector_perturb[i] -= perturb
                     dF_dz = (dz_d - force_vector) / perturb
                     df_list.append(dF_dz)
+                    
+                    dy_d = section._delta_dy(vector_perturb)
+                    vector_perturb[i] -= perturb
+                    dF_dy = (dy_d - force_vector) / perturb
+                    df_list.append(dF_dy)
 
-                elif section.nodes.ntype[i] == 2:
+                else:
                     dx_d = section._delta_dx(vector_perturb)
                     vector_perturb[i] -= perturb
                     dF_dx = (dx_d - force_vector) / perturb
                     df_list.append(dF_dx)
-
-                elif section.nodes.ntype[i] == 1:
-                    dx_d = section._delta_dx(vector_perturb)
-                    dF_dx = (dx_d - force_vector) / perturb
-                    df_list.append(dF_dx)
-
-                    dz_d = section._delta_dz(vector_perturb)
+                    
+                    dy_d = section._delta_dy(vector_perturb)
                     vector_perturb[i] -= perturb
-                    dF_dz = (dz_d - force_vector) / perturb
-                    df_list.append(dF_dz)
+                    dF_dy = (dy_d - force_vector) / perturb
+                    df_list.append(dF_dy)
+
 
             jacobian = np.array(df_list)
 
