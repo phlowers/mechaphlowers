@@ -291,19 +291,21 @@ class Span:
         # TODO: vectorize
 
         # TODO: add Fy and Mx
-        out = []
-        for i in range(0, len(self.nodes.Fx)):
-            if self.nodes.ntype[i] == 1:
-                out.append(self.nodes.Fx[i])
-                out.append(self.nodes.Fz[i])
-            if (
-                self.nodes.ntype[i] == 2
-                or self.nodes.ntype[i] == 3
-                or self.nodes.ntype[i] == 4
-            ):
-                out.append(self.nodes.My[i])
+        # out = []
+        # for i in range(0, len(self.nodes.Fx)):
+        #     if self.nodes.ntype[i] == 1:
+        #         out.append(self.nodes.Fx[i])
+        #         out.append(self.nodes.Fz[i])
+        #     if (
+        #         self.nodes.ntype[i] == 2
+        #         or self.nodes.ntype[i] == 3
+        #         or self.nodes.ntype[i] == 4
+        #     ):
+        #         out.append(self.nodes.My[i])
+        # out = np.array(out)
 
-        out = np.array(out)
+        # out = np.array([self.nodes.Fx, self.nodes.Fy, self.nodes.Fz, self.nodes.Mx, self.nodes.My, self.nodes.Mz])
+        out = np.array([self.nodes.Mx, self.nodes.My, self.nodes.Mz])
         return out
 
     def _delta_init_L(self, dz_se_only):
@@ -639,12 +641,15 @@ class Nodes:
         M = np.cross(lever_arm, force_3d)
         Mx = M[:, 0]
         My = M[:, 1]
-
+        # Mz is supposed to be equal to 0 on each span
+        Mz = M[:, 2]
         self.Fx = Fx
         self.Fy = Fy
         self.Fz = Fz
         self.Mx = Mx
         self.My = My
+        self.Mz = Mz
+
 
         # TODO: Return more?
         return Fx, Fz, My  # combined vector of forces and torques
@@ -701,6 +706,54 @@ class SolverAdjustment:
             ]
         ),
     ):
+###################
+
+
+        section = self.section
+        perturb = 0.00001
+        force_vector = section.vector_force()
+        n_iter = range(1, 100)
+        vector_perturb = np.zeros_like(section.nodes.dx)
+        # for debug we record init_force
+        self.init_force = force_vector
+
+        # starting optimisation loop
+        for compteur in n_iter:
+            # compute jacobian
+            df_list = []
+
+            for i in range(len(section.nodes.ntype)):
+                vector_perturb[i] += perturb
+
+                if section.nodes.ntype[i] == 3:
+                    dz_d = section._delta_dz(vector_perturb)
+                    vector_perturb[i] -= perturb
+                    dF_dz = (dz_d - force_vector) / perturb
+                    df_list.append(dF_dz)
+
+                elif section.nodes.ntype[i] == 4:
+                    dz_d = section._delta_dz(vector_perturb)
+                    vector_perturb[i] -= perturb
+                    dF_dz = (dz_d - force_vector) / perturb
+                    df_list.append(dF_dz)
+
+                else : # elif section.nodes.ntype[i] == 2:
+                    dx_d = section._delta_dx(vector_perturb)
+                    vector_perturb[i] -= perturb
+                    dF_dx = (dx_d - force_vector) / perturb
+                    df_list.append(dF_dx)
+
+                    # dy_d = section._delta_dy(vector_perturb)
+                    # vector_perturb[i] -= perturb
+                    # dM_dy = (dy_d - force_vector) / perturb
+                    # df_list.append(dM_dy)
+
+            jacobian = np.array(df_list)
+
+
+###################
+
+
         eps = self.eps
 
         # TODO: to be removed after other usecases tests
@@ -713,14 +766,19 @@ class SolverAdjustment:
 
             d_force_vector = self.section._delta_init_L(x0 + eps)
 
-            delta = force_vector[[0, -1]] / (
-                d_force_vector[[0, -1]] - force_vector[[0, -1]]
+            delta = force_vector[:,[0, -1]] / (
+                d_force_vector[:,[0, -1]] - force_vector[:,[0, -1]]
             )
 
             x0 = (x0 - eps) - delta * eps
 
+
+
             if np.linalg.norm(force_vector) < 1.0:
                 break
+                # initialisation
+
+
 
         return self.section.nodes.dz
 
