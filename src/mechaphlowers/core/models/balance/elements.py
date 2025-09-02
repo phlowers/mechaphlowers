@@ -324,7 +324,7 @@ class Span:
         self.nodes.dy += dy
         # self.update_span()
         # self.z_from_x_2ddl()
-        self.update_span()
+        # self.update_span()
         self.nodes.compute_dx_dy_dz()
         self.update_tensions()
 
@@ -332,7 +332,7 @@ class Span:
 
         self.nodes.dy -= dy
         # TODO: here the following steps have been removed but the span object is not set in the same state.
-        # self.nodes.compute_dx_dz()
+        self.nodes.compute_dx_dy_dz()
         # self.update_span()
         # self.update_tensions()
 
@@ -351,7 +351,7 @@ class Span:
 
         self.nodes.dx -= dx
         # TODO: here the following steps have been removed but the span object is not set in the same state.
-        # self.nodes.compute_dx_dz()
+        self.nodes.compute_dx_dy_dz()
         # self.update_span()
         # self.update_tensions()
 
@@ -563,24 +563,32 @@ class Nodes:
     def compute_dx_dy_dz(self):
         L = self.L_chain
 
-        self.dz[self.mask.mask(2)] = (
-            L[self.mask.mask(3)] ** 2
-            - self.dx[self.mask.mask(3)] ** 2
-            - self.dy[self.mask.mask(3)] ** 2
-        ) ** 0.5
+        suspension_shift = -(L**2 - self.dx**2 - self.dy**2) ** 0.5
+        self.dz[1:-1] = -suspension_shift[1:-1]
+        
+        anchor_shift = (L**2 - self.dz**2 - self.dy**2) ** 0.5
+        self.dx[0] = anchor_shift[0]
+        self.dx[-1] = -anchor_shift[-1]
+        
 
-        self.dx[self.mask.mask(3)] = (
-            L[self.mask.mask(3)] ** 2
-            - self.dy[self.mask.mask(3)] ** 2
-            - self.dz[self.mask.mask(3)] ** 2
-        ) ** 0.5
+        # self.dz[self.mask.mask(2)] = (
+        #     L[self.mask.mask(3)] ** 2
+        #     - self.dx[self.mask.mask(3)] ** 2
+        #     - self.dy[self.mask.mask(3)] ** 2
+        # ) ** 0.5
+
+        # self.dx[self.mask.mask(3)] = (
+        #     L[self.mask.mask(3)] ** 2
+        #     - self.dy[self.mask.mask(3)] ** 2
+        #     - self.dz[self.mask.mask(3)] ** 2
+        # ) ** 0.5
 
 
-        self.dx[self.mask.mask(4)] = (
-            L[self.mask.mask(4)] ** 2
-            - self.dy[self.mask.mask(4)] ** 2
-            - self.dz[self.mask.mask(4)] ** 2
-        ) ** 0.5
+        # self.dx[self.mask.mask(4)] = (
+        #     L[self.mask.mask(4)] ** 2
+        #     - self.dy[self.mask.mask(4)] ** 2
+        #     - self.dz[self.mask.mask(4)] ** 2
+        # ) ** 0.5
 
     def compute_forces(self, update_dx_dy_dz=True):
         # Placeholder for force computation logic
@@ -801,25 +809,26 @@ class SolverBalance:
                 # TODO: refactor if/elif ? + node logic should not be in the solver
                 if i == 0 or i == len(section.nodes.ntype):
                     dz_d = section._delta_dz(vector_perturb)
-                    vector_perturb[i] -= perturb
                     dF_dz = (dz_d - force_vector) / perturb
                     df_list.append(dF_dz)
                     
                     dy_d = section._delta_dy(vector_perturb)
-                    vector_perturb[i] -= perturb
                     dF_dy = (dy_d - force_vector) / perturb
                     df_list.append(dF_dy)
+                    
+                    vector_perturb[i] -= perturb
 
                 else:
                     dx_d = section._delta_dx(vector_perturb)
-                    vector_perturb[i] -= perturb
                     dF_dx = (dx_d - force_vector) / perturb
                     df_list.append(dF_dx)
                     
                     dy_d = section._delta_dy(vector_perturb)
-                    vector_perturb[i] -= perturb
                     dF_dy = (dy_d - force_vector) / perturb
                     df_list.append(dF_dy)
+                    
+                    vector_perturb[i] -= perturb
+                    
             jacobian = np.array(df_list)
 
             # memorize for norm
@@ -829,13 +838,15 @@ class SolverBalance:
             # TODO: check the cross product matrix / vector
             correction = np.linalg.inv(jacobian.T) @ force_vector
             
+            correction_mx = correction[::2]
+            correction_my = correction[1::2]
             
-            section.nodes.dx[1:-1] = section.nodes.dx[1:-1] - correction * (1 - relaxation ** (compteur ** puissance))
-            section.nodes.dy[1:-1] = section.nodes.dy[1:-1] - correction * (1 - relaxation ** (compteur ** puissance))
+            section.nodes.dx[1:-1] = section.nodes.dx[1:-1] - correction_mx[1:-1] * (1 - relaxation ** (compteur ** puissance))
+            section.nodes.dy[1:-1] = section.nodes.dy[1:-1] - correction_my[1:-1] * (1 - relaxation ** (compteur ** puissance))
             section.nodes.dz[1:-1] = -(section.nodes.L_chain[1:-1] ** 2 - section.nodes.dx[1:-1] ** 2 - section.nodes.dy[1:-1] ** 2) ** 0.5
             
-            section.nodes.dz[[0,-1]] = section.nodes.dz[[0,-1]] - correction * (1 - relaxation ** (compteur ** puissance))
-            section.nodes.dy[[0,-1]] = section.nodes.dy[[0,-1]] - correction * (1 - relaxation ** (compteur ** puissance))
+            section.nodes.dz[[0,-1]] = section.nodes.dz[[0,-1]] - correction_mx[[0,-1]] * (1 - relaxation ** (compteur ** puissance))
+            section.nodes.dy[[0,-1]] = section.nodes.dy[[0,-1]] - correction_my[[0,-1]] * (1 - relaxation ** (compteur ** puissance))
             section.nodes.dx[0] = (section.nodes.L_chain[0] ** 2 - section.nodes.dz[0] ** 2 - section.nodes.dy[0] ** 2) ** 0.5
             section.nodes.dx[-1] = -(section.nodes.L_chain[-1] ** 2 - section.nodes.dz[-1] ** 2 - section.nodes.dy[-1] ** 2) ** 0.5
 
@@ -851,7 +862,7 @@ class SolverBalance:
 
             print("**" * 10)
             print(compteur)
-            # print(correction)
+            # print(correction[1:-1])
             print("force vector norm: ", np.linalg.norm(force_vector) ** 2)
             print(f"{norm_d_param=}")
             # print("-"*10)
