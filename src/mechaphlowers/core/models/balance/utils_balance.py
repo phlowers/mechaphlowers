@@ -1,7 +1,6 @@
 import numpy as np
 
 
-
 class MapVectorToNodeSpace:
     def __init__(self, nodes):
         self.nodes = nodes
@@ -67,28 +66,40 @@ class MapVectorToNodeSpace:
         ]
 
 
-
 class VectorProjection:
     def __init__(self):
         pass
 
-    def set_tensions(self, Th, Tv_d, Tv_g):
+    def set_tensions(self, Th: np.ndarray, Tv_d: np.ndarray, Tv_g: np.ndarray):
         self.Th = Th
         self.Tv_d = Tv_d
         self.Tv_g = Tv_g
 
-    def set_angles(self, alpha, beta, line_angle):
+    def set_angles(
+        self, alpha: np.ndarray, beta: np.ndarray, line_angle: np.ndarray
+    ):
         self.alpha = alpha
         self.beta = beta
         self.line_angle = line_angle
 
-    def set_proj_angle(self, proj_angle):
+    def set_proj_angle(self, proj_angle: np.ndarray):
         self.proj_angle = proj_angle
 
-    def set_all(self, Th, Tv_d, Tv_g, alpha, beta, line_angle, proj_angle):
+    def set_all(
+        self,
+        Th: np.ndarray,
+        Tv_d: np.ndarray,
+        Tv_g: np.ndarray,
+        alpha: np.ndarray,
+        beta: np.ndarray,
+        line_angle: np.ndarray,
+        proj_angle: np.ndarray,
+        weight_chain: np.ndarray,
+    ):
         self.set_tensions(Th, Tv_d, Tv_g)
         self.set_angles(alpha, beta, line_angle)
         self.set_proj_angle(proj_angle)
+        self.weight_chain = weight_chain
 
     # properties?
     def T_attachments_plane_left(self):
@@ -130,3 +141,45 @@ class VectorProjection:
         r_z_d = vd
         # order between s and t?
         return np.array([r_s_d, r_t_d, r_z_d])
+
+    def forces(self):
+        s_right, t_right, z_right = self.T_line_plane_right()
+        T_line_plane_left = self.T_line_plane_left()
+        s_left, t_left, z_left = T_line_plane_left
+        s_left_rolled, t_left_rolled, z_left_rolled = np.roll(
+            T_line_plane_left, -1, axis=1
+        )
+
+        gamma = (self.line_angle / 2)[1:]
+
+        # Not entierly sure about indices and left/right
+
+        # index 1 ou 0?
+        Fx_first = s_left[0] * np.cos((self.line_angle / 2)[0]) - t_left[
+            0
+        ] * np.sin((self.line_angle / 2)[0])
+        Fy_first = t_left[0] * np.cos((self.line_angle / 2)[0]) + s_left[
+            0
+        ] * np.sin((self.line_angle / 2)[0])
+        Fz_first = z_left[0] + self.weight_chain[0] / 2  # also add load?
+
+        Fx_suspension = (s_right + s_left_rolled) * np.cos(gamma) - (
+            -t_right + t_left_rolled
+        ) * np.sin(gamma)
+        Fy_suspension = (t_right + t_left_rolled) * np.cos(gamma) - (
+            s_right - s_left_rolled
+        ) * np.sin(gamma)
+        Fz_suspension = z_right + z_left_rolled + self.weight_chain[1:] / 2
+
+        Fx_last = (s_right[-1]) * np.cos(gamma[-1]) - (-t_right[-1]) * np.sin(
+            gamma[-1]
+        )
+        Fy_last = (t_right[-1]) * np.cos(gamma[-1]) - (s_right[-1]) * np.sin(
+            gamma[-1]
+        )
+        Fz_last = z_right[-1] + self.weight_chain[-1] / 2
+
+        Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
+        Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
+        Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
+        return Fx, Fy, Fz

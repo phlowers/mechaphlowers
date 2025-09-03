@@ -9,7 +9,10 @@ import pandas as pd
 
 from mechaphlowers.core.models.balance import numeric
 import mechaphlowers.core.models.balance.functions as f
-from mechaphlowers.core.models.balance.utils_balance import MapVectorToNodeSpace, VectorProjection
+from mechaphlowers.core.models.balance.utils_balance import (
+    MapVectorToNodeSpace,
+    VectorProjection,
+)
 from mechaphlowers.core.models.external_loads import CableLoads
 import mechaphlowers.core.numeric.numeric as optimize
 
@@ -41,8 +44,8 @@ class Span:
         self.cable_loads: CableLoads = CableLoads(
             cable.diameter,
             cable.lineic_weight,
-            np.zeros_like(cable.diameter),
-            np.zeros_like(cable.diameter),
+            np.zeros_like(nodes.weight_chain),
+            np.zeros_like(nodes.weight_chain),
         )
 
         self.nodes.no_load = True
@@ -55,7 +58,7 @@ class Span:
         self.nodes.vector_projection.set_tensions(
             self.Th, self.Tv_d, self.Tv_g
         )
-        self.nodes.compute_forces(True)
+        self.nodes.compute_moment(True)
 
     def adjust(self):
         self.nodes.no_load = False
@@ -66,7 +69,7 @@ class Span:
 
     @property
     def alpha(self):
-        beta = self.cable_loads.load_angle
+        beta = self.beta
         return (
             np.acos(
                 self.a / (self.a**2 + self.b**2 * np.sin(beta) ** 2) ** 0.5
@@ -74,6 +77,15 @@ class Span:
             * np.sign(beta)
             * np.sign(self.b)
         )
+
+    @property
+    def beta(self):
+        """Remove last value for consistency between this and mechaphlowers
+        mechaphlowers: beta = [beta0, beta1, beta2, nan]
+        Here: beta = [beta0, beta1, beta2] because the last value refers to the last support (no span related to this support)
+
+        """
+        return self.cable_loads.load_angle[0:-1]
 
     @property
     def L_ref(self):
@@ -120,7 +132,7 @@ class Span:
     def update_projections(self):
         # TODO: alpha and beta
         alpha = self.alpha
-        beta = self.cable_loads.load_angle
+        beta = self.beta
 
         self.compute_inter()
         self.nodes.vector_projection.set_all(
@@ -131,6 +143,7 @@ class Span:
             beta,
             self.nodes.line_angle,
             self.proj_angle,
+            self.nodes.weight_chain,
         )
 
     def compute_inter(self):
@@ -252,20 +265,18 @@ class Span:
         b = z - np.roll(z, 1)
         self.b = b[1:]
 
-
     def vector_force(self, update_dx_dz=True):
         self.nodes.vector_projection.set_tensions(
             self.Th,
             self.Tv_d,
             self.Tv_g,
         )
-        self.nodes.compute_forces(
+        self.nodes.compute_moment(
             update_dx_dy_dz=update_dx_dz,
         )
 
         out = np.array([self.nodes.Mx, self.nodes.My]).flatten('F')
         return out
-
 
     def _delta_dz(self, dz):
         self.nodes.dz += dz
@@ -301,7 +312,6 @@ class Span:
         # self.update_tensions()
 
         return force_vector
-
 
     def _delta_dx(self, dx):
         self.nodes.dx += dx
@@ -344,12 +354,8 @@ class RealSpan:
         # TODO: this part take the hypothesis that there is one of two node of ntype 1.
         # we should change this to be more general
 
-        a = np.roll(self.span.nodes.x, -1) - np.roll(
-            self.span.nodes.x, 1
-        )
-        b = np.roll(self.span.nodes.z, -1) - np.roll(
-            self.span.nodes.z, 1
-        )
+        a = np.roll(self.span.nodes.x, -1) - np.roll(self.span.nodes.x, 1)
+        b = np.roll(self.span.nodes.z, -1) - np.roll(self.span.nodes.z, 1)
 
         parameter_np1 = np.hstack(
             (self.span.parameter, self.span.parameter[-1])
@@ -473,7 +479,6 @@ class Nodes:
     def __len__(self):
         return len(self.num)
 
-
     @property
     def x(self):
         """This property returns the x coordinate of the end the chain. x = x_arm + dx"""
@@ -484,18 +489,15 @@ class Nodes:
     def y(self):
         return self._y + self.dy
 
-
     @property
     def z(self):
         """This property returns the altitude of the end the chain.  z = z_arm + dz"""
         return self.z_arm + self.dz
 
-
     @property
     def x_arm(self):
         """This property returns the x coordinate of the end the arm. Should not be modified during computation."""
         return self._x0
-
 
     @property
     def z_arm(self):
@@ -534,7 +536,7 @@ class Nodes:
         self.z_suspension_chain[1:-1] = -self.L_chain[1:-1]
 
         # warning: x0 and z0 does not mean the same thing
-        # x0 is the absissa of the 
+        # x0 is the absissa of the
         # z0 is the altitude of the attachement point
         self._x0 = x
         self._z0 = z
@@ -543,53 +545,25 @@ class Nodes:
     def compute_dx_dy_dz(self):
         L = self.L_chain
 
-        suspension_shift = -(L**2 - self.dx**2 - self.dy**2) ** 0.5
+        suspension_shift = -((L**2 - self.dx**2 - self.dy**2) ** 0.5)
         self.dz[1:-1] = suspension_shift[1:-1]
-        
+
         anchor_shift = (L**2 - self.dz**2 - self.dy**2) ** 0.5
         self.dx[0] = anchor_shift[0]
         self.dx[-1] = -anchor_shift[-1]
-        
 
-    def compute_forces(self, update_dx_dy_dz=True):
+    def compute_moment(self, update_dx_dy_dz=True):
         # Placeholder for force computation logic
 
         if update_dx_dy_dz:
             self.compute_dx_dy_dz()
 
-
-        s_right, t_right, z_right = self.vector_projection.T_line_plane_right()
-        T_line_plane_left = self.vector_projection.T_line_plane_left()
-        s_left, t_left, z_left = T_line_plane_left
-        s_left_rolled, t_left_rolled, z_left_rolled = np.roll(T_line_plane_left, -1, axis=1)
-
-        gamma = (self.line_angle / 2) [1:]
-
-        # Not entierly sure about indices and left/right
-
-        # index 1 ou 0?
-        Fx_first = s_left[0] * np.cos((self.line_angle / 2)[0]) - t_left[0] * np.sin((self.line_angle / 2)[0])
-        Fy_first = t_left[0] * np.cos((self.line_angle / 2)[0]) + s_left[0] * np.sin((self.line_angle / 2)[0])
-        Fz_first = z_left[0] + self.weight_chain[0] / 2 # also add load?
-
-
-        Fx_suspension = (s_right + s_left_rolled) * np.cos(gamma) - (-t_right + t_left_rolled) * np.sin(gamma)
-        Fy_suspension = (t_right + t_left_rolled) * np.cos(gamma) - (s_right - s_left_rolled) * np.sin(gamma)
-        Fz_suspension = z_right + z_left_rolled  + self.weight_chain[1:] / 2
-
-        Fx_last = (s_right[-1]) * np.cos(gamma[-1]) - (-t_right[-1]) * np.sin(gamma[-1])
-        Fy_last = (t_right[-1]) * np.cos(gamma[-1]) - (s_right[-1]) * np.sin(gamma[-1])
-        Fz_last = z_right[-1] + self.weight_chain[-1] / 2
-
-        Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
-        Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
-        Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
+        Fx, Fy, Fz = self.vector_projection.forces()
 
         lever_arm = np.array([self.dx, self.dy, self.dz]).T
         # size : (nb nodes , 3 for 3D)
-        
+
         force_3d = np.vstack((Fx, Fy, Fz)).T
-        
 
         M = np.cross(lever_arm, force_3d)
         Mx = M[:, 0]
@@ -602,7 +576,6 @@ class Nodes:
         self.Mx = Mx
         self.My = My
         self.Mz = Mz
-
 
     def debug(self):
         data = {
@@ -651,10 +624,10 @@ class SolverBalance:
         temperature=0,
     ):
         puissance = 3
-        
+
         section.update_tensions()
         section.update_span()
-        
+
         # initialisation
         perturb = 0.0001
         force_vector = section.vector_force()
@@ -662,9 +635,8 @@ class SolverBalance:
         vector_perturb = np.zeros_like(section.nodes.dx)
         # for debug we record init_force
         self.init_force = force_vector
-        relaxation = .5
-        
-        
+        relaxation = 0.5
+
         # starting optimisation loop
         for compteur in n_iter:
             # compute jacobian
@@ -678,24 +650,24 @@ class SolverBalance:
                     dz_d = section._delta_dz(vector_perturb)
                     dF_dz = (dz_d - force_vector) / perturb
                     df_list.append(dF_dz)
-                    
+
                     dy_d = section._delta_dy(vector_perturb)
                     dF_dy = (dy_d - force_vector) / perturb
                     df_list.append(dF_dy)
-                    
+
                     vector_perturb[i] -= perturb
 
                 else:
                     dx_d = section._delta_dx(vector_perturb)
                     dF_dx = (dx_d - force_vector) / perturb
                     df_list.append(dF_dx)
-                    
+
                     dy_d = section._delta_dy(vector_perturb)
                     dF_dy = (dy_d - force_vector) / perturb
                     df_list.append(dF_dy)
-                    
+
                     vector_perturb[i] -= perturb
-                    
+
             jacobian = np.array(df_list)
 
             # memorize for norm
@@ -704,20 +676,49 @@ class SolverBalance:
             # correction calculus
             # TODO: check the cross product matrix / vector
             correction = np.linalg.inv(jacobian.T) @ force_vector
-            
+
             correction_mx = correction[::2]
             correction_my = correction[1::2]
-            
-            section.nodes.dx[1:-1] = section.nodes.dx[1:-1] - correction_mx[1:-1] * (1 - relaxation ** (compteur ** puissance))
-            section.nodes.dy[1:-1] = section.nodes.dy[1:-1] - correction_my[1:-1] * (1 - relaxation ** (compteur ** puissance))
-            section.nodes.dz[1:-1] = -(section.nodes.L_chain[1:-1] ** 2 - section.nodes.dx[1:-1] ** 2 - section.nodes.dy[1:-1] ** 2) ** 0.5
-            
-            section.nodes.dz[[0,-1]] = section.nodes.dz[[0,-1]] - correction_mx[[0,-1]] * (1 - relaxation ** (compteur ** puissance))
-            section.nodes.dy[[0,-1]] = section.nodes.dy[[0,-1]] - correction_my[[0,-1]] * (1 - relaxation ** (compteur ** puissance))
-            section.nodes.dx[0] = (section.nodes.L_chain[0] ** 2 - section.nodes.dz[0] ** 2 - section.nodes.dy[0] ** 2) ** 0.5
-            section.nodes.dx[-1] = -(section.nodes.L_chain[-1] ** 2 - section.nodes.dz[-1] ** 2 - section.nodes.dy[-1] ** 2) ** 0.5
 
-            
+            section.nodes.dx[1:-1] = section.nodes.dx[1:-1] - correction_mx[
+                1:-1
+            ] * (1 - relaxation ** (compteur**puissance))
+            section.nodes.dy[1:-1] = section.nodes.dy[1:-1] - correction_my[
+                1:-1
+            ] * (1 - relaxation ** (compteur**puissance))
+            section.nodes.dz[1:-1] = -(
+                (
+                    section.nodes.L_chain[1:-1] ** 2
+                    - section.nodes.dx[1:-1] ** 2
+                    - section.nodes.dy[1:-1] ** 2
+                )
+                ** 0.5
+            )
+
+            section.nodes.dz[[0, -1]] = section.nodes.dz[
+                [0, -1]
+            ] - correction_mx[[0, -1]] * (
+                1 - relaxation ** (compteur**puissance)
+            )
+            section.nodes.dy[[0, -1]] = section.nodes.dy[
+                [0, -1]
+            ] - correction_my[[0, -1]] * (
+                1 - relaxation ** (compteur**puissance)
+            )
+            section.nodes.dx[0] = (
+                section.nodes.L_chain[0] ** 2
+                - section.nodes.dz[0] ** 2
+                - section.nodes.dy[0] ** 2
+            ) ** 0.5
+            section.nodes.dx[-1] = -(
+                (
+                    section.nodes.L_chain[-1] ** 2
+                    - section.nodes.dz[-1] ** 2
+                    - section.nodes.dy[-1] ** 2
+                )
+                ** 0.5
+            )
+
             # update
             section.nodes.compute_dx_dy_dz()
             section.update_tensions()
@@ -760,5 +761,3 @@ class SolverBalance:
         self.final_dx = section.nodes.dx
         self.final_dz = section.nodes.dz
         self.final_force = force_vector
-
-        

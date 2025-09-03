@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import numpy as np
 from pytest import fixture
 
@@ -20,17 +14,10 @@ def section_2d_note(cable_AM600):
     nodes = Nodes(
         # num=np.arange(0,),
         ntype=np.array([3, 2, 2, 3]),
-        L_chain=np.array([3,  3, 3, 3]),
-        weight_chain=np.array([1000,  500, 500, 1000]),
-        arm_length=np.array([0,  0, 0, 0]),
-        line_angle=np.array(
-            [
-                0,
-                0,
-                0,
-                0,
-            ]
-        ),
+        L_chain=np.array([3, 3, 3, 3]),
+        weight_chain=np.array([1000, 500, 500, 1000]),
+        arm_length=np.array([0, 0, 0, 0]),
+        line_angle=np.array([0, 0, 0, 0]),
         x=np.array([0, 500, 800, 1200]),
         z=np.array([30, 50, 60, 65]),  # = z0
         load=np.array([0, 0, 0, 0]),
@@ -44,17 +31,13 @@ def section_2d_note(cable_AM600):
     )
 
 
-
 def test_element_initialisation(section_2d_note):
     # load = section_2d_note.nodes.load
 
     print("\n")
     print(section_2d_note)
     print(section_2d_note.nodes)
-    
+
 
 def test_element_adjust(section_2d_note):
-    
     section_2d_note.adjust()
-    
-

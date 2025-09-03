@@ -19,9 +19,9 @@ def section_2d_note(cable_AM600):
     nodes = Nodes(
         # num=np.arange(0,),
         ntype=np.array([3, 2, 2, 3]),
-        L_chain=np.array([3,  3, 3, 3]),
-        weight_chain=np.array([1000,  500, 500, 1000]),
-        arm_length=np.array([0,  3, 3, 0]),
+        L_chain=np.array([3, 3, 3, 3]),
+        weight_chain=np.array([1000, 500, 500, 1000]),
+        arm_length=np.array([0, 3, 3, 0]),
         line_angle=np.array(
             [
                 0,
