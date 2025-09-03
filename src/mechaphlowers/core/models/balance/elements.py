@@ -136,10 +136,10 @@ class Span:
     def compute_inter(self):
         # warning: counting from right to left
         proj_d_i = self.nodes.proj_d
-        proj_g_ip1 = np.roll(self.nodes.proj_g, -1)
-        proj_diff = (proj_d_i - proj_g_ip1)[:, 1:]
+        proj_g_ip1 = np.roll(self.nodes.proj_g, -1, axis=1)
+        proj_diff = (proj_g_ip1 - proj_d_i)[:, :-1]
         # x: initial input to calculate span_length
-        span_length = np.ediff1d(self.nodes._x)
+        span_length = np.ediff1d(self.nodes.x)
         self.inter1 = span_length + proj_diff[0]
         self.inter2 = proj_diff[1]
         self.proj_angle = np.atan2(self.inter1, self.inter2)
@@ -564,7 +564,7 @@ class Nodes:
         L = self.L_chain
 
         suspension_shift = -(L**2 - self.dx**2 - self.dy**2) ** 0.5
-        self.dz[1:-1] = -suspension_shift[1:-1]
+        self.dz[1:-1] = suspension_shift[1:-1]
         
         anchor_shift = (L**2 - self.dz**2 - self.dy**2) ** 0.5
         self.dx[0] = anchor_shift[0]
@@ -608,7 +608,7 @@ class Nodes:
 
         # index 1 ou 0?
         Fx_first = s_left[0] * np.cos((self.line_angle / 2)[0]) - t_left[0] * np.sin((self.line_angle / 2)[0])
-        Fy_first = t_left[0] * np.cos((self.line_angle / 2)[0]) - s_left[0] * np.sin((self.line_angle / 2)[0])
+        Fy_first = t_left[0] * np.cos((self.line_angle / 2)[0]) + s_left[0] * np.sin((self.line_angle / 2)[0])
         Fz_first = z_left[0] + self.weight_chain[0] / 2 # also add load?
 
 
