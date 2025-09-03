@@ -139,10 +139,10 @@ class Span:
         proj_g_ip1 = np.roll(self.nodes.proj_g, -1, axis=1)
         proj_diff = (proj_g_ip1 - proj_d_i)[:, :-1]
         # x: initial input to calculate span_length
-        span_length = np.ediff1d(self.nodes.x)
+        span_length = np.ediff1d(self.nodes._x)
         self.inter1 = span_length + proj_diff[0]
         self.inter2 = proj_diff[1]
-        self.proj_angle = np.atan2(self.inter1, self.inter2)
+        self.proj_angle = np.atan2(self.inter2, self.inter1)
 
     @property
     def Tv_g(self):
@@ -521,7 +521,7 @@ class Nodes:
 
     @property
     def z(self):
-        return self._z
+        return self._z - self.z_suspension_chain
 
     @z.setter
     def z(self, value):
@@ -789,7 +789,7 @@ class SolverBalance:
         section.update_span()
         
         # initialisation
-        perturb = 0.00001
+        perturb = 0.0001
         force_vector = section.vector_force()
         n_iter = range(1, 100)
         vector_perturb = np.zeros_like(section.nodes.dx)
