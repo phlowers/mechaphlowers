@@ -139,7 +139,7 @@ class Span:
         proj_g_ip1 = np.roll(self.nodes.proj_g, -1, axis=1)
         proj_diff = (proj_g_ip1 - proj_d_i)[:, :-1]
         # x: initial input to calculate span_length
-        span_length = np.ediff1d(self.nodes._x)
+        span_length = np.ediff1d(self.nodes.x_arm)
         self.inter1 = span_length + proj_diff[0]
         self.inter2 = proj_diff[1]
         self.proj_angle = np.atan2(self.inter2, self.inter1)
@@ -239,17 +239,17 @@ class Span:
     def update_span(self):
         """transmet_portee"""
         # warning for dev : we dont use the first element of span vectors for the moment
-        if self.init_Lref_mode is True:
-            x = self.nodes._x
-            z = self.nodes._z
-        else:
-            x = self.nodes.x
-            z = self.nodes.z
+        # if self.init_Lref_mode is True:
+        #     x = self.nodes._x
+        #     z = self.nodes._z
+        # else:
+        x = self.nodes.x
+        z = self.nodes.z
 
         self.compute_inter()
 
         self.a = (self.inter1**2 + self.inter2**2) ** 0.5
-        b = z + self.nodes.dz - np.roll(z + self.nodes.dz, 1)
+        b = z - np.roll(z, 1)
         self.b = b[1:]
 
     # def z_from_x_2ddl(self, inplace=True):
@@ -381,11 +381,11 @@ class RealSpan:
         # TODO: this part take the hypothesis that there is one of two node of ntype 1.
         # we should change this to be more general
 
-        a = np.roll(self.span.nodes.x + self.span.nodes.dx, -1) - np.roll(
-            self.span.nodes.x + self.span.nodes.dx, 1
+        a = np.roll(self.span.nodes.x, -1) - np.roll(
+            self.span.nodes.x, 1
         )
-        b = np.roll(self.span.nodes.z + self.span.nodes.dz, -1) - np.roll(
-            self.span.nodes.z + self.span.nodes.dz, 1
+        b = np.roll(self.span.nodes.z, -1) - np.roll(
+            self.span.nodes.z, 1
         )
 
         parameter_np1 = np.hstack(
@@ -481,18 +481,17 @@ class Nodes:
         self.ntype = ntype
         self.L_chain = L_chain
         self.weight_chain = -weight_chain
-        # careful about the sign of arm_length and line_angle
+        # arm length: positive length means further from observer
         self.arm_length = arm_length
+        # line_angle: anti clockwise
         self.line_angle = line_angle
-        self._x = x
-        self._y = np.zeros_like(x, dtype=np.float64)
-        self._z = z
+        self.init_coordinates(x, z)
+        # dx, dy, dz are the distances between the, including the chain
         self.dx = np.zeros_like(x, dtype=np.float64)
         self.dy = np.zeros_like(x, dtype=np.float64)
         self.dz = np.zeros_like(z, dtype=np.float64)
         self._load = -load
         self.no_load = False
-        self.init_L()
 
         self.vector_projection = VectorProjection()
 
@@ -511,21 +510,34 @@ class Nodes:
     def __len__(self):
         return len(self.num)
 
-    @property
-    def x(self):
-        return self._x + self.x_anchor_chain
 
     @property
+    def x(self):
+        """This property returns the x coordinate of the end the chain. x = x_arm + dx"""
+        return self.x_arm + self.dx
+
+    # useless?
+    @property
     def y(self):
-        return self._y
+        return self._y + self.dy
+
 
     @property
     def z(self):
-        return self._z - self.z_suspension_chain
+        """This property returns the altitude of the end the chain.  z = z_arm + dz"""
+        return self.z_arm + self.dz
 
-    @z.setter
-    def z(self, value):
-        self._z = value
+
+    @property
+    def x_arm(self):
+        """This property returns the x coordinate of the end the arm. Should not be modified during computation."""
+        return self._x0
+
+
+    @property
+    def z_arm(self):
+        """This property returns the altitude of the end the arm. Should not be modified during computation."""
+        return self._z0 - self.z_suspension_chain
 
     @property
     def proj_g(self):
@@ -537,7 +549,6 @@ class Nodes:
             self.dx
         ) * np.sin(self.line_angle / 2)
 
-        # order s/t?
         return np.array([proj_s_axis, proj_t_axis])
 
     @property
@@ -550,15 +561,21 @@ class Nodes:
             self.dx
         ) * np.sin(self.line_angle / 2)
 
-        # order s/t?
         return np.array([proj_s_axis, proj_t_axis])
 
-    def init_L(self):
-        self.x_anchor_chain = np.zeros_like(self._x)
+    def init_coordinates(self, x, z):
+        self.x_anchor_chain = np.zeros_like(x)
         self.x_anchor_chain[0] = self.L_chain[0]
         self.x_anchor_chain[-1] = -self.L_chain[-1]
-        self.z_suspension_chain = np.zeros_like(self._x)
+        self.z_suspension_chain = np.zeros_like(x)
         self.z_suspension_chain[1:-1] = -self.L_chain[1:-1]
+
+        # warning: x0 and z0 does not mean the same thing
+        # x0 is the absissa of the 
+        # z0 is the altitude of the attachement point
+        self._x0 = x
+        self._z0 = z
+        self._y = np.zeros_like(x, dtype=np.float64)
 
     def compute_dx_dy_dz(self):
         L = self.L_chain
@@ -570,25 +587,6 @@ class Nodes:
         self.dx[0] = anchor_shift[0]
         self.dx[-1] = -anchor_shift[-1]
         
-
-        # self.dz[self.mask.mask(2)] = (
-        #     L[self.mask.mask(3)] ** 2
-        #     - self.dx[self.mask.mask(3)] ** 2
-        #     - self.dy[self.mask.mask(3)] ** 2
-        # ) ** 0.5
-
-        # self.dx[self.mask.mask(3)] = (
-        #     L[self.mask.mask(3)] ** 2
-        #     - self.dy[self.mask.mask(3)] ** 2
-        #     - self.dz[self.mask.mask(3)] ** 2
-        # ) ** 0.5
-
-
-        # self.dx[self.mask.mask(4)] = (
-        #     L[self.mask.mask(4)] ** 2
-        #     - self.dy[self.mask.mask(4)] ** 2
-        #     - self.dz[self.mask.mask(4)] ** 2
-        # ) ** 0.5
 
     def compute_forces(self, update_dx_dy_dz=True):
         # Placeholder for force computation logic
@@ -645,9 +643,9 @@ class Nodes:
 
     def debug(self):
         data = {
-            'z': self.dz,
-            'x': self.dx,
-            'dz': self.z,
+            'z': self.z,
+            'x': self.x,
+            'dz': self.dz,
             'Fx': self.Fx,
             'Fz': self.Fz,
             'My': self.My,
@@ -663,7 +661,7 @@ class Nodes:
             'L_chain': self.L_chain,
             'weight_chain': self.weight_chain,
             'x': self.x,
-            'z': self.z,
+            'z': self.z_arm,
             'dx': self.dx,
             'dz': self.dz,
             'load': self.load,
