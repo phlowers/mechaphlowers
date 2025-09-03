@@ -252,31 +252,6 @@ class Span:
         b = z - np.roll(z, 1)
         self.b = b[1:]
 
-    # def z_from_x_2ddl(self, inplace=True):
-    #     # Assuming this is a placeholder for the actual implementation
-    #     # warning here : this is not the same as the function update_span (i+1) - (i-1) instead of (i) - (i-1)
-    #     a = np.roll(self.nodes.x + self.nodes.dx, -1) - np.roll(
-    #         self.nodes.x + self.nodes.dx, 1
-    #     )
-    #     b = np.roll(self.nodes.z + self.nodes.dz, -1) - np.roll(
-    #         self.nodes.z + self.nodes.dz, 1
-    #     )
-
-    #     z = self.nodes.z
-    #     parameter_np1 = np.hstack((self.parameter, self.parameter[-1]))
-    #     x_m = f.x_m(a, b, parameter_np1)
-    #     zdz_im1 = np.roll(self.nodes.z + self.nodes.dz, 1)
-    #     xdx_im1 = np.roll(self.nodes.x + self.nodes.dx, 1)
-    #     xdx_i = self.nodes.x + self.nodes.dx
-
-    #     z_i = (
-    #         zdz_im1
-    #         + f.z(xdx_i - xdx_im1, parameter_np1, x_m)
-    #         - f.z(0 * xdx_i, parameter_np1, x_m)
-    #     )
-    #     if inplace is True:
-    #         self.nodes.z = np.where(self.nodes.ntype == 1, z_i, z)
-    #     return np.where(self.nodes.ntype == 1, z_i, z)
 
     def vector_force(self, update_dx_dz=True):
         self.nodes.vector_projection.set_tensions(
@@ -314,8 +289,6 @@ class Span:
     def _delta_dy(self, dy):
         self.nodes.dy += dy
         # self.update_span()
-        # self.z_from_x_2ddl()
-        # self.update_span()
         self.nodes.compute_dx_dy_dz()
         self.update_tensions()
 
@@ -333,7 +306,6 @@ class Span:
     def _delta_dx(self, dx):
         self.nodes.dx += dx
         # self.update_span()
-        # self.z_from_x_2ddl()
         self.update_span()
         self.nodes.compute_dx_dy_dz()
         self.update_tensions()
