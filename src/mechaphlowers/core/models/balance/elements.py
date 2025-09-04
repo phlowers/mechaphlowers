@@ -299,8 +299,8 @@ class Span:
 
     def _delta_dy(self, dy):
         self.nodes.dy += dy
-        # self.update_span()
         self.nodes.compute_dx_dy_dz()
+        self.update_span()
         self.update_tensions()
 
         force_vector = self.vector_force(update_dx_dz=False)
@@ -316,8 +316,8 @@ class Span:
     def _delta_dx(self, dx):
         self.nodes.dx += dx
         # self.update_span()
-        self.update_span()
         self.nodes.compute_dx_dy_dz()
+        self.update_span()
         self.update_tensions()
 
         force_vector = self.vector_force(update_dx_dz=False)
@@ -623,7 +623,7 @@ class SolverBalance:
         section: Span,
         temperature=0,
     ):
-        puissance = 3
+        puissance = 1
 
         section.update_tensions()
         section.update_span()
@@ -635,7 +635,7 @@ class SolverBalance:
         vector_perturb = np.zeros_like(section.nodes.dx)
         # for debug we record init_force
         self.init_force = force_vector
-        relaxation = 0.5
+        relaxation = 0.9
 
         # starting optimisation loop
         for compteur in n_iter:
@@ -646,7 +646,7 @@ class SolverBalance:
                 vector_perturb[i] += perturb
 
                 # TODO: refactor if/elif ? + node logic should not be in the solver
-                if i == 0 or i == len(section.nodes.ntype):
+                if i == 0 or i == len(section.nodes.ntype) - 1:
                     dz_d = section._delta_dz(vector_perturb)
                     dF_dz = (dz_d - force_vector) / perturb
                     df_list.append(dF_dz)
@@ -759,5 +759,6 @@ class SolverBalance:
 
         print(f"force vector norm: {np.linalg.norm(force_vector)}")
         self.final_dx = section.nodes.dx
+        self.final_dy = section.nodes.dy
         self.final_dz = section.nodes.dz
         self.final_force = force_vector

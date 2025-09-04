@@ -85,3 +85,7 @@ def T_moy(p, L, x_n, x_m, lineic_weight):
 #     span.compute()
 #     span
 #     return b * np.sinh(x / p) / np.sinh(a / (2 * p))
+
+
+def grad_to_rad(angles_grad: np.ndarray):
+    return angles_grad *np.pi / 200
