@@ -3,7 +3,6 @@ from mechaphlowers.core.models.balance.elements import (
     Span,
     Nodes,
     SolverBalance,
-    MapVectorToNodeSpace,
 )
 import numpy as np
 from pytest import fixture

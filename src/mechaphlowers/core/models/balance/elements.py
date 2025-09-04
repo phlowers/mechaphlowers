@@ -10,7 +10,6 @@ import pandas as pd
 from mechaphlowers.core.models.balance import numeric
 import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance.utils_balance import (
-    MapVectorToNodeSpace,
     VectorProjection,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
@@ -61,11 +60,21 @@ class Span:
         self.nodes.compute_moment(True)
 
     def adjust(self):
+        # set to True??
         self.nodes.no_load = False
 
         SolverBalance().solver_balance_3d(self)
 
         self._L_ref = self.update_L_ref()
+
+    def change_state(self):
+        self.adjustment = False
+
+        SolverBalance().solver_balance_3d(self)
+
+    @property
+    def k_load(self):
+        return self.cable_loads.load_coefficient[:-1]
 
     @property
     def alpha(self):
@@ -92,7 +101,6 @@ class Span:
         return self._L_ref
 
     def update_L_ref(self):
-        
         self.update_span()
 
         a = self.a
@@ -115,31 +123,12 @@ class Span:
 
         L_ref = cable_length / (
             1
-            + self.cable.dilation_coefficient
-            * self.sagging_temperature
+            + self.cable.dilation_coefficient * self.sagging_temperature
             + T_mean / self.cable.young_modulus / self.cable.section
         )
 
-        # pos_charge = (
-        #     self.span.nodes.x
-        #     - np.roll(self.span.nodes.x, 1)
-        #     - np.roll(self.span.nodes.dx, 1)
-        # )
-
-
-        # # we need np.array([lon2[1], lon1-lon2[1], lon2[3], ...])
-        # L_ref = np.reshape(
-        #     np.vstack(  # stacking the two array vertically and taking only 1/2 node
-        #         (lon2[1::2], lon1[1::2] - lon2[1::2])
-        #     ),
-        #     -1,
-        #     order='F',
-        # )  # order='F' is for fortran order to flatten the array to get the good form
-
         self._L_ref = L_ref
         return L_ref
-
-
 
     @property
     def Th(self):
@@ -163,7 +152,7 @@ class Span:
         else:
             c_param = self._parameter
 
-        Th = c_param * self.cable.lineic_weight * np.ones(len(self.nodes) - 1)
+        Th = c_param * self.cable.lineic_weight * self.k_load
 
         x_m = f.x_m(self.a, self.b, c_param)
         x_n = f.x_n(self.a, self.b, c_param)
@@ -221,7 +210,7 @@ class Span:
         circle_chord = (a**2 + b**2) ** 0.5
 
         factor = (
-            self.cable.lineic_weight
+            self.cable.lineic_weight * self.k_load
             / self.cable.young_modulus
             / self.cable.section
         )
@@ -246,7 +235,7 @@ class Span:
         return self._parameter
 
     def find_parameter(self, parameter, a, b, L0, cable_temperature):
-        """this is a placehoder of sagtension algorithm"""
+        """this is a placeholder of sagtension algorithm"""
         param = parameter
 
         n_iter = 50
@@ -393,19 +382,6 @@ class Span:
         return self.__repr__()
 
 
-class Masks:
-    def __init__(self, ntype):
-        # first and last support are supposed to be clamped
-        self._ntype = ntype
-        self._ntype[-1] = 4
-
-    def mask(self, ntype):
-        return self._ntype == ntype
-
-    def filter(self, vector, ntype):
-        return np.where(self._ntype == ntype, vector, 0)
-
-
 class Nodes:
     def __init__(
         self,
@@ -435,8 +411,6 @@ class Nodes:
         self.no_load = False
 
         self.vector_projection = VectorProjection()
-
-        self.mask = Masks(ntype)
 
     @property
     def load(self):

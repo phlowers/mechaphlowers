@@ -68,11 +68,13 @@ def z(x, p, x_m):
     return rr.T
 
 
-def T_moy(p, L, x_n, x_m, lineic_weight):
+def T_moy(p, L, x_n, x_m, lineic_weight, k_load=None):
     a = x_n - x_m
-
+    if k_load is None:
+        k_load = np.ones_like(p)
     return (
         p
+        * k_load
         * lineic_weight
         * (a + (np.sinh(2 * x_n / p) - np.sinh(2 * x_m / p)) * p / 2)
         / L
@@ -88,4 +90,4 @@ def T_moy(p, L, x_n, x_m, lineic_weight):
 
 
 def grad_to_rad(angles_grad: np.ndarray):
-    return angles_grad *np.pi / 200
+    return angles_grad * np.pi / 200
