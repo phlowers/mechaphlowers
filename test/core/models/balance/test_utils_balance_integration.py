@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from mechaphlowers.core.models.balance.utils_balance import VectorProjection
 
@@ -46,7 +47,7 @@ def test_proj_no_angles():
 
     Fx_expected = np.array([Th[0], 0, 0, -Th[-1]])
     Fy_expected = np.zeros_like(Fx_expected)
-    Fz_expected = np.array([-3474.3816, -7554.5744, -7146.9625, -54457.3933])
+    Fz_expected = np.array([-3474.3816, -7554.5744, -7146.9625, -4457.3933])
 
     np.testing.assert_equal(Fx, Fx_expected)
     np.testing.assert_equal(Fy, Fy_expected)

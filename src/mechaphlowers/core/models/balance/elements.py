@@ -65,7 +65,7 @@ class Span:
 
         SolverBalance().solver_balance_3d(self)
 
-        self._L_ref = RealSpan(self).real_span()
+        self._L_ref = self.update_L_ref()
 
     @property
     def alpha(self):
@@ -91,8 +91,55 @@ class Span:
     def L_ref(self):
         return self._L_ref
 
-    def update_length(self):
-        RealSpan(self).real_span()
+    def update_L_ref(self):
+        
+        self.update_span()
+
+        a = self.a
+        b = self.b
+        parameter = self.parameter
+
+        cable_length = f.L(
+            parameter,
+            a + f.x_m(a, b, parameter),
+            f.x_m(a, b, parameter),
+        )
+
+        T_mean = f.T_moy(
+            p=parameter,
+            L=cable_length,
+            x_n=a + f.x_m(a, b, parameter),
+            x_m=f.x_m(a, b, parameter),
+            lineic_weight=self.cable.lineic_weight,
+        )
+
+        L_ref = cable_length / (
+            1
+            + self.cable.dilation_coefficient
+            * self.sagging_temperature
+            + T_mean / self.cable.young_modulus / self.cable.section
+        )
+
+        # pos_charge = (
+        #     self.span.nodes.x
+        #     - np.roll(self.span.nodes.x, 1)
+        #     - np.roll(self.span.nodes.dx, 1)
+        # )
+
+
+        # # we need np.array([lon2[1], lon1-lon2[1], lon2[3], ...])
+        # L_ref = np.reshape(
+        #     np.vstack(  # stacking the two array vertically and taking only 1/2 node
+        #         (lon2[1::2], lon1[1::2] - lon2[1::2])
+        #     ),
+        #     -1,
+        #     order='F',
+        # )  # order='F' is for fortran order to flatten the array to get the good form
+
+        self._L_ref = L_ref
+        return L_ref
+
+
 
     @property
     def Th(self):
@@ -346,81 +393,6 @@ class Span:
         return self.__repr__()
 
 
-class RealSpan:
-    def __init__(self, span: Span):
-        self.span = span
-
-    def real_span(self):
-        # TODO: this part take the hypothesis that there is one of two node of ntype 1.
-        # we should change this to be more general
-
-        a = np.roll(self.span.nodes.x, -1) - np.roll(self.span.nodes.x, 1)
-        b = np.roll(self.span.nodes.z, -1) - np.roll(self.span.nodes.z, 1)
-
-        parameter_np1 = np.hstack(
-            (self.span.parameter, self.span.parameter[-1])
-        )
-
-        lon1 = f.L(
-            parameter_np1,
-            a + f.x_m(a, b, parameter_np1),
-            f.x_m(a, b, parameter_np1),
-        )
-
-        Tm1 = f.T_moy(
-            p=parameter_np1,
-            L=lon1,
-            x_n=a + f.x_m(a, b, parameter_np1),
-            x_m=f.x_m(a, b, parameter_np1),
-            lineic_weight=self.span.cable.lineic_weight,
-        )
-
-        lon1 = lon1 / (
-            1
-            + self.span.cable.dilation_coefficient
-            * self.span.sagging_temperature
-            + Tm1 / self.span.cable.young_modulus / self.span.cable.section
-        )
-
-        pos_charge = (
-            self.span.nodes.x
-            - np.roll(self.span.nodes.x, 1)
-            - np.roll(self.span.nodes.dx, 1)
-        )
-
-        lon2 = f.L(
-            parameter_np1,
-            pos_charge + f.x_m(a, b, parameter_np1),
-            f.x_m(a, b, parameter_np1),
-        )
-
-        Tm2 = f.T_moy(
-            p=parameter_np1,
-            x_n=pos_charge + f.x_m(a, b, parameter_np1),
-            x_m=f.x_m(a, b, parameter_np1),
-            L=lon2,
-            lineic_weight=self.span.cable.lineic_weight,
-        )
-
-        lon2 = lon2 / (
-            1
-            + self.span.cable.dilation_coefficient
-            * self.span.sagging_temperature
-            + Tm2 / self.span.cable.young_modulus / self.span.cable.section
-        )
-
-        # we need np.array([lon2[1], lon1-lon2[1], lon2[3], ...])
-        L_ref = np.reshape(
-            np.vstack(  # stacking the two array vertically and taking only 1/2 node
-                (lon2[1::2], lon1[1::2] - lon2[1::2])
-            ),
-            -1,
-            order='F',
-        )  # order='F' is for fortran order to flatten the array to get the good form
-
-        return L_ref
-
-
 class Masks:
     def __init__(self, ntype):
         # first and last support are supposed to be clamped
@@ -543,12 +515,12 @@ class Nodes:
         self._y = np.zeros_like(x, dtype=np.float64)
 
     def compute_dx_dy_dz(self):
-        L = self.L_chain
+        L_chain = self.L_chain
 
-        suspension_shift = -((L**2 - self.dx**2 - self.dy**2) ** 0.5)
+        suspension_shift = -((L_chain**2 - self.dx**2 - self.dy**2) ** 0.5)
         self.dz[1:-1] = suspension_shift[1:-1]
 
-        anchor_shift = (L**2 - self.dz**2 - self.dy**2) ** 0.5
+        anchor_shift = (L_chain**2 - self.dz**2 - self.dy**2) ** 0.5
         self.dx[0] = anchor_shift[0]
         self.dx[-1] = -anchor_shift[-1]
 
