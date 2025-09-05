@@ -7,7 +7,7 @@ import mechaphlowers.core.models.balance.functions as f
 
 @fixture
 def cable_AM600():
-    return Cable(600.4, 17.67, 0.000023, 60e3, 31.86, 320)
+    return Cable(600.4e-6, 17.658, 0.000023, 60e9, 31.86e-3, 320)
 
 
 @fixture
@@ -54,8 +54,9 @@ def test_element_sandbox(cable_AM600: Cable):
     section.adjust()
     section.L_ref
 
-    section.cable_loads.ice_thickness = np.array([1,1,1,1])
-    section.cable_loads.wind_pressure = np.array([200,200,200,200])
+    section.sagging_temperature = 30
+    # section.cable_loads.ice_thickness = np.array([1,1,1,1]) * 1e-2
+    section.cable_loads.wind_pressure = np.array([200,200,200,200]) *-1
     section.change_state()
     assert True
 

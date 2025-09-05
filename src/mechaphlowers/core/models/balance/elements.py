@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -201,10 +202,6 @@ class Span:
     def Tv_d(self):
         return self._Tv_d
 
-    def get_approximative_parameter(self):
-        self._parameter = self.cardan(
-            self.a, self.b, self.L_ref, self.sagging_temperature
-        )
 
     def cardan(self, a, b, L0, cable_temperature):
         circle_chord = (a**2 + b**2) ** 0.5
@@ -239,7 +236,7 @@ class Span:
         param = parameter
 
         n_iter = 50
-
+        step = 1.
         for i in range(n_iter):
             x_m = f.x_m(a, b, param)
             x_n = f.x_n(a, b, param)
@@ -250,6 +247,7 @@ class Span:
                 x_n=a + f.x_m(a, b, param),
                 x_m=f.x_m(a, b, param),
                 lineic_weight=self.cable.lineic_weight,
+                k_load=self.k_load
             )
 
             delta1 = (lon - self.L_ref) / self.L_ref - (
@@ -258,7 +256,7 @@ class Span:
             )
 
             mem = param
-            param = param + 1
+            param = param + step
 
             x_m = f.x_m(a, b, param)
             x_n = f.x_n(a, b, param)
@@ -269,6 +267,7 @@ class Span:
                 x_n=a + f.x_m(a, b, param),
                 x_m=f.x_m(a, b, param),
                 lineic_weight=self.cable.lineic_weight,
+                k_load=self.k_load
             )
 
             delta2 = (lon - self.L_ref) / self.L_ref - (
@@ -276,7 +275,7 @@ class Span:
                 + Tm1 / (self.cable.young_modulus) / self.cable.section
             )
 
-            param = (param - 1) - delta1 / (delta2 - delta1)
+            param = (param - step) - delta1 / (delta2 - delta1)
 
             if np.linalg.norm(mem - param) < 0.1 * param.size:
                 break
@@ -314,8 +313,8 @@ class Span:
         out = np.array([self.nodes.Mx, self.nodes.My]).flatten('F')
         return out
 
-    def _delta_dz(self, dz):
-        self.nodes.dz += dz
+    def _delta_d(self, perturbation, variable_name: Literal["dx","dy","dz"]):
+        self.nodes.__dict__[variable_name] += perturbation
         self.nodes.compute_dx_dy_dz()
         self.update_span()  # transmet_portee: update a and b
 
@@ -323,48 +322,15 @@ class Span:
 
         force_vector = self.vector_force(update_dx_dz=False)
 
-        self.nodes.dz -= dz
+        self.nodes.__dict__[variable_name] -= perturbation
 
         self.nodes.compute_dx_dy_dz()
-        # TODO: coherence with _delta_dx after other usecases
         # TODO: here the following steps have been removed but the span object is not set in the same state.
         # self.update_span()
         # self.update_tensions()
 
         return force_vector
 
-    def _delta_dy(self, dy):
-        self.nodes.dy += dy
-        self.nodes.compute_dx_dy_dz()
-        self.update_span()
-        self.update_tensions()
-
-        force_vector = self.vector_force(update_dx_dz=False)
-
-        self.nodes.dy -= dy
-        # TODO: here the following steps have been removed but the span object is not set in the same state.
-        self.nodes.compute_dx_dy_dz()
-        # self.update_span()
-        # self.update_tensions()
-
-        return force_vector
-
-    def _delta_dx(self, dx):
-        self.nodes.dx += dx
-        # self.update_span()
-        self.nodes.compute_dx_dy_dz()
-        self.update_span()
-        self.update_tensions()
-
-        force_vector = self.vector_force(update_dx_dz=False)
-
-        self.nodes.dx -= dx
-        # TODO: here the following steps have been removed but the span object is not set in the same state.
-        self.nodes.compute_dx_dy_dz()
-        # self.update_span()
-        # self.update_tensions()
-
-        return force_vector
 
     def __repr__(self):
         data = {
@@ -593,22 +559,22 @@ class SolverBalance:
 
                 # TODO: refactor if/elif ? + node logic should not be in the solver
                 if i == 0 or i == len(section.nodes.ntype) - 1:
-                    dz_d = section._delta_dz(vector_perturb)
+                    dz_d = section._delta_d(vector_perturb, "dz")
                     dF_dz = (dz_d - force_vector) / perturb
                     df_list.append(dF_dz)
 
-                    dy_d = section._delta_dy(vector_perturb)
+                    dy_d = section._delta_d(vector_perturb, "dy")
                     dF_dy = (dy_d - force_vector) / perturb
                     df_list.append(dF_dy)
 
                     vector_perturb[i] -= perturb
 
                 else:
-                    dx_d = section._delta_dx(vector_perturb)
+                    dx_d = section._delta_d(vector_perturb, "dx")
                     dF_dx = (dx_d - force_vector) / perturb
                     df_list.append(dF_dx)
 
-                    dy_d = section._delta_dy(vector_perturb)
+                    dy_d = section._delta_d(vector_perturb, "dy")
                     dF_dy = (dy_d - force_vector) / perturb
                     df_list.append(dF_dy)
 
