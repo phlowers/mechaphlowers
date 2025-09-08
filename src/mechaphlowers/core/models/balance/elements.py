@@ -661,7 +661,7 @@ class SolverBalance:
             )
 
             # check value to minimze to break the loop
-            if norm_d_param < 0.1:
+            if norm_d_param < 0.001:
                 # print("--end--"*10)
                 # print(norm_d_param)
                 break
