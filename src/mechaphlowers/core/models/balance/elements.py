@@ -70,8 +70,8 @@ class Span:
 
     def change_state(self):
         self.adjustment = False
-
-        SolverBalance().solver_balance_3d(self)
+        self.sb = SolverBalance()
+        self.sb.solver_balance_3d(self)
 
     @property
     def k_load(self):
@@ -81,7 +81,7 @@ class Span:
     def alpha(self):
         beta = self.beta
         return (
-            np.acos(
+            - np.acos(
                 self.a / (self.a**2 + self.b**2 * np.sin(beta) ** 2) ** 0.5
             )
             * np.sign(beta)
@@ -135,17 +135,25 @@ class Span:
     def Th(self):
         self.update_tensions()
         return self._Th
+    
+    @property
+    def a_prime(self):
+        return (self.a ** 2 + self.b ** 2 * np.sin(self.beta) ** 2)** 0.5
+        
+    @property
+    def b_prime(self):
+        return self.b * np.cos(self.beta)
 
     def update_tensions(self):
         if not self.adjustment:
             c_param = self.cardan(
-                self.a, self.b, self.L_ref, self.sagging_temperature
+                self.a_prime, self.b_prime, self.L_ref, self.sagging_temperature
             )
 
             c_param = self.find_parameter(
                 c_param,
-                self.a,
-                self.b,
+                self.a_prime,
+                self.b_prime,
                 self.L_ref,
                 self.sagging_temperature,
             )
@@ -155,8 +163,8 @@ class Span:
 
         Th = c_param * self.cable.lineic_weight * self.k_load
 
-        x_m = f.x_m(self.a, self.b, c_param)
-        x_n = f.x_n(self.a, self.b, c_param)
+        x_m = f.x_m(self.a_prime, self.b_prime, c_param)
+        x_n = f.x_n(self.a_prime, self.b_prime, c_param)
 
         self._Tv_g = Th * (np.sinh(x_m / c_param))
         self._Tv_d = -Th * (np.sinh(x_n / c_param))
@@ -535,7 +543,7 @@ class SolverBalance:
         section: Span,
         temperature=0,
     ):
-        puissance = 1
+        puissance = 3
 
         section.update_tensions()
         section.update_span()
@@ -547,7 +555,8 @@ class SolverBalance:
         vector_perturb = np.zeros_like(section.nodes.dx)
         # for debug we record init_force
         self.init_force = force_vector
-        relaxation = 0.9
+        relaxation = 0.8
+        stop_condition = 1e-3
 
         # starting optimisation loop
         for compteur in n_iter:
@@ -661,7 +670,7 @@ class SolverBalance:
             )
 
             # check value to minimze to break the loop
-            if norm_d_param < 0.001:
+            if norm_d_param < stop_condition:
                 # print("--end--"*10)
                 # print(norm_d_param)
                 break
