@@ -20,7 +20,8 @@ def section_3d_simple(cable_AM600) -> Span:
         line_angle=f.grad_to_rad(np.array([0, 0, 0, 0])),
         x=np.array([0, 500, 800, 1200]),
         z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 0, 0, 0]),
+        load=np.array([0, 0, 0]),
+        load_position=np.array([0, 0, 0]),
     )
 
     return Span(
@@ -41,6 +42,8 @@ def section_3d_no_altitude_change(cable_AM600) -> Span:
         x=np.array([0, 500, 800, 1200]),
         z=np.array([50, 50, 50, 50]),
         load=np.array([0, 0, 0, 0]),
+        load_position=np.array([0, 0, 0]),
+
     )
 
     return Span(
@@ -60,7 +63,8 @@ def test_element_sandbox(cable_AM600: Cable):
         line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
         x=np.array([0, 500, 800, 1200]),
         z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 1000, 0, 0]),
+        load=np.array([0, 0, 0, 0]),
+        load_position=np.array([0, 0.5, 0, 0]),
     )
 
     section = Span(
@@ -74,7 +78,7 @@ def test_element_sandbox(cable_AM600: Cable):
 
     # section.sagging_temperature = 30
     # section.cable_loads.ice_thickness = np.array([1,1,1,1]) * 1e-2
-    section.cable_loads.wind_pressure = np.array([200,200,200,200]) *-1
+    section.cable_loads.wind_pressure = np.array([200,200,200,200])
     section.change_state()
     print("Th", section.Th)
     print("dx", section.sb.final_dx)
@@ -131,6 +135,7 @@ def test_element_adjust_with_arm(cable_AM600: Cable):
         x=np.array([0, 500, 800, 1200]),
         z=np.array([30, 50, 60, 65]),
         load=np.array([0, 0, 0, 0]),
+        load_position=np.array([0, 0, 0]),
     )
 
     section_arm = Span(
@@ -180,6 +185,7 @@ def test_element_adjust_with_angles(cable_AM600: Cable):
         x=np.array([0, 500, 800, 1200]),
         z=np.array([30, 50, 60, 65]),
         load=np.array([0, 0, 0, 0]),
+        load_position=np.array([0, 0, 0]),
     )
 
     section_arm = Span(
@@ -237,6 +243,7 @@ def test_wind(cable_AM600: Cable):
         x=np.array([0, 500, 800, 1200]),
         z=np.array([30, 50, 60, 65]),
         load=np.array([0, 0, 0, 0]),
+        load_position=np.array([0, 0, 0]),
     )
 
     section = Span(
@@ -278,3 +285,34 @@ def test_wind(cable_AM600: Cable):
     np.testing.assert_allclose(section.nodes.dx, expected_dx, atol=1e-4)
     np.testing.assert_allclose(section.nodes.dy, expected_dy, atol=1e-4)
     np.testing.assert_allclose(section.nodes.dz, expected_dz, atol=1e-4)
+
+
+
+def test_element_load(cable_AM600: Cable):
+    nodes_arm = Nodes(
+        ntype=np.array([3, 2, 2, 3]),
+        L_chain=np.array([3, 3, 3, 3]),
+        weight_chain=np.array([1000, 500, 500, 1000]),
+        arm_length=np.array([0, 10, -10, 0]),
+        line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
+        x=np.array([0, 500, 800, 1200]),
+        z=np.array([30, 50, 60, 65]),
+        load=np.array([500, 1000, 500]),
+        load_position=np.array([0.5, 0.5, 0.5]),
+    )
+
+    section = Span(
+        parameter=2000,
+        sagging_temperature=15,
+        nodes=nodes_arm,
+        cable=cable_AM600,
+    )
+
+    section.adjust()
+    section.L_ref
+
+    section.nodes.has_load = True
+
+    section.change_state()
+
+    assert True

@@ -48,28 +48,29 @@ class Span:
             np.zeros_like(nodes.weight_chain),
         )
 
-        self.nodes.no_load = True
+        self.nodes.has_load = False
         self.init_Lref_mode = False
         # TODO: during L_ref computation, perhaps set cable_temperature = 0
         # temperature here is tuning temperature / only in the real span part
         # there is another temperature : change state
 
         self.update_span()
+        self.update_tensions()
         self.nodes.vector_projection.set_tensions(
-            self.Th, self.Tv_d, self.Tv_g
+            self._Th, self.Tv_d, self.Tv_g
         )
         self.nodes.compute_moment(True)
 
     def adjust(self):
-        # set to True??
-        self.nodes.no_load = False
-
-        SolverBalance().solver_balance_3d(self)
+        self.sb = SolverBalance()
+        self.sb.solver_balance_3d(self)
 
         self._L_ref = self.update_L_ref()
 
     def change_state(self):
         self.adjustment = False
+        self.nodes.has_load = True
+
         self.sb = SolverBalance()
         self.sb.solver_balance_3d(self)
 
@@ -133,7 +134,6 @@ class Span:
 
     @property
     def Th(self):
-        self.update_tensions()
         return self._Th
     
     @property
@@ -166,6 +166,51 @@ class Span:
         x_m = f.x_m(self.a_prime, self.b_prime, c_param)
         x_n = f.x_n(self.a_prime, self.b_prime, c_param)
 
+        if self.nodes.has_load == True and abs(np.sum(self.nodes.load)) > 0: # and load array is no full zeros
+            self.x_i = self.nodes.load_position * self.a_prime
+            self.z_i = f.z(self.x_i, self.parameter, x_m) - f.z(np.zeros_like(self.x_i), self.parameter , x_m)
+            self.compute_tensions_with_loads()
+
+            # ------ refactor this? only Th, x_n_right and x_m_left are used
+            a_right = self.a_prime - self.x_i
+            b_right = self.b_prime - self.z_i
+            L_ref_right = (1 - self.nodes.load_position) * self.L_ref
+            c_param_right = self.cardan(
+                a_right, b_right, L_ref_right, self.sagging_temperature
+            )
+            c_param_right = self.find_parameter(
+                c_param_right,
+                a_right,
+                b_right,
+                L_ref_right,
+                self.sagging_temperature,
+            )
+            Th_loc = c_param_right * self.cable.lineic_weight * self.k_load
+            x_m_right = f.x_m(a_right, b_right, c_param_right)
+            x_n_right = f.x_n(a_right, b_right, c_param_right)
+            # ---------
+            a_left = self.x_i
+            b_left = self.z_i
+            L_ref_left = self.nodes.load_position * self.L_ref
+            c_param_left = self.cardan(
+                a_left, b_left, L_ref_left, self.sagging_temperature
+            )
+            c_param_left = self.find_parameter(
+                c_param_left,
+                a_left,
+                b_left,
+                L_ref_left,
+                self.sagging_temperature,
+            )
+            Th_loc = c_param_left * self.cable.lineic_weight * self.k_load
+            x_m_left = f.x_m(a_left, b_left, c_param_left)
+            x_n_left = f.x_n(a_left, b_left, c_param_left)
+
+            Th = Th_loc
+            x_m = x_m_left
+            x_n = x_n_right
+            c_param = c_param_left
+
         self._Tv_g = Th * (np.sinh(x_m / c_param))
         self._Tv_d = -Th * (np.sinh(x_n / c_param))
         self._Th = Th
@@ -173,6 +218,12 @@ class Span:
         self.update_projections()
 
         return Th
+
+
+    def compute_tensions_with_loads(self):
+        solver_load = SolverLoad()
+        solver_load.solver_tensions_load(self)
+        
 
     def update_projections(self):
         # TODO: alpha and beta
@@ -239,7 +290,7 @@ class Span:
     def parameter(self):
         return self._parameter
 
-    def find_parameter(self, parameter, a, b, L0, cable_temperature):
+    def find_parameter(self, parameter, a, b, L_ref, cable_temperature):
         """this is a placeholder of sagtension algorithm"""
         param = parameter
 
@@ -258,7 +309,7 @@ class Span:
                 k_load=self.k_load
             )
 
-            delta1 = (lon - self.L_ref) / self.L_ref - (
+            delta1 = (lon - L_ref) / L_ref - (
                 self.cable.dilation_coefficient * self.sagging_temperature
                 + Tm1 / (self.cable.young_modulus) / self.cable.section
             )
@@ -278,7 +329,7 @@ class Span:
                 k_load=self.k_load
             )
 
-            delta2 = (lon - self.L_ref) / self.L_ref - (
+            delta2 = (lon - L_ref) / L_ref - (
                 self.cable.dilation_coefficient * self.sagging_temperature
                 + Tm1 / (self.cable.young_modulus) / self.cable.section
             )
@@ -309,8 +360,9 @@ class Span:
         self.b = b[1:]
 
     def vector_force(self, update_dx_dz=True):
+        self.update_tensions()
         self.nodes.vector_projection.set_tensions(
-            self.Th,
+            self._Th,
             self.Tv_d,
             self.Tv_g,
         )
@@ -320,6 +372,55 @@ class Span:
 
         out = np.array([self.nodes.Mx, self.nodes.My]).flatten('F')
         return out
+
+
+    def local_tension_matrix(self):
+        # TODO: refactor this?
+
+        # left side of the load 
+        L_ref_left = self.nodes.load_position * self.L_ref
+        span_length_left = self.x_i
+        elevation_diff_left = self.z_i
+        param_loc_left = self.cardan(
+            span_length_left, elevation_diff_left, L_ref_left, self.sagging_temperature
+        )
+
+        param_loc_left = self.find_parameter(
+            param_loc_left,
+            span_length_left,
+            elevation_diff_left,
+            L_ref_left,
+            self.sagging_temperature,
+        )
+        Th_left = param_loc_left * self.cable.lineic_weight * self.k_load
+        x_m = f.x_m(span_length_left, elevation_diff_left, param_loc_left)
+        x_n = f.x_n(span_length_left, elevation_diff_left, param_loc_left)
+        Tv_d_loc = -Th_left * np.sinh(x_n / param_loc_left)
+
+        # right
+        L_ref_right = self.L_ref - L_ref_left
+        span_length_right = self.a_prime - self.x_i
+        elevation_diff_right = self.b_prime - self.z_i
+        param_loc_right = self.cardan(
+            span_length_right, elevation_diff_right, L_ref_right, self.sagging_temperature
+        )
+
+        param_loc_right = self.find_parameter(
+            param_loc_right,
+            span_length_right,
+            elevation_diff_right,
+            L_ref_right,
+            self.sagging_temperature,
+        )
+        Th_right = param_loc_right * self.cable.lineic_weight * self.k_load
+        x_m = f.x_m(span_length_right, elevation_diff_right, param_loc_right)
+        Tv_g_loc = Th_right * np.sinh(x_m / param_loc_right)
+
+        Th = Th_left - Th_right
+        Tv = Tv_d_loc + Tv_g_loc - self.nodes.load * self.k_load
+
+        return np.array([Th, Tv]).flatten('F')
+
 
     def _delta_d(self, perturbation, variable_name: Literal["dx","dy","dz"]):
         self.nodes.__dict__[variable_name] += perturbation
@@ -339,14 +440,23 @@ class Span:
 
         return force_vector
 
+    def _delta_d_load(self, perturbation, variable_name: Literal["x_i", "z_i"]):
+        self.__dict__[variable_name] += perturbation
+
+
+        force_vector = self.local_tension_matrix()
+        self.__dict__[variable_name] -= perturbation
+
+        return force_vector
+
 
     def __repr__(self):
         data = {
             'parameter': self.parameter,
             'cable_temperature': self.sagging_temperature,
-            'Th': self.Th,
-            'Tv_d': self.Tv_d,
-            'Tv_g': self.Tv_g,
+            'Th': self._Th,
+            'Tv_d': self._Tv_d,
+            'Tv_g': self._Tv_g,
         }
         out = pd.DataFrame(data)
 
@@ -366,7 +476,9 @@ class Nodes:
         line_angle: np.ndarray,
         x: np.ndarray,
         z: np.ndarray,
+        # load and load_position must of length nb_supports - 1
         load: np.ndarray,
+        load_position: np.ndarray,
     ):
         self.num = np.arange(len(ntype))
         self.ntype = ntype
@@ -381,14 +493,15 @@ class Nodes:
         self.dx = np.zeros_like(x, dtype=np.float64)
         self.dy = np.zeros_like(x, dtype=np.float64)
         self.dz = np.zeros_like(z, dtype=np.float64)
-        self._load = -load
-        self.no_load = False
+        self._load = load
+        self.load_position = load_position
+        self.has_load = False
 
         self.vector_projection = VectorProjection()
 
     @property
     def load(self):
-        if self.no_load is True:
+        if self.has_load is False:
             return np.zeros_like(self._load)
         return self._load
 
@@ -520,7 +633,6 @@ class Nodes:
             'z': self.z_arm,
             'dx': self.dx,
             'dz': self.dz,
-            'load': self.load,
             'Fx': self.Fx,
             'Fz': self.Fz,
             'My': self.My,
@@ -531,6 +643,97 @@ class Nodes:
 
     def __str__(self):
         return self.__repr__()
+
+
+class SolverLoad:
+    def __init__(self):
+        self.mem_loop = []
+
+    def solver_tensions_load(
+        self,
+        section: Span,
+        temperature=0,
+    ):
+        puissance = 3
+
+        # initialisation
+        perturb = 0.001
+        tension_vector = section.local_tension_matrix()
+        n_iter = range(1, 100)
+        vector_perturb = np.zeros_like(section.x_i)
+        # for debug we record init_force
+        self.init_force = tension_vector
+        relaxation = 0.5
+        # too strict?
+        stop_condition = 1.
+
+        # starting optimisation loop
+        for compteur in n_iter:
+            # compute jacobian
+            df_list = []
+
+            for i in range(len(section.x_i)):
+                vector_perturb[i] += perturb
+
+                dxi_d = section._delta_d_load(vector_perturb, "x_i")
+                dT_dxi = (dxi_d - tension_vector) / perturb
+                df_list.append(dT_dxi)
+
+                dzi_d = section._delta_d_load(vector_perturb, "z_i")
+                dT_dzi = (dzi_d - tension_vector) / perturb
+                df_list.append(dT_dzi)
+
+                vector_perturb[i] -= perturb
+
+            jacobian = np.array(df_list)
+
+            # memorize for norm
+            mem = np.linalg.norm(tension_vector)
+
+            # correction calculus
+            # TODO: check the cross product matrix / vector
+            correction = np.linalg.inv(jacobian.T) @ tension_vector
+
+            correction_x_i = correction[::2]
+            correction_z_i = correction[1::2]
+
+            section.x_i =  section.x_i - correction_x_i * (1 - relaxation **(compteur ** puissance))
+            section.z_i = section.z_i -  correction_z_i * (1 - relaxation **(compteur ** puissance))
+
+
+            # compute value to minimize
+            tension_vector = section.local_tension_matrix()
+            norm_d_param = np.abs(np.linalg.norm(tension_vector) ** 2 - mem**2)
+
+            print("**" * 10)
+            print(compteur)
+            # print(correction[1:-1])
+            print("tension vector norm: ", np.linalg.norm(tension_vector) ** 2)
+            print(f"{norm_d_param=}")
+            print("x_i: ", section.x_i)
+            print("z_i: ", section.z_i)
+            print(f"{norm_d_param=}")
+            # print("-"*10)
+            # print(section.nodes.dx)
+            # print(section.nodes.dz)
+
+            self.mem_loop.append(
+                {
+                    "num_loop": compteur,
+                    "norm_d_param": norm_d_param,
+                    "tension": tension_vector,
+                    "correction": correction,
+                }
+            )
+
+            # check value to minimze to break the loop
+            if norm_d_param < stop_condition:
+                # print("--end--"*10)
+                # print(norm_d_param)
+                break
+            if n_iter == compteur:
+                print("max iteration reached")
+                print(norm_d_param)
 
 
 class SolverBalance:
