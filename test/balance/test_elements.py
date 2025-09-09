@@ -52,6 +52,27 @@ def section_3d_no_altitude_change(cable_AM600) -> Span:
     )
 
 
+@fixture
+def section_3d_angles_arm(cable_AM600) -> Span:
+    nodes = Nodes(
+        L_chain=np.array([3, 3, 3, 3]),
+        weight_chain=np.array([1000, 500, 500, 1000]),
+        arm_length=np.array([0, 10, -10, 0]),
+        line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
+        x=np.array([0, 500, 800, 1200]),
+        z=np.array([30, 50, 60, 65]),
+        load=np.array([0, 0, 0]),
+        load_position=np.array([0, 0, 0]),
+    )
+
+    return Span(
+        parameter=2000,
+        sagging_temperature=15,
+        nodes=nodes,
+        cable=cable_AM600,
+    )
+
+
 def test_element_sandbox(cable_AM600: Cable):
     nodes_arm = Nodes(
         L_chain=np.array([3, 3, 3, 3]),
@@ -96,19 +117,19 @@ def test_element_sandbox_load(cable_AM600: Cable):
         load_position=np.array([0.5, 0.5, 0.5]),
     )
 
-    section = Span(
+    section_3d_angles_arm = Span(
         parameter=2000,
         sagging_temperature=15,
         nodes=nodes_arm,
         cable=cable_AM600,
     )
 
-    section.adjust()
-    section.L_ref
+    section_3d_angles_arm.adjust()
+    section_3d_angles_arm.L_ref
 
-    section.nodes.has_load = True
+    section_3d_angles_arm.nodes.has_load = True
 
-    section.change_state()
+    section_3d_angles_arm.change_state()
 
     assert True
 
@@ -200,25 +221,8 @@ def test_element_adjust_with_arm(cable_AM600: Cable):
     np.testing.assert_allclose(section_arm.nodes.dz, expected_dz, atol=1e-4)
 
 
-def test_element_adjust_with_angles(cable_AM600: Cable):
-    nodes_arm = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000, 500, 500, 1000]),
-        arm_length=np.array([0, 10, -10, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
-        x=np.array([0, 500, 800, 1200]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 0, 0, 0]),
-        load_position=np.array([0, 0, 0]),
-    )
-
-    section_arm = Span(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes_arm,
-        cable=cable_AM600,
-    )
-    section_arm.adjust()
+def test_element_adjust_with_angles(section_3d_angles_arm: Span):
+    section_3d_angles_arm.adjust()
     expected_dx = np.array(
         [
             2.98519820570843,
@@ -243,10 +247,22 @@ def test_element_adjust_with_angles(cable_AM600: Cable):
             -0.371165426239995,
         ]
     )
+    expected_L_ref = np.array(
+        [497.329093771962, 299.849533788068, 397.243869443178]
+    )
 
-    np.testing.assert_allclose(section_arm.nodes.dx, expected_dx, atol=1e-4)
-    np.testing.assert_allclose(section_arm.nodes.dy, expected_dy, atol=1e-4)
-    np.testing.assert_allclose(section_arm.nodes.dz, expected_dz, atol=1e-4)
+    np.testing.assert_allclose(
+        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section_3d_angles_arm.L_ref, expected_L_ref, atol=1e-4
+    )
 
 
 def test_element_change_state(section_3d_simple: Span):
@@ -278,7 +294,7 @@ def test_wind(cable_AM600: Cable):
     section.adjust()
     section.L_ref
 
-    section.cable_loads.wind_pressure = np.array([200, 200, 200, 200]) * -1
+    section.cable_loads.wind_pressure = np.array([200, 200, 200, 200])
     section.change_state()
     expected_dx = np.array(
         [
@@ -310,7 +326,90 @@ def test_wind(cable_AM600: Cable):
     np.testing.assert_allclose(section.nodes.dz, expected_dz, atol=1e-4)
 
 
-def test_element_load():
+def test_temperature(section_3d_angles_arm: Span):
+    section_3d_angles_arm.adjust()
+
+    section_3d_angles_arm.sagging_temperature = 90
+    section_3d_angles_arm.change_state()
+    expected_dx = np.array(
+        [
+            2.96987911200016,
+            -0.203601320556107,
+            -0.00208703890122741,
+            -2.9594874382405,
+        ]
+    )
+    expected_dy = np.array(
+        [
+            0.0635024174143705,
+            0.717771096088857,
+            0.942411070979133,
+            -0.0670142019873425,
+        ]
+    )
+    expected_dz = np.array(
+        [
+            -0.419267817853534,
+            -2.90574450974053,
+            -2.8481321980492,
+            -0.486768116898264,
+        ]
+    )
+    np.testing.assert_allclose(
+        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+    )
+
+
+def test_ice(section_3d_angles_arm: Span):
+    section_3d_angles_arm.adjust()
+
+    section_3d_angles_arm.cable_loads.ice_thickness = (
+        np.array([1, 1, 1, 1]) * 1e-2
+    )
+    section_3d_angles_arm.change_state()
+    expected_dx = np.array(
+        [
+            2.98328197567154,
+            -0.0327202608024265,
+            0.0165977073561802,
+            -2.97432426093715,
+        ]
+    )
+    expected_dy = np.array(
+        [
+            0.0647645798151866,
+            0.87144066769098,
+            1.12484584084215,
+            -0.0659967043228111,
+        ]
+    )
+    expected_dz = np.array(
+        [
+            -0.309570998051614,
+            -2.87045650502273,
+            -2.78108726048836,
+            -0.386056505992619,
+        ]
+    )
+
+    np.testing.assert_allclose(
+        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+    )
+
+
+def test_load():
     cable_AM600 = Cable(600.4e-6, 17.658, 0.000023, 60e9, 31.86e-3, 320)
     nodes_arm = Nodes(
         L_chain=np.array([3, 3, 3, 3]),

@@ -16,12 +16,12 @@ from mechaphlowers.core.models.external_loads import CableLoads
 
 @dataclass
 class Cable:
-    section: np.ndarray  # input in mm ?
-    lineic_weight: np.ndarray
-    dilation_coefficient: np.ndarray
-    young_modulus: np.ndarray
-    diameter: np.ndarray
-    cra: np.ndarray
+    section: np.float64  # input in mm ?
+    lineic_weight: np.float64
+    dilation_coefficient: np.float64
+    young_modulus: np.float64
+    diameter: np.float64
+    cra: np.float64
 
 
 class Span:
@@ -473,6 +473,71 @@ class Span:
         return self.__repr__()
 
 
+def find_parameter_function(
+    parameter: np.ndarray,
+    a: np.ndarray,
+    b: np.ndarray,
+    L_ref: np.ndarray,
+    cable_temperature: np.ndarray,
+    k_load: np.ndarray,
+    cable_section: np.float64,
+    lineic_weight: np.float64,
+    dilation_coefficient: np.float64,
+    young_modulus: np.float64,
+):
+    """this is a placeholder of sagtension algorithm"""
+    param = parameter
+
+    n_iter = 50
+    step = 1.0
+    for i in range(n_iter):
+        x_m = f.x_m(a, b, param)
+        x_n = f.x_n(a, b, param)
+        lon = f.L(param, x_n, x_m)
+        Tm1 = f.T_moy(
+            p=param,
+            L=lon,
+            x_n=a + f.x_m(a, b, param),
+            x_m=f.x_m(a, b, param),
+            lineic_weight=lineic_weight,
+            k_load=k_load,
+        )
+
+        delta1 = (lon - L_ref) / L_ref - (
+            dilation_coefficient * cable_temperature
+            + Tm1 / young_modulus / cable_section
+        )
+
+        mem = param
+        param = param + step
+
+        x_m = f.x_m(a, b, param)
+        x_n = f.x_n(a, b, param)
+        lon = f.L(param, x_n, x_m)
+        Tm1 = f.T_moy(
+            p=param,
+            L=lon,
+            x_n=a + f.x_m(a, b, param),
+            x_m=f.x_m(a, b, param),
+            lineic_weight=lineic_weight,
+            k_load=k_load,
+        )
+
+        delta2 = (lon - L_ref) / L_ref - (
+            dilation_coefficient * cable_temperature
+            + Tm1 / young_modulus / cable_section
+        )
+
+        param = (param - step) - delta1 / (delta2 - delta1)
+
+        if np.linalg.norm(mem - param) < 0.1 * param.size:
+            break
+        if i == n_iter:
+            print("max iter reached")
+
+    return param
+
+
 class Nodes:
     def __init__(
         self,
@@ -710,17 +775,17 @@ class SolverLoad:
             tension_vector = section.local_tension_matrix()
             norm_d_param = np.abs(np.linalg.norm(tension_vector) ** 2 - mem**2)
 
-            # print("**" * 10)
-            # print(compteur)
-            # # print(correction[1:-1])
-            # print("tension vector norm: ", np.linalg.norm(tension_vector) ** 2)
-            # print(f"{norm_d_param=}")
-            # print("x_i: ", section.x_i)
-            # print("z_i: ", section.z_i)
-            # print(f"{norm_d_param=}")
-            # print("-"*10)
-            # print(section.nodes.dx)
-            # print(section.nodes.dz)
+            print("**" * 10)
+            print("Solver x_i/z_i counter: ", compteur)
+            # print(correction[1:-1])
+            print("tension vector norm: ", np.linalg.norm(tension_vector) ** 2)
+            print(f"{norm_d_param=}")
+            print("x_i: ", section.x_i)
+            print("z_i: ", section.z_i)
+            print(f"{norm_d_param=}")
+            print("-" * 10)
+            print(section.nodes.dx)
+            print(section.nodes.dz)
 
             self.mem_loop.append(
                 {
@@ -857,14 +922,14 @@ class SolverBalance:
             force_vector = section.vector_force()
             norm_d_param = np.abs(np.linalg.norm(force_vector) ** 2 - mem**2)
 
-            # print("**" * 10)
-            # print(compteur)
-            # # print(correction[1:-1])
-            # print("force vector norm: ", np.linalg.norm(force_vector) ** 2)
-            # print(f"{norm_d_param=}")
-            # print("-"*10)
-            # print(section.nodes.dx)
-            # print(section.nodes.dz)
+            print("**" * 10)
+            print(compteur)
+            # print(correction[1:-1])
+            print("force vector norm: ", np.linalg.norm(force_vector) ** 2)
+            print(f"{norm_d_param=}")
+            print("-" * 10)
+            print(section.nodes.dx)
+            print(section.nodes.dz)
 
             self.mem_loop.append(
                 {
