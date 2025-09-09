@@ -84,7 +84,6 @@ def test_element_sandbox(cable_AM600: Cable):
     assert True
 
 
-
 def test_element_sandbox_load(cable_AM600: Cable):
     nodes_arm = Nodes(
         L_chain=np.array([3, 3, 3, 3]),
@@ -112,6 +111,7 @@ def test_element_sandbox_load(cable_AM600: Cable):
     section.change_state()
 
     assert True
+
 
 def test_element_initialisation(section_3d_simple: Span):
     # load = section_2d_note.nodes.load
@@ -311,7 +311,6 @@ def test_wind(cable_AM600: Cable):
 
 
 def test_element_load():
-
     cable_AM600 = Cable(600.4e-6, 17.658, 0.000023, 60e9, 31.86e-3, 320)
     nodes_arm = Nodes(
         L_chain=np.array([3, 3, 3, 3]),
@@ -342,7 +341,6 @@ def test_element_load():
     assert True
 
 
-
 def test_many_spans(cable_AM600: Cable):
     nb_spans = 50
     nodes_arm = Nodes(
@@ -350,7 +348,7 @@ def test_many_spans(cable_AM600: Cable):
         weight_chain=np.array([500] * nb_spans),
         arm_length=np.array([0] * nb_spans),
         line_angle=f.grad_to_rad(np.array([0] * nb_spans)),
-        x=np.arange(0,500 * nb_spans, 500),
+        x=np.arange(0, 500 * nb_spans, 500),
         z=np.array([50] * nb_spans),
         load=np.array([0] * (nb_spans - 1)),
         load_position=np.array([0.5] * (nb_spans - 1)),

@@ -94,7 +94,7 @@ class Span:
 
         """
         # Sign different from what already exists in CableLoads
-        return - self.cable_loads.load_angle[0:-1]
+        return -self.cable_loads.load_angle[0:-1]
 
     @property
     def L_ref(self):
