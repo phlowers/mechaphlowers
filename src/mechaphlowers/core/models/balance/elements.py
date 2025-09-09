@@ -93,7 +93,8 @@ class Span:
         Here: beta = [beta0, beta1, beta2] because the last value refers to the last support (no span related to this support)
 
         """
-        return self.cable_loads.load_angle[0:-1]
+        # Sign different from what already exists in CableLoads
+        return - self.cable_loads.load_angle[0:-1]
 
     @property
     def L_ref(self):
@@ -475,7 +476,6 @@ class Span:
 class Nodes:
     def __init__(
         self,
-        ntype: np.ndarray,
         L_chain: np.ndarray,
         weight_chain: np.ndarray,
         arm_length: np.ndarray,
@@ -486,8 +486,6 @@ class Nodes:
         load: np.ndarray,
         load_position: np.ndarray,
     ):
-        self.num = np.arange(len(ntype))
-        self.ntype = ntype
         self.L_chain = L_chain
         self.weight_chain = -weight_chain
         # arm length: positive length means further from observer
@@ -516,7 +514,7 @@ class Nodes:
         self._load = value
 
     def __len__(self):
-        return len(self.num)
+        return len(self.L_chain)
 
     @property
     def x(self):
@@ -631,8 +629,6 @@ class Nodes:
 
     def __repr__(self):
         data = {
-            'num': self.num,
-            'ntype': self.ntype,
             'L_chain': self.L_chain,
             'weight_chain': self.weight_chain,
             'x': self.x,
@@ -714,14 +710,14 @@ class SolverLoad:
             tension_vector = section.local_tension_matrix()
             norm_d_param = np.abs(np.linalg.norm(tension_vector) ** 2 - mem**2)
 
-            print("**" * 10)
-            print(compteur)
-            # print(correction[1:-1])
-            print("tension vector norm: ", np.linalg.norm(tension_vector) ** 2)
-            print(f"{norm_d_param=}")
-            print("x_i: ", section.x_i)
-            print("z_i: ", section.z_i)
-            print(f"{norm_d_param=}")
+            # print("**" * 10)
+            # print(compteur)
+            # # print(correction[1:-1])
+            # print("tension vector norm: ", np.linalg.norm(tension_vector) ** 2)
+            # print(f"{norm_d_param=}")
+            # print("x_i: ", section.x_i)
+            # print("z_i: ", section.z_i)
+            # print(f"{norm_d_param=}")
             # print("-"*10)
             # print(section.nodes.dx)
             # print(section.nodes.dz)
@@ -775,11 +771,11 @@ class SolverBalance:
             # compute jacobian
             df_list = []
 
-            for i in range(len(section.nodes.ntype)):
+            for i in range(len(section.nodes.L_chain)):
                 vector_perturb[i] += perturb
 
                 # TODO: refactor if/elif ? + node logic should not be in the solver
-                if i == 0 or i == len(section.nodes.ntype) - 1:
+                if i == 0 or i == len(section.nodes.L_chain) - 1:
                     dz_d = section._delta_d(vector_perturb, "dz")
                     dF_dz = (dz_d - force_vector) / perturb
                     df_list.append(dF_dz)
@@ -861,11 +857,11 @@ class SolverBalance:
             force_vector = section.vector_force()
             norm_d_param = np.abs(np.linalg.norm(force_vector) ** 2 - mem**2)
 
-            print("**" * 10)
-            print(compteur)
-            # print(correction[1:-1])
-            print("force vector norm: ", np.linalg.norm(force_vector) ** 2)
-            print(f"{norm_d_param=}")
+            # print("**" * 10)
+            # print(compteur)
+            # # print(correction[1:-1])
+            # print("force vector norm: ", np.linalg.norm(force_vector) ** 2)
+            # print(f"{norm_d_param=}")
             # print("-"*10)
             # print(section.nodes.dx)
             # print(section.nodes.dz)
