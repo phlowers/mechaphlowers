@@ -1,6 +1,7 @@
 # from https://github.com/NKrvavica/fqs/tree/master MIT Licence
 
 import math
+
 import numpy as np
 
 

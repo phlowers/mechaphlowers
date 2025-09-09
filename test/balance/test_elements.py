@@ -1,8 +1,8 @@
 import numpy as np
 from pytest import fixture
 
-from mechaphlowers.core.models.balance.elements import Cable, Nodes, Span
 import mechaphlowers.core.models.balance.functions as f
+from mechaphlowers.core.models.balance.elements import Cable, Nodes, Span
 
 
 @fixture
@@ -31,6 +31,7 @@ def section_3d_simple(cable_AM600) -> Span:
         cable=cable_AM600,
     )
 
+
 @fixture
 def section_3d_no_altitude_change(cable_AM600) -> Span:
     nodes = Nodes(
@@ -43,7 +44,6 @@ def section_3d_no_altitude_change(cable_AM600) -> Span:
         z=np.array([50, 50, 50, 50]),
         load=np.array([0, 0, 0, 0]),
         load_position=np.array([0, 0, 0]),
-
     )
 
     return Span(
@@ -78,7 +78,7 @@ def test_element_sandbox(cable_AM600: Cable):
 
     # section.sagging_temperature = 30
     # section.cable_loads.ice_thickness = np.array([1,1,1,1]) * 1e-2
-    section.cable_loads.wind_pressure = np.array([200,200,200,200])
+    section.cable_loads.wind_pressure = np.array([200, 200, 200, 200])
     section.change_state()
     print("Th", section.Th)
     print("dx", section.sb.final_dx)
@@ -255,7 +255,7 @@ def test_wind(cable_AM600: Cable):
     section.adjust()
     section.L_ref
 
-    section.cable_loads.wind_pressure = np.array([200,200,200,200]) *-1
+    section.cable_loads.wind_pressure = np.array([200, 200, 200, 200]) * -1
     section.change_state()
     expected_dx = np.array(
         [
@@ -285,7 +285,6 @@ def test_wind(cable_AM600: Cable):
     np.testing.assert_allclose(section.nodes.dx, expected_dx, atol=1e-4)
     np.testing.assert_allclose(section.nodes.dy, expected_dy, atol=1e-4)
     np.testing.assert_allclose(section.nodes.dz, expected_dz, atol=1e-4)
-
 
 
 def test_element_load(cable_AM600: Cable):

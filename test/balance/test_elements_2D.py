@@ -1,11 +1,12 @@
-from mechaphlowers.core.models.balance.elements import (
-    Cable,
-    Span,
-    Nodes,
-    SolverBalance,
-)
 import numpy as np
 from pytest import fixture
+
+from mechaphlowers.core.models.balance.elements import (
+    Cable,
+    Nodes,
+    SolverBalance,
+    Span,
+)
 
 
 @fixture

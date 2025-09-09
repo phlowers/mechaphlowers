@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from mechaphlowers.core.models.balance.utils_balance import VectorProjection
 

@@ -1,20 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
-from functools import lru_cache
 from typing import Literal
 
 import numpy as np
 import pandas as pd
 
-from mechaphlowers.core.models.balance import numeric
 import mechaphlowers.core.models.balance.functions as f
+from mechaphlowers.core.models.balance import numeric
 from mechaphlowers.core.models.balance.utils_balance import (
     VectorProjection,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
-import mechaphlowers.core.numeric.numeric as optimize
 
 
 @dataclass
@@ -82,7 +79,7 @@ class Span:
     def alpha(self):
         beta = self.beta
         return (
-            - np.acos(
+            -np.acos(
                 self.a / (self.a**2 + self.b**2 * np.sin(beta) ** 2) ** 0.5
             )
             * np.sign(beta)
@@ -135,11 +132,11 @@ class Span:
     @property
     def Th(self):
         return self._Th
-    
+
     @property
     def a_prime(self):
-        return (self.a ** 2 + self.b ** 2 * np.sin(self.beta) ** 2)** 0.5
-        
+        return (self.a**2 + self.b**2 * np.sin(self.beta) ** 2) ** 0.5
+
     @property
     def b_prime(self):
         return self.b * np.cos(self.beta)
@@ -147,7 +144,10 @@ class Span:
     def update_tensions(self):
         if not self.adjustment:
             c_param = self.cardan(
-                self.a_prime, self.b_prime, self.L_ref, self.sagging_temperature
+                self.a_prime,
+                self.b_prime,
+                self.L_ref,
+                self.sagging_temperature,
             )
 
             c_param = self.find_parameter(
@@ -166,9 +166,13 @@ class Span:
         x_m = f.x_m(self.a_prime, self.b_prime, c_param)
         x_n = f.x_n(self.a_prime, self.b_prime, c_param)
 
-        if self.nodes.has_load == True and abs(np.sum(self.nodes.load)) > 0: # and load array is no full zeros
+        if (
+            self.nodes.has_load == True and abs(np.sum(self.nodes.load)) > 0
+        ):  # and load array is no full zeros
             self.x_i = self.nodes.load_position * self.a_prime
-            self.z_i = f.z(self.x_i, self.parameter, x_m) - f.z(np.zeros_like(self.x_i), self.parameter , x_m)
+            self.z_i = f.z(self.x_i, self.parameter, x_m) - f.z(
+                np.zeros_like(self.x_i), self.parameter, x_m
+            )
             self.compute_tensions_with_loads()
 
             # ------ refactor this? only Th, x_n_right and x_m_left are used
@@ -219,11 +223,9 @@ class Span:
 
         return Th
 
-
     def compute_tensions_with_loads(self):
         solver_load = SolverLoad()
         solver_load.solver_tensions_load(self)
-        
 
     def update_projections(self):
         # TODO: alpha and beta
@@ -261,12 +263,12 @@ class Span:
     def Tv_d(self):
         return self._Tv_d
 
-
     def cardan(self, a, b, L0, cable_temperature):
         circle_chord = (a**2 + b**2) ** 0.5
 
         factor = (
-            self.cable.lineic_weight * self.k_load
+            self.cable.lineic_weight
+            * self.k_load
             / self.cable.young_modulus
             / self.cable.section
         )
@@ -295,7 +297,7 @@ class Span:
         param = parameter
 
         n_iter = 50
-        step = 1.
+        step = 1.0
         for i in range(n_iter):
             x_m = f.x_m(a, b, param)
             x_n = f.x_n(a, b, param)
@@ -306,7 +308,7 @@ class Span:
                 x_n=a + f.x_m(a, b, param),
                 x_m=f.x_m(a, b, param),
                 lineic_weight=self.cable.lineic_weight,
-                k_load=self.k_load
+                k_load=self.k_load,
             )
 
             delta1 = (lon - L_ref) / L_ref - (
@@ -326,7 +328,7 @@ class Span:
                 x_n=a + f.x_m(a, b, param),
                 x_m=f.x_m(a, b, param),
                 lineic_weight=self.cable.lineic_weight,
-                k_load=self.k_load
+                k_load=self.k_load,
             )
 
             delta2 = (lon - L_ref) / L_ref - (
@@ -373,16 +375,18 @@ class Span:
         out = np.array([self.nodes.Mx, self.nodes.My]).flatten('F')
         return out
 
-
     def local_tension_matrix(self):
         # TODO: refactor this?
 
-        # left side of the load 
+        # left side of the load
         L_ref_left = self.nodes.load_position * self.L_ref
         span_length_left = self.x_i
         elevation_diff_left = self.z_i
         param_loc_left = self.cardan(
-            span_length_left, elevation_diff_left, L_ref_left, self.sagging_temperature
+            span_length_left,
+            elevation_diff_left,
+            L_ref_left,
+            self.sagging_temperature,
         )
 
         param_loc_left = self.find_parameter(
@@ -397,12 +401,15 @@ class Span:
         x_n = f.x_n(span_length_left, elevation_diff_left, param_loc_left)
         Tv_d_loc = -Th_left * np.sinh(x_n / param_loc_left)
 
-        # right
+        # right
         L_ref_right = self.L_ref - L_ref_left
         span_length_right = self.a_prime - self.x_i
         elevation_diff_right = self.b_prime - self.z_i
         param_loc_right = self.cardan(
-            span_length_right, elevation_diff_right, L_ref_right, self.sagging_temperature
+            span_length_right,
+            elevation_diff_right,
+            L_ref_right,
+            self.sagging_temperature,
         )
 
         param_loc_right = self.find_parameter(
@@ -421,8 +428,7 @@ class Span:
 
         return np.array([Th, Tv]).flatten('F')
 
-
-    def _delta_d(self, perturbation, variable_name: Literal["dx","dy","dz"]):
+    def _delta_d(self, perturbation, variable_name: Literal["dx", "dy", "dz"]):
         self.nodes.__dict__[variable_name] += perturbation
         self.nodes.compute_dx_dy_dz()
         self.update_span()  # transmet_portee: update a and b
@@ -440,15 +446,15 @@ class Span:
 
         return force_vector
 
-    def _delta_d_load(self, perturbation, variable_name: Literal["x_i", "z_i"]):
+    def _delta_d_load(
+        self, perturbation, variable_name: Literal["x_i", "z_i"]
+    ):
         self.__dict__[variable_name] += perturbation
-
 
         force_vector = self.local_tension_matrix()
         self.__dict__[variable_name] -= perturbation
 
         return force_vector
-
 
     def __repr__(self):
         data = {
@@ -665,7 +671,7 @@ class SolverLoad:
         self.init_force = tension_vector
         relaxation = 0.5
         # too strict?
-        stop_condition = 1.
+        stop_condition = 1.0
 
         # starting optimisation loop
         for compteur in n_iter:
@@ -697,9 +703,12 @@ class SolverLoad:
             correction_x_i = correction[::2]
             correction_z_i = correction[1::2]
 
-            section.x_i =  section.x_i - correction_x_i * (1 - relaxation **(compteur ** puissance))
-            section.z_i = section.z_i -  correction_z_i * (1 - relaxation **(compteur ** puissance))
-
+            section.x_i = section.x_i - correction_x_i * (
+                1 - relaxation ** (compteur**puissance)
+            )
+            section.z_i = section.z_i - correction_z_i * (
+                1 - relaxation ** (compteur**puissance)
+            )
 
             # compute value to minimize
             tension_vector = section.local_tension_matrix()
