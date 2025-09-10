@@ -1,3 +1,10 @@
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -168,7 +175,7 @@ class Span:
         x_n = f.x_n(self.a_prime, self.b_prime, c_param)
 
         if (
-            self.nodes.has_load == True and abs(np.sum(self.nodes.load)) > 0
+            self.nodes.has_load and abs(np.sum(self.nodes.load)) > 0
         ):  # and load array is no full zeros
             self.x_i = self.nodes.load_position * self.a_prime
             self.z_i = f.z(self.x_i, self.parameter, x_m) - f.z(
