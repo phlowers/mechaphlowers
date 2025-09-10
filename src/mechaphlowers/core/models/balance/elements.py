@@ -149,82 +149,63 @@ class Span:
     def b_prime(self):
         return self.b * np.cos(self.beta)
 
+    def compute_Th_and_extremum(self, a, b, L_ref):
+        """In this method, a, b, and L_ref may refer to a semi span"""
+        parameter = self.cardan(a, b, L_ref, self.sagging_temperature)
+        parameter = self.find_parameter(
+            parameter,
+            a,
+            b,
+            L_ref,
+            self.sagging_temperature,
+        )
+        Th = parameter * self.cable.lineic_weight * self.k_load
+        x_m = f.x_m(a, b, parameter)
+        x_n = f.x_n(a, b, parameter)
+        return Th, x_m, x_n, parameter
+
     def update_tensions(self):
-        if not self.adjustment:
-            c_param = self.cardan(
-                self.a_prime,
-                self.b_prime,
-                self.L_ref,
-                self.sagging_temperature,
-            )
+        if self.adjustment:
+            # adjustment case
+            parameter = self._parameter
 
-            c_param = self.find_parameter(
-                c_param,
-                self.a_prime,
-                self.b_prime,
-                self.L_ref,
-                self.sagging_temperature,
-            )
-            self._parameter = c_param
+            Th = parameter * self.cable.lineic_weight * self.k_load
+
+            x_m = f.x_m(self.a_prime, self.b_prime, parameter)
+            x_n = f.x_n(self.a_prime, self.b_prime, parameter)
+
         else:
-            c_param = self._parameter
-
-        Th = c_param * self.cable.lineic_weight * self.k_load
-
-        x_m = f.x_m(self.a_prime, self.b_prime, c_param)
-        x_n = f.x_n(self.a_prime, self.b_prime, c_param)
-
-        if (
-            self.nodes.has_load and abs(np.sum(self.nodes.load)) > 0
-        ):  # and load array is no full zeros
-            self.x_i = self.nodes.load_position * self.a_prime
-            self.z_i = f.z(self.x_i, self.parameter, x_m) - f.z(
-                np.zeros_like(self.x_i), self.parameter, x_m
+            # Change state and no load:
+            Th, x_m, x_n, parameter = self.compute_Th_and_extremum(
+                self.a_prime, self.b_prime, self.L_ref
             )
-            self.compute_tensions_with_loads()
+            self._parameter = parameter
 
-            # ------ refactor this? only Th, x_n_right and x_m_left are used
-            a_right = self.a_prime - self.x_i
-            b_right = self.b_prime - self.z_i
-            L_ref_right = (1 - self.nodes.load_position) * self.L_ref
-            c_param_right = self.cardan(
-                a_right, b_right, L_ref_right, self.sagging_temperature
-            )
-            c_param_right = self.find_parameter(
-                c_param_right,
-                a_right,
-                b_right,
-                L_ref_right,
-                self.sagging_temperature,
-            )
-            Th_loc = c_param_right * self.cable.lineic_weight * self.k_load
-            x_m_right = f.x_m(a_right, b_right, c_param_right)
-            x_n_right = f.x_n(a_right, b_right, c_param_right)
-            # ---------
-            a_left = self.x_i
-            b_left = self.z_i
-            L_ref_left = self.nodes.load_position * self.L_ref
-            c_param_left = self.cardan(
-                a_left, b_left, L_ref_left, self.sagging_temperature
-            )
-            c_param_left = self.find_parameter(
-                c_param_left,
-                a_left,
-                b_left,
-                L_ref_left,
-                self.sagging_temperature,
-            )
-            Th_loc = c_param_left * self.cable.lineic_weight * self.k_load
-            x_m_left = f.x_m(a_left, b_left, c_param_left)
-            x_n_left = f.x_n(a_left, b_left, c_param_left)
+            if self.nodes.has_load and abs(np.sum(self.nodes.load)) > 0:
+                # Change state and load
+                self.x_i = self.nodes.load_position * self.a_prime
+                self.z_i = f.z(self.x_i, self.parameter, x_m) - f.z(
+                    np.zeros_like(self.x_i), self.parameter, x_m
+                )
+                self.compute_tensions_with_loads()
 
-            Th = Th_loc
-            x_m = x_m_left
-            x_n = x_n_right
-            c_param = c_param_left
+                # Left Th and right Th are equal because balance just got solved (same for parameter)
+                a_left = self.x_i
+                b_left = self.z_i
+                L_ref_left = self.nodes.load_position * self.L_ref
+                Th, x_m_left, _, parameter = self.compute_Th_and_extremum(
+                    a_left, b_left, L_ref_left
+                )
 
-        self._Tv_g = Th * (np.sinh(x_m / c_param))
-        self._Tv_d = -Th * (np.sinh(x_n / c_param))
+                a_right = self.a_prime - self.x_i
+                b_right = self.b_prime - self.z_i
+                x_n_right = f.x_n(a_right, b_right, parameter)
+
+                x_m = x_m_left
+                x_n = x_n_right
+
+        self._Tv_g = Th * (np.sinh(x_m / parameter))
+        self._Tv_d = -Th * (np.sinh(x_n / parameter))
         self._Th = Th
 
         self.update_projections()
@@ -384,52 +365,25 @@ class Span:
         return out
 
     def local_tension_matrix(self):
-        # TODO: refactor this?
-
         # left side of the load
         L_ref_left = self.nodes.load_position * self.L_ref
-        span_length_left = self.x_i
-        elevation_diff_left = self.z_i
-        param_loc_left = self.cardan(
-            span_length_left,
-            elevation_diff_left,
-            L_ref_left,
-            self.sagging_temperature,
-        )
+        a_left = self.x_i
+        b_left = self.z_i
 
-        param_loc_left = self.find_parameter(
-            param_loc_left,
-            span_length_left,
-            elevation_diff_left,
-            L_ref_left,
-            self.sagging_temperature,
+        Th_left, _, x_n_left, parameter_left = self.compute_Th_and_extremum(
+            a_left, b_left, L_ref_left
         )
-        Th_left = param_loc_left * self.cable.lineic_weight * self.k_load
-        x_m = f.x_m(span_length_left, elevation_diff_left, param_loc_left)
-        x_n = f.x_n(span_length_left, elevation_diff_left, param_loc_left)
-        Tv_d_loc = -Th_left * np.sinh(x_n / param_loc_left)
+        Tv_d_loc = -Th_left * np.sinh(x_n_left / parameter_left)
 
         # right
         L_ref_right = self.L_ref - L_ref_left
-        span_length_right = self.a_prime - self.x_i
-        elevation_diff_right = self.b_prime - self.z_i
-        param_loc_right = self.cardan(
-            span_length_right,
-            elevation_diff_right,
-            L_ref_right,
-            self.sagging_temperature,
-        )
+        a_right = self.a_prime - self.x_i
+        b_right = self.b_prime - self.z_i
 
-        param_loc_right = self.find_parameter(
-            param_loc_right,
-            span_length_right,
-            elevation_diff_right,
-            L_ref_right,
-            self.sagging_temperature,
+        Th_right, x_m_right, _, parameter_right = self.compute_Th_and_extremum(
+            a_right, b_right, L_ref_right
         )
-        Th_right = param_loc_right * self.cable.lineic_weight * self.k_load
-        x_m = f.x_m(span_length_right, elevation_diff_right, param_loc_right)
-        Tv_g_loc = Th_right * np.sinh(x_m / param_loc_right)
+        Tv_g_loc = Th_right * np.sinh(x_m_right / parameter_right)
 
         Th = Th_left - Th_right
         Tv = Tv_d_loc + Tv_g_loc - self.nodes.load * self.k_load
