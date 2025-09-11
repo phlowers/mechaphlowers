@@ -29,7 +29,7 @@ def eig_cubic_roots(p):
 
 
 def test_cubic_roots():
-    import plotly.graph_objects as go
+    # import plotly.graph_objects as go
 
     # fig = go.Figure()
     # x = np.arange(-5, 5, 0.01, dtype=float)

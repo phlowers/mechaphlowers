@@ -34,14 +34,12 @@ class Cable:
 class Span:
     def __init__(
         self,
-        sagging_temperature: np.ndarray,
+        sagging_temperature: float,
         nodes: Nodes,
-        parameter: np.ndarray = None,
-        cable: Cable = None,
-        adjustment: bool = True,
+        parameter: float,
+        cable: Cable,
     ):
-        self.sagging_temperature = sagging_temperature
-        self.adjustment = adjustment
+        self.sagging_temperature = np.float64(sagging_temperature)
         self.nodes = nodes
         self._parameter = parameter * np.ones(len(self.nodes) - 1)
         self.cable = cable
@@ -52,20 +50,22 @@ class Span:
             np.zeros_like(nodes.weight_chain),
         )
 
-        self.nodes.has_load = False
-        self.init_Lref_mode = False
-        # TODO: during L_ref computation, perhaps set cable_temperature = 0
+        self.adjustment = True
+        # TODO: during adjustment computation, perhaps set cable_temperature = 0
         # temperature here is tuning temperature / only in the real span part
         # there is another temperature : change state
+        self.nodes.has_load = False
 
         self.update_span()
         self.update_tensions()
         self.nodes.vector_projection.set_tensions(
             self._Th, self.Tv_d, self.Tv_g
         )
-        self.nodes.compute_moment(True)
+        self.nodes.compute_moment()
 
     def adjust(self):
+        self.adjustment = True
+
         self.sb = SolverBalance()
         self.sb.solver_balance_3d(self)
 
@@ -166,7 +166,7 @@ class Span:
 
     def update_tensions(self):
         if self.adjustment:
-            # adjustment case
+            # Case: adjustment
             parameter = self._parameter
 
             Th = parameter * self.cable.lineic_weight * self.k_load
@@ -175,14 +175,14 @@ class Span:
             x_n = f.x_n(self.a_prime, self.b_prime, parameter)
 
         else:
-            # Change state and no load:
+            # Case: change state + no load:
             Th, x_m, x_n, parameter = self.compute_Th_and_extremum(
                 self.a_prime, self.b_prime, self.L_ref
             )
             self._parameter = parameter
 
             if self.nodes.has_load and abs(np.sum(self.nodes.load)) > 0:
-                # Change state and load
+                # Case: change state + with load
                 self.x_i = self.nodes.load_position * self.a_prime
                 self.z_i = f.z(self.x_i, self.parameter, x_m) - f.z(
                     np.zeros_like(self.x_i), self.parameter, x_m
@@ -217,7 +217,6 @@ class Span:
         solver_load.solver_tensions_load(self)
 
     def update_projections(self):
-        # TODO: alpha and beta
         alpha = self.alpha
         beta = self.beta
 
@@ -337,29 +336,23 @@ class Span:
     def update_span(self):
         """transmet_portee"""
         # warning for dev : we dont use the first element of span vectors for the moment
-        # if self.init_Lref_mode is True:
-        #     x = self.nodes._x
-        #     z = self.nodes._z
-        # else:
-        x = self.nodes.x
         z = self.nodes.z
 
         self.compute_inter()
 
         self.a = (self.inter1**2 + self.inter2**2) ** 0.5
-        b = z - np.roll(z, 1)
-        self.b = b[1:]
+        b = np.roll(z, -1) - z
+        self.b = b[:-1]
 
-    def vector_force(self, update_dx_dz=True):
+    def vector_moment(self):
+        """[Mx0, My0, Mx1, My1,...]"""
         self.update_tensions()
         self.nodes.vector_projection.set_tensions(
             self._Th,
             self.Tv_d,
             self.Tv_g,
         )
-        self.nodes.compute_moment(
-            update_dx_dy_dz=update_dx_dz,
-        )
+        self.nodes.compute_moment()
 
         out = np.array([self.nodes.Mx, self.nodes.My]).flatten('F')
         return out
@@ -397,7 +390,7 @@ class Span:
 
         self.update_tensions()  # Th : cardan for parameter then compute Th, Tvd, Tvg
 
-        force_vector = self.vector_force(update_dx_dz=False)
+        force_vector = self.vector_moment()
 
         self.nodes.__dict__[variable_name] -= perturbation
 
@@ -606,6 +599,10 @@ class Nodes:
         self._y = np.zeros_like(x, dtype=np.float64)
 
     def compute_dx_dy_dz(self):
+        """Update dx and dz according to L_chain and the othre displacement, using Pytagoras
+        For anchor chains: update dx
+        For suspension chains: update dz
+        """
         L_chain = self.L_chain
 
         suspension_shift = -((L_chain**2 - self.dx**2 - self.dy**2) ** 0.5)
@@ -615,11 +612,10 @@ class Nodes:
         self.dx[0] = anchor_shift[0]
         self.dx[-1] = -anchor_shift[-1]
 
-    def compute_moment(self, update_dx_dy_dz=True):
+    def compute_moment(self):
         # Placeholder for force computation logic
 
-        if update_dx_dy_dz:
-            self.compute_dx_dy_dz()
+        self.compute_dx_dy_dz()
 
         Fx, Fy, Fz = self.vector_projection.forces()
 
@@ -680,7 +676,6 @@ class SolverLoad:
     def solver_tensions_load(
         self,
         section: Span,
-        temperature=0,
     ):
         puissance = 3
 
@@ -719,7 +714,6 @@ class SolverLoad:
             mem = np.linalg.norm(tension_vector)
 
             # correction calculus
-            # TODO: check the cross product matrix / vector
             correction = np.linalg.inv(jacobian.T) @ tension_vector
 
             correction_x_i = correction[::2]
@@ -775,7 +769,6 @@ class SolverBalance:
     def solver_balance_3d(
         self,
         section: Span,
-        temperature=0,
     ):
         puissance = 3
 
@@ -784,7 +777,7 @@ class SolverBalance:
 
         # initialisation
         perturb = 0.0001
-        force_vector = section.vector_force()
+        force_vector = section.vector_moment()
         n_iter = range(1, 100)
         vector_perturb = np.zeros_like(section.nodes.dx)
         # for debug we record init_force
@@ -803,23 +796,23 @@ class SolverBalance:
                 # TODO: refactor if/elif ? + node logic should not be in the solver
                 if i == 0 or i == len(section.nodes.L_chain) - 1:
                     dz_d = section._delta_d(vector_perturb, "dz")
-                    dF_dz = (dz_d - force_vector) / perturb
-                    df_list.append(dF_dz)
+                    dM_dz = (dz_d - force_vector) / perturb
+                    df_list.append(dM_dz)
 
                     dy_d = section._delta_d(vector_perturb, "dy")
-                    dF_dy = (dy_d - force_vector) / perturb
-                    df_list.append(dF_dy)
+                    dM_dy = (dy_d - force_vector) / perturb
+                    df_list.append(dM_dy)
 
                     vector_perturb[i] -= perturb
 
                 else:
                     dx_d = section._delta_d(vector_perturb, "dx")
-                    dF_dx = (dx_d - force_vector) / perturb
-                    df_list.append(dF_dx)
+                    dM_dx = (dx_d - force_vector) / perturb
+                    df_list.append(dM_dx)
 
                     dy_d = section._delta_d(vector_perturb, "dy")
-                    dF_dy = (dy_d - force_vector) / perturb
-                    df_list.append(dF_dy)
+                    dM_dy = (dy_d - force_vector) / perturb
+                    df_list.append(dM_dy)
 
                     vector_perturb[i] -= perturb
 
@@ -841,14 +834,6 @@ class SolverBalance:
             section.nodes.dy[1:-1] = section.nodes.dy[1:-1] - correction_my[
                 1:-1
             ] * (1 - relaxation ** (compteur**puissance))
-            section.nodes.dz[1:-1] = -(
-                (
-                    section.nodes.L_chain[1:-1] ** 2
-                    - section.nodes.dx[1:-1] ** 2
-                    - section.nodes.dy[1:-1] ** 2
-                )
-                ** 0.5
-            )
 
             section.nodes.dz[[0, -1]] = section.nodes.dz[
                 [0, -1]
@@ -860,19 +845,6 @@ class SolverBalance:
             ] - correction_my[[0, -1]] * (
                 1 - relaxation ** (compteur**puissance)
             )
-            section.nodes.dx[0] = (
-                section.nodes.L_chain[0] ** 2
-                - section.nodes.dz[0] ** 2
-                - section.nodes.dy[0] ** 2
-            ) ** 0.5
-            section.nodes.dx[-1] = -(
-                (
-                    section.nodes.L_chain[-1] ** 2
-                    - section.nodes.dz[-1] ** 2
-                    - section.nodes.dy[-1] ** 2
-                )
-                ** 0.5
-            )
 
             # update
             section.nodes.compute_dx_dy_dz()
@@ -880,7 +852,7 @@ class SolverBalance:
             section.update_span()
 
             # compute value to minimize
-            force_vector = section.vector_force()
+            force_vector = section.vector_moment()
             norm_d_param = np.abs(np.linalg.norm(force_vector) ** 2 - mem**2)
 
             print("**" * 10)
