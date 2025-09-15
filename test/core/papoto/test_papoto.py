@@ -31,4 +31,4 @@ def test_papoto_function_0():
         H2=H2,
         V2=V2,
     )
-    np.testing.assert_allclose(parameter, np.array([2000, np.nan]), atol=1.)
+    np.testing.assert_allclose(parameter, np.array([2000, np.nan]), atol=1.0)
