@@ -20,6 +20,10 @@ from mechaphlowers.core.models.balance.utils_balance import (
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Cable:
@@ -329,7 +333,7 @@ class Span:
             if np.linalg.norm(mem - param) < 0.1 * param.size:
                 break
             if i == n_iter:
-                print("max iter reached")
+                logger.info("max iter reached")
 
         return param
 
@@ -410,30 +414,19 @@ class Span:
     
 
     def _delta_d(self, perturbation):
-
         
-        self.state_vector += perturbation
-        
+        self.state_vector += perturbation        
         self.update()
-        # self.nodes.compute_dx_dy_dz()
-        # self.update_tensions()  # Th : cardan for parameter then compute Th, Tvd, Tvg
-        # self.update_span()  # transmet_portee: update a and b
-
         force_vector = self.vector_moment()
         self.state_vector -= perturbation
-
-
-
         self.nodes.compute_dx_dy_dz()
-        # TODO: here the following steps have been removed but the span object is not set in the same state.
-        # self.update_span()
-        # self.update_tensions()
 
         return force_vector
 
     def _delta_d_load(
         self, perturbation, variable_name: Literal["x_i", "z_i"]
     ):
+        #TODO: refactor
         self.__dict__[variable_name] += perturbation
 
         force_vector = self.local_tension_matrix()
@@ -442,6 +435,8 @@ class Span:
         return force_vector
     
     def update(self):
+        # old update here: now inside state_vector
+        #TODO: perhaps inside dx, dy, dz setters ?
         # self.nodes.compute_dx_dy_dz()
         self.update_tensions()
         self.update_span()
@@ -522,7 +517,7 @@ def find_parameter_function(
         if np.linalg.norm(mem - param) < 0.1 * param.size:
             break
         if i == n_iter:
-            print("max iter reached")
+            logger.info("max iter reached")
 
     return param
 
@@ -551,9 +546,6 @@ class Nodes:
         self.init_coordinates(x, z)
         # dx, dy, dz are the distances between the, including the chain
         self.dxdydz = np.zeros((3,len(x)), dtype=np.float64)
-        # self.dx = 
-        # self.dy = np.zeros_like(x, dtype=np.float64)
-        # self.dz = np.zeros_like(z, dtype=np.float64)
         self._load = load
         self.load_position = load_position
         self.has_load = False
@@ -811,17 +803,16 @@ class SolverLoad:
             tension_vector = section.local_tension_matrix()
             norm_d_param = np.abs(np.linalg.norm(tension_vector) ** 2 - mem**2)
 
-            print("**" * 10)
-            print("Solver x_i/z_i counter: ", compteur)
-            # print(correction[1:-1])
-            print("tension vector norm: ", np.linalg.norm(tension_vector) ** 2)
-            print(f"{norm_d_param=}")
-            print("x_i: ", section.x_i)
-            print("z_i: ", section.z_i)
-            print(f"{norm_d_param=}")
-            print("-" * 10)
-            print(section.nodes.dx)
-            print(section.nodes.dz)
+            logger.info("**" * 10)
+            logger.info("Solver x_i/z_i counter: ", compteur)
+            logger.info("tension vector norm: ", np.linalg.norm(tension_vector) ** 2)
+            logger.info(f"{norm_d_param=}")
+            logger.info(f"x_i: {section.x_i=}")
+            logger.info(f"z_i: {section.z_i=}")
+            logger.info(f"{norm_d_param=}")
+            logger.info("-" * 10)
+            logger.info(f"{section.nodes.dx=}")
+            logger.info(f"{section.nodes.dz}")
 
             self.mem_loop.append(
                 {
@@ -834,12 +825,13 @@ class SolverLoad:
 
             # check value to minimze to break the loop
             if norm_d_param < stop_condition:
-                # print("--end--"*10)
-                # print(norm_d_param)
+                logger.info("----"*10)
+                logger.info("solver ends after stop condition")
+                # logger.info(norm_d_param)
                 break
             if n_iter == compteur:
-                print("max iteration reached")
-                print(norm_d_param)
+                logger.warning("max iteration reached")
+                logger.warning(f"{norm_d_param=}")
 
 
 class SolverBalance:
@@ -885,14 +877,14 @@ class SolverBalance:
             force_vector = section.vector_moment()
             norm_d_param = np.abs(np.linalg.norm(force_vector) ** 2 - mem**2)
 
-            print("**" * 10)
-            print(compteur)
-            # print(correction[1:-1])
-            print("force vector norm: ", np.linalg.norm(force_vector) ** 2)
-            print(f"{norm_d_param=}")
-            print("-" * 10)
-            print(section.nodes.dx)
-            print(section.nodes.dz)
+            logger.info("**" * 10)
+            logger.info(str(compteur))
+
+            logger.info(f"force vector norm:  {np.linalg.norm(force_vector) ** 2=}")
+            logger.info(f"{norm_d_param=}")
+            logger.info("-" * 10)
+            logger.info(f"{section.nodes.dx=}")
+            logger.info(f"{section.nodes.dz=}")
 
             self.mem_loop.append(
                 {
@@ -907,14 +899,14 @@ class SolverBalance:
 
             # check value to minimze to break the loop
             if norm_d_param < stop_condition:
-                # print("--end--"*10)
-                # print(norm_d_param)
+                # logger.info("--end--"*10)
+                # logger.info(norm_d_param)
                 break
             if n_iter == compteur:
-                print("max iteration reached")
-                print(norm_d_param)
+                logger.info("max iteration reached")
+                logger.info(f"{norm_d_param=}")
 
-        print(f"force vector norm: {np.linalg.norm(force_vector)}")
+        logger.info(f"force vector norm: {np.linalg.norm(force_vector)}")
         self.final_dx = section.nodes.dx
         self.final_dy = section.nodes.dy
         self.final_dz = section.nodes.dz
