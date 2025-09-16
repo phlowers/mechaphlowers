@@ -382,9 +382,59 @@ class Span:
         Tv = Tv_d_loc + Tv_g_loc - self.nodes.load * self.k_load
 
         return np.array([Th, Tv]).flatten('F')
+    
+    @property
+    def state_vector(self):
+        return self.nodes.state_vector
+    
+    @state_vector.setter
+    def state_vector(self, value):
+        self.nodes.state_vector = value
+    
+    def jacobian(self, force_vector, perturb=1e-4):
+        
+        vector_perturb = np.zeros_like(self.nodes.dx)
+        df_list = []
+
+        for i in range(len(self.nodes.L_chain)):
+            vector_perturb[i] += perturb
+
+                # TODO: refactor if/elif ? + node logic should not be in the solver
+            if i == 0 or i == len(self.nodes.L_chain) - 1:
+                dz_d = self._delta_d(vector_perturb, "dz")
+                dM_dz = (dz_d - force_vector) / perturb
+                df_list.append(dM_dz)
+
+                dy_d = self._delta_d(vector_perturb, "dy")
+                dM_dy = (dy_d - force_vector) / perturb
+                df_list.append(dM_dy)
+
+                vector_perturb[i] -= perturb
+
+            else:
+                dx_d = self._delta_d(vector_perturb, "dx")
+                dM_dx = (dx_d - force_vector) / perturb
+                df_list.append(dM_dx)
+
+                dy_d = self._delta_d(vector_perturb, "dy")
+                dM_dy = (dy_d - force_vector) / perturb
+                df_list.append(dM_dy)
+
+                vector_perturb[i] -= perturb
+
+        jacobian = np.array(df_list)
+        return jacobian
+    
 
     def _delta_d(self, perturbation, variable_name: Literal["dx", "dy", "dz"]):
-        self.nodes.__dict__[variable_name] += perturbation
+        
+        if variable_name == "dx":
+            self.nodes.dx += perturbation
+        elif variable_name == "dy":
+            self.nodes.dy += perturbation
+        else:
+            self.nodes.dz += perturbation
+            
         self.nodes.compute_dx_dy_dz()
         self.update_span()  # transmet_portee: update a and b
 
@@ -392,7 +442,13 @@ class Span:
 
         force_vector = self.vector_moment()
 
-        self.nodes.__dict__[variable_name] -= perturbation
+        if variable_name == "dx":
+            self.nodes.dx -= perturbation
+        elif variable_name == "dy":
+            self.nodes.dy -= perturbation
+        else:
+            self.nodes.dz -= perturbation
+
 
         self.nodes.compute_dx_dy_dz()
         # TODO: here the following steps have been removed but the span object is not set in the same state.
@@ -492,6 +548,8 @@ def find_parameter_function(
     return param
 
 
+
+
 class Nodes:
     def __init__(
         self,
@@ -513,14 +571,39 @@ class Nodes:
         self.line_angle = line_angle
         self.init_coordinates(x, z)
         # dx, dy, dz are the distances between the, including the chain
-        self.dx = np.zeros_like(x, dtype=np.float64)
-        self.dy = np.zeros_like(x, dtype=np.float64)
-        self.dz = np.zeros_like(z, dtype=np.float64)
+        self.dxdydz = np.zeros((3,len(x)), dtype=np.float64)
+        # self.dx = 
+        # self.dy = np.zeros_like(x, dtype=np.float64)
+        # self.dz = np.zeros_like(z, dtype=np.float64)
         self._load = load
         self.load_position = load_position
         self.has_load = False
 
         self.vector_projection = VectorProjection()
+
+    @property
+    def dx(self):
+        return self.dxdydz[0]
+    
+    @dx.setter
+    def dx(self, value):
+        self.dxdydz[0] = value
+    
+    @property
+    def dy(self):
+        return self.dxdydz[1]
+    
+    @dy.setter
+    def dy(self, value):
+        self.dxdydz[1] = value
+
+    @property
+    def dz(self):
+        return self.dxdydz[2]
+    
+    @dz.setter
+    def dz(self, value):
+        self.dxdydz[2] = value
 
     @property
     def load(self):
@@ -583,6 +666,23 @@ class Nodes:
         ) * np.sin(self.line_angle / 2)
 
         return np.array([proj_s_axis, proj_t_axis])
+    
+    @property
+    def state_vector(self):
+        
+        dxdy = self.dxdydz[[0,1], 1:-1]
+        dzdy = self.dxdydz[[2,1]][:,[0,-1]]
+        return np.vstack([dzdy[:,0], dxdy.T, dzdy[:,1]]).flatten()
+    
+    @state_vector.setter
+    def state_vector(self, state_vector):
+        #TODO: refactor with mask
+        dzdxdz = state_vector[::2]
+        dy = state_vector[1::2]
+        
+        self.dy = dy
+        self.dx[1:-1] = dzdxdz[1:-1]
+        self.dz[[0,-1]] = dzdxdz[[0,-1]]
 
     def init_coordinates(self, x, z):
         self.x_anchor_chain = np.zeros_like(x)
@@ -779,7 +879,7 @@ class SolverBalance:
         perturb = 0.0001
         force_vector = section.vector_moment()
         n_iter = range(1, 100)
-        vector_perturb = np.zeros_like(section.nodes.dx)
+        
         # for debug we record init_force
         self.init_force = force_vector
         relaxation = 0.8
@@ -788,35 +888,7 @@ class SolverBalance:
         # starting optimisation loop
         for compteur in n_iter:
             # compute jacobian
-            df_list = []
-
-            for i in range(len(section.nodes.L_chain)):
-                vector_perturb[i] += perturb
-
-                # TODO: refactor if/elif ? + node logic should not be in the solver
-                if i == 0 or i == len(section.nodes.L_chain) - 1:
-                    dz_d = section._delta_d(vector_perturb, "dz")
-                    dM_dz = (dz_d - force_vector) / perturb
-                    df_list.append(dM_dz)
-
-                    dy_d = section._delta_d(vector_perturb, "dy")
-                    dM_dy = (dy_d - force_vector) / perturb
-                    df_list.append(dM_dy)
-
-                    vector_perturb[i] -= perturb
-
-                else:
-                    dx_d = section._delta_d(vector_perturb, "dx")
-                    dM_dx = (dx_d - force_vector) / perturb
-                    df_list.append(dM_dx)
-
-                    dy_d = section._delta_d(vector_perturb, "dy")
-                    dM_dy = (dy_d - force_vector) / perturb
-                    df_list.append(dM_dy)
-
-                    vector_perturb[i] -= perturb
-
-            jacobian = np.array(df_list)
+            jacobian = section.jacobian(force_vector, perturb)
 
             # memorize for norm
             mem = np.linalg.norm(force_vector)
@@ -889,3 +961,5 @@ class SolverBalance:
         self.final_dy = section.nodes.dy
         self.final_dz = section.nodes.dz
         self.final_force = force_vector
+
+
