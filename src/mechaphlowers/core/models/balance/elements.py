@@ -393,61 +393,35 @@ class Span:
     
     def jacobian(self, force_vector, perturb=1e-4):
         
-        vector_perturb = np.zeros_like(self.nodes.dx)
+        vector_perturb = np.zeros_like(force_vector)
         df_list = []
 
-        for i in range(len(self.nodes.L_chain)):
+        for i in range(len(vector_perturb)):
             vector_perturb[i] += perturb
 
-                # TODO: refactor if/elif ? + node logic should not be in the solver
-            if i == 0 or i == len(self.nodes.L_chain) - 1:
-                dz_d = self._delta_d(vector_perturb, "dz")
-                dM_dz = (dz_d - force_vector) / perturb
-                df_list.append(dM_dz)
+            M_perturb = self._delta_d(vector_perturb)
+            dM_dperturb = (M_perturb - force_vector) / perturb
+            df_list.append(dM_dperturb)
 
-                dy_d = self._delta_d(vector_perturb, "dy")
-                dM_dy = (dy_d - force_vector) / perturb
-                df_list.append(dM_dy)
-
-                vector_perturb[i] -= perturb
-
-            else:
-                dx_d = self._delta_d(vector_perturb, "dx")
-                dM_dx = (dx_d - force_vector) / perturb
-                df_list.append(dM_dx)
-
-                dy_d = self._delta_d(vector_perturb, "dy")
-                dM_dy = (dy_d - force_vector) / perturb
-                df_list.append(dM_dy)
-
-                vector_perturb[i] -= perturb
+            vector_perturb[i] -= perturb
 
         jacobian = np.array(df_list)
         return jacobian
     
 
-    def _delta_d(self, perturbation, variable_name: Literal["dx", "dy", "dz"]):
-        
-        if variable_name == "dx":
-            self.nodes.dx += perturbation
-        elif variable_name == "dy":
-            self.nodes.dy += perturbation
-        else:
-            self.nodes.dz += perturbation
-            
-        self.nodes.compute_dx_dy_dz()
-        self.update_span()  # transmet_portee: update a and b
+    def _delta_d(self, perturbation):
 
-        self.update_tensions()  # Th : cardan for parameter then compute Th, Tvd, Tvg
+        
+        self.state_vector += perturbation
+        
+        self.update()
+        # self.nodes.compute_dx_dy_dz()
+        # self.update_tensions()  # Th : cardan for parameter then compute Th, Tvd, Tvg
+        # self.update_span()  # transmet_portee: update a and b
 
         force_vector = self.vector_moment()
+        self.state_vector -= perturbation
 
-        if variable_name == "dx":
-            self.nodes.dx -= perturbation
-        elif variable_name == "dy":
-            self.nodes.dy -= perturbation
-        else:
-            self.nodes.dz -= perturbation
 
 
         self.nodes.compute_dx_dy_dz()
@@ -466,6 +440,11 @@ class Span:
         self.__dict__[variable_name] -= perturbation
 
         return force_vector
+    
+    def update(self):
+        # self.nodes.compute_dx_dy_dz()
+        self.update_tensions()
+        self.update_span()
 
     def __repr__(self):
         data = {
@@ -683,6 +662,8 @@ class Nodes:
         self.dy = dy
         self.dx[1:-1] = dzdxdz[1:-1]
         self.dz[[0,-1]] = dzdxdz[[0,-1]]
+        #TODO: verify compute_dxdy_dz is not too much called
+        self.compute_dx_dy_dz()
 
     def init_coordinates(self, x, z):
         self.x_anchor_chain = np.zeros_like(x)
@@ -872,8 +853,7 @@ class SolverBalance:
     ):
         puissance = 3
 
-        section.update_tensions()
-        section.update_span()
+        section.update()
 
         # initialisation
         perturb = 0.0001
@@ -894,34 +874,12 @@ class SolverBalance:
             mem = np.linalg.norm(force_vector)
 
             # correction calculus
-            # TODO: check the cross product matrix / vector
             correction = np.linalg.inv(jacobian.T) @ force_vector
 
-            correction_mx = correction[::2]
-            correction_my = correction[1::2]
-
-            section.nodes.dx[1:-1] = section.nodes.dx[1:-1] - correction_mx[
-                1:-1
-            ] * (1 - relaxation ** (compteur**puissance))
-            section.nodes.dy[1:-1] = section.nodes.dy[1:-1] - correction_my[
-                1:-1
-            ] * (1 - relaxation ** (compteur**puissance))
-
-            section.nodes.dz[[0, -1]] = section.nodes.dz[
-                [0, -1]
-            ] - correction_mx[[0, -1]] * (
-                1 - relaxation ** (compteur**puissance)
-            )
-            section.nodes.dy[[0, -1]] = section.nodes.dy[
-                [0, -1]
-            ] - correction_my[[0, -1]] * (
-                1 - relaxation ** (compteur**puissance)
-            )
+            section.state_vector = section.state_vector - correction * (1 - relaxation ** (compteur**puissance))
 
             # update
-            section.nodes.compute_dx_dy_dz()
-            section.update_tensions()
-            section.update_span()
+            section.update()
 
             # compute value to minimize
             force_vector = section.vector_moment()
