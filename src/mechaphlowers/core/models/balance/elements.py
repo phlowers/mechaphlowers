@@ -261,9 +261,9 @@ class Span(ModelForSolver):
         solver.solve(
             model_load,
             perturb=0.001,
-            relaxation=0.5,
+            relax_ratio=0.5,
             stop_condition=1.0,
-            puissance=3,
+            relax_power=3,
         )
         self.x_i = model_load.x_i
         self.z_i = model_load.z_i
@@ -598,7 +598,7 @@ class Nodes:
         self.z_suspension_chain[1:-1] = -self.L_chain[1:-1]
 
         # warning: x0 and z0 does not mean the same thing
-        # x0 is the absissa of the
+        # x0 is the absissa of the arm
         # z0 is the altitude of the attachement point
         self._x0 = x
         self._z0 = z
@@ -792,41 +792,43 @@ class Solver:
         model: ModelForSolver,
         perturb=0.0001,
         stop_condition=1e-3,
-        relaxation=0.8,
-        puissance=3,
-        max_iter=100
+        relax_ratio=0.8,
+        relax_power=3,
+        max_iter=100,
     ):
         # initialisation
         model.update()
-        objective = model.objective_function()
+        objective_vector = model.objective_function()
 
         # starting optimisation loop
         for counter in range(1, max_iter):
             # compute jacobian
-            jacobian = self.jacobian(objective, model, perturb)
+            jacobian = self.jacobian(objective_vector, model, perturb)
 
             # memorize for norm
-            mem = np.linalg.norm(objective)
+            mem = np.linalg.norm(objective_vector)
 
             # correction calculus
-            correction = np.linalg.inv(jacobian.T) @ objective
+            correction = np.linalg.inv(jacobian.T) @ objective_vector
 
             model.state_vector = model.state_vector - correction * (
-                1 - relaxation ** (counter**puissance)
+                1 - relax_ratio ** (counter**relax_power)
             )
 
             model.update()
 
             # compute value to minimize
-            objective = model.objective_function()
-            norm_d_param = np.abs(np.linalg.norm(objective) ** 2 - mem**2)
+            objective_vector = model.objective_function()
+            norm_d_param = np.abs(
+                np.linalg.norm(objective_vector) ** 2 - mem**2
+            )
 
             # store values for debug
             dict_to_store = {
                 "num_loop": counter,
-                "objective": objective,
+                "objective": objective_vector,
                 "state_vector": model.state_vector,
-                }
+            }
             dict_to_store.update(model.dict_to_store())
             self.mem_loop.append(dict_to_store)
 
@@ -837,31 +839,30 @@ class Solver:
                 logger.info("max iteration reached")
                 logger.info(f"{norm_d_param=}")
 
-
     def jacobian(
         self,
-        force_vector: np.ndarray,
+        objective_vector: np.ndarray,
         model: ModelForSolver,
         perturb: float = 1e-4,
     ):
-        vector_perturb = np.zeros_like(force_vector)
+        vector_perturb = np.zeros_like(objective_vector)
         df_list = []
 
         for i in range(len(vector_perturb)):
             vector_perturb[i] += perturb
 
-            T_perturb = self._delta_d(model, vector_perturb)
-            dM_dperturb = (T_perturb - force_vector) / perturb
-            df_list.append(dM_dperturb)
+            f_perturb = self._delta_d(model, vector_perturb)
+            df_dperturb = (f_perturb - objective_vector) / perturb
+            df_list.append(df_dperturb)
 
             vector_perturb[i] -= perturb
 
         jacobian = np.array(df_list)
         return jacobian
 
-    def _delta_d(self, model: ModelForSolver, perturbation):
-        model.state_vector += perturbation
+    def _delta_d(self, model: ModelForSolver, vector_perturb: np.ndarray):
+        model.state_vector += vector_perturb
         model.update()
-        force_vector = model.objective_function()
-        model.state_vector -= perturbation
-        return force_vector
+        perturbed_force_vector = model.objective_function()
+        model.state_vector -= vector_perturb
+        return perturbed_force_vector
