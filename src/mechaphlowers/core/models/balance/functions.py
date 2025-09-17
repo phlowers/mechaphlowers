@@ -5,47 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-from functools import lru_cache, wraps
-
 import numpy as np
-
-
-# not used for the moment
-def np_cache(*args, **kwargs):
-    """
-    LRU cache implementation for functions whose parameter at ``array_argument_index`` is a numpy array of dimensions <= 2
-
-    https://gist.github.com/Susensio/61f4fee01150caaac1e10fc5f005eb75
-
-    Example:
-    >>> from sem_env.utils.cache import np_cache
-    >>> array = np.array([[1, 2, 3], [4, 5, 6]])
-    >>> @np_cache(maxsize=256)
-    ... def multiply(array, factor):
-    ...     return factor * array
-    >>> multiply(array, 2)
-    >>> multiply(array, 2)
-    >>> multiply.cache_info()
-    CacheInfo(hits=1, misses=1, maxsize=256, currsize=1)
-    """
-
-    def decorator(function):
-        @wraps(function)
-        def wrapper(np_array, *args, **kwargs):
-            hashable_array = tuple(np_array)
-            return cached_wrapper(hashable_array, *args, **kwargs)
-
-        @lru_cache(*args, **kwargs)
-        def cached_wrapper(hashable_array, *args, **kwargs):
-            array = np.array(hashable_array)
-            return function(array, *args, **kwargs)
-
-        # copy lru_cache attributes over too
-        wrapper.cache_info = cached_wrapper.cache_info
-        wrapper.cache_clear = cached_wrapper.cache_clear
-        return wrapper
-
-    return decorator
 
 
 def L(p, x_n, x_m):

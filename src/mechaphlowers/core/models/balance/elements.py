@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 import numpy as np
@@ -16,6 +15,8 @@ import pandas as pd
 
 import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance import numeric
+from mechaphlowers.core.models.balance.model_interface import ModelForSolver
+from mechaphlowers.core.models.balance.solver import Solver
 from mechaphlowers.core.models.balance.utils_balance import (
     VectorProjection,
 )
@@ -32,29 +33,6 @@ class Cable:
     young_modulus: np.float64
     diameter: np.float64
     cra: np.float64
-
-
-class ModelForSolver(ABC):
-    @property
-    @abstractmethod
-    def state_vector(self) -> np.ndarray:
-        pass
-
-    @state_vector.setter
-    @abstractmethod
-    def state_vector(self, value) -> None:
-        pass
-
-    @abstractmethod
-    def objective_function(self) -> np.ndarray:
-        pass
-
-    @abstractmethod
-    def update(self) -> None:
-        pass
-
-    def dict_to_store(self) -> dict:
-        return {}
 
 
 class Span(ModelForSolver):
@@ -142,14 +120,14 @@ class Span(ModelForSolver):
 
         cable_length = f.L(
             parameter,
-            a + f.x_m(a, b, parameter),
+            f.x_n(a, b, parameter),
             f.x_m(a, b, parameter),
         )
 
         T_mean = f.T_moy(
             p=parameter,
             L=cable_length,
-            x_n=a + f.x_m(a, b, parameter),
+            x_n=f.x_n(a, b, parameter),
             x_m=f.x_m(a, b, parameter),
             lineic_weight=self.cable.lineic_weight,
         )
@@ -177,7 +155,9 @@ class Span(ModelForSolver):
 
     def compute_Th_and_extremum(self, a, b, L_ref):
         """In this method, a, b, and L_ref may refer to a semi span"""
-        parameter = self.cardan(a, b, L_ref, self.sagging_temperature)
+        parameter = self.approx_parameter(
+            a, b, L_ref, self.sagging_temperature
+        )
         parameter = find_parameter_function(
             parameter,
             a,
@@ -303,7 +283,7 @@ class Span(ModelForSolver):
     def Tv_d(self):
         return self._Tv_d
 
-    def cardan(self, a, b, L0, cable_temperature):
+    def approx_parameter(self, a, b, L0, cable_temperature):
         circle_chord = (a**2 + b**2) ** 0.5
 
         factor = (
@@ -735,7 +715,7 @@ class LoadModel(ModelForSolver):
 
     def compute_Th_and_extremum(self, a, b, L_ref):
         """In this method, a, b, and L_ref may refer to a semi span"""
-        parameter = self.cardan(a, b, L_ref, self.temperature)
+        parameter = self.approx_parameter(a, b, L_ref, self.temperature)
         parameter = find_parameter_function(
             parameter,
             a,
@@ -753,7 +733,7 @@ class LoadModel(ModelForSolver):
         x_n = f.x_n(a, b, parameter)
         return Th, x_m, x_n, parameter
 
-    def cardan(self, a, b, L0, cable_temperature):
+    def approx_parameter(self, a, b, L0, cable_temperature):
         # extract cardan?
         circle_chord = (a**2 + b**2) ** 0.5
 
@@ -781,88 +761,3 @@ class LoadModel(ModelForSolver):
 
     def update(self):
         pass
-
-
-class Solver:
-    def __init__(self):
-        self.mem_loop = []
-
-    def solve(
-        self,
-        model: ModelForSolver,
-        perturb=0.0001,
-        stop_condition=1e-3,
-        relax_ratio=0.8,
-        relax_power=3,
-        max_iter=100,
-    ):
-        # initialisation
-        model.update()
-        objective_vector = model.objective_function()
-
-        # starting optimisation loop
-        for counter in range(1, max_iter):
-            # compute jacobian
-            jacobian = self.jacobian(objective_vector, model, perturb)
-
-            # memorize for norm
-            mem = np.linalg.norm(objective_vector)
-
-            # correction calculus
-            correction = np.linalg.inv(jacobian.T) @ objective_vector
-
-            model.state_vector = model.state_vector - correction * (
-                1 - relax_ratio ** (counter**relax_power)
-            )
-
-            model.update()
-
-            # compute value to minimize
-            objective_vector = model.objective_function()
-            norm_d_param = np.abs(
-                np.linalg.norm(objective_vector) ** 2 - mem**2
-            )
-
-            # store values for debug
-            dict_to_store = {
-                "num_loop": counter,
-                "objective": objective_vector,
-                "state_vector": model.state_vector,
-            }
-            dict_to_store.update(model.dict_to_store())
-            self.mem_loop.append(dict_to_store)
-
-            # check value to minimze to break the loop
-            if norm_d_param < stop_condition:
-                break
-            if max_iter == counter:
-                logger.info("max iteration reached")
-                logger.info(f"{norm_d_param=}")
-
-    def jacobian(
-        self,
-        objective_vector: np.ndarray,
-        model: ModelForSolver,
-        perturb: float = 1e-4,
-    ):
-        vector_perturb = np.zeros_like(objective_vector)
-        df_list = []
-
-        for i in range(len(vector_perturb)):
-            vector_perturb[i] += perturb
-
-            f_perturb = self._delta_d(model, vector_perturb)
-            df_dperturb = (f_perturb - objective_vector) / perturb
-            df_list.append(df_dperturb)
-
-            vector_perturb[i] -= perturb
-
-        jacobian = np.array(df_list)
-        return jacobian
-
-    def _delta_d(self, model: ModelForSolver, vector_perturb: np.ndarray):
-        model.state_vector += vector_perturb
-        model.update()
-        perturbed_force_vector = model.objective_function()
-        model.state_vector -= vector_perturb
-        return perturbed_force_vector
