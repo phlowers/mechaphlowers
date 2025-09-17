@@ -804,8 +804,8 @@ class SolverLoad:
             norm_d_param = np.abs(np.linalg.norm(tension_vector) ** 2 - mem**2)
 
             logger.info("**" * 10)
-            logger.info("Solver x_i/z_i counter: ", compteur)
-            logger.info("tension vector norm: ", np.linalg.norm(tension_vector) ** 2)
+            logger.info(f"Solver x_i/z_i counter:  {compteur}")
+            logger.info(f"tension vector norm: {np.linalg.norm(tension_vector) ** 2}")
             logger.info(f"{norm_d_param=}")
             logger.info(f"x_i: {section.x_i=}")
             logger.info(f"z_i: {section.z_i=}")
