@@ -6,8 +6,9 @@
 
 
 import numpy as np
-
-from mechaphlowers.core.papoto.papoto_model import papoto
+import autograd.numpy as anp
+from autograd import elementwise_grad as egrad  # for functions that vectorize over inputs
+from mechaphlowers.core.papoto.papoto_model import f_factory, function_f_prime, papoto
 
 
 def test_papoto_function_0():

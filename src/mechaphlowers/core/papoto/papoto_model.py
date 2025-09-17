@@ -6,6 +6,8 @@
 
 
 import numpy as np
+import autograd.numpy as anp
+from autograd import elementwise_grad as egrad  # for functions that vectorize over inputs
 
 try:
     from scipy import optimize  # type: ignore
@@ -122,10 +124,14 @@ def parameter_solver(
     except KeyError:
         raise ValueError(f"Incorrect solver name: {solver}")
 
+    # f = f_factory(a,h,delta,x)
+    # f_prime = function_f_prime(a,h,delta,x)
+    f = function_f
+    f_prime =function_f_prime
     solver_result = solver_method(
-        function_f,
+        f,
         p0,
-        fprime=function_f_prime,
+        fprime=f_prime,
         args=(a, h, delta, x),
         maxiter=10,
         tol=1e-5,
@@ -143,9 +149,30 @@ def function_f(
     delta: np.ndarray,
     x: np.ndarray,
 ):
-    val = a / 2 - p * np.asinh(h / (2 * p * np.sinh(a / 2 / p)))
-    f = p * (np.cosh(val / p) - np.cosh((x - val) / p)) - delta
+    val = a / 2 - p * anp.arcsinh(h / (2 * p * anp.sinh(a / (2 * p))))
+    f = p * (anp.cosh(val / p) - anp.cosh((x - val) / p)) - delta
     return f
+
+
+# def f_factory(
+#     a: np.ndarray,
+#     h: np.ndarray,
+#     delta: np.ndarray,
+#     x: np.ndarray
+#     ):
+#     def f(p):
+#         return function_f(p, a, h ,delta, x)
+#     return f
+
+
+# def function_f_prime(    
+#         a: np.ndarray,
+#         h: np.ndarray,
+#         delta: np.ndarray,
+#         x: np.ndarray
+#     ):
+#         f = f_factory(a=a, h=h, delta=delta, x=x)
+#         return egrad(f)
 
 
 def function_f_prime(
