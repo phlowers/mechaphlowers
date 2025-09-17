@@ -53,6 +53,9 @@ class ModelForSolver(ABC):
     def update(self) -> None:
         pass
 
+    def dict_to_store(self) -> dict:
+        return {}
+
 
 class Span(ModelForSolver):
     def __init__(
@@ -366,6 +369,13 @@ class Span(ModelForSolver):
         # for other cases, order does not seem to matter
         self.update_span()
         self.update_tensions()
+
+    def dict_to_store(self):
+        return {
+            "dx": self.nodes.dx,
+            "dy": self.nodes.dy,
+            "dz": self.nodes.dz,
+        }
 
     def __repr__(self):
         data = {
@@ -774,9 +784,8 @@ class LoadModel(ModelForSolver):
 
 
 class Solver:
-    def __init__(self, adjustment=True):
+    def __init__(self):
         self.mem_loop = []
-        self.adjustment = adjustment
 
     def solve(
         self,
@@ -785,70 +794,49 @@ class Solver:
         stop_condition=1e-3,
         relaxation=0.8,
         puissance=3,
+        max_iter=100
     ):
-        model.update()
-
         # initialisation
-        force_vector = model.objective_function()
-        n_iter = range(1, 100)
-
-        # for debug we record init_force
-        self.init_force = force_vector
+        model.update()
+        objective = model.objective_function()
 
         # starting optimisation loop
-        for compteur in n_iter:
+        for counter in range(1, max_iter):
             # compute jacobian
-            jacobian = self.jacobian(force_vector, model, perturb)
+            jacobian = self.jacobian(objective, model, perturb)
 
             # memorize for norm
-            mem = np.linalg.norm(force_vector)
+            mem = np.linalg.norm(objective)
 
             # correction calculus
-            correction = np.linalg.inv(jacobian.T) @ force_vector
+            correction = np.linalg.inv(jacobian.T) @ objective
 
             model.state_vector = model.state_vector - correction * (
-                1 - relaxation ** (compteur**puissance)
+                1 - relaxation ** (counter**puissance)
             )
 
-            # update
             model.update()
 
             # compute value to minimize
-            force_vector = model.objective_function()
-            norm_d_param = np.abs(np.linalg.norm(force_vector) ** 2 - mem**2)
+            objective = model.objective_function()
+            norm_d_param = np.abs(np.linalg.norm(objective) ** 2 - mem**2)
 
-            # logger.info("**" * 10)
-            # logger.info(str(compteur))
-
-            # logger.info(
-            #     f"force vector norm:  {np.linalg.norm(force_vector) ** 2=}"
-            # )
-            # logger.info(f"{norm_d_param=}")
-            # logger.info("-" * 10)
-            # logger.info(f"{section.nodes.dx=}")
-            # logger.info(f"{section.nodes.dz=}")
-
-            # self.mem_loop.append(
-            #     {
-            #         "num_loop": compteur,
-            #         "norm_d_param": norm_d_param,
-            #         "force": force_vector,
-            #         "dx": section.nodes.dx,
-            #         "dz": section.nodes.dz,
-            #         "correction": correction,
-            #     }
-            # )
+            # store values for debug
+            dict_to_store = {
+                "num_loop": counter,
+                "objective": objective,
+                "state_vector": model.state_vector,
+                }
+            dict_to_store.update(model.dict_to_store())
+            self.mem_loop.append(dict_to_store)
 
             # check value to minimze to break the loop
             if norm_d_param < stop_condition:
-                # logger.info("--end--"*10)
-                # logger.info(norm_d_param)
                 break
-            if n_iter == compteur:
+            if max_iter == counter:
                 logger.info("max iteration reached")
                 logger.info(f"{norm_d_param=}")
 
-        # logger.info(f"force vector norm: {np.linalg.norm(force_vector)}")
 
     def jacobian(
         self,
@@ -872,7 +860,6 @@ class Solver:
         return jacobian
 
     def _delta_d(self, model: ModelForSolver, perturbation):
-        # almost same method than Span
         model.state_vector += perturbation
         model.update()
         force_vector = model.objective_function()
