@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Literal
 
@@ -20,10 +21,8 @@ from mechaphlowers.core.models.balance.utils_balance import (
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 
-import logging
-
-
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class Cable:
@@ -60,8 +59,8 @@ class Span:
         # there is another temperature : change state
         self.nodes.has_load = False
 
-        self.update_span()
-        self.update_tensions()
+        self.update()
+        self.nodes.compute_dx_dy_dz()
         self.nodes.vector_projection.set_tensions(
             self._Th, self.Tv_d, self.Tv_g
         )
@@ -386,17 +385,16 @@ class Span:
         Tv = Tv_d_loc + Tv_g_loc - self.nodes.load * self.k_load
 
         return np.array([Th, Tv]).flatten('F')
-    
+
     @property
     def state_vector(self):
         return self.nodes.state_vector
-    
+
     @state_vector.setter
     def state_vector(self, value):
         self.nodes.state_vector = value
-    
+
     def jacobian(self, force_vector, perturb=1e-4):
-        
         vector_perturb = np.zeros_like(force_vector)
         df_list = []
 
@@ -411,35 +409,34 @@ class Span:
 
         jacobian = np.array(df_list)
         return jacobian
-    
 
     def _delta_d(self, perturbation):
-        
-        self.state_vector += perturbation        
+        self.state_vector += perturbation
         self.update()
         force_vector = self.vector_moment()
         self.state_vector -= perturbation
-        self.nodes.compute_dx_dy_dz()
 
         return force_vector
 
     def _delta_d_load(
         self, perturbation, variable_name: Literal["x_i", "z_i"]
     ):
-        #TODO: refactor
+        # TODO: refactor
         self.__dict__[variable_name] += perturbation
 
         force_vector = self.local_tension_matrix()
         self.__dict__[variable_name] -= perturbation
 
         return force_vector
-    
+
     def update(self):
         # old update here: now inside state_vector
-        #TODO: perhaps inside dx, dy, dz setters ?
+        # TODO: perhaps inside dx, dy, dz setters ?
         # self.nodes.compute_dx_dy_dz()
-        self.update_tensions()
         self.update_span()
+        self.update_tensions()
+        # for the init only, update_span() needs to be call before update_tensions()
+        # for other cases, order does not seem to matter
 
     def __repr__(self):
         data = {
@@ -522,8 +519,6 @@ def find_parameter_function(
     return param
 
 
-
-
 class Nodes:
     def __init__(
         self,
@@ -545,7 +540,7 @@ class Nodes:
         self.line_angle = line_angle
         self.init_coordinates(x, z)
         # dx, dy, dz are the distances between the, including the chain
-        self.dxdydz = np.zeros((3,len(x)), dtype=np.float64)
+        self.dxdydz = np.zeros((3, len(x)), dtype=np.float64)
         self._load = load
         self.load_position = load_position
         self.has_load = False
@@ -555,15 +550,15 @@ class Nodes:
     @property
     def dx(self):
         return self.dxdydz[0]
-    
+
     @dx.setter
     def dx(self, value):
         self.dxdydz[0] = value
-    
+
     @property
     def dy(self):
         return self.dxdydz[1]
-    
+
     @dy.setter
     def dy(self, value):
         self.dxdydz[1] = value
@@ -571,7 +566,7 @@ class Nodes:
     @property
     def dz(self):
         return self.dxdydz[2]
-    
+
     @dz.setter
     def dz(self, value):
         self.dxdydz[2] = value
@@ -637,24 +632,23 @@ class Nodes:
         ) * np.sin(self.line_angle / 2)
 
         return np.array([proj_s_axis, proj_t_axis])
-    
+
     @property
     def state_vector(self):
-        
-        dxdy = self.dxdydz[[0,1], 1:-1]
-        dzdy = self.dxdydz[[2,1]][:,[0,-1]]
-        return np.vstack([dzdy[:,0], dxdy.T, dzdy[:,1]]).flatten()
-    
+        dxdy = self.dxdydz[[0, 1], 1:-1]
+        dzdy = self.dxdydz[[2, 1]][:, [0, -1]]
+        return np.vstack([dzdy[:, 0], dxdy.T, dzdy[:, 1]]).flatten()
+
     @state_vector.setter
     def state_vector(self, state_vector):
-        #TODO: refactor with mask
+        # TODO: refactor with mask
         dzdxdz = state_vector[::2]
         dy = state_vector[1::2]
-        
+
         self.dy = dy
         self.dx[1:-1] = dzdxdz[1:-1]
-        self.dz[[0,-1]] = dzdxdz[[0,-1]]
-        #TODO: verify compute_dxdy_dz is not too much called
+        self.dz[[0, -1]] = dzdxdz[[0, -1]]
+        # TODO: verify compute_dxdy_dz is not too much called
         self.compute_dx_dy_dz()
 
     def init_coordinates(self, x, z):
@@ -687,8 +681,6 @@ class Nodes:
 
     def compute_moment(self):
         # Placeholder for force computation logic
-
-        self.compute_dx_dy_dz()
 
         Fx, Fy, Fz = self.vector_projection.forces()
 
@@ -805,7 +797,9 @@ class SolverLoad:
 
             logger.info("**" * 10)
             logger.info(f"Solver x_i/z_i counter:  {compteur}")
-            logger.info(f"tension vector norm: {np.linalg.norm(tension_vector) ** 2}")
+            logger.info(
+                f"tension vector norm: {np.linalg.norm(tension_vector) ** 2}"
+            )
             logger.info(f"{norm_d_param=}")
             logger.info(f"x_i: {section.x_i=}")
             logger.info(f"z_i: {section.z_i=}")
@@ -825,7 +819,7 @@ class SolverLoad:
 
             # check value to minimze to break the loop
             if norm_d_param < stop_condition:
-                logger.info("----"*10)
+                logger.info("----" * 10)
                 logger.info("solver ends after stop condition")
                 # logger.info(norm_d_param)
                 break
@@ -851,7 +845,7 @@ class SolverBalance:
         perturb = 0.0001
         force_vector = section.vector_moment()
         n_iter = range(1, 100)
-        
+
         # for debug we record init_force
         self.init_force = force_vector
         relaxation = 0.8
@@ -868,7 +862,9 @@ class SolverBalance:
             # correction calculus
             correction = np.linalg.inv(jacobian.T) @ force_vector
 
-            section.state_vector = section.state_vector - correction * (1 - relaxation ** (compteur**puissance))
+            section.state_vector = section.state_vector - correction * (
+                1 - relaxation ** (compteur**puissance)
+            )
 
             # update
             section.update()
@@ -880,7 +876,9 @@ class SolverBalance:
             logger.info("**" * 10)
             logger.info(str(compteur))
 
-            logger.info(f"force vector norm:  {np.linalg.norm(force_vector) ** 2=}")
+            logger.info(
+                f"force vector norm:  {np.linalg.norm(force_vector) ** 2=}"
+            )
             logger.info(f"{norm_d_param=}")
             logger.info("-" * 10)
             logger.info(f"{section.nodes.dx=}")
@@ -911,5 +909,3 @@ class SolverBalance:
         self.final_dy = section.nodes.dy
         self.final_dz = section.nodes.dz
         self.final_force = force_vector
-
-

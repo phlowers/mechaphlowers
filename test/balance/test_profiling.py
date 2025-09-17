@@ -4,13 +4,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import random
+
 import numpy as np
-from pytest import fixture
 
 import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance.elements import Cable, Nodes, Span
-
-import random
 
 
 def test_load_all_spans_wind_ice_temp_profiling():
