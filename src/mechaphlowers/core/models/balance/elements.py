@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 import numpy as np
@@ -33,7 +34,27 @@ class Cable:
     cra: np.float64
 
 
-class Span:
+class ModelForSolver(ABC):
+    @property
+    @abstractmethod
+    def state_vector(self) -> np.ndarray:
+        pass
+
+    @state_vector.setter
+    @abstractmethod
+    def state_vector(self, value) -> None:
+        pass
+
+    @abstractmethod
+    def objective_function(self) -> np.ndarray:
+        pass
+
+    @abstractmethod
+    def update(self) -> None:
+        pass
+
+
+class Span(ModelForSolver):
     def __init__(
         self,
         sagging_temperature: float,
@@ -68,8 +89,8 @@ class Span:
     def adjust(self):
         self.adjustment = True
 
-        self.sb = SolverBalance()
-        self.sb.solver_balance_3d(self)
+        self.sb = Solver()
+        self.sb.solve(self)
 
         self._L_ref = self.update_L_ref()
 
@@ -77,8 +98,8 @@ class Span:
         self.adjustment = False
         self.nodes.has_load = True
 
-        self.sb = SolverBalance()
-        self.sb.solver_balance_3d(self)
+        self.sb = Solver()
+        self.sb.solve(self)
 
     @property
     def k_load(self):
@@ -220,21 +241,27 @@ class Span:
         return Th
 
     def compute_tensions_with_loads(self):
-        model_load = ModelLoad(
-            self.x_i,
-            self.z_i,
+        model_load = LoadModel(
+            self.cable,
             self.nodes.load,
             self.nodes.load_position,
             self.L_ref,
+            self.x_i,
+            self.z_i,
             self.a_prime,
             self.b_prime,
             self.k_load,
             self.sagging_temperature,
-            self.cable,
         )
 
-        solver_load = SolverLoad()
-        solver_load.solver_tensions_load(model_load)
+        solver = Solver()
+        solver.solve(
+            model_load,
+            perturb=0.001,
+            relaxation=0.5,
+            stop_condition=1.0,
+            puissance=3,
+        )
         self.x_i = model_load.x_i
         self.z_i = model_load.z_i
 
@@ -313,7 +340,7 @@ class Span:
         b = np.roll(z, -1) - z
         self.b = b[:-1]
 
-    def vector_moment(self):
+    def objective_function(self):
         """[Mx0, My0, Mx1, My1,...]"""
         self.update_tensions()
         self.nodes.vector_projection.set_tensions(
@@ -334,38 +361,11 @@ class Span:
     def state_vector(self, value):
         self.nodes.state_vector = value
 
-    def jacobian(self, force_vector, perturb=1e-4):
-        vector_perturb = np.zeros_like(force_vector)
-        df_list = []
-
-        for i in range(len(vector_perturb)):
-            vector_perturb[i] += perturb
-
-            M_perturb = self._delta_d(vector_perturb)
-            dM_dperturb = (M_perturb - force_vector) / perturb
-            df_list.append(dM_dperturb)
-
-            vector_perturb[i] -= perturb
-
-        jacobian = np.array(df_list)
-        return jacobian
-
-    def _delta_d(self, perturbation):
-        self.state_vector += perturbation
-        self.update()
-        force_vector = self.vector_moment()
-        self.state_vector -= perturbation
-
-        return force_vector
-
     def update(self):
-        # old update here: now inside state_vector
-        # TODO: perhaps inside dx, dy, dz setters ?
-        # self.nodes.compute_dx_dy_dz()
-        self.update_span()
-        self.update_tensions()
         # for the init only, update_span() needs to be call before update_tensions()
         # for other cases, order does not seem to matter
+        self.update_span()
+        self.update_tensions()
 
     def __repr__(self):
         data = {
@@ -663,7 +663,7 @@ class Nodes:
         return self.__repr__()
 
 
-class ModelLoad:
+class LoadModel(ModelForSolver):
     def __init__(
         self,
         cable: Cable,
@@ -697,7 +697,7 @@ class ModelLoad:
         self.x_i = value[::2]
         self.z_i = value[1::2]
 
-    def vector_function(self):
+    def objective_function(self):
         # left side of the load
         L_ref_left = self.load_position * self.L_ref
         a_left = self.x_i
@@ -769,128 +769,36 @@ class ModelLoad:
         roots = numeric.cubic_roots(p)
         return roots.real
 
-    def jacobian(self, force_vector, perturb=1e-4):
-        # same method than Span
-        vector_perturb = np.zeros_like(force_vector)
-        df_list = []
-
-        for i in range(len(vector_perturb)):
-            vector_perturb[i] += perturb
-
-            T_perturb = self._delta_d(vector_perturb)
-            dM_dperturb = (T_perturb - force_vector) / perturb
-            df_list.append(dM_dperturb)
-
-            vector_perturb[i] -= perturb
-
-        jacobian = np.array(df_list)
-        return jacobian
-
-    def _delta_d(self, perturbation):
-        # almost same method than Span
-        self.state_vector += perturbation
-        force_vector = self.vector_function()
-        self.state_vector -= perturbation
-        return force_vector
+    def update(self):
+        pass
 
 
-class SolverLoad:
-    def __init__(self):
-        self.mem_loop = []
-
-    def solver_tensions_load(
-        self,
-        model_load: ModelLoad,
-    ):
-        puissance = 3
-
-        # initialisation
-        perturb = 0.001
-        tension_vector = model_load.vector_function()
-        n_iter = range(1, 100)
-        # for debug we record init_force
-        self.init_force = tension_vector
-        relaxation = 0.5
-        # too strict?
-        stop_condition = 1.0
-
-        # starting optimisation loop
-        for compteur in n_iter:
-            # compute jacobian
-            jacobian = model_load.jacobian(tension_vector, perturb)
-
-            # memorize for norm
-            mem = np.linalg.norm(tension_vector)
-
-            # correction calculus
-            correction = np.linalg.inv(jacobian.T) @ tension_vector
-
-            model_load.state_vector = model_load.state_vector - correction * (
-                1 - relaxation ** (compteur**puissance)
-            )
-
-            # compute value to minimize
-            tension_vector = model_load.vector_function()
-            norm_d_param = np.abs(np.linalg.norm(tension_vector) ** 2 - mem**2)
-
-            logger.info("**" * 10)
-            logger.info(f"Solver x_i/z_i counter:  {compteur}")
-            logger.info(
-                f"tension vector norm: {np.linalg.norm(tension_vector) ** 2}"
-            )
-            logger.info(f"{norm_d_param=}")
-            logger.info(f"x_i: {model_load.x_i=}")
-            logger.info(f"z_i: {model_load.z_i=}")
-            logger.info(f"{norm_d_param=}")
-            logger.info("-" * 10)
-
-            self.mem_loop.append(
-                {
-                    "num_loop": compteur,
-                    "norm_d_param": norm_d_param,
-                    "tension": tension_vector,
-                    "correction": correction,
-                }
-            )
-
-            # check value to minimze to break the loop
-            if norm_d_param < stop_condition:
-                logger.info("----" * 10)
-                logger.info("solver ends after stop condition")
-                # logger.info(norm_d_param)
-                break
-            if n_iter == compteur:
-                logger.warning("max iteration reached")
-                logger.warning(f"{norm_d_param=}")
-
-
-class SolverBalance:
+class Solver:
     def __init__(self, adjustment=True):
         self.mem_loop = []
         self.adjustment = adjustment
 
-    def solver_balance_3d(
+    def solve(
         self,
-        section: Span,
+        model: ModelForSolver,
+        perturb=0.0001,
+        stop_condition=1e-3,
+        relaxation=0.8,
+        puissance=3,
     ):
-        puissance = 3
-
-        section.update()
+        model.update()
 
         # initialisation
-        perturb = 0.0001
-        force_vector = section.vector_moment()
+        force_vector = model.objective_function()
         n_iter = range(1, 100)
 
         # for debug we record init_force
         self.init_force = force_vector
-        relaxation = 0.8
-        stop_condition = 1e-3
 
         # starting optimisation loop
         for compteur in n_iter:
             # compute jacobian
-            jacobian = section.jacobian(force_vector, perturb)
+            jacobian = self.jacobian(force_vector, model, perturb)
 
             # memorize for norm
             mem = np.linalg.norm(force_vector)
@@ -898,38 +806,38 @@ class SolverBalance:
             # correction calculus
             correction = np.linalg.inv(jacobian.T) @ force_vector
 
-            section.state_vector = section.state_vector - correction * (
+            model.state_vector = model.state_vector - correction * (
                 1 - relaxation ** (compteur**puissance)
             )
 
             # update
-            section.update()
+            model.update()
 
             # compute value to minimize
-            force_vector = section.vector_moment()
+            force_vector = model.objective_function()
             norm_d_param = np.abs(np.linalg.norm(force_vector) ** 2 - mem**2)
 
-            logger.info("**" * 10)
-            logger.info(str(compteur))
+            # logger.info("**" * 10)
+            # logger.info(str(compteur))
 
-            logger.info(
-                f"force vector norm:  {np.linalg.norm(force_vector) ** 2=}"
-            )
-            logger.info(f"{norm_d_param=}")
-            logger.info("-" * 10)
-            logger.info(f"{section.nodes.dx=}")
-            logger.info(f"{section.nodes.dz=}")
+            # logger.info(
+            #     f"force vector norm:  {np.linalg.norm(force_vector) ** 2=}"
+            # )
+            # logger.info(f"{norm_d_param=}")
+            # logger.info("-" * 10)
+            # logger.info(f"{section.nodes.dx=}")
+            # logger.info(f"{section.nodes.dz=}")
 
-            self.mem_loop.append(
-                {
-                    "num_loop": compteur,
-                    "norm_d_param": norm_d_param,
-                    "force": force_vector,
-                    "dx": section.nodes.dx,
-                    "dz": section.nodes.dz,
-                    "correction": correction,
-                }
-            )
+            # self.mem_loop.append(
+            #     {
+            #         "num_loop": compteur,
+            #         "norm_d_param": norm_d_param,
+            #         "force": force_vector,
+            #         "dx": section.nodes.dx,
+            #         "dz": section.nodes.dz,
+            #         "correction": correction,
+            #     }
+            # )
 
             # check value to minimze to break the loop
             if norm_d_param < stop_condition:
@@ -940,8 +848,33 @@ class SolverBalance:
                 logger.info("max iteration reached")
                 logger.info(f"{norm_d_param=}")
 
-        logger.info(f"force vector norm: {np.linalg.norm(force_vector)}")
-        self.final_dx = section.nodes.dx
-        self.final_dy = section.nodes.dy
-        self.final_dz = section.nodes.dz
-        self.final_force = force_vector
+        # logger.info(f"force vector norm: {np.linalg.norm(force_vector)}")
+
+    def jacobian(
+        self,
+        force_vector: np.ndarray,
+        model: ModelForSolver,
+        perturb: float = 1e-4,
+    ):
+        vector_perturb = np.zeros_like(force_vector)
+        df_list = []
+
+        for i in range(len(vector_perturb)):
+            vector_perturb[i] += perturb
+
+            T_perturb = self._delta_d(model, vector_perturb)
+            dM_dperturb = (T_perturb - force_vector) / perturb
+            df_list.append(dM_dperturb)
+
+            vector_perturb[i] -= perturb
+
+        jacobian = np.array(df_list)
+        return jacobian
+
+    def _delta_d(self, model: ModelForSolver, perturbation):
+        # almost same method than Span
+        model.state_vector += perturbation
+        model.update()
+        force_vector = model.objective_function()
+        model.state_vector -= perturbation
+        return force_vector

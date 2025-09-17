@@ -104,10 +104,6 @@ def test_element_sandbox(cable_AM600: Cable):
     # section.cable_loads.ice_thickness = np.array([1,1,1,1]) * 1e-2
     section.cable_loads.wind_pressure = np.array([200] * 4)
     section.change_state()
-    print("Th", section.Th)
-    print("dx", section.sb.final_dx)
-    print("dy", section.sb.final_dy)
-    print("dz", section.sb.final_dz)
     assert True
 
 
