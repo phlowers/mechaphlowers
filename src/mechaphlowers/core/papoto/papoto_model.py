@@ -159,3 +159,34 @@ def function_f_prime(
     return (
         function_f(p + _ZETA, a, h, delta, x) - function_f(p, a, h, delta, x)
     ) / _ZETA
+
+# def function_f_prime(
+#     p: np.ndarray,
+#     a: np.ndarray,
+#     h: np.ndarray,
+#     delta: np.ndarray,
+#     x: np.ndarray,
+# ):
+#     # define f' analytically?
+#     alpha = a / (2 * p)
+#     sh = np.sinh(alpha)
+#     th = np.tanh(alpha)
+#     beta = np.asinh(h/ (2*p * sh) )
+#     gamma = (h **2 / (sh ** 2 * p ** 2) + 4) ** 0.5
+
+#     C = h * (2*p - a / th) / sh - p * (a - 2 * x) * gamma
+#     D = np.sinh((p * beta + x - a/2) / p)
+#     E = 2 * gamma * p ** 2
+
+#     X = C * D / E
+
+#     F = a * p * gamma + 1/sh * (a * h / th - 2 * h* p)
+#     G = np.sinh(alpha - beta) 
+    
+#     Y = F * G / E
+
+#     Z = np.cosh((p * beta + x - a/2)/  p)
+
+#     W = np.cosh(alpha - beta) 
+
+#     return X - Y - Z + W
