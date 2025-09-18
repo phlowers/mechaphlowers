@@ -67,23 +67,28 @@ class Span(ModelForSolver):
         )
         self.nodes.compute_moment()
 
-    def adjust(self):
+    def solve_adjustment(self):
         self.adjustment = True
 
-        self.sb = Solver()
-        self.sb.solve(self)
+        sb = Solver()
+        sb.solve(self)
 
         self._L_ref = self.update_L_ref()
 
-    def change_state(self):
+    def solve_change_state(self):
         self.adjustment = False
         self.nodes.has_load = True
 
-        self.sb = Solver()
-        self.sb.solve(self)
+        sb = Solver()
+        sb.solve(self)
 
     @property
     def k_load(self):
+        # TODO: fix length array issues with mechaphlowers
+        """Remove last value for consistency between this and mechaphlowers
+        mechaphlowers: one value per support
+        here: one value per span (nb_support - 1)
+        """
         return self.cable_loads.load_coefficient[:-1]
 
     @property
@@ -102,9 +107,8 @@ class Span(ModelForSolver):
         """Remove last value for consistency between this and mechaphlowers
         mechaphlowers: beta = [beta0, beta1, beta2, nan]
         Here: beta = [beta0, beta1, beta2] because the last value refers to the last support (no span related to this support)
-
         """
-        # Sign different from what already exists in CableLoads
+        # TODO: check why sign different from what already exists in CableLoads
         return -self.cable_loads.load_angle[0:-1]
 
     @property
@@ -112,6 +116,7 @@ class Span(ModelForSolver):
         return self._L_ref
 
     def update_L_ref(self):
+        # TODO: link to mph + decide how to organize Span/Deformation
         self.update_span()
 
         a = self.a
@@ -198,7 +203,7 @@ class Span(ModelForSolver):
                 self.z_i = f.z(self.x_i, self.parameter, x_m) - f.z(
                     np.zeros_like(self.x_i), self.parameter, x_m
                 )
-                self.compute_tensions_with_loads()
+                self.solve_xi_zi_loads()
 
                 # Left Th and right Th are equal because balance just got solved (same for parameter)
                 a_left = self.x_i
@@ -223,7 +228,7 @@ class Span(ModelForSolver):
 
         return Th
 
-    def compute_tensions_with_loads(self):
+    def solve_xi_zi_loads(self):
         model_load = LoadModel(
             self.cable,
             self.nodes.load,
@@ -386,6 +391,7 @@ def find_parameter_function(
     young_modulus: np.float64,
 ):
     """this is a placeholder of sagtension algorithm"""
+    # TODO: link to mph : SagTensionSolver
     param = parameter
 
     n_iter = 50
@@ -458,7 +464,7 @@ class Nodes:
         # line_angle: anti clockwise
         self.line_angle = line_angle
         self.init_coordinates(x, z)
-        # dx, dy, dz are the distances between the, including the chain
+        # dx, dy, dz are the distances between the attachment point and the arm, including the chain
         self.dxdydz = np.zeros((3, len(x)), dtype=np.float64)
         self._load = load
         self.load_position = load_position
@@ -567,7 +573,6 @@ class Nodes:
         self.dy = dy
         self.dx[1:-1] = dzdxdz[1:-1]
         self.dz[[0, -1]] = dzdxdz[[0, -1]]
-        # TODO: verify compute_dxdy_dz is not too much called
         self.compute_dx_dy_dz()
 
     def init_coordinates(self, x, z):
@@ -734,7 +739,7 @@ class LoadModel(ModelForSolver):
         return Th, x_m, x_n, parameter
 
     def approx_parameter(self, a, b, L0, cable_temperature):
-        # extract cardan?
+        # extract this method? There is a duplicate in Span
         circle_chord = (a**2 + b**2) ** 0.5
 
         factor = (

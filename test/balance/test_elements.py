@@ -68,8 +68,8 @@ def test_element_initialisation(section_3d_simple: Span):
 
 
 def test_element_change_state(section_3d_simple: Span):
-    section_3d_simple.adjust()
+    section_3d_simple.solve_adjustment()
 
     section_3d_simple
-    section_3d_simple.change_state()
+    section_3d_simple.solve_change_state()
     assert True

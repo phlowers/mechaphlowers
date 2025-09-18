@@ -5,9 +5,9 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-import numpy as np
-
 from functools import lru_cache, wraps
+
+import numpy as np
 
 
 # not used for the moment

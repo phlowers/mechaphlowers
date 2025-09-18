@@ -97,13 +97,13 @@ def test_element_sandbox(cable_AM600: Cable):
         nodes=nodes_arm,
         cable=cable_AM600,
     )
-    section.adjust()
+    section.solve_adjustment()
     section.L_ref
 
     # section.sagging_temperature = 30
     # section.cable_loads.ice_thickness = np.array([1,1,1,1]) * 1e-2
     section.cable_loads.wind_pressure = np.array([200] * 4)
-    section.change_state()
+    section.solve_change_state()
     assert True
 
 
@@ -126,16 +126,16 @@ def test_element_sandbox_load(cable_AM600: Cable):
         cable=cable_AM600,
     )
 
-    section_3d_angles_arm.adjust()
+    section_3d_angles_arm.solve_adjustment()
     section_3d_angles_arm.L_ref
 
-    section_3d_angles_arm.change_state()
+    section_3d_angles_arm.solve_change_state()
 
     assert True
 
 
 def test_adjust_no_altitude_change(section_3d_no_altitude_change: Span):
-    section_3d_no_altitude_change.adjust()
+    section_3d_no_altitude_change.solve_adjustment()
 
     expected_dx = np.array(
         [
@@ -167,7 +167,7 @@ def test_adjust_no_altitude_change(section_3d_no_altitude_change: Span):
 
 
 def test_adjust_simple(section_3d_simple: Span):
-    section_3d_simple.adjust()
+    section_3d_simple.solve_adjustment()
     expected_dx = np.array(
         [
             2.98575572319031,
@@ -216,7 +216,7 @@ def test_adjust_with_arm(cable_AM600: Cable):
         nodes=nodes,
         cable=cable_AM600,
     )
-    section_arm.adjust()
+    section_arm.solve_adjustment()
     expected_dx = np.array(
         [
             2.98518900184611,
@@ -253,7 +253,7 @@ def test_adjust_with_arm(cable_AM600: Cable):
 
 
 def test_adjust_with_angles(section_3d_angles_arm: Span):
-    section_3d_angles_arm.adjust()
+    section_3d_angles_arm.solve_adjustment()
     expected_dx = np.array(
         [
             2.98519820570843,
@@ -297,12 +297,12 @@ def test_adjust_with_angles(section_3d_angles_arm: Span):
 
 
 def test_wind_no_altitude_change(section_3d_no_altitude_change: Span):
-    section_3d_no_altitude_change.adjust()
+    section_3d_no_altitude_change.solve_adjustment()
 
     section_3d_no_altitude_change.cable_loads.wind_pressure = np.array(
         [300] * 4
     )
-    section_3d_no_altitude_change.change_state()
+    section_3d_no_altitude_change.solve_change_state()
     expected_dx = np.array(
         [
             2.97140319423837,
@@ -357,10 +357,10 @@ def test_wind(cable_AM600: Cable):
         nodes=nodes_arm,
         cable=cable_AM600,
     )
-    section.adjust()
+    section.solve_adjustment()
 
     section.cable_loads.wind_pressure = np.array([200] * 4)
-    section.change_state()
+    section.solve_change_state()
     expected_dx = np.array(
         [
             2.95577748400265,
@@ -392,10 +392,10 @@ def test_wind(cable_AM600: Cable):
 
 
 def test_temperature(section_3d_angles_arm: Span):
-    section_3d_angles_arm.adjust()
+    section_3d_angles_arm.solve_adjustment()
 
     section_3d_angles_arm.sagging_temperature = 90
-    section_3d_angles_arm.change_state()
+    section_3d_angles_arm.solve_change_state()
     expected_dx = np.array(
         [
             2.96987911200016,
@@ -432,12 +432,12 @@ def test_temperature(section_3d_angles_arm: Span):
 
 
 def test_ice(section_3d_angles_arm: Span):
-    section_3d_angles_arm.adjust()
+    section_3d_angles_arm.solve_adjustment()
 
     section_3d_angles_arm.cable_loads.ice_thickness = (
         np.array([1, 1, 1, 1]) * 1e-2
     )
-    section_3d_angles_arm.change_state()
+    section_3d_angles_arm.solve_change_state()
     expected_dx = np.array(
         [
             2.98328197567154,
@@ -493,9 +493,9 @@ def test_load_all_spans(cable_AM600: Cable):
         cable=cable_AM600,
     )
 
-    section_3d_angles_arm.adjust()
+    section_3d_angles_arm.solve_adjustment()
 
-    section_3d_angles_arm.change_state()
+    section_3d_angles_arm.solve_change_state()
 
     expected_dx = np.array(
         [
@@ -552,11 +552,11 @@ def test_load_all_spans_wind_ice_temp(cable_AM600: Cable):
         cable=cable_AM600,
     )
 
-    section_3d_angles_arm.adjust()
+    section_3d_angles_arm.solve_adjustment()
     section_3d_angles_arm.sagging_temperature = 30
     section_3d_angles_arm.cable_loads.ice_thickness = np.array([1] * 4) * 1e-2
     section_3d_angles_arm.cable_loads.wind_pressure = np.array([500] * 4)
-    section_3d_angles_arm.change_state()
+    section_3d_angles_arm.solve_change_state()
 
     expected_dx = np.array(
         [
@@ -614,9 +614,9 @@ def test_load_one_span(cable_AM600: Cable):
         cable=cable_AM600,
     )
 
-    section_3d_angles_arm.adjust()
+    section_3d_angles_arm.solve_adjustment()
 
-    section_3d_angles_arm.change_state()
+    section_3d_angles_arm.solve_change_state()
 
     expected_dx = np.array(
         [
@@ -673,7 +673,7 @@ def test_many_spans(cable_AM600: Cable):
         nodes=nodes_arm,
         cable=cable_AM600,
     )
-    section.adjust()
+    section.solve_adjustment()
 
     section.cable_loads.wind_pressure = np.array([-200] * nb_spans)
-    section.change_state()
+    section.solve_change_state()

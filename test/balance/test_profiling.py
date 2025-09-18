@@ -33,7 +33,7 @@ def test_load_all_spans_wind_ice_temp_profiling():
         cable=cable_AM600,
     )
 
-    section_3d_angles_arm.adjust()
+    section_3d_angles_arm.solve_adjustment()
 
     for i in range(10):
         section_3d_angles_arm.sagging_temperature = random.randrange(-40, 90)
@@ -43,7 +43,7 @@ def test_load_all_spans_wind_ice_temp_profiling():
         section_3d_angles_arm.cable_loads.wind_pressure = np.array(
             [random.randrange(0, 700)] * 4
         )
-        section_3d_angles_arm.change_state()
+        section_3d_angles_arm.solve_change_state()
         print(i)
     print("finished")
 
