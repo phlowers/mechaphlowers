@@ -4,9 +4,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
 from abc import ABC, abstractmethod
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 requests_installed = False
 
@@ -73,8 +76,8 @@ class OpenElevationService(IElevationService):
         payload = {
             "locations": [
                 {
-                    "latitude": lat,
-                    "longitude": lon,
+                    "latitude": lat.tolist(),
+                    "longitude": lon.tolist(),
                 }
             ]
         }
@@ -87,11 +90,11 @@ class OpenElevationService(IElevationService):
                 [result["elevation"] for result in data["results"]]
             )
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching elevation data: {e}")
+            logger.error(f"Error fetching elevation data: {e}")
             return np.zeros(len(lat))  # Return zeros if request fails
 
     def __call__(self, lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
         return self.get_elevation(lat, lon)
 
 
-get_elevation = OpenElevationService()
+gps_to_elevation = OpenElevationService()
