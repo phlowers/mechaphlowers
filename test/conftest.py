@@ -67,6 +67,7 @@ def default_section_array_one_span() -> SectionArray:
                 "line_angle": [0, 0],
                 "insulator_length": [0, 0],
                 "span_length": [480, np.nan],
+                "insulator_weight": np.array([1000, 1000]),
             }
         )
     )
@@ -87,6 +88,7 @@ def default_section_array_three_spans() -> SectionArray:
                 "line_angle": np.array([0, 360, 90.1, -90.2]),
                 "insulator_length": np.array([0, 4, 3.2, 0]),
                 "span_length": np.array([400, 500.2, 500.0, np.nan]),
+                "insulator_weight": np.array([1000.0, 500.0, 500.0, 1000.0]),
             }
         )
     )
@@ -160,6 +162,7 @@ def default_data_container_one_span() -> DataContainer:
                 "span_length": [480, np.nan],
                 "sagging_parameter": [2000, 2000],
                 "sagging_temperature": [15, 15],
+                "insulator_weight": np.array([1000, 1000]),
             }
         )
     )
@@ -193,6 +196,7 @@ def section_dataframe_with_cable_weather() -> SectionDataFrame:
                 "line_angle": np.array([0, 360, 90.1, -90.2]),
                 "insulator_length": np.array([0, 4, 3.2, 0]),
                 "span_length": np.array([400, 500.2, 500.0, np.nan]),
+                "insulator_weight": np.array([1000.0, 500.0, 500.0, 1000.0]),
             }
         )
     )

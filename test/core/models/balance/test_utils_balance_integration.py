@@ -22,7 +22,7 @@ def test_proj_no_angles():
     Th = np.array([35316.0, 35316.0, 35316.0])
     Tv_g = np.array([-2974.3816, -1473.2471, -3064.9025])
     Tv_d = np.array([-5831.3273, -3832.06, -3957.3933])
-    weight_chain = -np.array([1000, 500, 500, 1000])
+    weight_chain = -np.array([1000.0, 500.0, 500.0, 1000.0])
     vector_projection = VectorProjection()
     vector_projection.set_all(
         Th=Th,

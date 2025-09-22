@@ -60,6 +60,7 @@ class DataContainer:
         self.crossarm_length = section_array.data.crossarm_length.to_numpy()
         self.line_angle = section_array.data.line_angle.to_numpy()
         self.insulator_length = section_array.data.insulator_length.to_numpy()
+        self.insulator_weight = section_array.data.insulator_weight.to_numpy()
         self.span_length = section_array.data.span_length.to_numpy()
         self.elevation_difference = (
             section_array.data.elevation_difference.to_numpy()
