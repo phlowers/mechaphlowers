@@ -21,6 +21,7 @@ from mechaphlowers.core.models.balance.utils_balance import (
     VectorProjection,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
+from mechaphlowers.entities.arrays import SectionArray
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,70 @@ class Cable:
     cra: np.float64
 
 
-class Span(ModelForSolver):
+def section_array_to_nodes(section_array: SectionArray):
+    L_chain = section_array.data.insulator_length.to_numpy()
+    weight_chain = section_array.data.insulator_weight.to_numpy()
+    arm_length = section_array.data.crossarm_length.to_numpy()
+    line_angle = section_array.data.line_angle.to_numpy()
+    z = section_array.data.conductor_attachment_altitude.to_numpy()
+    span_length = section_array.data.span_length.to_numpy()
+    load = section_array.data.load_weight.to_numpy()
+    load_position = section_array.data.load_position.to_numpy()
+    return Nodes(
+        L_chain,
+        weight_chain,
+        arm_length,
+        line_angle,
+        z,
+        span_length,
+        load,
+        load_position,
+    )
+
+
+class Orchestrator:
+    def __init__(
+        self,
+        sagging_temperature: float,
+        nodes: Nodes,
+        parameter: float,
+        cable: Cable,
+        # section_array: SectionArray,
+    ):
+        # self.nodes = section_array_to_nodes(section_array)
+        self.nodes = nodes
+        self.balance_model = BalanceModel(
+            sagging_temperature, self.nodes, parameter, cable
+        )
+
+    def solve_adjustment(self):
+        self.balance_model.adjustment = True
+
+        sb = Solver()
+        sb.solve(self.balance_model)
+
+        self._L_ref = self.balance_model.update_L_ref()
+
+    def solve_change_state(
+        self,
+        wind_pressure: np.ndarray | None = None,
+        ice_thickness: np.ndarray | None = None,
+        new_temperature: np.float64 | None = None,
+    ):
+        if wind_pressure is not None:
+            self.balance_model.cable_loads.wind_pressure = wind_pressure
+        if ice_thickness is not None:
+            self.balance_model.cable_loads.ice_thickness = ice_thickness
+        if new_temperature is not None:
+            self.balance_model.sagging_temperature = new_temperature
+        self.balance_model.adjustment = False
+        self.balance_model.nodes.has_load = True
+
+        sb = Solver()
+        sb.solve(self.balance_model)
+
+
+class BalanceModel(ModelForSolver):
     def __init__(
         self,
         sagging_temperature: float,
@@ -54,7 +118,7 @@ class Span(ModelForSolver):
             np.zeros_like(nodes.weight_chain),
         )
 
-        self.adjustment = True
+        self.adjustment: bool = True
         # TODO: during adjustment computation, perhaps set cable_temperature = 0
         # temperature here is tuning temperature / only in the real span part
         # there is another temperature : change state
@@ -72,21 +136,6 @@ class Span(ModelForSolver):
             self.nodes.load,
             self.nodes.load_position,
         )
-
-    def solve_adjustment(self):
-        self.adjustment = True
-
-        sb = Solver()
-        sb.solve(self)
-
-        self._L_ref = self.update_L_ref()
-
-    def solve_change_state(self):
-        self.adjustment = False
-        self.nodes.has_load = True
-
-        sb = Solver()
-        sb.solve(self)
 
     @property
     def k_load(self):

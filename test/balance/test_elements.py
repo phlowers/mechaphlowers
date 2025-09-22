@@ -9,7 +9,11 @@ import numpy as np
 from pytest import fixture
 
 import mechaphlowers.core.models.balance.functions as f
-from mechaphlowers.core.models.balance.elements import Cable, Nodes, Span
+from mechaphlowers.core.models.balance.elements import (
+    Cable,
+    Nodes,
+    Orchestrator,
+)
 
 
 @fixture
@@ -18,10 +22,10 @@ def cable_AM600():
 
 
 @fixture
-def section_3d_simple(cable_AM600) -> Span:
+def section_3d_simple(cable_AM600) -> Orchestrator:
     nodes = Nodes(
         L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000, 500, 500, 1000]),
+        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
         arm_length=np.array([0, 0, 0, 0]),
         line_angle=f.grad_to_rad(np.array([0, 0, 0, 0])),
         span_length=np.array([500, 300, 400]),
@@ -30,7 +34,7 @@ def section_3d_simple(cable_AM600) -> Span:
         load_position=np.array([0, 0, 0]),
     )
 
-    return Span(
+    return Orchestrator(
         parameter=2000,
         sagging_temperature=15,
         nodes=nodes,
@@ -39,10 +43,10 @@ def section_3d_simple(cable_AM600) -> Span:
 
 
 @fixture
-def section_3d_angles_arm(cable_AM600) -> Span:
+def section_3d_angles_arm(cable_AM600) -> Orchestrator:
     nodes = Nodes(
         L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000, 500, 500, 1000]),
+        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
         arm_length=np.array([0, 10, -10, 0]),
         line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
         span_length=np.array([500, 300, 400]),
@@ -51,7 +55,7 @@ def section_3d_angles_arm(cable_AM600) -> Span:
         load_position=np.array([0, 0, 0]),
     )
 
-    return Span(
+    return Orchestrator(
         parameter=2000,
         sagging_temperature=15,
         nodes=nodes,
@@ -59,17 +63,16 @@ def section_3d_angles_arm(cable_AM600) -> Span:
     )
 
 
-def test_element_initialisation(section_3d_simple: Span):
+def test_element_initialisation(section_3d_simple: Orchestrator):
     # load = section_2d_note.nodes.load
 
     print("\n")
-    print(section_3d_simple)
-    print(section_3d_simple.nodes)
+    print(section_3d_simple.balance_model)
+    print(section_3d_simple.balance_model.nodes)
 
 
-def test_element_change_state(section_3d_simple: Span):
+def test_element_change_state(section_3d_simple: Orchestrator):
     section_3d_simple.solve_adjustment()
 
-    section_3d_simple
     section_3d_simple.solve_change_state()
     assert True

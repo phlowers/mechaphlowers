@@ -9,7 +9,11 @@ import random
 import numpy as np
 
 import mechaphlowers.core.models.balance.functions as f
-from mechaphlowers.core.models.balance.elements import Cable, Nodes, Span
+from mechaphlowers.core.models.balance.elements import (
+    BalanceModel,
+    Cable,
+    Nodes,
+)
 
 
 def test_load_all_spans_wind_ice_temp_profiling():
@@ -17,7 +21,7 @@ def test_load_all_spans_wind_ice_temp_profiling():
 
     nodes_arm = Nodes(
         L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000, 500, 500, 1000]),
+        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
         arm_length=np.array([0, 10, -10, 0]),
         line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
         span_length=np.array([500, 300, 400]),
@@ -26,7 +30,7 @@ def test_load_all_spans_wind_ice_temp_profiling():
         load_position=np.array([0.2, 0.4, 0.6]),
     )
 
-    section_3d_angles_arm = Span(
+    section_3d_angles_arm = BalanceModel(
         parameter=2000,
         sagging_temperature=15,
         nodes=nodes_arm,
