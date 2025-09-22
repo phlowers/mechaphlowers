@@ -10,9 +10,9 @@ import numpy as np
 
 import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance.elements import (
-    BalanceModel,
     Cable,
     Nodes,
+    Orchestrator,
 )
 
 
@@ -30,7 +30,7 @@ def test_load_all_spans_wind_ice_temp_profiling():
         load_position=np.array([0.2, 0.4, 0.6]),
     )
 
-    section_3d_angles_arm = BalanceModel(
+    section_3d_angles_arm = Orchestrator(
         parameter=2000,
         sagging_temperature=15,
         nodes=nodes_arm,
@@ -40,14 +40,12 @@ def test_load_all_spans_wind_ice_temp_profiling():
     section_3d_angles_arm.solve_adjustment()
 
     for i in range(10):
-        section_3d_angles_arm.sagging_temperature = random.randrange(-40, 90)
-        section_3d_angles_arm.cable_loads.ice_thickness = (
-            np.array([random.randrange(0, 5)] * 4) * 1e-2
+        new_temperature = random.randrange(-40, 90)
+        ice_thickness = np.array([random.randrange(0, 5)] * 4) * 1e-2
+        wind_pressure = np.array([random.randrange(0, 700)] * 4)
+        section_3d_angles_arm.solve_change_state(
+            wind_pressure, ice_thickness, new_temperature
         )
-        section_3d_angles_arm.cable_loads.wind_pressure = np.array(
-            [random.randrange(0, 700)] * 4
-        )
-        section_3d_angles_arm.solve_change_state()
         print(i)
     print("finished")
 

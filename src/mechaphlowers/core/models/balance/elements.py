@@ -78,7 +78,7 @@ class Orchestrator:
         sb = Solver()
         sb.solve(self.balance_model)
 
-        self._L_ref = self.balance_model.update_L_ref()
+        self.L_ref = self.balance_model.update_L_ref()
 
     def solve_change_state(
         self,
@@ -127,7 +127,7 @@ class BalanceModel(ModelForSolver):
         self.update()
         self.nodes.compute_dx_dy_dz()
         self.nodes.vector_projection.set_tensions(
-            self._Th, self.Tv_d, self.Tv_g
+            self.Th, self.Tv_d, self.Tv_g
         )
         self.nodes.compute_moment()
 
@@ -166,9 +166,6 @@ class BalanceModel(ModelForSolver):
         # TODO: check why sign different from what already exists in CableLoads
         return -self.cable_loads.load_angle[0:-1]
 
-    @property
-    def L_ref(self):
-        return self._L_ref
 
     def update_L_ref(self):
         # TODO: link to mph + decide how to organize Span/Deformation
@@ -198,12 +195,9 @@ class BalanceModel(ModelForSolver):
             + T_mean / self.cable.young_modulus / self.cable.section
         )
 
-        self._L_ref = L_ref
+        self.L_ref = L_ref
         return L_ref
 
-    @property
-    def Th(self):
-        return self._Th
 
     @property
     def a_prime(self):
@@ -275,9 +269,9 @@ class BalanceModel(ModelForSolver):
                 x_m = x_m_left
                 x_n = x_n_right
 
-        self._Tv_g = Th * (np.sinh(x_m / parameter))
-        self._Tv_d = -Th * (np.sinh(x_n / parameter))
-        self._Th = Th
+        self.Tv_g = Th * (np.sinh(x_m / parameter))
+        self.Tv_d = -Th * (np.sinh(x_n / parameter))
+        self.Th = Th
 
         self.update_projections()
 
@@ -311,9 +305,9 @@ class BalanceModel(ModelForSolver):
 
         self.compute_inter()
         self.nodes.vector_projection.set_all(
-            self._Th,
-            self._Tv_d,
-            self._Tv_g,
+            self.Th,
+            self.Tv_d,
+            self.Tv_g,
             alpha,
             beta,
             self.nodes.line_angle,
@@ -331,13 +325,6 @@ class BalanceModel(ModelForSolver):
         self.inter2 = proj_diff[1]
         self.proj_angle = np.atan2(self.inter2, self.inter1)
 
-    @property
-    def Tv_g(self):
-        return self._Tv_g
-
-    @property
-    def Tv_d(self):
-        return self._Tv_d
 
     def approx_parameter(self, a, b, L0, cable_temperature):
         circle_chord = (a**2 + b**2) ** 0.5
@@ -381,15 +368,7 @@ class BalanceModel(ModelForSolver):
 
     def objective_function(self):
         """[Mx0, My0, Mx1, My1,...]"""
-        # TODO: check if updating here is useful
-        # self.update_tensions()
-
-        # TODO: remove this? update_projections already called before so set_tension should unnecessary
-        self.nodes.vector_projection.set_tensions(
-            self._Th,
-            self.Tv_d,
-            self.Tv_g,
-        )
+        # Need to run update() before this method if necessary
         self.nodes.compute_moment()
 
         out = np.array([self.nodes.Mx, self.nodes.My]).flatten('F')
@@ -420,9 +399,9 @@ class BalanceModel(ModelForSolver):
         data = {
             'parameter': self.parameter,
             'cable_temperature': self.sagging_temperature,
-            'Th': self._Th,
-            'Tv_d': self._Tv_d,
-            'Tv_g': self._Tv_g,
+            'Th': self.Th,
+            'Tv_d': self.Tv_d,
+            'Tv_g': self.Tv_g,
         }
         out = pd.DataFrame(data)
 
@@ -477,7 +456,7 @@ def find_parameter_function(
         Tm1 = f.T_moy(
             p=param,
             L=lon,
-            x_n=a + f.x_m(a, b, param),
+            x_n=f.x_n(a, b, param),
             x_m=f.x_m(a, b, param),
             lineic_weight=lineic_weight,
             k_load=k_load,

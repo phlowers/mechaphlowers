@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
+import pandas as pd
 from pytest import fixture
 
 import mechaphlowers.core.models.balance.functions as f
@@ -13,6 +14,7 @@ from mechaphlowers.core.models.balance.elements import (
     Nodes,
     Orchestrator,
 )
+from mechaphlowers.entities.arrays import SectionArray
 
 
 @fixture
@@ -21,7 +23,25 @@ def cable_AM600():
 
 
 @fixture
-def section_3d_simple(cable_AM600) -> Orchestrator:
+def section_array_angles() -> SectionArray:
+    return SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": f.grad_to_rad(np.array([0, 10, 0, 0])),
+                "insulator_length": [0, 3, 3, 0],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+            }
+        )
+    )
+
+
+@fixture
+def section_3d_simple(cable_AM600: Cable) -> Orchestrator:
     nodes = Nodes(
         L_chain=np.array([3, 3, 3, 3]),
         weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
@@ -83,7 +103,7 @@ def section_3d_angles_arm(cable_AM600) -> Orchestrator:
     )
 
 
-def test_element_sandbox(cable_AM600: Cable):
+def test_element_sandbox(cable_AM600: Cable, section_array_angles):
     nodes_arm = Nodes(
         L_chain=np.array([3, 3, 3, 3]),
         weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
