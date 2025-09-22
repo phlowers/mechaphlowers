@@ -67,6 +67,12 @@ class Span(ModelForSolver):
         )
         self.nodes.compute_moment()
 
+        self.model_load = LoadModel(
+            self.cable,
+            self.nodes.load,
+            self.nodes.load_position,
+        )
+
     def solve_adjustment(self):
         self.adjustment = True
 
@@ -229,10 +235,7 @@ class Span(ModelForSolver):
         return Th
 
     def solve_xi_zi_loads(self):
-        model_load = LoadModel(
-            self.cable,
-            self.nodes.load,
-            self.nodes.load_position,
+        self.model_load.set_all(
             self.L_ref,
             self.x_i,
             self.z_i,
@@ -244,14 +247,14 @@ class Span(ModelForSolver):
 
         solver = Solver()
         solver.solve(
-            model_load,
+            self.model_load,
             perturb=0.001,
             relax_ratio=0.5,
             stop_condition=1.0,
             relax_power=3,
         )
-        self.x_i = model_load.x_i
-        self.z_i = model_load.z_i
+        self.x_i = self.model_load.x_i
+        self.z_i = self.model_load.z_i
 
     def update_projections(self):
         alpha = self.alpha
@@ -329,7 +332,10 @@ class Span(ModelForSolver):
 
     def objective_function(self):
         """[Mx0, My0, Mx1, My1,...]"""
-        self.update_tensions()
+        # TODO: check if updating here is useful
+        # self.update_tensions()
+
+        # TODO: remove this? update_projections already called before so set_tension should unnecessary
         self.nodes.vector_projection.set_tensions(
             self._Th,
             self.Tv_d,
@@ -382,7 +388,7 @@ def find_parameter_function(
     a: np.ndarray,
     b: np.ndarray,
     L_ref: np.ndarray,
-    cable_temperature: np.ndarray,
+    cable_temperature: np.ndarray,  # float?
     k_load: np.ndarray,
     cable_section: np.float64,
     lineic_weight: np.float64,
@@ -402,7 +408,7 @@ def find_parameter_function(
         Tm1 = f.T_moy(
             p=param,
             L=lon,
-            x_n=a + f.x_m(a, b, param),
+            x_n=f.x_n(a, b, param),
             x_m=f.x_m(a, b, param),
             lineic_weight=lineic_weight,
             k_load=k_load,
@@ -497,8 +503,6 @@ class Nodes:
 
     @property
     def load(self):
-        if self.has_load is False:
-            return np.zeros_like(self._load)
         return self._load
 
     @load.setter
@@ -632,19 +636,23 @@ class LoadModel(ModelForSolver):
     def __init__(
         self,
         cable: Cable,
-        load,
-        load_position,
-        L_ref,
-        x_i,
-        z_i,
-        a_prime,
-        b_prime,
-        k_load,
-        temperature,
+        load: np.ndarray,
+        load_position: np.ndarray,
     ):
         self.cable = cable
         self.load = load
         self.load_position = load_position
+
+    def set_all(
+        self,
+        L_ref: np.ndarray,
+        x_i: np.ndarray,
+        z_i: np.ndarray,
+        a_prime: np.ndarray,
+        b_prime: np.ndarray,
+        k_load: np.ndarray,
+        temperature,
+    ):
         self.L_ref = L_ref
         self.x_i = x_i
         self.z_i = z_i
@@ -683,10 +691,10 @@ class LoadModel(ModelForSolver):
         )
         Tv_g_loc = Th_right * np.sinh(x_m_right / parameter_right)
 
-        Th = Th_left - Th_right
-        Tv = Tv_d_loc + Tv_g_loc - self.load * self.k_load
+        Th_diff = Th_left - Th_right
+        Tv_diff = Tv_d_loc + Tv_g_loc - self.load * self.k_load
 
-        return np.array([Th, Tv]).flatten('F')
+        return np.array([Th_diff, Tv_diff]).flatten('F')
 
     def compute_Th_and_extremum(self, a, b, L_ref):
         """In this method, a, b, and L_ref may refer to a semi span"""

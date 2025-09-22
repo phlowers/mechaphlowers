@@ -661,7 +661,7 @@ def test_many_spans(cable_AM600: Cable):
         weight_chain=np.array([500] * nb_spans),
         arm_length=np.array([0] * nb_spans),
         line_angle=f.grad_to_rad(np.array([0] * nb_spans)),
-        span_length=np.array([500] * (nb_spans -1)),
+        span_length=np.array([500] * (nb_spans - 1)),
         z=np.array([50] * nb_spans),
         load=np.array([0] * (nb_spans - 1)),
         load_position=np.array([0.5] * (nb_spans - 1)),
