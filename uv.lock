@@ -608,6 +608,7 @@ dependencies = [
     { name = "pandas" },
     { name = "pandera" },
     { name = "plotly" },
+    { name = "pyyaml" },
 ]
 
 [package.optional-dependencies]
@@ -667,6 +668,7 @@ requires-dist = [
     { name = "pandas", specifier = "<=2.2.3" },
     { name = "pandera", specifier = "<=0.21.1" },
     { name = "plotly", specifier = "<=5.24.1" },
+    { name = "pyyaml", specifier = "<=6.0.2" },
     { name = "requests", marker = "extra == 'full'", specifier = "==2.32.4" },
     { name = "scipy", marker = "extra == 'full'", specifier = "<=1.14.1" },
 ]

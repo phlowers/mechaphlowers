@@ -4,11 +4,19 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import warnings
+
+import numpy as np
 import pandas as pd
+import pandera as pa
 import pytest
 from pandas.testing import assert_frame_equal
 
-from mechaphlowers.data.catalog import fake_catalog, sample_cable_catalog
+from mechaphlowers.data.catalog.catalog import (
+    Catalog,
+    fake_catalog,
+    sample_cable_catalog,
+)
 
 
 def test_fake_catalog__get_mistyping() -> None:
@@ -92,7 +100,7 @@ def test_fake_catalog__get_nothing() -> None:
 
 
 def test_sample_cable_catalog__get_as_cable_array() -> None:
-    cable_array = sample_cable_catalog.get_as_cable_array(
+    cable_array = sample_cable_catalog.get_as_object(
         ["ASTER600", "PETUNIA600"]
     )
 
@@ -103,9 +111,14 @@ def test_sample_cable_catalog__get_as_cable_array() -> None:
     cable_array.data.index
 
 
+def test_fake_catalog__get_as_object() -> None:
+    with pytest.raises(KeyError):
+        fake_catalog.get_as_object(["Bulbasaur"])
+
+
 def test_sample_cable_catalog__get_as_cable_array__missing_key() -> None:
     with pytest.raises(KeyError):
-        sample_cable_catalog.get_as_cable_array(["wrong_key"])
+        sample_cable_catalog.get_as_object(["wrong_key"])
 
 
 def test_fake_catalog__get_one_row_ot_list() -> None:
@@ -140,3 +153,81 @@ def test_fake_catalog__keys() -> None:
     assert len(fake_catalog.keys()) == 800
     assert "Bulbasaur" in fake_catalog.keys()
     assert "notPokemon" not in fake_catalog.keys()
+
+
+def test_fake_catalog_rename():
+    rename_dict = {
+        "Name": "Nom",
+        "Attack": "Attaque",
+        "Speed": "Vitesse",
+        "Generation": "Génération",
+        "Legendary": "Légendaire",
+    }
+    pkmn_catalog = Catalog(
+        "pokemon.csv", key_column_name="Name", rename_dict=rename_dict
+    )
+    translated_columns = {"Attaque", "Vitesse", "Génération", "Légendaire"}
+
+    assert translated_columns.issubset(set(pkmn_catalog._data.columns))
+    assert pkmn_catalog._data.index.names == ["Nom"]
+
+
+def test_type_valdiation():
+    types_dict = {
+        "Attack": int,
+        "Speed": float,
+        "Generation": int,
+        "Legendary": bool,
+    }
+    Catalog("pokemon.csv", key_column_name="Name", columns_types=types_dict)
+
+
+def test_fake_catalog_type_checking__missing_arg():
+    types_dict = {"wrong_arg": int}
+    with pytest.raises(pa.errors.SchemaError):
+        Catalog(
+            "pokemon.csv", key_column_name="Name", columns_types=types_dict
+        )
+
+
+# This test should check be decommentated when fixing the fact that bool are not validated
+# def test__read_csv__wrong_type():
+#     types_dict = {
+#         "Speed": bool,
+#     }
+#     with pytest.raises(ValueError):
+#         Catalog(
+#             "pokemon.csv", key_column_name="Name", columns_types=types_dict
+#         )
+
+
+@pytest.mark.filterwarnings("ignore::UserWarning")
+def test__read_csv__manage_empty_bool():
+    types_dict = {
+        "boolean arg": bool,
+    }
+    catalog = Catalog(
+        "iris_dataset.csv",
+        key_column_name="sepal length (cm)",
+        columns_types=types_dict,
+    )
+    assert np.isnan(catalog._data.loc["5.1", "boolean arg"])
+
+
+@pytest.mark.filterwarnings("ignore::UserWarning")
+def test_iris_catalog__drop_duplicates():
+    iris_catalog = Catalog(
+        "iris_dataset.csv",
+        key_column_name="sepal length (cm)",
+        columns_types={},
+    )
+    extract_df = iris_catalog.get("5.1")
+    assert len(extract_df) == 1
+
+
+def test_duplicated_warning():
+    with warnings.catch_warnings(record=True) as warning:
+        Catalog("iris_dataset.csv", key_column_name="sepal length (cm)")
+        assert len(warning) == 1
+        assert warning[0].category is UserWarning
+        assert "iris_dataset.csv" in str(warning[0].message)
