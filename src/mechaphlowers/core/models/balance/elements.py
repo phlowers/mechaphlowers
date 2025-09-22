@@ -275,8 +275,7 @@ class Span(ModelForSolver):
         proj_g_ip1 = np.roll(self.nodes.proj_g, -1, axis=1)
         proj_diff = (proj_g_ip1 - proj_d_i)[:, :-1]
         # x: initial input to calculate span_length
-        span_length = np.ediff1d(self.nodes.x_arm)
-        self.inter1 = span_length + proj_diff[0]
+        self.inter1 = self.nodes.span_length + proj_diff[0]
         self.inter2 = proj_diff[1]
         self.proj_angle = np.atan2(self.inter2, self.inter1)
 
@@ -451,8 +450,8 @@ class Nodes:
         weight_chain: np.ndarray,
         arm_length: np.ndarray,
         line_angle: np.ndarray,
-        x: np.ndarray,
         z: np.ndarray,
+        span_length: np.ndarray,
         # load and load_position must of length nb_supports - 1
         load: np.ndarray,
         load_position: np.ndarray,
@@ -463,9 +462,9 @@ class Nodes:
         self.arm_length = arm_length
         # line_angle: anti clockwise
         self.line_angle = line_angle
-        self.init_coordinates(x, z)
+        self.init_coordinates(span_length, z)
         # dx, dy, dz are the distances between the attachment point and the arm, including the chain
-        self.dxdydz = np.zeros((3, len(x)), dtype=np.float64)
+        self.dxdydz = np.zeros((3, len(z)), dtype=np.float64)
         self._load = load
         self.load_position = load_position
         self.has_load = False
@@ -510,24 +509,9 @@ class Nodes:
         return len(self.L_chain)
 
     @property
-    def x(self):
-        """This property returns the x coordinate of the end the chain. x = x_arm + dx"""
-        return self.x_arm + self.dx
-
-    # useless?
-    @property
-    def y(self):
-        return self._y + self.dy
-
-    @property
     def z(self):
         """This property returns the altitude of the end the chain.  z = z_arm + dz"""
         return self.z_arm + self.dz
-
-    @property
-    def x_arm(self):
-        """This property returns the x coordinate of the end the arm. Should not be modified during computation."""
-        return self._x0
 
     @property
     def z_arm(self):
@@ -575,19 +559,19 @@ class Nodes:
         self.dz[[0, -1]] = dzdxdz[[0, -1]]
         self.compute_dx_dy_dz()
 
-    def init_coordinates(self, x, z):
-        self.x_anchor_chain = np.zeros_like(x)
+    def init_coordinates(self, span_length, z):
+        self.x_anchor_chain = np.zeros_like(z)
         self.x_anchor_chain[0] = self.L_chain[0]
         self.x_anchor_chain[-1] = -self.L_chain[-1]
-        self.z_suspension_chain = np.zeros_like(x)
+        self.z_suspension_chain = np.zeros_like(z)
         self.z_suspension_chain[1:-1] = -self.L_chain[1:-1]
 
         # warning: x0 and z0 does not mean the same thing
         # x0 is the absissa of the arm
         # z0 is the altitude of the attachement point
-        self._x0 = x
+        self.span_length = span_length
         self._z0 = z
-        self._y = np.zeros_like(x, dtype=np.float64)
+        self._y = np.zeros_like(z, dtype=np.float64)
 
     def compute_dx_dy_dz(self):
         """Update dx and dz according to L_chain and the othre displacement, using Pytagoras
@@ -625,29 +609,15 @@ class Nodes:
         self.My = My
         self.Mz = Mz
 
-    def debug(self):
-        data = {
-            'z': self.z,
-            'x': self.x,
-            'dz': self.dz,
-            'Fx': self.Fx,
-            'Fz': self.Fz,
-            'My': self.My,
-        }
-        out = pd.DataFrame(data)
-
-        return out
-
     def __repr__(self):
         data = {
-            'L_chain': self.L_chain,
-            'weight_chain': self.weight_chain,
-            'x': self.x,
-            'z': self.z_arm,
             'dx': self.dx,
+            'dy': self.dy,
             'dz': self.dz,
             'Fx': self.Fx,
+            'Fy': self.Fy,
             'Fz': self.Fz,
+            'Mx': self.Mx,
             'My': self.My,
         }
         out = pd.DataFrame(data)

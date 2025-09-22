@@ -20,7 +20,7 @@ def test_load_all_spans_wind_ice_temp_profiling():
         weight_chain=np.array([1000, 500, 500, 1000]),
         arm_length=np.array([0, 10, -10, 0]),
         line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
-        x=np.array([0, 500, 800, 1200]),
+        span_length=np.array([500, 300, 400]),
         z=np.array([30, 50, 60, 65]),
         load=np.array([500, 1000, 500]),
         load_position=np.array([0.2, 0.4, 0.6]),
