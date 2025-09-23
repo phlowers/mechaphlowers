@@ -14,6 +14,7 @@ from mechaphlowers.data.geography.helpers import (
     gps_to_lambert93,
     lambert93_to_gps,
     reverse_haversine,
+    support_distances_to_gps,
 )
 
 # French cities mock data
@@ -329,3 +330,48 @@ def test_distances_to_gps():
     assert not np.allclose(lon_b, lon_a)
     assert np.allclose(lat_b, np.array([49.7, 43.3, 41.2]), atol=1e-1)
     assert np.allclose(lon_b, np.array([3.0, 4.9, 4.8]), atol=1e-1)
+
+
+def test_support_distances_to_gps():
+    """Test support_distances_to_gps with multiple support bases."""
+
+    # Test case: 3 additional support bases from a first support base
+    support_bases_x_meters = np.array(
+        [50000.0, -30000.0, 100000.0], dtype=np.float64
+    )  # East, West, East movements
+    support_bases_y_meters = np.array(
+        [100000.0, 0.0, -50000.0], dtype=np.float64
+    )  # North, No change, South movements
+    first_support_lat = 48.8566  # Paris latitude
+    first_support_lon = 2.3522  # Paris longitude
+
+    expected_lats = np.array(
+        [48.8566, 49.7566009000009, 48.8566, 48.40659954999955],
+        dtype=np.float64,
+    )
+    expected_lons = np.array(
+        [2.3522, 3.0361475353187672, 1.9418314788087394, 3.7200950706375346],
+        dtype=np.float64,
+    )
+
+    gps_coordinates = support_distances_to_gps(
+        support_bases_x_meters,
+        support_bases_y_meters,
+        first_support_lat,
+        first_support_lon,
+    )
+
+    # Check return type and shape
+    assert isinstance(gps_coordinates, tuple)
+    assert len(gps_coordinates) == 2
+    assert isinstance(gps_coordinates[0], np.ndarray)
+    assert isinstance(gps_coordinates[1], np.ndarray)
+
+    # Should have 4 coordinates total (3 additional + 1 first support)
+    assert gps_coordinates[0].shape == (4,)
+    assert gps_coordinates[1].shape == (4,)
+    assert gps_coordinates[0].dtype == np.float64
+    assert gps_coordinates[1].dtype == np.float64
+
+    np.testing.assert_array_equal(gps_coordinates[0], expected_lats)
+    np.testing.assert_array_equal(gps_coordinates[1], expected_lons)
