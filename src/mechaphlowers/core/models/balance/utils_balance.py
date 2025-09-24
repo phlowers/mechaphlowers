@@ -10,6 +10,14 @@ from functools import lru_cache, wraps
 import numpy as np
 
 
+def fill_to_support(array_to_fill: np.ndarray):
+    return np.concatenate((array_to_fill, [np.nan]))
+
+
+def reduce_to_span(array_to_reduce: np.ndarray):
+    return array_to_reduce[0:-1]
+
+
 # not used for the moment
 def np_cache(*args, **kwargs):
     """

@@ -56,3 +56,11 @@ def T_moy(p, L, x_n, x_m, lineic_weight, k_load=None):
 
 def grad_to_rad(angles_grad: np.ndarray):
     return angles_grad * np.pi / 200
+
+
+def grad_to_deg(angles_grad: np.ndarray):
+    return angles_grad * 180 / 200
+
+
+def deg_to_rad(angles_deg: np.ndarray):
+    return angles_deg * np.pi / 180

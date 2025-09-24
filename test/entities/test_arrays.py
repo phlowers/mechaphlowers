@@ -163,17 +163,6 @@ def test_create_section_array__wrong_type(
         SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
-def test_create_section_array__insulator_length_for_tension_support(
-    section_array_input_data: dict,
-) -> None:
-    section_array_input_data["suspension"] = [False, False, True, False]
-    section_array_input_data["insulator_length"] = [0.5, 0.5, 0.5, 0.5]
-    input_df = pd.DataFrame(section_array_input_data)
-
-    with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-
-
 def test_compute_elevation_difference() -> None:
     # I modify data to have more meaning here and understand results
     data = {

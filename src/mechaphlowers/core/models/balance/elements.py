@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import Type
 
 import numpy as np
 import pandas as pd
@@ -19,7 +20,10 @@ from mechaphlowers.core.models.balance.model_interface import ModelForSolver
 from mechaphlowers.core.models.balance.solver import Solver
 from mechaphlowers.core.models.balance.utils_balance import (
     VectorProjection,
+    fill_to_support,
+    reduce_to_span,
 )
+from mechaphlowers.core.models.cable.span import CatenarySpan, Span
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import SectionArray
 
@@ -40,11 +44,12 @@ def section_array_to_nodes(section_array: SectionArray):
     L_chain = section_array.data.insulator_length.to_numpy()
     weight_chain = section_array.data.insulator_weight.to_numpy()
     arm_length = section_array.data.crossarm_length.to_numpy()
-    line_angle = section_array.data.line_angle.to_numpy()
+    # Convert degrees to rad
+    line_angle = f.deg_to_rad(section_array.data.line_angle.to_numpy())
     z = section_array.data.conductor_attachment_altitude.to_numpy()
-    span_length = section_array.data.span_length.to_numpy()
-    load = section_array.data.load_weight.to_numpy()
-    load_position = section_array.data.load_position.to_numpy()
+    span_length = reduce_to_span(section_array.data.span_length.to_numpy())
+    load = reduce_to_span(section_array.data.load_weight.to_numpy())
+    load_position = reduce_to_span(section_array.data.load_position.to_numpy())
     return Nodes(
         L_chain,
         weight_chain,
@@ -57,19 +62,39 @@ def section_array_to_nodes(section_array: SectionArray):
     )
 
 
-class Orchestrator:
+def arrays_to_span_model(
+    section_array: SectionArray, cable_array: Cable, span_model: Type[Span]
+):
+    span_length = section_array.data.span_length.to_numpy()
+    elevation_difference = section_array.data.elevation_difference.to_numpy()
+    sagging_parameter = section_array.data.sagging_parameter.to_numpy()
+    linear_weight = cable_array.lineic_weight * np.ones_like(span_length)
+    return span_model(
+        span_length, elevation_difference, sagging_parameter, linear_weight
+    )
+
+
+class BalanceEngine:
     def __init__(
         self,
-        sagging_temperature: float,
-        nodes: Nodes,
-        parameter: float,
         cable: Cable,
-        # section_array: SectionArray,
+        section_array: SectionArray,
     ):
-        # self.nodes = section_array_to_nodes(section_array)
-        self.nodes = nodes
+        self.nodes = section_array_to_nodes(section_array)
+        # self.nodes = nodes
+
+        # TODO: fix this
+        sagging_temperature = reduce_to_span(
+            (section_array.data.sagging_temperature.to_numpy())
+        )
+        parameter = reduce_to_span(
+            section_array.data.sagging_parameter.to_numpy()
+        )
+        self.span_model = arrays_to_span_model(
+            section_array, cable, CatenarySpan
+        )
         self.balance_model = BalanceModel(
-            sagging_temperature, self.nodes, parameter, cable
+            sagging_temperature, self.nodes, parameter, cable, self.span_model
         )
 
     def solve_adjustment(self):
@@ -84,7 +109,7 @@ class Orchestrator:
         self,
         wind_pressure: np.ndarray | None = None,
         ice_thickness: np.ndarray | None = None,
-        new_temperature: np.float64 | None = None,
+        new_temperature: np.ndarray | None = None,
     ):
         if wind_pressure is not None:
             self.balance_model.cable_loads.wind_pressure = wind_pressure
@@ -94,7 +119,9 @@ class Orchestrator:
             self.balance_model.sagging_temperature = new_temperature
         self.balance_model.adjustment = False
         self.balance_model.nodes.has_load = True
-
+        self.span_model.load_coefficient = (
+            self.balance_model.cable_loads.load_coefficient
+        )
         sb = Solver()
         sb.solve(self.balance_model)
 
@@ -102,15 +129,18 @@ class Orchestrator:
 class BalanceModel(ModelForSolver):
     def __init__(
         self,
-        sagging_temperature: float,
+        sagging_temperature: np.ndarray,
         nodes: Nodes,
-        parameter: float,
+        parameter: np.ndarray,
         cable: Cable,
+        span_model: Type[Span],
     ):
-        self.sagging_temperature = np.float64(sagging_temperature)
+        # tempertaure and parameter size n-1 here
+        self.sagging_temperature = sagging_temperature
         self.nodes = nodes
-        self._parameter = parameter * np.ones(len(self.nodes) - 1)
+        self._parameter = parameter
         self.cable = cable
+        self.span_model = span_model
         self.cable_loads: CableLoads = CableLoads(
             cable.diameter,
             cable.lineic_weight,
@@ -164,8 +194,7 @@ class BalanceModel(ModelForSolver):
         Here: beta = [beta0, beta1, beta2] because the last value refers to the last support (no span related to this support)
         """
         # TODO: check why sign different from what already exists in CableLoads
-        return -self.cable_loads.load_angle[0:-1]
-
+        return -reduce_to_span(self.cable_loads.load_angle)
 
     def update_L_ref(self):
         # TODO: link to mph + decide how to organize Span/Deformation
@@ -197,7 +226,6 @@ class BalanceModel(ModelForSolver):
 
         self.L_ref = L_ref
         return L_ref
-
 
     @property
     def a_prime(self):
@@ -244,7 +272,6 @@ class BalanceModel(ModelForSolver):
             Th, x_m, x_n, parameter = self.compute_Th_and_extremum(
                 self.a_prime, self.b_prime, self.L_ref
             )
-            self._parameter = parameter
 
             if self.nodes.has_load and abs(np.sum(self.nodes.load)) > 0:
                 # Case: change state + with load
@@ -268,6 +295,9 @@ class BalanceModel(ModelForSolver):
 
                 x_m = x_m_left
                 x_n = x_n_right
+
+            self._parameter = parameter
+            self.span_model.sagging_parameter = fill_to_support(parameter)
 
         self.Tv_g = Th * (np.sinh(x_m / parameter))
         self.Tv_d = -Th * (np.sinh(x_n / parameter))
@@ -325,7 +355,6 @@ class BalanceModel(ModelForSolver):
         self.inter2 = proj_diff[1]
         self.proj_angle = np.atan2(self.inter2, self.inter1)
 
-
     def approx_parameter(self, a, b, L0, cable_temperature):
         circle_chord = (a**2 + b**2) ** 0.5
 
@@ -365,6 +394,9 @@ class BalanceModel(ModelForSolver):
         self.a = (self.inter1**2 + self.inter2**2) ** 0.5
         b = np.roll(z, -1) - z
         self.b = b[:-1]
+        # TODO: fix array lengths?
+        self.span_model.span_length = reduce_to_span(self.a_prime)
+        self.span_model.elevation_difference = reduce_to_span(self.b_prime)
 
     def objective_function(self):
         """[Mx0, My0, Mx1, My1,...]"""

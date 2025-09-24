@@ -7,34 +7,40 @@
 import random
 
 import numpy as np
+import pandas as pd
 
 import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance.elements import (
+    BalanceEngine,
     Cable,
-    Nodes,
-    Orchestrator,
 )
+from mechaphlowers.entities.arrays import SectionArray
 
 
 def test_load_all_spans_wind_ice_temp_profiling():
     cable_AM600 = Cable(600.4e-6, 17.658, 0.000023, 60e9, 31.86e-3, 320)
 
-    nodes_arm = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 10, -10, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([500, 1000, 500]),
-        load_position=np.array([0.2, 0.4, 0.6]),
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [500, 1000, 500, np.nan],
+                "load_position": [0.2, 0.4, 0.6, np.nan],
+            }
+        )
     )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
 
-    section_3d_angles_arm = Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes_arm,
-        cable=cable_AM600,
+    section_3d_angles_arm = BalanceEngine(
+        cable=cable_AM600, section_array=section_array
     )
 
     section_3d_angles_arm.solve_adjustment()

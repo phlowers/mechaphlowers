@@ -6,14 +6,16 @@
 
 
 import numpy as np
+import pandas as pd
 from pytest import fixture
 
 import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance.elements import (
+    BalanceEngine,
     Cable,
-    Nodes,
-    Orchestrator,
+    section_array_to_nodes,
 )
+from mechaphlowers.entities.arrays import SectionArray
 
 
 @fixture
@@ -22,57 +24,65 @@ def cable_AM600():
 
 
 @fixture
-def section_3d_simple(cable_AM600) -> Orchestrator:
-    nodes = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 0, 0, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 0, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 0, 0]),
-        load_position=np.array([0, 0, 0]),
+def balance_engine_simple(cable_AM600: Cable) -> BalanceEngine:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": f.grad_to_deg(np.array([0, 0, 0, 0])),
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        )
     )
-
-    return Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes,
-        cable=cable_AM600,
-    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    return BalanceEngine(cable=cable_AM600, section_array=section_array)
 
 
 @fixture
-def section_3d_angles_arm(cable_AM600) -> Orchestrator:
-    nodes = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 10, -10, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 0, 0]),
-        load_position=np.array([0, 0, 0]),
+def section_array_angles() -> SectionArray:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": f.grad_to_rad(np.array([0, 10, 0, 0])),
+                "insulator_length": [0, 3, 3, 0],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        )
     )
-
-    return Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes,
-        cable=cable_AM600,
-    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    return section_array
 
 
-def test_element_initialisation(section_3d_simple: Orchestrator):
+def test_element_initialisation(balance_engine_simple: BalanceEngine):
     # load = section_2d_note.nodes.load
 
     print("\n")
-    print(section_3d_simple.balance_model)
-    print(section_3d_simple.balance_model.nodes)
+    print(balance_engine_simple.balance_model)
+    print(balance_engine_simple.balance_model.nodes)
 
 
-def test_element_change_state(section_3d_simple: Orchestrator):
-    section_3d_simple.solve_adjustment()
+def test_element_change_state(balance_engine_simple: BalanceEngine):
+    balance_engine_simple.solve_adjustment()
 
-    section_3d_simple.solve_change_state()
+    balance_engine_simple.solve_change_state()
     assert True
+
+
+def test_section_array_to_nodes(section_array_angles):
+    section_array_to_nodes(section_array_angles)

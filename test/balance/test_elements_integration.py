@@ -10,11 +10,11 @@ from pytest import fixture
 
 import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance.elements import (
+    BalanceEngine,
     Cable,
     Nodes,
-    Orchestrator,
 )
-from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 @fixture
@@ -23,103 +23,107 @@ def cable_AM600():
 
 
 @fixture
-def section_array_angles() -> SectionArray:
-    return SectionArray(
+def cable_array_AM600() -> CableArray:
+    return CableArray(
         pd.DataFrame(
             {
-                "name": ["1", "2", "3", "4"],
-                "suspension": [False, True, True, False],
-                "conductor_attachment_altitude": [30, 50, 60, 65],
-                "crossarm_length": [0, 10, -10, 0],
-                "line_angle": f.grad_to_rad(np.array([0, 10, 0, 0])),
-                "insulator_length": [0, 3, 3, 0],
-                "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
+                "section": [600.4],
+                "diameter": [31.86],
+                "linear_weight": [17.658],
+                "young_modulus": [60],
+                "dilatation_coefficient": [23],
+                "temperature_reference": [15],
+                "a0": [0],
+                "a1": [60],
+                "a2": [0],
+                "a3": [0],
+                "a4": [0],
+                "b0": [0],
+                "b1": [0],
+                "b2": [0],
+                "b3": [0],
+                "b4": [0],
             }
         )
     )
 
 
 @fixture
-def section_3d_simple(cable_AM600: Cable) -> Orchestrator:
-    nodes = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 0, 0, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 0, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 0, 0]),
-        load_position=np.array([0, 0, 0]),
+def section_array_angles() -> SectionArray:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        )
     )
-
-    return Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes,
-        cable=cable_AM600,
-    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    return section_array
 
 
 @fixture
-def section_3d_no_altitude_change(cable_AM600) -> Orchestrator:
-    nodes = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 0, 0, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 0, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([50, 50, 50, 50]),
-        load=np.array([0, 0, 0, 0]),
-        load_position=np.array([0, 0, 0]),
+def section_array_simple() -> SectionArray:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": f.grad_to_deg(np.array([0, 0, 0, 0])),
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        )
     )
-
-    return Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes,
-        cable=cable_AM600,
-    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    return section_array
 
 
 @fixture
-def section_3d_angles_arm(cable_AM600) -> Orchestrator:
-    nodes = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 10, -10, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 0, 0]),
-        load_position=np.array([0, 0, 0]),
+def section_array_no_altitude_change() -> SectionArray:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": f.grad_to_deg(np.array([0, 0, 0, 0])),
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        )
     )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    return section_array
 
-    return Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes,
+
+
+def test_element_sandbox(
+    cable_AM600: Cable, section_array_angles: SectionArray
+):
+    section = BalanceEngine(
         cable=cable_AM600,
-    )
-
-
-def test_element_sandbox(cable_AM600: Cable, section_array_angles):
-    nodes_arm = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 10, -10, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 0, 0, 0]),
-        load_position=np.array([0, 0.5, 0, 0]),
-    )
-
-    section = Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes_arm,
-        cable=cable_AM600,
+        section_array=section_array_angles,
     )
     section.solve_adjustment()
     section.balance_model.L_ref
@@ -131,36 +135,12 @@ def test_element_sandbox(cable_AM600: Cable, section_array_angles):
     assert True
 
 
-def test_element_sandbox_load(cable_AM600: Cable):
-    nodes_arm = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 10, -10, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 1000, 0]),
-        load_position=np.array([0.5, 0.5, 0.5]),
-    )
-
-    section_3d_angles_arm = Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes_arm,
-        cable=cable_AM600,
-    )
-
-    section_3d_angles_arm.solve_adjustment()
-    section_3d_angles_arm.balance_model.L_ref
-
-    section_3d_angles_arm.solve_change_state()
-
-    assert True
-
-
 def test_adjust_no_altitude_change(
-    section_3d_no_altitude_change: Orchestrator,
+    section_array_no_altitude_change: SectionArray, cable_AM600: Cable
 ):
+    section_3d_no_altitude_change = BalanceEngine(
+        cable_AM600, section_array_no_altitude_change
+    )
     section_3d_no_altitude_change.solve_adjustment()
 
     expected_dx = np.array(
@@ -194,7 +174,8 @@ def test_adjust_no_altitude_change(
     )
 
 
-def test_adjust_simple(section_3d_simple: Orchestrator):
+def test_adjust_simple(section_array_simple: SectionArray, cable_AM600: Cable):
+    section_3d_simple = BalanceEngine(cable_AM600, section_array_simple)
     section_3d_simple.solve_adjustment()
     expected_dx = np.array(
         [
@@ -227,23 +208,26 @@ def test_adjust_simple(section_3d_simple: Orchestrator):
 
 
 def test_adjust_with_arm(cable_AM600: Cable):
-    nodes = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 10, 10, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 0, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 0, 0, 0]),
-        load_position=np.array([0, 0, 0]),
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, 10, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        )
     )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
 
-    section_arm = Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes,
-        cable=cable_AM600,
-    )
+    section_arm = BalanceEngine(cable=cable_AM600, section_array=section_array)
     section_arm.solve_adjustment()
     expected_dx = np.array(
         [
@@ -282,7 +266,10 @@ def test_adjust_with_arm(cable_AM600: Cable):
     )
 
 
-def test_adjust_with_angles(section_3d_angles_arm: Orchestrator):
+def test_adjust_with_angles(
+    section_array_angles: SectionArray, cable_AM600: Cable
+):
+    section_3d_angles_arm = BalanceEngine(cable_AM600, section_array_angles)
     section_3d_angles_arm.solve_adjustment()
     expected_dx = np.array(
         [
@@ -326,7 +313,12 @@ def test_adjust_with_angles(section_3d_angles_arm: Orchestrator):
     )
 
 
-def test_wind_no_altitude_change(section_3d_no_altitude_change: Orchestrator):
+def test_wind_no_altitude_change(
+    section_array_no_altitude_change: SectionArray, cable_AM600: Cable
+):
+    section_3d_no_altitude_change = BalanceEngine(
+        cable_AM600, section_array_no_altitude_change
+    )
     section_3d_no_altitude_change.solve_adjustment()
 
     section_3d_no_altitude_change.solve_change_state(
@@ -369,23 +361,30 @@ def test_wind_no_altitude_change(section_3d_no_altitude_change: Orchestrator):
 
 
 def test_wind(cable_AM600: Cable):
-    nodes_arm = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 50, 50, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 20, 30, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 0, 0, 0]),
-        load_position=np.array([0, 0, 0]),
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 50, 50, 0],
+                "line_angle": f.grad_to_deg(np.array([0, 20, 30, 0])),
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [0, 0, 0, np.nan],
+                "load_position": [0, 0, 0, np.nan],
+            }
+        )
+    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+
+    section = BalanceEngine(
+        cable=cable_AM600,
+        section_array=section_array,
     )
 
-    section = Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes_arm,
-        cable=cable_AM600,
-    )
     section.solve_adjustment()
 
     section.solve_change_state(wind_pressure=np.array([200] * 4))
@@ -419,10 +418,13 @@ def test_wind(cable_AM600: Cable):
     np.testing.assert_allclose(section.nodes.dz, expected_dz, atol=1e-4)
 
 
-def test_temperature(section_3d_angles_arm: Orchestrator):
+def test_temperature(section_array_angles: SectionArray, cable_AM600: Cable):
+    section_3d_angles_arm = BalanceEngine(cable_AM600, section_array_angles)
     section_3d_angles_arm.solve_adjustment()
 
-    section_3d_angles_arm.solve_change_state(new_temperature=90.0)
+    section_3d_angles_arm.solve_change_state(
+        new_temperature=np.array([90.0] * 3)
+    )
     expected_dx = np.array(
         [
             2.96987911200016,
@@ -458,7 +460,8 @@ def test_temperature(section_3d_angles_arm: Orchestrator):
     )
 
 
-def test_ice(section_3d_angles_arm: Orchestrator):
+def test_ice(section_array_angles: SectionArray, cable_AM600: Cable):
+    section_3d_angles_arm = BalanceEngine(cable_AM600, section_array_angles)
     section_3d_angles_arm.solve_adjustment()
 
     section_3d_angles_arm.solve_change_state(
@@ -501,22 +504,28 @@ def test_ice(section_3d_angles_arm: Orchestrator):
 
 
 def test_load_all_spans(cable_AM600: Cable):
-    nodes_arm = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 10, -10, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([500, 1000, 500]),
-        load_position=np.array([0.2, 0.4, 0.6]),
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [500, 1000, 500, np.nan],
+                "load_position": [0.2, 0.4, 0.6, np.nan],
+            }
+        )
     )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
 
-    section_3d_angles_arm = Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes_arm,
+    section_3d_angles_arm = BalanceEngine(
         cable=cable_AM600,
+        section_array=section_array,
     )
 
     section_3d_angles_arm.solve_adjustment()
@@ -560,26 +569,32 @@ def test_load_all_spans(cable_AM600: Cable):
 
 
 def test_load_all_spans_wind_ice_temp(cable_AM600: Cable):
-    nodes_arm = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 10, -10, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([500, 1000, 500]),
-        load_position=np.array([0.2, 0.4, 0.6]),
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [500, 1000, 500, np.nan],
+                "load_position": [0.2, 0.4, 0.6, np.nan],
+            }
+        )
     )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
 
-    section_3d_angles_arm = Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes_arm,
+    section_3d_angles_arm = BalanceEngine(
         cable=cable_AM600,
+        section_array=section_array,
     )
 
     section_3d_angles_arm.solve_adjustment()
-    new_temperature = 30
+    new_temperature = np.array([30] * 3)
     ice_thickness = np.array([1] * 4) * 1e-2
     wind_pressure = np.array([500] * 4)
     section_3d_angles_arm.solve_change_state(
@@ -623,23 +638,29 @@ def test_load_all_spans_wind_ice_temp(cable_AM600: Cable):
 
 
 def test_load_one_span(cable_AM600: Cable):
-    nodes_arm = Nodes(
-        L_chain=np.array([3, 3, 3, 3]),
-        weight_chain=np.array([1000.0, 500.0, 500.0, 1000.0]),
-        arm_length=np.array([0, 10, -10, 0]),
-        line_angle=f.grad_to_rad(np.array([0, 10, 0, 0])),
-        span_length=np.array([500, 300, 400]),
-        z=np.array([30, 50, 60, 65]),
-        load=np.array([0, 1000, 0]),
-        # currently does not work if a load_position is set to 0
-        load_position=np.array([0.2, 0.4, 0.6]),
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [0, 1000, 0, np.nan],
+                # currently does not work if a load_position is set to 0
+                "load_position": [0.2, 0.4, 0.6, np.nan],
+            }
+        )
     )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
 
-    section_3d_angles_arm = Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes_arm,
+    section_3d_angles_arm = BalanceEngine(
         cable=cable_AM600,
+        section_array=section_array,
     )
 
     section_3d_angles_arm.solve_adjustment()
@@ -684,23 +705,30 @@ def test_load_one_span(cable_AM600: Cable):
 
 def test_many_spans(cable_AM600: Cable):
     nb_spans = 50
-    nodes_arm = Nodes(
-        L_chain=np.array([3] * nb_spans),
-        weight_chain=np.array([500] * nb_spans),
-        arm_length=np.array([0] * nb_spans),
-        line_angle=f.grad_to_rad(np.array([0] * nb_spans)),
-        span_length=np.array([500] * (nb_spans - 1)),
-        z=np.array([50] * nb_spans),
-        load=np.array([0] * (nb_spans - 1)),
-        load_position=np.array([0.5] * (nb_spans - 1)),
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["name"] * nb_spans,
+                "suspension": [False] + [True] * (nb_spans - 2) + [False],
+                "conductor_attachment_altitude": [50] * nb_spans,
+                "crossarm_length": [0] * nb_spans,
+                "line_angle": [0] * nb_spans,
+                "insulator_length": [3] * nb_spans,
+                "span_length": [500] * (nb_spans - 1) + [np.nan],
+                "insulator_weight": [500] * nb_spans,
+                "load_weight": [0] * nb_spans,
+                "load_position": [0] * nb_spans,
+            }
+        )
+    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+
+    section = BalanceEngine(
+        cable=cable_AM600,
+        section_array=section_array,
     )
 
-    section = Orchestrator(
-        parameter=2000,
-        sagging_temperature=15,
-        nodes=nodes_arm,
-        cable=cable_AM600,
-    )
     section.solve_adjustment()
 
     section.solve_change_state(wind_pressure=np.array([-200] * nb_spans))
