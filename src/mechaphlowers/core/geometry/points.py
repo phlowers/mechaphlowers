@@ -208,7 +208,7 @@ class SectionPoints:
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
         self.x_cable: np.ndarray = self.span_model.x(resolution)
-        self.z_cable: np.ndarray = self.span_model.z(self.x_cable)
+        self.z_cable: np.ndarray = self.span_model.z_many_points(self.x_cable)
 
     @property
     def beta(self) -> np.ndarray:

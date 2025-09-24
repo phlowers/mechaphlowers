@@ -52,7 +52,7 @@ class Span(ABC):
                 setattr(self, key, value)
 
     @abstractmethod
-    def z(self, x: np.ndarray) -> np.ndarray:
+    def z_many_points(self, x: np.ndarray) -> np.ndarray:
         """Altitude of cable points depending on the abscissa.
 
         Args:
@@ -81,6 +81,19 @@ class Span(ABC):
                           [z3_a, z3_b, z3_c],
                       ]
         ```
+        """
+
+    @abstractmethod
+    def z_one_point(self, x: np.ndarray) -> np.ndarray:
+        """Altitude of cable point depending on the abscissa. One cable point per span
+        If there is 2 spans/ 3 supports:
+
+        `span_length = [500, 600, 700]`
+        `p = [2_000, 1_500, 1_000]`
+        `x = [x0, x1, x2]`
+
+        Then the output is:
+        z = [z0, z1, z2]
         """
 
     @abstractmethod
@@ -215,8 +228,8 @@ class CatenarySpan(Span):
     The coordinates are expressed in the cable frame.
     """
 
-    def z(self, x: np.ndarray) -> np.ndarray:
-        """Altitude of cable points depending on the abscissa."""
+    def z_many_points(self, x: np.ndarray) -> np.ndarray:
+        """Altitude of cable points depending on the abscissa. Many points per spans, used for graphs."""
 
         # repeating value to perform multidim operation
         xx = x.T
@@ -229,6 +242,10 @@ class CatenarySpan(Span):
 
         # reshaping back to p,x -> (vertical, horizontal)
         return rr.T
+
+    def z_one_point(self, x: np.ndarray) -> np.ndarray:
+        z = self.sagging_parameter * (np.cosh(x / self.sagging_parameter) - 1)
+        return z
 
     def x_m(self) -> np.ndarray:
         # depedency problem??? use p or T_h?

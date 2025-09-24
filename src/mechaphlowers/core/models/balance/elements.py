@@ -86,7 +86,6 @@ class BalanceEngine:
         section_array: SectionArray,
     ):
         self.nodes = section_array_to_nodes(section_array)
-        # self.nodes = nodes
 
         # TODO: fix this
         sagging_temperature = reduce_to_span(
@@ -252,16 +251,16 @@ class BalanceModel(ModelForSolver):
     def b_prime(self):
         return self.b * np.cos(self.beta)
 
-    def compute_Th_and_extremum(self, a, b, L_ref):
+    def compute_Th_and_extremum(self):
         """In this method, a, b, and L_ref may refer to a semi span"""
         parameter = self.approx_parameter(
-            a, b, L_ref, self.sagging_temperature
+            self.a_prime, self.b_prime, self.L_ref, self.sagging_temperature
         )
         parameter = find_parameter_function(
             parameter,
-            a,
-            b,
-            L_ref,
+            self.a_prime,
+            self.b_prime,
+            self.L_ref,
             self.sagging_temperature,
             self.k_load,
             self.cable_section,
@@ -269,42 +268,59 @@ class BalanceModel(ModelForSolver):
             self.dilatation_coefficient,
             self.young_modulus,
         )
-        Th = parameter * self.linear_weight * self.k_load
-        x_m = f.x_m(a, b, parameter)
-        x_n = f.x_n(a, b, parameter)
+        self.span_model.sagging_parameter = fill_to_support(parameter)
+        Th = reduce_to_span(self.span_model.T_h())
+        x_m = reduce_to_span(self.span_model.x_m())
+        x_n = reduce_to_span(self.span_model.x_n())
         return Th, x_m, x_n, parameter
 
     def update_tensions(self):
         if self.adjustment:
             # Case: adjustment
-            parameter = self._parameter
 
-            Th = parameter * self.linear_weight * self.k_load
+            Th = reduce_to_span(self.span_model.T_h())
 
-            x_m = f.x_m(self.a_prime, self.b_prime, parameter)
-            x_n = f.x_n(self.a_prime, self.b_prime, parameter)
+            x_m = reduce_to_span(self.span_model.x_m())
+            x_n = reduce_to_span(self.span_model.x_n())
 
         else:
             # Case: change state + no load:
-            Th, x_m, x_n, parameter = self.compute_Th_and_extremum(
-                self.a_prime, self.b_prime, self.L_ref
-            )
+            Th, x_m, x_n, parameter = self.compute_Th_and_extremum()
 
             if self.nodes.has_load and abs(np.sum(self.nodes.load)) > 0:
                 # Case: change state + with load
                 self.x_i = self.nodes.load_position * self.a_prime
-                self.z_i = f.z(self.x_i, self.parameter, x_m) - f.z(
-                    np.zeros_like(self.x_i), self.parameter, x_m
+                # Don't know why adding x_m is needed
+                z_i_m = self.span_model.z_one_point(
+                    fill_to_support(self.x_i + x_m)
                 )
+                z_m = self.span_model.z_one_point(fill_to_support(x_m))
+                self.z_i = reduce_to_span(z_i_m - z_m)
+
                 self.solve_xi_zi_loads()
 
                 # Left Th and right Th are equal because balance just got solved (same for parameter)
                 a_left = self.x_i
                 b_left = self.z_i
                 L_ref_left = self.nodes.load_position * self.L_ref
-                Th, x_m_left, _, parameter = self.compute_Th_and_extremum(
-                    a_left, b_left, L_ref_left
+
+                parameter = self.approx_parameter(
+                    a_left, b_left, L_ref_left, self.sagging_temperature
                 )
+                parameter = find_parameter_function(
+                    parameter,
+                    a_left,
+                    b_left,
+                    L_ref_left,
+                    self.sagging_temperature,
+                    self.k_load,
+                    self.cable_section,
+                    self.linear_weight,
+                    self.dilatation_coefficient,
+                    self.young_modulus,
+                )
+                Th = parameter * self.linear_weight * self.k_load
+                x_m_left = f.x_m(a_left, b_left, parameter)
 
                 a_right = self.a_prime - self.x_i
                 b_right = self.b_prime - self.z_i
@@ -316,8 +332,8 @@ class BalanceModel(ModelForSolver):
             self._parameter = parameter
             self.span_model.sagging_parameter = fill_to_support(parameter)
 
-        self.Tv_g = Th * (np.sinh(x_m / parameter))
-        self.Tv_d = -Th * (np.sinh(x_n / parameter))
+        self.Tv_g = Th * (np.sinh(x_m / self._parameter))
+        self.Tv_d = -Th * (np.sinh(x_n / self._parameter))
         self.Th = Th
 
         self.update_projections()
@@ -412,8 +428,8 @@ class BalanceModel(ModelForSolver):
         b = np.roll(z, -1) - z
         self.b = b[:-1]
         # TODO: fix array lengths?
-        self.span_model.span_length = reduce_to_span(self.a_prime)
-        self.span_model.elevation_difference = reduce_to_span(self.b_prime)
+        self.span_model.span_length = fill_to_support(self.a_prime)
+        self.span_model.elevation_difference = fill_to_support(self.b_prime)
 
     def objective_function(self):
         """[Mx0, My0, Mx1, My1,...]"""
@@ -827,4 +843,5 @@ class LoadModel(ModelForSolver):
         return roots.real
 
     def update(self):
+        """There is nothing to update in this class. Method used in other implementation of ModelForSolver."""
         pass

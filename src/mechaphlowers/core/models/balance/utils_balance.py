@@ -57,9 +57,6 @@ def np_cache(*args, **kwargs):
 
 
 class VectorProjection:
-    def __init__(self):
-        pass
-
     def set_tensions(self, Th: np.ndarray, Tv_d: np.ndarray, Tv_g: np.ndarray):
         self.Th = Th
         self.Tv_d = Tv_d

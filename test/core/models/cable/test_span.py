@@ -21,7 +21,7 @@ def test_catenary_span_model__no_error_lengths() -> None:
     span_model = CatenarySpan(a, b, p)
     x = np.linspace(-223.2, 245.2, 250)
 
-    assert isinstance(span_model.z(x), np.ndarray)
+    assert isinstance(span_model.z_many_points(x), np.ndarray)
 
     assert isinstance(span_model.x_m(), np.ndarray)
 
@@ -40,7 +40,7 @@ def test_catenary_span_model__no_errors_tensions() -> None:
     span_model = CatenarySpan(a, b, p, linear_weight=lambd)
     x = np.array([100, 200.0])
 
-    assert isinstance(span_model.z(x), np.ndarray)
+    assert isinstance(span_model.z_many_points(x), np.ndarray)
 
     assert isinstance(span_model.x_m(), np.ndarray)
 
@@ -59,7 +59,9 @@ def test_catenary_span_model__x_m__if_no_elevation_difference() -> None:
 
     span_model = CatenarySpan(a, b, p)
     assert abs(span_model.x_m() + 50.0) < 0.01
-    assert abs(49.37 + span_model.z(np.array([-50.0])) - 50.0) < 0.01
+    assert (
+        abs(49.37 + span_model.z_many_points(np.array([-50.0])) - 50.0) < 0.01
+    )
 
 
 def test_catenary_span_model__z__one_span() -> None:
@@ -71,7 +73,7 @@ def test_catenary_span_model__z__one_span() -> None:
 
     span_model = CatenarySpan(a, b, p)
 
-    span_model.z(x)
+    span_model.z_many_points(x)
     span_model.x_m()
 
 
@@ -83,7 +85,7 @@ def test_catenary_span_model__elevation_impact() -> None:
     span_model = CatenarySpan(a, b, p)
     x_cable = span_model.x(5)
 
-    z_cable = span_model.z(x_cable)
+    z_cable = span_model.z_many_points(x_cable)
     assert abs(z_cable[-1, 0] - z_cable[0, 0] - b[0]) < 0.01
     assert abs(z_cable[-1, 1] - z_cable[0, 1] - b[1]) < 0.01
 
@@ -96,7 +98,7 @@ def test_catenary_span_model__length_impact() -> None:
     span_model = CatenarySpan(a, b, p)
     x_cable = span_model.x(5)
 
-    z_cable = span_model.z(x_cable)
+    z_cable = span_model.z_many_points(x_cable)
     assert abs(z_cable[-1, 0] - z_cable[0, 0] - b[0]) < 0.01
     assert abs(z_cable[-1, 1] - z_cable[0, 1] - b[1]) < 0.01
 
@@ -177,7 +179,7 @@ def test_catenary_span_model__data_container(
     x = np.array([100, 200.0])
 
     span_model.x_m()
-    assert isinstance(span_model.z(x), np.ndarray)
+    assert isinstance(span_model.z_many_points(x), np.ndarray)
 
     assert isinstance(span_model.x_m(), np.ndarray)
     span_model.x_n()
