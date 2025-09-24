@@ -14,8 +14,6 @@ from typing_extensions import Self
 
 from mechaphlowers.api.state import StateAccessor
 from mechaphlowers.config import options
-from mechaphlowers.config import options as cfg
-from mechaphlowers.core.geometry import references
 
 # if TYPE_CHECKING:
 from mechaphlowers.core.models.cable.deformation import (
@@ -82,7 +80,6 @@ class SectionDataFrame:
         deformation_model: Type[IDeformation] | None = None,
     ):
         """init_type_model method to initialize type model"""
-        print("ini")
         if span_model is None:
             try:
                 self._span_model = map_model_options[
@@ -109,30 +106,6 @@ class SectionDataFrame:
     def init_span_model(self) -> None:
         """init_span_model method to initialize span model"""
         self.span = self._span_model(**self.data_container.__dict__)
-
-    def get_coordinates(self) -> np.ndarray:
-        """Get x,y,z cables coordinates
-
-        Returns:
-                np.ndarray: x,y,z array in point format
-        """
-        spans = self._span_model(**self.data_container.__dict__)
-        x_cable: np.ndarray = spans.x(cfg.graphics.resolution)
-        z_cable: np.ndarray = spans.z(x_cable)
-
-        beta = np.zeros(x_cable.shape[1])
-        if self.cable_loads is not None:
-            beta = self.cable_loads.load_angle * 180 / np.pi
-
-        return references.transform_coordinates(
-            x_cable,
-            z_cable,
-            beta,
-            self.data_container.conductor_attachment_altitude,
-            self.data_container.span_length,
-            self.data_container.crossarm_length,
-            self.data_container.insulator_length,
-        )
 
     @property
     def data(self) -> pd.DataFrame:
@@ -258,6 +231,12 @@ class SectionDataFrame:
         """update_weather method to update the weather-related properties"""
         self.cable_loads = CableLoads(**self.data_container.__dict__)  # type: ignore[union-attr,arg-type]
         self.span.load_coefficient = self.cable_loads.load_coefficient  # type: ignore[union-attr]
+        # Run change state solver in order to update sagging parameter
+        self.state.change(
+            self.data_container.sagging_temperature, self.weather
+        )
+        # Data format is unusual:
+        # self.weather is used as argument, but using data_container instead should be better
         self.init_deformation_model()
 
     # How to manage case where type_var = SectionArray

@@ -80,10 +80,7 @@ class SectionArray(ElementArray):
         self.sagging_temperature = sagging_temperature
 
     def compute_elevation_difference(self) -> np.ndarray:
-        left_support_height = (
-            self._data["conductor_attachment_altitude"]
-            - self._data["insulator_length"]
-        )
+        left_support_height = self._data["conductor_attachment_altitude"]
         right_support_height = left_support_height.shift(periods=-1)
         return (right_support_height - left_support_height).to_numpy()
 
@@ -94,9 +91,13 @@ class SectionArray(ElementArray):
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
             )
         else:
+            sagging_parameter = np.repeat(
+                np.float64(self.sagging_parameter), self._data.shape[0]
+            )
+            sagging_parameter[-1] = np.nan
             return self._data.assign(
                 elevation_difference=self.compute_elevation_difference(),
-                sagging_parameter=self.sagging_parameter,
+                sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
             )
 

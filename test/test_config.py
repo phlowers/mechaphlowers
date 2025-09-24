@@ -17,9 +17,9 @@ def test_config_on_plot(default_section_array_three_spans) -> None:
     options.graphics.marker_size = 10.0
     frame.plot.line3d(fig)
     assert (
-        fig._data[0].get('marker').get('size') == options.graphics.marker_size
+        fig._data[0].get('marker').get('size') == options.graphics.marker_size  # type: ignore[attr-defined]
     )
-    assert fig._data[0].get('x').shape[0] == options.graphics.resolution * (
-        default_section_array_three_spans.data.shape[0] - 1
-    )
+    assert fig._data[0].get('x').shape[0] == (  # type: ignore[attr-defined]
+        options.graphics.resolution + 1
+    ) * (default_section_array_three_spans.data.shape[0] - 1)
     # fig.show() # deactivate for auto unit testing

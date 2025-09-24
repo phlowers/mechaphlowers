@@ -7,9 +7,9 @@
 import numpy as np
 
 from mechaphlowers.core.geometry.references import (
-    cable_to_span,
-    spans_to_vector,
+    cable_to_beta_plane,
     translate_cable_to_support,
+    vectors_to_points,
 )
 
 
@@ -18,12 +18,16 @@ def test_cable2span_basic() -> None:
     z: np.ndarray = np.array([[20, 18, 17, 19], [19, 17, 15, 17]]).T
     beta: float = 0
 
-    xs, ys, zs = cable_to_span(x, z, np.ones(2) * beta)  # TODO check beta
+    xs, ys, zs = cable_to_beta_plane(
+        x, z, np.ones(2) * beta
+    )  # TODO check beta
 
     assert len(xs) == len(z)
     np.testing.assert_allclose(ys, np.zeros_like(ys))
     # assert np.allclose(result, z)
-    xs, ys, zs = cable_to_span(x, z, np.array([5.0, 61.3]))  # TODO check beta
+    xs, ys, zs = cable_to_beta_plane(
+        x, z, np.array([5.0, 61.3])
+    )  # TODO check beta
     assert len(xs) == len(z)
     assert not (ys == 0).all()
 
@@ -35,7 +39,7 @@ def test_spans2vector() -> None:
 
     expected_output = np.array([[1, 5, 9], [3, 7, 11], [2, 6, 10], [4, 8, 12]])
 
-    result = spans_to_vector(x, y, z)
+    result = vectors_to_points(x, y, z)
 
     assert np.array_equal(
         result, expected_output
@@ -49,7 +53,7 @@ def test_spans2vector_empty() -> None:
 
     # expected_output = np.array([[]]) so we check that size == 0
 
-    result = spans_to_vector(x, y, z)
+    result = vectors_to_points(x, y, z)
 
     assert result.size == 0
 
@@ -61,7 +65,7 @@ def test_spans2vector_single_point() -> None:
 
     expected_output = np.array([[1, 2, 3]])
 
-    result = spans_to_vector(x, y, z)
+    result = vectors_to_points(x, y, z)
 
     assert np.array_equal(
         result, expected_output
@@ -69,7 +73,7 @@ def test_spans2vector_single_point() -> None:
 
 
 def test_translate_cable_to_support() -> None:
-    altitude = np.array([50.0, 40.0, 20.0, 10.0])
+    altitude = np.array([48.0, 39.0, 19.0, 10.0])
     span_length = np.array([100.0, 200.0, 300.0, np.nan])
     crossarm_length = np.array([5.0, 2.0, 3.0, np.nan])
     insulator_length = np.array([2.0, 1.0, 1.0, np.nan])
@@ -141,6 +145,7 @@ def test_translate_cable_to_support() -> None:
         span_length,
         crossarm_length,
         insulator_length,
+        line_angle=np.array([0, 0, 0, np.nan]),
     )
 
     np.testing.assert_almost_equal(x_1, x_out)

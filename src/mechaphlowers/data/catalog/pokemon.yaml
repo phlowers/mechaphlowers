@@ -1,0 +1,20 @@
+csv_name: "pokemon.csv"
+catalog_type: default_catalog
+key_column_name: Name
+
+columns:
+  - Type 1: str
+  - Type 2: str
+  - Total: int
+  - HP: int
+  - Attack: int
+  - Defense: int
+  - Sp. Atk: int
+  - Sp. Def: int
+  - Speed: int
+  - Generation: int
+  - Legendary: bool
+
+columns_renaming:
+  - Type 1: First Type
+  - Type 2: Second Type

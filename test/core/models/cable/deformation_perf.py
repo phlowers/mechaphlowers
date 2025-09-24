@@ -46,10 +46,12 @@ def test_solve_polynom_perf() -> None:
     b = np.array([0.0] * spans_number)
     p = np.array([2_000] * spans_number)
     lambd = np.float64(9.6)
-    m = np.array([1] * spans_number)
+    k_load = np.array([1] * spans_number)
     sagging_temperature = np.array([15] * spans_number)
 
-    span_model = CatenarySpan(a, b, p, load_coefficient=m, linear_weight=lambd)
+    span_model = CatenarySpan(
+        a, b, p, load_coefficient=k_load, linear_weight=lambd
+    )
     tension_mean = span_model.T_mean()
     cable_length = span_model.L()
     deformation_model = DeformationRte(

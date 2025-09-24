@@ -12,7 +12,6 @@ import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance.elements import (
     BalanceEngine,
     Cable,
-    Nodes,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
@@ -115,7 +114,6 @@ def section_array_no_altitude_change() -> SectionArray:
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
     return section_array
-
 
 
 def test_element_sandbox(

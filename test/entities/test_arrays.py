@@ -191,7 +191,7 @@ def test_compute_elevation_difference() -> None:
     elevation_difference = section_array.compute_elevation_difference()
 
     assert_allclose(
-        elevation_difference, np.array([-14.0, -19.0, -7.0, np.nan])
+        elevation_difference, np.array([-10.0, -20.0, -10.0, np.nan])
     )
 
 
@@ -214,8 +214,8 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "insulator_length": [0, 4, 3.2, 0],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
-            "elevation_difference": [-1.2, -4.32, 3.32, np.nan],
-            "sagging_parameter": [2_000] * 4,
+            "elevation_difference": [2.8, -5.12, 0.12, np.nan],
+            "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15] * 4,
         },
     )
