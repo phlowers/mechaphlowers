@@ -12,19 +12,39 @@ from pytest import fixture
 import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance.elements import (
     BalanceEngine,
-    Cable,
     section_array_to_nodes,
 )
-from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 @fixture
-def cable_AM600():
-    return Cable(600.4e-6, 17.658, 0.000023, 60e9, 31.86e-3, 320)
+def cable_array_AM600() -> CableArray:
+    return CableArray(
+        pd.DataFrame(
+            {
+                "section": [600.4],
+                "diameter": [31.86],
+                "linear_weight": [17.658],
+                "young_modulus": [60],
+                "dilatation_coefficient": [23],
+                "temperature_reference": [15],
+                "a0": [0],
+                "a1": [60],
+                "a2": [0],
+                "a3": [0],
+                "a4": [0],
+                "b0": [0],
+                "b1": [0],
+                "b2": [0],
+                "b3": [0],
+                "b4": [0],
+            }
+        )
+    )
 
 
 @fixture
-def balance_engine_simple(cable_AM600: Cable) -> BalanceEngine:
+def balance_engine_simple(cable_array_AM600: CableArray) -> BalanceEngine:
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -43,7 +63,9 @@ def balance_engine_simple(cable_AM600: Cable) -> BalanceEngine:
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
-    return BalanceEngine(cable=cable_AM600, section_array=section_array)
+    return BalanceEngine(
+        cable_array=cable_array_AM600, section_array=section_array
+    )
 
 
 @fixture

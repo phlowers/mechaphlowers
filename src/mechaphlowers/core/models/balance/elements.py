@@ -25,7 +25,7 @@ from mechaphlowers.core.models.balance.utils_balance import (
 )
 from mechaphlowers.core.models.cable.span import CatenarySpan, Span
 from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Cable:
     section: np.float64  # input in mm ?
-    lineic_weight: np.float64
-    dilation_coefficient: np.float64
+    linear_weight: np.float64
+    dilatation_coefficient: np.float64
     young_modulus: np.float64
     diameter: np.float64
     cra: np.float64
@@ -63,21 +63,26 @@ def section_array_to_nodes(section_array: SectionArray):
 
 
 def arrays_to_span_model(
-    section_array: SectionArray, cable_array: Cable, span_model: Type[Span]
+    section_array: SectionArray,
+    cable_array: CableArray,
+    span_model: Type[Span],
 ):
     span_length = section_array.data.span_length.to_numpy()
     elevation_difference = section_array.data.elevation_difference.to_numpy()
     sagging_parameter = section_array.data.sagging_parameter.to_numpy()
-    linear_weight = cable_array.lineic_weight * np.ones_like(span_length)
+    linear_weight = np.float64(cable_array.data.linear_weight)
     return span_model(
-        span_length, elevation_difference, sagging_parameter, linear_weight
+        span_length,
+        elevation_difference,
+        sagging_parameter,
+        linear_weight=linear_weight,
     )
 
 
 class BalanceEngine:
     def __init__(
         self,
-        cable: Cable,
+        cable_array: CableArray,
         section_array: SectionArray,
     ):
         self.nodes = section_array_to_nodes(section_array)
@@ -91,10 +96,14 @@ class BalanceEngine:
             section_array.data.sagging_parameter.to_numpy()
         )
         self.span_model = arrays_to_span_model(
-            section_array, cable, CatenarySpan
+            section_array, cable_array, CatenarySpan
         )
         self.balance_model = BalanceModel(
-            sagging_temperature, self.nodes, parameter, cable, self.span_model
+            sagging_temperature,
+            self.nodes,
+            parameter,
+            cable_array,
+            self.span_model,
         )
 
     def solve_adjustment(self):
@@ -132,18 +141,26 @@ class BalanceModel(ModelForSolver):
         sagging_temperature: np.ndarray,
         nodes: Nodes,
         parameter: np.ndarray,
-        cable: Cable,
+        cable_array: CableArray,
         span_model: Type[Span],
     ):
         # tempertaure and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
         self.nodes = nodes
         self._parameter = parameter
-        self.cable = cable
+        self.cable_array = cable_array
+        # TODO: temporary solution to manage cable data, must find a better way to do this
+        self.cable_section = np.float64(self.cable_array.data.section)
+        self.diameter = np.float64(self.cable_array.data.diameter)
+        self.linear_weight = np.float64(self.cable_array.data.linear_weight)
+        self.young_modulus = np.float64(self.cable_array.data.young_modulus)
+        self.dilatation_coefficient = np.float64(
+            self.cable_array.data.dilatation_coefficient
+        )
         self.span_model = span_model
         self.cable_loads: CableLoads = CableLoads(
-            cable.diameter,
-            cable.lineic_weight,
+            self.diameter,
+            self.linear_weight,
             np.zeros_like(nodes.weight_chain),
             np.zeros_like(nodes.weight_chain),
         )
@@ -162,7 +179,7 @@ class BalanceModel(ModelForSolver):
         self.nodes.compute_moment()
 
         self.model_load = LoadModel(
-            self.cable,
+            self.cable_array,
             self.nodes.load,
             self.nodes.load_position,
         )
@@ -215,13 +232,13 @@ class BalanceModel(ModelForSolver):
             L=cable_length,
             x_n=f.x_n(a, b, parameter),
             x_m=f.x_m(a, b, parameter),
-            lineic_weight=self.cable.lineic_weight,
+            linear_weight=self.linear_weight,
         )
 
         L_ref = cable_length / (
             1
-            + self.cable.dilation_coefficient * self.sagging_temperature
-            + T_mean / self.cable.young_modulus / self.cable.section
+            + self.dilatation_coefficient * self.sagging_temperature
+            + T_mean / self.young_modulus / self.cable_section
         )
 
         self.L_ref = L_ref
@@ -247,12 +264,12 @@ class BalanceModel(ModelForSolver):
             L_ref,
             self.sagging_temperature,
             self.k_load,
-            self.cable.section,
-            self.cable.lineic_weight,
-            self.cable.dilation_coefficient,
-            self.cable.young_modulus,
+            self.cable_section,
+            self.linear_weight,
+            self.dilatation_coefficient,
+            self.young_modulus,
         )
-        Th = parameter * self.cable.lineic_weight * self.k_load
+        Th = parameter * self.linear_weight * self.k_load
         x_m = f.x_m(a, b, parameter)
         x_n = f.x_n(a, b, parameter)
         return Th, x_m, x_n, parameter
@@ -262,7 +279,7 @@ class BalanceModel(ModelForSolver):
             # Case: adjustment
             parameter = self._parameter
 
-            Th = parameter * self.cable.lineic_weight * self.k_load
+            Th = parameter * self.linear_weight * self.k_load
 
             x_m = f.x_m(self.a_prime, self.b_prime, parameter)
             x_n = f.x_n(self.a_prime, self.b_prime, parameter)
@@ -359,17 +376,17 @@ class BalanceModel(ModelForSolver):
         circle_chord = (a**2 + b**2) ** 0.5
 
         factor = (
-            self.cable.lineic_weight
+            self.linear_weight
             * self.k_load
-            / self.cable.young_modulus
-            / self.cable.section
+            / self.young_modulus
+            / self.cable_section
         )
 
         p3 = factor * L0
         p2 = (
             L0
             - circle_chord
-            + self.cable.dilation_coefficient * cable_temperature * L0
+            + self.dilatation_coefficient * cable_temperature * L0
         )
         p1 = 0 * L0
         p0 = -(a**4) / 24 / circle_chord
@@ -451,8 +468,8 @@ def find_parameter_function(
     cable_temperature: np.ndarray,  # float?
     k_load: np.ndarray,
     cable_section: np.float64,
-    lineic_weight: np.float64,
-    dilation_coefficient: np.float64,
+    linear_weight: np.float64,
+    dilatation_coefficient: np.float64,
     young_modulus: np.float64,
 ):
     """this is a placeholder of sagtension algorithm"""
@@ -470,12 +487,12 @@ def find_parameter_function(
             L=lon,
             x_n=f.x_n(a, b, param),
             x_m=f.x_m(a, b, param),
-            lineic_weight=lineic_weight,
+            linear_weight=linear_weight,
             k_load=k_load,
         )
 
         delta1 = (lon - L_ref) / L_ref - (
-            dilation_coefficient * cable_temperature
+            dilatation_coefficient * cable_temperature
             + Tm1 / young_modulus / cable_section
         )
 
@@ -490,12 +507,12 @@ def find_parameter_function(
             L=lon,
             x_n=f.x_n(a, b, param),
             x_m=f.x_m(a, b, param),
-            lineic_weight=lineic_weight,
+            linear_weight=linear_weight,
             k_load=k_load,
         )
 
         delta2 = (lon - L_ref) / L_ref - (
-            dilation_coefficient * cable_temperature
+            dilatation_coefficient * cable_temperature
             + Tm1 / young_modulus / cable_section
         )
 
@@ -695,11 +712,18 @@ class Nodes:
 class LoadModel(ModelForSolver):
     def __init__(
         self,
-        cable: Cable,
+        cable_array: CableArray,
         load: np.ndarray,
         load_position: np.ndarray,
     ):
-        self.cable = cable
+        self.cable_array = cable_array
+        self.cable_section = np.float64(self.cable_array.data.section)
+        self.diameter = np.float64(self.cable_array.data.diameter)
+        self.linear_weight = np.float64(self.cable_array.data.linear_weight)
+        self.young_modulus = np.float64(self.cable_array.data.young_modulus)
+        self.dilatation_coefficient = np.float64(
+            self.cable_array.data.dilatation_coefficient
+        )
         self.load = load
         self.load_position = load_position
 
@@ -766,12 +790,12 @@ class LoadModel(ModelForSolver):
             L_ref,
             self.temperature,
             self.k_load,
-            self.cable.section,
-            self.cable.lineic_weight,
-            self.cable.dilation_coefficient,
-            self.cable.young_modulus,
+            self.cable_section,
+            self.linear_weight,
+            self.dilatation_coefficient,
+            self.young_modulus,
         )
-        Th = parameter * self.cable.lineic_weight * self.k_load
+        Th = parameter * self.linear_weight * self.k_load
         x_m = f.x_m(a, b, parameter)
         x_n = f.x_n(a, b, parameter)
         return Th, x_m, x_n, parameter
@@ -781,17 +805,17 @@ class LoadModel(ModelForSolver):
         circle_chord = (a**2 + b**2) ** 0.5
 
         factor = (
-            self.cable.lineic_weight
+            self.linear_weight
             * self.k_load
-            / self.cable.young_modulus
-            / self.cable.section
+            / self.young_modulus
+            / self.cable_section
         )
 
         p3 = factor * L0
         p2 = (
             L0
             - circle_chord
-            + self.cable.dilation_coefficient * cable_temperature * L0
+            + self.dilatation_coefficient * cable_temperature * L0
         )
         p1 = 0 * L0
         p0 = -(a**4) / 24 / circle_chord

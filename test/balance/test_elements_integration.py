@@ -13,12 +13,20 @@ from mechaphlowers.core.models.balance.elements import (
     BalanceEngine,
     Cable,
 )
+from mechaphlowers.data.catalog.catalog import (
+    sample_cable_catalog,
+)
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 @fixture
 def cable_AM600():
     return Cable(600.4e-6, 17.658, 0.000023, 60e9, 31.86e-3, 320)
+
+
+@fixture
+def cable_array_TESTASTER600():
+    return sample_cable_catalog.get_as_object(["TESTASTER600"])
 
 
 @fixture
@@ -117,10 +125,10 @@ def section_array_no_altitude_change() -> SectionArray:
 
 
 def test_element_sandbox(
-    cable_AM600: Cable, section_array_angles: SectionArray
+    section_array_angles: SectionArray, cable_array_AM600: CableArray
 ):
     section = BalanceEngine(
-        cable=cable_AM600,
+        cable_array=cable_array_AM600,
         section_array=section_array_angles,
     )
     section.solve_adjustment()
@@ -134,10 +142,11 @@ def test_element_sandbox(
 
 
 def test_adjust_no_altitude_change(
-    section_array_no_altitude_change: SectionArray, cable_AM600: Cable
+    section_array_no_altitude_change: SectionArray,
+    cable_array_AM600: CableArray,
 ):
     section_3d_no_altitude_change = BalanceEngine(
-        cable_AM600, section_array_no_altitude_change
+        cable_array_AM600, section_array_no_altitude_change
     )
     section_3d_no_altitude_change.solve_adjustment()
 
@@ -172,8 +181,10 @@ def test_adjust_no_altitude_change(
     )
 
 
-def test_adjust_simple(section_array_simple: SectionArray, cable_AM600: Cable):
-    section_3d_simple = BalanceEngine(cable_AM600, section_array_simple)
+def test_adjust_simple(
+    section_array_simple: SectionArray, cable_array_AM600: CableArray
+):
+    section_3d_simple = BalanceEngine(cable_array_AM600, section_array_simple)
     section_3d_simple.solve_adjustment()
     expected_dx = np.array(
         [
@@ -205,7 +216,7 @@ def test_adjust_simple(section_array_simple: SectionArray, cable_AM600: Cable):
     )
 
 
-def test_adjust_with_arm(cable_AM600: Cable):
+def test_adjust_with_arm(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -225,7 +236,9 @@ def test_adjust_with_arm(cable_AM600: Cable):
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
-    section_arm = BalanceEngine(cable=cable_AM600, section_array=section_array)
+    section_arm = BalanceEngine(
+        cable_array=cable_array_AM600, section_array=section_array
+    )
     section_arm.solve_adjustment()
     expected_dx = np.array(
         [
@@ -265,9 +278,11 @@ def test_adjust_with_arm(cable_AM600: Cable):
 
 
 def test_adjust_with_angles(
-    section_array_angles: SectionArray, cable_AM600: Cable
+    section_array_angles: SectionArray, cable_array_AM600: CableArray
 ):
-    section_3d_angles_arm = BalanceEngine(cable_AM600, section_array_angles)
+    section_3d_angles_arm = BalanceEngine(
+        cable_array_AM600, section_array_angles
+    )
     section_3d_angles_arm.solve_adjustment()
     expected_dx = np.array(
         [
@@ -312,10 +327,11 @@ def test_adjust_with_angles(
 
 
 def test_wind_no_altitude_change(
-    section_array_no_altitude_change: SectionArray, cable_AM600: Cable
+    section_array_no_altitude_change: SectionArray,
+    cable_array_AM600: CableArray,
 ):
     section_3d_no_altitude_change = BalanceEngine(
-        cable_AM600, section_array_no_altitude_change
+        cable_array_AM600, section_array_no_altitude_change
     )
     section_3d_no_altitude_change.solve_adjustment()
 
@@ -358,7 +374,7 @@ def test_wind_no_altitude_change(
     )
 
 
-def test_wind(cable_AM600: Cable):
+def test_wind(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -379,7 +395,7 @@ def test_wind(cable_AM600: Cable):
     section_array.sagging_temperature = 15
 
     section = BalanceEngine(
-        cable=cable_AM600,
+        cable_array=cable_array_AM600,
         section_array=section_array,
     )
 
@@ -416,8 +432,12 @@ def test_wind(cable_AM600: Cable):
     np.testing.assert_allclose(section.nodes.dz, expected_dz, atol=1e-4)
 
 
-def test_temperature(section_array_angles: SectionArray, cable_AM600: Cable):
-    section_3d_angles_arm = BalanceEngine(cable_AM600, section_array_angles)
+def test_temperature(
+    section_array_angles: SectionArray, cable_array_AM600: CableArray
+):
+    section_3d_angles_arm = BalanceEngine(
+        cable_array_AM600, section_array_angles
+    )
     section_3d_angles_arm.solve_adjustment()
 
     section_3d_angles_arm.solve_change_state(
@@ -458,8 +478,12 @@ def test_temperature(section_array_angles: SectionArray, cable_AM600: Cable):
     )
 
 
-def test_ice(section_array_angles: SectionArray, cable_AM600: Cable):
-    section_3d_angles_arm = BalanceEngine(cable_AM600, section_array_angles)
+def test_ice(
+    section_array_angles: SectionArray, cable_array_AM600: CableArray
+):
+    section_3d_angles_arm = BalanceEngine(
+        cable_array_AM600, section_array_angles
+    )
     section_3d_angles_arm.solve_adjustment()
 
     section_3d_angles_arm.solve_change_state(
@@ -501,7 +525,7 @@ def test_ice(section_array_angles: SectionArray, cable_AM600: Cable):
     )
 
 
-def test_load_all_spans(cable_AM600: Cable):
+def test_load_all_spans(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -522,7 +546,7 @@ def test_load_all_spans(cable_AM600: Cable):
     section_array.sagging_temperature = 15
 
     section_3d_angles_arm = BalanceEngine(
-        cable=cable_AM600,
+        cable_array=cable_array_AM600,
         section_array=section_array,
     )
 
@@ -566,7 +590,7 @@ def test_load_all_spans(cable_AM600: Cable):
     )
 
 
-def test_load_all_spans_wind_ice_temp(cable_AM600: Cable):
+def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -587,7 +611,7 @@ def test_load_all_spans_wind_ice_temp(cable_AM600: Cable):
     section_array.sagging_temperature = 15
 
     section_3d_angles_arm = BalanceEngine(
-        cable=cable_AM600,
+        cable_array=cable_array_AM600,
         section_array=section_array,
     )
 
@@ -635,7 +659,7 @@ def test_load_all_spans_wind_ice_temp(cable_AM600: Cable):
     )
 
 
-def test_load_one_span(cable_AM600: Cable):
+def test_load_one_span(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -657,7 +681,7 @@ def test_load_one_span(cable_AM600: Cable):
     section_array.sagging_temperature = 15
 
     section_3d_angles_arm = BalanceEngine(
-        cable=cable_AM600,
+        cable_array=cable_array_AM600,
         section_array=section_array,
     )
 
@@ -701,7 +725,7 @@ def test_load_one_span(cable_AM600: Cable):
     )
 
 
-def test_many_spans(cable_AM600: Cable):
+def test_many_spans(cable_array_AM600: CableArray):
     nb_spans = 50
     section_array = SectionArray(
         pd.DataFrame(
@@ -723,7 +747,7 @@ def test_many_spans(cable_AM600: Cable):
     section_array.sagging_temperature = 15
 
     section = BalanceEngine(
-        cable=cable_AM600,
+        cable_array=cable_array_AM600,
         section_array=section_array,
     )
 
