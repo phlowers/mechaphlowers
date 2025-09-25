@@ -46,6 +46,7 @@ class Catalog:
         columns_types: dict | None = None,
         rename_dict: dict | None = None,
         remove_duplicates: bool = True,
+        user_filepath: str | PathLike = DATA_BASE_PATH,
     ) -> None:
         """Initialize catalog from a csv file.
 
@@ -60,13 +61,23 @@ class Catalog:
                 catalog_type (Literal['default_catalog', "cable_catalog"]): type of the catalog. Used in the `get_as_object` method to convert the catalog to a specific object type.
                 columns_types (dict | None): dictionnary of column names and their types.
                 rename_dict (dict | None): dictionnary of column names to rename. The key is the original name, the value is the new name.
+                remove_duplicates (bool): whether to remove duplicate rows. Defaults to True.
+                user_filepath (str | PathLike): path to the folder containing the csv file. Defaults to internal data.
         """
         self.catalog_type = catalog_type
         if columns_types is None:
             columns_types = {}
         if rename_dict is None:
             rename_dict = {}
-        filepath = DATA_BASE_PATH / filename
+        if user_filepath is None:
+            filepath = DATA_BASE_PATH / filename  # type: ignore[operator]
+        else:
+            filepath = Path(user_filepath) / filename  # type: ignore[operator]
+        if not filepath.exists():
+            raise FileNotFoundError(
+                f"{user_filepath=} seems to be not a valid path. Please provide a valid path."
+            )
+
         # Warning: booleans are not treated correctly in order to avoid issues with empty values.
         # TODO: Maybe remove this filter if we consider that empty values on boolean columns does not exist, or fix this
         dtype_dict_without_bool = {
@@ -214,21 +225,30 @@ class Catalog:
 
 
 def build_catalog_from_yaml(
-    yaml_filename: str | PathLike, rename=True, remove_duplicates=True
+    yaml_filename: str | PathLike,
+    rename=True,
+    remove_duplicates=True,
+    user_filepath: str | PathLike = DATA_BASE_PATH,
 ) -> Catalog:
     """Build a catalog from a yaml file.
 
     Args:
         yaml_filename (str | PathLike): path to the yaml file
         rename (bool): whether to rename columns according to the yaml file. Defaults to True.
+        remove_duplicates (bool): whether to remove duplicate rows. Defaults to True.
+        user_filepath (str | PathLike): path to the folder containing the yaml file. Defaults to internal data.
 
     Returns:
         Catalog: a catalog instance with the data from the yaml file
     """
 
-    yaml_filepath = DATA_BASE_PATH / yaml_filename
-    with open(yaml_filepath, "r") as file:
-        data = yaml.safe_load(file)
+    try:
+        yaml_filepath = user_filepath / yaml_filename  # type: ignore[operator]
+
+        with open(yaml_filepath, "r") as file:
+            data = yaml.safe_load(file)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File {yaml_filepath} not found")
 
     string_to_type_converters = {
         "str": str,
@@ -266,7 +286,50 @@ def build_catalog_from_yaml(
         columns_types,
         rename_dict,
         remove_duplicates,
+        user_filepath,
     )
+
+
+def write_yaml_catalog_template(
+    user_filepath: str | PathLike,
+    template: Literal["cable_catalog", "support_catalog"] = "support_catalog",
+) -> None:
+    """Write a yaml catalog template file in the user_filepath folder provided.
+
+    Args:
+        user_filepath (str | PathLike): path to the folder where the yaml file will be written. Defaults to internal data.
+        template (Literal['cable_catalog', 'support_catalog']): type of the catalog template. Defaults to "support_catalog".
+    """
+    map_catalog = {
+        "cable_catalog": "sample_cable_database.yaml",
+        "support_catalog": "sample_pylon_database.yaml",
+    }
+
+    try:
+        filename = map_catalog[template]
+    except KeyError as e:
+        raise KeyError(
+            f"Template '{template}' is not supported. Supported templates are: {list(map_catalog.keys())}"
+        ) from e
+
+    if isinstance(user_filepath, str):
+        filepath = Path(user_filepath)
+    elif isinstance(user_filepath, Path):
+        filepath = user_filepath
+    else:
+        raise TypeError(
+            f"Expected a str or Path as argument for 'user_filepath', got {type(user_filepath)}"
+        )
+
+    if not filepath.exists():
+        raise FileNotFoundError(
+            f"{user_filepath=} seems to be not a valid path. Please provide a valid path."
+        )
+
+    filepath = filepath / filename  # type: ignore[operator]
+
+    with open(filepath, 'w') as file:
+        yaml.dump(template, file)
 
 
 fake_catalog = build_catalog_from_yaml("pokemon.yaml", rename=False)

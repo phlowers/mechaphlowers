@@ -107,5 +107,5 @@ def test_plot_support_shape():
         set_number=np.array([22, 28, 37, 45, 46, 47, 55]),
     )
     plot_support_shape(fig, pyl_shape)
-    fig.show()
+    # fig.show()
     assert True
