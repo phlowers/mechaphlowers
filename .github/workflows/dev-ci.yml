@@ -52,7 +52,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v5.3.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_MPH }}
         with:
           args: |
             -Dsonar.python.coverage.reportPaths=coverage.xml
