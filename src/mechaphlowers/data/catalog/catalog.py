@@ -18,6 +18,7 @@ from mechaphlowers.entities.arrays import (
     CableArray,
     ElementArray,
 )
+from mechaphlowers.entities.shapes import SupportShape
 
 # Resolve the 'data' folder
 # which is the parent folder of this script
@@ -27,8 +28,8 @@ DATA_BASE_PATH = Path(__file__).absolute().parent
 logger = logging.getLogger(__name__)
 
 
-CatalogType = Literal['default_catalog', 'cable_catalog']
-list_object_conversion = [None, CableArray]
+CatalogType = Literal['default_catalog', 'cable_catalog', 'support_catalog']
+list_object_conversion = [None, CableArray, SupportShape.from_dataframe]
 catalog_to_object = dict(
     zip(list(get_args(CatalogType)), list_object_conversion)
 )
@@ -44,6 +45,7 @@ class Catalog:
         catalog_type: CatalogType = 'default_catalog',
         columns_types: dict | None = None,
         rename_dict: dict | None = None,
+        remove_duplicates: bool = True,
     ) -> None:
         """Initialize catalog from a csv file.
 
@@ -85,7 +87,8 @@ class Catalog:
         # validating the pandera schema. Useful for checking missing fields
         self.validate_types(dtype_dict_without_bool)
         self.rename_columns(key_column_name, rename_dict)
-        self.remove_duplicates(filename)
+        if remove_duplicates is True:
+            self.remove_duplicates(filename)
 
     def validate_types(self, dtype_dict: dict) -> None:
         """Validate the types of the dataframe. Boolean columns are not checked.
@@ -211,7 +214,7 @@ class Catalog:
 
 
 def build_catalog_from_yaml(
-    yaml_filename: str | PathLike, rename=True
+    yaml_filename: str | PathLike, rename=True, remove_duplicates=True
 ) -> Catalog:
     """Build a catalog from a yaml file.
 
@@ -262,8 +265,12 @@ def build_catalog_from_yaml(
         catalog_type,
         columns_types,
         rename_dict,
+        remove_duplicates,
     )
 
 
 fake_catalog = build_catalog_from_yaml("pokemon.yaml", rename=False)
 sample_cable_catalog = build_catalog_from_yaml("sample_cable_database.yaml")
+sample_support_catalog = build_catalog_from_yaml(
+    "sample_pylon_database.yaml", remove_duplicates=False
+)

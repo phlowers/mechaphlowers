@@ -10,12 +10,35 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
-from mechaphlowers.core.geometry.points import SectionPoints  # type: ignore
+from mechaphlowers.core.geometry.points import SectionPoints
+from mechaphlowers.entities.shapes import SupportShape  # type: ignore
 
 if TYPE_CHECKING:
     from mechaphlowers.api.frames import SectionDataFrame
 
 from mechaphlowers.config import options as cfg
+
+
+def plot_text_3d(
+    fig: go.Figure,
+    points: np.ndarray,
+    text: np.ndarray,
+    color=None,
+    width=3,
+    size=None,
+    name="Points",
+):
+    fig.add_trace(
+        go.Scatter3d(
+            x=points[:, 0],
+            y=points[:, 1],
+            z=points[:, 2],
+            mode="markers+text",
+            name=name,
+            text=text,
+            textposition="top center",
+        ),
+    )
 
 
 def plot_points_3d(
@@ -65,6 +88,19 @@ def plot_points_2d(
             line={'color': color, 'width': width},
             name=name,
         )
+    )
+
+
+def plot_support_shape(fig: go.Figure, support_shape: SupportShape):
+    """plot_support_shape enables to plot the support shape on a plotly figure
+
+    Args:
+        fig (go.Figure): plotly figure
+        support_shape (SupportShape): SupportShape object to plot
+    """
+    plot_points_3d(fig, support_shape.support_points)
+    plot_text_3d(
+        fig, points=support_shape.labels_points, text=support_shape.set_number
     )
 
 

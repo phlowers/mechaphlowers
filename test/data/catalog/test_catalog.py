@@ -16,7 +16,9 @@ from mechaphlowers.data.catalog.catalog import (
     Catalog,
     fake_catalog,
     sample_cable_catalog,
+    sample_support_catalog,
 )
+from mechaphlowers.entities.shapes import SupportShape
 
 
 def test_fake_catalog__get_mistyping() -> None:
@@ -231,3 +233,26 @@ def test_duplicated_warning():
         assert len(warning) == 1
         assert warning[0].category is UserWarning
         assert "iris_dataset.csv" in str(warning[0].message)
+
+
+def test_support_catalog():
+    aaa = sample_support_catalog.get_as_object("support_name_1")
+    bbb = sample_support_catalog.get_as_object(
+        ["support_name_1", "support_name_5"]
+    )
+
+    assert len(bbb) == 2
+    assert len(aaa) == 1
+    assert aaa[0].name == "support_name_1"
+
+    np.testing.assert_allclose(
+        aaa[0].trunk_points, np.array([[0, 0, 0], [0, 0, 23.0]])
+    )
+
+    assert len(bbb[1].labels_points) == 7
+    assert len(bbb[0].labels_points) == 4
+
+    assert len(bbb[1].support_points) == (7 + 1) * 3
+
+    with pytest.raises(IndexError):
+        SupportShape.from_dataframe(pd.DataFrame([]))
