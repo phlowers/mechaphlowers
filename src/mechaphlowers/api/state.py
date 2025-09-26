@@ -62,7 +62,7 @@ class StateAccessor:
         sag_tension_calculation.initial_state()
         sag_tension_calculation.change_state(
             **weather_loads.to_numpy(),
-            temp=current_temperature,
+            new_temperature=current_temperature,
             solver="newton",
         )
         self.sag_tension = sag_tension_calculation
