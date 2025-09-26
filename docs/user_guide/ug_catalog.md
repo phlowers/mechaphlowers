@@ -1,16 +1,33 @@
 # Data catalog
 
-## Adding new catalogs
+## Catalogs available
 
-You can add new catalogs in `.csv` format to the folder `src/mechaphlowers/data/`.
+Mechaphlowers comes with a few catalogs that you can use to instantiate entities.  
+You can find the following catalogs with sample data inside:
+- `sample_cable_catalog`
+- `sample_support_catalog`
 
-To configure how Mechaphlowers will read them, you need to provide a corresponding `.yaml` file that references the CSV catalog, also placed in the `src/mechaphlowers/data/` folder.
+## Loading your data in the catalogs
 
-To instantiate this new catalog in the code, define it in `src/mechaphlowers/data/catalog.py` using the function `build_catalog_from_yaml()`:
+You can add new catalogs in `.csv` format to the a user folder.
+
+To configure how Mechaphlowers will read them, you need to provide a corresponding `.yaml` file that references the CSV catalog, also placed in the same folder.
+
+To get and customize the existing catalogs, use the `write_yaml_catalog_template()` function.
+
+To instantiate this new catalog in the code, define it in the folder of your choice and load it using the function `build_catalog_from_yaml()`:
 
 ```python
-new_catalog = build_catalog_from_yaml("new_catalog_config_file.yaml")
+write_yaml_catalog_template("my/path/where/I/want/to/write","support_catalog")
+
+# ...modify the yaml for your data
+# and then load it !
+
+file_path_yaml = Pathlib("my/path/where/my/yaml/and/csv/file/are/located")
+
+my_catalog = build_catalog_from_yaml("new_catalog_config_file.yaml", user_filepath=filepath)
 ```
+
 
 ## yaml file format
 
@@ -51,3 +68,9 @@ columns_renaming:
 
 !!! warning "Booleans"
     To avoid issues when empty value in boolean columns, booleans columns are not type checked.
+
+## Augmenting your catalog
+
+For developers who wants to directly instanciate objects from custom catalogs, there are two ways: 
+- use the existing catalogs and add your own data. You will take advantage of the existing object facilities with the `get_as_object()` method. For example support catalog will provide a list of `SupportShape` objects.
+- Implement in a pull request your own object to handle a new type of data.
