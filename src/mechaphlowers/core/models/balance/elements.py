@@ -70,7 +70,7 @@ def arrays_to_span_model(
     span_length = section_array.data.span_length.to_numpy()
     elevation_difference = section_array.data.elevation_difference.to_numpy()
     sagging_parameter = section_array.data.sagging_parameter.to_numpy()
-    linear_weight = np.float64(cable_array.data.linear_weight)
+    linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
     return span_model(
         span_length,
         elevation_difference,
@@ -150,12 +150,16 @@ class BalanceModel(ModelForSolver):
         self._parameter = parameter
         self.cable_array = cable_array
         # TODO: temporary solution to manage cable data, must find a better way to do this
-        self.cable_section = np.float64(self.cable_array.data.section)
-        self.diameter = np.float64(self.cable_array.data.diameter)
-        self.linear_weight = np.float64(self.cable_array.data.linear_weight)
-        self.young_modulus = np.float64(self.cable_array.data.young_modulus)
+        self.cable_section = np.float64(self.cable_array.data.section.iloc[0])
+        self.diameter = np.float64(self.cable_array.data.diameter.iloc[0])
+        self.linear_weight = np.float64(
+            self.cable_array.data.linear_weight.iloc[0]
+        )
+        self.young_modulus = np.float64(
+            self.cable_array.data.young_modulus.iloc[0]
+        )
         self.dilatation_coefficient = np.float64(
-            self.cable_array.data.dilatation_coefficient
+            self.cable_array.data.dilatation_coefficient.iloc[0]
         )
         self.span_model = span_model
         self.cable_loads: CableLoads = CableLoads(
@@ -717,12 +721,16 @@ class LoadModel(ModelForSolver):
         load_position: np.ndarray,
     ):
         self.cable_array = cable_array
-        self.cable_section = np.float64(self.cable_array.data.section)
-        self.diameter = np.float64(self.cable_array.data.diameter)
-        self.linear_weight = np.float64(self.cable_array.data.linear_weight)
-        self.young_modulus = np.float64(self.cable_array.data.young_modulus)
+        self.cable_section = np.float64(self.cable_array.data.section.iloc[0])
+        self.diameter = np.float64(self.cable_array.data.diameter.iloc[0])
+        self.linear_weight = np.float64(
+            self.cable_array.data.linear_weight.iloc[0]
+        )
+        self.young_modulus = np.float64(
+            self.cable_array.data.young_modulus.iloc[0]
+        )
         self.dilatation_coefficient = np.float64(
-            self.cable_array.data.dilatation_coefficient
+            self.cable_array.data.dilatation_coefficient.iloc[0]
         )
         self.load = load
         self.load_position = load_position
