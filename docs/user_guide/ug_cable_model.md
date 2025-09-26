@@ -92,14 +92,14 @@ $$
     T_v(x) = T_h \cdot \sinh \left( \frac{x}{p} \right)
 $$
 
-Then, the maximal tension $T_{max}$, function of $x$, is a combination of these two components:
+Then, the norm of the tension $T$, function of $x$, is a combination of these two components:
 
 $$
-    T_{max}(x) = \sqrt{T_h^2 + T_v(x)^2}
+    T(x) = \sqrt{T_h^2 + T_v(x)^2}
 $$
 
 $$
-    T_{max}(x) = T_h \cdot \cosh⁡ \left( \frac{x}{p} \right)
+    T(x) = T_h \cdot \cosh⁡ \left( \frac{x}{p} \right)
 $$
 
 To understand the tension distribution along the cable, we calculate the overall mean tension.  
@@ -107,13 +107,13 @@ In order to do that, we can separate the cable in two halves, at $x=0$, the lowe
 Then, we can calculate ${T_{mean}}_M$ and ${T_{mean}}_N$, the mean tensions on the left and right parts of the cable respectively. They are given by the following formulas: 
 
 $$
-{T_{mean}}_M = \frac{-x_M \cdot T_h + L_M \cdot {T_{max}}_M}{2 \cdot L_M}
+{T_{mean}}_M = \frac{-x_M \cdot T_h + L_M \cdot T(x_M)}{2 \cdot L_M}
 $$
 
 and
 
 $$
-{T_{mean}}_N = \frac{x_N \cdot T_h + L_N \cdot {T_{max}}_N}{2 \cdot L_N}
+{T_{mean}}_N = \frac{x_N \cdot T_h + L_N \cdot T(x_N)}{2 \cdot L_N}
 $$
 
 where $x_M, x_N$ are the horizontal positions at $M$ and $N$, $T_h$ is the constant horizontal tension,

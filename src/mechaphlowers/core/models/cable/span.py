@@ -153,8 +153,7 @@ class Span(ABC):
         """
 
     @abstractmethod
-    # Rename this method? This method computes the norm, not necessarily the max. This is only the max for x_m and x_n
-    def T_max(self, x_one_per_span: np.ndarray) -> np.ndarray:
+    def T(self, x_one_per_span: np.ndarray) -> np.ndarray:
         """Norm of the tension on the cable.
         Same as T_v, x_one_per_span must of same length as the number of spans.
 
@@ -294,11 +293,11 @@ class CatenarySpan(Span):
         p = self.sagging_parameter
         return self.compute_T_v(x_one_per_span, p, T_h)
 
-    def T_max(self, x_one_per_span) -> np.ndarray:
+    def T(self, x_one_per_span) -> np.ndarray:
         # an array of abscissa of the same length as the number of spans is expected
         T_h = self.T_h()
         p = self.sagging_parameter
-        return self.compute_T_max(x_one_per_span, p, T_h)
+        return self.compute_T(x_one_per_span, p, T_h)
 
     def T_mean_m(self) -> np.ndarray:
         a = self.span_length
@@ -380,7 +379,7 @@ class CatenarySpan(Span):
         return T_h * np.sinh(x_one_per_span / p)
 
     @staticmethod
-    def compute_T_max(
+    def compute_T(
         x_one_per_span: np.ndarray,
         p: np.ndarray,
         T_h: np.ndarray,
@@ -397,8 +396,8 @@ class CatenarySpan(Span):
     ) -> np.ndarray:
         x_m = CatenarySpan.compute_x_m(a, b, p)
         L_m = CatenarySpan.compute_L_m(a, b, p)
-        T_max_m = CatenarySpan.compute_T_max(x_m, p, T_h)
-        return (-x_m * T_h + L_m * T_max_m) / (2 * L_m)
+        T_x_m = CatenarySpan.compute_T(x_m, p, T_h)
+        return (-x_m * T_h + L_m * T_x_m) / (2 * L_m)
 
     @staticmethod
     def compute_T_mean_n(
@@ -410,8 +409,8 @@ class CatenarySpan(Span):
         # Be careful: p and T_h are linked so the input values must be consistent
         x_n = CatenarySpan.compute_x_n(a, b, p)
         L_n = CatenarySpan.compute_L_n(a, b, p)
-        T_max_n = CatenarySpan.compute_T_max(x_n, p, T_h)
-        return (x_n * T_h + L_n * T_max_n) / (2 * L_n)
+        T_x_n = CatenarySpan.compute_T(x_n, p, T_h)
+        return (x_n * T_h + L_n * T_x_n) / (2 * L_n)
 
     @staticmethod
     def compute_T_mean(
