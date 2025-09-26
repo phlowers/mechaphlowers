@@ -280,7 +280,7 @@ def bearing_to_direction(
     """
     directions = np.array(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])
     index = np.round(bearing / 45) % 8
-    return directions[int(index)]
+    return directions[index.astype(int)]
 
 
 def distances_to_gps(
@@ -315,3 +315,43 @@ def distances_to_gps(
     lon_b = lon_a + lon_change
 
     return lat_b, lon_b
+
+
+def support_distances_to_gps(
+    support_bases_x_meters: np.ndarray,
+    support_bases_y_meters: np.ndarray,
+    first_support_lat: np.float64,
+    first_support_lon: np.float64,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Parse support distances to calculate gps coordinates in the form:
+    Args:
+        support_bases_x_meters (np.typing.NDArray[np.float64]): Array of x distances from first support base to support bases excluding the first support base
+        support_bases_y_meters (np.typing.NDArray[np.float64]): Array of y distances from first support base to support bases excluding the first support base
+        first_support_lat (np.float64): Latitude of the first support base
+        first_support_lon (np.float64): Longitude of the first support base
+
+    Returns:
+        tuple[np.typing.NDArray[np.float64], np.typing.NDArray[np.float64]]: Tuple containing the latitude and longitude of the support bases
+    """
+    # Calculate GPS coordinates for additional support bases
+    additional_lats, additional_lons = distances_to_gps(
+        np.full(
+            len(support_bases_x_meters), first_support_lat, dtype=np.float64
+        ),
+        np.full(
+            len(support_bases_x_meters), first_support_lon, dtype=np.float64
+        ),
+        support_bases_x_meters,
+        support_bases_y_meters,
+    )
+
+    # Concatenate additional coordinates with first support coordinates
+    all_lats = np.concatenate(
+        [np.array([first_support_lat], dtype=np.float64), additional_lats]
+    )
+    all_lons = np.concatenate(
+        [np.array([first_support_lon], dtype=np.float64), additional_lons]
+    )
+
+    return all_lats, all_lons
