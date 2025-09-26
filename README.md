@@ -43,6 +43,23 @@ Install the package.
     uv pip install mechaphlowers
 ```
 
+3 options are available:
+
+- base option: adapted for embedding mechaphlowers inside an application. This is the lightest version avaiblable.
+    - no scipy dependency
+    - no plotly dependency
+    - no request dependency
+- plotly option: install only plotly to be able to plot results
+- full option: install all dependencies. Recommended for scripting uses or discovery usage.
+    - scipy optimize module
+    - plotly graphs
+    - request the elevation from an open API.
+
+```python
+# install mechaphlowers
+uv sync --extra full
+```
+
 Use it ! You can report to the user guide section or go to our tutorials [notebook jupyter server](https://phlowers.github.io/phlowers-notebooks/lab/index.html) to try it.
 
 ```python
