@@ -109,7 +109,6 @@ def test_poly_deformation__degree_three(
     constraint = np.fmax(constraint, np.array([0, 0]))
     deformation_model.resolve_stress_strain_equation(
         constraint,
-        default_data_container_one_span.polynomial_conductor,
     )
     deformation_model.epsilon_mecha()
 
@@ -140,7 +139,6 @@ def test_poly_deformation__degree_four(
     constraint = np.fmax(constraint, np.array([0, 0]))
     deformation_model.resolve_stress_strain_equation(
         constraint,
-        default_data_container_one_span.polynomial_conductor,
     )
     deformation_model.epsilon_mecha()
 
