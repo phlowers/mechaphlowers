@@ -5,7 +5,12 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
-import plotly.graph_objects as go
+import pytest
+
+try:
+    import plotly.graph_objects as go  # type: ignore[import-untyped]
+except ImportError:
+    pytest.skip("plotly is not installed", allow_module_level=True)
 
 from mechaphlowers.entities.geography import (
     SupportGeoInfo,

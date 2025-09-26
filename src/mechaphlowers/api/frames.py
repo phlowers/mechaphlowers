@@ -3,6 +3,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
+from __future__ import annotations
 
 import logging
 from copy import copy
@@ -14,6 +15,15 @@ from typing_extensions import Self
 
 from mechaphlowers.api.state import StateAccessor
 from mechaphlowers.config import options
+
+try:
+    from plotly import (
+        graph_objects as go,  # noqa: F401 # type: ignore[import-untyped]
+    )
+
+    plotly_present = True
+except ImportError:
+    plotly_present = False
 
 # if TYPE_CHECKING:
 from mechaphlowers.core.models.cable.deformation import (
@@ -32,7 +42,7 @@ from mechaphlowers.entities.arrays import (
     WeatherArray,
 )
 from mechaphlowers.entities.data_container import DataContainer
-from mechaphlowers.plotting.plot import PlotAccessor
+from mechaphlowers.plotting.plot import PlotAccessorFactory
 from mechaphlowers.utils import CachedAccessor, df_to_dict
 
 logger = logging.getLogger(__name__)
@@ -302,7 +312,7 @@ class SectionDataFrame:
         if self.weather is not None:
             self.update_weather()
 
-    plot = CachedAccessor("plot", PlotAccessor)
+    plot = CachedAccessor("plot", PlotAccessorFactory())
 
     state = CachedAccessor("state", StateAccessor)
 

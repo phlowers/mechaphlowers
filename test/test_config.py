@@ -4,13 +4,21 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-import plotly.graph_objects as go  # type: ignore[import-untyped]
+import pytest
+
+try:
+    import plotly.graph_objects as go  # type: ignore[import-untyped]
+except ImportError:
+    pytest.skip("plotly is not installed", allow_module_level=True)
 
 from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.config import options
+from mechaphlowers.entities.arrays import SectionArray
 
 
-def test_config_on_plot(default_section_array_three_spans) -> None:
+def test_config_on_plot(
+    default_section_array_three_spans: SectionArray,
+) -> None:
     frame = SectionDataFrame(default_section_array_three_spans)
     fig = go.Figure()
     options.graphics.resolution = 20

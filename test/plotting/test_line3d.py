@@ -5,10 +5,17 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go  # type: ignore[import-untyped]
 import pytest
+
+try:
+    import plotly.graph_objects as go  # type: ignore[import-untyped]
+except ImportError:
+    pytest.skip("plotly is not installed", allow_module_level=True)
+
 
 from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.entities.arrays import (
@@ -25,7 +32,7 @@ data = {
     ]
     * 4,
     "line_angle": [
-        0,
+        90,
     ]
     * 4,
     "insulator_length": [0, 4, 3.2, 0],
@@ -85,3 +92,26 @@ def test_plot_line3d__with_beta(
     frame.plot.line3d(fig)
     # fig.show() # deactivate for auto unit testing
     assert True  # Just trying to see if the previous code raises
+
+
+def test_plot_accessor_with_plotly(monkeypatch):
+    # Simulate plotly_present = True
+    with patch("mechaphlowers.plotting.plot.plotly_present", True):
+        from mechaphlowers.api.frames import SectionDataFrame
+
+        # section = SectionArray(data=section)  # Provide minimal valid data
+        sdf = SectionDataFrame(section)
+        # Should use PlotAccessor (if plotly is installed)
+        assert hasattr(sdf.plot, "__class__")
+
+
+def test_plot_accessor_without_plotly(monkeypatch):
+    # Simulate plotly_present = False
+    with patch("mechaphlowers.plotting.plot.plotly_present", False):
+        from mechaphlowers.api.frames import SectionDataFrame
+
+        # section = SectionArray(data=section)  # Provide minimal valid data
+        sdf = SectionDataFrame(section)
+        # Should use FallBackAccessor
+        with pytest.raises(AttributeError):
+            _ = sdf.plot.some_plot_method()

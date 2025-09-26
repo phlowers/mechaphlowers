@@ -8,7 +8,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
-import plotly.graph_objects as go  # type: ignore[import-untyped]
+
+try:
+    import plotly.graph_objects as go  # type: ignore[import-untyped]
+
+    plotly_present = True
+except ImportError:
+    plotly_present = False
 
 from mechaphlowers.core.geometry.points import SectionPoints  # type: ignore
 
@@ -127,6 +133,19 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
     )
 
 
+class FallBackAccessor:
+    """First accessor class for plots."""
+
+    def __init__(self, section: SectionDataFrame):
+        self.section: SectionDataFrame = section
+
+    def __getattr__(self, name):
+        # Write to logs
+        raise AttributeError(
+            f"'plot' is not available when plotly is not installed.\nUse the mechaphlowers[full] option to install it.\n{name} cannot be used."
+        )
+
+
 class PlotAccessor:
     """First accessor class for plots."""
 
@@ -171,3 +190,10 @@ class PlotAccessor:
         plot_insulator(fig, section_pts.get_insulators().points(True))
 
         set_layout(fig, auto=_auto)
+
+
+def PlotAccessorFactory():
+    if plotly_present is True:
+        return PlotAccessor
+    else:
+        return FallBackAccessor
