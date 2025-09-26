@@ -153,8 +153,7 @@ class Span(ABC):
         """
 
     @abstractmethod
-    # Rename this method? This method computes the norm, not necessarily the max. This is only the max for x_m and x_n
-    def T_max(self, x_one_per_span: np.ndarray) -> np.ndarray:
+    def T(self, x_one_per_span: np.ndarray) -> np.ndarray:
         """Norm of the tension on the cable.
         Same as T_v, x_one_per_span must of same length as the number of spans.
 
@@ -252,7 +251,7 @@ class CatenarySpan(Span):
         p = self.sagging_parameter
         return self.T_h() * np.sinh(x_one_per_span / p)
 
-    def T_max(self, x_one_per_span) -> np.ndarray:
+    def T(self, x_one_per_span) -> np.ndarray:
         # an array of abscissa of the same length as the number of spans is expected
         p = self.sagging_parameter
         return self.T_h() * np.cosh(x_one_per_span / p)
@@ -261,15 +260,15 @@ class CatenarySpan(Span):
         x_m = self.x_m()
         L_m = self.L_m()
         T_h = self.T_h()
-        T_max_m = self.T_max(x_m)
-        return (-x_m * T_h + L_m * T_max_m) / (2 * L_m)
+        T_x_m = self.T(x_m)
+        return (-x_m * T_h + L_m * T_x_m) / (2 * L_m)
 
     def T_mean_n(self) -> np.ndarray:
         x_n = self.x_n()
         L_n = self.L_n()
         T_h = self.T_h()
-        T_max_n = self.T_max(x_n)
-        return (x_n * T_h + L_n * T_max_n) / (2 * L_n)
+        T_x_n = self.T(x_n)
+        return (x_n * T_h + L_n * T_x_n) / (2 * L_n)
 
     def T_mean(self) -> np.ndarray:
         L_m = self.L_m()
