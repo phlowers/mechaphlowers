@@ -646,12 +646,21 @@ class Nodes:
         """
         L_chain = self.L_chain
 
-        suspension_shift = -((L_chain**2 - self.dx**2 - self.dy**2) ** 0.5)
-        self.dz[1:-1] = suspension_shift[1:-1]
+        suspension_shift = (
+            -(
+                (L_chain[1:-1] ** 2 - self.dx[1:-1] ** 2 - self.dy[1:-1] ** 2)
+                ** 0.5
+            )
+        )
+        self.dz[1:-1] = suspension_shift
 
-        anchor_shift = (L_chain**2 - self.dz**2 - self.dy**2) ** 0.5
+        anchor_shift = (
+            L_chain[[0, -1]] ** 2
+            - self.dz[[0, -1]] ** 2
+            - self.dy[[0, -1]] ** 2
+        ) ** 0.5
         self.dx[0] = anchor_shift[0]
-        self.dx[-1] = -anchor_shift[-1]
+        self.dx[-1] = -anchor_shift[1]
 
     def compute_moment(self):
         # Placeholder for force computation logic
