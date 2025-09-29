@@ -34,7 +34,7 @@ def papoto_3_points(
     parameter_1_3 = papoto_2_points(a, HG, VG, HD, VD, H1, V1, H3, V3)
     return np.mean(
         np.array([parameter_1_2, parameter_2_3, parameter_1_3]), axis=0
-    )  # type: ignore
+    )
 
 
 def papoto_2_points(
@@ -121,7 +121,7 @@ def parameter_solver(
     x: np.ndarray,
     p0: np.ndarray,
     solver: str = "newton",
-):
+) -> np.ndarray:
     solver_dict = {"newton": optimize.newton}
     try:
         solver_method = solver_dict[solver]
@@ -148,7 +148,7 @@ def function_f(
     h: np.ndarray,
     delta: np.ndarray,
     x: np.ndarray,
-):
+) -> np.ndarray:
     val = a / 2 - p * np.asinh(h / (2 * p * np.sinh(a / 2 / p)))
     f = p * (np.cosh(val / p) - np.cosh((x - val) / p)) - delta
     return f
@@ -160,7 +160,7 @@ def function_f_prime(
     h: np.ndarray,
     delta: np.ndarray,
     x: np.ndarray,
-):
+) -> np.ndarray:
     return (
         function_f(p + _ZETA, a, h, delta, x) - function_f(p, a, h, delta, x)
     ) / _ZETA
