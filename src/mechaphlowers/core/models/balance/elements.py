@@ -146,7 +146,7 @@ class BalanceModel(ModelForSolver):
         # tempertaure and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
         self.nodes = nodes
-        self._parameter = parameter
+        self.parameter = parameter
         self.cable_array = cable_array
         # TODO: temporary solution to manage cable data, must find a better way to do this
         self.cable_section = np.float64(self.cable_array.data.section.iloc[0])
@@ -181,7 +181,7 @@ class BalanceModel(ModelForSolver):
         )
         self.nodes.compute_moment()
 
-        self.model_load = LoadModel(
+        self.load_model = LoadModel(
             self.cable_array,
             self.nodes.load,
             self.nodes.load_position,
@@ -283,7 +283,6 @@ class BalanceModel(ModelForSolver):
             # Case: adjustment
 
             Th = reduce_to_span(self.span_model.T_h())
-
             x_m = reduce_to_span(self.span_model.x_m())
             x_n = reduce_to_span(self.span_model.x_n())
 
@@ -323,29 +322,23 @@ class BalanceModel(ModelForSolver):
                     self.dilatation_coefficient,
                     self.young_modulus,
                 )
-                Th = parameter * self.linear_weight * self.k_load
-                x_m_left = f.x_m(a_left, b_left, parameter)
 
-                a_right = self.a_prime - self.x_i
-                b_right = self.b_prime - self.z_i
-                x_n_right = f.x_n(a_right, b_right, parameter)
+                Th = self.load_model.span_model_left.T_h()
+                x_m = self.load_model.span_model_left.x_m()
+                x_n = self.load_model.span_model_right.x_n()
 
-                x_m = x_m_left
-                x_n = x_n_right
-
-            self._parameter = parameter
+            self.parameter = parameter
             self.span_model.sagging_parameter = fill_to_support(parameter)
 
-        self.Tv_g = Th * (np.sinh(x_m / self._parameter))
-        self.Tv_d = -Th * (np.sinh(x_n / self._parameter))
+        self.Tv_g = Th * (np.sinh(x_m / self.parameter))
+        self.Tv_d = -Th * (np.sinh(x_n / self.parameter))
         self.Th = Th
-
         self.update_projections()
 
         return Th
 
     def solve_xi_zi_loads(self):
-        self.model_load.set_all(
+        self.load_model.set_all(
             self.L_ref,
             self.x_i,
             self.z_i,
@@ -353,18 +346,19 @@ class BalanceModel(ModelForSolver):
             self.b_prime,
             self.k_load,
             self.sagging_temperature,
+            self.parameter,
         )
 
         solver = Solver()
         solver.solve(
-            self.model_load,
+            self.load_model,
             perturb=0.001,
             relax_ratio=0.5,
             stop_condition=1.0,
             relax_power=3,
         )
-        self.x_i = self.model_load.x_i
-        self.z_i = self.model_load.z_i
+        self.x_i = self.load_model.x_i
+        self.z_i = self.load_model.z_i
 
     def update_projections(self):
         alpha = self.alpha
@@ -416,10 +410,6 @@ class BalanceModel(ModelForSolver):
         p = np.vstack((p3, p2, p1, p0)).T
         roots = numeric.cubic_roots(p)
         return roots.real
-
-    @property
-    def parameter(self):
-        return self._parameter
 
     def update_span(self):
         """transmet_portee"""
@@ -750,6 +740,7 @@ class LoadModel(ModelForSolver):
         )
         self.load = load
         self.load_position = load_position
+        # Need a way to choose Span model
 
     def set_all(
         self,
@@ -760,6 +751,8 @@ class LoadModel(ModelForSolver):
         b_prime: np.ndarray,
         k_load: np.ndarray,
         temperature,
+        # placeholder value
+        parameter,
     ):
         self.L_ref = L_ref
         self.x_i = x_i
@@ -768,6 +761,22 @@ class LoadModel(ModelForSolver):
         self.b_prime = b_prime
         self.k_load = k_load
         self.temperature = temperature
+        self.span_model_left = CatenarySpan(
+            self.x_i, self.z_i, parameter, self.k_load, self.linear_weight
+        )
+        self.span_model_right = CatenarySpan(
+            self.a_prime - self.x_i,
+            self.b_prime - self.z_i,
+            parameter,
+            self.k_load,
+            self.linear_weight,
+        )
+
+    def update_lengths_span_models(self):
+        self.span_model_left.span_length = self.x_i
+        self.span_model_left.elevation_difference = self.z_i
+        self.span_model_right.span_length = self.a_prime - self.x_i
+        self.span_model_right.elevation_difference = self.b_prime - self.z_i
 
     @property
     def state_vector(self):
@@ -777,52 +786,25 @@ class LoadModel(ModelForSolver):
     def state_vector(self, value):
         self.x_i = value[::2]
         self.z_i = value[1::2]
+        self.update_lengths_span_models()
 
     def objective_function(self):
         # left side of the load
-        L_ref_left = self.load_position * self.L_ref
-        a_left = self.x_i
-        b_left = self.z_i
+        Th_left = self.span_model_left.T_h()
+        x_n_left = self.span_model_left.x_n()
 
-        Th_left, _, x_n_left, parameter_left = self.compute_Th_and_extremum(
-            a_left, b_left, L_ref_left
-        )
-        Tv_d_loc = -Th_left * np.sinh(x_n_left / parameter_left)
+        Tv_d_loc = -self.span_model_left.T_v(x_n_left)
 
         # right
-        L_ref_right = self.L_ref - L_ref_left
-        a_right = self.a_prime - self.x_i
-        b_right = self.b_prime - self.z_i
+        Th_right = self.span_model_right.T_h()
+        x_m_right = self.span_model_right.x_m()
 
-        Th_right, x_m_right, _, parameter_right = self.compute_Th_and_extremum(
-            a_right, b_right, L_ref_right
-        )
-        Tv_g_loc = Th_right * np.sinh(x_m_right / parameter_right)
+        Tv_g_loc = self.span_model_right.T_v(x_m_right)
 
         Th_diff = Th_left - Th_right
         Tv_diff = Tv_d_loc + Tv_g_loc - self.load * self.k_load
 
         return np.array([Th_diff, Tv_diff]).flatten('F')
-
-    def compute_Th_and_extremum(self, a, b, L_ref):
-        """In this method, a, b, and L_ref may refer to a semi span"""
-        parameter = self.approx_parameter(a, b, L_ref, self.temperature)
-        parameter = find_parameter_function(
-            parameter,
-            a,
-            b,
-            L_ref,
-            self.temperature,
-            self.k_load,
-            self.cable_section,
-            self.linear_weight,
-            self.dilatation_coefficient,
-            self.young_modulus,
-        )
-        Th = parameter * self.linear_weight * self.k_load
-        x_m = f.x_m(a, b, parameter)
-        x_n = f.x_n(a, b, parameter)
-        return Th, x_m, x_n, parameter
 
     def approx_parameter(self, a, b, L0, cable_temperature):
         # extract this method? There is a duplicate in Span
@@ -851,5 +833,45 @@ class LoadModel(ModelForSolver):
         return roots.real
 
     def update(self):
-        """There is nothing to update in this class. Method used in other implementation of ModelForSolver."""
-        pass
+        self.update_lengths_span_models()
+        # update parameter left
+        L_ref_left = self.load_position * self.L_ref
+        a_left = self.x_i
+        b_left = self.z_i
+        parameter_left = self.approx_parameter(
+            a_left, b_left, L_ref_left, self.temperature
+        )
+        parameter_left = find_parameter_function(
+            parameter_left,
+            a_left,
+            b_left,
+            L_ref_left,
+            self.temperature,
+            self.k_load,
+            self.cable_section,
+            self.linear_weight,
+            self.dilatation_coefficient,
+            self.young_modulus,
+        )
+        self.span_model_left.sagging_parameter = parameter_left
+
+        # update parameter right
+        L_ref_right = self.L_ref - L_ref_left
+        a_right = self.a_prime - self.x_i
+        b_right = self.b_prime - self.z_i
+        parameter_right = self.approx_parameter(
+            a_right, b_right, L_ref_right, self.temperature
+        )
+        parameter_right = find_parameter_function(
+            parameter_right,
+            a_right,
+            b_right,
+            L_ref_right,
+            self.temperature,
+            self.k_load,
+            self.cable_section,
+            self.linear_weight,
+            self.dilatation_coefficient,
+            self.young_modulus,
+        )
+        self.span_model_right.sagging_parameter = parameter_right
