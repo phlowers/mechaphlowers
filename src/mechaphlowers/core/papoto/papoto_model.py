@@ -28,12 +28,13 @@ def papoto_3_points(
     H3: np.ndarray,
     V3: np.ndarray,
 ) -> np.ndarray:
-    """Computes PAPOTO 3 times, and return the mean between those 3 values.
-    """
+    """Computes PAPOTO 3 times, and return the mean between those 3 values."""
     parameter_1_2 = papoto_2_points(a, HG, VG, HD, VD, H1, V1, H2, V2)
     parameter_2_3 = papoto_2_points(a, HG, VG, HD, VD, H2, V2, H3, V3)
     parameter_1_3 = papoto_2_points(a, HG, VG, HD, VD, H1, V1, H3, V3)
-    return np.mean(np.array([parameter_1_2, parameter_2_3, parameter_1_3]), axis=0) # type: ignore
+    return np.mean(
+        np.array([parameter_1_2, parameter_2_3, parameter_1_3]), axis=0
+    )  # type: ignore
 
 
 def papoto_2_points(
@@ -47,7 +48,6 @@ def papoto_2_points(
     H2: np.ndarray,
     V2: np.ndarray,
 ) -> np.ndarray:
-
     # converting grades to radians
     Alpha = (HD - HG) / 200 * np.pi
     Alpha1 = (H1 - HG) / 200 * np.pi
@@ -57,16 +57,18 @@ def papoto_2_points(
     V1 = (100 - V1) / 200 * np.pi
     V2 = (100 - V2) / 200 * np.pi
 
-    puissance = 1
-    dif = 1000
     nb_loops = 100
 
-    iteration = (np.pi - Alpha) / (2**puissance)
+    iteration = (np.pi - Alpha) / 2
     AlphaD = 0.0
 
-    for _ in range(nb_loops):
-        AlphaD = AlphaD + iteration # for first loop: alphaD = (np.pi - alpha) / 2
-        AlphaG = np.pi - Alpha - AlphaD # for first loop: alphaG = (np.pi - alpha) / 2
+    for loop_index in range(1, nb_loops):
+        AlphaD = (
+            AlphaD + iteration
+        )  # for first loop: alphaD = (np.pi - alpha) / 2
+        AlphaG = (
+            np.pi - Alpha - AlphaD
+        )  # for first loop: alphaG = (np.pi - alpha) / 2
 
         # computing distances between station and supports G and D
         distG = a / np.sin(Alpha) * np.sin(AlphaD)
@@ -87,25 +89,20 @@ def papoto_2_points(
         z1 = dist1 * np.tan(V1)
         z2 = dist2 * np.tan(V2)
 
-        # appel à la fonction pour le calcul du paramètre à partir de la différence (zG - z1) et de a1
-        # avec utilisation d'une valeur initiale p0 de p déjà proche de la solution
+        # first approximation of parameter using parabola model
+        p0 = a1 * (a - a1) / (2 * ((zG - z1) + h * a1 / a))
+        p = parameter_solver(a, h, zG - z1, a1, p0)
 
-        p0 = (
-            a1 * (a - a1) / (2 * ((zG - z1) + h * a1 / a))
-        )  # estimation p0 du paramètre à partir de la flèche en utilisant l'approximation parabolique
-        p = parameter_solver(
-            a, h, zG - z1, a1, p0
-        )  # affinage de la valeur du paramètre p à la fonction "parametre"
-
-        # calcul d'une nouvelle différence à partir du paramètre calculé, comparaison avec (zG - z2) et bouclage avec nouvelle valeur pour iteration
-        # val correspond à la valeur positive de la distance entre le point bas et le pylône de gauche (elle peut devenir négative avec un dénivelé fort et un câble très tendu)
-
+        # computing an elevation difference using newly found parameter, and comparing with zG - z2
+        # val: distance between lowest point with left support
         val = a / 2 - p * np.asinh(h / (2 * p * np.sinh(a / (2 * p))))
         dif = p * (np.cosh(val / p) - np.cosh((a2 - val) / p))
 
-        puissance = puissance + 1
-
-        iteration = np.sign(dif - (zG - z2)) * (np.pi - Alpha) / (2**puissance)
+        iteration = (
+            np.sign(dif - (zG - z2))
+            * (np.pi - Alpha)
+            / (2 ** (1 + loop_index))
+        )
 
         stop_variable = abs(dif - (zG - z2))
         stop_value = 0.001

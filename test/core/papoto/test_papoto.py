@@ -7,7 +7,10 @@
 
 import numpy as np
 
-from mechaphlowers.core.papoto.papoto_model import papoto_2_points, papoto_3_points
+from mechaphlowers.core.papoto.papoto_model import (
+    papoto_2_points,
+    papoto_3_points,
+)
 
 
 def test_papoto_function_0():
@@ -57,6 +60,6 @@ def test_papoto_function_3_points():
         H2=H2,
         V2=V2,
         H3=H3,
-        V3=V3
+        V3=V3,
     )
     np.testing.assert_allclose(parameter, np.array([2000, np.nan]), atol=1.0)
