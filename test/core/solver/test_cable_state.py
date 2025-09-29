@@ -53,7 +53,7 @@ def test_solver__run_solver(
 
     sag_tension_calculation.change_state(
         **weather_dict_one_span,
-        temp=current_temperature,
+        new_temperature=current_temperature,
         solver="newton",
     )
     assert (
@@ -86,7 +86,7 @@ def test_solver__run_solver__polynomial_model(
 
     sag_tension_calculation.change_state(
         **weather_dict_one_span,
-        temp=current_temperature,
+        new_temperature=current_temperature,
         solver="newton",
     )
     # check no error
@@ -107,7 +107,7 @@ def test_solver__run_solver_no_solution(
     sag_tension_calculation.L_ref = np.array([1, 1])
     with pytest.raises(ValueError) as excinfo:
         sag_tension_calculation.change_state(
-            **weather_dict_one_span, temp=current_temperature
+            **weather_dict_one_span, new_temperature=current_temperature
         )
     assert str(excinfo.value) == "Solver did not converge"
 
@@ -125,7 +125,7 @@ def test_solver__bad_solver(
     with pytest.raises(ValueError) as excinfo:
         sag_tension_calculation.change_state(
             **weather_dict_one_span,
-            temp=current_temperature,
+            new_temperature=current_temperature,
             solver="wrong_solver",
         )
     assert str(excinfo.value) == "Incorrect solver name: wrong_solver"

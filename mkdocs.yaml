@@ -1,5 +1,5 @@
 site_name: mechaphlowers
-site_url : http://mechaphlowers.readthedocs.com
+site_url: http://mechaphlowers.readthedocs.com
 repo_url: https://github.com/phlowers/mechaphlowers
 copyright: Copyright &copy; 2024 RTE France. Unless otherwise indicated, content is licensed under CC-BY-4.0.
 
@@ -23,11 +23,11 @@ theme:
     - yaml
     - python
     - bash
-  palette: 
+  palette:
     # Palette toggle for light mode
     - scheme: default
       toggle:
-        icon: material/brightness-7 
+        icon: material/brightness-7
         name: Switch to dark mode
     # Palette toggle for dark mode
     - scheme: slate
@@ -38,44 +38,48 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: home/home.md
-  - User Guide: 
-      - Introduction : user_guide/ug_general_concepts.md
+  - User Guide:
+      - Introduction: user_guide/ug_general_concepts.md
       - Input data: user_guide/ug_input.md
       - Coordinates system: user_guide/ug_coordinates_system.md
-      - Cable modeling : user_guide/ug_cable_model.md
-      - Sag-tension calculation : user_guide/ug_sag_tension_calc.md
-      - Deformation : user_guide/ug_deformation.md
-      - Wind speed conversion : user_guide/ug_wind_speed_conversion.md
-      - Configuration : user_guide/ug_configuration.md
+      - Cable modeling: user_guide/ug_cable_model.md
+      - Sag-tension calculation: user_guide/ug_sag_tension_calc.md
+      - Deformation: user_guide/ug_deformation.md
+      - Wind speed conversion: user_guide/ug_wind_speed_conversion.md
+      - Data catalog : user_guide/ug_catalog.md
+      - Configuration: user_guide/ug_configuration.md
+      - Plotting: user_guide/ug_maps.md
   - Developer guide:
-    - API Reference:
-      - API : docstring/api/frames.md
-      - Entities : 
-          - Arrays : docstring/entities/arrays.md
-          - Schemas : docstring/entities/schemas.md
-          - Data container : docstring/entities/data_container.md
-      - Core :
-          - Geometry : 
-            - References : docstring/core/geometry/references.md
-            - Rotation : docstring/core/geometry/rotation.md
-            - Coordinate systems : docstring/core/geometry/points.md
-            - Line angles : docstring/core/geometry/line_angles.md
-          - Models : 
-            - Cable :
-              - Span : docstring/core/models/cable/span.md
-              - Deformation : docstring/core/models/cable/deformation.md
-            - External loads : docstring/core/models/external_loads.md
-          - Solver :
-            - Cable state : docstring/core/solver/cable_state.md
-      - Data :
-          - Catalog: docstring/data/catalog.md
-          - Geography : docstring/data/geography/helpers.md
-      - Configuration : docstring/config.md
-    - Logging : developer_guide/logging.md
-    - Guidelines : developer_guide/guidelines.md
-    - Documentation : developer_guide/documentation.md
-
-
+      - API Reference:
+          - API: docstring/api/frames.md
+          - Entities:
+              - Arrays: docstring/entities/arrays.md
+              - Schemas: docstring/entities/schemas.md
+              - Data container: docstring/entities/data_container.md
+          - Core:
+              - Geometry:
+                  - References: docstring/core/geometry/references.md
+                  - Rotation: docstring/core/geometry/rotation.md
+                  - Coordinate systems: docstring/core/geometry/points.md
+                  - Line angles: docstring/core/geometry/line_angles.md
+              - Models:
+                  - Cable:
+                      - Span: docstring/core/models/cable/span.md
+                      - Deformation: docstring/core/models/cable/deformation.md
+                  - External loads: docstring/core/models/external_loads.md
+              - Solver:
+                  - Cable state: docstring/core/solver/cable_state.md
+          - Data:
+              - Catalog: docstring/data/catalog/catalog.md
+              - Geography: docstring/data/geography/helpers.md
+          - Configuration: docstring/config.md
+          - Plotting:
+              - Geography:
+                  - Create elevation profile: docstring/plotting/geography/plot_elevation_profile.md
+                  - Create line map: docstring/plotting/geography/plot_line_map.md
+      - Logging: developer_guide/logging.md
+      - Guidelines: developer_guide/guidelines.md
+      - Documentation: developer_guide/documentation.md
 
 plugins:
   - search
@@ -125,8 +129,6 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.arithmatex:
       generic: true
-
-
 
 extra_javascript:
   - javascripts/mathjax.js

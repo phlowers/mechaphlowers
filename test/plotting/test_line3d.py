@@ -15,6 +15,8 @@ from mechaphlowers.entities.arrays import (
     SectionArray,
     WeatherArray,
 )
+from mechaphlowers.entities.shapes import SupportShape
+from mechaphlowers.plotting.plot import plot_support_shape
 
 data = {
     "name": ["1", "2", "three", "support 4"],
@@ -85,3 +87,25 @@ def test_plot_line3d__with_beta(
     frame.plot.line3d(fig)
     # fig.show() # deactivate for auto unit testing
     assert True  # Just trying to see if the previous code raises
+
+
+def test_plot_support_shape():
+    fig = go.Figure()
+    pyl_shape = SupportShape(
+        name="pyl",
+        yz_arms=np.array(
+            [
+                [0, 18.5],
+                [3, 14.5],
+                [6, 14.5],
+                [9, 14.5],
+                [-3, 14.5],
+                [-6, 14.5],
+                [-9, 14.5],
+            ]
+        ),
+        set_number=np.array([22, 28, 37, 45, 46, 47, 55]),
+    )
+    plot_support_shape(fig, pyl_shape)
+    # fig.show()
+    assert True
