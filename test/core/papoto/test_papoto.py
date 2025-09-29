@@ -7,7 +7,7 @@
 
 import numpy as np
 
-from mechaphlowers.core.papoto.papoto_model import papoto
+from mechaphlowers.core.papoto.papoto_model import papoto_2_points, papoto_3_points
 
 
 def test_papoto_function_0():
@@ -20,7 +20,7 @@ def test_papoto_function_0():
     V1 = np.array([94.4241159093392, np.nan])
     H2 = np.array([15.2623371798393, np.nan])
     V2 = np.array([88.8639691159579, np.nan])
-    parameter = papoto(
+    parameter = papoto_2_points(
         a=a,
         HG=HG,
         VG=VG,
@@ -30,5 +30,33 @@ def test_papoto_function_0():
         V1=V1,
         H2=H2,
         V2=V2,
+    )
+    np.testing.assert_allclose(parameter, np.array([2000, np.nan]), atol=1.0)
+
+
+def test_papoto_function_3_points():
+    a = np.array([498.565922913587, np.nan])
+    HG = np.array([0.0, np.nan])
+    VG = np.array([97.4327311161033, np.nan])
+    HD = np.array([162.614599621714, np.nan])
+    VD = np.array([88.6907631859419, np.nan])
+    H1 = np.array([5.1134354937127, np.nan])
+    V1 = np.array([98.4518011880176, np.nan])
+    H2 = np.array([19.6314054626454, np.nan])
+    V2 = np.array([97.6289296721015, np.nan])
+    H3 = np.array([97.1475339907774, np.nan])
+    V3 = np.array([87.9335010245142, np.nan])
+    parameter = papoto_3_points(
+        a=a,
+        HG=HG,
+        VG=VG,
+        HD=HD,
+        VD=VD,
+        H1=H1,
+        V1=V1,
+        H2=H2,
+        V2=V2,
+        H3=H3,
+        V3=V3
     )
     np.testing.assert_allclose(parameter, np.array([2000, np.nan]), atol=1.0)

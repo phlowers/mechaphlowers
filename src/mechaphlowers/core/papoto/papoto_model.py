@@ -15,7 +15,28 @@ except ImportError:
 _ZETA = 1.0
 
 
-def papoto(
+def papoto_3_points(
+    a: np.ndarray,
+    HG: np.ndarray,
+    VG: np.ndarray,
+    HD: np.ndarray,
+    VD: np.ndarray,
+    H1: np.ndarray,
+    V1: np.ndarray,
+    H2: np.ndarray,
+    V2: np.ndarray,
+    H3: np.ndarray,
+    V3: np.ndarray,
+) -> np.ndarray:
+    """Computes PAPOTO 3 times, and return the mean between those 3 values.
+    """
+    parameter_1_2 = papoto_2_points(a, HG, VG, HD, VD, H1, V1, H2, V2)
+    parameter_2_3 = papoto_2_points(a, HG, VG, HD, VD, H2, V2, H3, V3)
+    parameter_1_3 = papoto_2_points(a, HG, VG, HD, VD, H1, V1, H3, V3)
+    return np.mean(np.array([parameter_1_2, parameter_2_3, parameter_1_3]), axis=0) # type: ignore
+
+
+def papoto_2_points(
     a: np.ndarray,
     HG: np.ndarray,
     VG: np.ndarray,
@@ -26,13 +47,8 @@ def papoto(
     H2: np.ndarray,
     V2: np.ndarray,
 ) -> np.ndarray:
-    # déclaration des angle horizontaux formés par le triangle station, pylônes G et D
-    # seul alpha est connu (angle vu de la station)
-    # l'angle alphaD (vu du pylône D) est recherché par dichotomie à partir de l'hypothèse initiale d'un triangle isocèle alphaD = alphaG = (np.pi - alpha)/2
-    # les angles alpha1 et alpha2 sont connus et issus de la mesure comme alpha
 
     # converting grades to radians
-
     Alpha = (HD - HG) / 200 * np.pi
     Alpha1 = (H1 - HG) / 200 * np.pi
     Alpha2 = (H2 - HG) / 200 * np.pi
@@ -49,26 +65,19 @@ def papoto(
     AlphaD = 0.0
 
     for _ in range(nb_loops):
-        AlphaD = (
-            AlphaD + iteration
-        )  # pour l'initialisation, cela revient à alphaD = (np.pi - alpha) / 2
-        AlphaG = (
-            np.pi - Alpha - AlphaD
-        )  # pour l'initialisation, cela revient à alphaG = (np.pi - alpha) / 2
+        AlphaD = AlphaD + iteration # for first loop: alphaD = (np.pi - alpha) / 2
+        AlphaG = np.pi - Alpha - AlphaD # for first loop: alphaG = (np.pi - alpha) / 2
 
-        # premier calcul : les distances entre la station et les pylônes G et D
-
+        # computing distances between station and supports G and D
         distG = a / np.sin(Alpha) * np.sin(AlphaD)
         distD = distG * np.cos(Alpha) + a * np.cos(AlphaD)
 
-        # deuxième calcul : les hauteurs des points d'accrochages et le dénivelé
-
+        # computing attachment altitudes + elevation difference
         zG = distG * np.tan(VG)
         zD = distD * np.tan(VD)
         h = zD - zG
 
-        # troisième calcul : les distances entre la station et les points 1 et 2 mais aussi a1, a2, z1, z2
-
+        # computing distances between station and points 1 and 2 + a1, a2, z1, z2
         dist1 = distG * np.sin(AlphaG) / np.sin(np.pi - Alpha1 - AlphaG)
         dist2 = distG * np.sin(AlphaG) / np.sin(np.pi - Alpha2 - AlphaG)
 
@@ -155,7 +164,6 @@ def function_f_prime(
     delta: np.ndarray,
     x: np.ndarray,
 ):
-    # define f' analytically?
     return (
         function_f(p + _ZETA, a, h, delta, x) - function_f(p, a, h, delta, x)
     ) / _ZETA
