@@ -92,8 +92,6 @@ def section_array_angles() -> SectionArray:
 
 
 def test_element_initialisation(balance_engine_simple: BalanceEngine):
-    # load = section_2d_note.nodes.load
-
     print("\n")
     print(balance_engine_simple.balance_model)
     print(balance_engine_simple.balance_model.nodes)

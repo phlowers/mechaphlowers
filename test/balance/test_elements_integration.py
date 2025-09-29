@@ -9,19 +9,11 @@ import pandas as pd
 from pytest import fixture
 
 import mechaphlowers.core.models.balance.functions as f
-from mechaphlowers.core.models.balance.elements import (
-    BalanceEngine,
-    Cable,
-)
+from mechaphlowers.core.models.balance.elements import BalanceEngine
 from mechaphlowers.data.catalog.catalog import (
     sample_cable_catalog,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-
-
-@fixture
-def cable_AM600():
-    return Cable(600.4e-6, 17.658, 0.000023, 60e9, 31.86e-3, 320)
 
 
 @fixture

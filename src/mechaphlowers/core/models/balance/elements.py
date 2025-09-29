@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from typing import Type
 
 import numpy as np
@@ -28,16 +27,6 @@ from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class Cable:
-    section: np.float64  # input in mm ?
-    linear_weight: np.float64
-    dilatation_coefficient: np.float64
-    young_modulus: np.float64
-    diameter: np.float64
-    cra: np.float64
 
 
 def section_array_to_nodes(section_array: SectionArray):
@@ -183,8 +172,8 @@ class BalanceModel(ModelForSolver):
 
         self.load_model = LoadModel(
             self.cable_array,
-            self.nodes.load,
-            self.nodes.load_position,
+            self.nodes.load[self.nodes.load_on_span],
+            self.nodes.load_position[self.nodes.load_on_span],
         )
 
     @property
@@ -279,21 +268,26 @@ class BalanceModel(ModelForSolver):
         return Th, x_m, x_n, parameter
 
     def update_tensions(self):
+        """Compute values of Th, Tv_d and Tv_g.
+        There are three cases:
+        - adjustment: simple computation
+        - change state without loads: run SagTensionSolver once
+        - change state with loads: solve LoadModel
+        """
+        # Case: adjustment
         if self.adjustment:
-            # Case: adjustment
-
             Th = reduce_to_span(self.span_model.T_h())
             x_m = reduce_to_span(self.span_model.x_m())
             x_n = reduce_to_span(self.span_model.x_n())
 
+        # Case: change state + no load:
         else:
-            # Case: change state + no load:
             Th, x_m, x_n, parameter = self.compute_Th_and_extremum()
 
-            if self.nodes.has_load and abs(np.sum(self.nodes.load)) > 0:
-                # Case: change state + with load
+            # Case: change state + with load
+            if self.nodes.has_load and self.nodes.load_on_span.any():
                 self.x_i = self.nodes.load_position * self.a_prime
-                # Don't know why adding x_m is needed
+                # TODO: Don't know why adding x_m is needed
                 z_i_m = self.span_model.z_one_point(
                     fill_to_support(self.x_i + x_m)
                 )
@@ -303,35 +297,24 @@ class BalanceModel(ModelForSolver):
                 self.solve_xi_zi_loads()
 
                 # Left Th and right Th are equal because balance just got solved (same for parameter)
-                a_left = self.x_i
-                b_left = self.z_i
-                L_ref_left = self.nodes.load_position * self.L_ref
-
-                parameter = self.approx_parameter(
-                    a_left, b_left, L_ref_left, self.sagging_temperature
+                parameter[self.nodes.load_on_span] = (
+                    self.load_model.span_model_left.sagging_parameter
                 )
-                parameter = find_parameter_function(
-                    parameter,
-                    a_left,
-                    b_left,
-                    L_ref_left,
-                    self.sagging_temperature,
-                    self.k_load,
-                    self.cable_section,
-                    self.linear_weight,
-                    self.dilatation_coefficient,
-                    self.young_modulus,
+                Th[self.nodes.load_on_span] = (
+                    self.load_model.span_model_left.T_h()
                 )
-
-                Th = self.load_model.span_model_left.T_h()
-                x_m = self.load_model.span_model_left.x_m()
-                x_n = self.load_model.span_model_right.x_n()
+                x_m[self.nodes.load_on_span] = (
+                    self.load_model.span_model_left.x_m()
+                )
+                x_n[self.nodes.load_on_span] = (
+                    self.load_model.span_model_right.x_n()
+                )
 
             self.parameter = parameter
             self.span_model.sagging_parameter = fill_to_support(parameter)
 
-        self.Tv_g = Th * (np.sinh(x_m / self.parameter))
-        self.Tv_d = -Th * (np.sinh(x_n / self.parameter))
+        self.Tv_g = reduce_to_span(self.span_model.T_v(fill_to_support(x_m)))
+        self.Tv_d = -reduce_to_span(self.span_model.T_v(fill_to_support(x_n)))
         self.Th = Th
         self.update_projections()
 
@@ -339,14 +322,14 @@ class BalanceModel(ModelForSolver):
 
     def solve_xi_zi_loads(self):
         self.load_model.set_all(
-            self.L_ref,
-            self.x_i,
-            self.z_i,
-            self.a_prime,
-            self.b_prime,
-            self.k_load,
-            self.sagging_temperature,
-            self.parameter,
+            self.L_ref[self.nodes.load_on_span],
+            self.x_i[self.nodes.load_on_span],
+            self.z_i[self.nodes.load_on_span],
+            self.a_prime[self.nodes.load_on_span],
+            self.b_prime[self.nodes.load_on_span],
+            self.k_load[self.nodes.load_on_span],
+            self.sagging_temperature[self.nodes.load_on_span],
+            self.parameter[self.nodes.load_on_span],
         )
 
         solver = Solver()
@@ -357,8 +340,6 @@ class BalanceModel(ModelForSolver):
             stop_condition=1.0,
             relax_power=3,
         )
-        self.x_i = self.load_model.x_i
-        self.z_i = self.load_model.z_i
 
     def update_projections(self):
         alpha = self.alpha
@@ -558,8 +539,10 @@ class Nodes:
         self.init_coordinates(span_length, z)
         # dx, dy, dz are the distances between the attachment point and the arm, including the chain
         self.dxdydz = np.zeros((3, len(z)), dtype=np.float64)
-        self._load = load
+        self.load = load
         self.load_position = load_position
+        self.load_on_span = np.logical_and(load != 0, load_position != 0)
+
         self.has_load = False
 
         self.vector_projection = VectorProjection()
@@ -587,14 +570,6 @@ class Nodes:
     @dz.setter
     def dz(self, value):
         self.dxdydz[2] = value
-
-    @property
-    def load(self):
-        return self._load
-
-    @load.setter
-    def load(self, value):
-        self._load = value
 
     def __len__(self):
         return len(self.L_chain)
@@ -754,6 +729,7 @@ class LoadModel(ModelForSolver):
         # placeholder value
         parameter,
     ):
+        # put L_ref in constructor?
         self.L_ref = L_ref
         self.x_i = x_i
         self.z_i = z_i
@@ -761,6 +737,8 @@ class LoadModel(ModelForSolver):
         self.b_prime = b_prime
         self.k_load = k_load
         self.temperature = temperature
+        # Warning: arrays legnth are n-1
+        # Easier to use, but less consistent with other mechaphlowers objects
         self.span_model_left = CatenarySpan(
             self.x_i, self.z_i, parameter, self.k_load, self.linear_weight
         )
