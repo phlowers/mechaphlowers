@@ -8,6 +8,7 @@ import random
 
 import numpy as np
 import pandas as pd
+import pytest
 
 import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance.elements import (
@@ -16,6 +17,7 @@ from mechaphlowers.core.models.balance.elements import (
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
+@pytest.mark.skip(reason="This is a performance test")
 def test_load_all_spans_wind_ice_temp_profiling():
     cable_AM600 = CableArray(
         pd.DataFrame(

@@ -46,7 +46,7 @@ def test_catenary_span_model__no_errors_tensions() -> None:
 
     span_model.T_h()
     span_model.T_v(x)
-    span_model.T_max(x)
+    span_model.T(x)
     span_model.T_mean_m()
     span_model.T_mean_n()
     span_model.T_mean()
@@ -129,7 +129,7 @@ def test_catenary_span_model__tensions__wrong_dimension_array() -> None:
     with pytest.raises(ValueError):
         span_model.T_v(x)
     with pytest.raises(ValueError):
-        span_model.T_max(x)
+        span_model.T(x)
 
 
 def test_catenary_span_model__tensions__no_elevation_difference() -> None:
@@ -187,7 +187,7 @@ def test_catenary_span_model__data_container(
     span_model.L_n()
     span_model.T_h()
     span_model.T_v(x)
-    span_model.T_max(x)
+    span_model.T(x)
     span_model.T_mean_m()
     span_model.T_mean_n()
     span_model.T_mean()
