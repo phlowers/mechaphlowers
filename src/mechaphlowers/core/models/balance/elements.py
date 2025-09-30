@@ -18,6 +18,7 @@ from mechaphlowers.core.models.balance import numeric
 from mechaphlowers.core.models.balance.model_interface import ModelForSolver
 from mechaphlowers.core.models.balance.solver import Solver
 from mechaphlowers.core.models.balance.utils_balance import (
+    Masks,
     VectorProjection,
     fill_to_support,
     reduce_to_span,
@@ -163,18 +164,17 @@ class BalanceModel(ModelForSolver):
         # there is another temperature : change state
         self.nodes.has_load = False
 
+        self.load_model = LoadModel(
+            self.cable_array,
+            self.nodes.load[self.nodes.load_on_span],
+            self.nodes.load_position[self.nodes.load_on_span],
+        )
         self.update()
         self.nodes.compute_dx_dy_dz()
         self.nodes.vector_projection.set_tensions(
             self.Th, self.Tv_d, self.Tv_g
         )
         self.nodes.compute_moment()
-
-        self.load_model = LoadModel(
-            self.cable_array,
-            self.nodes.load[self.nodes.load_on_span],
-            self.nodes.load_position[self.nodes.load_on_span],
-        )
 
     @property
     def k_load(self):
@@ -416,6 +416,7 @@ class BalanceModel(ModelForSolver):
 
     @property
     def state_vector(self):
+        # [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
         return self.nodes.state_vector
 
     @state_vector.setter
@@ -545,6 +546,11 @@ class Nodes:
 
         self.has_load = False
 
+        nodes_type = ["suspension"] * len(weight_chain)
+        nodes_type[0] = "anchor_first"
+        nodes_type[-1] = "anchor_last"
+        self.masks = Masks(nodes_type, self.L_chain)
+
         self.vector_projection = VectorProjection()
 
     @property
@@ -610,6 +616,7 @@ class Nodes:
 
     @property
     def state_vector(self):
+        # [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
         dxdy = self.dxdydz[[0, 1], 1:-1]
         dzdy = self.dxdydz[[2, 1]][:, [0, -1]]
         return np.vstack([dzdy[:, 0], dxdy.T, dzdy[:, 1]]).flatten()
@@ -644,23 +651,9 @@ class Nodes:
         For anchor chains: update dx
         For suspension chains: update dz
         """
-        L_chain = self.L_chain
-
-        suspension_shift = (
-            -(
-                (L_chain[1:-1] ** 2 - self.dx[1:-1] ** 2 - self.dy[1:-1] ** 2)
-                ** 0.5
-            )
+        self.dx, self.dz = self.masks.compute_dx_dy_dz(
+            self.dx, self.dy, self.dz
         )
-        self.dz[1:-1] = suspension_shift
-
-        anchor_shift = (
-            L_chain[[0, -1]] ** 2
-            - self.dz[[0, -1]] ** 2
-            - self.dy[[0, -1]] ** 2
-        ) ** 0.5
-        self.dx[0] = anchor_shift[0]
-        self.dx[-1] = -anchor_shift[1]
 
     def compute_moment(self):
         # Placeholder for force computation logic
@@ -776,6 +769,7 @@ class LoadModel(ModelForSolver):
         self.update_lengths_span_models()
 
     def objective_function(self):
+        """[Th_diff0, Tv_diff0, Th_diff1, Tv_diff1,...]"""
         # left side of the load
         Th_left = self.span_model_left.T_h()
         x_n_left = self.span_model_left.x_n()

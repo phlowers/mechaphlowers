@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from typing import Tuple
+
 import numpy as np
 
 
@@ -14,6 +16,63 @@ def fill_to_support(array_to_fill: np.ndarray):
 
 def reduce_to_span(array_to_reduce: np.ndarray):
     return array_to_reduce[0:-1]
+
+
+class Masks:
+    """
+    Current types: "suspension", anchor_first, "anchor_last"
+    """
+
+    def __init__(self, nodes_type, L_chain) -> None:
+        self.nodes_type = nodes_type
+        self.L_chain = L_chain
+        self.is_suspension = list(
+            map(lambda x: x == "suspension", self.nodes_type)
+        )
+        self.is_anchor_first = list(
+            map(lambda x: x == "anchor_first", self.nodes_type)
+        )
+        self.is_anchor_last = list(
+            map(lambda x: x == "anchor_last", self.nodes_type)
+        )
+
+    def compute_dx_dy_dz(
+        self, dx: np.ndarray, dy: np.ndarray, dz: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        L_chain = self.L_chain
+        is_suspension = self.is_suspension
+        is_anchor_first = self.is_anchor_first
+        is_anchor_last = self.is_anchor_last
+        new_dx = dx.copy()
+        new_dz = dz.copy()
+        # case: suspension chains
+        suspension_shift = -(
+            (
+                L_chain[is_suspension] ** 2
+                - dx[is_suspension] ** 2
+                - dy[is_suspension] ** 2
+            )
+            ** 0.5
+        )
+        new_dz[is_suspension] = suspension_shift
+
+        # case: first anchor chain
+        anchor_shift_first = (
+            L_chain[is_anchor_first] ** 2
+            - dz[is_anchor_first] ** 2
+            - dy[is_anchor_first] ** 2
+        ) ** 0.5
+        new_dx[is_anchor_first] = anchor_shift_first
+
+        # case: first anchor last
+        anchor_shift_last = (
+            L_chain[is_anchor_last] ** 2
+            - dz[is_anchor_last] ** 2
+            - dy[is_anchor_last] ** 2
+        ) ** 0.5
+        new_dx[is_anchor_last] = -anchor_shift_last
+
+        return new_dx, new_dz
 
 
 class VectorProjection:
