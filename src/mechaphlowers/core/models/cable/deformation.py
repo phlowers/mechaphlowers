@@ -46,7 +46,11 @@ class IDeformation(ABC):
 
     @abstractmethod
     def L_ref(self) -> np.ndarray:
-        """Unstressed cable length, at a chosen reference temperature"""
+        """Unstressed cable length, at a chosen reference temperature, compared to the temperature reference"""
+
+    @abstractmethod
+    def L_0(self) -> np.ndarray:
+        """Unstressed cable length, at a chosen reference temperature, whrer temperature_reference = 0°C"""
 
     @abstractmethod
     def epsilon(self) -> np.ndarray:
@@ -67,6 +71,14 @@ class DeformationRte(IDeformation):
     def L_ref(self) -> np.ndarray:
         L = self.cable_length
         epsilon = self.epsilon_therm() + self.epsilon_mecha()
+        return L / (1 + epsilon)
+
+    def L_0(self) -> np.ndarray:
+        L = self.cable_length
+        sagging_temperature = self.current_temperature
+        alpha = self.dilatation_coefficient
+        eps_therm_0 = sagging_temperature * alpha
+        epsilon = eps_therm_0 + self.epsilon_mecha()
         return L / (1 + epsilon)
 
     def epsilon_mecha(self) -> np.ndarray:

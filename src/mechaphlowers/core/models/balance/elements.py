@@ -23,6 +23,10 @@ from mechaphlowers.core.models.balance.utils_balance import (
     fill_to_support,
     reduce_to_span,
 )
+from mechaphlowers.core.models.cable.deformation import (
+    DeformationRte,
+    IDeformation,
+)
 from mechaphlowers.core.models.cable.span import CatenarySpan, Span
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
@@ -74,6 +78,8 @@ class BalanceEngine:
         self,
         cable_array: CableArray,
         section_array: SectionArray,
+        span_model_type: Type[Span] = CatenarySpan,
+        deformation_model_type: Type[IDeformation] = DeformationRte,
     ):
         self.nodes = section_array_to_nodes(section_array)
 
@@ -85,7 +91,7 @@ class BalanceEngine:
             section_array.data.sagging_parameter.to_numpy()
         )
         self.span_model = arrays_to_span_model(
-            section_array, cable_array, CatenarySpan
+            section_array, cable_array, span_model_type
         )
         self.balance_model = BalanceModel(
             sagging_temperature,
@@ -93,6 +99,7 @@ class BalanceEngine:
             parameter,
             cable_array,
             self.span_model,
+            deformation_model_type,
         )
 
     def solve_adjustment(self):
@@ -132,6 +139,7 @@ class BalanceModel(ModelForSolver):
         parameter: np.ndarray,
         cable_array: CableArray,
         span_model: Type[Span],
+        deformation_model_type: Type[IDeformation],
     ):
         # tempertaure and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
@@ -150,7 +158,11 @@ class BalanceModel(ModelForSolver):
         self.dilatation_coefficient = np.float64(
             self.cable_array.data.dilatation_coefficient.iloc[0]
         )
+        self.temperature_reference = np.float64(
+            self.cable_array.data.temperature_reference.iloc[0]
+        )
         self.span_model = span_model
+        self.deformation_model_type = deformation_model_type
         self.cable_loads: CableLoads = CableLoads(
             self.diameter,
             self.linear_weight,
@@ -206,6 +218,29 @@ class BalanceModel(ModelForSolver):
         return -reduce_to_span(self.cable_loads.load_angle)
 
     def update_L_ref(self):
+        tension_mean = self.span_model.T_mean()
+        cable_length = self.span_model.L()
+        # TODO:
+        polynomial_conductor = self.cable_array.polynomial_conductor
+        deformation_model = self.deformation_model_type(
+            tension_mean,
+            cable_length,
+            self.cable_section,
+            self.linear_weight,
+            self.young_modulus,
+            self.dilatation_coefficient,
+            self.temperature_reference,
+            polynomial_conductor,
+            fill_to_support(self.sagging_temperature),
+        )
+
+        # L_ref = deformation_model.L_ref().to_support_format()
+
+        L_ref = reduce_to_span(deformation_model.L_ref())
+        L_0 = reduce_to_span(deformation_model.L_0())
+        self.L_ref = L_0
+        return L_0
+
         # TODO: link to mph + decide how to organize Span/Deformation
         self.update_span()
 
