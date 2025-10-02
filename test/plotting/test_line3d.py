@@ -32,6 +32,7 @@ data = {
     * 4,
     "insulator_length": [0, 4, 3.2, 0],
     "span_length": [100, 200, 300, np.nan],
+    "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
 }
 
 section = SectionArray(data=pd.DataFrame(data))

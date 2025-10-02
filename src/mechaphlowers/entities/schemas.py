@@ -34,19 +34,14 @@ class SectionArrayInput(pa.DataFrameModel):
     line_angle: pdt.Series[float] = pa.Field(coerce=True)
     insulator_length: pdt.Series[float] = pa.Field(coerce=True)
     span_length: pdt.Series[float] = pa.Field(nullable=True, coerce=True)
-
-    @pa.dataframe_check(
-        description="""Though tension supports also have insulators,
-        for now we ignore them when computing the state of a span or section.
-        Taking them into account might be implemented later.
-        For now, set the insulator length to 0 for tension supports to suppress this error."""
+    insulator_weight: pdt.Series[float] = pa.Field(coerce=True)
+    load_weight: Optional[pdt.Series[float]] = pa.Field(
+        nullable=True,
+        coerce=True,
     )
-    def insulator_length_is_zero_if_not_suspension(
-        cls, df: pd.DataFrame
-    ) -> pdt.Series[bool]:
-        return (df["suspension"] | (df["insulator_length"] == 0)).pipe(
-            pdt.Series[bool]
-        )
+    load_position: Optional[pdt.Series[float]] = pa.Field(
+        nullable=True, coerce=True
+    )
 
     @pa.dataframe_check(
         description="""Each row in the dataframe contains information about a support
