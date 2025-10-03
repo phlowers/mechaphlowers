@@ -29,6 +29,7 @@ from mechaphlowers.core.models.cable.deformation import (
 )
 from mechaphlowers.core.models.cable.span import CatenarySpan, Span
 from mechaphlowers.core.models.external_loads import CableLoads
+from mechaphlowers.core.solver.cable_state_fork import NewSagTensionSolver
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 logger = logging.getLogger(__name__)
@@ -74,35 +75,63 @@ def span_model_builder(
 
 
 def deformation_model_builder(
-    cable_array: CableArray,
-    span_model: Span,
-    sagging_temperature: np.ndarray,
-    deformation_model_type: Type[IDeformation],
+        cable_array: CableArray,
+        span_model: Span,
+        sagging_temperature: np.ndarray,
+        deformation_model_type: Type[IDeformation]
 ):
     tension_mean = span_model.T_mean()
     cable_length = span_model.L()
     cable_section = np.float64(cable_array.data.section.iloc[0])
     linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
     young_modulus = np.float64(cable_array.data.young_modulus.iloc[0])
-    dilatation_coefficient = np.float64(
-        cable_array.data.dilatation_coefficient.iloc[0]
-    )
-    temperature_reference = np.float64(
-        cable_array.data.temperature_reference.iloc[0]
-    )
+    dilatation_coefficient = np.float64(cable_array.data.dilatation_coefficient.iloc[0])
+    temperature_reference = np.float64(cable_array.data.temperature_reference.iloc[0])
     polynomial_conductor = cable_array.polynomial_conductor
     return deformation_model_type(
-        tension_mean,
-        cable_length,
-        cable_section,
+            tension_mean,
+            cable_length,
+            cable_section,
+            linear_weight,
+            young_modulus,
+            dilatation_coefficient,
+            temperature_reference,
+            polynomial_conductor,
+            sagging_temperature,
+        )
+
+def sag_tension_solver_builder(
+        section_array: SectionArray,
+        cable_array: CableArray,
+        span_model: Span,
+        deformation_model: IDeformation,
+    ):
+    span_length = section_array.data.span_length.to_numpy()
+    elevation_difference = section_array.data.elevation_difference.to_numpy()
+    sagging_parameter = section_array.data.sagging_parameter.to_numpy()
+    sagging_temperature = section_array.data.sagging_temperature.to_numpy()
+    cable_section_area = np.float64(cable_array.data.section.iloc[0])
+    diameter = np.float64(cable_array.data.diameter.iloc[0])
+    linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
+    young_modulus = np.float64(cable_array.data.young_modulus.iloc[0])
+    dilatation_coefficient = np.float64(cable_array.data.dilatation_coefficient.iloc[0])
+    temperature_reference = np.float64(cable_array.data.temperature_reference.iloc[0])
+    polynomial_conductor = cable_array.polynomial_conductor
+    return NewSagTensionSolver(
+        span_length,
+        elevation_difference,
+        sagging_parameter,
+        sagging_temperature,
+        cable_section_area,
+        diameter,
         linear_weight,
         young_modulus,
         dilatation_coefficient,
         temperature_reference,
         polynomial_conductor,
-        sagging_temperature,
+        span_model,
+        deformation_model,
     )
-
 
 class BalanceEngine:
     def __init__(
@@ -137,6 +166,13 @@ class BalanceEngine:
             deformation_model_type,
         )
 
+        self.sag_tension_solver = sag_tension_solver_builder(
+            section_array,
+            cable_array,
+            self.span_model,
+            self.deformation_model,
+        )
+
         self.balance_model = BalanceModel(
             sagging_temperature,
             self.nodes,
@@ -145,6 +181,7 @@ class BalanceEngine:
             self.span_model,
             self.deformation_model,
             self.cable_loads,
+            self.sag_tension_solver,
         )
 
     def solve_adjustment(self):
@@ -154,6 +191,7 @@ class BalanceEngine:
         sb.solve(self.balance_model)
 
         self.L_ref = self.balance_model.update_L_ref()
+        self.sag_tension_solver.initial_state()
 
     def solve_change_state(
         self,
@@ -186,6 +224,7 @@ class BalanceModel(ModelForSolver):
         span_model: Span,
         deformation_model: IDeformation,
         cable_loads: CableLoads,
+        sag_tension_solver: NewSagTensionSolver,
     ):
         # tempertaure and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
@@ -210,6 +249,7 @@ class BalanceModel(ModelForSolver):
         self.span_model = span_model
         self.deformation_model = deformation_model
         self.cable_loads = cable_loads
+        self.sag_tension_solver = sag_tension_solver
 
         self.adjustment: bool = True
         # TODO: during adjustment computation, perhaps set cable_temperature = 0
@@ -261,11 +301,11 @@ class BalanceModel(ModelForSolver):
     def update_L_ref(self):
         self.deformation_model.tension_mean = self.span_model.T_mean()
         self.deformation_model.cable_length = self.span_model.L()
-        self.deformation_model.current_temperature = fill_to_support(
-            self.sagging_temperature
-        )
+        self.deformation_model.current_temperature = fill_to_support(self.sagging_temperature)
 
-        # L_ref = reduce_to_span(self.deformation_model.L_ref())
+        # L_ref = deformation_model.L_ref().to_support_format()
+
+        L_ref = reduce_to_span(self.deformation_model.L_ref())
         L_0 = reduce_to_span(self.deformation_model.L_0())
         self.L_ref = L_0
         return L_0
@@ -283,25 +323,27 @@ class BalanceModel(ModelForSolver):
         parameter = self.approx_parameter(
             self.a_prime, self.b_prime, self.L_ref, self.sagging_temperature
         )
-        # self.span_model.sagging_parameter = fill_to_support(parameter)
-        parameter = find_parameter_function(
-            parameter,
-            self.a_prime,
-            self.b_prime,
-            self.L_ref,
-            self.sagging_temperature,
-            self.k_load,
-            self.cable_section,
-            self.linear_weight,
-            self.dilatation_coefficient,
-            self.young_modulus,
-        )
-
         self.span_model.sagging_parameter = fill_to_support(parameter)
+        # parameter = find_parameter_function(
+        #     parameter,
+        #     self.a_prime,
+        #     self.b_prime,
+        #     self.L_ref,
+        #     self.sagging_temperature,
+        #     self.k_load,
+        #     self.cable_section,
+        #     self.linear_weight,
+        #     self.dilatation_coefficient,
+        #     self.young_modulus,
+        # )
+
+        self.sag_tension_solver.change_state(self.cable_loads, fill_to_support(self.sagging_temperature))
+        parameter = self.sag_tension_solver.p_after_change()
+        self.span_model.sagging_parameter = parameter
         Th = reduce_to_span(self.span_model.T_h())
         x_m = reduce_to_span(self.span_model.x_m())
         x_n = reduce_to_span(self.span_model.x_n())
-        return Th, x_m, x_n, parameter
+        return Th, x_m, x_n, reduce_to_span(parameter)
 
     def update_tensions(self):
         """Compute values of Th, Tv_d and Tv_g.
