@@ -12,7 +12,7 @@ from pytest import fixture
 import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance.elements import (
     BalanceEngine,
-    section_array_to_nodes,
+    nodes_builder,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
@@ -104,5 +104,5 @@ def test_element_change_state(balance_engine_simple: BalanceEngine):
     assert True
 
 
-def test_section_array_to_nodes(section_array_angles):
-    section_array_to_nodes(section_array_angles)
+def test_nodes_builder(section_array_angles):
+    nodes_builder(section_array_angles)

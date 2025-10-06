@@ -34,7 +34,7 @@ from mechaphlowers.entities.arrays import CableArray, SectionArray
 logger = logging.getLogger(__name__)
 
 
-def section_array_to_nodes(section_array: SectionArray):
+def nodes_builder(section_array: SectionArray):
     L_chain = section_array.data.insulator_length.to_numpy()
     weight_chain = section_array.data.insulator_weight.to_numpy()
     arm_length = section_array.data.crossarm_length.to_numpy()
@@ -56,20 +56,51 @@ def section_array_to_nodes(section_array: SectionArray):
     )
 
 
-def arrays_to_span_model(
+def span_model_builder(
     section_array: SectionArray,
     cable_array: CableArray,
-    span_model: Type[Span],
+    span_model_type: Type[Span],
 ):
     span_length = section_array.data.span_length.to_numpy()
     elevation_difference = section_array.data.elevation_difference.to_numpy()
     sagging_parameter = section_array.data.sagging_parameter.to_numpy()
     linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
-    return span_model(
+    return span_model_type(
         span_length,
         elevation_difference,
         sagging_parameter,
         linear_weight=linear_weight,
+    )
+
+
+def deformation_model_builder(
+    cable_array: CableArray,
+    span_model: Span,
+    sagging_temperature: np.ndarray,
+    deformation_model_type: Type[IDeformation],
+):
+    tension_mean = span_model.T_mean()
+    cable_length = span_model.L()
+    cable_section = np.float64(cable_array.data.section.iloc[0])
+    linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
+    young_modulus = np.float64(cable_array.data.young_modulus.iloc[0])
+    dilatation_coefficient = np.float64(
+        cable_array.data.dilatation_coefficient.iloc[0]
+    )
+    temperature_reference = np.float64(
+        cable_array.data.temperature_reference.iloc[0]
+    )
+    polynomial_conductor = cable_array.polynomial_conductor
+    return deformation_model_type(
+        tension_mean,
+        cable_length,
+        cable_section,
+        linear_weight,
+        young_modulus,
+        dilatation_coefficient,
+        temperature_reference,
+        polynomial_conductor,
+        sagging_temperature,
     )
 
 
@@ -81,7 +112,7 @@ class BalanceEngine:
         span_model_type: Type[Span] = CatenarySpan,
         deformation_model_type: Type[IDeformation] = DeformationRte,
     ):
-        self.nodes = section_array_to_nodes(section_array)
+        self.nodes = nodes_builder(section_array)
 
         # TODO: fix this
         sagging_temperature = reduce_to_span(
@@ -90,16 +121,30 @@ class BalanceEngine:
         parameter = reduce_to_span(
             section_array.data.sagging_parameter.to_numpy()
         )
-        self.span_model = arrays_to_span_model(
+        self.span_model = span_model_builder(
             section_array, cable_array, span_model_type
         )
+        self.cable_loads = CableLoads(
+            np.float64(cable_array.data.diameter.iloc[0]),
+            np.float64(cable_array.data.linear_weight.iloc[0]),
+            np.zeros_like(self.nodes.weight_chain),
+            np.zeros_like(self.nodes.weight_chain),
+        )
+        self.deformation_model = deformation_model_builder(
+            cable_array,
+            self.span_model,
+            sagging_temperature,
+            deformation_model_type,
+        )
+
         self.balance_model = BalanceModel(
             sagging_temperature,
             self.nodes,
             parameter,
             cable_array,
             self.span_model,
-            deformation_model_type,
+            self.deformation_model,
+            self.cable_loads,
         )
 
     def solve_adjustment(self):
@@ -138,8 +183,9 @@ class BalanceModel(ModelForSolver):
         nodes: Nodes,
         parameter: np.ndarray,
         cable_array: CableArray,
-        span_model: Type[Span],
-        deformation_model_type: Type[IDeformation],
+        span_model: Span,
+        deformation_model: IDeformation,
+        cable_loads: CableLoads,
     ):
         # tempertaure and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
@@ -162,13 +208,8 @@ class BalanceModel(ModelForSolver):
             self.cable_array.data.temperature_reference.iloc[0]
         )
         self.span_model = span_model
-        self.deformation_model_type = deformation_model_type
-        self.cable_loads: CableLoads = CableLoads(
-            self.diameter,
-            self.linear_weight,
-            np.zeros_like(nodes.weight_chain),
-            np.zeros_like(nodes.weight_chain),
-        )
+        self.deformation_model = deformation_model
+        self.cable_loads = cable_loads
 
         self.adjustment: bool = True
         # TODO: during adjustment computation, perhaps set cable_temperature = 0
@@ -218,58 +259,16 @@ class BalanceModel(ModelForSolver):
         return -reduce_to_span(self.cable_loads.load_angle)
 
     def update_L_ref(self):
-        tension_mean = self.span_model.T_mean()
-        cable_length = self.span_model.L()
-        # TODO:
-        polynomial_conductor = self.cable_array.polynomial_conductor
-        deformation_model = self.deformation_model_type(
-            tension_mean,
-            cable_length,
-            self.cable_section,
-            self.linear_weight,
-            self.young_modulus,
-            self.dilatation_coefficient,
-            self.temperature_reference,
-            polynomial_conductor,
-            fill_to_support(self.sagging_temperature),
+        self.deformation_model.tension_mean = self.span_model.T_mean()
+        self.deformation_model.cable_length = self.span_model.L()
+        self.deformation_model.current_temperature = fill_to_support(
+            self.sagging_temperature
         )
 
-        # L_ref = deformation_model.L_ref().to_support_format()
-
-        L_ref = reduce_to_span(deformation_model.L_ref())
-        L_0 = reduce_to_span(deformation_model.L_0())
+        # L_ref = reduce_to_span(self.deformation_model.L_ref())
+        L_0 = reduce_to_span(self.deformation_model.L_0())
         self.L_ref = L_0
         return L_0
-
-        # TODO: link to mph + decide how to organize Span/Deformation
-        self.update_span()
-
-        a = self.a
-        b = self.b
-        parameter = self.parameter
-
-        cable_length = f.L(
-            parameter,
-            f.x_n(a, b, parameter),
-            f.x_m(a, b, parameter),
-        )
-
-        T_mean = f.T_moy(
-            p=parameter,
-            L=cable_length,
-            x_n=f.x_n(a, b, parameter),
-            x_m=f.x_m(a, b, parameter),
-            linear_weight=self.linear_weight,
-        )
-
-        L_ref = cable_length / (
-            1
-            + self.dilatation_coefficient * self.sagging_temperature
-            + T_mean / self.young_modulus / self.cable_section
-        )
-
-        self.L_ref = L_ref
-        return L_ref
 
     @property
     def a_prime(self):
@@ -284,6 +283,7 @@ class BalanceModel(ModelForSolver):
         parameter = self.approx_parameter(
             self.a_prime, self.b_prime, self.L_ref, self.sagging_temperature
         )
+        # self.span_model.sagging_parameter = fill_to_support(parameter)
         parameter = find_parameter_function(
             parameter,
             self.a_prime,
@@ -296,6 +296,7 @@ class BalanceModel(ModelForSolver):
             self.dilatation_coefficient,
             self.young_modulus,
         )
+
         self.span_model.sagging_parameter = fill_to_support(parameter)
         Th = reduce_to_span(self.span_model.T_h())
         x_m = reduce_to_span(self.span_model.x_m())
