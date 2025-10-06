@@ -48,19 +48,19 @@ def papoto_2_points(
     H2: np.ndarray,
     V2: np.ndarray,
 ) -> np.ndarray:
-    # converting grades to radians
-    Alpha = (HD - HG) / 200 * np.pi
-    Alpha1 = (H1 - HG) / 200 * np.pi
-    Alpha2 = (H2 - HG) / 200 * np.pi
-    VG = (100 - VG) / 200 * np.pi  # null angle = horizon
-    VD = (100 - VD) / 200 * np.pi
-    V1 = (100 - V1) / 200 * np.pi
-    V2 = (100 - V2) / 200 * np.pi
+    """Computes PAPOTO method with 2 points."""
+    Alpha = convert_grad_to_rad(HD - HG)
+    Alpha1 = convert_grad_to_rad(H1 - HG)
+    Alpha2 = convert_grad_to_rad(H2 - HG)
+    VG = convert_grad_to_rad(100 - VG)  # null angle = horizon
+    VD = convert_grad_to_rad(100 - VD)
+    V1 = convert_grad_to_rad(100 - V1)
+    V2 = convert_grad_to_rad(100 - V2)
 
     nb_loops = 100
 
     iteration = (np.pi - Alpha) / 2
-    AlphaD = 0.0
+    AlphaD = np.zeros_like(Alpha)
 
     for loop_index in range(1, nb_loops):
         AlphaD = (
@@ -149,6 +149,23 @@ def function_f(
     delta: np.ndarray,
     x: np.ndarray,
 ) -> np.ndarray:
+    """Function for which we want to find the root.
+
+    $f(p) = p * (\cosh(\\frac{val}{p}) - \cosh(\\frac{x-val}{p}) - \\delta$
+
+    with $val = \\frac{a}{2} - p * \\sinh^{-1}(\\frac{h} {2 * p * sinh(\\frac{a} {2 * p})})$
+
+    Args:
+        p (np.ndarray): parameter (variable to find)
+        a (np.ndarray): span length
+        h (np.ndarray): altitude difference between supports
+        delta (np.ndarray): altitude difference between point 1 and left support
+        x (np.ndarray): abscissa of chosen point 1
+
+    Returns:
+        np.ndarray: value of the function f at p
+    """
+    # val: distance between lowest point with left support
     val = a / 2 - p * np.asinh(h / (2 * p * np.sinh(a / 2 / p)))
     f = p * (np.cosh(val / p) - np.cosh((x - val) / p)) - delta
     return f
@@ -161,6 +178,30 @@ def function_f_prime(
     delta: np.ndarray,
     x: np.ndarray,
 ) -> np.ndarray:
+    """Approximation of the derivate of function_f with respect to p, computed using finite difference.
+
+    Args:
+        p (np.ndarray): parameter (variable to find)
+        a (np.ndarray): span length
+        h (np.ndarray): altitude difference between supports
+        delta (np.ndarray): altitude difference between point 1 and left support
+        x (np.ndarray): abscissa of chosen point 1
+
+    Returns:
+        np.ndarray: approximation of $f'(p)$
+    """
     return (
         function_f(p + _ZETA, a, h, delta, x) - function_f(p, a, h, delta, x)
     ) / _ZETA
+
+
+def convert_grad_to_rad(angle_in_grad: np.ndarray) -> np.ndarray:
+    """Converts an angle in grad to radians.
+
+    Args:
+        angle_in_grad (np.ndarray): array of angles in grad
+
+    Returns:
+        np.ndarray: array of angles in radians
+    """
+    return angle_in_grad / 200 * np.pi
