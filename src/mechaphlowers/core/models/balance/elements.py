@@ -13,6 +13,7 @@ from typing import Type
 import numpy as np
 import pandas as pd
 
+from mechaphlowers.core.models.balance.find_parameter_solver import FindParamModel, FindParamSolverForLoop, FindParamSolverScipy
 import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance import numeric
 from mechaphlowers.core.models.balance.model_interface import ModelForSolver
@@ -162,6 +163,7 @@ class BalanceEngine:
             self.balance_model.cable_loads.ice_thickness = ice_thickness
         if new_temperature is not None:
             self.balance_model.sagging_temperature = new_temperature
+            self.deformation_model.current_temperature = fill_to_support(new_temperature)
         self.balance_model.adjustment = False
         self.balance_model.nodes.has_load = True
         self.span_model.load_coefficient = (
@@ -217,6 +219,8 @@ class BalanceModel(ModelForSolver):
             self.nodes.load[self.nodes.load_on_span],
             self.nodes.load_position[self.nodes.load_on_span],
         )
+        self.find_param_model = FindParamModel(self.span_model, self.deformation_model)
+        self.find_param_solver = FindParamSolverForLoop(self.find_param_model)
         self.update()
         self.nodes.compute_dx_dy_dz()
         self.nodes.vector_projection.set_tensions(
@@ -275,28 +279,19 @@ class BalanceModel(ModelForSolver):
 
     def compute_Th_and_extremum(self):
         """In this method, a, b, and L_ref may refer to a semi span"""
-        parameter = self.approx_parameter(
+        cardan_parameter = self.approx_parameter(
             self.a_prime, self.b_prime, self.L_ref, self.sagging_temperature
         )
-        # self.span_model.sagging_parameter = fill_to_support(parameter)
-        parameter = find_parameter_function(
-            parameter,
-            self.a_prime,
-            self.b_prime,
-            self.L_ref,
-            self.sagging_temperature,
-            self.k_load,
-            self.cable_section,
-            self.linear_weight,
-            self.dilatation_coefficient,
-            self.young_modulus,
-        )
+        cardan_parameter = fill_to_support(cardan_parameter)
+        self.find_param_model.set_attributes(initial_parameter=cardan_parameter, L_ref=fill_to_support(self.L_ref))
 
-        self.span_model.sagging_parameter = fill_to_support(parameter)
+        parameter = self.find_param_solver.find_parameter()
+
+        self.span_model.sagging_parameter = parameter
         Th = reduce_to_span(self.span_model.T_h())
         x_m = reduce_to_span(self.span_model.x_m())
         x_n = reduce_to_span(self.span_model.x_n())
-        return Th, x_m, x_n, parameter
+        return Th, x_m, x_n, reduce_to_span(parameter)
 
     def update_tensions(self):
         """Compute values of Th, Tv_d and Tv_g.

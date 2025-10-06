@@ -64,6 +64,10 @@ class IDeformation(ABC):
     def epsilon_therm(self) -> np.ndarray:
         """Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
 
+    @abstractmethod
+    def epsilon_therm_0(self) -> np.ndarray:
+        """Thermal part of the relative deformation of the cable, where temperature_reference = 0."""
+
 
 class DeformationRte(IDeformation):
     """This class implements the deformation model used by RTE."""
@@ -75,10 +79,7 @@ class DeformationRte(IDeformation):
 
     def L_0(self) -> np.ndarray:
         L = self.cable_length
-        sagging_temperature = self.current_temperature
-        alpha = self.dilatation_coefficient
-        eps_therm_0 = sagging_temperature * alpha
-        epsilon = eps_therm_0 + self.epsilon_mecha()
+        epsilon = self.epsilon_therm_0() + self.epsilon_mecha()
         return L / (1 + epsilon)
 
     def epsilon_mecha(self) -> np.ndarray:
@@ -101,6 +102,11 @@ class DeformationRte(IDeformation):
         temp_ref = self.temp_ref
         alpha = self.dilatation_coefficient
         return (sagging_temperature - temp_ref) * alpha
+
+    def epsilon_therm_0(self) -> np.ndarray:
+        sagging_temperature = self.current_temperature
+        alpha = self.dilatation_coefficient
+        return sagging_temperature * alpha
 
     def epsilon_mecha_polynomial(self) -> np.ndarray:
         """Computes epsilon when the stress-strain relation is polynomial"""
