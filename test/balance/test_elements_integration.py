@@ -746,3 +746,34 @@ def test_many_spans(cable_array_AM600: CableArray):
     section.solve_adjustment()
 
     section.solve_change_state(wind_pressure=np.array([-200] * nb_spans))
+
+
+def test_many_spans_with_load(cable_array_AM600: CableArray):
+    nb_spans = 10
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["name"] * nb_spans,
+                "suspension": [False] + [True] * (nb_spans - 2) + [False],
+                "conductor_attachment_altitude": [50] * nb_spans,
+                "crossarm_length": [0] * nb_spans,
+                "line_angle": [0] * nb_spans,
+                "insulator_length": [3] * nb_spans,
+                "span_length": [500] * (nb_spans - 1) + [np.nan],
+                "insulator_weight": [500] * nb_spans,
+                "load_weight": [500] * nb_spans,
+                "load_position": [0.5] * nb_spans,
+            }
+        )
+    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+
+    section = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=section_array,
+    )
+
+    section.solve_adjustment()
+
+    section.solve_change_state(wind_pressure=np.array([-200] * nb_spans))

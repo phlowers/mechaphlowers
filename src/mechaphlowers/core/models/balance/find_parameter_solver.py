@@ -8,10 +8,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Type
+from abc import ABC, abstractmethod
 
 import numpy as np
-import pandas as pd
 
 from mechaphlowers.core.models.balance.utils_balance import reduce_to_span
 from mechaphlowers.core.models.cable.deformation import IDeformation
@@ -25,14 +24,30 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-PARAMETER_STEP = 1.
+PARAMETER_STEP = 1.0
 
-class FindParamModel:
+
+class ModelToSolve(ABC):
+    @property
+    @abstractmethod
+    def initial_value(self):
+        pass
+
+    @abstractmethod
+    def _delta(self, parameter):
+        pass
+
+    @abstractmethod
+    def _delta_prime(self, parameter):
+        pass
+
+
+class FindParamModel(ModelToSolve):
     def __init__(
-            self,
-            span_model: Span,
-            deformation_model: IDeformation,
-        ):
+        self,
+        span_model: Span,
+        deformation_model: IDeformation,
+    ):
         self.span_model = span_model
         self.deformation_model = deformation_model
 
@@ -48,36 +63,37 @@ class FindParamModel:
     @property
     def initial_value(self):
         return self.initial_parameter
-            
+
     def _delta(self, parameter):
         self.update_models(parameter)
         L = self.span_model.L()
         eps_mecha = self.deformation_model.epsilon_mecha()
         eps_therm = self.deformation_model.epsilon_therm_0()
         return (L - self.L_ref) / self.L_ref - (eps_mecha + eps_therm)
-    
+
     def _delta_prime(self, parameter):
-        return (self._delta(parameter + PARAMETER_STEP) - self._delta(parameter)) / PARAMETER_STEP
+        return (
+            self._delta(parameter + PARAMETER_STEP) - self._delta(parameter)
+        ) / PARAMETER_STEP
+
+
+class FindParamSolver:
+    def __init__(self, model: ModelToSolve) -> None:
+        self.model = model
+
+    @abstractmethod
+    def find_parameter(self) -> np.ndarray:
+        pass
 
 
 class FindParamSolverScipy:
-    def __init__(self, model: FindParamModel):
-          self.model = model
+    def __init__(self, model: ModelToSolve):
+        self.model = model
 
-
-    def find_parameter(
-        self,
-        solver: str = "newton",
-    ) -> np.ndarray:
-        solver_dict = {"newton": optimize.newton}
-        try:
-            solver_method = solver_dict[solver]
-        except KeyError:
-            raise ValueError(f"Incorrect solver name: {solver}")
-
+    def find_parameter(self) -> np.ndarray:
         p0 = self.model.initial_value
 
-        solver_result = solver_method(
+        solver_result = optimize.newton(
             self.model._delta,
             p0,
             fprime=self.model._delta_prime,
@@ -91,22 +107,23 @@ class FindParamSolverScipy:
 
 
 class FindParamSolverForLoop:
-    def __init__(self, model: FindParamModel):
-          self.model = model
+    def __init__(self, model: ModelToSolve):
+        self.model = model
 
-    def find_parameter(
-        self,
-    ) -> np.ndarray:
-        parameter = self.model.initial_parameter
+    def find_parameter(self) -> np.ndarray:
+        parameter = self.model.initial_value
 
         n_iter_max = 50
         for i in range(n_iter_max):
-            mem = parameter.copy()
+            mem = parameter
             delta = self.model._delta(parameter)
             delta_prime = self.model._delta_prime(parameter)
             parameter = parameter - delta / delta_prime
 
-            if np.linalg.norm(reduce_to_span(mem - parameter)) < 0.1 * parameter.size:
+            if (
+                np.linalg.norm(reduce_to_span(mem - parameter))
+                < 0.1 * parameter.size
+            ):
                 break
             if i == n_iter_max:
                 logger.info("max iter reached")
