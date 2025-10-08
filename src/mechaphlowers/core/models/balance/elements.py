@@ -85,7 +85,7 @@ def deformation_model_builder(
     deformation_model_type: Type[IDeformation] = DeformationRte,
 ):
     tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
+    cable_length = span_model.compute_L()
     cable_section = np.float64(cable_array.data.section.iloc[0])
     linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
     young_modulus = np.float64(cable_array.data.young_modulus.iloc[0])
@@ -157,7 +157,8 @@ class BalanceEngine:
 
         sb = Solver()
         sb.solve(self.balance_model)
-
+        # TODO: fix inside of balanceModel instead (use setters)
+        self.span_model.compute_and_store_values()
         self.L_ref = self.balance_model.update_L_ref()
 
     def solve_change_state(
@@ -282,7 +283,7 @@ class BalanceModel(ModelForSolver):
 
     def update_L_ref(self):
         self.deformation_model.tension_mean = self.span_model.T_mean()
-        self.deformation_model.cable_length = self.span_model.L()
+        self.deformation_model.cable_length = self.span_model.L
         self.deformation_model.current_temperature = fill_to_support(
             self.sagging_temperature
         )
@@ -313,10 +314,10 @@ class BalanceModel(ModelForSolver):
 
         parameter = self.find_param_solver.find_parameter()
 
-        self.span_model.sagging_parameter = parameter
+        self.span_model.set_parameter(parameter)
         Th = reduce_to_span(self.span_model.T_h())
-        x_m = reduce_to_span(self.span_model.x_m())
-        x_n = reduce_to_span(self.span_model.x_n())
+        x_m = reduce_to_span(self.span_model.x_m)
+        x_n = reduce_to_span(self.span_model.x_n)
         return Th, x_m, x_n, reduce_to_span(parameter)
 
     def update_tensions(self):
@@ -329,8 +330,8 @@ class BalanceModel(ModelForSolver):
         # Case: adjustment
         if self.adjustment:
             Th = reduce_to_span(self.span_model.T_h())
-            x_m = reduce_to_span(self.span_model.x_m())
-            x_n = reduce_to_span(self.span_model.x_n())
+            x_m = reduce_to_span(self.span_model.compute_x_m())
+            x_n = reduce_to_span(self.span_model.compute_x_n())
 
         # Case: change state + no load:
         else:
@@ -356,14 +357,14 @@ class BalanceModel(ModelForSolver):
                     self.load_model.span_model_left.T_h()
                 )
                 x_m[self.nodes.load_on_span] = (
-                    self.load_model.span_model_left.x_m()
+                    self.load_model.span_model_left.x_m
                 )
                 x_n[self.nodes.load_on_span] = (
-                    self.load_model.span_model_right.x_n()
+                    self.load_model.span_model_right.x_n
                 )
 
             self.parameter = parameter
-            self.span_model.sagging_parameter = fill_to_support(parameter)
+            self.span_model.set_parameter(fill_to_support(parameter))
 
         self.Tv_g = reduce_to_span(self.span_model.T_v(fill_to_support(x_m)))
         self.Tv_d = -reduce_to_span(self.span_model.T_v(fill_to_support(x_n)))
@@ -455,8 +456,9 @@ class BalanceModel(ModelForSolver):
         b = np.roll(z, -1) - z
         self.b = b[:-1]
         # TODO: fix array lengths?
-        self.span_model.span_length = fill_to_support(self.a_prime)
-        self.span_model.elevation_difference = fill_to_support(self.b_prime)
+        self.span_model.set_lengths(
+            fill_to_support(self.a_prime), fill_to_support(self.b_prime)
+        )
 
     def objective_function(self):
         """[Mx0, My0, Mx1, My1,...]"""
@@ -831,15 +833,11 @@ class LoadModel(ModelForSolver):
         self.temperature = temperature
         # Warning: arrays legnth are n-1
         # Easier to use, but less consistent with other mechaphlowers objects
-        self.update_objects(parameter)
+        self.update_objects()
 
-    def update_objects(self, parameter):
-        self.span_model_left.span_length = self.x_i
-        self.span_model_left.elevation_difference = self.z_i
+    def update_objects(self):
+        self.update_lengths_span_models()
         self.span_model_left.load_coefficient = self.k_load
-
-        self.span_model_right.span_length = self.a_prime - self.x_i
-        self.span_model_right.elevation_difference = self.b_prime - self.z_i
         self.span_model_right.load_coefficient = self.k_load
 
         self.deformation_model_left.current_temperature = self.temperature
@@ -865,13 +863,14 @@ class LoadModel(ModelForSolver):
         """[Th_diff0, Tv_diff0, Th_diff1, Tv_diff1,...]"""
         # left side of the load
         Th_left = self.span_model_left.T_h()
-        x_n_left = self.span_model_left.x_n()
+        # need to update?
+        x_n_left = self.span_model_left.x_n
 
         Tv_d_loc = -self.span_model_left.T_v(x_n_left)
 
         # right
         Th_right = self.span_model_right.T_h()
-        x_m_right = self.span_model_right.x_m()
+        x_m_right = self.span_model_right.x_m
 
         Tv_g_loc = self.span_model_right.T_v(x_m_right)
 
@@ -933,7 +932,7 @@ class LoadModel(ModelForSolver):
         #     self.dilatation_coefficient,
         #     self.young_modulus,
         # )
-        self.span_model_left.sagging_parameter = parameter_left
+        self.span_model_left.set_parameter(parameter_left)
 
         # update parameter right
         L_ref_right = self.L_ref - L_ref_left
@@ -960,4 +959,4 @@ class LoadModel(ModelForSolver):
         #     self.dilatation_coefficient,
         #     self.young_modulus,
         # )
-        self.span_model_right.sagging_parameter = parameter_right
+        self.span_model_right.set_parameter(parameter_right)

@@ -40,6 +40,7 @@ class IDeformation(ABC):
         self.temp_ref = temperature_reference
         self.polynomial_conductor = polynomial_conductor
         self.current_temperature = sagging_temperature
+        self.is_polynomial = polynomial_conductor.trim().degree() >= 2
 
         if max_stress is None:
             self.max_stress = np.full(self.cable_length.shape, 0)
@@ -86,9 +87,8 @@ class DeformationRte(IDeformation):
         T_mean = self.tension_mean
         E = self.young_modulus
         S = self.cable_section_area
-        polynomial = self.polynomial_conductor
         # linear case
-        if polynomial.trim().degree() < 2:
+        if not self.is_polynomial:
             return T_mean / (E * S)
         # polynomial case
         else:

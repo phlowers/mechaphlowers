@@ -277,10 +277,11 @@ class SectionDataFrame:
         if self.cable is None:
             raise ValueError("Cable has to be added before deformation model")
         # Initialize deformation model
+        self.span.compute_and_store_values()
         self.deformation = self._deformation_model(
             **self.data_container.__dict__,
             tension_mean=self.span.T_mean(),
-            cable_length=self.span.L(),
+            cable_length=self.span.L,
         )
         # TODO: test if L_ref change when span_model T_mean change
 

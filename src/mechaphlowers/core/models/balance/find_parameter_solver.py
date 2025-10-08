@@ -56,8 +56,9 @@ class FindParamModel(ModelToSolve):
         self.L_ref = L_ref
 
     def update_models(self, parameter):
-        self.span_model.sagging_parameter = parameter
-        self.deformation_model.cable_length = self.span_model.L()
+        self.span_model.set_parameter(parameter)
+        # TODO: create getter for L
+        self.deformation_model.cable_length = self.span_model.L
         self.deformation_model.tension_mean = self.span_model.T_mean()
 
     @property
@@ -66,7 +67,7 @@ class FindParamModel(ModelToSolve):
 
     def _delta(self, parameter):
         self.update_models(parameter)
-        L = self.span_model.L()
+        L = self.span_model.L
         eps_mecha = self.deformation_model.epsilon_mecha()
         eps_therm = self.deformation_model.epsilon_therm_0()
         return (L - self.L_ref) / self.L_ref - (eps_mecha + eps_therm)
