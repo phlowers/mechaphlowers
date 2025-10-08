@@ -77,7 +77,7 @@ class FindParamModel(ModelToSolve):
         ) / PARAMETER_STEP
 
 
-class FindParamSolver:
+class FindParamSolver(ABC):
     def __init__(self, model: ModelToSolve) -> None:
         self.model = model
 
@@ -86,7 +86,7 @@ class FindParamSolver:
         pass
 
 
-class FindParamSolverScipy:
+class FindParamSolverScipy(FindParamSolver):
     def __init__(self, model: ModelToSolve):
         self.model = model
 
@@ -106,7 +106,7 @@ class FindParamSolverScipy:
         return solver_result.root
 
 
-class FindParamSolverForLoop:
+class FindParamSolverForLoop(FindParamSolver):
     def __init__(self, model: ModelToSolve):
         self.model = model
 

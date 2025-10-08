@@ -17,6 +17,7 @@ import mechaphlowers.core.models.balance.functions as f
 from mechaphlowers.core.models.balance import numeric
 from mechaphlowers.core.models.balance.find_parameter_solver import (
     FindParamModel,
+    FindParamSolver,
     FindParamSolverForLoop,
 )
 from mechaphlowers.core.models.balance.model_interface import ModelForSolver
@@ -81,7 +82,7 @@ def deformation_model_builder(
     cable_array: CableArray,
     span_model: Span,
     sagging_temperature: np.ndarray,
-    deformation_model_type: Type[IDeformation],
+    deformation_model_type: Type[IDeformation] = DeformationRte,
 ):
     tension_mean = span_model.T_mean()
     cable_length = span_model.L()
@@ -193,7 +194,7 @@ class BalanceModel(ModelForSolver):
         span_model: Span,
         deformation_model: IDeformation,
         cable_loads: CableLoads,
-        find_param_model_type: Type[FindParamSolverForLoop] = FindParamSolverForLoop,
+        find_param_solver_type: Type[FindParamSolver] = FindParamSolverForLoop,
     ):
         # tempertaure and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
@@ -229,11 +230,20 @@ class BalanceModel(ModelForSolver):
             self.cable_array,
             self.nodes.load[self.nodes.load_on_span],
             self.nodes.load_position[self.nodes.load_on_span],
+            reduce_to_span(self.span_model.span_length)[
+                self.nodes.load_on_span
+            ],
+            reduce_to_span(self.span_model.elevation_difference)[
+                self.nodes.load_on_span
+            ],
+            self.k_load[self.nodes.load_on_span],
+            self.sagging_temperature[self.nodes.load_on_span],
+            self.parameter[self.nodes.load_on_span],
         )
         self.find_param_model = FindParamModel(
             self.span_model, self.deformation_model
         )
-        self.find_param_solver = find_param_model_type(self.find_param_model)
+        self.find_param_solver = find_param_solver_type(self.find_param_model)
         self.update()
         self.nodes.compute_dx_dy_dz()
         self.nodes.vector_projection.set_tensions(
@@ -744,6 +754,13 @@ class LoadModel(ModelForSolver):
         cable_array: CableArray,
         load: np.ndarray,
         load_position: np.ndarray,
+        # placeholder values for initialization
+        a: np.ndarray,
+        b: np.ndarray,
+        k_load: np.ndarray,
+        temperature: np.ndarray,
+        parameter: np.ndarray,
+        find_param_solver_type: Type[FindParamSolver] = FindParamSolverForLoop,
     ):
         self.cable_array = cable_array
         self.cable_section = np.float64(self.cable_array.data.section.iloc[0])
@@ -759,7 +776,38 @@ class LoadModel(ModelForSolver):
         )
         self.load = load
         self.load_position = load_position
+        self.find_param_solver_type = find_param_solver_type
         # Need a way to choose Span model
+
+        # init objects with placeholder values, but they will be updated when needed
+        self.span_model_left = CatenarySpan(
+            a, b, parameter, k_load, self.linear_weight
+        )
+        self.span_model_right = CatenarySpan(
+            a, b, parameter, k_load, self.linear_weight
+        )
+        self.deformation_model_left = deformation_model_builder(
+            self.cable_array,
+            self.span_model_left,
+            temperature,
+        )
+        self.deformation_model_right = deformation_model_builder(
+            self.cable_array,
+            self.span_model_right,
+            temperature,
+        )
+        self.find_param_model_left = FindParamModel(
+            self.span_model_left, self.deformation_model_left
+        )
+        self.find_param_model_right = FindParamModel(
+            self.span_model_right, self.deformation_model_right
+        )
+        self.find_param_solver_left = self.find_param_solver_type(
+            self.find_param_model_left
+        )
+        self.find_param_solver_right = self.find_param_solver_type(
+            self.find_param_model_right
+        )
 
     def set_all(
         self,
@@ -783,16 +831,19 @@ class LoadModel(ModelForSolver):
         self.temperature = temperature
         # Warning: arrays legnth are n-1
         # Easier to use, but less consistent with other mechaphlowers objects
-        self.span_model_left = CatenarySpan(
-            self.x_i, self.z_i, parameter, self.k_load, self.linear_weight
-        )
-        self.span_model_right = CatenarySpan(
-            self.a_prime - self.x_i,
-            self.b_prime - self.z_i,
-            parameter,
-            self.k_load,
-            self.linear_weight,
-        )
+        self.update_objects(parameter)
+
+    def update_objects(self, parameter):
+        self.span_model_left.span_length = self.x_i
+        self.span_model_left.elevation_difference = self.z_i
+        self.span_model_left.load_coefficient = self.k_load
+
+        self.span_model_right.span_length = self.a_prime - self.x_i
+        self.span_model_right.elevation_difference = self.b_prime - self.z_i
+        self.span_model_right.load_coefficient = self.k_load
+
+        self.deformation_model_left.current_temperature = self.temperature
+        self.deformation_model_right.current_temperature = self.temperature
 
     def update_lengths_span_models(self):
         self.span_model_left.span_length = self.x_i
@@ -864,18 +915,24 @@ class LoadModel(ModelForSolver):
         parameter_left = self.approx_parameter(
             a_left, b_left, L_ref_left, self.temperature
         )
-        parameter_left = find_parameter_function(
-            parameter_left,
-            a_left,
-            b_left,
-            L_ref_left,
-            self.temperature,
-            self.k_load,
-            self.cable_section,
-            self.linear_weight,
-            self.dilatation_coefficient,
-            self.young_modulus,
+        self.find_param_model_left.set_attributes(
+            initial_parameter=parameter_left,
+            L_ref=L_ref_left,
         )
+
+        parameter_left = self.find_param_solver_left.find_parameter()
+        # parameter_left = find_parameter_function(
+        #     parameter_left,
+        #     a_left,
+        #     b_left,
+        #     L_ref_left,
+        #     self.temperature,
+        #     self.k_load,
+        #     self.cable_section,
+        #     self.linear_weight,
+        #     self.dilatation_coefficient,
+        #     self.young_modulus,
+        # )
         self.span_model_left.sagging_parameter = parameter_left
 
         # update parameter right
@@ -885,16 +942,22 @@ class LoadModel(ModelForSolver):
         parameter_right = self.approx_parameter(
             a_right, b_right, L_ref_right, self.temperature
         )
-        parameter_right = find_parameter_function(
-            parameter_right,
-            a_right,
-            b_right,
-            L_ref_right,
-            self.temperature,
-            self.k_load,
-            self.cable_section,
-            self.linear_weight,
-            self.dilatation_coefficient,
-            self.young_modulus,
+        self.find_param_model_right.set_attributes(
+            initial_parameter=parameter_right,
+            L_ref=L_ref_right,
         )
+
+        parameter_right = self.find_param_solver_right.find_parameter()
+        # parameter_right = find_parameter_function(
+        #     parameter_right,
+        #     a_right,
+        #     b_right,
+        #     L_ref_right,
+        #     self.temperature,
+        #     self.k_load,
+        #     self.cable_section,
+        #     self.linear_weight,
+        #     self.dilatation_coefficient,
+        #     self.young_modulus,
+        # )
         self.span_model_right.sagging_parameter = parameter_right
