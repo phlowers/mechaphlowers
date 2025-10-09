@@ -26,15 +26,9 @@ class Masks:
     def __init__(self, nodes_type: List[str], L_chain: np.ndarray) -> None:
         self.nodes_type = nodes_type
         self.L_chain = L_chain
-        self.is_suspension = list(
-            map(lambda x: x == "suspension", self.nodes_type)
-        )
-        self.is_anchor_first = list(
-            map(lambda x: x == "anchor_first", self.nodes_type)
-        )
-        self.is_anchor_last = list(
-            map(lambda x: x == "anchor_last", self.nodes_type)
-        )
+        self.is_suspension = [x == "suspension" for x in self.nodes_type]
+        self.is_anchor_first = [x == "anchor_first" for x in self.nodes_type]
+        self.is_anchor_last = [x == "anchor_last" for x in self.nodes_type]
 
     def compute_dx_dy_dz(
         self, dx: np.ndarray, dy: np.ndarray, dz: np.ndarray

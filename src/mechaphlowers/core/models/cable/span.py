@@ -40,18 +40,38 @@ class Span(ABC):
             self.load_coefficient = np.ones_like(span_length)
         else:
             self.load_coefficient = load_coefficient
-        self.compute_and_store_values()
+        self.compute_values()
 
-    def set_lengths(self, span_length, elevation_difference):
+    def set_lengths(
+        self, span_length: np.ndarray, elevation_difference: np.ndarray
+    ):
+        """Set value of span_length and elevation_difference and compute x_m, x_n and L.
+
+        Args:
+            span_length (np.ndarray): new value for span_length parameter.
+            elevation_difference (np.ndarray): new value for elevation_difference parameter.
+        """
         self.span_length = span_length
         self.elevation_difference = elevation_difference
-        self.compute_and_store_values()
+        self.compute_values()
 
-    def set_parameter(self, sagging_parameter):
+    def set_parameter(self, sagging_parameter: np.ndarray):
+        """Set value of sagging parameter and compute x_m, x_n and L.
+
+        Args:
+            sagging_parameter (np.ndarray): new value for sagging parameter.
+        """
         self.sagging_parameter = sagging_parameter
-        self.compute_and_store_values()
+        self.compute_values()
 
-    def compute_and_store_values(self):
+    def compute_values(self):
+        """Compute and store values for x_m, x_n and L based on current attributes.
+        T_mean depends on these values, so this method should be called before calling T_mean(),
+        especially if an attribute has been updated.
+
+        The goal of this implementation is to reduce the number of times compute_x_m, compute_x_n and compute_L
+        are called during solver iterations.
+        """
         self._x_m = self.compute_x_m()
         self._x_n = self.compute_x_n()
         self._L = self.compute_L()
@@ -213,8 +233,6 @@ class Span(ABC):
     def T_mean(self) -> np.ndarray:
         """Mean tension along the whole cable."""
 
-    # TODO: factorize compute_L and compute_x_n in Span class later ?
-
 
 class CatenarySpan(Span):
     """Implementation of a span cable model according to the catenary equation.
@@ -316,6 +334,11 @@ class CatenarySpan(Span):
         return (x_n * T_h + L_n * T_x_n) / (2 * L_n)
 
     def T_mean(self) -> np.ndarray:
+        """Return the mean tension along the whole cable. Used in deformation model to compute mechanical deformation.
+        Warning: this method uses stored values of x_m, x_n and L.
+        If any attribute has been updated, compute_values() should be called before calling this method.
+
+        """
         p = self.sagging_parameter
         k_load = self.load_coefficient
         lambd = self.linear_weight

@@ -101,7 +101,6 @@ class FindParamSolverScipy(FindParamSolver):
             p0,
             fprime=self.model._delta_prime,
             tol=0.1,
-            # tol=1.,
             full_output=True,
         )
         if not np.all(solver_result.converged):

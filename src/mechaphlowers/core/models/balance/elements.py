@@ -40,6 +40,14 @@ logger = logging.getLogger(__name__)
 
 
 def nodes_builder(section_array: SectionArray) -> Nodes:
+    """Builds a Nodes object from a SectionArray by extracting and transforming data.
+
+    section_array (SectionArray): Section Array to extract the data from.
+
+    Nodes: An instance of Nodes initialized with data from section array.
+    line_angle is in radians.
+    """
+
     L_chain = section_array.data.insulator_length.to_numpy()
     weight_chain = section_array.data.insulator_weight.to_numpy()
     arm_length = section_array.data.crossarm_length.to_numpy()
@@ -66,6 +74,16 @@ def span_model_builder(
     cable_array: CableArray,
     span_model_type: Type[Span],
 ) -> Span:
+    """Builds a Span object, using data from ScetionArray and CableArray
+
+    Args:
+        section_array (SectionArray): input data (span_length, elevation_difference, sagging_parameter)
+        cable_array (CableArray): input data from cable (only linar weight used here)
+        span_model_type (Type[Span]): choose the type of span model to use
+
+    Returns:
+        Span: span model to return
+    """
     span_length = section_array.data.span_length.to_numpy()
     elevation_difference = section_array.data.elevation_difference.to_numpy()
     sagging_parameter = section_array.data.sagging_parameter.to_numpy()
@@ -262,7 +280,7 @@ class BalanceModel(ModelForSolver):
         mechaphlowers: one value per support
         here: one value per span (nb_support - 1)
         """
-        return self.cable_loads.load_coefficient[:-1]
+        return reduce_to_span(self.cable_loads.load_coefficient)
 
     @property
     def alpha(self) -> np.ndarray:
@@ -285,7 +303,7 @@ class BalanceModel(ModelForSolver):
         return -reduce_to_span(self.cable_loads.load_angle)
 
     def update_L_ref(self) -> np.ndarray:
-        self.span_model.compute_and_store_values()
+        self.span_model.compute_values()
 
         self.deformation_model.tension_mean = self.span_model.T_mean()
         self.deformation_model.cable_length = self.span_model.L
@@ -308,7 +326,6 @@ class BalanceModel(ModelForSolver):
     def compute_Th_and_extremum(
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """In this method, a, b, and L_ref may refer to a semi span"""
         cardan_parameter = self.approx_parameter(
             self.a_prime, self.b_prime, self.L_ref, self.sagging_temperature
         )
@@ -696,9 +713,10 @@ class Nodes:
         self.compute_dx_dy_dz()
 
     def init_coordinates(self, span_length: np.ndarray, z: np.ndarray) -> None:
-        self.x_anchor_chain = np.zeros_like(z)
-        self.x_anchor_chain[0] = self.L_chain[0]
-        self.x_anchor_chain[-1] = -self.L_chain[-1]
+        # unused code?
+        # self.x_anchor_chain = np.zeros_like(z)
+        # self.x_anchor_chain[0] = self.L_chain[0]
+        # self.x_anchor_chain[-1] = -self.L_chain[-1]
         self.z_suspension_chain = np.zeros_like(z)
         self.z_suspension_chain[1:-1] = -self.L_chain[1:-1]
 
@@ -788,7 +806,7 @@ class LoadModel(ModelForSolver):
         self.load = load
         self.load_position = load_position
         self.find_param_solver_type = find_param_solver_type
-        # Need a way to choose Span model
+        # TODO: Need a way to choose Span model
 
         # init objects with placeholder values, but they will be updated when needed
         self.span_model_left = CatenarySpan(
