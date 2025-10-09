@@ -5,18 +5,24 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import warnings
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pandera as pa
 import pytest
+import yaml
 from pandas.testing import assert_frame_equal
 
 from mechaphlowers.data.catalog.catalog import (
     Catalog,
+    build_catalog_from_yaml,
     fake_catalog,
     sample_cable_catalog,
+    sample_support_catalog,
+    write_yaml_catalog_template,
 )
+from mechaphlowers.entities.shapes import SupportShape
 
 
 def test_fake_catalog__get_mistyping() -> None:
@@ -231,3 +237,115 @@ def test_duplicated_warning():
         assert len(warning) == 1
         assert warning[0].category is UserWarning
         assert "iris_dataset.csv" in str(warning[0].message)
+
+
+def test_support_catalog():
+    aaa = sample_support_catalog.get_as_object("support_name_1")
+    bbb = sample_support_catalog.get_as_object(
+        ["support_name_1", "support_name_5"]
+    )
+
+    assert len(bbb) == 2
+    assert len(aaa) == 1
+    assert aaa[0].name == "support_name_1"
+
+    np.testing.assert_allclose(
+        aaa[0].trunk_points, np.array([[0, 0, 0], [0, 0, 23.0]])
+    )
+
+    assert len(bbb[1].labels_points) == 7
+    assert len(bbb[0].labels_points) == 4
+
+    assert len(bbb[1].support_points) == (7 + 1) * 3
+
+    with pytest.raises(IndexError):
+        SupportShape.from_dataframe(pd.DataFrame([]))
+
+
+def test_custom_catalog_loading(tmp_path):
+    CONTENT_YML = {
+        'csv_name': 'pokemon.csv',
+        'catalog_type': 'default_catalog',
+        'key_column_name': 'Name',
+        'columns': [
+            {'Type 1': 'str'},
+            {'Type 2': 'str'},
+            {'Total': 'int'},
+            {'HP': 'int'},
+            {'Attack': 'int'},
+            {'Defense': 'int'},
+            {'Sp. Atk': 'int'},
+            {'Sp. Def': 'int'},
+            {'Speed': 'int'},
+            {'Generation': 'int'},
+            {'Legendary': 'bool'},
+        ],
+        'columns_renaming': [
+            {'Type 1': 'First Type'},
+            {'Type 2': 'Second Type'},
+        ],
+    }
+
+    CONTENT_CSV = """#,Name,Type 1,Type 2,Total,HP,Attack,Defense,Sp. Atk,Sp. Def,Speed,Generation,Legendary
+    1,Bulbasaur,Grass,Poison,318,45,49,49,65,65,45,1,False
+    2,Ivysaur,Grass,Poison,405,60,62,63,80,80,60,1,False"""
+
+    d = tmp_path / "user_folder"
+    d.mkdir()
+
+    with pytest.raises(FileNotFoundError):
+        build_catalog_from_yaml("not_a_file.yaml")
+
+    file_path_yaml = d / "custom_catalog.yaml"
+
+    with open(file_path_yaml, 'w') as file:
+        yaml.dump(CONTENT_YML, file)
+
+    with pytest.raises(FileNotFoundError):
+        build_catalog_from_yaml("custom_catalog.yaml", user_filepath=d)
+
+    file_path_csv = d / "pokemon.csv"
+    file_path_csv.write_text(CONTENT_CSV, encoding="utf-8")
+    catalog = build_catalog_from_yaml("custom_catalog.yaml", user_filepath=d)
+    c_line = catalog.get(["Bulbasaur", "Ivysaur"])
+    assert isinstance(c_line, pd.DataFrame)
+    assert catalog._data.shape == (2, 12)
+
+
+def test_write_yaml_catalog_template_support(tmp_path):
+    write_yaml_catalog_template(tmp_path, template="support_catalog")
+    expected_file = tmp_path / "sample_pylon_database.yaml"
+    assert expected_file.exists()
+    with open(expected_file) as f:
+        content = f.read()
+        assert "support_catalog" in content
+
+
+def test_write_yaml_catalog_template_cable(tmp_path):
+    write_yaml_catalog_template(tmp_path, template="cable_catalog")
+    expected_file = tmp_path / "sample_cable_database.yaml"
+    assert expected_file.exists()
+    with open(expected_file) as f:
+        content = f.read()
+        assert "cable_catalog" in content
+
+
+def test_write_yaml_catalog_template_invalid_template(tmp_path):
+    with pytest.raises(KeyError):
+        write_yaml_catalog_template(tmp_path, template="unknown_catalog")
+
+
+def test_write_yaml_catalog_template_invalid_path():
+    # Use a path that does not exist
+    invalid_path = Path("/unlikely/to/exist/for/test")
+    with pytest.raises(FileNotFoundError):
+        write_yaml_catalog_template(invalid_path, template="support_catalog")
+    with pytest.raises(TypeError):
+        write_yaml_catalog_template(1, template="cable_catalog")
+
+
+def test_write_yaml_catalog_template_str_path(tmp_path):
+    # Accepts str as path
+    write_yaml_catalog_template(str(tmp_path), template="support_catalog")
+    expected_file = tmp_path / "sample_pylon_database.yaml"
+    assert expected_file.exists()

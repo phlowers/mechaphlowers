@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = ">=3.11, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -633,6 +632,7 @@ all = [
     { name = "requests" },
     { name = "ruff" },
     { name = "scipy" },
+    { name = "types-pyyaml" },
     { name = "types-requests" },
     { name = "unittest-xml-reporting" },
 ]
@@ -646,6 +646,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "scipy" },
+    { name = "types-pyyaml" },
     { name = "types-requests" },
     { name = "unittest-xml-reporting" },
 ]
@@ -672,7 +673,6 @@ requires-dist = [
     { name = "requests", marker = "extra == 'full'", specifier = "==2.32.4" },
     { name = "scipy", marker = "extra == 'full'", specifier = "<=1.14.1" },
 ]
-provides-extras = ["full"]
 
 [package.metadata.requires-dev]
 all = [
@@ -690,6 +690,7 @@ all = [
     { name = "requests", specifier = "==2.32.4" },
     { name = "ruff", specifier = "==0.6.1" },
     { name = "scipy", specifier = "<=1.14.1" },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20250915" },
     { name = "types-requests", specifier = "==2.32.4.20250611" },
     { name = "unittest-xml-reporting", specifier = "==3.2.0" },
 ]
@@ -703,6 +704,7 @@ dev = [
     { name = "pytest-cov", specifier = "==5.0.0" },
     { name = "ruff", specifier = "==0.6.1" },
     { name = "scipy", specifier = "<=1.14.1" },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20250915" },
     { name = "types-requests", specifier = "==2.32.4.20250611" },
     { name = "unittest-xml-reporting", specifier = "==3.2.0" },
 ]
@@ -1734,6 +1736,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/bd/72/b0e711fd90409f5a76c75349055d3eb19992c110f0d2d6aabbd6cfbc14bf/types_pytz-2025.2.0.20250516.tar.gz", hash = "sha256:e1216306f8c0d5da6dafd6492e72eb080c9a166171fa80dd7a1990fd8be7a7b3", size = 10940 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c1/ba/e205cd11c1c7183b23c97e4bcd1de7bc0633e2e867601c32ecfc6ad42675/types_pytz-2025.2.0.20250516-py3-none-any.whl", hash = "sha256:e0e0c8a57e2791c19f718ed99ab2ba623856b11620cb6b637e5f62ce285a7451", size = 10136 },
+]
+
+[[package]]
+name = "types-pyyaml"
+version = "6.0.12.20250915"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/69/3c51b36d04da19b92f9e815be12753125bd8bc247ba0470a982e6979e71c/types_pyyaml-6.0.12.20250915.tar.gz", hash = "sha256:0f8b54a528c303f0e6f7165687dd33fafa81c807fcac23f632b63aa624ced1d3", size = 17522 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/e0/1eed384f02555dde685fff1a1ac805c1c7dcb6dd019c916fe659b1c1f9ec/types_pyyaml-6.0.12.20250915-py3-none-any.whl", hash = "sha256:e7d4d9e064e89a3b3cae120b4990cd370874d2bf12fa5f46c97018dd5d3c9ab6", size = 20338 },
 ]
 
 [[package]]
