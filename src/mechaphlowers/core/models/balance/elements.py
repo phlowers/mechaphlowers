@@ -326,12 +326,20 @@ class BalanceModel(ModelForSolver):
     def compute_Th_and_extremum(
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        cardan_parameter = self.approx_parameter(
-            self.a_prime, self.b_prime, self.L_ref, self.sagging_temperature
+        parameter_parabola = approx_parameter(
+            self.a_prime,
+            self.b_prime,
+            self.L_ref,
+            self.k_load,
+            self.cable_section,
+            self.linear_weight,
+            self.young_modulus,
+            self.dilatation_coefficient,
+            self.sagging_temperature,
         )
-        cardan_parameter = fill_to_support(cardan_parameter)
+        parameter_parabola = fill_to_support(parameter_parabola)
         self.find_param_model.set_attributes(
-            initial_parameter=cardan_parameter,
+            initial_parameter=parameter_parabola,
             L_ref=fill_to_support(self.L_ref),
         )
 
@@ -442,31 +450,6 @@ class BalanceModel(ModelForSolver):
         self.inter2: np.ndarray = proj_diff[1]
         self.proj_angle: np.ndarray = np.atan2(self.inter2, self.inter1)
 
-    def approx_parameter(self, a, b, L0, cable_temperature) -> np.ndarray:
-        circle_chord = (a**2 + b**2) ** 0.5
-
-        factor = (
-            self.linear_weight
-            * self.k_load
-            / self.young_modulus
-            / self.cable_section
-        )
-
-        p3 = factor * L0
-        p2 = (
-            L0
-            - circle_chord
-            + self.dilatation_coefficient * cable_temperature * L0
-        )
-        p1 = 0 * L0
-        p0 = -(a**4) / 24 / circle_chord
-
-        # we have to do p3 * x**3 + p2 * x**2 + p1 * x + p0 = 0
-        # p = p3 | p2 | p1 | p0
-        p = np.vstack((p3, p2, p1, p0)).T
-        roots = numeric.cubic_roots(p)
-        return roots.real
-
     def update_span(self) -> None:
         """transmet_portee"""
         # warning for dev : we dont use the first element of span vectors for the moment
@@ -526,6 +509,33 @@ class BalanceModel(ModelForSolver):
 
     def __str__(self):
         return self.__repr__()
+
+
+def approx_parameter(
+    a: np.ndarray,
+    b: np.ndarray,
+    L0: np.ndarray,
+    k_load: np.ndarray,
+    cable_section: np.float64,
+    linear_weight: np.float64,
+    young_modulus: np.float64,
+    dilatation_coefficient: np.float64,
+    cable_temperature: np.ndarray,
+) -> np.ndarray:
+    circle_chord = (a**2 + b**2) ** 0.5
+
+    factor = linear_weight * k_load / young_modulus / cable_section
+
+    p3 = factor * L0
+    p2 = L0 - circle_chord + dilatation_coefficient * cable_temperature * L0
+    p1 = 0 * L0
+    p0 = -(a**4) / 24 / circle_chord
+
+    # we have to do p3 * x**3 + p2 * x**2 + p1 * x + p0 = 0
+    # p = p3 | p2 | p1 | p0
+    p = np.vstack((p3, p2, p1, p0)).T
+    roots = numeric.cubic_roots(p)
+    return roots.real
 
 
 # unused, for information purposes
@@ -904,40 +914,22 @@ class LoadModel(ModelForSolver):
 
         return np.array([Th_diff, Tv_diff]).flatten('F')
 
-    def approx_parameter(self, a, b, L0, cable_temperature) -> np.ndarray:
-        # extract this method? There is a duplicate in Span
-        circle_chord = (a**2 + b**2) ** 0.5
-
-        factor = (
-            self.linear_weight
-            * self.k_load
-            / self.young_modulus
-            / self.cable_section
-        )
-
-        p3 = factor * L0
-        p2 = (
-            L0
-            - circle_chord
-            + self.dilatation_coefficient * cable_temperature * L0
-        )
-        p1 = 0 * L0
-        p0 = -(a**4) / 24 / circle_chord
-
-        # we have to do p3 * x**3 + p2 * x**2 + p1 * x + p0 = 0
-        # p = p3 | p2 | p1 | p0
-        p = np.vstack((p3, p2, p1, p0)).T
-        roots = numeric.cubic_roots(p)
-        return roots.real
-
     def update(self) -> None:
         self.update_lengths_span_models()
         # update parameter left
         L_ref_left = self.load_position * self.L_ref
         a_left = self.x_i
         b_left = self.z_i
-        parameter_left = self.approx_parameter(
-            a_left, b_left, L_ref_left, self.temperature
+        parameter_left = approx_parameter(
+            a_left,
+            b_left,
+            L_ref_left,
+            self.k_load,
+            self.cable_section,
+            self.linear_weight,
+            self.young_modulus,
+            self.dilatation_coefficient,
+            self.temperature,
         )
         self.find_param_model_left.set_attributes(
             initial_parameter=parameter_left,
@@ -951,8 +943,16 @@ class LoadModel(ModelForSolver):
         L_ref_right = self.L_ref - L_ref_left
         a_right = self.a_prime - self.x_i
         b_right = self.b_prime - self.z_i
-        parameter_right = self.approx_parameter(
-            a_right, b_right, L_ref_right, self.temperature
+        parameter_right = approx_parameter(
+            a_right,
+            b_right,
+            L_ref_right,
+            self.k_load,
+            self.cable_section,
+            self.linear_weight,
+            self.young_modulus,
+            self.dilatation_coefficient,
+            self.temperature,
         )
         self.find_param_model_right.set_attributes(
             initial_parameter=parameter_right,
