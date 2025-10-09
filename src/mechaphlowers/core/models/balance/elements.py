@@ -157,8 +157,7 @@ class BalanceEngine:
 
         sb = Solver()
         sb.solve(self.balance_model)
-        # TODO: fix inside of balanceModel instead (use setters)
-        self.span_model.compute_and_store_values()
+
         self.L_ref = self.balance_model.update_L_ref()
 
     def solve_change_state(
@@ -282,6 +281,8 @@ class BalanceModel(ModelForSolver):
         return -reduce_to_span(self.cable_loads.load_angle)
 
     def update_L_ref(self):
+        self.span_model.compute_and_store_values()
+
         self.deformation_model.tension_mean = self.span_model.T_mean()
         self.deformation_model.cable_length = self.span_model.L
         self.deformation_model.current_temperature = fill_to_support(
@@ -519,7 +520,6 @@ def find_parameter_function(
     young_modulus: np.float64,
 ):
     """this is a placeholder of sagtension algorithm"""
-    # TODO: link to mph : SagTensionSolver
     param = parameter
 
     n_iter = 50

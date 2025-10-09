@@ -57,7 +57,6 @@ class FindParamModel(ModelToSolve):
 
     def update_models(self, parameter):
         self.span_model.set_parameter(parameter)
-        # TODO: create getter for L
         self.deformation_model.cable_length = self.span_model.L
         self.deformation_model.tension_mean = self.span_model.T_mean()
 
