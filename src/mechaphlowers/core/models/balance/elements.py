@@ -289,7 +289,6 @@ class BalanceModel(ModelForSolver):
             self.sagging_temperature
         )
 
-        # L_ref = reduce_to_span(self.deformation_model.L_ref())
         L_0 = reduce_to_span(self.deformation_model.L_0())
         self.L_ref = L_0
         return L_0
@@ -507,6 +506,7 @@ class BalanceModel(ModelForSolver):
         return self.__repr__()
 
 
+# unused, for information purposes
 def find_parameter_function(
     parameter: np.ndarray,
     a: np.ndarray,
@@ -920,18 +920,6 @@ class LoadModel(ModelForSolver):
         )
 
         parameter_left = self.find_param_solver_left.find_parameter()
-        # parameter_left = find_parameter_function(
-        #     parameter_left,
-        #     a_left,
-        #     b_left,
-        #     L_ref_left,
-        #     self.temperature,
-        #     self.k_load,
-        #     self.cable_section,
-        #     self.linear_weight,
-        #     self.dilatation_coefficient,
-        #     self.young_modulus,
-        # )
         self.span_model_left.set_parameter(parameter_left)
 
         # update parameter right
@@ -947,16 +935,4 @@ class LoadModel(ModelForSolver):
         )
 
         parameter_right = self.find_param_solver_right.find_parameter()
-        # parameter_right = find_parameter_function(
-        #     parameter_right,
-        #     a_right,
-        #     b_right,
-        #     L_ref_right,
-        #     self.temperature,
-        #     self.k_load,
-        #     self.cable_section,
-        #     self.linear_weight,
-        #     self.dilatation_coefficient,
-        #     self.young_modulus,
-        # )
         self.span_model_right.set_parameter(parameter_right)
