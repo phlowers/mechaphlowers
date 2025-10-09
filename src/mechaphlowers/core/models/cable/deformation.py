@@ -40,6 +40,7 @@ class IDeformation(ABC):
         self.temp_ref = temperature_reference
         self.polynomial_conductor = polynomial_conductor
         self.current_temperature = sagging_temperature
+        self.is_polynomial = polynomial_conductor.trim().degree() >= 2
 
         if max_stress is None:
             self.max_stress = np.full(self.cable_length.shape, 0)
@@ -64,6 +65,10 @@ class IDeformation(ABC):
     def epsilon_therm(self) -> np.ndarray:
         """Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
 
+    @abstractmethod
+    def epsilon_therm_0(self) -> np.ndarray:
+        """Thermal part of the relative deformation of the cable, where temperature_reference = 0."""
+
 
 class DeformationRte(IDeformation):
     """This class implements the deformation model used by RTE."""
@@ -75,19 +80,15 @@ class DeformationRte(IDeformation):
 
     def L_0(self) -> np.ndarray:
         L = self.cable_length
-        sagging_temperature = self.current_temperature
-        alpha = self.dilatation_coefficient
-        eps_therm_0 = sagging_temperature * alpha
-        epsilon = eps_therm_0 + self.epsilon_mecha()
+        epsilon = self.epsilon_therm_0() + self.epsilon_mecha()
         return L / (1 + epsilon)
 
     def epsilon_mecha(self) -> np.ndarray:
         T_mean = self.tension_mean
         E = self.young_modulus
         S = self.cable_section_area
-        polynomial = self.polynomial_conductor
         # linear case
-        if polynomial.trim().degree() < 2:
+        if not self.is_polynomial:
             return T_mean / (E * S)
         # polynomial case
         else:
@@ -101,6 +102,11 @@ class DeformationRte(IDeformation):
         temp_ref = self.temp_ref
         alpha = self.dilatation_coefficient
         return (sagging_temperature - temp_ref) * alpha
+
+    def epsilon_therm_0(self) -> np.ndarray:
+        sagging_temperature = self.current_temperature
+        alpha = self.dilatation_coefficient
+        return sagging_temperature * alpha
 
     def epsilon_mecha_polynomial(self) -> np.ndarray:
         """Computes epsilon when the stress-strain relation is polynomial"""

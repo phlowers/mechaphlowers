@@ -21,7 +21,7 @@ class GraphicsConfig:
 class SolverConfig:
     """Solvers configuration class."""
 
-    sagtension_zeta: float = 10.
+    sagtension_zeta: float = 10.0
     deformation_imag_thresh: float = 1e-5
 
 

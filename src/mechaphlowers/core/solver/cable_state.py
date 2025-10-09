@@ -93,7 +93,7 @@ class SagTensionSolver:
             load_coefficient=self.cable_loads.load_coefficient,
             linear_weight=self.linear_weight,
         )
-        cable_length = self.span_model.L()
+        cable_length = self.span_model.compute_L()
         tension_mean = self.span_model.T_mean()
         self.deformation_model = self.deformation_model_type(
             **self.__dict__,
@@ -181,8 +181,8 @@ class SagTensionSolver:
         k_load = self.cable_loads.load_coefficient
         p = T_h / (k_load * self.linear_weight)
 
-        self.span_model.sagging_parameter = p
-        L = self.span_model.L()
+        self.span_model.set_parameter(p)
+        L = self.span_model.compute_L()
         self.deformation_model.cable_length = L
         self.deformation_model.tension_mean = self.span_model.T_mean()
 
@@ -212,4 +212,4 @@ class SagTensionSolver:
             raise ValueError(
                 "initial_state() or change_state() has to be run before calling this method"
             )
-        return self.span_model.L()
+        return self.span_model.compute_L()

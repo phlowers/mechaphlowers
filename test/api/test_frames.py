@@ -221,7 +221,9 @@ def test_SectionDataFrame__add_weather_update_span(
     np.testing.assert_equal(
         frame.span.load_coefficient, cable_loads.load_coefficient
     )
-    np.testing.assert_equal(frame.deformation.cable_length, frame.span.L())  # type: ignore[union-attr]
+    np.testing.assert_equal(
+        frame.deformation.cable_length, frame.span.compute_L()
+    )  # type: ignore[union-attr]
 
 
 def test_frame__sagtension_use(section_dataframe_with_cable_weather) -> None:
