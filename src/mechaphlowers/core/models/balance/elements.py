@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Type
+from typing import Tuple, Type
 
 import numpy as np
 import pandas as pd
@@ -39,7 +39,7 @@ from mechaphlowers.entities.arrays import CableArray, SectionArray
 logger = logging.getLogger(__name__)
 
 
-def nodes_builder(section_array: SectionArray):
+def nodes_builder(section_array: SectionArray) -> Nodes:
     L_chain = section_array.data.insulator_length.to_numpy()
     weight_chain = section_array.data.insulator_weight.to_numpy()
     arm_length = section_array.data.crossarm_length.to_numpy()
@@ -65,7 +65,7 @@ def span_model_builder(
     section_array: SectionArray,
     cable_array: CableArray,
     span_model_type: Type[Span],
-):
+) -> Span:
     span_length = section_array.data.span_length.to_numpy()
     elevation_difference = section_array.data.elevation_difference.to_numpy()
     sagging_parameter = section_array.data.sagging_parameter.to_numpy()
@@ -83,7 +83,7 @@ def deformation_model_builder(
     span_model: Span,
     sagging_temperature: np.ndarray,
     deformation_model_type: Type[IDeformation] = DeformationRte,
-):
+) -> IDeformation:
     tension_mean = span_model.T_mean()
     cable_length = span_model.compute_L()
     cable_section = np.float64(cable_array.data.section.iloc[0])
@@ -152,7 +152,7 @@ class BalanceEngine:
             self.cable_loads,
         )
 
-    def solve_adjustment(self):
+    def solve_adjustment(self) -> None:
         self.balance_model.adjustment = True
 
         sb = Solver()
@@ -165,7 +165,7 @@ class BalanceEngine:
         wind_pressure: np.ndarray | None = None,
         ice_thickness: np.ndarray | None = None,
         new_temperature: np.ndarray | None = None,
-    ):
+    ) -> None:
         if wind_pressure is not None:
             self.balance_model.cable_loads.wind_pressure = wind_pressure
         if ice_thickness is not None:
@@ -176,7 +176,6 @@ class BalanceEngine:
                 new_temperature
             )
         self.balance_model.adjustment = False
-        self.balance_model.nodes.has_load = True
         self.span_model.load_coefficient = (
             self.balance_model.cable_loads.load_coefficient
         )
@@ -220,25 +219,30 @@ class BalanceModel(ModelForSolver):
         self.deformation_model = deformation_model
         self.cable_loads = cable_loads
 
+        self.a: np.ndarray
+        self.b: np.ndarray
+        self.Th: np.ndarray
+        self.Tv_d: np.ndarray
+        self.Tv_g: np.ndarray
+
         self.adjustment: bool = True
         # TODO: during adjustment computation, perhaps set cable_temperature = 0
         # temperature here is tuning temperature / only in the real span part
         # there is another temperature : change state
-        self.nodes.has_load = False
 
         self.load_model = LoadModel(
             self.cable_array,
-            self.nodes.load[self.nodes.load_on_span],
-            self.nodes.load_position[self.nodes.load_on_span],
+            self.nodes.load[self.nodes.has_load_on_span],
+            self.nodes.load_position[self.nodes.has_load_on_span],
             reduce_to_span(self.span_model.span_length)[
-                self.nodes.load_on_span
+                self.nodes.has_load_on_span
             ],
             reduce_to_span(self.span_model.elevation_difference)[
-                self.nodes.load_on_span
+                self.nodes.has_load_on_span
             ],
-            self.k_load[self.nodes.load_on_span],
-            self.sagging_temperature[self.nodes.load_on_span],
-            self.parameter[self.nodes.load_on_span],
+            self.k_load[self.nodes.has_load_on_span],
+            self.sagging_temperature[self.nodes.has_load_on_span],
+            self.parameter[self.nodes.has_load_on_span],
         )
         self.find_param_model = FindParamModel(
             self.span_model, self.deformation_model
@@ -252,7 +256,7 @@ class BalanceModel(ModelForSolver):
         self.nodes.compute_moment()
 
     @property
-    def k_load(self):
+    def k_load(self) -> np.ndarray:
         # TODO: fix length array issues with mechaphlowers
         """Remove last value for consistency between this and mechaphlowers
         mechaphlowers: one value per support
@@ -261,7 +265,7 @@ class BalanceModel(ModelForSolver):
         return self.cable_loads.load_coefficient[:-1]
 
     @property
-    def alpha(self):
+    def alpha(self) -> np.ndarray:
         beta = self.beta
         return (
             -np.acos(
@@ -272,7 +276,7 @@ class BalanceModel(ModelForSolver):
         )
 
     @property
-    def beta(self):
+    def beta(self) -> np.ndarray:
         """Remove last value for consistency between this and mechaphlowers
         mechaphlowers: beta = [beta0, beta1, beta2, nan]
         Here: beta = [beta0, beta1, beta2] because the last value refers to the last support (no span related to this support)
@@ -280,7 +284,7 @@ class BalanceModel(ModelForSolver):
         # TODO: check why sign different from what already exists in CableLoads
         return -reduce_to_span(self.cable_loads.load_angle)
 
-    def update_L_ref(self):
+    def update_L_ref(self) -> np.ndarray:
         self.span_model.compute_and_store_values()
 
         self.deformation_model.tension_mean = self.span_model.T_mean()
@@ -294,14 +298,16 @@ class BalanceModel(ModelForSolver):
         return L_0
 
     @property
-    def a_prime(self):
+    def a_prime(self) -> np.ndarray:
         return (self.a**2 + self.b**2 * np.sin(self.beta) ** 2) ** 0.5
 
     @property
-    def b_prime(self):
+    def b_prime(self) -> np.ndarray:
         return self.b * np.cos(self.beta)
 
-    def compute_Th_and_extremum(self):
+    def compute_Th_and_extremum(
+        self,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """In this method, a, b, and L_ref may refer to a semi span"""
         cardan_parameter = self.approx_parameter(
             self.a_prime, self.b_prime, self.L_ref, self.sagging_temperature
@@ -320,7 +326,7 @@ class BalanceModel(ModelForSolver):
         x_n = reduce_to_span(self.span_model.x_n)
         return Th, x_m, x_n, reduce_to_span(parameter)
 
-    def update_tensions(self):
+    def update_tensions(self) -> np.ndarray:
         """Compute values of Th, Tv_d and Tv_g.
         There are three cases:
         - adjustment: simple computation
@@ -338,7 +344,7 @@ class BalanceModel(ModelForSolver):
             Th, x_m, x_n, parameter = self.compute_Th_and_extremum()
 
             # Case: change state + with load
-            if self.nodes.has_load and self.nodes.load_on_span.any():
+            if not self.adjustment and self.nodes.has_load_on_span.any():
                 self.x_i = self.nodes.load_position * self.a_prime
                 # TODO: Don't know why adding x_m is needed
                 z_i_m = self.span_model.z_one_point(
@@ -350,16 +356,16 @@ class BalanceModel(ModelForSolver):
                 self.solve_xi_zi_loads()
 
                 # Left Th and right Th are equal because balance just got solved (same for parameter)
-                parameter[self.nodes.load_on_span] = (
+                parameter[self.nodes.has_load_on_span] = (
                     self.load_model.span_model_left.sagging_parameter
                 )
-                Th[self.nodes.load_on_span] = (
+                Th[self.nodes.has_load_on_span] = (
                     self.load_model.span_model_left.T_h()
                 )
-                x_m[self.nodes.load_on_span] = (
+                x_m[self.nodes.has_load_on_span] = (
                     self.load_model.span_model_left.x_m
                 )
-                x_n[self.nodes.load_on_span] = (
+                x_n[self.nodes.has_load_on_span] = (
                     self.load_model.span_model_right.x_n
                 )
 
@@ -373,16 +379,15 @@ class BalanceModel(ModelForSolver):
 
         return Th
 
-    def solve_xi_zi_loads(self):
+    def solve_xi_zi_loads(self) -> None:
         self.load_model.set_all(
-            self.L_ref[self.nodes.load_on_span],
-            self.x_i[self.nodes.load_on_span],
-            self.z_i[self.nodes.load_on_span],
-            self.a_prime[self.nodes.load_on_span],
-            self.b_prime[self.nodes.load_on_span],
-            self.k_load[self.nodes.load_on_span],
-            self.sagging_temperature[self.nodes.load_on_span],
-            self.parameter[self.nodes.load_on_span],
+            self.L_ref[self.nodes.has_load_on_span],
+            self.x_i[self.nodes.has_load_on_span],
+            self.z_i[self.nodes.has_load_on_span],
+            self.a_prime[self.nodes.has_load_on_span],
+            self.b_prime[self.nodes.has_load_on_span],
+            self.k_load[self.nodes.has_load_on_span],
+            self.sagging_temperature[self.nodes.has_load_on_span],
         )
 
         solver = Solver()
@@ -394,7 +399,7 @@ class BalanceModel(ModelForSolver):
             relax_power=3,
         )
 
-    def update_projections(self):
+    def update_projections(self) -> None:
         alpha = self.alpha
         beta = self.beta
 
@@ -410,17 +415,17 @@ class BalanceModel(ModelForSolver):
             self.nodes.weight_chain,
         )
 
-    def compute_inter(self):
+    def compute_inter(self) -> None:
         # warning: counting from right to left
         proj_d_i = self.nodes.proj_d
         proj_g_ip1 = np.roll(self.nodes.proj_g, -1, axis=1)
         proj_diff = (proj_g_ip1 - proj_d_i)[:, :-1]
         # x: initial input to calculate span_length
-        self.inter1 = self.nodes.span_length + proj_diff[0]
-        self.inter2 = proj_diff[1]
-        self.proj_angle = np.atan2(self.inter2, self.inter1)
+        self.inter1: np.ndarray = self.nodes.span_length + proj_diff[0]
+        self.inter2: np.ndarray = proj_diff[1]
+        self.proj_angle: np.ndarray = np.atan2(self.inter2, self.inter1)
 
-    def approx_parameter(self, a, b, L0, cable_temperature):
+    def approx_parameter(self, a, b, L0, cable_temperature) -> np.ndarray:
         circle_chord = (a**2 + b**2) ** 0.5
 
         factor = (
@@ -445,7 +450,7 @@ class BalanceModel(ModelForSolver):
         roots = numeric.cubic_roots(p)
         return roots.real
 
-    def update_span(self):
+    def update_span(self) -> None:
         """transmet_portee"""
         # warning for dev : we dont use the first element of span vectors for the moment
         z = self.nodes.z
@@ -460,7 +465,7 @@ class BalanceModel(ModelForSolver):
             fill_to_support(self.a_prime), fill_to_support(self.b_prime)
         )
 
-    def objective_function(self):
+    def objective_function(self) -> np.ndarray:
         """[Mx0, My0, Mx1, My1,...]"""
         # Need to run update() before this method if necessary
         self.nodes.compute_moment()
@@ -469,15 +474,15 @@ class BalanceModel(ModelForSolver):
         return out
 
     @property
-    def state_vector(self):
+    def state_vector(self) -> np.ndarray:
         # [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
         return self.nodes.state_vector
 
     @state_vector.setter
-    def state_vector(self, value):
+    def state_vector(self, value: np.ndarray) -> None:
         self.nodes.state_vector = value
 
-    def update(self):
+    def update(self) -> None:
         # for the init only, update_span() needs to be call before update_tensions()
         # for other cases, order does not seem to matter
         self.update_span()
@@ -586,6 +591,7 @@ class Nodes:
         load_position: np.ndarray,
     ):
         self.L_chain = L_chain
+        # weight_chain: positive weight means downward force
         self.weight_chain = -weight_chain
         # arm length: positive length means further from observer
         self.arm_length = arm_length
@@ -596,56 +602,59 @@ class Nodes:
         self.dxdydz = np.zeros((3, len(z)), dtype=np.float64)
         self.load = load
         self.load_position = load_position
-        self.load_on_span = np.logical_and(load != 0, load_position != 0)
+        self.has_load_on_span = np.logical_and(load != 0, load_position != 0)
 
-        self.has_load = False
-
-        nodes_type = ["suspension"] * len(weight_chain)
-        nodes_type[0] = "anchor_first"
-        nodes_type[-1] = "anchor_last"
+        nodes_type = [
+            "anchor_first"
+            if i == 0
+            else "anchor_last"
+            if i == len(weight_chain) - 1
+            else "suspension"
+            for i in range(len(weight_chain))
+        ]
         self.masks = Masks(nodes_type, self.L_chain)
 
         self.vector_projection = VectorProjection()
 
     @property
-    def dx(self):
+    def dx(self) -> np.ndarray:
         return self.dxdydz[0]
 
     @dx.setter
-    def dx(self, value):
+    def dx(self, value: np.ndarray) -> None:
         self.dxdydz[0] = value
 
     @property
-    def dy(self):
+    def dy(self) -> np.ndarray:
         return self.dxdydz[1]
 
     @dy.setter
-    def dy(self, value):
+    def dy(self, value: np.ndarray) -> None:
         self.dxdydz[1] = value
 
     @property
-    def dz(self):
+    def dz(self) -> np.ndarray:
         return self.dxdydz[2]
 
     @dz.setter
-    def dz(self, value):
+    def dz(self, value: np.ndarray) -> None:
         self.dxdydz[2] = value
 
     def __len__(self):
         return len(self.L_chain)
 
     @property
-    def z(self):
+    def z(self) -> np.ndarray:
         """This property returns the altitude of the end the chain.  z = z_arm + dz"""
         return self.z_arm + self.dz
 
     @property
-    def z_arm(self):
+    def z_arm(self) -> np.ndarray:
         """This property returns the altitude of the end the arm. Should not be modified during computation."""
         return self._z0 - self.z_suspension_chain
 
     @property
-    def proj_g(self):
+    def proj_g(self) -> np.ndarray:
         arm_length = self.arm_length
         proj_s_axis = -(arm_length + self.dy) * np.sin(self.line_angle / 2) + (
             self.dx
@@ -657,7 +666,7 @@ class Nodes:
         return np.array([proj_s_axis, proj_t_axis])
 
     @property
-    def proj_d(self):
+    def proj_d(self) -> np.ndarray:
         arm_length = self.arm_length
         proj_s_axis = (arm_length + self.dy) * np.sin(self.line_angle / 2) + (
             self.dx
@@ -669,14 +678,14 @@ class Nodes:
         return np.array([proj_s_axis, proj_t_axis])
 
     @property
-    def state_vector(self):
+    def state_vector(self) -> np.ndarray:
         # [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
         dxdy = self.dxdydz[[0, 1], 1:-1]
         dzdy = self.dxdydz[[2, 1]][:, [0, -1]]
         return np.vstack([dzdy[:, 0], dxdy.T, dzdy[:, 1]]).flatten()
 
     @state_vector.setter
-    def state_vector(self, state_vector):
+    def state_vector(self, state_vector: np.ndarray):
         # TODO: refactor with mask
         dzdxdz = state_vector[::2]
         dy = state_vector[1::2]
@@ -686,7 +695,7 @@ class Nodes:
         self.dz[[0, -1]] = dzdxdz[[0, -1]]
         self.compute_dx_dy_dz()
 
-    def init_coordinates(self, span_length, z):
+    def init_coordinates(self, span_length: np.ndarray, z: np.ndarray) -> None:
         self.x_anchor_chain = np.zeros_like(z)
         self.x_anchor_chain[0] = self.L_chain[0]
         self.x_anchor_chain[-1] = -self.L_chain[-1]
@@ -700,7 +709,7 @@ class Nodes:
         self._z0 = z
         self._y = np.zeros_like(z, dtype=np.float64)
 
-    def compute_dx_dy_dz(self):
+    def compute_dx_dy_dz(self) -> None:
         """Update dx and dz according to L_chain and the othre displacement, using Pytagoras
         For anchor chains: update dx
         For suspension chains: update dz
@@ -709,7 +718,7 @@ class Nodes:
             self.dx, self.dy, self.dz
         )
 
-    def compute_moment(self):
+    def compute_moment(self) -> None:
         # Placeholder for force computation logic
 
         Fx, Fy, Fz = self.vector_projection.forces()
@@ -819,10 +828,8 @@ class LoadModel(ModelForSolver):
         a_prime: np.ndarray,
         b_prime: np.ndarray,
         k_load: np.ndarray,
-        temperature,
-        # placeholder value
-        parameter,
-    ):
+        temperature: np.ndarray,
+    ) -> None:
         # put L_ref in constructor?
         self.L_ref = L_ref
         self.x_i = x_i
@@ -835,7 +842,7 @@ class LoadModel(ModelForSolver):
         # Easier to use, but less consistent with other mechaphlowers objects
         self.update_objects()
 
-    def update_objects(self):
+    def update_objects(self) -> None:
         self.update_lengths_span_models()
         self.span_model_left.load_coefficient = self.k_load
         self.span_model_right.load_coefficient = self.k_load
@@ -843,23 +850,23 @@ class LoadModel(ModelForSolver):
         self.deformation_model_left.current_temperature = self.temperature
         self.deformation_model_right.current_temperature = self.temperature
 
-    def update_lengths_span_models(self):
+    def update_lengths_span_models(self) -> None:
         self.span_model_left.span_length = self.x_i
         self.span_model_left.elevation_difference = self.z_i
         self.span_model_right.span_length = self.a_prime - self.x_i
         self.span_model_right.elevation_difference = self.b_prime - self.z_i
 
     @property
-    def state_vector(self):
+    def state_vector(self) -> np.ndarray:
         return np.array([self.x_i, self.z_i]).flatten('F')
 
     @state_vector.setter
-    def state_vector(self, value):
+    def state_vector(self, value: np.ndarray) -> None:
         self.x_i = value[::2]
         self.z_i = value[1::2]
         self.update_lengths_span_models()
 
-    def objective_function(self):
+    def objective_function(self) -> np.ndarray:
         """[Th_diff0, Tv_diff0, Th_diff1, Tv_diff1,...]"""
         # left side of the load
         Th_left = self.span_model_left.T_h()
@@ -879,7 +886,7 @@ class LoadModel(ModelForSolver):
 
         return np.array([Th_diff, Tv_diff]).flatten('F')
 
-    def approx_parameter(self, a, b, L0, cable_temperature):
+    def approx_parameter(self, a, b, L0, cable_temperature) -> np.ndarray:
         # extract this method? There is a duplicate in Span
         circle_chord = (a**2 + b**2) ** 0.5
 
@@ -905,7 +912,7 @@ class LoadModel(ModelForSolver):
         roots = numeric.cubic_roots(p)
         return roots.real
 
-    def update(self):
+    def update(self) -> None:
         self.update_lengths_span_models()
         # update parameter left
         L_ref_left = self.load_position * self.L_ref

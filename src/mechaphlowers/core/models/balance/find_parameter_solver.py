@@ -34,11 +34,11 @@ class ModelToSolve(ABC):
         pass
 
     @abstractmethod
-    def _delta(self, parameter):
+    def _delta(self, parameter) -> np.ndarray:
         pass
 
     @abstractmethod
-    def _delta_prime(self, parameter):
+    def _delta_prime(self, parameter) -> np.ndarray:
         pass
 
 
@@ -51,27 +51,33 @@ class FindParamModel(ModelToSolve):
         self.span_model = span_model
         self.deformation_model = deformation_model
 
-    def set_attributes(self, initial_parameter: np.ndarray, L_ref: np.ndarray):
+    def set_attributes(
+        self, initial_parameter: np.ndarray, L_ref: np.ndarray
+    ) -> None:
         self.initial_parameter = initial_parameter
         self.L_ref = L_ref
 
-    def update_models(self, parameter):
+    def update_models(self, parameter) -> None:
         self.span_model.set_parameter(parameter)
         self.deformation_model.cable_length = self.span_model.L
         self.deformation_model.tension_mean = self.span_model.T_mean()
 
     @property
-    def initial_value(self):
+    def initial_value(self) -> np.ndarray:
+        if not hasattr(self, "initial_parameter"):
+            raise AttributeError(
+                "initial_parameter is not set. Please call set_attributes() before accessing initial_value."
+            )
         return self.initial_parameter
 
-    def _delta(self, parameter):
+    def _delta(self, parameter) -> np.ndarray:
         self.update_models(parameter)
         L = self.span_model.L
         eps_mecha = self.deformation_model.epsilon_mecha()
         eps_therm = self.deformation_model.epsilon_therm_0()
         return (L - self.L_ref) / self.L_ref - (eps_mecha + eps_therm)
 
-    def _delta_prime(self, parameter):
+    def _delta_prime(self, parameter) -> np.ndarray:
         return (
             self._delta(parameter + PARAMETER_STEP) - self._delta(parameter)
         ) / PARAMETER_STEP
@@ -87,9 +93,6 @@ class FindParamSolver(ABC):
 
 
 class FindParamSolverScipy(FindParamSolver):
-    def __init__(self, model: ModelToSolve):
-        self.model = model
-
     def find_parameter(self) -> np.ndarray:
         p0 = self.model.initial_value
 
@@ -101,15 +104,12 @@ class FindParamSolverScipy(FindParamSolver):
             # tol=1.,
             full_output=True,
         )
-        if not solver_result.converged.all():
+        if not np.all(solver_result.converged):
             raise ValueError("Solver did not converge")
         return solver_result.root
 
 
 class FindParamSolverForLoop(FindParamSolver):
-    def __init__(self, model: ModelToSolve):
-        self.model = model
-
     def find_parameter(self) -> np.ndarray:
         parameter = self.model.initial_value
 
@@ -125,7 +125,9 @@ class FindParamSolverForLoop(FindParamSolver):
                 < 0.1 * parameter.size
             ):
                 break
-            if i == n_iter_max:
-                logger.info("max iter reached")
+            if i == n_iter_max - 1:
+                logger.info(
+                    "Maximum number of iterations reached in FindParamSolverForLoop"
+                )
 
         return parameter
