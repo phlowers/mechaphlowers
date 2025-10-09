@@ -84,8 +84,12 @@ class FindParamModel(ModelToSolve):
 
 
 class FindParamSolver(ABC):
-    def __init__(self, model: ModelToSolve) -> None:
+    def __init__(
+        self, model: ModelToSolve, stop_condition=0.1, max_iter=50
+    ) -> None:
         self.model = model
+        self.stop_condition = stop_condition
+        self.max_iter = max_iter
 
     @abstractmethod
     def find_parameter(self) -> np.ndarray:
@@ -100,7 +104,7 @@ class FindParamSolverScipy(FindParamSolver):
             self.model._delta,
             p0,
             fprime=self.model._delta_prime,
-            tol=0.1,
+            tol=self.stop_condition,
             full_output=True,
         )
         if not np.all(solver_result.converged):
@@ -112,8 +116,7 @@ class FindParamSolverForLoop(FindParamSolver):
     def find_parameter(self) -> np.ndarray:
         parameter = self.model.initial_value
 
-        n_iter_max = 50
-        for i in range(n_iter_max):
+        for i in range(self.max_iter):
             mem = parameter
             delta = self.model._delta(parameter)
             delta_prime = self.model._delta_prime(parameter)
@@ -121,10 +124,10 @@ class FindParamSolverForLoop(FindParamSolver):
 
             if (
                 np.linalg.norm(reduce_to_span(mem - parameter))
-                < 0.1 * parameter.size
+                < self.stop_condition * parameter.size
             ):
                 break
-            if i == n_iter_max - 1:
+            if i == self.max_iter - 1:
                 logger.info(
                     "Maximum number of iterations reached in FindParamSolverForLoop"
                 )

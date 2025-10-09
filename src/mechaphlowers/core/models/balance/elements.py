@@ -169,12 +169,13 @@ class BalanceEngine:
             self.deformation_model,
             self.cable_loads,
         )
+        self.solver_change_state = Solver()
+        self.solver_adjustment = Solver()
 
     def solve_adjustment(self) -> None:
         self.balance_model.adjustment = True
 
-        sb = Solver()
-        sb.solve(self.balance_model)
+        self.solver_adjustment.solve(self.balance_model)
 
         self.L_ref = self.balance_model.update_L_ref()
 
@@ -197,8 +198,7 @@ class BalanceEngine:
         self.span_model.load_coefficient = (
             self.balance_model.cable_loads.load_coefficient
         )
-        sb = Solver()
-        sb.solve(self.balance_model)
+        self.solver_change_state.solve(self.balance_model)
 
 
 class BalanceModel(ModelForSolver):
@@ -266,6 +266,9 @@ class BalanceModel(ModelForSolver):
             self.span_model, self.deformation_model
         )
         self.find_param_solver = find_param_solver_type(self.find_param_model)
+        self.load_solver = Solver(
+            perturb=0.001, relax_ratio=0.5, stop_condition=1.0, relax_power=3
+        )
         self.update()
         self.nodes.compute_dx_dy_dz()
         self.nodes.vector_projection.set_tensions(
@@ -415,14 +418,7 @@ class BalanceModel(ModelForSolver):
             self.sagging_temperature[self.nodes.has_load_on_span],
         )
 
-        solver = Solver()
-        solver.solve(
-            self.load_model,
-            perturb=0.001,
-            relax_ratio=0.5,
-            stop_condition=1.0,
-            relax_power=3,
-        )
+        self.load_solver.solve(self.load_model)
 
     def update_projections(self) -> None:
         alpha = self.alpha

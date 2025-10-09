@@ -17,26 +17,33 @@ logger = logging.getLogger(__name__)
 
 
 class Solver:
-    def __init__(self):
-        self.mem_loop = []
-
-    def solve(
+    def __init__(
         self,
-        model: ModelForSolver,
         perturb=0.0001,
         stop_condition=1e-3,
         relax_ratio=0.8,
         relax_power=3,
         max_iter=100,
+    ):
+        self.mem_loop = []
+        self.perturb = perturb
+        self.stop_condition = stop_condition
+        self.relax_ratio = relax_ratio
+        self.relax_power = relax_power
+        self.max_iter = max_iter
+
+    def solve(
+        self,
+        model: ModelForSolver,
     ) -> None:
         # initialisation
         model.update()
         objective_vector = model.objective_function()
 
         # starting optimisation loop
-        for counter in range(1, max_iter):
+        for counter in range(1, self.max_iter):
             # compute jacobian
-            jacobian = self.jacobian(objective_vector, model, perturb)
+            jacobian = self.jacobian(objective_vector, model, self.perturb)
 
             # memorize for norm
             mem = np.linalg.norm(objective_vector)
@@ -45,7 +52,7 @@ class Solver:
             correction = np.linalg.solve(jacobian.T, objective_vector)
 
             model.state_vector = model.state_vector - correction * (
-                1 - relax_ratio ** (counter**relax_power)
+                1 - self.relax_ratio ** (counter**self.relax_power)
             )
 
             model.update()
@@ -66,9 +73,9 @@ class Solver:
             self.mem_loop.append(dict_to_store)
 
             # check value to minimze to break the loop
-            if norm_d_param < stop_condition:
+            if norm_d_param < self.stop_condition:
                 break
-            if counter == max_iter - 1:
+            if counter == self.max_iter - 1:
                 logger.info("max iteration reached")
                 logger.info(f"{norm_d_param=}")
 
