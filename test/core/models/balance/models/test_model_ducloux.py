@@ -5,16 +5,15 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-
-
-
-
 import numpy as np
 import pandas as pd
 from pytest import fixture
-from mechaphlowers.core.models.balance.models.model_ducloux import nodes_builder
-from mechaphlowers.entities.arrays import SectionArray
+
 import mechaphlowers.data.units as f
+from mechaphlowers.core.models.balance.models.model_ducloux import (
+    nodes_builder,
+)
+from mechaphlowers.entities.arrays import SectionArray
 
 
 @fixture
@@ -38,7 +37,6 @@ def section_array_angles() -> SectionArray:
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
     return section_array
-
 
 
 def test_section_array_to_nodes(section_array_angles):

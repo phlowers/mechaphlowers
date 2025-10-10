@@ -4,6 +4,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+# TODO: to reactivate when IBalanceModel interface is stabilized
+# mypy: disable-error-code=attr-defined
+
 import numpy as np
 import pandas as pd
 from pytest import fixture
@@ -158,13 +161,19 @@ def test_adjust_no_altitude_change(
     )
 
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dx, expected_dx, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dy, expected_dy, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dz, expected_dz, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
         section_3d_no_altitude_change.balance_model.L_ref,
@@ -261,9 +270,15 @@ def test_adjust_with_arm(cable_array_AM600: CableArray):
         [498.143645314619, 300.043054873601, 397.296174338544]
     )
 
-    np.testing.assert_allclose(section_arm.balance_model.nodes.dx, expected_dx, atol=1e-4)
-    np.testing.assert_allclose(section_arm.balance_model.nodes.dy, expected_dy, atol=1e-4)
-    np.testing.assert_allclose(section_arm.balance_model.nodes.dz, expected_dz, atol=1e-4)
+    np.testing.assert_allclose(
+        section_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
+    )
     np.testing.assert_allclose(
         section_arm.balance_model.L_ref, expected_L_ref, atol=1e-4
     )
@@ -356,13 +371,19 @@ def test_wind_no_altitude_change(
     )
 
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dx, expected_dx, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dy, expected_dy, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dz, expected_dz, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
     )
 
 
@@ -419,9 +440,15 @@ def test_wind(cable_array_AM600: CableArray):
         ]
     )
 
-    np.testing.assert_allclose(section.balance_model.nodes.dx, expected_dx, atol=1e-4)
-    np.testing.assert_allclose(section.balance_model.nodes.dy, expected_dy, atol=1e-4)
-    np.testing.assert_allclose(section.balance_model.nodes.dz, expected_dz, atol=1e-4)
+    np.testing.assert_allclose(
+        section.balance_model.nodes.dx, expected_dx, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section.balance_model.nodes.dy, expected_dy, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section.balance_model.nodes.dz, expected_dz, atol=1e-4
+    )
 
 
 def test_temperature(

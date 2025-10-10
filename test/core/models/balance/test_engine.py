@@ -95,10 +95,8 @@ def test_element_initialisation(balance_engine_simple: BalanceEngine):
     print(balance_engine_simple.balance_model)
 
 
-
 def test_element_change_state(balance_engine_simple: BalanceEngine):
     balance_engine_simple.solve_adjustment()
 
     balance_engine_simple.solve_change_state()
     assert True
-

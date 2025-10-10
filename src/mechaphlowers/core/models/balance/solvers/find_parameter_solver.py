@@ -12,7 +12,9 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from mechaphlowers.core.models.balance.models.utils_model_ducloux import reduce_to_span
+from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
+    reduce_to_span,
+)
 from mechaphlowers.core.models.cable.deformation import IDeformation
 from mechaphlowers.core.models.cable.span import ISpan
 

@@ -14,20 +14,22 @@ import numpy as np
 import pandas as pd
 
 import mechaphlowers.data.units as f
-from mechaphlowers.core.models.balance.interfaces import IBalanceModel
-from mechaphlowers.core.models.balance.solvers.find_parameter_solver import (
-    FindParamModel,
-    FindParamSolverForLoop,
-    IFindParamSolver,
+from mechaphlowers.core.models.balance.interfaces import (
+    IBalanceModel,
+    IModelForSolver,
 )
-from mechaphlowers.core.models.balance.interfaces import IModelForSolver
-from mechaphlowers.core.models.balance.solvers.solver import BalanceSolver
 from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
     Masks,
     VectorProjection,
     fill_to_support,
     reduce_to_span,
 )
+from mechaphlowers.core.models.balance.solvers.find_parameter_solver import (
+    FindParamModel,
+    FindParamSolverForLoop,
+    IFindParamSolver,
+)
+from mechaphlowers.core.models.balance.solvers.solver import BalanceSolver
 from mechaphlowers.core.models.cable.deformation import (
     IDeformation,
     deformation_model_builder,
@@ -125,7 +127,7 @@ class BalanceModel(IBalanceModel):
     @property
     def adjustment(self) -> bool:
         return self._adjustment
-    
+
     @adjustment.setter
     def adjustment(self, value: bool) -> None:
         self._adjustment = value

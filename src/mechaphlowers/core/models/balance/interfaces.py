@@ -75,3 +75,7 @@ class IBalanceModel(IModelForSolver, ABC):
     def adjustment(self):
         pass
 
+    @adjustment.setter
+    @abstractmethod
+    def adjustment(self, value: bool):
+        pass

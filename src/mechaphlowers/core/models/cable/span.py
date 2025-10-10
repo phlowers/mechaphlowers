@@ -386,4 +386,3 @@ def span_model_builder(
         sagging_parameter,
         linear_weight=linear_weight,
     )
-

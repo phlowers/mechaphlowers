@@ -12,13 +12,13 @@ from typing import Type
 
 import numpy as np
 
-from mechaphlowers.core.models.balance.models.model_ducloux import BalanceModel
 from mechaphlowers.core.models.balance.interfaces import IBalanceModel
-from mechaphlowers.core.models.balance.solvers.solver import BalanceSolver
+from mechaphlowers.core.models.balance.models.model_ducloux import BalanceModel
 from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
     fill_to_support,
     reduce_to_span,
 )
+from mechaphlowers.core.models.balance.solvers.solver import BalanceSolver
 from mechaphlowers.core.models.cable.deformation import (
     DeformationRte,
     IDeformation,
@@ -33,7 +33,6 @@ from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 logger = logging.getLogger(__name__)
-
 
 
 class BalanceEngine:
@@ -66,8 +65,10 @@ class BalanceEngine:
         deformation_model_type: Type[IDeformation] = DeformationRte,
     ):
         # TODO: fix this
-        zeros_vector = np.zeros_like(section_array.data.conductor_attachment_altitude.to_numpy())
-        
+        zeros_vector = np.zeros_like(
+            section_array.data.conductor_attachment_altitude.to_numpy()
+        )
+
         sagging_temperature = reduce_to_span(
             (section_array.data.sagging_temperature.to_numpy())
         )

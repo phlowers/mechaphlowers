@@ -185,7 +185,6 @@ class DeformationRte(IDeformation):
         return real_smallest_root
 
 
-
 def deformation_model_builder(
     cable_array: CableArray,
     span_model: ISpan,
@@ -215,4 +214,3 @@ def deformation_model_builder(
         polynomial_conductor,
         sagging_temperature,
     )
-
