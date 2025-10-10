@@ -13,7 +13,7 @@ from numpy.polynomial import Polynomial as Poly
 try:
     from scipy import optimize  # type: ignore
 except ImportError:
-    import mechaphlowers.core.numeric.numeric as optimize
+    import mechaphlowers.numeric.scipy as optimize
 
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.cable.deformation import (
@@ -22,7 +22,7 @@ from mechaphlowers.core.models.cable.deformation import (
 )
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
-    Span,
+    ISpan,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 
@@ -61,7 +61,7 @@ class SagTensionSolver:
         self.temperature_reference = temperature_reference
         self.polynomial_conductor = polynomial_conductor
         self.L_ref: np.ndarray
-        self.span_model_type: Type[Span] = CatenarySpan
+        self.span_model_type: Type[ISpan] = CatenarySpan
         self.deformation_model_type: Type[IDeformation] = DeformationRte
         self.T_h_after_change: np.ndarray | None = None
         self.initialize_cable_loads()

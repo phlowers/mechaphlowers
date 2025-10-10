@@ -13,250 +13,56 @@ from typing import Tuple, Type
 import numpy as np
 import pandas as pd
 
-import mechaphlowers.core.models.balance.functions as f
-from mechaphlowers.core.models.balance import numeric
-from mechaphlowers.core.models.balance.find_parameter_solver import (
+import mechaphlowers.data.units as f
+from mechaphlowers.core.models.balance.interfaces import IBalanceModel
+from mechaphlowers.core.models.balance.solvers.find_parameter_solver import (
     FindParamModel,
-    FindParamSolver,
     FindParamSolverForLoop,
+    IFindParamSolver,
 )
-from mechaphlowers.core.models.balance.model_interface import ModelForSolver
-from mechaphlowers.core.models.balance.solver import BalanceSolver
-from mechaphlowers.core.models.balance.utils_balance import (
+from mechaphlowers.core.models.balance.interfaces import IModelForSolver
+from mechaphlowers.core.models.balance.solvers.solver import BalanceSolver
+from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
     Masks,
     VectorProjection,
     fill_to_support,
     reduce_to_span,
 )
 from mechaphlowers.core.models.cable.deformation import (
-    DeformationRte,
     IDeformation,
+    deformation_model_builder,
 )
-from mechaphlowers.core.models.cable.span import CatenarySpan, Span
+from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.numeric import cubic
 
 logger = logging.getLogger(__name__)
 
 
-def nodes_builder(section_array: SectionArray) -> Nodes:
-    """Builds a Nodes object from a SectionArray by extracting and transforming data.
-
-    section_array (SectionArray): Section Array to extract the data from.
-
-    Nodes: An instance of Nodes initialized with data from section array.
-    line_angle is in radians.
-    """
-
-    L_chain = section_array.data.insulator_length.to_numpy()
-    weight_chain = section_array.data.insulator_weight.to_numpy()
-    arm_length = section_array.data.crossarm_length.to_numpy()
-    # Convert degrees to rad
-    line_angle = f.deg_to_rad(section_array.data.line_angle.to_numpy())
-    z = section_array.data.conductor_attachment_altitude.to_numpy()
-    span_length = reduce_to_span(section_array.data.span_length.to_numpy())
-    load = reduce_to_span(section_array.data.load_weight.to_numpy())
-    load_position = reduce_to_span(section_array.data.load_position.to_numpy())
-    return Nodes(
-        L_chain,
-        weight_chain,
-        arm_length,
-        line_angle,
-        z,
-        span_length,
-        load,
-        load_position,
-    )
-
-
-def span_model_builder(
-    section_array: SectionArray,
-    cable_array: CableArray,
-    span_model_type: Type[Span],
-) -> Span:
-    """Builds a Span object, using data from ScetionArray and CableArray
-
-    Args:
-        section_array (SectionArray): input data (span_length, elevation_difference, sagging_parameter)
-        cable_array (CableArray): input data from cable (only linar weight used here)
-        span_model_type (Type[Span]): choose the type of span model to use
-
-    Returns:
-        Span: span model to return
-    """
-    span_length = section_array.data.span_length.to_numpy()
-    elevation_difference = section_array.data.elevation_difference.to_numpy()
-    sagging_parameter = section_array.data.sagging_parameter.to_numpy()
-    linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
-    return span_model_type(
-        span_length,
-        elevation_difference,
-        sagging_parameter,
-        linear_weight=linear_weight,
-    )
-
-
-def deformation_model_builder(
-    cable_array: CableArray,
-    span_model: Span,
-    sagging_temperature: np.ndarray,
-    deformation_model_type: Type[IDeformation] = DeformationRte,
-) -> IDeformation:
-    tension_mean = span_model.T_mean()
-    cable_length = span_model.compute_L()
-    cable_section = np.float64(cable_array.data.section.iloc[0])
-    linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
-    young_modulus = np.float64(cable_array.data.young_modulus.iloc[0])
-    dilatation_coefficient = np.float64(
-        cable_array.data.dilatation_coefficient.iloc[0]
-    )
-    temperature_reference = np.float64(
-        cable_array.data.temperature_reference.iloc[0]
-    )
-    polynomial_conductor = cable_array.polynomial_conductor
-    return deformation_model_type(
-        tension_mean,
-        cable_length,
-        cable_section,
-        linear_weight,
-        young_modulus,
-        dilatation_coefficient,
-        temperature_reference,
-        polynomial_conductor,
-        sagging_temperature,
-    )
-
-
-class BalanceEngine:
-    """Engine for solving insulator chains positions.
-
-    Example of use:
-
-    >>> balance_engine = BalanceEngine(cable_array, section_array)
-    >>> balance_engine.solve_adjustment()
-    >>> wind_pressure = np.array([...])  # in Pa
-    >>> ice_thickness = np.array([...])  # in m
-    >>> new_temperature = np.array([...])  # in °C
-    >>> balance_engine.solve_change_state(wind_pressure, ice_thickness, new_temperature)
-
-    Args:
-        cable_array (CableArray): Cable data
-        section_array (SectionArray): Section data
-        span_model_type (Type[Span], optional): Span model to use. Defaults to CatenarySpan.
-        deformation_model_type (Type[IDeformation], optional): Deformation model to use. Defaults to DeformationRte.
-    """
-    def __init__(
-        self,
-        cable_array: CableArray,
-        section_array: SectionArray,
-        span_model_type: Type[Span] = CatenarySpan,
-        deformation_model_type: Type[IDeformation] = DeformationRte,
-    ):
-        self.nodes = nodes_builder(section_array)
-
-        # TODO: fix this
-        sagging_temperature = reduce_to_span(
-            (section_array.data.sagging_temperature.to_numpy())
-        )
-        parameter = reduce_to_span(
-            section_array.data.sagging_parameter.to_numpy()
-        )
-        self.span_model = span_model_builder(
-            section_array, cable_array, span_model_type
-        )
-        self.cable_loads = CableLoads(
-            np.float64(cable_array.data.diameter.iloc[0]),
-            np.float64(cable_array.data.linear_weight.iloc[0]),
-            np.zeros_like(self.nodes.weight_chain),
-            np.zeros_like(self.nodes.weight_chain),
-        )
-        self.deformation_model = deformation_model_builder(
-            cable_array,
-            self.span_model,
-            sagging_temperature,
-            deformation_model_type,
-        )
-
-        self.balance_model = BalanceModel(
-            sagging_temperature,
-            self.nodes,
-            parameter,
-            cable_array,
-            self.span_model,
-            self.deformation_model,
-            self.cable_loads,
-        )
-        self.solver_change_state = BalanceSolver()
-        self.solver_adjustment = BalanceSolver()
-
-    def solve_adjustment(self) -> None:
-        """Solve the chain positions in the adjustment case, updating L_ref in the balance model.
-        In this case, there is no weather, no loads, and temperature is the sagging temperature.
-
-        After running this method, many attributes are updated.
-        Most interesting ones are L_ref, sagging_parameter in Span, and dxdydz in Nodes.
-        """
-        self.balance_model.adjustment = True
-
-        self.solver_adjustment.solve(self.balance_model)
-
-        self.L_ref = self.balance_model.update_L_ref()
-
-    def solve_change_state(
-        self,
-        wind_pressure: np.ndarray | None = None,
-        ice_thickness: np.ndarray | None = None,
-        new_temperature: np.ndarray | None = None,
-    ) -> None:
-        """Solve the chain positions, for a case of change of state.
-        Updates weather conditions and/or sagging temperature if provided.
-        Takes into account loads if any.
-
-        Args:
-            wind_pressure (np.ndarray | None, optional): new wind pressure, in Pa. Defaults to None.
-            ice_thickness (np.ndarray | None, optional): new ice thickness, in m. Defaults to None.
-            new_temperature (np.ndarray | None, optional): new temperature. Defaults to None.
-        
-        After running this method, many attributes are updated.
-        Most interesting ones are L_ref, sagging_parameter in Span, and dxdydz in Nodes.        
-        """
-        if wind_pressure is not None:
-            self.balance_model.cable_loads.wind_pressure = wind_pressure
-        # TODO: convert ice thickness from cm to m? Right now, user has to input in m
-        if ice_thickness is not None:
-            self.balance_model.cable_loads.ice_thickness = ice_thickness
-        if new_temperature is not None:
-            self.balance_model.sagging_temperature = new_temperature
-            self.deformation_model.current_temperature = fill_to_support(
-                new_temperature
-            )
-        self.balance_model.adjustment = False
-        self.span_model.load_coefficient = (
-            self.balance_model.cable_loads.load_coefficient
-        )
-        self.solver_change_state.solve(self.balance_model)
-
-
-class BalanceModel(ModelForSolver):
+class BalanceModel(IBalanceModel):
     """Model for solving the balance of the chains.
     Used by the BalanceSolver class in order to solve adjustement and change state cases.
 
     """
+
     def __init__(
         self,
         sagging_temperature: np.ndarray,
-        nodes: Nodes,
         parameter: np.ndarray,
+        section_array: SectionArray,
         cable_array: CableArray,
-        span_model: Span,
+        span_model: ISpan,
         deformation_model: IDeformation,
         cable_loads: CableLoads,
-        find_param_solver_type: Type[FindParamSolver] = FindParamSolverForLoop,
+        find_param_solver_type: Type[
+            IFindParamSolver
+        ] = FindParamSolverForLoop,
     ):
         # tempertaure and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
-        self.nodes = nodes
         self.parameter = parameter
+        self.nodes = nodes_builder(section_array)
         self.cable_array = cable_array
         # TODO: temporary solution to manage cable data, must find a better way to do this
         self.cable_section = np.float64(self.cable_array.data.section.iloc[0])
@@ -283,7 +89,7 @@ class BalanceModel(ModelForSolver):
         self.Tv_d: np.ndarray
         self.Tv_g: np.ndarray
 
-        self.adjustment: bool = True
+        self._adjustment: bool = True
         # TODO: during adjustment computation, perhaps set cable_temperature = 0
         # temperature here is tuning temperature / only in the real span part
         # there is another temperature : change state
@@ -315,6 +121,14 @@ class BalanceModel(ModelForSolver):
             self.Th, self.Tv_d, self.Tv_g
         )
         self.nodes.compute_moment()
+
+    @property
+    def adjustment(self) -> bool:
+        return self._adjustment
+    
+    @adjustment.setter
+    def adjustment(self, value: bool) -> None:
+        self._adjustment = value
 
     @property
     def k_load(self) -> np.ndarray:
@@ -416,7 +230,7 @@ class BalanceModel(ModelForSolver):
         - change state with loads: solve LoadModel
         """
         # Case: adjustment
-        if self.adjustment:
+        if self._adjustment:
             Th = reduce_to_span(self.span_model.T_h())
             x_m = reduce_to_span(self.span_model.compute_x_m())
             x_n = reduce_to_span(self.span_model.compute_x_n())
@@ -426,7 +240,7 @@ class BalanceModel(ModelForSolver):
             Th, x_m, x_n, parameter = self.compute_Th_and_extremum()
 
             # Case: change state + with load
-            if not self.adjustment and self.nodes.has_load_on_span.any():
+            if not self._adjustment and self.nodes.has_load_on_span.any():
                 self.x_i = self.nodes.load_position * self.a_prime
                 # TODO: Don't know why adding x_m is needed
                 z_i_m = self.span_model.z_one_point(
@@ -589,74 +403,8 @@ def approx_parameter(
     # we have to do p3 * x**3 + p2 * x**2 + p1 * x + p0 = 0
     # p = p3 | p2 | p1 | p0
     p = np.vstack((p3, p2, p1, p0)).T
-    roots = numeric.cubic_roots(p)
+    roots = cubic.cubic_roots(p)
     return roots.real
-
-
-# unused, for information purposes
-def find_parameter_function(
-    parameter: np.ndarray,
-    a: np.ndarray,
-    b: np.ndarray,
-    L_ref: np.ndarray,
-    cable_temperature: np.ndarray,  # float?
-    k_load: np.ndarray,
-    cable_section: np.float64,
-    linear_weight: np.float64,
-    dilatation_coefficient: np.float64,
-    young_modulus: np.float64,
-):
-    """this is a placeholder of sagtension algorithm"""
-    param = parameter
-
-    n_iter = 50
-    step = 1.0
-    for i in range(n_iter):
-        x_m = f.x_m(a, b, param)
-        x_n = f.x_n(a, b, param)
-        lon = f.L(param, x_n, x_m)
-        Tm1 = f.T_moy(
-            p=param,
-            L=lon,
-            x_n=f.x_n(a, b, param),
-            x_m=f.x_m(a, b, param),
-            linear_weight=linear_weight,
-            k_load=k_load,
-        )
-
-        delta1 = (lon - L_ref) / L_ref - (
-            dilatation_coefficient * cable_temperature
-            + Tm1 / young_modulus / cable_section
-        )
-
-        mem = param
-        param = param + step
-
-        x_m = f.x_m(a, b, param)
-        x_n = f.x_n(a, b, param)
-        lon = f.L(param, x_n, x_m)
-        Tm1 = f.T_moy(
-            p=param,
-            L=lon,
-            x_n=f.x_n(a, b, param),
-            x_m=f.x_m(a, b, param),
-            linear_weight=linear_weight,
-            k_load=k_load,
-        )
-
-        delta2 = (lon - L_ref) / L_ref - (
-            dilatation_coefficient * cable_temperature
-            + Tm1 / young_modulus / cable_section
-        )
-
-        param = (param - step) - delta1 / (delta2 - delta1)
-
-        if np.linalg.norm(mem - param) < 0.1 * param.size:
-            break
-        if i == n_iter:
-            logger.info("max iter reached")
-
-    return param
 
 
 class Nodes:
@@ -842,7 +590,37 @@ class Nodes:
         return self.__repr__()
 
 
-class LoadModel(ModelForSolver):
+def nodes_builder(section_array: SectionArray) -> Nodes:
+    """Builds a Nodes object from a SectionArray by extracting and transforming data.
+
+    section_array (SectionArray): Section Array to extract the data from.
+
+    Nodes: An instance of Nodes initialized with data from section array.
+    line_angle is in radians.
+    """
+
+    L_chain = section_array.data.insulator_length.to_numpy()
+    weight_chain = section_array.data.insulator_weight.to_numpy()
+    arm_length = section_array.data.crossarm_length.to_numpy()
+    # Convert degrees to rad
+    line_angle = f.deg_to_rad(section_array.data.line_angle.to_numpy())
+    z = section_array.data.conductor_attachment_altitude.to_numpy()
+    span_length = reduce_to_span(section_array.data.span_length.to_numpy())
+    load = reduce_to_span(section_array.data.load_weight.to_numpy())
+    load_position = reduce_to_span(section_array.data.load_position.to_numpy())
+    return Nodes(
+        L_chain,
+        weight_chain,
+        arm_length,
+        line_angle,
+        z,
+        span_length,
+        load,
+        load_position,
+    )
+
+
+class LoadModel(IModelForSolver):
     def __init__(
         self,
         cable_array: CableArray,
@@ -854,7 +632,9 @@ class LoadModel(ModelForSolver):
         k_load: np.ndarray,
         temperature: np.ndarray,
         parameter: np.ndarray,
-        find_param_solver_type: Type[FindParamSolver] = FindParamSolverForLoop,
+        find_param_solver_type: Type[
+            IFindParamSolver
+        ] = FindParamSolverForLoop,
     ):
         self.cable_array = cable_array
         self.cable_section = np.float64(self.cable_array.data.section.iloc[0])

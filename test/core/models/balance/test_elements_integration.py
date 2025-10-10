@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 from pytest import fixture
 
-import mechaphlowers.core.models.balance.functions as f
-from mechaphlowers.core.models.balance.elements import BalanceEngine
+import mechaphlowers.data.units as f
+from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import (
     sample_cable_catalog,
 )
@@ -158,13 +158,13 @@ def test_adjust_no_altitude_change(
     )
 
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dx, expected_dx, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dy, expected_dy, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dz, expected_dz, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
     np.testing.assert_allclose(
         section_3d_no_altitude_change.balance_model.L_ref,
@@ -195,13 +195,13 @@ def test_adjust_simple(
     )
 
     np.testing.assert_allclose(
-        section_3d_simple.nodes.dx, expected_dx, atol=1e-4
+        section_3d_simple.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_simple.nodes.dy, expected_dy, atol=1e-4
+        section_3d_simple.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_simple.nodes.dz, expected_dz, atol=1e-4
+        section_3d_simple.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
     np.testing.assert_allclose(
         section_3d_simple.balance_model.L_ref, expected_L_ref, atol=1e-4
@@ -261,9 +261,9 @@ def test_adjust_with_arm(cable_array_AM600: CableArray):
         [498.143645314619, 300.043054873601, 397.296174338544]
     )
 
-    np.testing.assert_allclose(section_arm.nodes.dx, expected_dx, atol=1e-4)
-    np.testing.assert_allclose(section_arm.nodes.dy, expected_dy, atol=1e-4)
-    np.testing.assert_allclose(section_arm.nodes.dz, expected_dz, atol=1e-4)
+    np.testing.assert_allclose(section_arm.balance_model.nodes.dx, expected_dx, atol=1e-4)
+    np.testing.assert_allclose(section_arm.balance_model.nodes.dy, expected_dy, atol=1e-4)
+    np.testing.assert_allclose(section_arm.balance_model.nodes.dz, expected_dz, atol=1e-4)
     np.testing.assert_allclose(
         section_arm.balance_model.L_ref, expected_L_ref, atol=1e-4
     )
@@ -305,13 +305,13 @@ def test_adjust_with_angles(
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
     np.testing.assert_allclose(
         section_3d_angles_arm.balance_model.L_ref, expected_L_ref, atol=1e-4
@@ -356,13 +356,13 @@ def test_wind_no_altitude_change(
     )
 
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dx, expected_dx, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dy, expected_dy, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dz, expected_dz, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 
@@ -419,9 +419,9 @@ def test_wind(cable_array_AM600: CableArray):
         ]
     )
 
-    np.testing.assert_allclose(section.nodes.dx, expected_dx, atol=1e-4)
-    np.testing.assert_allclose(section.nodes.dy, expected_dy, atol=1e-4)
-    np.testing.assert_allclose(section.nodes.dz, expected_dz, atol=1e-4)
+    np.testing.assert_allclose(section.balance_model.nodes.dx, expected_dx, atol=1e-4)
+    np.testing.assert_allclose(section.balance_model.nodes.dy, expected_dy, atol=1e-4)
+    np.testing.assert_allclose(section.balance_model.nodes.dz, expected_dz, atol=1e-4)
 
 
 def test_temperature(
@@ -460,13 +460,13 @@ def test_temperature(
         ]
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 
@@ -507,13 +507,13 @@ def test_ice(
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 
@@ -572,13 +572,13 @@ def test_load_all_spans(cable_array_AM600: CableArray):
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 
@@ -641,13 +641,13 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 
@@ -707,13 +707,13 @@ def test_load_one_span(cable_array_AM600: CableArray):
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 

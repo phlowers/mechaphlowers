@@ -11,7 +11,7 @@ import logging
 
 import numpy as np
 
-from mechaphlowers.core.models.balance.model_interface import ModelForSolver
+from mechaphlowers.core.models.balance.interfaces import IModelForSolver
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class BalanceSolver:
 
     def solve(
         self,
-        model: ModelForSolver,
+        model: IModelForSolver,
     ) -> None:
         # initialisation
         model.update()
@@ -82,7 +82,7 @@ class BalanceSolver:
     def jacobian(
         self,
         objective_vector: np.ndarray,
-        model: ModelForSolver,
+        model: IModelForSolver,
         perturb: float = 1e-4,
     ) -> np.ndarray:
         vector_perturb = np.zeros_like(objective_vector)
@@ -101,7 +101,7 @@ class BalanceSolver:
         return jacobian
 
     def _delta_d(
-        self, model: ModelForSolver, vector_perturb: np.ndarray
+        self, model: IModelForSolver, vector_perturb: np.ndarray
     ) -> np.ndarray:
         model.state_vector += vector_perturb
         model.update()

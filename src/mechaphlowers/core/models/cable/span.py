@@ -5,11 +5,14 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
+from typing import Type
 
 import numpy as np
 
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 
-class Span(ABC):
+
+class ISpan(ABC):
     """This abstract class is a base class for various models describing the cable in its own frame.
 
     The coordinates are expressed in the cable frame.
@@ -234,7 +237,7 @@ class Span(ABC):
         """Mean tension along the whole cable."""
 
 
-class CatenarySpan(Span):
+class CatenarySpan(ISpan):
     """Implementation of a span cable model according to the catenary equation.
 
     The coordinates are expressed in the cable frame.
@@ -356,3 +359,31 @@ class CatenarySpan(Span):
             / self._L
             / 2
         )
+
+
+def span_model_builder(
+    section_array: SectionArray,
+    cable_array: CableArray,
+    span_model_type: Type[ISpan],
+) -> ISpan:
+    """Builds a Span object, using data from ScetionArray and CableArray
+
+    Args:
+        section_array (SectionArray): input data (span_length, elevation_difference, sagging_parameter)
+        cable_array (CableArray): input data from cable (only linar weight used here)
+        span_model_type (Type[Span]): choose the type of span model to use
+
+    Returns:
+        Span: span model to return
+    """
+    span_length = section_array.data.span_length.to_numpy()
+    elevation_difference = section_array.data.elevation_difference.to_numpy()
+    sagging_parameter = section_array.data.sagging_parameter.to_numpy()
+    linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
+    return span_model_type(
+        span_length,
+        elevation_difference,
+        sagging_parameter,
+        linear_weight=linear_weight,
+    )
+

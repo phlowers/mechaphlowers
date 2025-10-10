@@ -3,13 +3,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Type
 
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.config import options as cfg
+from mechaphlowers.core.models.cable.span import ISpan
+from mechaphlowers.entities.arrays import CableArray
 
 IMAGINARY_THRESHOLD = cfg.solver.deformation_imag_thresh  # type: ignore
 
@@ -179,3 +183,36 @@ class DeformationRte(IDeformation):
         if np.inf in real_smallest_root:
             raise ValueError("No solution found for at least one span")
         return real_smallest_root
+
+
+
+def deformation_model_builder(
+    cable_array: CableArray,
+    span_model: ISpan,
+    sagging_temperature: np.ndarray,
+    deformation_model_type: Type[IDeformation] = DeformationRte,
+) -> IDeformation:
+    tension_mean = span_model.T_mean()
+    cable_length = span_model.compute_L()
+    cable_section = np.float64(cable_array.data.section.iloc[0])
+    linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
+    young_modulus = np.float64(cable_array.data.young_modulus.iloc[0])
+    dilatation_coefficient = np.float64(
+        cable_array.data.dilatation_coefficient.iloc[0]
+    )
+    temperature_reference = np.float64(
+        cable_array.data.temperature_reference.iloc[0]
+    )
+    polynomial_conductor = cable_array.polynomial_conductor
+    return deformation_model_type(
+        tension_mean,
+        cable_length,
+        cable_section,
+        linear_weight,
+        young_modulus,
+        dilatation_coefficient,
+        temperature_reference,
+        polynomial_conductor,
+        sagging_temperature,
+    )
+

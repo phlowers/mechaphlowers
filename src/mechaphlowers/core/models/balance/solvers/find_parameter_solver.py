@@ -12,14 +12,14 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from mechaphlowers.core.models.balance.utils_balance import reduce_to_span
+from mechaphlowers.core.models.balance.models.utils_model_ducloux import reduce_to_span
 from mechaphlowers.core.models.cable.deformation import IDeformation
-from mechaphlowers.core.models.cable.span import Span
+from mechaphlowers.core.models.cable.span import ISpan
 
 try:
     from scipy import optimize  # type: ignore
 except ImportError:
-    import mechaphlowers.core.numeric.numeric as optimize
+    import mechaphlowers.numeric.scipy as optimize
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 PARAMETER_STEP = 1.0
 
 
-class ModelToSolve(ABC):
+class IModelToSolve(ABC):
     @property
     @abstractmethod
     def initial_value(self):
@@ -42,10 +42,10 @@ class ModelToSolve(ABC):
         pass
 
 
-class FindParamModel(ModelToSolve):
+class FindParamModel(IModelToSolve):
     def __init__(
         self,
-        span_model: Span,
+        span_model: ISpan,
         deformation_model: IDeformation,
     ):
         self.span_model = span_model
@@ -83,9 +83,9 @@ class FindParamModel(ModelToSolve):
         ) / PARAMETER_STEP
 
 
-class FindParamSolver(ABC):
+class IFindParamSolver(ABC):
     def __init__(
-        self, model: ModelToSolve, stop_condition=0.1, max_iter=50
+        self, model: IModelToSolve, stop_condition=0.1, max_iter=50
     ) -> None:
         self.model = model
         self.stop_condition = stop_condition
@@ -96,7 +96,7 @@ class FindParamSolver(ABC):
         pass
 
 
-class FindParamSolverScipy(FindParamSolver):
+class FindParamSolverScipy(IFindParamSolver):
     def find_parameter(self) -> np.ndarray:
         p0 = self.model.initial_value
 
@@ -112,7 +112,7 @@ class FindParamSolverScipy(FindParamSolver):
         return solver_result.root
 
 
-class FindParamSolverForLoop(FindParamSolver):
+class FindParamSolverForLoop(IFindParamSolver):
     def find_parameter(self) -> np.ndarray:
         parameter = self.model.initial_value
 

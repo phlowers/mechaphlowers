@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import mechaphlowers.core.models.balance.functions as f
-from mechaphlowers.core.models.balance.elements import (
+import mechaphlowers.data.units as f
+from mechaphlowers.core.models.balance.engine import (
     BalanceEngine,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
