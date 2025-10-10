@@ -12,11 +12,9 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
-    reduce_to_span,
-)
 from mechaphlowers.core.models.cable.deformation import IDeformation
 from mechaphlowers.core.models.cable.span import ISpan
+from mechaphlowers.entities.core import size
 
 try:
     from scipy import optimize  # type: ignore
@@ -125,7 +123,7 @@ class FindParamSolverForLoop(IFindParamSolver):
             parameter = parameter - delta / delta_prime
 
             if (
-                np.linalg.norm(reduce_to_span(mem - parameter))
+                np.linalg.norm(size.to_span(mem - parameter))
                 < self.stop_condition * parameter.size
             ):
                 break

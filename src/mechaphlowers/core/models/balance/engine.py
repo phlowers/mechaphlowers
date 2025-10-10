@@ -14,10 +14,6 @@ import numpy as np
 
 from mechaphlowers.core.models.balance.interfaces import IBalanceModel
 from mechaphlowers.core.models.balance.models.model_ducloux import BalanceModel
-from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
-    fill_to_support,
-    reduce_to_span,
-)
 from mechaphlowers.core.models.balance.solvers.solver import BalanceSolver
 from mechaphlowers.core.models.cable.deformation import (
     DeformationRte,
@@ -31,6 +27,7 @@ from mechaphlowers.core.models.cable.span import (
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.core import size
 
 logger = logging.getLogger(__name__)
 
@@ -69,10 +66,10 @@ class BalanceEngine:
             section_array.data.conductor_attachment_altitude.to_numpy()
         )
 
-        sagging_temperature = reduce_to_span(
+        sagging_temperature = size.to_span(
             (section_array.data.sagging_temperature.to_numpy())
         )
-        parameter = reduce_to_span(
+        parameter = size.to_span(
             section_array.data.sagging_parameter.to_numpy()
         )
         self.span_model = span_model_builder(
@@ -141,7 +138,7 @@ class BalanceEngine:
             self.balance_model.cable_loads.ice_thickness = ice_thickness
         if new_temperature is not None:
             self.balance_model.sagging_temperature = new_temperature
-            self.deformation_model.current_temperature = fill_to_support(
+            self.deformation_model.current_temperature = size.to_support(
                 new_temperature
             )
         self.balance_model.adjustment = False
