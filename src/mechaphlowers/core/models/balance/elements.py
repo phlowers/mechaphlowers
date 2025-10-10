@@ -21,7 +21,7 @@ from mechaphlowers.core.models.balance.find_parameter_solver import (
     FindParamSolverForLoop,
 )
 from mechaphlowers.core.models.balance.model_interface import ModelForSolver
-from mechaphlowers.core.models.balance.solver import Solver
+from mechaphlowers.core.models.balance.solver import BalanceSolver
 from mechaphlowers.core.models.balance.utils_balance import (
     Masks,
     VectorProjection,
@@ -128,6 +128,23 @@ def deformation_model_builder(
 
 
 class BalanceEngine:
+    """Engine for solving insulator chains positions.
+
+    Example of use:
+
+    >>> balance_engine = BalanceEngine(cable_array, section_array)
+    >>> balance_engine.solve_adjustment()
+    >>> wind_pressure = np.array([...])  # in Pa
+    >>> ice_thickness = np.array([...])  # in m
+    >>> new_temperature = np.array([...])  # in °C
+    >>> balance_engine.solve_change_state(wind_pressure, ice_thickness, new_temperature)
+
+    Args:
+        cable_array (CableArray): Cable data
+        section_array (SectionArray): Section data
+        span_model_type (Type[Span], optional): Span model to use. Defaults to CatenarySpan.
+        deformation_model_type (Type[IDeformation], optional): Deformation model to use. Defaults to DeformationRte.
+    """
     def __init__(
         self,
         cable_array: CableArray,
@@ -169,10 +186,16 @@ class BalanceEngine:
             self.deformation_model,
             self.cable_loads,
         )
-        self.solver_change_state = Solver()
-        self.solver_adjustment = Solver()
+        self.solver_change_state = BalanceSolver()
+        self.solver_adjustment = BalanceSolver()
 
     def solve_adjustment(self) -> None:
+        """Solve the chain positions in the adjustment case, updating L_ref in the balance model.
+        In this case, there is no weather, no loads, and temperature is the sagging temperature.
+
+        After running this method, many attributes are updated.
+        Most interesting ones are L_ref, sagging_parameter in Span, and dxdydz in Nodes.
+        """
         self.balance_model.adjustment = True
 
         self.solver_adjustment.solve(self.balance_model)
@@ -185,8 +208,21 @@ class BalanceEngine:
         ice_thickness: np.ndarray | None = None,
         new_temperature: np.ndarray | None = None,
     ) -> None:
+        """Solve the chain positions, for a case of change of state.
+        Updates weather conditions and/or sagging temperature if provided.
+        Takes into account loads if any.
+
+        Args:
+            wind_pressure (np.ndarray | None, optional): new wind pressure, in Pa. Defaults to None.
+            ice_thickness (np.ndarray | None, optional): new ice thickness, in m. Defaults to None.
+            new_temperature (np.ndarray | None, optional): new temperature. Defaults to None.
+        
+        After running this method, many attributes are updated.
+        Most interesting ones are L_ref, sagging_parameter in Span, and dxdydz in Nodes.        
+        """
         if wind_pressure is not None:
             self.balance_model.cable_loads.wind_pressure = wind_pressure
+        # TODO: convert ice thickness from cm to m? Right now, user has to input in m
         if ice_thickness is not None:
             self.balance_model.cable_loads.ice_thickness = ice_thickness
         if new_temperature is not None:
@@ -202,6 +238,10 @@ class BalanceEngine:
 
 
 class BalanceModel(ModelForSolver):
+    """Model for solving the balance of the chains.
+    Used by the BalanceSolver class in order to solve adjustement and change state cases.
+
+    """
     def __init__(
         self,
         sagging_temperature: np.ndarray,
@@ -266,7 +306,7 @@ class BalanceModel(ModelForSolver):
             self.span_model, self.deformation_model
         )
         self.find_param_solver = find_param_solver_type(self.find_param_model)
-        self.load_solver = Solver(
+        self.load_solver = BalanceSolver(
             perturb=0.001, relax_ratio=0.5, stop_condition=1.0, relax_power=3
         )
         self.update()
@@ -279,9 +319,8 @@ class BalanceModel(ModelForSolver):
     @property
     def k_load(self) -> np.ndarray:
         # TODO: fix length array issues with mechaphlowers
-        """Remove last value for consistency between this and mechaphlowers
-        mechaphlowers: one value per support
-        here: one value per span (nb_support - 1)
+        """Load coefficient, taking into account wind and ice.
+        Last value removed because it is a NaN.
         """
         return reduce_to_span(self.cable_loads.load_coefficient)
 
@@ -298,7 +337,8 @@ class BalanceModel(ModelForSolver):
 
     @property
     def beta(self) -> np.ndarray:
-        """Remove last value for consistency between this and mechaphlowers
+        """Angle between the cable plane and the vertical plane, created because of wind, in radians.
+        Remove last value for consistency between this and mechaphlowers
         mechaphlowers: beta = [beta0, beta1, beta2, nan]
         Here: beta = [beta0, beta1, beta2] because the last value refers to the last support (no span related to this support)
         """
@@ -306,6 +346,11 @@ class BalanceModel(ModelForSolver):
         return -reduce_to_span(self.cable_loads.load_angle)
 
     def update_L_ref(self) -> np.ndarray:
+        """Update the reference length L_ref, after an adjustment computation.
+
+        Returns:
+            np.ndarray: unstressed length, with reference temperature at 0°C.
+        """
         self.span_model.compute_values()
 
         self.deformation_model.tension_mean = self.span_model.T_mean()
@@ -320,15 +365,24 @@ class BalanceModel(ModelForSolver):
 
     @property
     def a_prime(self) -> np.ndarray:
+        """Span length after wind angle into taking account"""
         return (self.a**2 + self.b**2 * np.sin(self.beta) ** 2) ** 0.5
 
     @property
     def b_prime(self) -> np.ndarray:
+        """Elevation difference after wind angle into taking account"""
         return self.b * np.cos(self.beta)
 
     def compute_Th_and_extremum(
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Run SagTensionSolver to compute parameter, and then compute Th, x_m and x_n.
+        Used only in change_state case.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Th, x_m, x_n, parameter
+        """
+        # First run approx_parameter to have a closer first value of the parameter. This uses the parabola model.
         parameter_parabola = approx_parameter(
             self.a_prime,
             self.b_prime,
@@ -408,6 +462,11 @@ class BalanceModel(ModelForSolver):
         return Th
 
     def solve_xi_zi_loads(self) -> None:
+        """Run solver to compute the position of the loads on the span.
+        Also update the semi-span models in LoadModel: attributes span_model_left and span_model_right.
+        They could be used for graphs.
+        Only used in change_state case with loads.
+        """
         self.load_model.set_all(
             self.L_ref[self.nodes.has_load_on_span],
             self.x_i[self.nodes.has_load_on_span],

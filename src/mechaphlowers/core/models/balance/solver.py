@@ -16,7 +16,7 @@ from mechaphlowers.core.models.balance.model_interface import ModelForSolver
 logger = logging.getLogger(__name__)
 
 
-class Solver:
+class BalanceSolver:
     def __init__(
         self,
         perturb=0.0001,
