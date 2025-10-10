@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from pytest import fixture
 
-import mechaphlowers.data.units as f
+from mechaphlowers.data.units import Q_
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import (
     sample_cable_catalog,
@@ -59,7 +59,7 @@ def section_array_angles() -> SectionArray:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad").to('deg').magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -82,7 +82,7 @@ def section_array_simple() -> SectionArray:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 0, 0, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 0, 0, 0])),
+                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad").to('deg').magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -105,7 +105,7 @@ def section_array_no_altitude_change() -> SectionArray:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 30, 30, 30],
                 "crossarm_length": [0, 0, 0, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 0, 0, 0])),
+                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad").to('deg').magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -395,7 +395,7 @@ def test_wind(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 50, 50, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 20, 30, 0])),
+                "line_angle": Q_(np.array([0, 20, 30, 0]), "grad").to('deg').magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -552,7 +552,7 @@ def test_load_all_spans(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad").to('deg').magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -617,7 +617,7 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad").to('deg').magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -686,7 +686,7 @@ def test_load_one_span(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad").to('deg').magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],

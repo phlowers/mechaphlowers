@@ -8,6 +8,16 @@
 import numpy as np
 
 
+import pint
+
+
+unit = pint.UnitRegistry()
+
+unit.define('grad = deg * 180 / 200')
+
+Q_ = unit.Quantity
+
+
 def grad_to_rad(angles_grad: np.ndarray):
     return angles_grad * np.pi / 200
 

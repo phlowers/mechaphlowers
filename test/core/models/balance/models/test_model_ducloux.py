@@ -14,7 +14,7 @@ from mechaphlowers.core.models.balance.models.model_ducloux import (
     nodes_builder,
 )
 from mechaphlowers.entities.arrays import SectionArray
-
+from mechaphlowers.data.units import Q_
 
 @fixture
 def section_array_angles() -> SectionArray:
@@ -25,7 +25,7 @@ def section_array_angles() -> SectionArray:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": f.grad_to_rad(np.array([0, 10, 0, 0])),
+                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad").to('rad').magnitude,
                 "insulator_length": [0, 3, 3, 0],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
