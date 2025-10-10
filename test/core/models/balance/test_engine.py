@@ -9,10 +9,9 @@ import numpy as np
 import pandas as pd
 from pytest import fixture
 
-import mechaphlowers.core.models.balance.functions as f
-from mechaphlowers.core.models.balance.elements import (
+import mechaphlowers.data.units as f
+from mechaphlowers.core.models.balance.engine import (
     BalanceEngine,
-    section_array_to_nodes,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
@@ -92,11 +91,8 @@ def section_array_angles() -> SectionArray:
 
 
 def test_element_initialisation(balance_engine_simple: BalanceEngine):
-    # load = section_2d_note.nodes.load
-
     print("\n")
     print(balance_engine_simple.balance_model)
-    print(balance_engine_simple.balance_model.nodes)
 
 
 def test_element_change_state(balance_engine_simple: BalanceEngine):
@@ -104,7 +100,3 @@ def test_element_change_state(balance_engine_simple: BalanceEngine):
 
     balance_engine_simple.solve_change_state()
     assert True
-
-
-def test_section_array_to_nodes(section_array_angles):
-    section_array_to_nodes(section_array_angles)

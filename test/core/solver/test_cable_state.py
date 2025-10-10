@@ -35,7 +35,7 @@ def get_L_ref_from_arrays(
     deformation = DeformationRte(
         **data_container.__dict__,
         tension_mean=span_model.T_mean(),
-        cable_length=span_model.L(),
+        cable_length=span_model.compute_L(),
     )
     return deformation.L_ref()
 

@@ -94,7 +94,7 @@ def test_functions_to_solve__same_loads(
 
     np.testing.assert_allclose(
         sag_tension_calculation.L_after_change(),
-        frame.span.L(),  # type: ignore[union-attr]
+        frame.span.compute_L(),  # type: ignore[union-attr]
         atol=1e-5,
     )
 

@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import mechaphlowers.core.models.balance.functions as f
-from mechaphlowers.core.models.balance.elements import (
+import mechaphlowers.data.units as f
+from mechaphlowers.core.models.balance.engine import (
     BalanceEngine,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
@@ -68,7 +68,7 @@ def test_load_all_spans_wind_ice_temp_profiling():
     section_3d_angles_arm.solve_adjustment()
 
     for i in range(10):
-        new_temperature = random.randrange(-40, 90)
+        new_temperature = np.array([random.randrange(-40, 90)] * 3)
         ice_thickness = np.array([random.randrange(0, 5)] * 4) * 1e-2
         wind_pressure = np.array([random.randrange(0, 700)] * 4)
         section_3d_angles_arm.solve_change_state(

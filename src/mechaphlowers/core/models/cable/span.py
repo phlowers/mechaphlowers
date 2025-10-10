@@ -5,11 +5,14 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
+from typing import Type
 
 import numpy as np
 
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 
-class Span(ABC):
+
+class ISpan(ABC):
     """This abstract class is a base class for various models describing the cable in its own frame.
 
     The coordinates are expressed in the cable frame.
@@ -40,6 +43,53 @@ class Span(ABC):
             self.load_coefficient = np.ones_like(span_length)
         else:
             self.load_coefficient = load_coefficient
+        self.compute_values()
+
+    def set_lengths(
+        self, span_length: np.ndarray, elevation_difference: np.ndarray
+    ):
+        """Set value of span_length and elevation_difference and compute x_m, x_n and L.
+
+        Args:
+            span_length (np.ndarray): new value for span_length parameter.
+            elevation_difference (np.ndarray): new value for elevation_difference parameter.
+        """
+        self.span_length = span_length
+        self.elevation_difference = elevation_difference
+        self.compute_values()
+
+    def set_parameter(self, sagging_parameter: np.ndarray):
+        """Set value of sagging parameter and compute x_m, x_n and L.
+
+        Args:
+            sagging_parameter (np.ndarray): new value for sagging parameter.
+        """
+        self.sagging_parameter = sagging_parameter
+        self.compute_values()
+
+    def compute_values(self):
+        """Compute and store values for x_m, x_n and L based on current attributes.
+        T_mean depends on these values, so this method should be called before calling T_mean(),
+        especially if an attribute has been updated.
+
+        The goal of this implementation is to reduce the number of times compute_x_m, compute_x_n and compute_L
+        are called during solver iterations.
+        """
+        self._x_m = self.compute_x_m()
+        self._x_n = self.compute_x_n()
+        self._L = self.compute_L()
+
+    @property
+    def x_m(self):
+        return self._x_m
+
+    @property
+    def x_n(self):
+        return self._x_n
+
+    @property
+    def L(self):
+        return self._L
 
     def update_from_dict(self, data: dict) -> None:
         """Update the span model with new data.
@@ -52,7 +102,7 @@ class Span(ABC):
                 setattr(self, key, value)
 
     @abstractmethod
-    def z(self, x: np.ndarray) -> np.ndarray:
+    def z_many_points(self, x: np.ndarray) -> np.ndarray:
         """Altitude of cable points depending on the abscissa.
 
         Args:
@@ -84,14 +134,27 @@ class Span(ABC):
         """
 
     @abstractmethod
-    def x_m(self) -> np.ndarray:
+    def z_one_point(self, x: np.ndarray) -> np.ndarray:
+        """Altitude of cable point depending on the abscissa. One cable point per span
+        If there is 2 spans/ 3 supports:
+
+        `span_length = [500, 600, 700]`
+        `p = [2_000, 1_500, 1_000]`
+        `x = [x0, x1, x2]`
+
+        Then the output is:
+        z = [z0, z1, z2]
+        """
+
+    @abstractmethod
+    def compute_x_m(self) -> np.ndarray:
         """Distance between the lowest point of the cable and the left hanging point, projected on the horizontal axis.
 
         In other words: opposite of the abscissa of the left hanging point.
         """
 
     @abstractmethod
-    def x_n(self) -> np.ndarray:
+    def compute_x_n(self) -> np.ndarray:
         """Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
 
         In other words: abscissa of the right hanging point.
@@ -119,7 +182,7 @@ class Span(ABC):
         The right portion refers to the portion from the right point to lowest point of the cables"""
 
     @abstractmethod
-    def L(self) -> np.ndarray:
+    def compute_L(self) -> np.ndarray:
         """Total length of the cable."""
 
     @abstractmethod
@@ -173,17 +236,15 @@ class Span(ABC):
     def T_mean(self) -> np.ndarray:
         """Mean tension along the whole cable."""
 
-    # TODO: factorize compute_L and compute_x_n in Span class later ?
 
-
-class CatenarySpan(Span):
+class CatenarySpan(ISpan):
     """Implementation of a span cable model according to the catenary equation.
 
     The coordinates are expressed in the cable frame.
     """
 
-    def z(self, x: np.ndarray) -> np.ndarray:
-        """Altitude of cable points depending on the abscissa."""
+    def z_many_points(self, x: np.ndarray) -> np.ndarray:
+        """Altitude of cable points depending on the abscissa. Many points per spans, used for graphs."""
 
         # repeating value to perform multidim operation
         xx = x.T
@@ -197,17 +258,21 @@ class CatenarySpan(Span):
         # reshaping back to p,x -> (vertical, horizontal)
         return rr.T
 
-    def x_m(self) -> np.ndarray:
+    def z_one_point(self, x: np.ndarray) -> np.ndarray:
+        z = self.sagging_parameter * (np.cosh(x / self.sagging_parameter) - 1)
+        return z
+
+    def compute_x_m(self) -> np.ndarray:
         a = self.span_length
         b = self.elevation_difference
         p = self.sagging_parameter
         # return error if linear_weight = None?
         return -a / 2 + p * np.arcsinh(b / (2 * p * np.sinh(a / (2 * p))))
 
-    def x_n(self):
+    def compute_x_n(self):
         # move in superclass?
         a = self.span_length
-        return a + self.x_m()
+        return a + self.compute_x_m()
 
     def x(self, resolution: int = 10) -> np.ndarray:
         """x_coordinate for catenary generation in cable frame
@@ -219,23 +284,24 @@ class CatenarySpan(Span):
         np.ndarray: points generated x number of rows in SectionArray. Last column is nan due to the non-definition of last span.
         """
 
-        start_points = self.x_m()
-        end_points = self.x_n()
+        start_points = self.compute_x_m()
+        end_points = self.compute_x_n()
 
         return np.linspace(start_points, end_points, resolution)
 
     def L_m(self) -> np.ndarray:
         p = self.sagging_parameter
-        return -p * np.sinh(self.x_m() / p)
+        return -p * np.sinh(self.compute_x_m() / p)
 
     def L_n(self) -> np.ndarray:
         p = self.sagging_parameter
-        return p * np.sinh(self.x_n() / p)
+        return p * np.sinh(self.compute_x_n() / p)
 
-    def L(self) -> np.ndarray:
+    def compute_L(self) -> np.ndarray:
         # move in superclass?
         """Total length of the cable."""
-        return self.L_n() + self.L_m()
+        p = self.sagging_parameter
+        return p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
 
     def T_h(self) -> np.ndarray:
         if self.linear_weight is None:
@@ -257,23 +323,66 @@ class CatenarySpan(Span):
         return self.T_h() * np.cosh(x_one_per_span / p)
 
     def T_mean_m(self) -> np.ndarray:
-        x_m = self.x_m()
+        x_m = self.compute_x_m()
         L_m = self.L_m()
         T_h = self.T_h()
         T_x_m = self.T(x_m)
         return (-x_m * T_h + L_m * T_x_m) / (2 * L_m)
 
     def T_mean_n(self) -> np.ndarray:
-        x_n = self.x_n()
+        x_n = self.compute_x_n()
         L_n = self.L_n()
         T_h = self.T_h()
         T_x_n = self.T(x_n)
         return (x_n * T_h + L_n * T_x_n) / (2 * L_n)
 
     def T_mean(self) -> np.ndarray:
-        L_m = self.L_m()
-        L_n = self.L_n()
-        L = self.L()
-        T_mean_m = self.T_mean_m()
-        T_mean_n = self.T_mean_n()
-        return (T_mean_m * L_m + T_mean_n * L_n) / L
+        """Return the mean tension along the whole cable. Used in deformation model to compute mechanical deformation.
+        Warning: this method uses stored values of x_m, x_n and L.
+        If any attribute has been updated, compute_values() should be called before calling this method.
+
+        """
+        p = self.sagging_parameter
+        k_load = self.load_coefficient
+        lambd = self.linear_weight
+        a = self._x_n - self._x_m
+        return (
+            p
+            * k_load
+            * lambd
+            * (
+                a
+                + (np.sinh(2 * self._x_n / p) - np.sinh(2 * self._x_m / p))
+                * p
+                / 2
+            )
+            / self._L
+            / 2
+        )
+
+
+def span_model_builder(
+    section_array: SectionArray,
+    cable_array: CableArray,
+    span_model_type: Type[ISpan],
+) -> ISpan:
+    """Builds a Span object, using data from ScetionArray and CableArray
+
+    Args:
+        section_array (SectionArray): input data (span_length, elevation_difference, sagging_parameter)
+        cable_array (CableArray): input data from cable (only linar weight used here)
+        span_model_type (Type[Span]): choose the type of span model to use
+
+    Returns:
+        Span: span model to return
+    """
+    span_length = section_array.data.span_length.to_numpy()
+    elevation_difference = section_array.data.elevation_difference.to_numpy()
+    sagging_parameter = section_array.data.sagging_parameter.to_numpy()
+    linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
+    return span_model_type(
+        span_length,
+        elevation_difference,
+        sagging_parameter,
+        linear_weight=linear_weight,
+    )

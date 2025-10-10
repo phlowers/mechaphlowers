@@ -22,7 +22,7 @@ from mechaphlowers.core.models.cable.deformation import (
 )
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
-    Span,
+    ISpan,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import (
@@ -64,9 +64,9 @@ class SectionDataFrame:
         self.weather: WeatherArray | None = None
         self.data_container: DataContainer = DataContainer()
         self.cable_loads: CableLoads | None = None
-        self.span: Span
+        self.span: ISpan
         self.deformation: IDeformation | None = None
-        self._span_model: Type[Span]
+        self._span_model: Type[ISpan]
         self._deformation_model: Type[IDeformation]
 
         # Initialize
@@ -76,7 +76,7 @@ class SectionDataFrame:
 
     def init_type_model(
         self,
-        span_model: Type[Span] | None = None,
+        span_model: Type[ISpan] | None = None,
         deformation_model: Type[IDeformation] | None = None,
     ):
         """init_type_model method to initialize type model"""
@@ -277,10 +277,11 @@ class SectionDataFrame:
         if self.cable is None:
             raise ValueError("Cable has to be added before deformation model")
         # Initialize deformation model
+        self.span.compute_values()
         self.deformation = self._deformation_model(
             **self.data_container.__dict__,
             tension_mean=self.span.T_mean(),
-            cable_length=self.span.L(),
+            cable_length=self.span.L,
         )
         # TODO: test if L_ref change when span_model T_mean change
 

@@ -6,7 +6,9 @@
 
 import numpy as np
 
-from mechaphlowers.core.models.balance.utils_balance import VectorProjection
+from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
+    VectorProjection,
+)
 
 
 def test_proj_no_angles():

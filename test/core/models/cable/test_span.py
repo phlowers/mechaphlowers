@@ -21,12 +21,12 @@ def test_catenary_span_model__no_error_lengths() -> None:
     span_model = CatenarySpan(a, b, p)
     x = np.linspace(-223.2, 245.2, 250)
 
-    assert isinstance(span_model.z(x), np.ndarray)
+    assert isinstance(span_model.z_many_points(x), np.ndarray)
 
-    assert isinstance(span_model.x_m(), np.ndarray)
+    assert isinstance(span_model.compute_x_m(), np.ndarray)
 
-    span_model.x_m()  # check no error
-    span_model.x_n()
+    span_model.compute_x_m()  # check no error
+    span_model.compute_x_n()
     span_model.L_m()
     span_model.L_n()
 
@@ -40,9 +40,9 @@ def test_catenary_span_model__no_errors_tensions() -> None:
     span_model = CatenarySpan(a, b, p, linear_weight=lambd)
     x = np.array([100, 200.0])
 
-    assert isinstance(span_model.z(x), np.ndarray)
+    assert isinstance(span_model.z_many_points(x), np.ndarray)
 
-    assert isinstance(span_model.x_m(), np.ndarray)
+    assert isinstance(span_model.compute_x_m(), np.ndarray)
 
     span_model.T_h()
     span_model.T_v(x)
@@ -58,8 +58,10 @@ def test_catenary_span_model__x_m__if_no_elevation_difference() -> None:
     p = np.array([2_000])
 
     span_model = CatenarySpan(a, b, p)
-    assert abs(span_model.x_m() + 50.0) < 0.01
-    assert abs(49.37 + span_model.z(np.array([-50.0])) - 50.0) < 0.01
+    assert abs(span_model.compute_x_m() + 50.0) < 0.01
+    assert (
+        abs(49.37 + span_model.z_many_points(np.array([-50.0])) - 50.0) < 0.01
+    )
 
 
 def test_catenary_span_model__z__one_span() -> None:
@@ -71,8 +73,8 @@ def test_catenary_span_model__z__one_span() -> None:
 
     span_model = CatenarySpan(a, b, p)
 
-    span_model.z(x)
-    span_model.x_m()
+    span_model.z_many_points(x)
+    span_model.compute_x_m()
 
 
 def test_catenary_span_model__elevation_impact() -> None:
@@ -83,7 +85,7 @@ def test_catenary_span_model__elevation_impact() -> None:
     span_model = CatenarySpan(a, b, p)
     x_cable = span_model.x(5)
 
-    z_cable = span_model.z(x_cable)
+    z_cable = span_model.z_many_points(x_cable)
     assert abs(z_cable[-1, 0] - z_cable[0, 0] - b[0]) < 0.01
     assert abs(z_cable[-1, 1] - z_cable[0, 1] - b[1]) < 0.01
 
@@ -96,7 +98,7 @@ def test_catenary_span_model__length_impact() -> None:
     span_model = CatenarySpan(a, b, p)
     x_cable = span_model.x(5)
 
-    z_cable = span_model.z(x_cable)
+    z_cable = span_model.z_many_points(x_cable)
     assert abs(z_cable[-1, 0] - z_cable[0, 0] - b[0]) < 0.01
     assert abs(z_cable[-1, 1] - z_cable[0, 1] - b[1]) < 0.01
 
@@ -140,7 +142,7 @@ def test_catenary_span_model__tensions__no_elevation_difference() -> None:
     span_model = CatenarySpan(
         a, b, p, load_coefficient=k_load, linear_weight=lambd
     )
-    x_m = span_model.x_m()
+    x_m = span_model.compute_x_m()
 
     # Data given by the prototype
     assert abs(span_model.T_h()[0] - 19109.88) < 0.01
@@ -159,13 +161,13 @@ def test_catenary_span_model__geometric_output() -> None:
         a, b, p, load_coefficient=k_load, linear_weight=lambd
     )
 
-    assert (span_model.x_m() + 250.0) < 0.01
-    assert (span_model.x_n() - 250.0) < 0.01
+    assert (span_model.compute_x_m() + 250.0) < 0.01
+    assert (span_model.compute_x_n() - 250.0) < 0.01
 
     assert (span_model.L_m() - 250.652) < 0.01
     assert (span_model.L_n() - 250.652) < 0.01
 
-    assert (span_model.L() - 501.303) < 0.01
+    assert (span_model.compute_L() - 501.303) < 0.01
 
     # TODO: check on a non symetrical case
 
@@ -176,11 +178,11 @@ def test_catenary_span_model__data_container(
     span_model = CatenarySpan(**default_data_container_one_span.__dict__)
     x = np.array([100, 200.0])
 
-    span_model.x_m()
-    assert isinstance(span_model.z(x), np.ndarray)
+    span_model.compute_x_m()
+    assert isinstance(span_model.z_many_points(x), np.ndarray)
 
-    assert isinstance(span_model.x_m(), np.ndarray)
-    span_model.x_n()
+    assert isinstance(span_model.compute_x_m(), np.ndarray)
+    span_model.compute_x_n()
     span_model.L_m()
     span_model.L_n()
     span_model.T_h()

@@ -15,7 +15,7 @@ from mechaphlowers.core.geometry.references import (
     cable_to_localsection_frame,
     translate_cable_to_support,
 )
-from mechaphlowers.core.models.cable.span import Span
+from mechaphlowers.core.models.cable.span import ISpan
 
 
 def stack_nan(coords: np.ndarray) -> np.ndarray:
@@ -153,7 +153,7 @@ class SectionPoints:
         crossarm_length: np.ndarray,
         insulator_length: np.ndarray,
         line_angle: np.ndarray,
-        span_model: Span,
+        span_model: ISpan,
         **_,
     ):
         """Initialize the SectionPoints object with section parameters and a span model.
@@ -194,7 +194,7 @@ class SectionPoints:
         self._beta = np.array([])
         self.init_span(span_model)
 
-    def init_span(self, span_model: Span) -> None:
+    def init_span(self, span_model: ISpan) -> None:
         """change the span model and update the cable coordinates."""
         self.span_model = span_model
         self.update_ab()
@@ -208,7 +208,7 @@ class SectionPoints:
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
         self.x_cable: np.ndarray = self.span_model.x(resolution)
-        self.z_cable: np.ndarray = self.span_model.z(self.x_cable)
+        self.z_cable: np.ndarray = self.span_model.z_many_points(self.x_cable)
 
     @property
     def beta(self) -> np.ndarray:

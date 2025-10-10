@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 import pandera as pa
+from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Self, Type
 
 from mechaphlowers.entities.schemas import (
@@ -141,6 +142,30 @@ class CableArray(ElementArray):
             if coef in data_SI:
                 data_SI[coef] *= 1e9
         return data_SI
+
+    @property
+    def polynomial_conductor(self) -> Poly:
+        return Poly(
+            [
+                self.data.a0[0],
+                self.data.a1[0],
+                self.data.a2[0],
+                self.data.a3[0],
+                self.data.a4[0],
+            ]
+        )
+
+    @property
+    def polynomial_heart(self) -> Poly:
+        return Poly(
+            [
+                self.data.b0[0],
+                self.data.b1[0],
+                self.data.b2[0],
+                self.data.b3[0],
+                self.data.b4[0],
+            ]
+        )
 
 
 class WeatherArray(ElementArray):
