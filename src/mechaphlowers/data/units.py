@@ -5,11 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-import numpy as np
-
-
 import pint
-
 
 unit = pint.UnitRegistry()
 

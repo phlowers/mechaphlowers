@@ -13,7 +13,6 @@ from typing import Tuple, Type
 import numpy as np
 import pandas as pd
 
-from mechaphlowers.data.units import Q_
 from mechaphlowers.core.models.balance.interfaces import (
     IBalanceModel,
     IModelForSolver,
@@ -22,21 +21,24 @@ from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
     Masks,
     VectorProjection,
 )
+from mechaphlowers.core.models.balance.solvers.balance_solver import (
+    BalanceSolver,
+)
 from mechaphlowers.core.models.balance.solvers.find_parameter_solver import (
     FindParamModel,
     FindParamSolverForLoop,
     IFindParamSolver,
 )
-from mechaphlowers.core.models.balance.solvers.solver import BalanceSolver
 from mechaphlowers.core.models.cable.deformation import (
     IDeformation,
     deformation_model_builder,
 )
 from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
+from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.utils import arr
 from mechaphlowers.numeric import cubic
+from mechaphlowers.utils import arr
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +61,7 @@ class BalanceModel(IBalanceModel):
         find_param_solver_type: Type[
             IFindParamSolver
         ] = FindParamSolverForLoop,
-    ):
+    ) -> None:
         # tempertaure and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
         self.parameter = parameter
@@ -99,8 +101,8 @@ class BalanceModel(IBalanceModel):
             self.cable_array,
             self.nodes.load[self.nodes.has_load_on_span],
             self.nodes.load_position[self.nodes.has_load_on_span],
-            arr.dec(self.span_model.span_length)[self.nodes.has_load_on_span],
-            arr.dec(self.span_model.elevation_difference)[
+            arr.decr(self.span_model.span_length)[self.nodes.has_load_on_span],
+            arr.decr(self.span_model.elevation_difference)[
                 self.nodes.has_load_on_span
             ],
             self.k_load[self.nodes.has_load_on_span],
@@ -135,7 +137,7 @@ class BalanceModel(IBalanceModel):
         """Load coefficient, taking into account wind and ice.
         Last value removed because it is a NaN.
         """
-        return arr.dec(self.cable_loads.load_coefficient)
+        return arr.decr(self.cable_loads.load_coefficient)
 
     @property
     def alpha(self) -> np.ndarray:
@@ -156,7 +158,7 @@ class BalanceModel(IBalanceModel):
         Here: beta = [beta0, beta1, beta2] because the last value refers to the last support (no span related to this support)
         """
         # TODO: check why sign different from what already exists in CableLoads
-        return -arr.dec(self.cable_loads.load_angle)
+        return -arr.decr(self.cable_loads.load_angle)
 
     def update_L_ref(self) -> np.ndarray:
         """Update the reference length L_ref, after an adjustment computation.
@@ -168,11 +170,11 @@ class BalanceModel(IBalanceModel):
 
         self.deformation_model.tension_mean = self.span_model.T_mean()
         self.deformation_model.cable_length = self.span_model.L
-        self.deformation_model.current_temperature = arr.inc(
+        self.deformation_model.current_temperature = arr.incr(
             self.sagging_temperature
         )
 
-        L_0 = arr.dec(self.deformation_model.L_0())
+        L_0 = arr.decr(self.deformation_model.L_0())
         self.L_ref = L_0
         return L_0
 
@@ -207,19 +209,19 @@ class BalanceModel(IBalanceModel):
             self.dilatation_coefficient,
             self.sagging_temperature,
         )
-        parameter_parabola = arr.inc(parameter_parabola)
+        parameter_parabola = arr.incr(parameter_parabola)
         self.find_param_model.set_attributes(
             initial_parameter=parameter_parabola,
-            L_ref=arr.inc(self.L_ref),
+            L_ref=arr.incr(self.L_ref),
         )
 
         parameter = self.find_param_solver.find_parameter()
 
         self.span_model.set_parameter(parameter)
-        Th = arr.dec(self.span_model.T_h())
-        x_m = arr.dec(self.span_model.x_m)
-        x_n = arr.dec(self.span_model.x_n)
-        return Th, x_m, x_n, arr.dec(parameter)
+        Th = arr.decr(self.span_model.T_h())
+        x_m = arr.decr(self.span_model.x_m)
+        x_n = arr.decr(self.span_model.x_n)
+        return Th, x_m, x_n, arr.decr(parameter)
 
     def update_tensions(self) -> np.ndarray:
         """Compute values of Th, Tv_d and Tv_g.
@@ -230,9 +232,9 @@ class BalanceModel(IBalanceModel):
         """
         # Case: adjustment
         if self._adjustment:
-            Th = arr.dec(self.span_model.T_h())
-            x_m = arr.dec(self.span_model.compute_x_m())
-            x_n = arr.dec(self.span_model.compute_x_n())
+            Th = arr.decr(self.span_model.T_h())
+            x_m = arr.decr(self.span_model.compute_x_m())
+            x_n = arr.decr(self.span_model.compute_x_n())
 
         # Case: change state + no load:
         else:
@@ -242,9 +244,9 @@ class BalanceModel(IBalanceModel):
             if not self._adjustment and self.nodes.has_load_on_span.any():
                 self.x_i = self.nodes.load_position * self.a_prime
                 # TODO: Don't know why adding x_m is needed
-                z_i_m = self.span_model.z_one_point(arr.inc(self.x_i + x_m))
-                z_m = self.span_model.z_one_point(arr.inc(x_m))
-                self.z_i = arr.dec(z_i_m - z_m)
+                z_i_m = self.span_model.z_one_point(arr.incr(self.x_i + x_m))
+                z_m = self.span_model.z_one_point(arr.incr(x_m))
+                self.z_i = arr.decr(z_i_m - z_m)
 
                 self.solve_xi_zi_loads()
 
@@ -263,10 +265,10 @@ class BalanceModel(IBalanceModel):
                 )
 
             self.parameter = parameter
-            self.span_model.set_parameter(arr.inc(parameter))
+            self.span_model.set_parameter(arr.incr(parameter))
 
-        self.Tv_g = arr.dec(self.span_model.T_v(arr.inc(x_m)))
-        self.Tv_d = -arr.dec(self.span_model.T_v(arr.inc(x_n)))
+        self.Tv_g = arr.decr(self.span_model.T_v(arr.incr(x_m)))
+        self.Tv_d = -arr.decr(self.span_model.T_v(arr.incr(x_n)))
         self.Th = Th
         self.update_projections()
 
@@ -328,7 +330,7 @@ class BalanceModel(IBalanceModel):
         self.b = b[:-1]
         # TODO: fix array lengths?
         self.span_model.set_lengths(
-            arr.inc(self.a_prime), arr.inc(self.b_prime)
+            arr.incr(self.a_prime), arr.incr(self.b_prime)
         )
 
     def objective_function(self) -> np.ndarray:
@@ -590,9 +592,12 @@ class Nodes:
 def nodes_builder(section_array: SectionArray) -> Nodes:
     """Builds a Nodes object from a SectionArray by extracting and transforming data.
 
-    section_array (SectionArray): Section Array to extract the data from.
+    Args:
+        section_array (SectionArray): Section Array to extract the data from.
 
-    Nodes: An instance of Nodes initialized with data from section array.
+    Returns:
+        Nodes: An instance of Nodes initialized with data from section array.
+
     line_angle is in radians.
     """
 
@@ -600,11 +605,13 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
     weight_chain = section_array.data.insulator_weight.to_numpy()
     arm_length = section_array.data.crossarm_length.to_numpy()
     # Convert degrees to rad
-    line_angle = Q_(section_array.data.line_angle.to_numpy(), "deg").to("rad").magnitude
+    line_angle = (
+        Q_(section_array.data.line_angle.to_numpy(), "deg").to("rad").magnitude
+    )
     z = section_array.data.conductor_attachment_altitude.to_numpy()
-    span_length = arr.dec(section_array.data.span_length.to_numpy())
-    load = arr.dec(section_array.data.load_weight.to_numpy())
-    load_position = arr.dec(section_array.data.load_position.to_numpy())
+    span_length = arr.decr(section_array.data.span_length.to_numpy())
+    load = arr.decr(section_array.data.load_weight.to_numpy())
+    load_position = arr.decr(section_array.data.load_position.to_numpy())
     return Nodes(
         L_chain,
         weight_chain,

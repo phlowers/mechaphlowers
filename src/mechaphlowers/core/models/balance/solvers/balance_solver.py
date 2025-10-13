@@ -17,6 +17,22 @@ logger = logging.getLogger(__name__)
 
 
 class BalanceSolver:
+    """Solver for balance models using a Newton-Raphson method.
+    Takes a model implementing IModelForSolver as input, and solves it using.
+
+    The main difference with a classic Newton-Raphson method is
+    that the correction of the state vector is using a custom formula,
+    using a relaxation value that decreases with the number of iterations.
+
+    The jacobian matrix is computed using finite differences.
+
+        >>> balance_model = ...  # some model implementing IModelForSolver
+        >>> solver = BalanceSolver()
+        >>> solver.solve(balance_model)
+        >>> balance_model.state_vector  # updated state vector after solving
+        np.array([...])
+    """
+
     def __init__(
         self,
         perturb=0.0001,
@@ -24,8 +40,7 @@ class BalanceSolver:
         relax_ratio=0.8,
         relax_power=3,
         max_iter=100,
-    ):
-        self.mem_loop = []
+    ) -> None:
         self.perturb = perturb
         self.stop_condition = stop_condition
         self.relax_ratio = relax_ratio
@@ -70,7 +85,6 @@ class BalanceSolver:
                 "state_vector": model.state_vector,
             }
             dict_to_store.update(model.dict_to_store())
-            self.mem_loop.append(dict_to_store)
 
             # check value to minimze to break the loop
             if norm_d_param < self.stop_condition:

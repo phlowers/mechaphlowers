@@ -77,7 +77,7 @@ class Config:
     def compute(self) -> ComputeConfig:
         """Dataframe configuration property."""
         return self._compute_config
-    
+
     @property
     def precision(self) -> PrecisionConfig:
         """Precision configuration property."""

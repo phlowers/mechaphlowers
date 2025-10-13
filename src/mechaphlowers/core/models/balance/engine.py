@@ -14,7 +14,9 @@ import numpy as np
 
 from mechaphlowers.core.models.balance.interfaces import IBalanceModel
 from mechaphlowers.core.models.balance.models.model_ducloux import BalanceModel
-from mechaphlowers.core.models.balance.solvers.solver import BalanceSolver
+from mechaphlowers.core.models.balance.solvers.balance_solver import (
+    BalanceSolver,
+)
 from mechaphlowers.core.models.cable.deformation import (
     DeformationRte,
     IDeformation,
@@ -35,16 +37,23 @@ logger = logging.getLogger(__name__)
 class BalanceEngine:
     """Engine for solving insulator chains positions.
 
-    Example of use:
+    Examples:
 
-    >>> balance_engine = BalanceEngine(cable_array, section_array)
-    >>> balance_engine.solve_adjustment()
-    >>> wind_pressure = np.array([...])  # in Pa
-    >>> ice_thickness = np.array([...])  # in m
-    >>> new_temperature = np.array([...])  # in °C
-    >>> balance_engine.solve_change_state(
-    ...     wind_pressure, ice_thickness, new_temperature
-    ... )
+            >>> balance_engine = BalanceEngine(cable_array, section_array)
+            >>> balance_engine.solve_adjustment()
+            >>> wind_pressure = np.array([...])  # in Pa
+            >>> ice_thickness = np.array([...])  # in m
+            >>> new_temperature = np.array([...])  # in °C
+            >>> balance_engine.solve_change_state(
+            ...     wind_pressure, ice_thickness, new_temperature
+            ... )
+
+    After solving any situation, many attributes are updated in the models.
+
+    Most interesting ones are:
+    - `self.L_ref` for solve_adjustment()
+    - `self.balance_model.nodes.dxdydz` and `self.span_model.sagging_parameter` for solve_change_state().
+
 
     Args:
         cable_array (CableArray): Cable data
@@ -60,16 +69,16 @@ class BalanceEngine:
         balance_model_type: Type[IBalanceModel] = BalanceModel,
         span_model_type: Type[ISpan] = CatenarySpan,
         deformation_model_type: Type[IDeformation] = DeformationRte,
-    ):
-        # TODO: fix this
+    ) -> None:
+        # TODO: find a better way to initialize objects
         zeros_vector = np.zeros_like(
             section_array.data.conductor_attachment_altitude.to_numpy()
         )
 
-        sagging_temperature = arr.dec(
+        sagging_temperature = arr.decr(
             (section_array.data.sagging_temperature.to_numpy())
         )
-        parameter = arr.dec(section_array.data.sagging_parameter.to_numpy())
+        parameter = arr.decr(section_array.data.sagging_parameter.to_numpy())
         self.span_model = span_model_builder(
             section_array, cable_array, span_model_type
         )
@@ -97,6 +106,7 @@ class BalanceEngine:
         )
         self.solver_change_state = BalanceSolver()
         self.solver_adjustment = BalanceSolver()
+        self.L_ref: np.ndarray
 
     def solve_adjustment(self) -> None:
         """Solve the chain positions in the adjustment case, updating L_ref in the balance model.
@@ -136,7 +146,7 @@ class BalanceEngine:
             self.balance_model.cable_loads.ice_thickness = ice_thickness
         if new_temperature is not None:
             self.balance_model.sagging_temperature = new_temperature
-            self.deformation_model.current_temperature = arr.inc(
+            self.deformation_model.current_temperature = arr.incr(
                 new_temperature
             )
         self.balance_model.adjustment = False

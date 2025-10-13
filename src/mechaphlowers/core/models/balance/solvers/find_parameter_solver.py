@@ -24,21 +24,25 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-PARAMETER_STEP = 1.0
-
 
 class IModelToSolve(ABC):
+    """Interface for models to solve for a parameter using IFindParamSolver."""
+
     @property
     @abstractmethod
     def initial_value(self):
+        """First value to start the solver from."""
         pass
 
     @abstractmethod
-    def _delta(self, parameter) -> np.ndarray:
+    def _delta(self, parameter: np.ndarray) -> np.ndarray:
+        """Function to find the root of.
+        The solver will solve $_delta(parameter) = 0$"""
         pass
 
     @abstractmethod
-    def _delta_prime(self, parameter) -> np.ndarray:
+    def _delta_prime(self, parameter: np.ndarray) -> np.ndarray:
+        """Derivative of the function to find the root of."""
         pass
 
 
@@ -47,9 +51,11 @@ class FindParamModel(IModelToSolve):
         self,
         span_model: ISpan,
         deformation_model: IDeformation,
+        param_step=1.0,
     ):
         self.span_model = span_model
         self.deformation_model = deformation_model
+        self.param_step = param_step
 
     def set_attributes(
         self, initial_parameter: np.ndarray, L_ref: np.ndarray
@@ -70,7 +76,16 @@ class FindParamModel(IModelToSolve):
             )
         return self.initial_parameter
 
-    def _delta(self, parameter) -> np.ndarray:
+    def _delta(self, parameter: np.ndarray) -> np.ndarray:
+        """Equation to solve:
+        $\\frac{L(p) - L_0}{L_0} - (\\varepsilon_{mecha}(p) + \\varepsilon_{therm}(p)) = 0$
+
+        Args:
+            parameter (np.ndarray): parameter
+
+        Returns:
+            np.ndarray: value of the function to find the root of
+        """
         self.update_models(parameter)
         L = self.span_model.L
         eps_mecha = self.deformation_model.epsilon_mecha()
@@ -79,8 +94,8 @@ class FindParamModel(IModelToSolve):
 
     def _delta_prime(self, parameter) -> np.ndarray:
         return (
-            self._delta(parameter + PARAMETER_STEP) - self._delta(parameter)
-        ) / PARAMETER_STEP
+            self._delta(parameter + self.param_step) - self._delta(parameter)
+        ) / self.param_step
 
 
 class IFindParamSolver(ABC):
@@ -123,7 +138,7 @@ class FindParamSolverForLoop(IFindParamSolver):
             parameter = parameter - delta / delta_prime
 
             if (
-                np.linalg.norm(arr.dec(mem - parameter))
+                np.linalg.norm(arr.decr(mem - parameter))
                 < self.stop_condition * parameter.size
             ):
                 break

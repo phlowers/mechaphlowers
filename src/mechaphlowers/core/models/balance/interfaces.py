@@ -26,9 +26,14 @@ logger = logging.getLogger(__name__)
 
 
 class IModelForSolver(ABC):
+    """Interface for models used by BalanceSolver.
+    This interface defines the necessary methods and properties that a model in order to be compatible with BalanceSolver.
+    """
+
     @property
     @abstractmethod
     def state_vector(self) -> np.ndarray:
+        """Vector of state variables to be optimized."""
         pass
 
     @state_vector.setter
@@ -38,17 +43,24 @@ class IModelForSolver(ABC):
 
     @abstractmethod
     def objective_function(self) -> np.ndarray:
+        """Function to minimize that depends on state_vector."""
         pass
 
     @abstractmethod
     def update(self) -> None:
+        """Update any variables of the model if necessary. Can stay empty."""
         pass
 
     def dict_to_store(self) -> dict:
+        """Returns a dictionary of values to store after each loop iteration.
+        Used only for debugging purposes. Can stay empty.
+        """
         return {}
 
 
 class IBalanceModel(IModelForSolver, ABC):
+    """Interface for balance models. Used by BalanceEngine to find insulator chain positions."""
+
     def __init__(
         self,
         sagging_temperature: np.ndarray,
@@ -67,15 +79,17 @@ class IBalanceModel(IModelForSolver, ABC):
         self.cable_loads = cable_loads
 
     @abstractmethod
-    def update_L_ref(self):
+    def update_L_ref(self) -> np.ndarray:
+        """Update the reference length L_ref after an adjustment solve."""
         pass
 
     @property
     @abstractmethod
-    def adjustment(self):
+    def adjustment(self) -> bool:
+        """Boolean indicating if the model is in adjustment mode or change of state mode."""
         pass
 
     @adjustment.setter
     @abstractmethod
-    def adjustment(self, value: bool):
+    def adjustment(self, value: bool) -> None:
         pass
