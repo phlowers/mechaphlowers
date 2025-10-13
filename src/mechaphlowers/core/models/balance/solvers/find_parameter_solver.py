@@ -14,7 +14,7 @@ import numpy as np
 
 from mechaphlowers.core.models.cable.deformation import IDeformation
 from mechaphlowers.core.models.cable.span import ISpan
-from mechaphlowers.entities.core import size
+from mechaphlowers.utils import arr
 
 try:
     from scipy import optimize  # type: ignore
@@ -123,7 +123,7 @@ class FindParamSolverForLoop(IFindParamSolver):
             parameter = parameter - delta / delta_prime
 
             if (
-                np.linalg.norm(size.to_span(mem - parameter))
+                np.linalg.norm(arr.dec(mem - parameter))
                 < self.stop_condition * parameter.size
             ):
                 break

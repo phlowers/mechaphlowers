@@ -110,3 +110,25 @@ def df_to_dict(df: pd.DataFrame) -> dict:
         else:
             q[k] = q[k][0]
     return q
+
+
+
+def reduce_to_span(array_to_reduce: np.ndarray):
+    return array_to_reduce[0:-1]
+
+
+def fill_to_support(array_to_fill: np.ndarray):
+    return np.concatenate((array_to_fill, [np.nan]))
+
+
+class ArrayTools:
+    @staticmethod
+    def dec(array: np.ndarray) -> np.ndarray:
+        return reduce_to_span(array)
+
+    @staticmethod
+    def inc(array: np.ndarray) -> np.ndarray:
+        return fill_to_support(array)
+
+
+arr = ArrayTools()
