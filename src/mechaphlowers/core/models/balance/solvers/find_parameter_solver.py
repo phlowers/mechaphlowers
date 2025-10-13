@@ -47,6 +47,7 @@ class IModelToSolve(ABC):
 
 
 class FindParamModel(IModelToSolve):
+    # TODO: write docstring (use SagTensionSolver for inspiration)
     def __init__(
         self,
         span_model: ISpan,

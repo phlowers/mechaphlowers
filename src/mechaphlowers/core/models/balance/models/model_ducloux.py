@@ -125,6 +125,8 @@ class BalanceModel(IBalanceModel):
 
     @property
     def adjustment(self) -> bool:
+        """Boolean property indicating if the model is in adjustment mode or change state mode.
+        """
         return self._adjustment
 
     @adjustment.setter
@@ -293,6 +295,8 @@ class BalanceModel(IBalanceModel):
         self.load_solver.solve(self.load_model)
 
     def update_projections(self) -> None:
+        """update attributes of VectorProjection in order to compute with correct values
+        """
         alpha = self.alpha
         beta = self.beta
 
@@ -309,6 +313,7 @@ class BalanceModel(IBalanceModel):
         )
 
     def compute_inter(self) -> None:
+        # TODO: understand this and write docstring
         # warning: counting from right to left
         proj_d_i = self.nodes.proj_d
         proj_g_ip1 = np.roll(self.nodes.proj_g, -1, axis=1)
@@ -319,7 +324,8 @@ class BalanceModel(IBalanceModel):
         self.proj_angle: np.ndarray = np.atan2(self.inter2, self.inter1)
 
     def update_span(self) -> None:
-        """transmet_portee"""
+        """Update span lengths and elevation differences in the span model.
+        Those values may change because of chain position changing between iterations."""
         # warning for dev : we dont use the first element of span vectors for the moment
         z = self.nodes.z
 
@@ -334,7 +340,11 @@ class BalanceModel(IBalanceModel):
         )
 
     def objective_function(self) -> np.ndarray:
-        """[Mx0, My0, Mx1, My1,...]"""
+        """Objective foncton to minimize: moments at the nodes.
+        The balance position is found when every moment is equal to zero.
+
+        Returns:
+            np.ndarray: moments at the nodes. The format of the output is: [Mx0, My0, Mx1, My1,...]"""
         # Need to run update() before this method if necessary
         self.nodes.compute_moment()
 
@@ -343,7 +353,12 @@ class BalanceModel(IBalanceModel):
 
     @property
     def state_vector(self) -> np.ndarray:
-        # [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
+        """State vector: displacements of chains that matters.
+        For suspension, dx and dy are the variables. For anchors, they are dz and dy.
+
+        Returns:
+            np.ndarray: state vector. Format is [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
+        """
         return self.nodes.state_vector
 
     @state_vector.setter
@@ -390,6 +405,24 @@ def approx_parameter(
     dilatation_coefficient: np.float64,
     cable_temperature: np.ndarray,
 ) -> np.ndarray:
+    """Computes an approximation of the parameter using the parabola model.
+    The solution is found by resolving a cubic equation, using the Cardano method.
+
+    Args:
+        a (np.ndarray): span length
+        b (np.ndarray): elevation difference
+        L0 (np.ndarray): unstressed length of cable
+        k_load (np.ndarray): load coefficient
+        cable_section (np.float64): area of the section of the cable
+        linear_weight (np.float64): linear weight of the cable
+        young_modulus (np.float64): young modulus of the cable
+        dilatation_coefficient (np.float64): dilatation coefficient of the cable
+        cable_temperature (np.ndarray): cable current temperature
+
+    Returns:
+        np.ndarray: approximated values of the parameter using the parabola model
+    """
+    # TODO: mathematical documentation
     circle_chord = (a**2 + b**2) ** 0.5
 
     factor = linear_weight * k_load / young_modulus / cable_section
@@ -419,6 +452,8 @@ class Nodes:
         load: np.ndarray,
         load_position: np.ndarray,
     ):
+        # TODO: docstring of this whole class
+
         self.L_chain = L_chain
         # weight_chain: positive weight means downward force
         self.weight_chain = -weight_chain
@@ -625,6 +660,10 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
 
 
 class LoadModel(IModelForSolver):
+    """Model for solving the position of the loads on the span.
+    Used by the BalanceSolver class.
+    Also creates two semi-span models (left and right of the load) for solving purposing, and that could be used later for graphs.
+    """
     def __init__(
         self,
         cable_array: CableArray,
@@ -697,6 +736,17 @@ class LoadModel(IModelForSolver):
         k_load: np.ndarray,
         temperature: np.ndarray,
     ) -> None:
+        """Update attributes. This method is used frequently, at every iteration of the main loop
+
+        Args:
+            L_ref (np.ndarray): unstressed length of the cable
+            x_i (np.ndarray): abscissa of the load on the span
+            z_i (np.ndarray): height of the load on the span
+            a_prime (np.ndarray): span length
+            b_prime (np.ndarray): elevation difference
+            k_load (np.ndarray): load coefficient
+            temperature (np.ndarray): current temperature
+        """
         # put L_ref in constructor?
         self.L_ref = L_ref
         self.x_i = x_i
@@ -725,6 +775,10 @@ class LoadModel(IModelForSolver):
 
     @property
     def state_vector(self) -> np.ndarray:
+        """State vector: position of the loads on the span.
+        Returns:
+            np.ndarray: state vector. Format is [x_i0, z_i0, x_i1, z_i1,...]
+        """
         return np.array([self.x_i, self.z_i]).flatten('F')
 
     @state_vector.setter
@@ -734,7 +788,12 @@ class LoadModel(IModelForSolver):
         self.update_lengths_span_models()
 
     def objective_function(self) -> np.ndarray:
-        """[Th_diff0, Tv_diff0, Th_diff1, Tv_diff1,...]"""
+        """Objective function to minimize: differences of tensions at the load position.
+        The balance position is found when the tensions are equal on both side of the load.
+
+        Returns:
+            np.ndarray: differences of tensions at the load position. Format is [Th_diff0, Tv_diff0, Th_diff1, Tv_diff1,...]
+        """
         # left side of the load
         Th_left = self.span_model_left.T_h()
         # need to update?
@@ -754,6 +813,8 @@ class LoadModel(IModelForSolver):
         return np.array([Th_diff, Tv_diff]).flatten('F')
 
     def update(self) -> None:
+        """Update attributes on both span models: span length, elevation difference, L_ref and parameter
+        """
         self.update_lengths_span_models()
         # update parameter left
         L_ref_left = self.load_position * self.L_ref

@@ -10,19 +10,11 @@ from typing import List, Tuple
 import numpy as np
 
 
-def fill_to_support(array_to_fill: np.ndarray):
-    return np.concatenate((array_to_fill, [np.nan]))
-
-
-def reduce_to_span(array_to_reduce: np.ndarray):
-    return array_to_reduce[0:-1]
-
-
 class Masks:
     """
     Current types: "suspension", anchor_first, "anchor_last"
     """
-
+    # TODO: wriste docstring
     def __init__(self, nodes_type: List[str], L_chain: np.ndarray) -> None:
         self.nodes_type = nodes_type
         self.L_chain = L_chain
@@ -70,6 +62,7 @@ class Masks:
 
 
 class VectorProjection:
+    # TODO: understand this and write docstring + eventually refactor this
     def set_tensions(
         self, Th: np.ndarray, Tv_d: np.ndarray, Tv_g: np.ndarray
     ) -> None:
