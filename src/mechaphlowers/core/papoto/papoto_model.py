@@ -15,6 +15,41 @@ except ImportError:
 _ZETA = 1.0
 
 
+def papoto_validity(
+    parameter_1_2: np.ndarray,
+    parameter_2_3: np.ndarray,
+    parameter_1_3: np.ndarray,
+) -> np.ndarray:
+    """papoto_validity
+
+    Function providing a validity criteria for the papoto method, based on the 3 computed values.
+
+    Args:
+        parameter_1_2 (np.float): first computed parameters
+        parameter_2_3 (np.float): second computed parameters
+        parameter_1_3 (np.float): third computed parameters
+
+    Returns:
+        np.float: validity criteria vector
+    """
+
+    validity = (
+        np.diff(
+            np.array(
+                [
+                    parameter_1_2,
+                    parameter_2_3,
+                    parameter_1_3,
+                    parameter_1_2,
+                ]
+            ).T
+        )
+        / np.array([parameter_2_3, parameter_1_3, parameter_1_2]).T
+    )
+
+    return np.max(validity, axis=1)
+
+
 def papoto_3_points(
     a: np.ndarray,
     HG: np.ndarray,
@@ -32,9 +67,10 @@ def papoto_3_points(
     parameter_1_2 = papoto_2_points(a, HG, VG, HD, VD, H1, V1, H2, V2)
     parameter_2_3 = papoto_2_points(a, HG, VG, HD, VD, H2, V2, H3, V3)
     parameter_1_3 = papoto_2_points(a, HG, VG, HD, VD, H1, V1, H3, V3)
-    return np.mean(
+    parameter_mean = np.mean(
         np.array([parameter_1_2, parameter_2_3, parameter_1_3]), axis=0
     )
+    return parameter_mean
 
 
 def papoto_2_points(
