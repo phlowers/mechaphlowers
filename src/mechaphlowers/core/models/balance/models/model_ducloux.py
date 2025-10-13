@@ -125,8 +125,7 @@ class BalanceModel(IBalanceModel):
 
     @property
     def adjustment(self) -> bool:
-        """Boolean property indicating if the model is in adjustment mode or change state mode.
-        """
+        """Boolean property indicating if the model is in adjustment mode or change state mode."""
         return self._adjustment
 
     @adjustment.setter
@@ -295,8 +294,7 @@ class BalanceModel(IBalanceModel):
         self.load_solver.solve(self.load_model)
 
     def update_projections(self) -> None:
-        """update attributes of VectorProjection in order to compute with correct values
-        """
+        """update attributes of VectorProjection in order to compute with correct values"""
         alpha = self.alpha
         beta = self.beta
 
@@ -664,6 +662,7 @@ class LoadModel(IModelForSolver):
     Used by the BalanceSolver class.
     Also creates two semi-span models (left and right of the load) for solving purposing, and that could be used later for graphs.
     """
+
     def __init__(
         self,
         cable_array: CableArray,
@@ -813,8 +812,7 @@ class LoadModel(IModelForSolver):
         return np.array([Th_diff, Tv_diff]).flatten('F')
 
     def update(self) -> None:
-        """Update attributes on both span models: span length, elevation difference, L_ref and parameter
-        """
+        """Update attributes on both span models: span length, elevation difference, L_ref and parameter"""
         self.update_lengths_span_models()
         # update parameter left
         L_ref_left = self.load_position * self.L_ref

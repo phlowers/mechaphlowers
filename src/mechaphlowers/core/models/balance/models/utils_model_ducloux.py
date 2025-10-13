@@ -14,6 +14,7 @@ class Masks:
     """
     Current types: "suspension", anchor_first, "anchor_last"
     """
+
     # TODO: wriste docstring
     def __init__(self, nodes_type: List[str], L_chain: np.ndarray) -> None:
         self.nodes_type = nodes_type
