@@ -29,6 +29,7 @@ dependencies = [
     "plotly<=5.24.1",
     "multimethod<2.0",
     "pyyaml<=6.0.2",
+    "pint==0.25",
 ]
 
 [project.urls]
