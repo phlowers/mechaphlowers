@@ -582,8 +582,6 @@ class Nodes:
         )
 
     def compute_moment(self) -> None:
-        # Placeholder for force computation logic
-
         Fx, Fy, Fz = self.vector_projection.forces()
 
         lever_arm = np.array([self.dx, self.dy, self.dz]).T

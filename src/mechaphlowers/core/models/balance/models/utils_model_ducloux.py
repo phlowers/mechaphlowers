@@ -106,7 +106,6 @@ class VectorProjection:
         vg = Tv_g * np.cos(beta) - Th * np.sin(beta) * np.sin(alpha)
         hg = Tv_g * np.sin(beta) + Th * np.cos(beta) * np.sin(alpha)
         lg = Th * np.cos(alpha)
-        # order x, y, z ?
         return np.array([lg, hg, vg])
 
     def T_attachments_plane_right(self) -> np.ndarray:
@@ -117,7 +116,6 @@ class VectorProjection:
         vd = Tv_d * np.cos(beta) + Th * np.sin(beta) * np.sin(alpha)
         hd = Tv_d * np.sin(beta) - Th * np.cos(beta) * np.sin(alpha)
         ld = -Th * np.cos(alpha)
-        # order x, y, z ?
         return np.array([ld, hd, vd])
 
     def T_line_plane_left(self) -> np.ndarray:
@@ -126,7 +124,6 @@ class VectorProjection:
         r_s_g = lg * np.cos(proj_angle) - hg * np.sin(proj_angle)
         r_t_g = lg * np.sin(proj_angle) + hg * np.cos(proj_angle)
         r_z_g = vg
-        # order between s and t?
         return np.array([r_s_g, r_t_g, r_z_g])
 
     def T_line_plane_right(self) -> np.ndarray:
@@ -135,7 +132,6 @@ class VectorProjection:
         r_s_d = ld * np.cos(proj_angle) - hd * np.sin(proj_angle)
         r_t_d = ld * np.sin(proj_angle) + hd * np.cos(proj_angle)
         r_z_d = vd
-        # order between s and t?
         return np.array([r_s_d, r_t_d, r_z_d])
 
     def forces(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:

@@ -64,7 +64,13 @@ class FindParamModel(IModelToSolve):
         self.initial_parameter = initial_parameter
         self.L_ref = L_ref
 
-    def update_models(self, parameter) -> None:
+    def update_models(self, parameter: np.ndarray) -> None:
+        """Update span_model and deformation_model with a new value of parameter.
+        This causes cable_length and tension_mean of deformation_model to be updated.
+
+        Args:
+            parameter (np.ndarray): new value of the parameter: will change during each iteration.
+        """
         self.span_model.set_parameter(parameter)
         self.deformation_model.cable_length = self.span_model.L
         self.deformation_model.tension_mean = self.span_model.T_mean()
@@ -100,6 +106,8 @@ class FindParamModel(IModelToSolve):
 
 
 class IFindParamSolver(ABC):
+    """Interface for solvers that find a parameter for a model implementing IModelToSolve."""
+
     def __init__(
         self, model: IModelToSolve, stop_condition=0.1, max_iter=50
     ) -> None:
@@ -113,6 +121,8 @@ class IFindParamSolver(ABC):
 
 
 class FindParamSolverScipy(IFindParamSolver):
+    """Implementation of IFindParamSolver using scipy.optimize.newton"""
+
     def find_parameter(self) -> np.ndarray:
         p0 = self.model.initial_value
 
@@ -129,6 +139,8 @@ class FindParamSolverScipy(IFindParamSolver):
 
 
 class FindParamSolverForLoop(IFindParamSolver):
+    """Implementation of IFindParamSolver using the Newton-Raphson method with a python for loop."""
+
     def find_parameter(self) -> np.ndarray:
         parameter = self.model.initial_value
 
