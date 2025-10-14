@@ -52,10 +52,10 @@ def papoto_validity(
 
 def papoto_3_points(
     a: np.ndarray,
-    HG: np.ndarray,
-    VG: np.ndarray,
-    HD: np.ndarray,
-    VD: np.ndarray,
+    HL: np.ndarray,
+    VL: np.ndarray,
+    HR: np.ndarray,
+    VR: np.ndarray,
     H1: np.ndarray,
     V1: np.ndarray,
     H2: np.ndarray,
@@ -63,10 +63,26 @@ def papoto_3_points(
     H3: np.ndarray,
     V3: np.ndarray,
 ) -> np.ndarray:
-    """Computes PAPOTO 3 times, and return the mean between those 3 values."""
-    parameter_1_2 = papoto_2_points(a, HG, VG, HD, VD, H1, V1, H2, V2)
-    parameter_2_3 = papoto_2_points(a, HG, VG, HD, VD, H2, V2, H3, V3)
-    parameter_1_3 = papoto_2_points(a, HG, VG, HD, VD, H1, V1, H3, V3)
+    """Computes PAPOTO 3 times, and return the mean between those 3 values.
+        
+    Args:
+        a (np.ndarray): Length of the span
+        HL (np.ndarray): horizontal distance of the left part of the span
+        VL (np.ndarray): vertical distance of the left part of the span
+        HR (np.ndarray): horizontal distance of the right part of the span
+        VR (np.ndarray): vertical distance of the right part of the span
+        H1 (np.ndarray): horizontal distance of point 1
+        V1 (np.ndarray): vertical distance of point 1
+        H2 (np.ndarray): horizontal distance of point 2
+        V2 (np.ndarray): vertical distance of point 2
+        H3 (np.ndarray): horizontal distance of point 3
+        V3 (np.ndarray): vertical distance of point 3
+    Returns:
+        parameter_mean (np.ndarray): mean of the 3 computed parameters
+    """
+    parameter_1_2 = papoto_2_points(a, HL, VL, HR, VR, H1, V1, H2, V2)
+    parameter_2_3 = papoto_2_points(a, HL, VL, HR, VR, H2, V2, H3, V3)
+    parameter_1_3 = papoto_2_points(a, HL, VL, HR, VR, H1, V1, H3, V3)
     parameter_mean = np.mean(
         np.array([parameter_1_2, parameter_2_3, parameter_1_3]), axis=0
     )
@@ -75,59 +91,75 @@ def papoto_3_points(
 
 def papoto_2_points(
     a: np.ndarray,
-    HG: np.ndarray,
-    VG: np.ndarray,
-    HD: np.ndarray,
-    VD: np.ndarray,
+    HL: np.ndarray,
+    VL: np.ndarray,
+    HR: np.ndarray,
+    VR: np.ndarray,
     H1: np.ndarray,
     V1: np.ndarray,
     H2: np.ndarray,
     V2: np.ndarray,
 ) -> np.ndarray:
-    """Computes PAPOTO method with 2 points."""
-    Alpha = convert_grad_to_rad(HD - HG)
-    Alpha1 = convert_grad_to_rad(H1 - HG)
-    Alpha2 = convert_grad_to_rad(H2 - HG)
-    VG = convert_grad_to_rad(100 - VG)  # null angle = horizon
-    VD = convert_grad_to_rad(100 - VD)
+    """Computes PAPOTO method with 2 points.
+        
+    Args:
+        a (np.ndarray): Length of the span
+        HL (np.ndarray): horizontal distance of the left part of the span
+        VL (np.ndarray): vertical distance of the left part of the span
+        HR (np.ndarray): horizontal distance of the right part of the span
+        VR (np.ndarray): vertical distance of the right part of the span
+        H1 (np.ndarray): horizontal distance of point 1
+        V1 (np.ndarray): vertical distance of point 1
+        H2 (np.ndarray): horizontal distance of point 2
+        V2 (np.ndarray): vertical distance of point 2
+        H3 (np.ndarray): horizontal distance of point 3
+        V3 (np.ndarray): vertical distance of point 3
+    Returns:
+        parameter (np.ndarray): parameter value
+    """
+    Alpha = convert_grad_to_rad(HR - HL)
+    Alpha1 = convert_grad_to_rad(H1 - HL)
+    Alpha2 = convert_grad_to_rad(H2 - HL)
+    VL = convert_grad_to_rad(100 - VL)  # null angle = horizon
+    VR = convert_grad_to_rad(100 - VR)
     V1 = convert_grad_to_rad(100 - V1)
     V2 = convert_grad_to_rad(100 - V2)
 
     nb_loops = 100
 
     iteration = (np.pi - Alpha) / 2
-    AlphaD = np.zeros_like(Alpha)
+    AlphaR = np.zeros_like(Alpha)
 
     for loop_index in range(1, nb_loops):
-        AlphaD = (
-            AlphaD + iteration
+        AlphaR = (
+            AlphaR + iteration
         )  # for first loop: alphaD = (np.pi - alpha) / 2
-        AlphaG = (
-            np.pi - Alpha - AlphaD
+        AlphaL = (
+            np.pi - Alpha - AlphaR
         )  # for first loop: alphaG = (np.pi - alpha) / 2
 
         # computing distances between station and supports G and D
-        distG = a / np.sin(Alpha) * np.sin(AlphaD)
-        distD = distG * np.cos(Alpha) + a * np.cos(AlphaD)
+        distL = a / np.sin(Alpha) * np.sin(AlphaR)
+        distR = distL * np.cos(Alpha) + a * np.cos(AlphaR)
 
         # computing attachment altitudes + elevation difference
-        zG = distG * np.tan(VG)
-        zD = distD * np.tan(VD)
-        h = zD - zG
+        zL = distL * np.tan(VL)
+        zR = distR * np.tan(VR)
+        h = zR - zL
 
         # computing distances between station and points 1 and 2 + a1, a2, z1, z2
-        dist1 = distG * np.sin(AlphaG) / np.sin(np.pi - Alpha1 - AlphaG)
-        dist2 = distG * np.sin(AlphaG) / np.sin(np.pi - Alpha2 - AlphaG)
+        dist1 = distL * np.sin(AlphaL) / np.sin(np.pi - Alpha1 - AlphaL)
+        dist2 = distL * np.sin(AlphaL) / np.sin(np.pi - Alpha2 - AlphaL)
 
-        a1 = distG * np.cos(AlphaG) + dist1 * np.cos(np.pi - Alpha1 - AlphaG)
-        a2 = distG * np.cos(AlphaG) + dist2 * np.cos(np.pi - Alpha2 - AlphaG)
+        a1 = distL * np.cos(AlphaL) + dist1 * np.cos(np.pi - Alpha1 - AlphaL)
+        a2 = distL * np.cos(AlphaL) + dist2 * np.cos(np.pi - Alpha2 - AlphaL)
 
         z1 = dist1 * np.tan(V1)
         z2 = dist2 * np.tan(V2)
 
         # first approximation of parameter using parabola model
-        p0 = a1 * (a - a1) / (2 * ((zG - z1) + h * a1 / a))
-        p = parameter_solver(a, h, zG - z1, a1, p0)
+        p0 = a1 * (a - a1) / (2 * ((zL - z1) + h * a1 / a))
+        p = parameter_solver(a, h, zL - z1, a1, p0)
 
         # computing an elevation difference using newly found parameter, and comparing with zG - z2
         # val: distance between lowest point with left support
@@ -135,12 +167,12 @@ def papoto_2_points(
         dif = p * (np.cosh(val / p) - np.cosh((a2 - val) / p))
 
         iteration = (
-            np.sign(dif - (zG - z2))
+            np.sign(dif - (zL - z2))
             * (np.pi - Alpha)
             / (2 ** (1 + loop_index))
         )
 
-        stop_variable = abs(dif - (zG - z2))
+        stop_variable = abs(dif - (zL - z2))
         stop_value = 0.001
         if (
             np.logical_or(stop_variable < stop_value, np.isnan(stop_variable))

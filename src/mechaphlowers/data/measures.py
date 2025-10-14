@@ -57,10 +57,10 @@ class PapotoParameterMeasure(ParameterMeasure):
     def measure_method(
         self,
         a: np.ndarray,
-        HG: np.ndarray,
-        VG: np.ndarray,
-        HD: np.ndarray,
-        VD: np.ndarray,
+        HL: np.ndarray,
+        VL: np.ndarray,
+        HR: np.ndarray,
+        VR: np.ndarray,
         H1: np.ndarray,
         V1: np.ndarray,
         H2: np.ndarray,
@@ -68,14 +68,30 @@ class PapotoParameterMeasure(ParameterMeasure):
         H3: np.ndarray,
         V3: np.ndarray,
     ):
-        """Compute the PAPOTO measure."""
+        """Compute the PAPOTO measure.
+
+        Args:
+            a (np.ndarray): Length of the span
+            HL (np.ndarray): horizontal distance of the left part of the span
+            VL (np.ndarray): vertical distance of the left part of the span
+            HR (np.ndarray): horizontal distance of the right part of the span
+            VR (np.ndarray): vertical distance of the right part of the span
+            H1 (np.ndarray): horizontal distance of point 1
+            V1 (np.ndarray): vertical distance of point 1
+            H2 (np.ndarray): horizontal distance of point 2
+            V2 (np.ndarray): vertical distance of point 2
+            H3 (np.ndarray): horizontal distance of point 3
+            V3 (np.ndarray): vertical distance of point 3
+        Returns:
+            None
+        """
 
         self.measures = {
             "a": a,
-            "HG": HG,
-            "VG": VG,
-            "HD": HD,
-            "VD": VD,
+            "HL": HL,
+            "VL": VL,
+            "HR": HR,
+            "VR": VR,
             "H1": H1,
             "V1": V1,
             "H2": H2,

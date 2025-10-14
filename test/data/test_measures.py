@@ -5,10 +5,10 @@ from mechaphlowers.data.measures import PapotoParameterMeasure, papoto
 
 def test_papoto_parameter_measure():
     a = np.array([498.565922913587, np.nan])
-    HG = np.array([0.0, np.nan])
-    VG = np.array([97.4327311161033, np.nan])
-    HD = np.array([162.614599621714, np.nan])
-    VD = np.array([88.6907631859419, np.nan])
+    HL = np.array([0.0, np.nan])
+    VL = np.array([97.4327311161033, np.nan])
+    HR = np.array([162.614599621714, np.nan])
+    VR = np.array([88.6907631859419, np.nan])
     H1 = np.array([5.1134354937127, np.nan])
     V1 = np.array([98.4518011880176, np.nan])
     H2 = np.array([19.6314054626454, np.nan])
@@ -18,10 +18,10 @@ def test_papoto_parameter_measure():
 
     papoto(
         a=a,
-        HG=HG,
-        VG=VG,
-        HD=HD,
-        VD=VD,
+        HL=HL,
+        VL=VL,
+        HR=HR,
+        VR=VR,
         H1=H1,
         V1=V1,
         H2=H2,
@@ -48,10 +48,10 @@ def test_select_points_in_dict():
     # Prepare mock data
     data = {
         "a": np.array([1]),
-        "HG": np.array([2]),
-        "VG": np.array([3]),
-        "HD": np.array([4]),
-        "VD": np.array([5]),
+        "HL": np.array([2]),
+        "VL": np.array([3]),
+        "HR": np.array([4]),
+        "VR": np.array([5]),
         "H1": np.array([10]),
         "V1": np.array([11]),
         "H2": np.array([20]),
@@ -70,10 +70,10 @@ def test_select_points_in_dict():
     assert result["V2"].tolist() == [31]
     # Other keys should be present and unchanged
     assert result["a"].tolist() == [1]
-    assert result["HG"].tolist() == [2]
-    assert result["VG"].tolist() == [3]
-    assert result["HD"].tolist() == [4]
-    assert result["VD"].tolist() == [5]
+    assert result["HL"].tolist() == [2]
+    assert result["VL"].tolist() == [3]
+    assert result["HR"].tolist() == [4]
+    assert result["VR"].tolist() == [5]
     # H3/V3 should not be present as keys
     assert "H3" not in result
     assert "V3" not in result
