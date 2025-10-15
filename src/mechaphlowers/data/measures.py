@@ -34,11 +34,11 @@ class ParameterMeasure(ABC):
         raise NotImplementedError("Uncertainty method not implemented.")
 
     @property
-    def validity(self, *args, **kwargs):
+    def validity(self):
         """Method to compute validity criteria."""
         raise NotImplementedError("Validity criteria method not implemented.")
 
-    def check_validity(self, *args, **kwargs):
+    def check_validity(self):
         """Method to check validity of the measure."""
         raise NotImplementedError("Check validity method not implemented.")
 

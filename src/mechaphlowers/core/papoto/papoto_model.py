@@ -64,7 +64,7 @@ def papoto_3_points(
     V3: np.ndarray,
 ) -> np.ndarray:
     """Computes PAPOTO 3 times, and return the mean between those 3 values.
-        
+
     Args:
         a (np.ndarray): Length of the span
         HL (np.ndarray): horizontal distance of the left part of the span
@@ -101,7 +101,7 @@ def papoto_2_points(
     V2: np.ndarray,
 ) -> np.ndarray:
     """Computes PAPOTO method with 2 points.
-        
+
     Args:
         a (np.ndarray): Length of the span
         HL (np.ndarray): horizontal distance of the left part of the span
