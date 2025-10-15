@@ -112,8 +112,6 @@ def papoto_2_points(
         V1 (np.ndarray): vertical distance of point 1
         H2 (np.ndarray): horizontal distance of point 2
         V2 (np.ndarray): vertical distance of point 2
-        H3 (np.ndarray): horizontal distance of point 3
-        V3 (np.ndarray): vertical distance of point 3
     Returns:
         parameter (np.ndarray): parameter value
     """
