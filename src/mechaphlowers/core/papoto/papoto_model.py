@@ -115,13 +115,13 @@ def papoto_2_points(
     Returns:
         parameter (np.ndarray): parameter value
     """
-    Alpha = convert_grad_to_rad(HR - HL)
-    Alpha1 = convert_grad_to_rad(H1 - HL)
-    Alpha2 = convert_grad_to_rad(H2 - HL)
-    VL = convert_grad_to_rad(100 - VL)  # null angle = horizon
-    VR = convert_grad_to_rad(100 - VR)
-    V1 = convert_grad_to_rad(100 - V1)
-    V2 = convert_grad_to_rad(100 - V2)
+    Alpha = HR - HL
+    Alpha1 = H1 - HL
+    Alpha2 = H2 - HL
+    VL = np.pi/2 - VL  # null angle = horizon
+    VR = np.pi/2 - VR
+    V1 = np.pi/2 - V1
+    V2 = np.pi/2 - V2
 
     nb_loops = 100
 

@@ -2,23 +2,22 @@
 
 ## Parameter estimation
 
-Ideally, the geometric verification of a span with respect to the requirements of the applicable Technical Decree should be carried out when the lowest conductor of that span is definitively at its maximum operating temperature, and this without any wind that could displace the conductor from its vertical plane (lateral clearance is therefore temporarily ignored). In such a case, it would suffice to measure the actual distance between the conductor and the various objects it overhangs (road, dwelling, agricultural land, etc.) to verify that the minimum regulatory clearances are respected.  
+Ideally, the geometric verification of a span, according to the requirements of the applicable Technical Decree, should be carried out when the lowest conductor of that span is at its maximum operating temperature, and without any wind that could displace the conductor from its vertical plane (so lateral clearance is temporarily ignored). In such a case, it would be sufficient to measure the actual distance between the conductor and the various objects it overhangs (such as roads, dwellings, agricultural land, etc.) to verify that the minimum regulatory clearances are respected.  
 However, this situation is very rare, so a method is needed to estimate the vertical position the conductor would have if it were brought to its maximum operating temperature due to a high current flow through the line.  
-The standard method involves the following calculation chain:
+The standard method involves the following calculation steps:
 
-1.  Choose an equation representing the curve of a suspended cable.  
-Practically, this corresponds to a catenary, which is fully defined by the span length, the elevation difference, and the so-called parameter (the ratio between the horizontal tension and the linear weight of the cable).
+1. Choose an equation representing the curve of a suspended cable.  
+In practice, this corresponds to a catenary, which is fully defined by the span length, the elevation difference, and the so-called parameter (the ratio between the horizontal tension and the linear weight of the cable).
 
 2. Measure the span length and elevation difference, and estimate the cable’s parameter from indirect measurements.
 
-3. Estimate, again from indirect measurements, the cable temperature at the time the parameter was estimated.
+3. Estimate, again from indirect measurements, the cable temperature at the time the parameter was determined.
 
-4. Using both the estimated parameter and temperature, determine the adjustment parameter of the section to which the span belongs—i.e., the parameter at 15°C with no wind when the conductors are straight.
-
+4. Using both the estimated parameter and temperature, determine the adjustment parameter of the section to which the span belongs i.e., the parameter at 15°C with no wind, when the conductors are straight.
 
 5. Finally, using a state change calculation, estimate the parameter and the position of the conductors in the studied span when the cable reaches its maximum operating temperature. This estimated position is then used to perform the regulatory clearance verification.
 
-Different methods exists and mechaphlowers gives access to 3 of them:
+Different methods exist, and mechaphlowers provides access to three of them:
 
 - Papoto method
 - Pep method
@@ -49,9 +48,9 @@ This method was first coded in the 1990s using one of the programmable calculato
 #### Calculus principles
 
 A fundamental simplifying assumption must be made before explaining the PAPOTO method: the cable (whose representative curve is a catenary) is always assumed to lie in a perfectly vertical plane, thereby neglecting any wind influence.  
-Once this implicit assumption is understood, imagine that the measuring device — nowadays a total station, denoted by S — forms a triangle with the two cable attachment points, denoted L and R (for the left and right points, respectively), when viewed from above.  
+Once this implicit assumption is understood, imagine that the measuring device - nowadays a total station, denoted by S - forms a triangle with the two cable attachment points, denoted L and R (for the left and right points, respectively), when viewed from above.  
 The horizontal distance $[LR]$ between the attachment points is known (it can be accurately measured using the total station), as is the angle $\widehat{LSR}$, which is directly measured.  
-To fully define the triangle, one more element is needed—either another side $[SL]$ or $[SR]$, or another angle such as $\widehat{RLS}$ or $\widehat{SRL}$.  
+To fully define the triangle, one more element is needed-either another side $[SL]$ or $[SR]$, or another angle such as $\widehat{RLS}$ or $\widehat{SRL}$.  
 This is where the PAPOTO method begins: with an initial value for the angle $\widehat{SRL}$, which is then iteratively refined using a bisection method to converge toward its true value.
 
 ![PAPOTO Measuring setup](./assets/papoto_chart.drawio.png "PAPOTO Measuring setup")
@@ -133,7 +132,7 @@ $$
 $$
 
 Through any three points, only one catenary can pass, so it is possible to calculate the parameter p of the catenary passing through the coordinates:
-(0, $z_L$), ($a_1$, $z_1$), and ($a$, $z_R$) — corresponding to points L, 1, and R.
+(0, $z_L$), ($a_1$, $z_1$), and ($a$, $z_R$) - corresponding to points L, 1, and R.
 This calculation is done in two steps:
 
 - An initial estimate using a parabolic approximation of the catenary
@@ -207,7 +206,7 @@ $$
 The 1977 handwritten note suggests using a less conventional method than Newton’s method. Although not detailed here, the principle remains the same: iteratively refine the value of p using a numerical method.  
 When two successive computed values are sufficiently close (for example, differing by less than 1 mm), it is reasonable to consider the latest value as a valid root of F. Typically, fewer than five iterations are needed to converge to the solution.  
 Thus, using point 1, it is possible to compute a parameter p for the catenary.  
-Point 2 is then used to verify the accuracy of this calculation—in other words, to check whether the initial assumption about the value of $\alpha_R$ was correct. If not, the value of $\alpha_R$ must be adjusted, the parameter recalculated, and the verification repeated with point 2. This process continues until the correct value of $\alpha_R$ is found, and thus the correct final value of the catenary parameter observed from the total station.  
+Point 2 is then used to verify the accuracy of this calculation-in other words, to check whether the initial assumption about the value of $\alpha_R$ was correct. If not, the value of $\alpha_R$ must be adjusted, the parameter recalculated, and the verification repeated with point 2. This process continues until the correct value of $\alpha_R$ is found, and thus the correct final value of the catenary parameter observed from the total station.  
 With the new parameter $p$ obtained after the previous iterations, it is possible to recalculate value, and then, using $a_2$, compute the difference $\Delta$:
 
 $$

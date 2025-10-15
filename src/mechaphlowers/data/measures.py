@@ -16,6 +16,7 @@ from typing import Dict
 import numpy as np
 
 from mechaphlowers.core.papoto.papoto_model import (
+    convert_grad_to_rad,
     papoto_2_points,
     papoto_validity,
 )
@@ -87,7 +88,6 @@ class PapotoParameterMeasure(ParameterMeasure):
         """
 
         self.measures = {
-            "a": a,
             "HL": HL,
             "VL": VL,
             "HR": HR,
@@ -101,6 +101,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         }
 
         measures_converted = self.input_conversion(self.measures)
+        measures_converted["a"] = a
 
         self.parameter_1_2 = papoto_2_points(
             **self.select_points_in_dict(1, 2, measures_converted)
@@ -142,7 +143,7 @@ class PapotoParameterMeasure(ParameterMeasure):
     def _conversion_function(self, value):
         """Convert inputs to the required format."""
         # TODO: implement final version with pint
-        return value
+        return convert_grad_to_rad(value)
 
     def input_conversion(
         self, data: Dict[str, np.ndarray]

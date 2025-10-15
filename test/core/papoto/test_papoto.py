@@ -8,6 +8,7 @@
 import numpy as np
 
 from mechaphlowers.core.papoto.papoto_model import (
+    convert_grad_to_rad,
     papoto_2_points,
     papoto_3_points,
 )
@@ -25,14 +26,14 @@ def test_papoto_function_0():
     V2 = np.array([88.8639691159579, np.nan])
     parameter = papoto_2_points(
         a=a,
-        HL=HL,
-        VL=VL,
-        HR=HR,
-        VR=VR,
-        H1=H1,
-        V1=V1,
-        H2=H2,
-        V2=V2,
+        HL=convert_grad_to_rad(HL),
+        VL=convert_grad_to_rad(VL),
+        HR=convert_grad_to_rad(HR),
+        VR=convert_grad_to_rad(VR),
+        H1=convert_grad_to_rad(H1),
+        V1=convert_grad_to_rad(V1),
+        H2=convert_grad_to_rad(H2),
+        V2=convert_grad_to_rad(V2),
     )
     np.testing.assert_allclose(parameter, np.array([2000, np.nan]), atol=1.0)
 
@@ -51,15 +52,15 @@ def test_papoto_function_3_points():
     V3 = np.array([87.9335010245142, np.nan])
     parameter = papoto_3_points(
         a=a,
-        HL=HL,
-        VL=VL,
-        HR=HR,
-        VR=VR,
-        H1=H1,
-        V1=V1,
-        H2=H2,
-        V2=V2,
-        H3=H3,
-        V3=V3,
+        HL=convert_grad_to_rad(HL),
+        VL=convert_grad_to_rad(VL),
+        HR=convert_grad_to_rad(HR),
+        VR=convert_grad_to_rad(VR),
+        H1=convert_grad_to_rad(H1),
+        V1=convert_grad_to_rad(V1),
+        H2=convert_grad_to_rad(H2),
+        V2=convert_grad_to_rad(V2),
+        H3=convert_grad_to_rad(H3),
+        V3=convert_grad_to_rad(V3),
     )
     np.testing.assert_allclose(parameter, np.array([2000, np.nan]), atol=1.0)
