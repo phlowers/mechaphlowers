@@ -13,7 +13,7 @@ from numpy.polynomial import Polynomial as Poly
 try:
     from scipy import optimize  # type: ignore
 except ImportError:
-    import mechaphlowers.core.numeric.numeric as optimize
+    import mechaphlowers.numeric.scipy as optimize
 
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.cable.deformation import (
@@ -22,7 +22,7 @@ from mechaphlowers.core.models.cable.deformation import (
 )
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
-    Span,
+    ISpan,
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 
@@ -61,7 +61,7 @@ class SagTensionSolver:
         self.temperature_reference = temperature_reference
         self.polynomial_conductor = polynomial_conductor
         self.L_ref: np.ndarray
-        self.span_model_type: Type[Span] = CatenarySpan
+        self.span_model_type: Type[ISpan] = CatenarySpan
         self.deformation_model_type: Type[IDeformation] = DeformationRte
         self.T_h_after_change: np.ndarray | None = None
         self.initialize_cable_loads()
@@ -93,7 +93,7 @@ class SagTensionSolver:
             load_coefficient=self.cable_loads.load_coefficient,
             linear_weight=self.linear_weight,
         )
-        cable_length = self.span_model.L()
+        cable_length = self.span_model.compute_L()
         tension_mean = self.span_model.T_mean()
         self.deformation_model = self.deformation_model_type(
             **self.__dict__,
@@ -181,8 +181,8 @@ class SagTensionSolver:
         k_load = self.cable_loads.load_coefficient
         p = T_h / (k_load * self.linear_weight)
 
-        self.span_model.sagging_parameter = p
-        L = self.span_model.L()
+        self.span_model.set_parameter(p)
+        L = self.span_model.compute_L()
         self.deformation_model.cable_length = L
         self.deformation_model.tension_mean = self.span_model.T_mean()
 
@@ -212,4 +212,4 @@ class SagTensionSolver:
             raise ValueError(
                 "initial_state() or change_state() has to be run before calling this method"
             )
-        return self.span_model.L()
+        return self.span_model.compute_L()

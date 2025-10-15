@@ -110,3 +110,58 @@ def df_to_dict(df: pd.DataFrame) -> dict:
         else:
             q[k] = q[k][0]
     return q
+
+
+def reduce_to_span(array_to_reduce: np.ndarray):
+    return array_to_reduce[0:-1]
+
+
+def fill_to_support(array_to_fill: np.ndarray):
+    return np.concatenate((array_to_fill, [np.nan]))
+
+
+class ArrayTools:
+    @staticmethod
+    def decr(array: np.ndarray) -> np.ndarray:
+        """Reduces size of array by removing last element.
+
+        There are two sizes of arrays in mechaphlowers:
+        - number of supports (N), usually with NaN as last element
+        - number of spans (N-1)
+        This function is used to convert an array of support size (N) to span size (N-1).
+
+        >>> array = np.array([1, 2, 3, np.nan])
+        >>> ArrayTools.decr(array)
+        array([1, 2, 3])
+
+        Args:
+            array (np.ndarray): full array to reduce
+
+        Returns:
+            np.ndarray: array with size reduced by one
+        """
+        return reduce_to_span(array)
+
+    @staticmethod
+    def incr(array: np.ndarray) -> np.ndarray:
+        """Increases size of array by adding a NaN as last element.
+
+        There are two sizes of arrays in mechaphlowers:
+        - number of supports (N), usually with NaN as last element
+        - number of spans (N-1)
+        This function is used to convert an array of span size (N-1) to support size (N).
+
+        >>> array = np.array([1, 2, 3])
+        >>> ArrayTools.incr(array)
+        array([1, 2, 3, np.nan])
+
+        Args:
+            array (np.ndarray): full array to increase
+
+        Returns:
+            np.ndarray: array with size increased by one
+        """
+        return fill_to_support(array)
+
+
+arr = ArrayTools()

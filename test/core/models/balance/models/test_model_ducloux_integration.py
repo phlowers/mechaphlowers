@@ -4,24 +4,19 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+# TODO: to reactivate when IBalanceModel interface is stabilized
+# mypy: disable-error-code=attr-defined
+
 import numpy as np
 import pandas as pd
 from pytest import fixture
 
-import mechaphlowers.core.models.balance.functions as f
-from mechaphlowers.core.models.balance.elements import (
-    BalanceEngine,
-    Cable,
-)
+from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import (
     sample_cable_catalog,
 )
+from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-
-
-@fixture
-def cable_AM600():
-    return Cable(600.4e-6, 17.658, 0.000023, 60e9, 31.86e-3, 320)
 
 
 @fixture
@@ -64,7 +59,9 @@ def section_array_angles() -> SectionArray:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad")
+                .to('deg')
+                .magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -87,7 +84,9 @@ def section_array_simple() -> SectionArray:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 0, 0, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 0, 0, 0])),
+                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad")
+                .to('deg')
+                .magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -110,7 +109,9 @@ def section_array_no_altitude_change() -> SectionArray:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 30, 30, 30],
                 "crossarm_length": [0, 0, 0, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 0, 0, 0])),
+                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad")
+                .to('deg')
+                .magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -166,13 +167,19 @@ def test_adjust_no_altitude_change(
     )
 
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dx, expected_dx, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dy, expected_dy, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dz, expected_dz, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
         section_3d_no_altitude_change.balance_model.L_ref,
@@ -203,13 +210,13 @@ def test_adjust_simple(
     )
 
     np.testing.assert_allclose(
-        section_3d_simple.nodes.dx, expected_dx, atol=1e-4
+        section_3d_simple.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_simple.nodes.dy, expected_dy, atol=1e-4
+        section_3d_simple.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_simple.nodes.dz, expected_dz, atol=1e-4
+        section_3d_simple.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
     np.testing.assert_allclose(
         section_3d_simple.balance_model.L_ref, expected_L_ref, atol=1e-4
@@ -269,9 +276,15 @@ def test_adjust_with_arm(cable_array_AM600: CableArray):
         [498.143645314619, 300.043054873601, 397.296174338544]
     )
 
-    np.testing.assert_allclose(section_arm.nodes.dx, expected_dx, atol=1e-4)
-    np.testing.assert_allclose(section_arm.nodes.dy, expected_dy, atol=1e-4)
-    np.testing.assert_allclose(section_arm.nodes.dz, expected_dz, atol=1e-4)
+    np.testing.assert_allclose(
+        section_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
+    )
     np.testing.assert_allclose(
         section_arm.balance_model.L_ref, expected_L_ref, atol=1e-4
     )
@@ -313,13 +326,13 @@ def test_adjust_with_angles(
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
     np.testing.assert_allclose(
         section_3d_angles_arm.balance_model.L_ref, expected_L_ref, atol=1e-4
@@ -364,13 +377,19 @@ def test_wind_no_altitude_change(
     )
 
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dx, expected_dx, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dy, expected_dy, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.nodes.dz, expected_dz, atol=1e-4
+        section_3d_no_altitude_change.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
     )
 
 
@@ -382,7 +401,9 @@ def test_wind(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 50, 50, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 20, 30, 0])),
+                "line_angle": Q_(np.array([0, 20, 30, 0]), "grad")
+                .to('deg')
+                .magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -427,9 +448,15 @@ def test_wind(cable_array_AM600: CableArray):
         ]
     )
 
-    np.testing.assert_allclose(section.nodes.dx, expected_dx, atol=1e-4)
-    np.testing.assert_allclose(section.nodes.dy, expected_dy, atol=1e-4)
-    np.testing.assert_allclose(section.nodes.dz, expected_dz, atol=1e-4)
+    np.testing.assert_allclose(
+        section.balance_model.nodes.dx, expected_dx, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section.balance_model.nodes.dy, expected_dy, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        section.balance_model.nodes.dz, expected_dz, atol=1e-4
+    )
 
 
 def test_temperature(
@@ -468,13 +495,13 @@ def test_temperature(
         ]
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 
@@ -515,13 +542,13 @@ def test_ice(
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 
@@ -533,7 +560,9 @@ def test_load_all_spans(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad")
+                .to('deg')
+                .magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -580,13 +609,13 @@ def test_load_all_spans(cable_array_AM600: CableArray):
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 
@@ -598,7 +627,9 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad")
+                .to('deg')
+                .magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -649,13 +680,13 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 
@@ -667,7 +698,9 @@ def test_load_one_span(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": f.grad_to_deg(np.array([0, 10, 0, 0])),
+                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad")
+                .to('deg')
+                .magnitude,
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -715,13 +748,13 @@ def test_load_one_span(cable_array_AM600: CableArray):
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dx, expected_dx, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dy, expected_dy, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.nodes.dz, expected_dz, atol=1e-4
+        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 
@@ -740,6 +773,37 @@ def test_many_spans(cable_array_AM600: CableArray):
                 "insulator_weight": [500] * nb_spans,
                 "load_weight": [0] * nb_spans,
                 "load_position": [0] * nb_spans,
+            }
+        )
+    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+
+    section = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=section_array,
+    )
+
+    section.solve_adjustment()
+
+    section.solve_change_state(wind_pressure=np.array([-200] * nb_spans))
+
+
+def test_many_spans_with_load(cable_array_AM600: CableArray):
+    nb_spans = 10
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["name"] * nb_spans,
+                "suspension": [False] + [True] * (nb_spans - 2) + [False],
+                "conductor_attachment_altitude": [50] * nb_spans,
+                "crossarm_length": [0] * nb_spans,
+                "line_angle": [0] * nb_spans,
+                "insulator_length": [3] * nb_spans,
+                "span_length": [500] * (nb_spans - 1) + [np.nan],
+                "insulator_weight": [500] * nb_spans,
+                "load_weight": [500] * nb_spans,
+                "load_position": [0.5] * nb_spans,
             }
         )
     )

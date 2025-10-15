@@ -53,7 +53,7 @@ def test_solve_polynom_perf() -> None:
         a, b, p, load_coefficient=k_load, linear_weight=lambd
     )
     tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
+    cable_length = span_model.compute_L()
     deformation_model = DeformationRte(
         **input_dict,
         tension_mean=tension_mean,

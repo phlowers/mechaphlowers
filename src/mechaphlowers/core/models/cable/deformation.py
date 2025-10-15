@@ -3,13 +3,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Type
 
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.config import options as cfg
+from mechaphlowers.core.models.cable.span import ISpan
+from mechaphlowers.entities.arrays import CableArray
 
 IMAGINARY_THRESHOLD = cfg.solver.deformation_imag_thresh  # type: ignore
 
@@ -40,13 +44,18 @@ class IDeformation(ABC):
         self.temp_ref = temperature_reference
         self.polynomial_conductor = polynomial_conductor
         self.current_temperature = sagging_temperature
+        self.is_polynomial = polynomial_conductor.trim().degree() >= 2
 
         if max_stress is None:
             self.max_stress = np.full(self.cable_length.shape, 0)
 
     @abstractmethod
     def L_ref(self) -> np.ndarray:
-        """Unstressed cable length, at a chosen reference temperature"""
+        """Unstressed cable length, at a chosen reference temperature, compared to the temperature reference"""
+
+    @abstractmethod
+    def L_0(self) -> np.ndarray:
+        """Unstressed cable length, at a chosen reference temperature, whrer temperature_reference = 0°C"""
 
     @abstractmethod
     def epsilon(self) -> np.ndarray:
@@ -60,6 +69,10 @@ class IDeformation(ABC):
     def epsilon_therm(self) -> np.ndarray:
         """Thermal part of the relative deformation of the cable, compared to a temperature_reference."""
 
+    @abstractmethod
+    def epsilon_therm_0(self) -> np.ndarray:
+        """Thermal part of the relative deformation of the cable, where temperature_reference = 0."""
+
 
 class DeformationRte(IDeformation):
     """This class implements the deformation model used by RTE."""
@@ -69,13 +82,17 @@ class DeformationRte(IDeformation):
         epsilon = self.epsilon_therm() + self.epsilon_mecha()
         return L / (1 + epsilon)
 
+    def L_0(self) -> np.ndarray:
+        L = self.cable_length
+        epsilon = self.epsilon_therm_0() + self.epsilon_mecha()
+        return L / (1 + epsilon)
+
     def epsilon_mecha(self) -> np.ndarray:
         T_mean = self.tension_mean
         E = self.young_modulus
         S = self.cable_section_area
-        polynomial = self.polynomial_conductor
         # linear case
-        if polynomial.trim().degree() < 2:
+        if not self.is_polynomial:
             return T_mean / (E * S)
         # polynomial case
         else:
@@ -89,6 +106,11 @@ class DeformationRte(IDeformation):
         temp_ref = self.temp_ref
         alpha = self.dilatation_coefficient
         return (sagging_temperature - temp_ref) * alpha
+
+    def epsilon_therm_0(self) -> np.ndarray:
+        sagging_temperature = self.current_temperature
+        alpha = self.dilatation_coefficient
+        return sagging_temperature * alpha
 
     def epsilon_mecha_polynomial(self) -> np.ndarray:
         """Computes epsilon when the stress-strain relation is polynomial"""
@@ -161,3 +183,34 @@ class DeformationRte(IDeformation):
         if np.inf in real_smallest_root:
             raise ValueError("No solution found for at least one span")
         return real_smallest_root
+
+
+def deformation_model_builder(
+    cable_array: CableArray,
+    span_model: ISpan,
+    sagging_temperature: np.ndarray,
+    deformation_model_type: Type[IDeformation] = DeformationRte,
+) -> IDeformation:
+    tension_mean = span_model.T_mean()
+    cable_length = span_model.compute_L()
+    cable_section = np.float64(cable_array.data.section.iloc[0])
+    linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
+    young_modulus = np.float64(cable_array.data.young_modulus.iloc[0])
+    dilatation_coefficient = np.float64(
+        cable_array.data.dilatation_coefficient.iloc[0]
+    )
+    temperature_reference = np.float64(
+        cable_array.data.temperature_reference.iloc[0]
+    )
+    polynomial_conductor = cable_array.polynomial_conductor
+    return deformation_model_type(
+        tension_mean,
+        cable_length,
+        cable_section,
+        linear_weight,
+        young_modulus,
+        dilatation_coefficient,
+        temperature_reference,
+        polynomial_conductor,
+        sagging_temperature,
+    )

@@ -9,7 +9,7 @@ Created on Thu Jan  3 11:14:52 2019
 import numpy as np
 
 # import fqs
-from mechaphlowers.core.models.balance.numeric import cubic_roots
+from mechaphlowers.numeric.cubic import cubic_roots
 
 
 def eig_cubic_roots(p):

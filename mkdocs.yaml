@@ -64,6 +64,15 @@ nav:
                   - Coordinate systems: docstring/core/geometry/points.md
                   - Line angles: docstring/core/geometry/line_angles.md
               - Models:
+                  - Balance:
+                    - Engine: docstring/core/models/balance/engine.md
+                    - Interfaces: docstring/core/models/balance/interfaces.md
+                    - Models:
+                      - Model Ducloux: docstring/core/models/balance/models/model_ducloux.md
+                      - Utils: docstring/core/models/balance/models/utils_model_ducloux.md
+                    - Solvers:
+                      - Find parameter solver: docstring/core/models/balance/solvers/find_parameter_solver.md
+                      - Balance Solver: docstring/core/models/balance/solvers/balance_solver.md
                   - Cable:
                       - Span: docstring/core/models/cable/span.md
                       - Deformation: docstring/core/models/cable/deformation.md
