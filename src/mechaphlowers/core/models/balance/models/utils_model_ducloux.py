@@ -12,7 +12,7 @@ import numpy as np
 
 class Masks:
     """
-    Current types: "suspension", anchor_first, "anchor_last"
+    Current types: "suspension", "anchor_first", "anchor_last"
     """
 
     # TODO: wriste docstring

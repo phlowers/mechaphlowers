@@ -155,8 +155,10 @@ class BalanceModel(IBalanceModel):
     def beta(self) -> np.ndarray:
         """Angle between the cable plane and the vertical plane, created because of wind, in radians.
         Remove last value for consistency between this and mechaphlowers
-        mechaphlowers: beta = [beta0, beta1, beta2, nan]
-        Here: beta = [beta0, beta1, beta2] because the last value refers to the last support (no span related to this support)
+
+        mechaphlowers: `beta = [beta0, beta1, beta2, nan]`
+
+        Here: `beta = [beta0, beta1, beta2]` because the last value refers to the last support (no span related to this support)
         """
         # TODO: check why sign different from what already exists in CableLoads
         return -arr.decr(self.cable_loads.load_angle)
@@ -225,10 +227,14 @@ class BalanceModel(IBalanceModel):
         return Th, x_m, x_n, arr.decr(parameter)
 
     def update_tensions(self) -> np.ndarray:
-        """Compute values of Th, Tv_d and Tv_g.
+        """Compute values of `Th`, `Tv_d` and `Tv_g`.
+
         There are three cases:
+
         - adjustment: simple computation
+
         - change state without loads: run SagTensionSolver once
+
         - change state with loads: solve LoadModel
         """
         # Case: adjustment
@@ -342,7 +348,7 @@ class BalanceModel(IBalanceModel):
         The balance position is found when every moment is equal to zero.
 
         Returns:
-            np.ndarray: moments at the nodes. The format of the output is: [Mx0, My0, Mx1, My1,...]"""
+            np.ndarray: moments at the nodes. The format of the output is: `[Mx0, My0, Mx1, My1,...]`"""
         # Need to run update() before this method if necessary
         self.nodes.compute_moment()
 
@@ -352,10 +358,10 @@ class BalanceModel(IBalanceModel):
     @property
     def state_vector(self) -> np.ndarray:
         """State vector: displacements of chains that matters.
-        For suspension, dx and dy are the variables. For anchors, they are dz and dy.
+        For suspension, `dx` and `dy` are the variables. For anchors, they are `dz` and `dy`.
 
         Returns:
-            np.ndarray: state vector. Format is [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
+            np.ndarray: state vector. Format is `[dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]`
         """
         return self.nodes.state_vector
 
@@ -507,7 +513,7 @@ class Nodes:
 
     @property
     def z(self) -> np.ndarray:
-        """This property returns the altitude of the end the chain.  z = z_arm + dz"""
+        """This property returns the altitude of the end the chain.  $z = z_arm + dz$"""
         return self.z_arm + self.dz
 
     @property
@@ -573,8 +579,10 @@ class Nodes:
         self._y = np.zeros_like(z, dtype=np.float64)
 
     def compute_dx_dy_dz(self) -> None:
-        """Update dx and dz according to L_chain and the othre displacement, using Pytagoras
+        """Update dx and dz according to L_chain and the othre displacement, using Pytagoras.
+
         For anchor chains: update dx
+
         For suspension chains: update dz
         """
         self.dx, self.dz = self.masks.compute_dx_dy_dz(
@@ -774,7 +782,7 @@ class LoadModel(IModelForSolver):
     def state_vector(self) -> np.ndarray:
         """State vector: position of the loads on the span.
         Returns:
-            np.ndarray: state vector. Format is [x_i0, z_i0, x_i1, z_i1,...]
+            np.ndarray: state vector. Format is `[x_i0, z_i0, x_i1, z_i1,...]`
         """
         return np.array([self.x_i, self.z_i]).flatten('F')
 
@@ -789,7 +797,7 @@ class LoadModel(IModelForSolver):
         The balance position is found when the tensions are equal on both side of the load.
 
         Returns:
-            np.ndarray: differences of tensions at the load position. Format is [Th_diff0, Tv_diff0, Th_diff1, Tv_diff1,...]
+            np.ndarray: differences of tensions at the load position. Format is `[Th_diff0, Tv_diff0, Th_diff1, Tv_diff1,...]`
         """
         # left side of the load
         Th_left = self.span_model_left.T_h()
@@ -810,7 +818,7 @@ class LoadModel(IModelForSolver):
         return np.array([Th_diff, Tv_diff]).flatten('F')
 
     def update(self) -> None:
-        """Update attributes on both span models: span length, elevation difference, L_ref and parameter"""
+        """Update attributes on both span models: `span length`, `elevation difference`, `L_ref` and `parameter`"""
         self.update_lengths_span_models()
         # update parameter left
         L_ref_left = self.load_position * self.L_ref

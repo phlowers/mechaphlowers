@@ -37,6 +37,14 @@ logger = logging.getLogger(__name__)
 class BalanceEngine:
     """Engine for solving insulator chains positions.
 
+    After solving any situation, many attributes are updated in the models.
+
+    Most interesting ones are
+
+    * `self.L_ref` for solve_adjustment()
+
+    * `self.balance_model.nodes.dxdydz` and `self.span_model.sagging_parameter` for solve_change_state().
+
     Examples:
 
             >>> balance_engine = BalanceEngine(cable_array, section_array)
@@ -47,13 +55,6 @@ class BalanceEngine:
             >>> balance_engine.solve_change_state(
             ...     wind_pressure, ice_thickness, new_temperature
             ... )
-
-    After solving any situation, many attributes are updated in the models.
-
-    Most interesting ones are:
-    - `self.L_ref` for solve_adjustment()
-    - `self.balance_model.nodes.dxdydz` and `self.span_model.sagging_parameter` for solve_change_state().
-
 
     Args:
         cable_array (CableArray): Cable data
@@ -113,7 +114,7 @@ class BalanceEngine:
         In this case, there is no weather, no loads, and temperature is the sagging temperature.
 
         After running this method, many attributes are updated.
-        Most interesting ones are L_ref, sagging_parameter in Span, and dxdydz in Nodes.
+        Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
         """
         self.balance_model.adjustment = True
 
@@ -137,7 +138,7 @@ class BalanceEngine:
             new_temperature (np.ndarray | None, optional): new temperature. Defaults to None.
 
         After running this method, many attributes are updated.
-        Most interesting ones are L_ref, sagging_parameter in Span, and dxdydz in Nodes.
+        Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
         """
         if wind_pressure is not None:
             self.balance_model.cable_loads.wind_pressure = wind_pressure
