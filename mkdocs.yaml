@@ -47,6 +47,7 @@ nav:
       - Deformation: user_guide/ug_deformation.md
       - Wind speed conversion: user_guide/ug_wind_speed_conversion.md
       - Data catalog : user_guide/ug_catalog.md
+      - Measures : user_guide/ug_measures.md
       - Configuration: user_guide/ug_configuration.md
       - Plotting: user_guide/ug_maps.md
   - Developer guide:
@@ -69,9 +70,11 @@ nav:
                   - External loads: docstring/core/models/external_loads.md
               - Solver:
                   - Cable state: docstring/core/solver/cable_state.md
+              - Papoto: docstring/core/papoto/papoto_model.md
           - Data:
               - Catalog: docstring/data/catalog/catalog.md
               - Geography: docstring/data/geography/helpers.md
+              - Measures: docstring/data/measures.md
           - Configuration: docstring/config.md
           - Plotting:
               - Geography:
