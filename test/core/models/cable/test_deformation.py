@@ -37,7 +37,7 @@ def test_deformation_impl(
 ) -> None:
     span_model = CatenarySpan(**default_data_container_one_span.__dict__)
     tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
+    cable_length = span_model.compute_L()
 
     deformation_model = DeformationRte(
         **default_data_container_one_span.__dict__,
@@ -56,7 +56,7 @@ def test_deformation_values__default_data(
     default_data_container_one_span.sagging_temperature = np.array([30, 30])
     span_model = CatenarySpan(**default_data_container_one_span.__dict__)
     tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
+    cable_length = span_model.compute_L()
 
     deformation_model = DeformationRte(
         **default_data_container_one_span.__dict__,
@@ -95,7 +95,7 @@ def test_poly_deformation__degree_three(
 
     span_model = CatenarySpan(**default_data_container_one_span.__dict__)
     tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
+    cable_length = span_model.compute_L()
 
     deformation_model = DeformationRte(
         **default_data_container_one_span.__dict__,
@@ -125,7 +125,7 @@ def test_poly_deformation__degree_four(
 
     span_model = CatenarySpan(**default_data_container_one_span.__dict__)
     tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
+    cable_length = span_model.compute_L()
 
     deformation_model = DeformationRte(
         **default_data_container_one_span.__dict__,
@@ -155,7 +155,7 @@ def test_poly_deformation__degree_four__with_max_stress(
 
     span_model = CatenarySpan(**default_data_container_one_span.__dict__)
     tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
+    cable_length = span_model.compute_L()
 
     deformation_model = DeformationRte(
         **default_data_container_one_span.__dict__,
@@ -182,7 +182,7 @@ def test_poly_deformation__no_solutions(
 
     span_model = CatenarySpan(**default_data_container_one_span.__dict__)
     tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
+    cable_length = span_model.compute_L()
 
     deformation_model = DeformationRte(
         **default_data_container_one_span.__dict__,
@@ -200,7 +200,7 @@ def test_deformation__data_container(
 ) -> None:
     span_model = CatenarySpan(**default_data_container_one_span.__dict__)
     tension_mean = span_model.T_mean()
-    cable_length = span_model.L()
+    cable_length = span_model.compute_L()
 
     deformation_model = DeformationRte(
         **default_data_container_one_span.__dict__,

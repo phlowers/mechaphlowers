@@ -5,34 +5,80 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from typing import List, Tuple
+
 import numpy as np
 
 
-def fill_to_support(array_to_fill: np.ndarray):
-    return np.concatenate((array_to_fill, [np.nan]))
+class Masks:
+    """
+    Current types: "suspension", "anchor_first", "anchor_last"
+    """
 
+    # TODO: wriste docstring
+    def __init__(self, nodes_type: List[str], L_chain: np.ndarray) -> None:
+        self.nodes_type = nodes_type
+        self.L_chain = L_chain
+        self.is_suspension = [x == "suspension" for x in self.nodes_type]
+        self.is_anchor_first = [x == "anchor_first" for x in self.nodes_type]
+        self.is_anchor_last = [x == "anchor_last" for x in self.nodes_type]
 
-def reduce_to_span(array_to_reduce: np.ndarray):
-    return array_to_reduce[0:-1]
+    def compute_dx_dy_dz(
+        self, dx: np.ndarray, dy: np.ndarray, dz: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        L_chain = self.L_chain
+        is_suspension = self.is_suspension
+        is_anchor_first = self.is_anchor_first
+        is_anchor_last = self.is_anchor_last
+        new_dx = dx.copy()
+        new_dz = dz.copy()
+        # case: suspension chains
+        suspension_shift = -(
+            (
+                L_chain[is_suspension] ** 2
+                - dx[is_suspension] ** 2
+                - dy[is_suspension] ** 2
+            )
+            ** 0.5
+        )
+        new_dz[is_suspension] = suspension_shift
+
+        # case: first anchor chain
+        anchor_shift_first = (
+            L_chain[is_anchor_first] ** 2
+            - dz[is_anchor_first] ** 2
+            - dy[is_anchor_first] ** 2
+        ) ** 0.5
+        new_dx[is_anchor_first] = anchor_shift_first
+
+        # case: first anchor last
+        anchor_shift_last = (
+            L_chain[is_anchor_last] ** 2
+            - dz[is_anchor_last] ** 2
+            - dy[is_anchor_last] ** 2
+        ) ** 0.5
+        new_dx[is_anchor_last] = -anchor_shift_last
+
+        return new_dx, new_dz
 
 
 class VectorProjection:
-    def __init__(self):
-        pass
-
-    def set_tensions(self, Th: np.ndarray, Tv_d: np.ndarray, Tv_g: np.ndarray):
+    # TODO: understand this and write docstring + eventually refactor this
+    def set_tensions(
+        self, Th: np.ndarray, Tv_d: np.ndarray, Tv_g: np.ndarray
+    ) -> None:
         self.Th = Th
         self.Tv_d = Tv_d
         self.Tv_g = Tv_g
 
     def set_angles(
         self, alpha: np.ndarray, beta: np.ndarray, line_angle: np.ndarray
-    ):
+    ) -> None:
         self.alpha = alpha
         self.beta = beta
         self.line_angle = line_angle
 
-    def set_proj_angle(self, proj_angle: np.ndarray):
+    def set_proj_angle(self, proj_angle: np.ndarray) -> None:
         self.proj_angle = proj_angle
 
     def set_all(
@@ -45,14 +91,14 @@ class VectorProjection:
         line_angle: np.ndarray,
         proj_angle: np.ndarray,
         weight_chain: np.ndarray,
-    ):
+    ) -> None:
         self.set_tensions(Th, Tv_d, Tv_g)
         self.set_angles(alpha, beta, line_angle)
         self.set_proj_angle(proj_angle)
         self.weight_chain = weight_chain
 
     # properties?
-    def T_attachments_plane_left(self):
+    def T_attachments_plane_left(self) -> np.ndarray:
         beta = self.beta
         Th = self.Th
         Tv_g = self.Tv_g
@@ -60,10 +106,9 @@ class VectorProjection:
         vg = Tv_g * np.cos(beta) - Th * np.sin(beta) * np.sin(alpha)
         hg = Tv_g * np.sin(beta) + Th * np.cos(beta) * np.sin(alpha)
         lg = Th * np.cos(alpha)
-        # order x, y, z ?
         return np.array([lg, hg, vg])
 
-    def T_attachments_plane_right(self):
+    def T_attachments_plane_right(self) -> np.ndarray:
         beta = self.beta
         Th = self.Th
         Tv_d = self.Tv_d
@@ -71,28 +116,25 @@ class VectorProjection:
         vd = Tv_d * np.cos(beta) + Th * np.sin(beta) * np.sin(alpha)
         hd = Tv_d * np.sin(beta) - Th * np.cos(beta) * np.sin(alpha)
         ld = -Th * np.cos(alpha)
-        # order x, y, z ?
         return np.array([ld, hd, vd])
 
-    def T_line_plane_left(self):
+    def T_line_plane_left(self) -> np.ndarray:
         lg, hg, vg = self.T_attachments_plane_left()
         proj_angle = self.proj_angle
         r_s_g = lg * np.cos(proj_angle) - hg * np.sin(proj_angle)
         r_t_g = lg * np.sin(proj_angle) + hg * np.cos(proj_angle)
         r_z_g = vg
-        # order between s and t?
         return np.array([r_s_g, r_t_g, r_z_g])
 
-    def T_line_plane_right(self):
+    def T_line_plane_right(self) -> np.ndarray:
         ld, hd, vd = self.T_attachments_plane_right()
         proj_angle = self.proj_angle
         r_s_d = ld * np.cos(proj_angle) - hd * np.sin(proj_angle)
         r_t_d = ld * np.sin(proj_angle) + hd * np.cos(proj_angle)
         r_z_d = vd
-        # order between s and t?
         return np.array([r_s_d, r_t_d, r_z_d])
 
-    def forces(self):
+    def forces(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         s_right, t_right, z_right = self.T_line_plane_right()
         T_line_plane_left = self.T_line_plane_left()
         s_left, t_left, z_left = T_line_plane_left

@@ -7,6 +7,17 @@
 """Module for mechaphlowers configuration settings"""
 
 from dataclasses import dataclass
+from typing import Type
+
+import numpy as np
+
+
+@dataclass
+class PrecisionConfig:
+    """Precision configuration class."""
+
+    dtype_float: Type[np.floating] = np.float64
+    dtype_int: Type[np.integer] = np.int64
 
 
 @dataclass
@@ -21,7 +32,7 @@ class GraphicsConfig:
 class SolverConfig:
     """Solvers configuration class."""
 
-    sagtension_zeta: int = 10
+    sagtension_zeta: float = 10.0
     deformation_imag_thresh: float = 1e-5
 
 
@@ -50,6 +61,7 @@ class Config:
         self._graphics = GraphicsConfig()
         self._solver = SolverConfig()
         self._compute_config = ComputeConfig()
+        self._precision = PrecisionConfig()
 
     @property
     def graphics(self) -> GraphicsConfig:
@@ -65,6 +77,11 @@ class Config:
     def compute(self) -> ComputeConfig:
         """Dataframe configuration property."""
         return self._compute_config
+
+    @property
+    def precision(self) -> PrecisionConfig:
+        """Precision configuration property."""
+        return self._precision
 
     class OptionError(Exception):
         """Exception raised when an option is not available."""

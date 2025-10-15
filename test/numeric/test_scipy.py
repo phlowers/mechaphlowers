@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_, assert_allclose, assert_equal, assert_warns
 
-import mechaphlowers.core.numeric.numeric as zeros
+import mechaphlowers.numeric.scipy as zeros
 
 # Import testing parameters
 # from scipy.optimize._tstutils import functions, fstrings
