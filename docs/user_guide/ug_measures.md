@@ -114,8 +114,8 @@ The previous calculations in triangle SLR can be applied to triangles SL1 and SL
 
 $$
     \begin{aligned}
-        \alpha_1 &= H_1 – H_L \\
-        \alpha_2 &= H_2 – H_L
+        \alpha_1 &= H_1 - H_L \\
+        \alpha_2 &= H_2 - H_L
     \end{aligned}
 $$
 
@@ -123,10 +123,10 @@ Then:
 
 $$
     \begin{aligned}
-        \text{dist}_1 &= \frac{\text{dist}_L}{\sin(\pi – \alpha_1 – \alpha_L)} \cdot \sin \alpha_L \\
-        \text{dist}_2 &= \frac{\text{dist}_L}{\sin(\pi – \alpha_2 – \alpha_L)} \cdot \sin \alpha_L \\
-        a_1 &= \text{dist}_L \cdot \cos(\alpha_L) + \text{dist}_1 \cdot \cos(\pi – \alpha_1 – \alpha_L) \\
-        a_2 &= \text{dist}_L \cdot \cos(\alpha_L) + \text{dist}_2 \cdot \cos(\pi – \alpha_2 – \alpha_L) \\
+        \text{dist}_1 &= \frac{\text{dist}_L}{\sin(\pi - \alpha_1 - \alpha_L)} \cdot \sin \alpha_L \\
+        \text{dist}_2 &= \frac{\text{dist}_L}{\sin(\pi - \alpha_2 - \alpha_L)} \cdot \sin \alpha_L \\
+        a_1 &= \text{dist}_L \cdot \cos(\alpha_L) + \text{dist}_1 \cdot \cos(\pi - \alpha_1 - \alpha_L) \\
+        a_2 &= \text{dist}_L \cdot \cos(\alpha_L) + \text{dist}_2 \cdot \cos(\pi - \alpha_2 - \alpha_L) \\
         z_1 &= \text{dist}_1 \cdot \tan(V_1) \\
         z_2 &= \text{dist}_2 \cdot \tan(V_2)
     \end{aligned}
@@ -142,33 +142,33 @@ This calculation is done in two steps:
 With the parabolic approximation, the equation is:
 
 $$
-    z = \frac{(x – \text{value})^2}{2p}
+    z = \frac{(x - \text{value})^2}{2p}
 $$
 
 To determine $\text{value}$ (the horizontal distance from the left tower to the lowest point), we use:
 
 $$
-z_R – z_L = h = \frac{(a – \text{value})^2 – (0 – \text{value})^2}{2p} = \frac{a^2 – 2 \cdot \text{value} \cdot a}{2p}
+z_R - z_L = h = \frac{(a - \text{value})^2 - (0 - \text{value})^2}{2p} = \frac{a^2 - 2 \cdot \text{value} \cdot a}{2p}
 $$
 
 Which gives: 
 
 $$
-\text{value} = a / 2 – \frac{p \cdot h}{a}
+\text{value} = \frac{a}{2} - \frac{p \cdot h}{a}
 $$
 
 Then, the sag $f_1$ at point 1 is: 
 
 $$
-f_1 = z_L – z_1 + \frac{a_1 \cdot h}{a}
+f_1 = z_L - z_1 + \frac{a_1 \cdot h}{a}
 $$
 
 Using the value of $\text{value}$ and simplifying, this gives:
 
 $$
 \begin{aligned}
-    f_1 &= x \cdot \frac{a – x}{2p} \\
-    p &= x \cdot \frac{a – x}{2 \cdot f1}
+    f_1 &= x \cdot \frac{a - x}{2p} \\
+    p &= x \cdot \frac{a - x}{2 \cdot f1}
 \end{aligned}
 $$
 
@@ -178,30 +178,30 @@ Now, this initial value must be refined by considering the actual catenary equat
 
 As before, the first step is to determine the value of $\text{value}$ in order to write:
 
-The catenary equation is given by: $z = p \cdot cosh(\frac{x – \text{value}}{p}) – 1$
+The catenary equation is given by: $z = p \cdot cosh(\frac{x - \text{value}}{p}) - 1$
 
 The value $\text{value}$ (the horizontal distance from the left tower to the lowest point of the catenary) is calculated as:
 
 $$
-    \text{value} = \frac{a}{2} – p \cdot asinh \left( \frac{h}{2p \cdot \sinh \frac{a}{2p}} \right)
+    \text{value} = \frac{a}{2} - p \cdot asinh \left( \frac{h}{2p \cdot \sinh \frac{a}{2p}} \right)
 $$
 
 By replacing $\sinh$ and $asinh$ with their first-order Taylor expansions, one can observe that this expression simplifies back to the parabolic approximation formula.  
 Next, a function $F(p)$ must be defined and solved for zero:
 
 $$
-    F(p) = p \cdot \left( \cosh \left( \frac{0 – \text{value}}{p} \right) – \cosh \left( \frac{x – \text{value}}{p} \right) \right) – ( z_L – z_1 )
+    F(p) = p \cdot \left( \cosh \left( \frac{0 - \text{value}}{p} \right) - \cosh \left( \frac{x - \text{value}}{p} \right) \right) - ( z_L - z_1 )
 $$
 
 
 The first term of the equation depends on $p$, while the second term is derived from the measurements.
 
-To compute the derivative of F (for Newton’s method), the following approximation is sufficient: $F'(p) \approx F(p + 1) – F(p)$ (only $F(p + 1)$ needs to be computed, since $F(p)$ has already been calculated.)
+To compute the derivative of F (for Newton’s method), the following approximation is sufficient: $F'(p) \approx F(p + 1) - F(p)$ (only $F(p + 1)$ needs to be computed, since $F(p)$ has already been calculated.)
 
 The new value of p is then: 
 
 $$
-    p_{new} = p  –  \frac{F(p)}{F'(p)}
+    p_{new} = p  -  \frac{F(p)}{F'(p)}
 $$
 
 The 1977 handwritten note suggests using a less conventional method than Newton’s method. Although not detailed here, the principle remains the same: iteratively refine the value of p using a numerical method.  
@@ -211,18 +211,18 @@ Point 2 is then used to verify the accuracy of this calculation—in other words
 With the new parameter $p$ obtained after the previous iterations, it is possible to recalculate value, and then, using $a_2$, compute the difference $\Delta$:
 
 $$
-    \Delta = p \cdot \left( \cosh \left( \frac{0 – \text{value}}{p} \right) – \cosh \left( \frac{a2 – \text{value}}{p_1} \right) \right) \text{(this is the calculated difference)}
+    \Delta = p_{new} \cdot \left( \cosh \left( \frac{0 - \text{value}}{p_{new}} \right) - \cosh \left( \frac{a2 - \text{value}}{p_{new}} \right) \right) \text{(this is the calculated difference)}
 $$
 
-This value must then be compared to the measured difference: $z_L – z_2$
+This value must then be compared to the measured difference: $z_L - z_2$
 
 If the calculated difference is greater than the measured difference, $\alpha_R$ must be increased; otherwise, it must be decreased. The same sequence of operations is repeated until the calculated difference matches the measured one within a 1 mm tolerance.
 
 The adjustment of the angle $\alpha_R$ using the bisection method is done as follows:
 
-- Step 0: $\alpha_R = (pi – \alpha) / 2$ (assuming triangle LSR is isosceles)  
-- Step 1: $\alpha_R = \alpha_R ± (pi – \alpha) / 2^2$  
-- Step 2: $\alpha_R = \alpha_R ± (pi – \alpha) / 2^3$  
+- Step 0: $\alpha_R = \frac{pi - \alpha}{2}$ (assuming triangle LSR is isosceles)  
+- Step 1: $\alpha_R = \frac{\alpha_R ± (pi - \alpha)}{2^2}$  
+- Step 2: $\alpha_R = \frac{\alpha_R ± (pi - \alpha)}{2^3}$  
 - And so on...
 
 

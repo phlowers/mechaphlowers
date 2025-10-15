@@ -1,6 +1,6 @@
 import numpy as np
 
-from mechaphlowers.data.measures import PapotoParameterMeasure, papoto
+from mechaphlowers.data.measures import PapotoParameterMeasure
 
 
 def test_papoto_parameter_measure():
@@ -16,6 +16,7 @@ def test_papoto_parameter_measure():
     H3 = np.array([97.1475339907774, np.nan])
     V3 = np.array([87.9335010245142, np.nan])
 
+    papoto = PapotoParameterMeasure()
     papoto(
         a=a,
         HL=HL,

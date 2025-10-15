@@ -166,6 +166,3 @@ class PapotoParameterMeasure(ParameterMeasure):
 
     def __call__(self, *args, **kwds):
         return self.measure_method(*args, **kwds)
-
-
-papoto = PapotoParameterMeasure()
