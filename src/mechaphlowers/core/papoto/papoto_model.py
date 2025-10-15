@@ -118,10 +118,10 @@ def papoto_2_points(
     Alpha = HR - HL
     Alpha1 = H1 - HL
     Alpha2 = H2 - HL
-    VL = np.pi/2 - VL  # null angle = horizon
-    VR = np.pi/2 - VR
-    V1 = np.pi/2 - V1
-    V2 = np.pi/2 - V2
+    VL = np.pi / 2 - VL  # null angle = horizon
+    VR = np.pi / 2 - VR
+    V1 = np.pi / 2 - V1
+    V2 = np.pi / 2 - V2
 
     nb_loops = 100
 
