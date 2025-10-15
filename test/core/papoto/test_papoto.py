@@ -11,6 +11,7 @@ from mechaphlowers.core.papoto.papoto_model import (
     convert_grad_to_rad,
     papoto_2_points,
     papoto_3_points,
+    papoto_validity,
 )
 
 
@@ -64,3 +65,11 @@ def test_papoto_function_3_points():
         V3=convert_grad_to_rad(V3),
     )
     np.testing.assert_allclose(parameter, np.array([2000, np.nan]), atol=1.0)
+
+
+def test_validity():
+    parameter_1_2 = np.array([999., np.nan])
+    parameter_2_3 = np.array([1000., np.nan])
+    parameter_1_3 = np.array([1001., np.nan])
+    validity = papoto_validity(parameter_1_2, parameter_2_3, parameter_1_3)
+    np.testing.assert_allclose(validity, np.array([1e-03, np.nan]), atol=1e-5)
