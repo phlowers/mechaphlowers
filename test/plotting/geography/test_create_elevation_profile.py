@@ -18,18 +18,16 @@ from mechaphlowers.plotting.elevation import (
 class TestCreateElevationProfile:
     """Test suite for plot_elevation_profile function."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test data."""
         # Sample support geo info for testing - single SupportGeoInfo object with arrays
         self.sample_supports: SupportGeoInfo = {
-            "gps": (
-                np.array(
-                    [48.8566, 43.2965, 45.7640]
-                ),  # lats: Paris, Marseille, Lyon
-                np.array(
-                    [2.3522, 5.3698, 4.8357]
-                ),  # lons: Paris, Marseille, Lyon
-            ),
+            "latitude": np.array(
+                [48.8566, 43.2965, 45.7640]
+            ),  # lons: Paris, Marseille, Lyon
+            "longitude": np.array(
+                [2.3522, 5.3698, 4.8357]
+            ),  # lons: Paris, Marseille, Lyon
             "elevation": np.array([35.0, 12.0, 173.0]),
             "distance_to_next": np.array([100.0, 200.0, 150.0]),
             "bearing_to_next": np.array([180.5, 315.2, 270.8]),
