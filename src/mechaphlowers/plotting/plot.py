@@ -164,9 +164,9 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 
 class PlotLine:
     
-    def __init__(self, span_model, beta, section_array) -> None:
+    def __init__(self, span_model, cable_loads, section_array) -> None:
         self.spans = span_model
-        self.beta = beta
+        self.cable_loads = cable_loads
         self.section_array = section_array.data
         self.section_pts = SectionPoints(
             span_length=self.section_array.span_length.to_numpy(),
@@ -176,12 +176,16 @@ class PlotLine:
             insulator_length=self.section_array.insulator_length.to_numpy(),
             span_model = span_model
         )
+    
+    @property
+    def beta(self):
+        return self.cable_loads.load_angle
             
     @staticmethod
     def builder_from_balance_engine(balance_engine) -> PlotLine:
         return PlotLine(
             balance_engine.span_model,
-            balance_engine.cable_loads.load_angle,
+            balance_engine.cable_loads,
             balance_engine.section_array,
         )
     

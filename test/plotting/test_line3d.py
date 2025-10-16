@@ -155,6 +155,14 @@ def test_plot_flat_line3d(default_cable_array):
     plt_line = PlotLine.builder_from_balance_engine(be)
     
     fig = go.Figure()
+    
+    print(plt_line.beta)
+    
+    be.solve_adjustment()
+    be.solve_change_state(wind_pressure=[240.12, 0.0, 600.0, np.nan])
+    
+    print(plt_line.beta)
+    
     plt_line.flat_line3d(fig, be)
     frame.plot.line3d(fig)
     # fig.show() # deactivate for auto unit testing
