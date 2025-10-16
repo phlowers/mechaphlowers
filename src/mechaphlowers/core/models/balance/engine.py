@@ -153,6 +153,16 @@ class BalanceEngine:
             self.deformation_model.current_temperature = arr.incr(
                 new_temperature
             )
+            
+        # check if adjustment has been done before
+        try:
+            _ = self.L_ref
+        except AttributeError as e:
+            logger.error(
+                "L_ref not defined. You must run solve_adjustment() before solve_change_state()."
+            )
+            raise e
+        
         self.balance_model.adjustment = False
         self.span_model.load_coefficient = (
             self.balance_model.cable_loads.load_coefficient
