@@ -72,6 +72,9 @@ class BalanceEngine:
         deformation_model_type: Type[IDeformation] = DeformationRte,
     ) -> None:
         # TODO: find a better way to initialize objects
+        self.section_array = section_array
+        self.cable_array = cable_array
+        
         zeros_vector = np.zeros_like(
             section_array.data.conductor_attachment_altitude.to_numpy()
         )

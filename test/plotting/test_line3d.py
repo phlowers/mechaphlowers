@@ -11,12 +11,13 @@ import plotly.graph_objects as go  # type: ignore[import-untyped]
 import pytest
 
 from mechaphlowers.api.frames import SectionDataFrame
+from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import (
     SectionArray,
     WeatherArray,
 )
 from mechaphlowers.entities.shapes import SupportShape
-from mechaphlowers.plotting.plot import plot_support_shape
+from mechaphlowers.plotting.plot import PlotLine, plot_support_shape
 
 data = {
     "name": ["1", "2", "three", "support 4"],
@@ -110,3 +111,51 @@ def test_plot_support_shape():
     plot_support_shape(fig, pyl_shape)
     # fig.show()
     assert True
+    
+    
+def test_plot_flat_line3d(default_cable_array):
+    
+    data = {
+        "name": ["1", "2", "three", "support 4"],
+        "suspension": [False, True, True, False],
+        "conductor_attachment_altitude": [50.0, 40.0, 20.0, 10.0],
+        "crossarm_length": [
+            5.0,
+        ]
+        * 4,
+        "line_angle": [
+            0,10,15,20
+        ],
+        "insulator_length": [0, 4, 3.2, 0],
+        "span_length": [100, 200, 300, np.nan],
+        "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
+        "load_weight": [0, 0, 0, 0],
+        "load_position": [0, 0, 0, 0],
+    }
+
+    section = SectionArray(data=pd.DataFrame(data))
+    section.sagging_parameter = 500
+    section.sagging_temperature = 15
+
+    # frame = SectionDataFrame(section)
+    weather = WeatherArray(
+        pd.DataFrame(
+            {
+                "ice_thickness": [0.0, 60.0, 0.0, np.nan],
+                "wind_pressure": [240.12, 0.0, 600.0, np.nan],
+            }
+        )
+    )
+    # frame.add_cable(cable=default_cable_array)
+    # frame.add_weather(weather=weather)
+    # frame.cable_loads.load_angle  # type: ignore[union-attr]
+    
+    be = BalanceEngine(section_array=section, cable_array=default_cable_array)
+    
+    plt_line = PlotLine.builder_from_balance_engine(be)
+    
+    fig = go.Figure()
+    plt_line.flat_line3d(fig, be)
+    frame.plot.line3d(fig)
+    # fig.show() # deactivate for auto unit testing
+    assert True 
