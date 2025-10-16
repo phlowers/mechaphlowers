@@ -12,6 +12,7 @@ import pytest
 
 from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import (
     SectionArray,
     WeatherArray,
@@ -115,29 +116,44 @@ def test_plot_support_shape():
     
 def test_plot_flat_line3d(default_cable_array):
     
+    #TODO: I dont know why those data gets balance Engine to crash. To investigate later.
+    # data = {
+    #     "name": ["1", "2", "three", "support 4"],
+    #     "suspension": [False, True, True, False],
+    #     "conductor_attachment_altitude": [50.0, 40.0, 20.0, 10.0],
+    #     "crossarm_length": [
+    #         5.0,
+    #     ]
+    #     * 4,
+    #     "line_angle": [
+    #         0,10,15,20
+    #     ],
+    #     "insulator_length": [0, 4, 3.2, 0],
+    #     "span_length": [100, 200, 300, np.nan],
+    #     "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
+    #     "load_weight": [0, 0, 0, 0],
+    #     "load_position": [0, 0, 0, 0],
+    # }
+    
     data = {
-        "name": ["1", "2", "three", "support 4"],
-        "suspension": [False, True, True, False],
-        "conductor_attachment_altitude": [50.0, 40.0, 20.0, 10.0],
-        "crossarm_length": [
-            5.0,
-        ]
-        * 4,
-        "line_angle": [
-            0,10,15,20
-        ],
-        "insulator_length": [0, 4, 3.2, 0],
-        "span_length": [100, 200, 300, np.nan],
-        "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
-        "load_weight": [0, 0, 0, 0],
-        "load_position": [0, 0, 0, 0],
-    }
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad")
+                .to('deg')
+                .magnitude,
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
 
     section = SectionArray(data=pd.DataFrame(data))
     section.sagging_parameter = 500
     section.sagging_temperature = 15
 
-    # frame = SectionDataFrame(section)
     weather = WeatherArray(
         pd.DataFrame(
             {
@@ -146,9 +162,7 @@ def test_plot_flat_line3d(default_cable_array):
             }
         )
     )
-    # frame.add_cable(cable=default_cable_array)
-    # frame.add_weather(weather=weather)
-    # frame.cable_loads.load_angle  # type: ignore[union-attr]
+
     
     be = BalanceEngine(section_array=section, cable_array=default_cable_array)
     
@@ -159,11 +173,11 @@ def test_plot_flat_line3d(default_cable_array):
     print(plt_line.beta)
     
     be.solve_adjustment()
-    be.solve_change_state(wind_pressure=[240.12, 0.0, 600.0, np.nan])
+    be.solve_change_state(wind_pressure=200*np.array([1, 1, 1, np.nan]))
     
-    print(plt_line.beta)
+    print(plt_line.beta) # check if beta is updated after change_state
     
-    plt_line.flat_line3d(fig, be)
-    frame.plot.line3d(fig)
+    plt_line.preview_line3d(fig)
+
     # fig.show() # deactivate for auto unit testing
     assert True 

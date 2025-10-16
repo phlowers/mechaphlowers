@@ -189,8 +189,10 @@ class PlotLine:
             balance_engine.section_array,
         )
     
-#TODO change name
-    def flat_line3d(
+# I propose here to rename the method to preview_line3d to for plotting without exact chain position.
+# This is already working
+# we can work on the exact chain position in another method.
+    def preview_line3d(
         self, 
             fig: go.Figure, view: Literal["full", "analysis"] = "full"
         ) -> None:
@@ -212,16 +214,39 @@ class PlotLine:
                 raise ValueError(
                     f"{view=} : this argument has to be set to 'full' or 'analysis'"
                 )
-            # spans = self.section._span_model(
-            #     **self.section.data_container.__dict__
-            # )
-            # section_pts = SectionPoints(
-            #     span_model=spans, **self.section.data_container.__dict__
-            # )
-            # beta = np.zeros_like(spans.span_length)
-            # if self.section.cable_loads is not None:
-            #     beta = self.section.cable_loads.load_angle * 180 / np.pi
-            # section_pts.beta = beta
+
+            plot_line(fig, self.section_pts.get_spans("section").points(True))
+
+            plot_support(fig, self.section_pts.get_supports().points(True))
+
+            plot_insulator(fig, self.section_pts.get_insulators().points(True))
+
+            set_layout(fig, auto=_auto)
+      
+    #TODO: this is the new function to modify      
+    def view_line3d(
+        self, 
+            fig: go.Figure, view: Literal["full", "analysis"] = "full"
+        ) -> None:
+            """Plot 3D of power lines sections
+
+            Args:
+                fig (go.Figure): plotly figure where new traces has to be added
+                view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+
+            Raises:
+                ValueError: view is not an expected value
+            """
+
+            view_map = {"full": True, "analysis": False}
+
+            try:
+                _auto = view_map[view]
+            except KeyError:
+                raise ValueError(
+                    f"{view=} : this argument has to be set to 'full' or 'analysis'"
+                )
+
             plot_line(fig, self.section_pts.get_spans("section").points(True))
 
             plot_support(fig, self.section_pts.get_supports().points(True))
