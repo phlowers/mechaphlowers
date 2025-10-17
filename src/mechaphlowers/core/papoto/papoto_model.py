@@ -10,7 +10,7 @@ import numpy as np
 try:
     from scipy import optimize  # type: ignore
 except ImportError:
-    import mechaphlowers.core.numeric.numeric as optimize
+    import mechaphlowers.numeric.scipy as optimize
 
 _ZETA = 1.0
 
