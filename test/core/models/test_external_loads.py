@@ -23,7 +23,7 @@ def cable_data_dict() -> dict:
     # units are incorrect
     return {
         "diameter": 22.4,
-        "linear_weight": 9.6,
+        "linear_weight": 9.55494,
     }
 
 

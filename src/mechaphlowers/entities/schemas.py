@@ -69,7 +69,7 @@ class CableArrayInput(pa.DataFrameModel):
 
     section: pdt.Series[float] = pa.Field(coerce=True)
     diameter: pdt.Series[float] = pa.Field(coerce=True)
-    linear_weight: pdt.Series[float] = pa.Field(coerce=True)
+    linear_mass: pdt.Series[float] = pa.Field(coerce=True)
     young_modulus: pdt.Series[float] = pa.Field(coerce=True)
     dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
     temperature_reference: pdt.Series[float] = pa.Field(coerce=True)
