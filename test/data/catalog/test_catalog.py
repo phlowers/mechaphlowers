@@ -22,6 +22,7 @@ from mechaphlowers.data.catalog.catalog import (
     sample_support_catalog,
     write_yaml_catalog_template,
 )
+from mechaphlowers.entities.arrays import CableArray, ElementArray
 from mechaphlowers.entities.shapes import SupportShape
 
 
@@ -106,7 +107,7 @@ def test_fake_catalog__get_nothing() -> None:
 
 
 def test_sample_cable_catalog__get_as_cable_array() -> None:
-    cable_array = sample_cable_catalog.get_as_object(
+    cable_array: ElementArray = sample_cable_catalog.get_as_object(
         ["ASTER600", "PETUNIA600"]
     )
 
@@ -349,3 +350,71 @@ def test_write_yaml_catalog_template_str_path(tmp_path):
     write_yaml_catalog_template(str(tmp_path), template="support_catalog")
     expected_file = tmp_path / "sample_pylon_database.yaml"
     assert expected_file.exists()
+
+
+def test_catalog_cable_array_units_df():
+    cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
+
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "section": [600.4e-6],
+            "diameter": [31.86e-3],
+            # TODO: differeciate linear_mass/linear_weight
+            "linear_weight": [17.658],
+            "young_modulus": [60e9],
+            "dilatation_coefficient": [23e-6],
+            "temperature_reference": [15.0],
+            "a0": [0.0],
+            "a1": [60e9],
+            "a2": [0.0],
+            "a3": [0.0],
+            "a4": [0.0],
+            "b0": [0.0],
+            "b1": [0.0],
+            "b2": [0.0],
+            "b3": [0.0],
+            "b4": [0.0],
+        }
+    )
+    # check dtype?
+    assert_frame_equal(
+        cable_array.data.reset_index(drop=True),
+        expected_result_SI_units,
+        check_like=True,
+        atol=1e-07,
+    )
+
+
+def test_catalog_cable_array_units_object():
+    cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
+
+    cable_array_original = CableArray(
+        pd.DataFrame(
+            {
+                "section": [600.4],
+                "diameter": [31.86],
+                "linear_mass": [1.8],
+                "young_modulus": [60],
+                "dilatation_coefficient": [23],
+                "temperature_reference": [15],
+                "a0": [0],
+                "a1": [60],
+                "a2": [0],
+                "a3": [0],
+                "a4": [0],
+                "b0": [0],
+                "b1": [0],
+                "b2": [0],
+                "b3": [0],
+                "b4": [0],
+            }
+        )
+    )
+
+    # check dtype?
+    assert_frame_equal(
+        cable_array.data.reset_index(drop=True),
+        cable_array_original.data.reset_index(drop=True),
+        check_like=True,
+        atol=1e-07,
+    )
