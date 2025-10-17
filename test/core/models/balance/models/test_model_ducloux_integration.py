@@ -9,6 +9,7 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 from pytest import fixture
 
 from mechaphlowers.core.models.balance.engine import BalanceEngine
@@ -31,7 +32,7 @@ def cable_array_AM600() -> CableArray:
             {
                 "section": [600.4],
                 "diameter": [31.86],
-                "linear_weight": [17.658],
+                "linear_mass": [1.8],
                 "young_modulus": [60],
                 "dilatation_coefficient": [23],
                 "temperature_reference": [15],
@@ -758,6 +759,7 @@ def test_load_one_span(cable_array_AM600: CableArray):
     )
 
 
+@pytest.mark.skip(reason="This is a performance test")
 def test_many_spans(cable_array_AM600: CableArray):
     nb_spans = 50
     section_array = SectionArray(
@@ -789,6 +791,7 @@ def test_many_spans(cable_array_AM600: CableArray):
     section.solve_change_state(wind_pressure=np.array([-200] * nb_spans))
 
 
+@pytest.mark.skip(reason="This is a performance test")
 def test_many_spans_with_load(cable_array_AM600: CableArray):
     nb_spans = 10
     section_array = SectionArray(

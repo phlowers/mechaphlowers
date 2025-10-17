@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import numpy as np
 import pandas as pd
@@ -12,6 +12,7 @@ import pandera as pa
 from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Self, Type
 
+from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     SectionArrayInput,
@@ -23,9 +24,12 @@ from mechaphlowers.utils import df_to_dict
 class ElementArray(ABC):
     array_input_type: Type[pa.DataFrameModel]
 
+    target_units: dict[str, str]
+
     def __init__(self, data: pd.DataFrame) -> None:
         _data = self._drop_extra_columns(data)
         self._data: pd.DataFrame = _data
+        self.input_units: dict[str, str]
 
     def _drop_extra_columns(self, input_data: pd.DataFrame) -> pd.DataFrame:
         """Return a copy of the input pd.DataFrame, without irrelevant columns.
@@ -43,10 +47,20 @@ class ElementArray(ABC):
     def __copy__(self) -> Self:
         return type(self)(self._data)
 
+    def add_units(self, dict_units: dict[str, str]) -> None:
+        self.input_units.update(dict_units)
+
     @property
-    @abstractmethod
     def data(self) -> pd.DataFrame:
-        """Dataframe with updated data: SI units and added columns"""
+        """Returns a copy of self._data that converts values into SI units"""
+        data_SI = self._data.copy()
+        for column, input_unit in self.input_units.items():
+            data_SI[column] = (
+                Q_(self._data[column].to_numpy(), input_unit)
+                .to(self.target_units[column])
+                .magnitude
+            )
+        return data_SI
 
     def to_numpy(self) -> dict:
         return df_to_dict(self.data)
@@ -117,30 +131,51 @@ class CableArray(ElementArray):
     """
 
     array_input_type: Type[pa.DataFrameModel] = CableArrayInput
+    target_units: dict[str, str] = {
+        "section": "m^2",
+        "diameter": "m",
+        "young_modulus": "Pa",
+        "linear_mass": "kg/m",
+        "dilatation_coefficient": "1/K",
+        "a0": "Pa",
+        "a1": "Pa",
+        "a2": "Pa",
+        "a3": "Pa",
+        "a4": "Pa",
+        "b0": "Pa",
+        "b1": "Pa",
+        "b2": "Pa",
+        "b3": "Pa",
+        "b4": "Pa",
+    }
 
     def __init__(
         self,
         data: pd.DataFrame,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
+        self.input_units: dict[str, str] = {
+            "section": "mm^2",
+            "diameter": "mm",
+            "young_modulus": "GPa",
+            "dilatation_coefficient": "1/MK",
+            "a0": "GPa",
+            "a1": "GPa",
+            "a2": "GPa",
+            "a3": "GPa",
+            "a4": "GPa",
+            "b0": "GPa",
+            "b1": "GPa",
+            "b2": "GPa",
+            "b3": "GPa",
+            "b4": "GPa",
+        }
 
     @property
     def data(self) -> pd.DataFrame:
-        """Returns a copy of self._data that converts values into SI units"""
-        data_SI = self._data.copy()
-        # section is in mm²
-        data_SI["section"] *= 1e-6
-        # diameter is in mm
-        data_SI["diameter"] *= 1e-3
-        # young_modulus is in GPa
-        data_SI["young_modulus"] *= 1e9
-        # dilatation_coefficient is in 10⁻⁶/°C
-        data_SI["dilatation_coefficient"] *= 1e-6
-
-        # polynomial coefficients are in GPa
-        for coef in ["a0", "a1", "a2", "a3", "a4"]:
-            if coef in data_SI:
-                data_SI[coef] *= 1e9
+        data_SI = super().data
+        data_SI["linear_weight"] = data_SI["linear_mass"].to_numpy() * 9.81
+        data_SI = data_SI.drop(columns=["linear_mass"])
         return data_SI
 
     @property

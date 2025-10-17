@@ -43,8 +43,10 @@ class Catalog:
         filename: str | PathLike,
         key_column_name: str,
         catalog_type: CatalogType = 'default_catalog',
+        # TODO: why None? {} should be better
         columns_types: dict | None = None,
         rename_dict: dict | None = None,
+        units_dict: dict | None = None,
         remove_duplicates: bool = True,
         user_filepath: str | PathLike = DATA_BASE_PATH,
     ) -> None:
@@ -69,6 +71,9 @@ class Catalog:
             columns_types = {}
         if rename_dict is None:
             rename_dict = {}
+        if units_dict is None:
+            units_dict = {}
+        self.units_dict = units_dict
         if user_filepath is None:
             filepath = DATA_BASE_PATH / filename  # type: ignore[operator]
         else:
@@ -183,7 +188,7 @@ class Catalog:
                 f"Error when requesting catalog: {e.args[0]}. Try the .keys() method to gets the available keys?"
             ) from e
 
-    def get_as_object(self, keys: list) -> ElementArray:
+    def get_as_object(self, keys: list) -> ElementArray | SupportShape:
         """Get rows from a list of keys.
 
         If a key is present several times in the `keys` argument, the returned dataframe
@@ -214,7 +219,10 @@ class Catalog:
                 f"{list(catalog_to_object.keys())[1:]}"
             )
         df = self.get(keys)
-        return catalog_to_object[self.catalog_type](df)
+        element_array = catalog_to_object[self.catalog_type](df)
+        if isinstance(element_array, ElementArray):
+            element_array.add_units(self.units_dict)
+        return element_array
 
     def keys(self) -> list:
         """Get the keys available in the catalog"""
@@ -278,6 +286,16 @@ def build_catalog_from_yaml(
         }
     else:
         rename_dict = {}
+    # TODO: create function
+    # fetch data for input units
+    if "columns_units" in data:
+        units_dict = {
+            key: value
+            for list_item in data["columns_units"]
+            for (key, value) in list_item.items()
+        }
+    else:
+        units_dict = {}
     catalog_type = data["catalog_type"]
     return Catalog(
         data["csv_name"],
@@ -285,6 +303,7 @@ def build_catalog_from_yaml(
         catalog_type,
         columns_types,
         rename_dict,
+        units_dict,
         remove_duplicates,
         user_filepath,
     )

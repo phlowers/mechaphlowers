@@ -23,7 +23,7 @@ def cable_array_AM600() -> CableArray:
             {
                 "section": [600.4],
                 "diameter": [31.86],
-                "linear_weight": [17.658],
+                "linear_mass": [1.8],
                 "young_modulus": [60],
                 "dilatation_coefficient": [23],
                 "temperature_reference": [15],
