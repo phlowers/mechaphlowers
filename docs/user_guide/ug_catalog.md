@@ -50,17 +50,23 @@ columns:
   - Speed: int
   - Generation: int
   - Legendary: bool
+  - Size: float
 
 columns_renaming:
   - Type 1: First Type
   - Type 2: Second Type
+  - Size: Height
+
+columns_units:
+  - Height: m
 ```
 
 - `csv_name`: the name of the csv located in `src/mechaphlowers/data/`
 - `catalog_type`: used for extracting catalog into mechaphlowers object. Types currently allowed: 'default_catalog', 'cable_catalog'
 - `key_column_name`: name of the column considered as key index 
 - `columns`: list of all columns with their type
-- `columns_renaming`: a dictionary that maps original column names to their new names using the format `original_name: new_name`. Type checking is performed before renaming, so "columns" should list the original column names.
+- `columns_renaming`: a optional dictionary that maps original column names to their new names using the format `original_name: new_name`. Type checking is performed before renaming, so "columns" should list the original column names.
+- `columns_units`: an optional dictionary to store the units of the columns. If left empty for a column, there is usually a default unit if necessary ([see arrays.py](../docstring/entities/arrays.md)). The name of the columns should after the renamed columns, if concerned by `columns_renaming`
 
 
 !!! note "Key column"
@@ -74,3 +80,13 @@ columns_renaming:
 For developers who wants to directly instanciate objects from custom catalogs, there are two ways: 
 - use the existing catalogs and add your own data. You will take advantage of the existing object facilities with the `get_as_object()` method. For example support catalog will provide a list of `SupportShape` objects.
 - Implement in a pull request your own object to handle a new type of data.
+
+## Unit conversion
+
+You can specify the unit of the data in the csv. This way, they will be automatically converted into SI units for computations.
+
+This is done using the python package [pint](https://pint.readthedocs.io/en/stable/){:target="_blank"}. The syntax for units covers all usual notations.
+
+For example, every following notation works: `m/s^2`, `m/s**2` `m*s^(-2)`, `meter.seconds^(-2)`
+
+

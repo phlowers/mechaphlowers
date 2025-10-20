@@ -217,7 +217,7 @@ def function_f(
 ) -> np.ndarray:
     """Function for which we want to find the root.
 
-    $f(p) = p * (\cosh(\\frac{val}{p}) - \cosh(\\frac{x-val}{p}) - \\delta$
+    $f(p) = p * (\\cosh(\\frac{val}{p}) - \\cosh(\\frac{x-val}{p}) - \\delta$
 
     with $val = \\frac{a}{2} - p * \\sinh^{-1}(\\frac{h} {2 * p * sinh(\\frac{a} {2 * p})})$
 
