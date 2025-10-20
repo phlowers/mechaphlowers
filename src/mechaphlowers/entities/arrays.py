@@ -29,7 +29,7 @@ class ElementArray(ABC):
     def __init__(self, data: pd.DataFrame) -> None:
         _data = self._drop_extra_columns(data)
         self._data: pd.DataFrame = _data
-        self.input_units: dict[str, str]
+        self.input_units: dict[str, str] = {}
 
     def _drop_extra_columns(self, input_data: pd.DataFrame) -> pd.DataFrame:
         """Return a copy of the input pd.DataFrame, without irrelevant columns.
@@ -83,6 +83,15 @@ class SectionArray(ElementArray):
     """
 
     array_input_type: Type[pa.DataFrameModel] = SectionArrayInput
+    target_units = {
+        "conductor_attachment_altitude": "m",
+        "crossarm_length": "m",
+        "line_angle": "rad",
+        "insulator_length": "m",
+        "span_length": "m",
+        "insulator_weight": "m",
+        "load_weight": "m",
+    }
 
     def __init__(
         self,
@@ -93,6 +102,7 @@ class SectionArray(ElementArray):
         super().__init__(data)  # type: ignore[arg-type]
         self.sagging_parameter = sagging_parameter
         self.sagging_temperature = sagging_temperature
+        self.input_units = {"line_angle": "deg"}
 
     def compute_elevation_difference(self) -> np.ndarray:
         left_support_height = self._data["conductor_attachment_altitude"]
@@ -101,16 +111,17 @@ class SectionArray(ElementArray):
 
     @property
     def data(self) -> pd.DataFrame:
+        data_output = super().data
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
             )
         else:
             sagging_parameter = np.repeat(
-                np.float64(self.sagging_parameter), self._data.shape[0]
+                np.float64(self.sagging_parameter), data_output.shape[0]
             )
             sagging_parameter[-1] = np.nan
-            return self._data.assign(
+            return data_output.assign(
                 elevation_difference=self.compute_elevation_difference(),
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
@@ -154,7 +165,7 @@ class CableArray(ElementArray):
         self,
         data: pd.DataFrame,
     ) -> None:
-        super().__init__(data)  # type: ignore[arg-type]
+        super().__init__(data)
         self.input_units: dict[str, str] = {
             "section": "mm^2",
             "diameter": "mm",
@@ -211,16 +222,16 @@ class WeatherArray(ElementArray):
     """
 
     array_input_type: Type[pa.DataFrameModel] = WeatherArrayInput
+    target_units: dict[str, str] = {
+        "ice_thickness": "m",
+        "wind_pressure": "Pa",
+    }
 
     def __init__(
         self,
         data: pd.DataFrame,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
-
-    @property
-    def data(self) -> pd.DataFrame:
-        data_SI = self._data.copy()
-        # ice_thickness is in cm
-        data_SI["ice_thickness"] *= 1e-2
-        return data_SI
+        self.input_units: dict[str, str] = {
+            "ice_thickness": "cm",
+        }

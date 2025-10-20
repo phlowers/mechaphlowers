@@ -30,9 +30,10 @@ def test_hamilton_array() -> None:
 
 
 def test_rotation_matrix_quaternion__simple_axis() -> None:
-    beta = np.array([90, 180])
+    beta = np.array([np.pi / 2, np.pi])
     rotation_matrix_0 = rotation_matrix_to_quaternion(
-        beta, np.array([[1, 0, 0], [0, 2, 0]])
+        beta,
+        np.array([[1, 0, 0], [0, 2, 0]]),
     )
     expected_result = np.array(
         [
@@ -53,9 +54,11 @@ def test_rotation_multiple__same_axis() -> None:
             [0, -(3**0.5), 0],
         ]
     )
-    beta_0 = np.array([90, 180, 360, 45, 30])
+    beta_0 = np.array([90.0, 180.0, 360.0, 45.0, 30.0])
 
-    vector_rotated_0 = rotation_quaternion_same_axis(vector_0, beta_0)
+    vector_rotated_0 = rotation_quaternion_same_axis(
+        vector_0, beta_0, degrees=True
+    )
     expected_result_0 = np.array(
         [
             [0, -1, 1],
@@ -68,9 +71,11 @@ def test_rotation_multiple__same_axis() -> None:
     np.testing.assert_array_almost_equal(vector_rotated_0, expected_result_0)
 
     vector_1 = np.array([[7.1, 3.8, 6.5], [1, 0, 0], [1, 0, 0]])
-    beta_1 = np.array([360, -60, 270])
+    beta_1 = np.array([360.0, -60.0, 270.0])
     axis_1 = np.array([0, 0, 1])
-    vector_rotated_1 = rotation_quaternion_same_axis(vector_1, beta_1, axis_1)
+    vector_rotated_1 = rotation_quaternion_same_axis(
+        vector_1, beta_1, axis_1, degrees=True
+    )
     expected_result_1 = np.array(
         [[7.1, 3.8, 6.5], [0.5, -(3**0.5) / 2, 0], [0, -1, 0]]
     )
@@ -87,11 +92,11 @@ def test_rotation_multiple__different_axis() -> None:
             [0, 0, 1],
         ]
     )
-    beta = np.array([90, 180, 180, 180, 180])
+    beta = np.array([90.0, 180.0, 180.0, 180.0, 180.0])
     axes = np.array(
         [[1, 0, 0], [0, 1, 0], [1, 1, 0], [8, 8, 0], [0, 3**0.5, 1]]
     )
-    vector_rotated = rotation_quaternion(vector, beta, axes)
+    vector_rotated = rotation_quaternion(vector, beta, axes, degrees=True)
     expected_result = np.array(
         [
             [1, -1, 5],

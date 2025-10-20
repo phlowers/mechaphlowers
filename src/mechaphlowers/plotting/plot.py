@@ -198,7 +198,7 @@ class PlotAccessor:
         )
         beta = np.zeros_like(spans.span_length)
         if self.section.cable_loads is not None:
-            beta = self.section.cable_loads.load_angle * 180 / np.pi
+            beta = self.section.cable_loads.load_angle
         section_pts.beta = beta
         plot_line(fig, section_pts.get_spans("section").points(True))
 

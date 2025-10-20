@@ -35,7 +35,6 @@ from mechaphlowers.core.models.cable.deformation import (
 )
 from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.numeric import cubic
 from mechaphlowers.utils import arr
@@ -643,10 +642,7 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
     L_chain = section_array.data.insulator_length.to_numpy()
     weight_chain = section_array.data.insulator_weight.to_numpy()
     arm_length = section_array.data.crossarm_length.to_numpy()
-    # Convert degrees to rad
-    line_angle = (
-        Q_(section_array.data.line_angle.to_numpy(), "deg").to("rad").magnitude
-    )
+    line_angle = section_array.data.line_angle.to_numpy()
     z = section_array.data.conductor_attachment_altitude.to_numpy()
     span_length = arr.decr(section_array.data.span_length.to_numpy())
     load = arr.decr(section_array.data.load_weight.to_numpy())
