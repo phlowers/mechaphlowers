@@ -22,7 +22,7 @@ from mechaphlowers.data.catalog.catalog import (
     sample_support_catalog,
     write_yaml_catalog_template,
 )
-from mechaphlowers.entities.arrays import CableArray, ElementArray
+from mechaphlowers.entities.arrays import CableArray
 from mechaphlowers.entities.shapes import SupportShape
 
 

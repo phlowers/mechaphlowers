@@ -60,8 +60,8 @@ class Catalog:
                 filename (str | PathLike): filename of the csv data source
                 key_column_name (str): name of the column used as key (i.e. row identifier)
                 catalog_type (Literal['default_catalog', "cable_catalog"]): type of the catalog. Used in the `get_as_object` method to convert the catalog to a specific object type.
-                columns_types (dict | None): dictionnary of column names and their types.
-                rename_dict (dict | None): dictionnary of column names to rename. The key is the original name, the value is the new name.
+                columns_types (dict | None): dictionary of column names and their types.
+                rename_dict (dict | None): dictionary of column names to rename. The key is the original name, the value is the new name.
                 remove_duplicates (bool): whether to remove duplicate rows. Defaults to True.
                 user_filepath (str | PathLike): path to the folder containing the csv file. Defaults to internal data.
         """
@@ -125,7 +125,7 @@ class Catalog:
 
         Args:
             key_column_name (str): name of the key index
-            rename_dict (dict): dictionnary of all column names that need to be renamed. This can include the key index.
+            rename_dict (dict): dictionary of all column names that need to be renamed. This can include the key index.
         """
         self._data = self._data.rename(columns=rename_dict)
         # also renaming index column
@@ -191,7 +191,7 @@ class Catalog:
         be returned.
 
         The type of the object returned depends on catalog_type.
-        The mapping between catalog_type and object type is made by dictionnary catalog_to_object
+        The mapping between catalog_type and object type is made by dictionary catalog_to_object
 
         Raises:
                 KeyError: if any of the requested `keys` doesn't match any row in the input data
