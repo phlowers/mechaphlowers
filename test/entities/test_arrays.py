@@ -210,7 +210,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "suspension": [False, True, True, False],
             "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
             "crossarm_length": [10, 12.1, 10, 10.1],
-            "line_angle": [0, 360, 90.1, -90.2],
+            "line_angle": [0.0, 6.283185, 1.572542, -1.574287],
             "insulator_length": [0, 4, 3.2, 0],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
@@ -391,6 +391,59 @@ def test_create_cable_array__units(
     )
     assert_frame_equal(
         cable.data,
+        expected_result_SI_units,
+        check_like=True,
+        check_dtype=False,
+        atol=1e-07,
+    )
+
+
+def test_create_weather_array() -> None:
+    weather = WeatherArray(
+        pd.DataFrame(
+            {
+                "ice_thickness": [1, 2.1],
+                "wind_pressure": [240.12, 0],
+            }
+        )
+    )
+
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "ice_thickness": np.array([1e-2, 2.1e-2]),
+            "wind_pressure": np.array([240.12, 0]),
+        }
+    )
+
+    assert_frame_equal(
+        weather.data,
+        expected_result_SI_units,
+        check_like=True,
+        check_dtype=False,
+        atol=1e-07,
+    )
+
+
+def test_create_weather_array__units() -> None:
+    weather = WeatherArray(
+        pd.DataFrame(
+            {
+                "ice_thickness": [1, 2.1],
+                "wind_pressure": [240.12, 0],
+            }
+        )
+    )
+
+    weather.add_units({"ice_thickness": "dm"})
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "ice_thickness": np.array([1e-1, 2.1e-1]),
+            "wind_pressure": np.array([240.12, 0]),
+        }
+    )
+
+    assert_frame_equal(
+        weather.data,
         expected_result_SI_units,
         check_like=True,
         check_dtype=False,
