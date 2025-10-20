@@ -43,10 +43,9 @@ class Catalog:
         filename: str | PathLike,
         key_column_name: str,
         catalog_type: CatalogType = 'default_catalog',
-        # TODO: why None? {} should be better
-        columns_types: dict | None = None,
-        rename_dict: dict | None = None,
-        units_dict: dict | None = None,
+        columns_types: dict = {},
+        rename_dict: dict = {},
+        units_dict: dict = {},
         remove_duplicates: bool = True,
         user_filepath: str | PathLike = DATA_BASE_PATH,
     ) -> None:
@@ -67,12 +66,6 @@ class Catalog:
                 user_filepath (str | PathLike): path to the folder containing the csv file. Defaults to internal data.
         """
         self.catalog_type = catalog_type
-        if columns_types is None:
-            columns_types = {}
-        if rename_dict is None:
-            rename_dict = {}
-        if units_dict is None:
-            units_dict = {}
         self.units_dict = units_dict
         if user_filepath is None:
             filepath = DATA_BASE_PATH / filename  # type: ignore[operator]
@@ -254,7 +247,7 @@ def build_catalog_from_yaml(
         yaml_filepath = user_filepath / yaml_filename  # type: ignore[operator]
 
         with open(yaml_filepath, "r") as file:
-            data = yaml.safe_load(file)
+            raw_data_yaml: dict = yaml.safe_load(file)
     except FileNotFoundError:
         raise FileNotFoundError(f"File {yaml_filepath} not found")
 
@@ -269,37 +262,27 @@ def build_catalog_from_yaml(
         bool: bool,
     }
     # fetch data for type validation
-    if "columns" in data:
+    if "columns" in raw_data_yaml:
         columns_types = {
             key: string_to_type_converters[value]
-            for list_item in data["columns"]
+            for list_item in raw_data_yaml["columns"]
             for (key, value) in list_item.items()
         }
     else:
         columns_types = {}
     # fetch data for renaming columns
-    if rename and "columns_renaming" in data:
-        rename_dict = {
-            key: value
-            for list_item in data["columns_renaming"]
-            for (key, value) in list_item.items()
-        }
-    else:
-        rename_dict = {}
-    # TODO: create function
+    # TODO: add test case no rename
+    rename_dict = (
+        fetch_dict_from_yaml("columns_renaming", raw_data_yaml)
+        if rename
+        else {}
+    )
     # fetch data for input units
-    if "columns_units" in data:
-        units_dict = {
-            key: value
-            for list_item in data["columns_units"]
-            for (key, value) in list_item.items()
-        }
-    else:
-        units_dict = {}
-    catalog_type = data["catalog_type"]
+    units_dict = fetch_dict_from_yaml("columns_units", raw_data_yaml)
+    catalog_type = raw_data_yaml["catalog_type"]
     return Catalog(
-        data["csv_name"],
-        data["key_column_name"],
+        raw_data_yaml["csv_name"],
+        raw_data_yaml["key_column_name"],
         catalog_type,
         columns_types,
         rename_dict,
@@ -307,6 +290,17 @@ def build_catalog_from_yaml(
         remove_duplicates,
         user_filepath,
     )
+
+
+def fetch_dict_from_yaml(dict_name: str, raw_data_yaml: dict) -> dict:
+    if dict_name in raw_data_yaml:
+        return {
+            key: value
+            for list_item in raw_data_yaml[dict_name]
+            for (key, value) in list_item.items()
+        }
+    else:
+        return {}
 
 
 def write_yaml_catalog_template(
