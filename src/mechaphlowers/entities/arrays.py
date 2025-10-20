@@ -24,6 +24,7 @@ from mechaphlowers.utils import df_to_dict
 class ElementArray(ABC):
     array_input_type: Type[pa.DataFrameModel]
 
+    # dict of target units after conversion: SI units used for computations
     target_units: dict[str, str]
 
     def __init__(self, data: pd.DataFrame) -> None:
@@ -47,8 +48,21 @@ class ElementArray(ABC):
     def __copy__(self) -> Self:
         return type(self)(self._data)
 
-    def add_units(self, dict_units: dict[str, str]) -> None:
-        self.input_units.update(dict_units)
+    def add_units(self, input_units: dict[str, str]) -> None:
+        """Add dictionary of units of the data input . This will overrides the default `input_units` dict
+
+        `input_units` has the following format:
+        ```py
+        {
+            "column_name_0": "unit0",
+            "column_name_1": "unit1",
+        }
+        ```
+
+        Args:
+            dict_units (dict[str, str]): dictionary of columns names and corresponding units
+        """
+        self.input_units.update(input_units)
 
     @property
     def data(self) -> pd.DataFrame:
@@ -186,6 +200,7 @@ class CableArray(ElementArray):
     @property
     def data(self) -> pd.DataFrame:
         data_SI = super().data
+        # add new column using linear_mass data: linear_weight
         data_SI["linear_weight"] = data_SI["linear_mass"].to_numpy() * 9.81
         data_SI = data_SI.drop(columns=["linear_mass"])
         return data_SI
