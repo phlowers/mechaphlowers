@@ -209,11 +209,11 @@ class CableArray(ElementArray):
     def polynomial_conductor(self) -> Poly:
         return Poly(
             [
-                self.data.a0[0],
-                self.data.a1[0],
-                self.data.a2[0],
-                self.data.a3[0],
-                self.data.a4[0],
+                self.data.a0.iloc[0],
+                self.data.a1.iloc[0],
+                self.data.a2.iloc[0],
+                self.data.a3.iloc[0],
+                self.data.a4.iloc[0],
             ]
         )
 
@@ -221,11 +221,11 @@ class CableArray(ElementArray):
     def polynomial_heart(self) -> Poly:
         return Poly(
             [
-                self.data.b0[0],
-                self.data.b1[0],
-                self.data.b2[0],
-                self.data.b3[0],
-                self.data.b4[0],
+                self.data.b0.iloc[0],
+                self.data.b1.iloc[0],
+                self.data.b2.iloc[0],
+                self.data.b3.iloc[0],
+                self.data.b4.iloc[0],
             ]
         )
 
