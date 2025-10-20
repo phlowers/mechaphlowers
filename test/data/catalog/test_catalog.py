@@ -352,14 +352,13 @@ def test_write_yaml_catalog_template_str_path(tmp_path):
     assert expected_file.exists()
 
 
-def test_catalog_cable_array_units_df():
+def test_catalog_cable_array_units_df() -> None:
     cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
 
     expected_result_SI_units = pd.DataFrame(
         {
             "section": [600.4e-6],
             "diameter": [31.86e-3],
-            # TODO: differeciate linear_mass/linear_weight
             "linear_weight": [17.658],
             "young_modulus": [60e9],
             "dilatation_coefficient": [23e-6],
@@ -376,7 +375,6 @@ def test_catalog_cable_array_units_df():
             "b4": [0.0],
         }
     )
-    # check dtype?
     assert_frame_equal(
         cable_array.data.reset_index(drop=True),
         expected_result_SI_units,
@@ -385,7 +383,7 @@ def test_catalog_cable_array_units_df():
     )
 
 
-def test_catalog_cable_array_units_object():
+def test_catalog_cable_array_units_object() -> None:
     cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
 
     cable_array_original = CableArray(
@@ -411,7 +409,6 @@ def test_catalog_cable_array_units_object():
         )
     )
 
-    # check dtype?
     assert_frame_equal(
         cable_array.data.reset_index(drop=True),
         cable_array_original.data.reset_index(drop=True),

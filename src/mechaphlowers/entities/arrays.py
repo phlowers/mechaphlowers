@@ -137,6 +137,7 @@ class CableArray(ElementArray):
         "young_modulus": "Pa",
         "linear_mass": "kg/m",
         "dilatation_coefficient": "1/K",
+        "temperature_reference": "°C",
         "a0": "Pa",
         "a1": "Pa",
         "a2": "Pa",

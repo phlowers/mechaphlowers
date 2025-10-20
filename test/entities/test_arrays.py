@@ -355,6 +355,49 @@ def test_create_cable_array__extra_column(
     assert "extra column" not in section._data.columns
 
 
+def test_create_cable_array__units(
+    cable_array_input_data: dict,
+) -> None:
+    input_df = pd.DataFrame(cable_array_input_data)
+    cable = CableArray(input_df)
+
+    custom_units = {
+        "section": "cm^2",
+        "diameter": "cm",
+        "young_modulus": "MPa",
+    }
+
+    cable.add_units(custom_units)
+
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "section": [345.5e-4],
+            "diameter": [22.4e-2],
+            "linear_weight": [9.55494],
+            "young_modulus": [59e6],
+            "dilatation_coefficient": [23e-6],
+            "temperature_reference": [15],
+            "a0": [0],
+            "a1": [59e9],
+            "a2": [0],
+            "a3": [0],
+            "a4": [0],
+            "b0": [0],
+            "b1": [0],
+            "b2": [0],
+            "b3": [0],
+            "b4": [0],
+        }
+    )
+    assert_frame_equal(
+        cable.data,
+        expected_result_SI_units,
+        check_like=True,
+        check_dtype=False,
+        atol=1e-07,
+    )
+
+
 def test_create_weather_array__negative_ice() -> None:
     input_data_with_negative_ice = {
         "ice_thickness": [1, -5.0, -0.0001],
