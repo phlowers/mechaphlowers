@@ -179,5 +179,30 @@ def test_plot_flat_line3d(default_cable_array):
     
     plt_line.preview_line3d(fig)
 
-    # fig.show() # deactivate for auto unit testing
+    fig.show() # deactivate for auto unit testing
     assert True 
+
+
+
+
+
+
+
+def test_plot(balance_engine_base_test: BalanceEngine):
+    
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
+    
+    fig = go.Figure()
+    
+    print(plt_line.beta)
+    plt_line.preview_line3d(fig)
+    balance_engine_base_test.solve_adjustment()
+    balance_engine_base_test.solve_change_state(wind_pressure=200*np.array([1, 1, 1, np.nan]))
+    
+    print(plt_line.beta) # check if beta is updated after change_state
+    
+    plt_line.preview_line3d(fig)
+
+    fig.show() # deactivate for auto unit testing
+    assert True 
+

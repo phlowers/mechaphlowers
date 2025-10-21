@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
-from mechaphlowers.core.geometry.points import SectionPoints
+from mechaphlowers.core.geometry.points import SectionPoints, SectionPointsChain
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
 
 if TYPE_CHECKING:
@@ -167,15 +167,19 @@ class PlotLine:
     def __init__(self, span_model, cable_loads, section_array) -> None:
         self.spans = span_model
         self.cable_loads = cable_loads
-        self.section_array = section_array.data
-        self.section_pts = SectionPoints(
-            span_length=self.section_array.span_length.to_numpy(),
-            conductor_attachment_altitude=self.section_array.conductor_attachment_altitude.to_numpy(),
-            crossarm_length=self.section_array.crossarm_length.to_numpy(),
-            line_angle=self.section_array.line_angle.to_numpy(),
-            insulator_length=self.section_array.insulator_length.to_numpy(),
+        self.section_array = section_array
+        self.section_pts = SectionPointsChain(
+            section_array=self.section_array,
             span_model = span_model
         )
+        # self.section_pts = SectionPoints(
+        #     span_length=self.section_array.span_length.to_numpy(),
+        #     conductor_attachment_altitude=self.section_array.conductor_attachment_altitude.to_numpy(),
+        #     crossarm_length=self.section_array.crossarm_length.to_numpy(),
+        #     line_angle=self.section_array.line_angle.to_numpy(),
+        #     insulator_length=self.section_array.insulator_length.to_numpy(),
+        #     span_model = span_model
+        # )
     
     @property
     def beta(self):
