@@ -107,7 +107,7 @@ def test_fake_catalog__get_nothing() -> None:
 
 
 def test_sample_cable_catalog__get_as_cable_array() -> None:
-    cable_array: CableArray = sample_cable_catalog.get_as_object(
+    cable_array = sample_cable_catalog.get_as_object(
         ["ASTER600", "PETUNIA600"]
     )
 
@@ -353,7 +353,7 @@ def test_write_yaml_catalog_template_str_path(tmp_path):
 
 
 def test_catalog_cable_array_units_df() -> None:
-    cable_array: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
+    cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
 
     expected_result_SI_units = pd.DataFrame(
         {
@@ -384,7 +384,7 @@ def test_catalog_cable_array_units_df() -> None:
 
 
 def test_catalog_cable_array_units_object() -> None:
-    cable_array: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
+    cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
 
     cable_array_original = CableArray(
         pd.DataFrame(
