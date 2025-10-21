@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+import copy
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -112,11 +113,10 @@ def test_plot_support_shape():
     plot_support_shape(fig, pyl_shape)
     # fig.show()
     assert True
-    
-    
+
+
 def test_plot_flat_line3d(default_cable_array):
-    
-    #TODO: I dont know why those data gets balance Engine to crash. To investigate later.
+    # TODO: I dont know why those data gets balance Engine to crash. To investigate later.
     # data = {
     #     "name": ["1", "2", "three", "support 4"],
     #     "suspension": [False, True, True, False],
@@ -134,21 +134,19 @@ def test_plot_flat_line3d(default_cable_array):
     #     "load_weight": [0, 0, 0, 0],
     #     "load_position": [0, 0, 0, 0],
     # }
-    
+
     data = {
-                "name": ["1", "2", "3", "4"],
-                "suspension": [False, True, True, False],
-                "conductor_attachment_altitude": [30, 30, 30, 30],
-                "crossarm_length": [0, 10, -10, 0],
-                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad")
-                .to('deg')
-                .magnitude,
-                "insulator_length": [3, 3, 3, 3],
-                "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
-                "load_position": [0, 0, 0, 0],
-            }
+        "name": ["1", "2", "3", "4"],
+        "suspension": [False, True, True, False],
+        "conductor_attachment_altitude": [30, 30, 30, 30],
+        "crossarm_length": [0, 10, -10, 0],
+        "line_angle": Q_(np.array([0, 0, 0, 0]), "grad").to('deg').magnitude,
+        "insulator_length": [3, 3, 3, 3],
+        "span_length": [500, 300, 400, np.nan],
+        "insulator_weight": [1000, 500, 500, 1000],
+        "load_weight": [0, 0, 0, 0],
+        "load_position": [0, 0, 0, 0],
+    }
 
     section = SectionArray(data=pd.DataFrame(data))
     section.sagging_parameter = 500
@@ -163,46 +161,58 @@ def test_plot_flat_line3d(default_cable_array):
         )
     )
 
-    
     be = BalanceEngine(section_array=section, cable_array=default_cable_array)
-    
+
     plt_line = PlotLine.builder_from_balance_engine(be)
-    
+
     fig = go.Figure()
-    
+
     print(plt_line.beta)
-    
+
     be.solve_adjustment()
-    be.solve_change_state(wind_pressure=200*np.array([1, 1, 1, np.nan]))
-    
-    print(plt_line.beta) # check if beta is updated after change_state
-    
+    be.solve_change_state(wind_pressure=200 * np.array([1, 1, 1, np.nan]))
+
+    print(plt_line.beta)  # check if beta is updated after change_state
+
     plt_line.preview_line3d(fig)
 
-    fig.show() # deactivate for auto unit testing
-    assert True 
-
-
-
-
-
+    fig.show()  # deactivate for auto unit testing
+    assert True
 
 
 def test_plot(balance_engine_base_test: BalanceEngine):
-    
     plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
-    
+    balance_engine_base_test.solve_adjustment()
+    balance_engine_base_test.solve_change_state(new_temperature=15 * np.array([1, 1, 1]))
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
     fig = go.Figure()
-    
+    plt_line.preview_line3d(fig)
+    # balance_engine_base_test.solve_adjustment()
+    balance_engine_base_test.solve_change_state(
+        wind_pressure=200 * np.array([5, 0, 1, np.nan]),
+        new_temperature=90 * np.array([1, 1, 1])
+    )
+
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
+
+    plt_line.preview_line3d(fig)
+
+
+    plt_line_1 = copy.deepcopy(plt_line)
+
+    # fig = go.Figure()
+
     print(plt_line.beta)
     plt_line.preview_line3d(fig)
+
     balance_engine_base_test.solve_adjustment()
-    balance_engine_base_test.solve_change_state(wind_pressure=200*np.array([1, 1, 1, np.nan]))
-    
-    print(plt_line.beta) # check if beta is updated after change_state
-    
+    balance_engine_base_test.solve_change_state(
+        wind_pressure=200 * np.array([1, 1, 1, np.nan])
+    )
+
+    print(plt_line.beta)  # check if beta is updated after change_state
+
     plt_line.preview_line3d(fig)
 
-    fig.show() # deactivate for auto unit testing
-    assert True 
-
+    fig.show()  # deactivate for auto unit testing
+    assert True

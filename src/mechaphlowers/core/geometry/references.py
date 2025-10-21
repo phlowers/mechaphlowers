@@ -143,6 +143,7 @@ def translate_cable_to_support(
     crossarm_length: np.ndarray,
     insulator_length: np.ndarray,
     line_angle: np.ndarray,
+    displacement_vector: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Translate cable using altitude and span length
 
@@ -172,7 +173,7 @@ def translate_cable_to_support(
         insulator_length=insulator_length,
     )
 
-    attachment_coords = get_attachment_coords(edge_arm_coords, altitude)
+    attachment_coords = get_attachment_coords(edge_arm_coords, altitude, displacement_vector)
 
     z_span += -z_span[0, :] + attachment_coords[:-1, 2]
     y_span += -y_span[0, :] + attachment_coords[:-1, 1]

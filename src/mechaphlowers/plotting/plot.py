@@ -164,14 +164,16 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 
 class PlotLine:
     
-    def __init__(self, span_model, cable_loads, section_array) -> None:
+    def __init__(self, span_model, cable_loads, section_array, be) -> None:
         self.spans = span_model
         self.cable_loads = cable_loads
         self.section_array = section_array
         self.section_pts = SectionPointsChain(
             section_array=self.section_array,
-            span_model = span_model
+            span_model = span_model,
+            be=be
         )
+
         # self.section_pts = SectionPoints(
         #     span_length=self.section_array.span_length.to_numpy(),
         #     conductor_attachment_altitude=self.section_array.conductor_attachment_altitude.to_numpy(),
@@ -183,7 +185,7 @@ class PlotLine:
     
     @property
     def beta(self):
-        return self.cable_loads.load_angle
+        return self.cable_loads.load_angle *180/ np.pi
             
     @staticmethod
     def builder_from_balance_engine(balance_engine) -> PlotLine:
@@ -191,6 +193,7 @@ class PlotLine:
             balance_engine.span_model,
             balance_engine.cable_loads,
             balance_engine.section_array,
+            balance_engine
         )
     
 # I propose here to rename the method to preview_line3d to for plotting without exact chain position.

@@ -17,6 +17,7 @@ from mechaphlowers.core.geometry.references import (
 )
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.utils import arr
 
 
 def stack_nan(coords: np.ndarray) -> np.ndarray:
@@ -316,6 +317,7 @@ class SectionPointsChain:
         self,
         section_array: SectionArray,
         span_model: ISpan,
+        be,
         **_,
     ):
         """Initialize the SectionPoints object with section parameters and a span model.
@@ -328,6 +330,7 @@ class SectionPointsChain:
             line_angle (np.ndarray): The relative angle of the span.
             span_model (Span): The span model to use for the points generation.
         """
+        self.be = be
         self.section_array = section_array
         span_length = section_array.data.span_length.to_numpy()
         conductor_attachment_altitude = section_array.data.conductor_attachment_altitude.to_numpy()
@@ -335,6 +338,17 @@ class SectionPointsChain:
         insulator_length = section_array.data.insulator_length.to_numpy()
         line_angle = section_array.data.line_angle.to_numpy()
 
+
+
+        self.plane = CablePlane(
+            span_length,
+            conductor_attachment_altitude,
+            crossarm_length,
+            insulator_length,
+            line_angle,
+            be=be,
+        )
+        
         (
             self.supports_ground_coords,
             self.center_arm_coords,
@@ -346,13 +360,7 @@ class SectionPointsChain:
             conductor_attachment_altitude,
             crossarm_length,
             insulator_length,
-        )
-        self.plane = CablePlane(
-            span_length,
-            conductor_attachment_altitude,
-            crossarm_length,
-            insulator_length,
-            line_angle,
+            self.plane.displacement_vector.dxdydz_global_frame
         )
 
         # self.a = span_length
@@ -360,19 +368,22 @@ class SectionPointsChain:
         # self.b = conductor_attachment_altitude
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
-        self._beta = np.array([])
+        self._beta = self.be.cable_loads.load_angle *180/ np.pi
         self.init_span(span_model)
+        
 
     def init_span(self, span_model: ISpan) -> None:
         """change the span model and update the cable coordinates."""
         self.span_model = span_model
-        # self.update_ab()
+        self.update_ab()
         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
+
 
     def update_ab(self):
         """Sometimes plane object is updated, so we need to update the span model."""
-        self.span_model.span_length = self.plane.a_prime
-        self.span_model.elevation_difference = self.plane.b_prime
+        self.span_model.span_length = arr.incr(self.be.balance_model.a_prime) #self.plane.a_prime
+        self.span_model.elevation_difference = arr.incr(self.be.balance_model.b_prime) #self.plane.b_prime
+
 
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
@@ -383,11 +394,12 @@ class SectionPointsChain:
     def beta(self) -> np.ndarray:
         """Get the beta angles for the cable spans.
         Beta is the angle du to the load on the cable"""
-        if self._beta.size == 0:
-            beta = np.zeros(self.x_cable.shape[1])
-        else:
-            beta = self._beta
-        return beta
+        # if self._beta.size == 0:
+        #     beta = np.zeros(self.x_cable.shape[1])
+        # else:
+        #     beta = self._beta
+        # return beta
+        return self.be.cable_loads.load_angle*180/np.pi
 
     @beta.setter
     def beta(self, value: np.ndarray):
@@ -424,11 +436,12 @@ class SectionPointsChain:
             x_span,
             y_span,
             z_span,
-            self.plane.b,
+            self.plane.b, #TODO: error here should be altitude
             self.plane.a,
             self.crossarm_length,
             self.insulator_length,
             self.line_angle,
+            self.plane.displacement_vector.dxdydz_global_frame
         )
         return x_span, y_span, z_span
 
