@@ -93,11 +93,11 @@ class ImporterRte(Importer):
 
         # change sign of crossarm_length and line_angle to match mechaphlowers (anticlockwise sense)
         renamed_df["crossarm_length"] = -renamed_df["crossarm_length"]
-        # convert line_angle from grad to degrees
-        renamed_df["line_angle"] = -renamed_df["line_angle"] * 0.9
+        renamed_df["line_angle"] = -renamed_df["line_angle"]
 
         section_array = SectionArray(renamed_df)
-
+        # convert line_angle from grad to degrees
+        section_array.add_units({"line_angle": "grad"})
         section_array.sagging_parameter = self.data_numeric_values[
             "sagging_parameter"
         ]

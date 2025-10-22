@@ -45,7 +45,7 @@ def cable_array_input_data() -> dict[str, list]:
     return {
         "section": [345.5],
         "diameter": [22.4],
-        "linear_weight": [9.6],
+        "linear_mass": [0.974],
         "young_modulus": [59],
         "dilatation_coefficient": [23],
         "temperature_reference": [15],
@@ -210,7 +210,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "suspension": [False, True, True, False],
             "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
             "crossarm_length": [10, 12.1, 10, 10.1],
-            "line_angle": [0, 360, 90.1, -90.2],
+            "line_angle": [0.0, 6.283185, 1.572542, -1.574287],
             "insulator_length": [0, 4, 3.2, 0],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
@@ -276,7 +276,7 @@ def test_create_cable_array__with_floats(
         {
             "section": [345.5e-6],
             "diameter": [22.4e-3],
-            "linear_weight": [9.6],
+            "linear_weight": [9.55494],
             "young_modulus": [59e9],
             "dilatation_coefficient": [23e-6],
             "temperature_reference": [15],
@@ -293,7 +293,11 @@ def test_create_cable_array__with_floats(
         }
     )
     assert_frame_equal(
-        cable.data, expected_result_SI_units, check_dtype=False, atol=1e-07
+        cable.data,
+        expected_result_SI_units,
+        check_like=True,
+        check_dtype=False,
+        atol=1e-07,
     )
 
 
@@ -302,7 +306,7 @@ def test_create_cable_array__with_floats(
     [
         "section",
         "diameter",
-        "linear_weight",
+        "linear_mass",
         "young_modulus",
         "dilatation_coefficient",
         "temperature_reference",
@@ -323,7 +327,7 @@ def test_create_cable_array__missing_column(
     [
         ("section", ["1,2"]),
         ("diameter", ["1,2"]),
-        ("linear_weight", ["1,2"]),
+        ("linear_mass", ["1,2"]),
         ("young_modulus", ["1,2"]),
         ("dilatation_coefficient", ["1,2"]),
         ("temperature_reference", ["1,2"]),
@@ -349,6 +353,102 @@ def test_create_cable_array__extra_column(
     section = CableArray(input_df)
 
     assert "extra column" not in section._data.columns
+
+
+def test_create_cable_array__units(
+    cable_array_input_data: dict,
+) -> None:
+    input_df = pd.DataFrame(cable_array_input_data)
+    cable = CableArray(input_df)
+
+    custom_units = {
+        "section": "cm^2",
+        "diameter": "cm",
+        "young_modulus": "MPa",
+    }
+
+    cable.add_units(custom_units)
+
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "section": [345.5e-4],
+            "diameter": [22.4e-2],
+            "linear_weight": [9.55494],
+            "young_modulus": [59e6],
+            "dilatation_coefficient": [23e-6],
+            "temperature_reference": [15],
+            "a0": [0],
+            "a1": [59e9],
+            "a2": [0],
+            "a3": [0],
+            "a4": [0],
+            "b0": [0],
+            "b1": [0],
+            "b2": [0],
+            "b3": [0],
+            "b4": [0],
+        }
+    )
+    assert_frame_equal(
+        cable.data,
+        expected_result_SI_units,
+        check_like=True,
+        check_dtype=False,
+        atol=1e-07,
+    )
+
+
+def test_create_weather_array() -> None:
+    weather = WeatherArray(
+        pd.DataFrame(
+            {
+                "ice_thickness": [1, 2.1],
+                "wind_pressure": [240.12, 0],
+            }
+        )
+    )
+
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "ice_thickness": np.array([1e-2, 2.1e-2]),
+            "wind_pressure": np.array([240.12, 0]),
+        }
+    )
+
+    assert_frame_equal(
+        weather.data,
+        expected_result_SI_units,
+        check_like=True,
+        check_dtype=False,
+        atol=1e-07,
+    )
+
+
+def test_create_weather_array__units() -> None:
+    weather = WeatherArray(
+        pd.DataFrame(
+            {
+                "ice_thickness": [1, 2.1],
+                "wind_pressure": [240.12, 0],
+            }
+        )
+    )
+
+    weather.add_units({"ice_thickness": "dm"})
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "ice_thickness": np.array([1e-1, 2.1e-1]),
+            "wind_pressure": np.array([240.12, 0]),
+        }
+    )
+
+    assert_frame_equal(
+        weather.data,
+        expected_result_SI_units,
+        check_like=True,
+        check_dtype=False,
+        atol=1e-07,
+    )
 
 
 def test_create_weather_array__negative_ice() -> None:

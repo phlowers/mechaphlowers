@@ -280,9 +280,7 @@ def test_compute_span_azimuth():
         ]
     )
 
-    expected_azimuth = np.array(
-        [-2.42764954, -50.26279675, 12.55236927, np.nan]
-    )
+    expected_azimuth = np.array([-0.04237048, -0.87725129, 0.21908017, np.nan])
 
     np.testing.assert_allclose(
         compute_span_azimuth(attachement_coords), expected_azimuth

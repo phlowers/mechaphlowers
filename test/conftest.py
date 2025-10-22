@@ -36,7 +36,7 @@ def default_cable_array() -> CableArray:
             {
                 "section": [345.55],
                 "diameter": [22.4],
-                "linear_weight": [9.55494],
+                "linear_mass": [0.974],
                 "young_modulus": [59],
                 "dilatation_coefficient": [23],
                 "temperature_reference": [15],
@@ -132,7 +132,7 @@ def default_data_container_one_span() -> DataContainer:
             {
                 "section": [345.55],
                 "diameter": [22.4],
-                "linear_weight": [9.55494],
+                "linear_mass": [0.974],
                 "young_modulus": [59],
                 "dilatation_coefficient": [23],
                 "temperature_reference": [15],
@@ -210,7 +210,7 @@ def section_dataframe_with_cable_weather() -> SectionDataFrame:
             {
                 "section": [345.55],
                 "diameter": [22.4],
-                "linear_weight": [9.55494],
+                "linear_mass": [0.974],
                 "young_modulus": [59],
                 "dilatation_coefficient": [23],
                 "temperature_reference": [15],

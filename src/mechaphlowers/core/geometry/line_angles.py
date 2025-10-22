@@ -25,13 +25,13 @@ def compute_span_azimuth(
 
     Compute the azimuth angle of the span between two attachment points.
     The azimuth angle is the angle between the x-axis and the line connecting two attachment points in the xy-plane.
-    The angle is computed in degrees and rotation is counter-clockwise (trigonometric).
+    The angle is computed in radians and rotation is counter-clockwise (trigonometric).
 
     Args:
         attachment_coords (np.ndarray): Attachment coordinates of the span.
 
     Returns:
-        1D array of shape (n,) representing the azimuth angle of the span in degrees.
+        1D array of shape (n,) representing the azimuth angle of the span in radians.
     """
     vector_attachment_to_next = (
         np.roll(attachment_coords[:, :-1], -1, axis=0)
@@ -43,7 +43,7 @@ def compute_span_azimuth(
         vector_attachment_to_next,
     )
     rotation_angles[-1] = np.nan
-    return rotation_angles * 180 / np.pi
+    return rotation_angles
 
 
 def angle_between_vectors(

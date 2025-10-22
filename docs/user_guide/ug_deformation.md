@@ -1,6 +1,6 @@
 # Deformation
 
-The deformation class implements the cable deformation models described in [Cable modeling](ug_cable_model.md#physics-based-cable-model).
+The deformation class implements the cable deformation models described in [Cable modeling](ug_cable_model.md#physics-based-cable-modeling).
 
 This class is called in two situations:
 
