@@ -8,7 +8,7 @@ import logging
 import warnings
 from os import PathLike
 from pathlib import Path
-from typing import Literal, get_args
+from typing import Any, Literal, get_args
 
 import pandas as pd
 import pandera as pa
@@ -181,7 +181,7 @@ class Catalog:
                 f"Error when requesting catalog: {e.args[0]}. Try the .keys() method to gets the available keys?"
             ) from e
 
-    def get_as_object(self, keys: list) -> ElementArray | SupportShape:
+    def get_as_object(self, keys: list) -> Any:
         """Get rows from a list of keys.
 
         If a key is present several times in the `keys` argument, the returned dataframe
