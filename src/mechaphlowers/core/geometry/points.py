@@ -381,8 +381,8 @@ class SectionPointsChain:
 
     def update_ab(self):
         """Sometimes plane object is updated, so we need to update the span model."""
-        self.span_model.span_length = self.plane.a_prime
-        self.span_model.elevation_difference = self.plane.b_prime
+        self.span_model.span_length = arr.incr(self.be.balance_model.a_prime) #self.plane.a_prime
+        self.span_model.elevation_difference = arr.incr(self.be.balance_model.b_prime) #self.plane.b_prime
 
 
     def set_cable_coordinates(self, resolution: int) -> None:

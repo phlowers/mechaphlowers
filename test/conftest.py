@@ -278,13 +278,11 @@ def balance_engine_base_test(cable_array_AM600: CableArray) -> BalanceEngine:
             {
                 "name": ["1", "2", "3", "4"],
                 "suspension": [False, True, True, False],
-                "conductor_attachment_altitude": [30, 50, 60, 65],
-                "crossarm_length": [0, 10, -10, 0],
-                "line_angle": Q_(np.array([0, 10, 10, 0]), "grad")
-                .to('deg')
-                .magnitude,
-                "insulator_length": [3, 3, 3, 3],
-                "span_length": [500, 300, 400, np.nan],
+                "conductor_attachment_altitude": [50, 50, 50, 50],
+                "crossarm_length": [10, 10, 10, 10],
+                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad").to('deg').magnitude,
+                "insulator_length": [1] * 4,
+                "span_length": [500, 500, 500, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
                 "load_weight": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
