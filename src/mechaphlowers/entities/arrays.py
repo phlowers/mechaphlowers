@@ -30,6 +30,7 @@ class ElementArray(ABC):
     def __init__(self, data: pd.DataFrame) -> None:
         _data = self._drop_extra_columns(data)
         self._data: pd.DataFrame = _data
+        # dict of default input units
         self.input_units: dict[str, str] = {}
 
     def _drop_extra_columns(self, input_data: pd.DataFrame) -> pd.DataFrame:
