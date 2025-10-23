@@ -10,7 +10,10 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
-from mechaphlowers.core.geometry.points import SectionPoints, SectionPointsChain
+from mechaphlowers.core.geometry.points import (
+    SectionPoints,
+    SectionPointsChain,
+)
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
 
 if TYPE_CHECKING:
@@ -162,16 +165,18 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
         }
     )
 
+
 class PlotLine:
-    
-    def __init__(self, span_model, cable_loads, section_array, be) -> None:
+    def __init__(self, span_model, cable_loads, section_array, dxdydz) -> None:
         self.spans = span_model
         self.cable_loads = cable_loads
         self.section_array = section_array
+
         self.section_pts = SectionPointsChain(
             section_array=self.section_array,
-            span_model = span_model,
-            be=be
+            span_model=span_model,
+            cable_loads=cable_loads,
+            dxdydz=dxdydz,
         )
 
         # self.section_pts = SectionPoints(
@@ -182,86 +187,84 @@ class PlotLine:
         #     insulator_length=self.section_array.insulator_length.to_numpy(),
         #     span_model = span_model
         # )
-    
+
     @property
     def beta(self):
-        return self.cable_loads.load_angle *180/ np.pi
-            
+        return self.cable_loads.load_angle * 180 / np.pi
+
     @staticmethod
     def builder_from_balance_engine(balance_engine) -> PlotLine:
         return PlotLine(
             balance_engine.span_model,
             balance_engine.cable_loads,
             balance_engine.section_array,
-            balance_engine
+            # TODO: create getter displacement in balance engine?
+            balance_engine.balance_model.nodes.dxdydz.T,
         )
-    
-# I propose here to rename the method to preview_line3d to for plotting without exact chain position.
-# This is already working
-# we can work on the exact chain position in another method.
+
+    # I propose here to rename the method to preview_line3d to for plotting without exact chain position.
+    # This is already working
+    # we can work on the exact chain position in another method.
     def preview_line3d(
-        self, 
-            fig: go.Figure, view: Literal["full", "analysis"] = "full"
-        ) -> None:
-            """Plot 3D of power lines sections
+        self, fig: go.Figure, view: Literal["full", "analysis"] = "full"
+    ) -> None:
+        """Plot 3D of power lines sections
 
-            Args:
-                fig (go.Figure): plotly figure where new traces has to be added
-                view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+        Args:
+            fig (go.Figure): plotly figure where new traces has to be added
+            view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
 
-            Raises:
-                ValueError: view is not an expected value
-            """
+        Raises:
+            ValueError: view is not an expected value
+        """
 
-            view_map = {"full": True, "analysis": False}
+        view_map = {"full": True, "analysis": False}
 
-            try:
-                _auto = view_map[view]
-            except KeyError:
-                raise ValueError(
-                    f"{view=} : this argument has to be set to 'full' or 'analysis'"
-                )
+        try:
+            _auto = view_map[view]
+        except KeyError:
+            raise ValueError(
+                f"{view=} : this argument has to be set to 'full' or 'analysis'"
+            )
 
-            plot_line(fig, self.section_pts.get_spans("section").points(True))
+        plot_line(fig, self.section_pts.get_spans("section").points(True))
 
-            plot_support(fig, self.section_pts.get_supports().points(True))
+        plot_support(fig, self.section_pts.get_supports().points(True))
 
-            plot_insulator(fig, self.section_pts.get_insulators().points(True))
+        plot_insulator(fig, self.section_pts.get_insulators().points(True))
 
-            set_layout(fig, auto=_auto)
-      
-    #TODO: this is the new function to modify      
+        set_layout(fig, auto=_auto)
+
+    # TODO: this is the new function to modify
     def view_line3d(
-        self, 
-            fig: go.Figure, view: Literal["full", "analysis"] = "full"
-        ) -> None:
-            """Plot 3D of power lines sections
+        self, fig: go.Figure, view: Literal["full", "analysis"] = "full"
+    ) -> None:
+        """Plot 3D of power lines sections
 
-            Args:
-                fig (go.Figure): plotly figure where new traces has to be added
-                view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+        Args:
+            fig (go.Figure): plotly figure where new traces has to be added
+            view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
 
-            Raises:
-                ValueError: view is not an expected value
-            """
+        Raises:
+            ValueError: view is not an expected value
+        """
 
-            view_map = {"full": True, "analysis": False}
+        view_map = {"full": True, "analysis": False}
 
-            try:
-                _auto = view_map[view]
-            except KeyError:
-                raise ValueError(
-                    f"{view=} : this argument has to be set to 'full' or 'analysis'"
-                )
+        try:
+            _auto = view_map[view]
+        except KeyError:
+            raise ValueError(
+                f"{view=} : this argument has to be set to 'full' or 'analysis'"
+            )
 
-            plot_line(fig, self.section_pts.get_spans("section").points(True))
+        plot_line(fig, self.section_pts.get_spans("section").points(True))
 
-            plot_support(fig, self.section_pts.get_supports().points(True))
+        plot_support(fig, self.section_pts.get_supports().points(True))
 
-            plot_insulator(fig, self.section_pts.get_insulators().points(True))
+        plot_insulator(fig, self.section_pts.get_insulators().points(True))
 
-            set_layout(fig, auto=_auto)
-
+        set_layout(fig, auto=_auto)
 
 
 class PlotAccessor:

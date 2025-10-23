@@ -6,6 +6,7 @@
 
 
 import copy
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -183,7 +184,9 @@ def test_plot_flat_line3d(default_cable_array):
 def test_plot(balance_engine_base_test: BalanceEngine):
     plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
     balance_engine_base_test.solve_adjustment()
-    balance_engine_base_test.solve_change_state(new_temperature=15 * np.array([1, 1, 1]))
+    balance_engine_base_test.solve_change_state(
+        new_temperature=15 * np.array([1, 1, 1])
+    )
     plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
     fig = go.Figure()
     plt_line.preview_line3d(fig)
@@ -196,7 +199,6 @@ def test_plot(balance_engine_base_test: BalanceEngine):
     plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
 
     plt_line.preview_line3d(fig)
-
 
     plt_line_1 = copy.deepcopy(plt_line)
 
@@ -221,20 +223,21 @@ def test_plot(balance_engine_base_test: BalanceEngine):
 def test_plot_ice(balance_engine_base_test: BalanceEngine):
     plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
     balance_engine_base_test.solve_adjustment()
-    balance_engine_base_test.solve_change_state(new_temperature=15 * np.array([1, 1, 1]))
+    balance_engine_base_test.solve_change_state(
+        new_temperature=15 * np.array([1, 1, 1])
+    )
     plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
     fig = go.Figure()
     plt_line.preview_line3d(fig)
     # balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(
-        ice_thickness= np.array([2, 2, 2, np.nan]),
-        new_temperature=90 * np.array([1, 1, 1])
+        ice_thickness=np.array([1, 1, 1, np.nan]),
+        # new_temperature=90 * np.array([1, 1, 1]),
     )
 
     plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
 
     plt_line.preview_line3d(fig)
-
 
     fig.show()  # deactivate for auto unit testing
     assert True

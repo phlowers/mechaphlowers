@@ -74,7 +74,7 @@ class BalanceEngine:
         # TODO: find a better way to initialize objects
         self.section_array = section_array
         self.cable_array = cable_array
-        
+
         zeros_vector = np.zeros_like(
             section_array.data.conductor_attachment_altitude.to_numpy()
         )
@@ -153,7 +153,7 @@ class BalanceEngine:
             self.deformation_model.current_temperature = arr.incr(
                 new_temperature
             )
-            
+
         # check if adjustment has been done before
         try:
             _ = self.L_ref
@@ -162,7 +162,7 @@ class BalanceEngine:
                 "L_ref not defined. You must run solve_adjustment() before solve_change_state()."
             )
             raise e
-        
+
         self.balance_model.adjustment = False
         self.span_model.load_coefficient = (
             self.balance_model.cable_loads.load_coefficient

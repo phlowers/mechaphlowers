@@ -13,7 +13,6 @@ from mechaphlowers.core.geometry.line_angles import (
     get_edge_arm_coords,
     get_supports_ground_coords,
 )
-from mechaphlowers.core.geometry.rotation import rotation_quaternion_same_axis
 
 """ References for the geometry of the line.
 
@@ -39,10 +38,14 @@ def cable_to_localsection_frame(
             z_span: Rotated z coordinates in the localsection frame.
     """
 
-    angle_proj_rad_inverted = -angle_proj * np.pi/180
+    angle_proj_rad_inverted = -angle_proj * np.pi / 180
 
-    projected_x_span = x * np.cos(angle_proj_rad_inverted) - y * np.sin(angle_proj_rad_inverted)
-    projected_y_span = -x * np.sin(angle_proj_rad_inverted) + y * np.cos(angle_proj_rad_inverted)
+    projected_x_span = x * np.cos(angle_proj_rad_inverted) - y * np.sin(
+        angle_proj_rad_inverted
+    )
+    projected_y_span = -x * np.sin(angle_proj_rad_inverted) + y * np.cos(
+        angle_proj_rad_inverted
+    )
 
     return projected_x_span, projected_y_span, z
 
@@ -79,7 +82,7 @@ def cable_to_beta_plane(
     z: np.ndarray,
     beta: np.ndarray,
     a_chain: np.ndarray,
-    b_chain: np.ndarray
+    b_chain: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """cable_to_beta_plane is a function that allows to rotate from cable 2D plan to span 3D frame with an angle beta
 
@@ -95,13 +98,17 @@ def cable_to_beta_plane(
             z_span: Rotated z coordinates in the span 3D frame.
     """
 
-    beta_rad_inverted = -beta * np.pi/180 
+    beta_rad_inverted = -beta * np.pi / 180
 
-    alpha = np.arctan((b_chain*np.sin(beta_rad_inverted))/a_chain)
+    alpha = np.arctan((b_chain * np.sin(beta_rad_inverted)) / a_chain)
 
     projected_x_span = x * np.cos(alpha)
-    projected_y_span = z * np.sin(beta_rad_inverted) - x * np.cos(beta_rad_inverted) * np.sin(alpha)
-    projected_z_span = z * np.cos(beta_rad_inverted) + x * np.sin(beta_rad_inverted) * np.sin(alpha)
+    projected_y_span = z * np.sin(beta_rad_inverted) - x * np.cos(
+        beta_rad_inverted
+    ) * np.sin(alpha)
+    projected_z_span = z * np.cos(beta_rad_inverted) + x * np.sin(
+        beta_rad_inverted
+    ) * np.sin(alpha)
 
     return projected_x_span, projected_y_span, projected_z_span
 
@@ -232,7 +239,9 @@ def translate_cable_to_support(
         insulator_length=insulator_length,
     )
 
-    attachment_coords = get_attachment_coords(edge_arm_coords, altitude, displacement_vector)
+    attachment_coords = get_attachment_coords(
+        edge_arm_coords, altitude, displacement_vector
+    )
 
     z_span += -z_span[0, :] + attachment_coords[:-1, 2]
     y_span += -y_span[0, :] + attachment_coords[:-1, 1]
