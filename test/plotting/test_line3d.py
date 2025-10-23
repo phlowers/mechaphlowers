@@ -202,7 +202,7 @@ def test_plot(balance_engine_base_test: BalanceEngine):
 
     # fig = go.Figure()
 
-    # print(plt_line.beta)
+    print(plt_line.beta)
     # plt_line.preview_line3d(fig)
 
     # balance_engine_base_test.solve_adjustment()

@@ -11,6 +11,7 @@ import numpy as np
 from mechaphlowers.core.geometry.rotation import (
     rotation_quaternion_same_axis,
 )
+from mechaphlowers.core.models.balance.engine import BalanceEngine
 
 """Line angles module
 
@@ -261,7 +262,7 @@ class DisplacementVector:
         self.line_angle = be.section_array.data.line_angle.to_numpy()
         self.change_frame()
         
-    def change_frame(self) -> np.ndarray:
+    def change_frame(self) -> None:
         line_angle_sums = np.cumsum(self.line_angle)
         # Create translation vectors, which are the vectors that follows the arm
         # arm_translation_vectors = np.zeros((line_angle.size, 3))
@@ -306,7 +307,8 @@ class CablePlane:
         crossarm_length: np.ndarray,
         insulator_length: np.ndarray,
         line_angle: np.ndarray,
-        be
+        # temporary
+        be: BalanceEngine
     ):
         
         self.displacement_vector = DisplacementVector(be) 
@@ -327,21 +329,39 @@ class CablePlane:
 
         self.a = span_length
         self.line_angle = line_angle
-        self.b = conductor_attachment_altitude
+        self.conductor_attachment_altitude = conductor_attachment_altitude
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
-        self._beta = np.array([])
-        
+        self._beta = be.cable_loads.load_angle
         
 
     @property
-    def a_prime(self) -> np.ndarray:
+    def b(self):
+        raise NotImplementedError
+
+    @property
+    def a_chain(self) -> np.ndarray:
         return get_span_lengths_between_supports(self.attachment_coords)
 
     @property
-    def b_prime(self) -> np.ndarray:
+    def b_chain(self) -> np.ndarray:
         return get_elevation_diff_between_supports(self.attachment_coords)
+
+
+    @property
+    def a_prime(self) -> np.ndarray:
+        """Span length after wind angle into taking account"""
+        return (self.a_chain**2 + self.b_chain**2 * np.sin(self._beta) ** 2) ** 0.5
+
+    @property
+    def b_prime(self) -> np.ndarray:
+        """Elevation difference after wind angle into taking account"""
+        return self.b_chain * np.cos(self._beta)
+
+    @property
+    def angle_proj(self) -> np.ndarray:
+        return compute_span_azimuth(self.attachment_coords)
 
     @property
     def alpha(self) -> np.ndarray:
-        return compute_span_azimuth(self.attachment_coords)
+        return np.arctan((self.b_chain*np.sin(self._beta))/self.a_chain)

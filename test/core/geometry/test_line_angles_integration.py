@@ -86,7 +86,7 @@ def test_span_lengths_values(
         line_angle=line_angle,
     )
 
-    a_prime = cable_plane.a_prime
-    b_prime = cable_plane.b_prime
+    a_prime = cable_plane.a_chain
+    b_prime = cable_plane.b_chain
     np.testing.assert_allclose(a_prime, expected_a_prime, rtol=0, atol=1e-6)
     np.testing.assert_allclose(b_prime, expected_b_prime)

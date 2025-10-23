@@ -15,6 +15,7 @@ from mechaphlowers.core.geometry.references import (
     cable_to_localsection_frame,
     translate_cable_to_support,
 )
+from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.utils import arr
@@ -204,8 +205,8 @@ class SectionPoints:
 
     def update_ab(self):
         """Sometimes plane object is updated, so we need to update the span model."""
-        self.span_model.span_length = self.plane.a_prime
-        self.span_model.elevation_difference = self.plane.b_prime
+        self.span_model.span_length = self.plane.a_chain
+        self.span_model.elevation_difference = self.plane.b_chain
 
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
@@ -244,7 +245,7 @@ class SectionPoints:
         """Get spans as vectors in the localsection frame."""
         x_span, y_span, z_span = self.span_in_cable_frame()
         x_span, y_span, z_span = cable_to_localsection_frame(
-            x_span, y_span, z_span, self.plane.alpha[:-1]
+            x_span, y_span, z_span, self.plane.angle_proj[:-1]
         )
         return x_span, y_span, z_span
 
@@ -257,7 +258,7 @@ class SectionPoints:
             x_span,
             y_span,
             z_span,
-            self.plane.b,
+            self.plane.conductor_attachment_altitude,
             self.plane.a,
             self.crossarm_length,
             self.insulator_length,
@@ -317,7 +318,7 @@ class SectionPointsChain:
         self,
         section_array: SectionArray,
         span_model: ISpan,
-        be,
+        be: BalanceEngine,
         **_,
     ):
         """Initialize the SectionPoints object with section parameters and a span model.
@@ -375,7 +376,7 @@ class SectionPointsChain:
     def init_span(self, span_model: ISpan) -> None:
         """change the span model and update the cable coordinates."""
         self.span_model = span_model
-        self.update_ab()
+        # self.update_ab()
         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
 
 
@@ -413,17 +414,40 @@ class SectionPointsChain:
         """Get spans as vectors in the cable frame."""
         # Rotate the cable with an angle to represent the wind
         x_span, y_span, z_span = cable_to_beta_plane(
-            self.x_cable[:, :-1], self.z_cable[:, :-1], beta=self.beta[:-1]
+            self.x_cable[:, :-1], self.z_cable[:, :-1], self.beta[:-1],  self.plane.a_chain[:-1], self.plane.b_chain[:-1]
         )
         return x_span, y_span, z_span
+
+    # def span_in_localsection_frame(
+    #     self,
+    # ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    #     """Get spans as vectors in the localsection frame."""
+
+    #     x_span, z_span,  = self.x_cable[:, :-1], self.z_cable[:, :-1]
+    #     # Arbitrary sign minus on angles
+    #     beta, angle_proj =-self.beta[:-1] * np.pi/180 , -self.plane.angle_proj[:-1] * np.pi/180
+
+    #     a_chain, b_chain = self.plane.a_chain[:-1], self.plane.b_chain[:-1]
+
+    #     alpha = np.arctan((b_chain*np.sin(beta))/a_chain)
+
+    #     projected_x_span = x_span * np.cos(alpha)
+    #     projected_y_span = z_span * np.sin(beta) - x_span * np.cos(beta) * np.sin(alpha)
+    #     projected_z_span = z_span * np.cos(beta) + x_span * np.sin(beta) * np.sin(alpha)
+
+    #     projected_x_span_1 = projected_x_span * np.cos(angle_proj) - projected_y_span * np.sin(angle_proj)
+    #     projected_y_span_1 = -projected_x_span * np.sin(angle_proj) + projected_y_span * np.cos(angle_proj)
+
+    #     return projected_x_span_1, projected_y_span_1, projected_z_span
 
     def span_in_localsection_frame(
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the localsection frame."""
+        # x_span, y_span, z_span = self.x_cable[:, :-1], np.full_like(self.x_cable, 0), self.z_cable[:, :-1]
         x_span, y_span, z_span = self.span_in_cable_frame()
         x_span, y_span, z_span = cable_to_localsection_frame(
-            x_span, y_span, z_span, self.plane.alpha[:-1]
+            x_span, y_span, z_span, self.plane.angle_proj[:-1]
         )
         return x_span, y_span, z_span
 
@@ -436,7 +460,7 @@ class SectionPointsChain:
             x_span,
             y_span,
             z_span,
-            self.plane.b, #TODO: error here should be altitude
+            self.plane.conductor_attachment_altitude, #TODO: error here should be altitude
             self.plane.a,
             self.crossarm_length,
             self.insulator_length,
