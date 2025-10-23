@@ -83,6 +83,19 @@ class CableArrayInput(pa.DataFrameModel):
     b2: Optional[pdt.Series[float]] = pa.Field(coerce=True)
     b3: Optional[pdt.Series[float]] = pa.Field(coerce=True)
     b4: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+    diameter_heart: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+    section_heart: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+    section_conductor: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+    radial_thermal_conductivity: Optional[pdt.Series[float]] = pa.Field(
+        coerce=True
+    )
+    specific_heat_capacity: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+    solar_absorption: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+    emissivity: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+    electric_resistance_20: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+    linear_resistance_temperature_coef: Optional[pdt.Series[float]] = pa.Field(
+        coerce=True
+    )
 
 
 class WeatherArrayInput(pa.DataFrameModel):

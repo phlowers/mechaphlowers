@@ -175,6 +175,41 @@ class CableArray(ElementArray):
         "b3": "Pa",
         "b4": "Pa",
     }
+    mecha_attributes = [
+        "section",
+        "diameter",
+        "linear_weight",
+        "young_modulus",
+        "dilatation_coefficient",
+        "temperature_reference",
+        "a0",
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "b0",
+        "b1",
+        "b2",
+        "b3",
+        "b4",
+        # "diameter_heart",
+        # "section_heart",
+        # "section_conductor",
+    ]
+
+    thermal_attributes = [
+        "diameter",
+        "linear_weight",
+        "diameter_heart",
+        "section_heart",
+        "section_conductor",
+        "radial_thermal_conductivity",
+        "specific_heat_capacity",
+        "solar_absorption",
+        "emissivity",
+        "electric_resistance_20",
+        "linear_resistance_temperature_coef",
+    ]
 
     def __init__(
         self,
@@ -205,6 +240,18 @@ class CableArray(ElementArray):
         data_SI["linear_weight"] = data_SI["linear_mass"].to_numpy() * 9.81
         data_SI = data_SI.drop(columns=["linear_mass"])
         return data_SI
+
+    @property
+    def data_mecha(self) -> pd.DataFrame:
+        """Returns mechanical data for cable. These attributes are stored in mecha_attributes"""
+        # May return error if data is incomplete
+        return self.data[self.mecha_attributes]
+
+    @property
+    def data_thermal(self) -> pd.DataFrame:
+        """Returns thermal data for cable. These attributes are stored in thermal_attributes"""
+        # May return error if data is incomplete
+        return self.data[self.thermal_attributes]
 
     @property
     def polynomial_conductor(self) -> Poly:
