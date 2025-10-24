@@ -1,4 +1,4 @@
-from typing import Self, Tuple
+from typing import Callable, Self, Tuple
 
 import numpy as np
 from typing_extensions import Literal  # type: ignore[attr-defined]
@@ -318,7 +318,7 @@ class SectionPointsChain:
         section_array: SectionArray,
         span_model: ISpan,
         cable_loads: CableLoads,
-        dxdydz: np.ndarray,
+        get_displacement: Callable,
         **_,
     ):
         """Initialize the SectionPoints object with section parameters and a span model.
@@ -348,7 +348,8 @@ class SectionPointsChain:
             insulator_length,
             line_angle,
             beta=cable_loads.load_angle,
-            dxdydz=dxdydz,
+            get_displacement=get_displacement,
+            # get attachment_coords
         )
 
         (
@@ -458,7 +459,7 @@ class SectionPointsChain:
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the section frame."""
         x_span, y_span, z_span = self.span_in_localsection_frame()
-        x_span, y_span, z_span = translate_cable_to_support(
+        x_span, y_span, z_span = translate_cable_to_support(#TODO: refactor with get attachment coords
             x_span,
             y_span,
             z_span,

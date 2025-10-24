@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Tuple
+from typing import Callable, Tuple
 
 import numpy as np
 
@@ -257,8 +257,8 @@ def get_supports_coords(
 
 
 class DisplacementVector:
-    def __init__(self, dxdydz: np.ndarray, line_angle: np.ndarray):
-        self.dxdydz = dxdydz
+    def __init__(self, get_displacement: Callable, line_angle: np.ndarray):
+        self.get_displacement = get_displacement
         self.line_angle = line_angle
         self.change_frame()
 
@@ -270,7 +270,7 @@ class DisplacementVector:
         # Rotate the translation vectors into the global frame
 
         temp_value = rotation_quaternion_same_axis(
-            self.dxdydz,
+            self.get_displacement(),
             line_angle_sums,
             rotation_axis=np.array([0, 0, 1]),
         )
@@ -280,18 +280,6 @@ class DisplacementVector:
             -self.line_angle / 2,
             rotation_axis=np.array([0, 0, 1]),
         )
-
-    # @property
-    # def dx(self) -> np.ndarray:
-    #     return self.be.balance_model.nodes.dx
-
-    # @property
-    # def dy(self) -> np.ndarray:
-    #     return self.be.balance_model.nodes.dy
-
-    # @property
-    # def dz(self) -> np.ndarray:
-    #     return self.be.balance_model.nodes.dz
 
 
 class CablePlane:
@@ -304,11 +292,13 @@ class CablePlane:
         crossarm_length: np.ndarray,
         insulator_length: np.ndarray,
         line_angle: np.ndarray,
-        # temporary
         beta: np.ndarray,
-        dxdydz: np.ndarray,
+        get_displacement: Callable,
+        # get attachment_coords
     ):
-        self.displacement_vector = DisplacementVector(dxdydz, line_angle)
+        self.displacement_vector = DisplacementVector(
+            get_displacement, line_angle
+        )
 
         (
             self.supports_ground_coords,
@@ -333,6 +323,7 @@ class CablePlane:
 
     @property
     def b(self):
+        """no need here to compute b but for memory // for coherence of the class it could be added one day"""
         raise NotImplementedError
 
     @property

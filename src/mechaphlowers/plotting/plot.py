@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Callable, Literal
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -167,7 +167,13 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 
 
 class PlotLine:
-    def __init__(self, span_model, cable_loads, section_array, dxdydz) -> None:
+    def __init__(
+        self,
+        span_model,
+        cable_loads,
+        section_array,
+        get_displacement: Callable,
+    ) -> None:
         self.spans = span_model
         self.cable_loads = cable_loads
         self.section_array = section_array
@@ -176,7 +182,7 @@ class PlotLine:
             section_array=self.section_array,
             span_model=span_model,
             cable_loads=cable_loads,
-            dxdydz=dxdydz,
+            get_displacement=get_displacement,
         )
 
         # self.section_pts = SectionPoints(
@@ -199,7 +205,7 @@ class PlotLine:
             balance_engine.cable_loads,
             balance_engine.section_array,
             # TODO: create getter displacement in balance engine?
-            balance_engine.balance_model.nodes.dxdydz.T,
+            balance_engine.get_displacement,
         )
 
     # I propose here to rename the method to preview_line3d to for plotting without exact chain position.
