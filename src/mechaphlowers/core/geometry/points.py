@@ -14,7 +14,6 @@ from mechaphlowers.core.geometry.line_angles import (
 from mechaphlowers.core.geometry.references import (
     cable_to_beta_plane,
     cable_to_localsection_frame,
-    translate_cable_to_support,
     translate_cable_to_support_from_attachments,
 )
 from mechaphlowers.core.models.cable.span import ISpan
@@ -387,7 +386,6 @@ class SectionPoints:
     def get_attachments_coords(self):
         self.attachment_coords = get_attachment_coords(
             self.edge_arm_coords,
-            self.plane.conductor_attachment_altitude,
             self.plane.displacement_vector.dxdydz_global_frame,
         )
         return self.attachment_coords

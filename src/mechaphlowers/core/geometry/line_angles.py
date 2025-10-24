@@ -149,7 +149,6 @@ def get_edge_arm_coords(
 
 def get_attachment_coords(
     edge_arm_coords: np.ndarray,
-    conductor_attachment_altitude: np.ndarray,
     displacement_vector: np.ndarray,
 ) -> np.ndarray:
     """Get the coordinates of the attachment points in the global frame. These are the coordinates of the end of the suspension insulators.
@@ -245,9 +244,7 @@ def get_supports_coords(
         line_angle,
         insulator_length,
     )
-    attachment_coords = get_attachment_coords(
-        arm_coords, conductor_attachment_altitude, displacement_vector
-    )
+    attachment_coords = get_attachment_coords(arm_coords, displacement_vector)
     return (
         supports_ground_coords,
         center_arm_coords,
@@ -276,12 +273,11 @@ class DisplacementVector:
             -self.line_angle / 2,
             rotation_axis=np.array([0, 0, 1]),
         )
-    
+
     @property
-    def dxdydz_global_frame(self) ->  np.ndarray:
+    def dxdydz_global_frame(self) -> np.ndarray:
         self.change_frame()
         return self._dxdydz_global_frame
-        
 
 
 class CablePlane:

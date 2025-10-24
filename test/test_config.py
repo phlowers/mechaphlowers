@@ -6,14 +6,14 @@
 
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
-from mechaphlowers.plotting.plot import PlotLine
 from mechaphlowers.config import options
+from mechaphlowers.plotting.plot import PlotLine
 
 
 def test_config_on_plot(balance_engine_base_test) -> None:
     balance_engine_base_test.solve_adjustment()
     plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
-    
+
     fig = go.Figure()
     options.graphics.resolution = 20
     options.graphics.marker_size = 10.0

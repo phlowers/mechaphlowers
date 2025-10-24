@@ -6,8 +6,8 @@
 
 import numpy as np
 import pandas as pd
-from pytest import fixture
 import pytest
+from pytest import fixture
 
 from mechaphlowers.core.geometry.points import (
     Points,
@@ -149,6 +149,7 @@ def test_point_class():
     p2 = Points.from_vectors(x, y, z)
     np.testing.assert_almost_equal(p1.coords, p2.coords)
 
+
 @pytest.mark.skip(reason="To be fixed later // P1")
 def test_span_absolute_coords_new_obj(section_array_line_angles):
     span_model = CatenarySpan(**section_array_line_angles.to_numpy())
@@ -178,6 +179,7 @@ def test_span_absolute_coords_new_obj(section_array_line_angles):
 
     # set_layout(fig)
     # fig.show()
+
 
 @pytest.mark.skip(reason="To be fixed later // P1")
 def test_span_with_wind(section_array_line_angles):

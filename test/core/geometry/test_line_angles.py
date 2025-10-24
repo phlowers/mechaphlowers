@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 from numpy.testing import assert_allclose
 from pytest import fixture
-import pytest
 
 from mechaphlowers.core.geometry.line_angles import (
     angle_between_vectors,
@@ -23,6 +22,16 @@ from mechaphlowers.core.geometry.line_angles import (
 )
 from mechaphlowers.core.geometry.points import coords_to_points
 from mechaphlowers.entities.arrays import SectionArray
+
+
+def create_default_displacement_vector(
+    insulator_length: np.ndarray,
+) -> np.ndarray:
+    displacement_vector = np.zeros((insulator_length.size, 3))
+    displacement_vector[1:-1, 2] = -insulator_length[1:-1]
+    displacement_vector[0, 0] = insulator_length[0]
+    displacement_vector[-1:, 0] = -insulator_length[-1]
+    return displacement_vector
 
 
 @fixture
@@ -120,7 +129,7 @@ def test_build_supports(section_array_line_angles):
     # plot_points_3d(fig, edge_arm_coords)
     # fig.show()
 
-@pytest.mark.skip(reason="To be fixed later // P1")
+
 def test_build_attachments(section_array_line_angles):
     span_length = section_array_line_angles.data.span_length.to_numpy()
     line_angle = section_array_line_angles.data.line_angle.to_numpy()
@@ -131,6 +140,8 @@ def test_build_attachments(section_array_line_angles):
         section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
     )
     crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
+
+    displacement_vector = create_default_displacement_vector(insulator_length)
 
     supports_ground_coords = get_supports_ground_coords(
         span_length, line_angle
@@ -144,7 +155,7 @@ def test_build_attachments(section_array_line_angles):
     )
 
     attachment_coords = get_attachment_coords(
-        edge_arm_coords, conductor_attachment_altitude
+        edge_arm_coords, displacement_vector
     )
 
     expected_attachment = np.array(
@@ -260,6 +271,7 @@ def test_get_supports_coords(section_array_line_angles):
     insulator_length = (
         section_array_line_angles.data.insulator_length.to_numpy()
     )
+    displacement_vector = create_default_displacement_vector(insulator_length)
 
     ground_cds, center_arm_cds, arm_cds, attachment_cds = get_supports_coords(
         span_length,
@@ -267,7 +279,7 @@ def test_get_supports_coords(section_array_line_angles):
         conductor_attachment_altitude,
         crossarm_length,
         insulator_length,
-        np.zeros((span_length.size, 3))
+        displacement_vector,
     )
     assert True
 

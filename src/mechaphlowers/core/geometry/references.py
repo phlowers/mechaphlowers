@@ -240,7 +240,7 @@ def translate_cable_to_support(
     )
 
     attachment_coords = get_attachment_coords(
-        edge_arm_coords, altitude, displacement_vector
+        edge_arm_coords, displacement_vector
     )
 
     z_span += -z_span[0, :] + attachment_coords[:-1, 2]

@@ -12,7 +12,6 @@ from typing import Callable, Type
 
 import numpy as np
 
-from mechaphlowers.core.geometry.rotation import rotation_quaternion_same_axis
 from mechaphlowers.core.models.balance.interfaces import IBalanceModel
 from mechaphlowers.core.models.balance.models.model_ducloux import BalanceModel
 from mechaphlowers.core.models.balance.solvers.balance_solver import (
@@ -35,24 +34,24 @@ from mechaphlowers.utils import arr
 logger = logging.getLogger(__name__)
 
 
+# @property
+# def dx(self) -> np.ndarray:
+#     return self.be.balance_model.nodes.dx
 
+# @property
+# def dy(self) -> np.ndarray:
+#     return self.be.balance_model.nodes.dy
 
+# @property
+# def dz(self) -> np.ndarray:
+#     return self.be.balance_model.nodes.dz
 
-    # @property
-    # def dx(self) -> np.ndarray:
-    #     return self.be.balance_model.nodes.dx
-
-    # @property
-    # def dy(self) -> np.ndarray:
-    #     return self.be.balance_model.nodes.dy
-
-    # @property
-    # def dz(self) -> np.ndarray:
-    #     return self.be.balance_model.nodes.dz
 
 class DisplacementResult:
-    
-    def __init__(self, dxdydz, ):
+    def __init__(
+        self,
+        dxdydz,
+    ):
         self.dxdydz = dxdydz
 
 
@@ -133,9 +132,8 @@ class BalanceEngine:
         self.solver_change_state = BalanceSolver()
         self.solver_adjustment = BalanceSolver()
         self.L_ref: np.ndarray
-        
-        self.get_displacement: Callable = self.balance_model.dxdydz
 
+        self.get_displacement: Callable = self.balance_model.dxdydz
 
     def solve_adjustment(self) -> None:
         """Solve the chain positions in the adjustment case, updating L_ref in the balance model.

@@ -12,8 +12,8 @@ import plotly.graph_objects as go  # type: ignore[import-untyped]
 
 from mechaphlowers.core.geometry.points import (
     SectionPoints,
-    SectionPoints,
 )
+from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
 
 if TYPE_CHECKING:
@@ -190,7 +190,7 @@ class PlotLine:
         return self.cable_loads.load_angle * 180 / np.pi
 
     @staticmethod
-    def builder_from_balance_engine(balance_engine) -> PlotLine:
+    def builder_from_balance_engine(balance_engine: BalanceEngine) -> PlotLine:
         return PlotLine(
             balance_engine.span_model,
             balance_engine.cable_loads,

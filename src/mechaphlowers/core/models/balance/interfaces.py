@@ -93,7 +93,7 @@ class IBalanceModel(IModelForSolver, ABC):
     @abstractmethod
     def adjustment(self, value: bool) -> None:
         pass
-    
+
     @abstractmethod
     def dxdydz(self) -> np.ndarray:
         """Get the displacement vector of the nodes."""
