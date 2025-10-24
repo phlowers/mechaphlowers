@@ -12,7 +12,7 @@ import plotly.graph_objects as go  # type: ignore[import-untyped]
 
 from mechaphlowers.core.geometry.points import (
     SectionPoints,
-    SectionPointsChain,
+    SectionPoints,
 )
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
 
@@ -178,13 +178,12 @@ class PlotLine:
         self.cable_loads = cable_loads
         self.section_array = section_array
 
-        self.section_pts = SectionPointsChain(
+        self.section_pts = SectionPoints(
             section_array=self.section_array,
             span_model=span_model,
             cable_loads=cable_loads,
             get_displacement=get_displacement,
         )
-        
 
     @property
     def beta(self):
@@ -228,7 +227,6 @@ class PlotLine:
         plot_insulator(fig, self.section_pts.get_insulators().points(True))
 
         set_layout(fig, auto=_auto)
-
 
 
 class PlotAccessor:
