@@ -6,20 +6,22 @@
 
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
-from mechaphlowers.api.frames import SectionDataFrame
+from mechaphlowers.plotting.plot import PlotLine
 from mechaphlowers.config import options
 
 
-def test_config_on_plot(default_section_array_three_spans) -> None:
-    frame = SectionDataFrame(default_section_array_three_spans)
+def test_config_on_plot(balance_engine_base_test) -> None:
+    balance_engine_base_test.solve_adjustment()
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
+    
     fig = go.Figure()
     options.graphics.resolution = 20
     options.graphics.marker_size = 10.0
-    frame.plot.line3d(fig)
+    plt_line.preview_line3d(fig)
     assert (
         fig._data[0].get('marker').get('size') == options.graphics.marker_size  # type: ignore[attr-defined]
     )
     assert fig._data[0].get('x').shape[0] == (  # type: ignore[attr-defined]
         options.graphics.resolution + 1
-    ) * (default_section_array_three_spans.data.shape[0] - 1)
+    ) * (balance_engine_base_test.section_array.data.shape[0] - 1)
     # fig.show() # deactivate for auto unit testing

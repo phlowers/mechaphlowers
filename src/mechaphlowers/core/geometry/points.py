@@ -368,9 +368,7 @@ class SectionPointsChain:
             self.plane.displacement_vector.dxdydz_global_frame,
         )
 
-        # self.a = span_length
         self.line_angle = line_angle
-        # self.b = conductor_attachment_altitude
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
         self._beta = self.cable_loads.load_angle * 180 / np.pi
@@ -379,13 +377,7 @@ class SectionPointsChain:
     def init_span(self, span_model: ISpan) -> None:
         """change the span model and update the cable coordinates."""
         self.span_model = span_model
-        # self.update_ab()
         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
-
-    # def update_ab(self):
-    #     """Sometimes plane object is updated, so we need to update the span model."""
-    #     self.span_model.span_length = arr.incr(self.be.balance_model.a_prime) #self.plane.a_prime
-    #     self.span_model.elevation_difference = arr.incr(self.be.balance_model.b_prime) #self.plane.b_prime
 
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
@@ -402,20 +394,8 @@ class SectionPointsChain:
     def beta(self) -> np.ndarray:
         """Get the beta angles for the cable spans.
         Beta is the angle du to the load on the cable"""
-        # if self._beta.size == 0:
-        #     beta = np.zeros(self.x_cable.shape[1])
-        # else:
-        #     beta = self._beta
-        # return beta
         return self.cable_loads.load_angle * 180 / np.pi
-
-    # @beta.setter
-    # def beta(self, value: np.ndarray):
-    #     if not isinstance(value, np.ndarray):
-    #         raise TypeError("Beta must be a numpy array")
-    #     if value.ndim != 1:
-    #         raise ValueError("Beta must be a 1D array")
-    #     self._beta = value
+    
 
     def span_in_cable_frame(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the cable frame."""
@@ -429,33 +409,10 @@ class SectionPointsChain:
         )
         return x_span, y_span, z_span
 
-    # def span_in_localsection_frame(
-    #     self,
-    # ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    #     """Get spans as vectors in the localsection frame."""
-
-    #     x_span, z_span,  = self.x_cable[:, :-1], self.z_cable[:, :-1]
-    #     # Arbitrary sign minus on angles
-    #     beta, angle_proj =-self.beta[:-1] * np.pi/180 , -self.plane.angle_proj[:-1] * np.pi/180
-
-    #     a_chain, b_chain = self.plane.a_chain[:-1], self.plane.b_chain[:-1]
-
-    #     alpha = np.arctan((b_chain*np.sin(beta))/a_chain)
-
-    #     projected_x_span = x_span * np.cos(alpha)
-    #     projected_y_span = z_span * np.sin(beta) - x_span * np.cos(beta) * np.sin(alpha)
-    #     projected_z_span = z_span * np.cos(beta) + x_span * np.sin(beta) * np.sin(alpha)
-
-    #     projected_x_span_1 = projected_x_span * np.cos(angle_proj) - projected_y_span * np.sin(angle_proj)
-    #     projected_y_span_1 = -projected_x_span * np.sin(angle_proj) + projected_y_span * np.cos(angle_proj)
-
-    #     return projected_x_span_1, projected_y_span_1, projected_z_span
-
     def span_in_localsection_frame(
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the localsection frame."""
-        # x_span, y_span, z_span = self.x_cable[:, :-1], np.full_like(self.x_cable, 0), self.z_cable[:, :-1]
         x_span, y_span, z_span = self.span_in_cable_frame()
         x_span, y_span, z_span = cable_to_localsection_frame(
             x_span, y_span, z_span, self.plane.angle_proj[:-1]
@@ -467,7 +424,7 @@ class SectionPointsChain:
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the section frame."""
         x_span, y_span, z_span = self.span_in_localsection_frame()
-        x_span, y_span, z_span = translate_cable_to_support_from_attachments(#TODO: refactor with get attachment coords
+        x_span, y_span, z_span = translate_cable_to_support_from_attachments(
             x_span,
             y_span,
             z_span,

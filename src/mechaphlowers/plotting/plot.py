@@ -184,15 +184,7 @@ class PlotLine:
             cable_loads=cable_loads,
             get_displacement=get_displacement,
         )
-
-        # self.section_pts = SectionPoints(
-        #     span_length=self.section_array.span_length.to_numpy(),
-        #     conductor_attachment_altitude=self.section_array.conductor_attachment_altitude.to_numpy(),
-        #     crossarm_length=self.section_array.crossarm_length.to_numpy(),
-        #     line_angle=self.section_array.line_angle.to_numpy(),
-        #     insulator_length=self.section_array.insulator_length.to_numpy(),
-        #     span_model = span_model
-        # )
+        
 
     @property
     def beta(self):
@@ -204,13 +196,9 @@ class PlotLine:
             balance_engine.span_model,
             balance_engine.cable_loads,
             balance_engine.section_array,
-            # TODO: create getter displacement in balance engine?
             balance_engine.get_displacement,
         )
 
-    # I propose here to rename the method to preview_line3d to for plotting without exact chain position.
-    # This is already working
-    # we can work on the exact chain position in another method.
     def preview_line3d(
         self, fig: go.Figure, view: Literal["full", "analysis"] = "full"
     ) -> None:
@@ -241,36 +229,6 @@ class PlotLine:
 
         set_layout(fig, auto=_auto)
 
-    # TODO: this is the new function to modify
-    def view_line3d(
-        self, fig: go.Figure, view: Literal["full", "analysis"] = "full"
-    ) -> None:
-        """Plot 3D of power lines sections
-
-        Args:
-            fig (go.Figure): plotly figure where new traces has to be added
-            view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
-
-        Raises:
-            ValueError: view is not an expected value
-        """
-
-        view_map = {"full": True, "analysis": False}
-
-        try:
-            _auto = view_map[view]
-        except KeyError:
-            raise ValueError(
-                f"{view=} : this argument has to be set to 'full' or 'analysis'"
-            )
-
-        plot_line(fig, self.section_pts.get_spans("section").points(True))
-
-        plot_support(fig, self.section_pts.get_supports().points(True))
-
-        plot_insulator(fig, self.section_pts.get_insulators().points(True))
-
-        set_layout(fig, auto=_auto)
 
 
 class PlotAccessor:

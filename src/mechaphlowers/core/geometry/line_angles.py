@@ -264,10 +264,6 @@ class DisplacementVector:
 
     def change_frame(self) -> None:
         line_angle_sums = np.cumsum(self.line_angle)
-        # Create translation vectors, which are the vectors that follows the arm
-        # arm_translation_vectors = np.zeros((line_angle.size, 3))
-        # arm_translation_vectors[:, 1] = crossarm_length
-        # Rotate the translation vectors into the global frame
 
         temp_value = rotation_quaternion_same_axis(
             self.get_displacement(),
@@ -301,26 +297,11 @@ class CablePlane:
         beta: np.ndarray,
         get_displacement: Callable,
         get_attachments_coords: Callable,
-        # get attachment_coords
     ):
         self.get_attachments_coords = get_attachments_coords
         self.displacement_vector = DisplacementVector(
             get_displacement, line_angle
         )
-
-        # (
-        #     self.supports_ground_coords,
-        #     self.center_arm_coords,
-        #     self.arm_coords,
-        #     self.attachment_coords,
-        # ) = get_supports_coords(
-        #     span_length,
-        #     line_angle,
-        #     conductor_attachment_altitude,
-        #     crossarm_length,
-        #     insulator_length,
-        #     self.displacement_vector.dxdydz_global_frame,
-        # )
 
         self.a = span_length
         self.line_angle = line_angle
