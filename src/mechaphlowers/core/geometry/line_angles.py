@@ -275,11 +275,17 @@ class DisplacementVector:
             rotation_axis=np.array([0, 0, 1]),
         )
         # Rotate the translation vectors to take into account the angle of the line
-        self.dxdydz_global_frame = rotation_quaternion_same_axis(
+        self._dxdydz_global_frame = rotation_quaternion_same_axis(
             temp_value,
             -self.line_angle / 2,
             rotation_axis=np.array([0, 0, 1]),
         )
+    
+    @property
+    def dxdydz_global_frame(self) ->  np.ndarray:
+        self.change_frame()
+        return self._dxdydz_global_frame
+        
 
 
 class CablePlane:
@@ -294,25 +300,27 @@ class CablePlane:
         line_angle: np.ndarray,
         beta: np.ndarray,
         get_displacement: Callable,
+        get_attachments_coords: Callable,
         # get attachment_coords
     ):
+        self.get_attachments_coords = get_attachments_coords
         self.displacement_vector = DisplacementVector(
             get_displacement, line_angle
         )
 
-        (
-            self.supports_ground_coords,
-            self.center_arm_coords,
-            self.arm_coords,
-            self.attachment_coords,
-        ) = get_supports_coords(
-            span_length,
-            line_angle,
-            conductor_attachment_altitude,
-            crossarm_length,
-            insulator_length,
-            self.displacement_vector.dxdydz_global_frame,
-        )
+        # (
+        #     self.supports_ground_coords,
+        #     self.center_arm_coords,
+        #     self.arm_coords,
+        #     self.attachment_coords,
+        # ) = get_supports_coords(
+        #     span_length,
+        #     line_angle,
+        #     conductor_attachment_altitude,
+        #     crossarm_length,
+        #     insulator_length,
+        #     self.displacement_vector.dxdydz_global_frame,
+        # )
 
         self.a = span_length
         self.line_angle = line_angle
@@ -320,6 +328,10 @@ class CablePlane:
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
         self.beta = beta
+
+    @property
+    def attachment_coords(self) -> np.ndarray:
+        return self.get_attachments_coords()  # type: ignore
 
     @property
     def b(self):

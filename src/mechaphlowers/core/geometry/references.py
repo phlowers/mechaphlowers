@@ -251,3 +251,31 @@ def translate_cable_to_support(
 
     # # Note : for every data, we dont need the last support information
     # # Ex : altitude = array([50., 40., 20., 10.]) -> altitude[:-1] = array([50., 40., 20.])
+
+
+def translate_cable_to_support_from_attachments(
+    x_span: np.ndarray,
+    y_span: np.ndarray,
+    z_span: np.ndarray,
+    attachment_coords: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Translate cable using altitude and span length
+
+    Args:
+        x_span (np.ndarray): x coordinates rotated
+        y_span (np.ndarray): y coordinates rotated
+        z_span (np.ndarray): z coordinates rotated
+        altitude (np.ndarray): conductor heigth altitude
+        span_length (np.ndarray): span length
+        crossarm_length (np.ndarray): crossarm length
+        insulator_length (np.ndarray): insulator length
+
+    Returns:
+        Tuple[np.ndarray]: translated x_span, y_span and z_span
+    """
+
+    z_span += -z_span[0, :] + attachment_coords[:-1, 2]
+    y_span += -y_span[0, :] + attachment_coords[:-1, 1]
+    x_span += -x_span[0, :] + attachment_coords[:-1, 0]
+
+    return x_span, y_span, z_span

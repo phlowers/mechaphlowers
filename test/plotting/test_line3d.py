@@ -236,7 +236,7 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
         # new_temperature=90 * np.array([1, 1, 1])
     )
 
-    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
+    # plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
 
     plt_line.preview_line3d(fig)
 

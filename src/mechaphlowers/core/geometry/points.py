@@ -6,6 +6,7 @@ from typing_extensions import Literal  # type: ignore[attr-defined]
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.geometry.line_angles import (
     CablePlane,
+    get_attachment_coords,
     get_insulator_layer,
     get_supports_coords,
     get_supports_layer,
@@ -14,6 +15,7 @@ from mechaphlowers.core.geometry.references import (
     cable_to_beta_plane,
     cable_to_localsection_frame,
     translate_cable_to_support,
+    translate_cable_to_support_from_attachments,
 )
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
@@ -349,13 +351,13 @@ class SectionPointsChain:
             line_angle,
             beta=cable_loads.load_angle,
             get_displacement=get_displacement,
-            # get attachment_coords
+            get_attachments_coords=self.get_attachments_coords,
         )
 
         (
             self.supports_ground_coords,
             self.center_arm_coords,
-            self.arm_coords,
+            self.edge_arm_coords,
             self.attachment_coords,
         ) = get_supports_coords(
             span_length,
@@ -390,6 +392,12 @@ class SectionPointsChain:
         self.x_cable: np.ndarray = self.span_model.x(resolution)
         self.z_cable: np.ndarray = self.span_model.z_many_points(self.x_cable)
 
+    def get_attachments_coords(self):
+        self.attachment_coords = get_attachment_coords(
+                self.edge_arm_coords, self.plane.conductor_attachment_altitude, self.plane.displacement_vector.dxdydz_global_frame
+            )
+        return self.attachment_coords
+
     @property
     def beta(self) -> np.ndarray:
         """Get the beta angles for the cable spans.
@@ -401,13 +409,13 @@ class SectionPointsChain:
         # return beta
         return self.cable_loads.load_angle * 180 / np.pi
 
-    @beta.setter
-    def beta(self, value: np.ndarray):
-        if not isinstance(value, np.ndarray):
-            raise TypeError("Beta must be a numpy array")
-        if value.ndim != 1:
-            raise ValueError("Beta must be a 1D array")
-        self._beta = value
+    # @beta.setter
+    # def beta(self, value: np.ndarray):
+    #     if not isinstance(value, np.ndarray):
+    #         raise TypeError("Beta must be a numpy array")
+    #     if value.ndim != 1:
+    #         raise ValueError("Beta must be a 1D array")
+    #     self._beta = value
 
     def span_in_cable_frame(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the cable frame."""
@@ -459,16 +467,11 @@ class SectionPointsChain:
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the section frame."""
         x_span, y_span, z_span = self.span_in_localsection_frame()
-        x_span, y_span, z_span = translate_cable_to_support(#TODO: refactor with get attachment coords
+        x_span, y_span, z_span = translate_cable_to_support_from_attachments(#TODO: refactor with get attachment coords
             x_span,
             y_span,
             z_span,
-            self.plane.conductor_attachment_altitude,  # TODO: error here should be altitude
-            self.plane.a,
-            self.crossarm_length,
-            self.insulator_length,
-            self.line_angle,
-            self.plane.displacement_vector.dxdydz_global_frame,
+            self.get_attachments_coords(),
         )
         return x_span, y_span, z_span
 
@@ -506,14 +509,14 @@ class SectionPointsChain:
         supports_layers = get_supports_layer(
             self.supports_ground_coords,
             self.center_arm_coords,
-            self.arm_coords,
+            self.edge_arm_coords,
         )
         return Points.from_coords(supports_layers)
 
     def get_insulators(self) -> Points:
         """Get the insulators in the section frame."""
         insulator_layers = get_insulator_layer(
-            self.arm_coords,
-            self.attachment_coords,
+            self.edge_arm_coords,
+            self.get_attachments_coords(),
         )
         return Points.from_coords(insulator_layers)
