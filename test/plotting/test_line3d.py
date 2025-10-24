@@ -14,6 +14,7 @@ from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.entities.arrays import (
+    CableArray,
     SectionArray,
 )
 from mechaphlowers.entities.shapes import SupportShape
@@ -41,7 +42,7 @@ data = {
 section = SectionArray(data=pd.DataFrame(data))
 section.sagging_parameter = 500
 section.sagging_temperature = 15
-cable_array_AM600 = sample_cable_catalog.get_as_object("ASTER600")
+cable_array_AM600: CableArray = sample_cable_catalog.get_as_object(["ASTER600"]) # type: ignore[assignment]
 
 balance_engine_local_test = BalanceEngine(
     cable_array=cable_array_AM600, section_array=section
@@ -61,7 +62,7 @@ def test_plot_line3d__all_line() -> None:
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all()
+                if f.name == "Cable" and not np.isnan(f.x).all() # type: ignore[attr-defined]
             ]
         )
         == 1
@@ -79,7 +80,7 @@ def test_plot_line3d__view_option() -> None:
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all()
+                if f.name == "Cable" and not np.isnan(f.x).all() # type: ignore[attr-defined]
             ]
         )
         == 1
@@ -92,14 +93,12 @@ def test_plot_line3d__wrong_view_option() -> None:
     plt_line = PlotLine.builder_from_balance_engine(balance_engine_local_test)
     plt_line.preview_line3d(fig)
     with pytest.raises(ValueError):
-        plt_line.preview_line3d(fig, view="wrong_parameter")
+        plt_line.preview_line3d(fig, view="wrong_parameter") # type: ignore[arg-type]
     with pytest.raises(ValueError):
-        plt_line.preview_line3d(fig, view=22)
+        plt_line.preview_line3d(fig, view=22) # type: ignore[arg-type]
 
 
-def test_plot_line3d__with_beta(
-    default_cable_array,
-):
+def test_plot_line3d__with_beta():
     balance_engine_local_test.solve_change_state(
         ice_thickness=np.array([0.0, 60.0, 0.0, np.nan]),
         wind_pressure=np.array([240.12, 0.0, 600.0, np.nan]),
@@ -163,7 +162,7 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all()
+                if f.name == "Cable" and not np.isnan(f.x).all() # type: ignore[attr-defined]
             ]
         )
         == 2
