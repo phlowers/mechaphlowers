@@ -491,6 +491,7 @@ class SectionPointsChain:
         Returns:
             Points: Points object containing the spans in the specified frame.
         """
+        self.set_cable_coordinates(resolution=cfg.graphics.resolution)
         if frame == "cable":
             x_span, y_span, z_span = self.span_in_cable_frame()
         elif frame == "localsection":
