@@ -42,7 +42,9 @@ data = {
 section = SectionArray(data=pd.DataFrame(data))
 section.sagging_parameter = 500
 section.sagging_temperature = 15
-cable_array_AM600: CableArray = sample_cable_catalog.get_as_object(["ASTER600"]) # type: ignore[assignment]
+cable_array_AM600: CableArray = sample_cable_catalog.get_as_object(
+    ["ASTER600"]
+)  # type: ignore[assignment]
 
 balance_engine_local_test = BalanceEngine(
     cable_array=cable_array_AM600, section_array=section
@@ -62,7 +64,7 @@ def test_plot_line3d__all_line() -> None:
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all() # type: ignore[attr-defined]
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 1
@@ -80,7 +82,7 @@ def test_plot_line3d__view_option() -> None:
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all() # type: ignore[attr-defined]
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 1
@@ -93,9 +95,9 @@ def test_plot_line3d__wrong_view_option() -> None:
     plt_line = PlotLine.builder_from_balance_engine(balance_engine_local_test)
     plt_line.preview_line3d(fig)
     with pytest.raises(ValueError):
-        plt_line.preview_line3d(fig, view="wrong_parameter") # type: ignore[arg-type]
+        plt_line.preview_line3d(fig, view="wrong_parameter")  # type: ignore[arg-type]
     with pytest.raises(ValueError):
-        plt_line.preview_line3d(fig, view=22) # type: ignore[arg-type]
+        plt_line.preview_line3d(fig, view=22)  # type: ignore[arg-type]
 
 
 def test_plot_line3d__with_beta():
@@ -162,7 +164,7 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all() # type: ignore[attr-defined]
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 2
@@ -196,7 +198,7 @@ def test_plot_ice(balance_engine_base_test: BalanceEngine):
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all()
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 2

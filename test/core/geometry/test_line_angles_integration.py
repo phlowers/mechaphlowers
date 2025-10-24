@@ -90,7 +90,10 @@ def test_span_lengths_values(
     )
     # arbitrary values, but unused
     mock_cable_loads = CableLoads(
-        np.float64(1.0), np.float64(1.0), np.zeros(span_length.shape), np.zeros(span_length.shape)
+        np.float64(1.0),
+        np.float64(1.0),
+        np.zeros(span_length.shape),
+        np.zeros(span_length.shape),
     )
 
     def get_displacement():
