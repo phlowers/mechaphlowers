@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Tuple
+from typing import Callable, Tuple
 
 import numpy as np
 
@@ -121,7 +121,12 @@ def get_edge_arm_coords(
     """
     # Create the coordinates of the intersection of the arms and the supports by adding attachmeent altitude
     center_arm_coords = supports_ground_coords.copy()
-    center_arm_coords[:, 2] = conductor_attachment_altitude + insulator_length
+
+    # TODO: to refactor later
+    center_arm_coords[:, 2] = conductor_attachment_altitude
+    center_arm_coords[1:-1, 2] = (
+        conductor_attachment_altitude[1:-1] + insulator_length[1:-1]
+    )
 
     line_angle_sums = np.cumsum(line_angle)
     # Create translation vectors, which are the vectors that follows the arm
@@ -144,7 +149,7 @@ def get_edge_arm_coords(
 
 def get_attachment_coords(
     edge_arm_coords: np.ndarray,
-    conductor_attachment_altitude: np.ndarray,
+    displacement_vector: np.ndarray,
 ) -> np.ndarray:
     """Get the coordinates of the attachment points in the global frame. These are the coordinates of the end of the suspension insulators.
     Currently, we assume that isulators set are vetical.
@@ -156,9 +161,7 @@ def get_attachment_coords(
     Returns:
         np.ndarray: coordinates of the attachment points in the global frame.
     """
-    attachment_coords = edge_arm_coords.copy()
-    attachment_coords[:, 2] = conductor_attachment_altitude
-    return attachment_coords
+    return edge_arm_coords + displacement_vector
 
 
 def get_supports_layer(
@@ -228,6 +231,7 @@ def get_supports_coords(
     conductor_attachment_altitude: np.ndarray,
     crossarm_length: np.ndarray,
     insulator_length: np.ndarray,
+    displacement_vector: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Helper to get all the coordinates of the supports packed in a tuple."""
     supports_ground_coords = get_supports_ground_coords(
@@ -240,15 +244,40 @@ def get_supports_coords(
         line_angle,
         insulator_length,
     )
-    attachment_coords = get_attachment_coords(
-        arm_coords, conductor_attachment_altitude
-    )
+    attachment_coords = get_attachment_coords(arm_coords, displacement_vector)
     return (
         supports_ground_coords,
         center_arm_coords,
         arm_coords,
         attachment_coords,
     )
+
+
+class DisplacementVector:
+    def __init__(self, get_displacement: Callable, line_angle: np.ndarray):
+        self.get_displacement = get_displacement
+        self.line_angle = line_angle
+        self.change_frame()
+
+    def change_frame(self) -> None:
+        line_angle_sums = np.cumsum(self.line_angle)
+
+        temp_value = rotation_quaternion_same_axis(
+            self.get_displacement(),
+            line_angle_sums,
+            rotation_axis=np.array([0, 0, 1]),
+        )
+        # Rotate the translation vectors to take into account the angle of the line
+        self._dxdydz_global_frame = rotation_quaternion_same_axis(
+            temp_value,
+            -self.line_angle / 2,
+            rotation_axis=np.array([0, 0, 1]),
+        )
+
+    @property
+    def dxdydz_global_frame(self) -> np.ndarray:
+        self.change_frame()
+        return self._dxdydz_global_frame
 
 
 class CablePlane:
@@ -261,35 +290,55 @@ class CablePlane:
         crossarm_length: np.ndarray,
         insulator_length: np.ndarray,
         line_angle: np.ndarray,
+        beta: np.ndarray,
+        get_displacement: Callable,
+        get_attachments_coords: Callable,
     ):
-        (
-            self.supports_ground_coords,
-            self.center_arm_coords,
-            self.arm_coords,
-            self.attachment_coords,
-        ) = get_supports_coords(
-            span_length,
-            line_angle,
-            conductor_attachment_altitude,
-            crossarm_length,
-            insulator_length,
+        self.get_attachments_coords = get_attachments_coords
+        self.displacement_vector = DisplacementVector(
+            get_displacement, line_angle
         )
 
         self.a = span_length
         self.line_angle = line_angle
-        self.b = conductor_attachment_altitude
+        self.conductor_attachment_altitude = conductor_attachment_altitude
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
-        self._beta = np.array([])
+        self.beta = beta
 
     @property
-    def a_prime(self) -> np.ndarray:
+    def attachment_coords(self) -> np.ndarray:
+        return self.get_attachments_coords()  # type: ignore
+
+    @property
+    def b(self):
+        """no need here to compute b but for memory // for coherence of the class it could be added one day"""
+        raise NotImplementedError
+
+    @property
+    def a_chain(self) -> np.ndarray:
         return get_span_lengths_between_supports(self.attachment_coords)
 
     @property
-    def b_prime(self) -> np.ndarray:
+    def b_chain(self) -> np.ndarray:
         return get_elevation_diff_between_supports(self.attachment_coords)
 
     @property
-    def alpha(self) -> np.ndarray:
+    def a_prime(self) -> np.ndarray:
+        """Span length after wind angle into taking account"""
+        return (
+            self.a_chain**2 + self.b_chain**2 * np.sin(self.beta) ** 2
+        ) ** 0.5
+
+    @property
+    def b_prime(self) -> np.ndarray:
+        """Elevation difference after wind angle into taking account"""
+        return self.b_chain * np.cos(self.beta)
+
+    @property
+    def angle_proj(self) -> np.ndarray:
         return compute_span_azimuth(self.attachment_coords)
+
+    @property
+    def alpha(self) -> np.ndarray:
+        return np.arctan((self.b_chain * np.sin(self.beta)) / self.a_chain)

@@ -11,12 +11,14 @@ import plotly.graph_objects as go  # type: ignore[import-untyped]
 import pytest
 
 from mechaphlowers.api.frames import SectionDataFrame
+from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.entities.arrays import (
+    CableArray,
     SectionArray,
-    WeatherArray,
 )
 from mechaphlowers.entities.shapes import SupportShape
-from mechaphlowers.plotting.plot import plot_support_shape
+from mechaphlowers.plotting.plot import PlotLine, plot_support_shape
 
 data = {
     "name": ["1", "2", "three", "support 4"],
@@ -30,64 +32,95 @@ data = {
         0,
     ]
     * 4,
-    "insulator_length": [0, 4, 3.2, 0],
+    "insulator_length": [2, 4, 3.2, 2],
     "span_length": [100, 200, 300, np.nan],
     "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
+    "load_weight": [0, 0, 0, 0],
+    "load_position": [0, 0, 0, 0],
 }
 
 section = SectionArray(data=pd.DataFrame(data))
 section.sagging_parameter = 500
 section.sagging_temperature = 15
+cable_array_AM600: CableArray = sample_cable_catalog.get_as_object(
+    ["ASTER600"]
+)  # type: ignore[assignment]
+
+balance_engine_local_test = BalanceEngine(
+    cable_array=cable_array_AM600, section_array=section
+)
+balance_engine_local_test.solve_adjustment()
 
 frame = SectionDataFrame(section)
 
 
 def test_plot_line3d__all_line() -> None:
     fig = go.Figure()
-    frame.plot.line3d(fig)
-    # fig.show() # deactivate for auto unit testing
-    assert True  # Just trying to see if the previous code raises
-
-
-def test_plot_line3d__subset() -> None:
-    fig = go.Figure()
-    frame.select(["1", "2"]).plot.line3d(fig)
-    # fig.show() # deactivate for auto unit testing
-    assert True  # Just trying to see if the previous code raises
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_local_test)
+    plt_line.preview_line3d(fig)
+    # fig.show()  # deactivate for auto unit testing
+    assert (
+        len(
+            [
+                f
+                for f in fig.data
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+            ]
+        )
+        == 1
+    )
+    assert len(fig.data) == 3  # Just trying to see if the previous code raises
 
 
 def test_plot_line3d__view_option() -> None:
     fig = go.Figure()
-    frame.plot.line3d(fig, view="full")
-    assert True  # Just trying to see if the previous code raises
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_local_test)
+    plt_line.preview_line3d(fig, view="analysis")
+    # fig.show()
+    assert (
+        len(
+            [
+                f
+                for f in fig.data
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+            ]
+        )
+        == 1
+    )
+    assert len(fig.data) == 3  # Just trying to see if the previous code raises
 
 
 def test_plot_line3d__wrong_view_option() -> None:
     fig = go.Figure()
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_local_test)
+    plt_line.preview_line3d(fig)
     with pytest.raises(ValueError):
-        frame.plot.line3d(fig, view="wrong_parameter")
+        plt_line.preview_line3d(fig, view="wrong_parameter")  # type: ignore[arg-type]
     with pytest.raises(ValueError):
-        frame.plot.line3d(fig, view=22)
+        plt_line.preview_line3d(fig, view=22)  # type: ignore[arg-type]
 
 
-def test_plot_line3d__with_beta(
-    default_cable_array,
-):
-    weather = WeatherArray(
-        pd.DataFrame(
-            {
-                "ice_thickness": [0.0, 60.0, 0.0, np.nan],
-                "wind_pressure": [240.12, 0.0, 600.0, np.nan],
-            }
-        )
+def test_plot_line3d__with_beta():
+    balance_engine_local_test.solve_change_state(
+        ice_thickness=np.array([0.0, 60.0, 0.0, np.nan]),
+        wind_pressure=np.array([240.12, 0.0, 600.0, np.nan]),
     )
-    frame.add_cable(cable=default_cable_array)
-    frame.add_weather(weather=weather)
-    frame.cable_loads.load_angle  # type: ignore[union-attr]
+
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_local_test)
     fig = go.Figure()
-    frame.plot.line3d(fig)
+    plt_line.preview_line3d(fig)
     # fig.show() # deactivate for auto unit testing
-    assert True  # Just trying to see if the previous code raises
+    assert (
+        len(
+            [
+                f
+                for f in fig.data
+                if f.name == "Cable" and not np.isnan(f.x).all()
+            ]
+        )
+        == 1
+    )
+    assert len(fig.data) == 3  # Just trying to see if the previous code raises
 
 
 def test_plot_support_shape():
@@ -110,3 +143,63 @@ def test_plot_support_shape():
     plot_support_shape(fig, pyl_shape)
     # fig.show()
     assert True
+
+
+def test_reactive_plot(balance_engine_base_test: BalanceEngine):
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
+    balance_engine_base_test.solve_adjustment()
+    balance_engine_base_test.solve_change_state(
+        new_temperature=15 * np.array([1, 1, 1])
+    )
+    fig = go.Figure()
+    plt_line.preview_line3d(fig)
+    balance_engine_base_test.solve_change_state(
+        wind_pressure=1000 * np.array([1, 1, 1, np.nan]),
+    )
+
+    plt_line.preview_line3d(fig)
+
+    assert (
+        len(
+            [
+                f
+                for f in fig.data
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+            ]
+        )
+        == 2
+    )
+
+    # fig.show()  # deactivate for auto unit testing
+
+
+def test_plot_ice(balance_engine_base_test: BalanceEngine):
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
+    balance_engine_base_test.solve_adjustment()
+    balance_engine_base_test.solve_change_state(
+        new_temperature=15 * np.array([1, 1, 1])
+    )
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
+    fig = go.Figure()
+    plt_line.preview_line3d(fig)
+    # balance_engine_base_test.solve_adjustment()
+    balance_engine_base_test.solve_change_state(
+        ice_thickness=np.array([1, 1, 1, np.nan]) * 1,
+        # new_temperature=90 * np.array([1, 1, 1]),
+    )
+
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
+
+    plt_line.preview_line3d(fig)
+
+    # fig.show()  # deactivate for auto unit testing
+    assert (
+        len(
+            [
+                f
+                for f in fig.data
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+            ]
+        )
+        == 2
+    )

@@ -13,20 +13,31 @@ from mechaphlowers.core.geometry.references import (
 )
 
 
+# function defined many times in several files. Maybe refacto?
+def create_default_displacement_vector(
+    insulator_length: np.ndarray,
+) -> np.ndarray:
+    displacement_vector = np.zeros((insulator_length.size, 3))
+    displacement_vector[1:-1, 2] = -insulator_length[1:-1]
+    displacement_vector[0, 0] = insulator_length[0]
+    displacement_vector[-1:, 0] = -insulator_length[-1]
+    return displacement_vector
+
+
 def test_cable2span_basic() -> None:
     x: np.ndarray = np.array([[1, 2, 3, 4], [10, 12, 14, 16]]).T
     z: np.ndarray = np.array([[20, 18, 17, 19], [19, 17, 15, 17]]).T
     beta: float = 0
 
     xs, ys, zs = cable_to_beta_plane(
-        x, z, np.ones(2) * beta
+        x, z, np.ones(2) * beta, np.array([3, 6]), np.array([-1, -2])
     )  # TODO check beta
 
     assert len(xs) == len(z)
     np.testing.assert_allclose(ys, np.zeros_like(ys))
     # assert np.allclose(result, z)
     xs, ys, zs = cable_to_beta_plane(
-        x, z, np.array([5.0, 61.3])
+        x, z, np.array([5.0, 61.3]), np.array([3, 6]), np.array([-1, -2])
     )  # TODO check beta
     assert len(xs) == len(z)
     assert not (ys == 0).all()
@@ -75,8 +86,8 @@ def test_spans2vector_single_point() -> None:
 def test_translate_cable_to_support() -> None:
     altitude = np.array([48.0, 39.0, 19.0, 10.0])
     span_length = np.array([100.0, 200.0, 300.0, np.nan])
-    crossarm_length = np.array([5.0, 2.0, 3.0, np.nan])
-    insulator_length = np.array([2.0, 1.0, 1.0, np.nan])
+    crossarm_length = np.array([5.0, 2.0, 3.0, 0])
+    insulator_length = np.array([0, 1.0, 1.0, 0])
     x_in = np.array(
         [
             [-99.83421563938445, -149.58689089845706, -166.41631740898708],
@@ -137,6 +148,7 @@ def test_translate_cable_to_support() -> None:
         ]
     )
 
+    displacement_vector = create_default_displacement_vector(insulator_length)
     x_1, y_1, z_1 = translate_cable_to_support(
         x_in,
         y_in,
@@ -146,6 +158,7 @@ def test_translate_cable_to_support() -> None:
         crossarm_length,
         insulator_length,
         line_angle=np.array([0, 0, 0, np.nan]),
+        displacement_vector=displacement_vector,
     )
 
     np.testing.assert_almost_equal(x_1, x_out)
