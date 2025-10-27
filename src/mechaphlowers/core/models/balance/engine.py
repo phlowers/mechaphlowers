@@ -166,16 +166,28 @@ class BalanceEngine:
         After running this method, many attributes are updated.
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
         """
+        span_shape = self.section_array.data.span_length.shape
+
         if wind_pressure is not None:
+            if wind_pressure.shape != span_shape:
+                raise AttributeError(
+                    f"wind_pressure has incorrect shape: {span_shape} is expected, recieved {wind_pressure.shape}"
+                )
             self.balance_model.cable_loads.wind_pressure = wind_pressure
         # TODO: convert ice thickness from cm to m? Right now, user has to input in m
         if ice_thickness is not None:
+            if ice_thickness.shape != span_shape:
+                raise AttributeError(
+                    f"ice_thickness has incorrect shape: {span_shape} is expected, recieved {ice_thickness.shape}"
+                )
             self.balance_model.cable_loads.ice_thickness = ice_thickness
         if new_temperature is not None:
-            self.balance_model.sagging_temperature = new_temperature
-            self.deformation_model.current_temperature = arr.incr(
-                new_temperature
-            )
+            if new_temperature.shape != span_shape:
+                raise AttributeError(
+                    f"new_temperature has incorrect shape: {span_shape} is expected, recieved {new_temperature.shape}"
+                )
+            self.balance_model.sagging_temperature = arr.decr(new_temperature)
+            self.deformation_model.current_temperature = new_temperature
 
         # check if adjustment has been done before
         try:

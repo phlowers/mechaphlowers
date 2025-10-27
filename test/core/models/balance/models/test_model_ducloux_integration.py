@@ -468,7 +468,7 @@ def test_temperature(
     section_3d_angles_arm.solve_adjustment()
 
     section_3d_angles_arm.solve_change_state(
-        new_temperature=np.array([90.0] * 3)
+        new_temperature=np.array([90.0] * 4)
     )
     expected_dx = np.array(
         [
@@ -647,7 +647,7 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
     )
 
     section_3d_angles_arm.solve_adjustment()
-    new_temperature = np.array([30] * 3)
+    new_temperature = np.array([30] * 4)
     ice_thickness = np.array([1] * 4) * 1e-2
     wind_pressure = np.array([500] * 4)
     section_3d_angles_arm.solve_change_state(
