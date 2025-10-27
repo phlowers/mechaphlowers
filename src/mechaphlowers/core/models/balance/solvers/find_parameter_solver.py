@@ -156,7 +156,9 @@ class FindParamSolverForLoop(IFindParamSolver):
             ):
                 break
             if i == self.max_iter - 1:
-                logger.error(f"Maximum number of iterations reached in {str(__name__)}")  
+                logger.error(
+                    f"Maximum number of iterations reached in {str(__name__)}"
+                )
                 raise ValueError("Solver did not converge")
                 # logger.info(
                 #     "Maximum number of iterations reached in FindParamSolverForLoop"

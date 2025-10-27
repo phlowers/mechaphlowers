@@ -5,8 +5,8 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Literal
 import logging
+from typing import TYPE_CHECKING, Callable, Literal
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -196,9 +196,8 @@ class PlotEngine:
     def builder_from_balance_engine(
         balance_engine: BalanceEngine,
     ) -> PlotEngine:
-        
         logger.debug("Plot engine initialized from balance engine.")
-        
+
         return PlotEngine(
             balance_engine.span_model,
             balance_engine.cable_loads,

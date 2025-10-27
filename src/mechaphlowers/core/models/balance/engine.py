@@ -157,8 +157,10 @@ class BalanceEngine:
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
         """
         logger.debug("Starting change state.")
-        logger.debug(f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}")
-        
+        logger.debug(
+            f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}"
+        )
+
         span_shape = self.section_array.data.span_length.shape
 
         if wind_pressure is not None:
@@ -196,4 +198,6 @@ class BalanceEngine:
             self.balance_model.cable_loads.load_coefficient
         )
         self.solver_change_state.solve(self.balance_model)
-        logger.debug(f"Output : get_displacement \n{str(self.get_displacement())}")
+        logger.debug(
+            f"Output : get_displacement \n{str(self.get_displacement())}"
+        )

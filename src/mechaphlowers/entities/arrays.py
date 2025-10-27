@@ -4,8 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -21,6 +21,7 @@ from mechaphlowers.entities.schemas import (
 from mechaphlowers.utils import df_to_dict
 
 logger = logging.getLogger(__name__)
+
 
 class ElementArray(ABC):
     array_input_type: Type[pa.DataFrameModel]
