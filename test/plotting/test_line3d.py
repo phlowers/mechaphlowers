@@ -170,7 +170,7 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
         == 2
     )
 
-    # fig.show()  # deactivate for auto unit testing
+    fig.show()  # deactivate for auto unit testing
 
 
 def test_plot_ice(balance_engine_base_test: BalanceEngine):

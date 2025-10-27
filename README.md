@@ -8,7 +8,6 @@
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=phlowers_mechaphlowers&metric=alert_status)](https://sonarcloud.io/dashboard?id=phlowers_mechaphlowers) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=phlowers_mechaphlowers&metric=coverage)](https://sonarcloud.io/dashboard?id=phlowers_mechaphlowers)
 
-[![Pydantic v2](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/pydantic/pydantic/main/docs/badge/v2.json)](https://pydantic.dev)
 [![Numpy](https://img.shields.io/badge/numpy-v2-blue)](https://numpy.org/)
 [![pyodide](https://img.shields.io/badge/works_on-pyodide-%237303fc)](https://pyodide.org/en/stable/index.html)
 [![lite-badge](https://jupyterlite.rtfd.io/en/latest/_static/badge.svg)](https://phlowers.github.io/phlowers-notebooks/lab/index.html)

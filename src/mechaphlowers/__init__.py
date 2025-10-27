@@ -11,6 +11,9 @@ import pandas as pd
 
 from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.config import options
+from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.plotting import PlotLine
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -23,4 +26,10 @@ logger.info("Mechaphlowers package initialized.")
 logger.info(f"Mechaphlowers version: {__version__}")
 
 
-__all__ = ["SectionDataFrame", "options"]
+__all__ = [
+    "SectionDataFrame",
+    "options",
+    "BalanceEngine",
+    "PlotLine",
+    "SectionArray",
+]
