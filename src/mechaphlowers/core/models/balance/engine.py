@@ -34,10 +34,23 @@ from mechaphlowers.utils import arr
 logger = logging.getLogger(__name__)
 
 
+# @property
+# def dx(self) -> np.ndarray:
+#     return self.be.balance_model.nodes.dx
+
+# @property
+# def dy(self) -> np.ndarray:
+#     return self.be.balance_model.nodes.dy
+
+# @property
+# def dz(self) -> np.ndarray:
+#     return self.be.balance_model.nodes.dz
+
+
 class DisplacementResult:
     def __init__(
         self,
-        dxdydz: np.ndarray,
+        dxdydz,
     ):
         self.dxdydz = dxdydz
 
@@ -121,7 +134,6 @@ class BalanceEngine:
         self.L_ref: np.ndarray
 
         self.get_displacement: Callable = self.balance_model.dxdydz
-        logger.debug("Balance engine initialized.")
 
     def solve_adjustment(self) -> None:
         """Solve the chain positions in the adjustment case, updating L_ref in the balance model.
@@ -130,13 +142,11 @@ class BalanceEngine:
         After running this method, many attributes are updated.
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
         """
-        logger.debug("Starting adjustment.")
         self.balance_model.adjustment = True
 
         self.solver_adjustment.solve(self.balance_model)
 
         self.L_ref = self.balance_model.update_L_ref()
-        logger.debug(f"Output : L_ref = {str(self.L_ref)}")
 
     def solve_change_state(
         self,
@@ -156,33 +166,16 @@ class BalanceEngine:
         After running this method, many attributes are updated.
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
         """
-        logger.debug("Starting change state.")
-        logger.debug(
-            f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}"
-        )
-
-        span_shape = self.section_array.data.span_length.shape
-
         if wind_pressure is not None:
-            if wind_pressure.shape != span_shape:
-                raise AttributeError(
-                    f"wind_pressure has incorrect shape: {span_shape} is expected, recieved {wind_pressure.shape}"
-                )
             self.balance_model.cable_loads.wind_pressure = wind_pressure
         # TODO: convert ice thickness from cm to m? Right now, user has to input in m
         if ice_thickness is not None:
-            if ice_thickness.shape != span_shape:
-                raise AttributeError(
-                    f"ice_thickness has incorrect shape: {span_shape} is expected, recieved {ice_thickness.shape}"
-                )
             self.balance_model.cable_loads.ice_thickness = ice_thickness
         if new_temperature is not None:
-            if new_temperature.shape != span_shape:
-                raise AttributeError(
-                    f"new_temperature has incorrect shape: {span_shape} is expected, recieved {new_temperature.shape}"
-                )
-            self.balance_model.sagging_temperature = arr.decr(new_temperature)
-            self.deformation_model.current_temperature = new_temperature
+            self.balance_model.sagging_temperature = new_temperature
+            self.deformation_model.current_temperature = arr.incr(
+                new_temperature
+            )
 
         # check if adjustment has been done before
         try:
@@ -198,6 +191,3 @@ class BalanceEngine:
             self.balance_model.cable_loads.load_coefficient
         )
         self.solver_change_state.solve(self.balance_model)
-        logger.debug(
-            f"Output : get_displacement \n{str(self.get_displacement())}"
-        )

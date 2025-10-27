@@ -18,7 +18,7 @@ from mechaphlowers.entities.arrays import (
     SectionArray,
 )
 from mechaphlowers.entities.shapes import SupportShape
-from mechaphlowers.plotting.plot import PlotEngine, plot_support_shape
+from mechaphlowers.plotting.plot import PlotLine, plot_support_shape
 
 data = {
     "name": ["1", "2", "three", "support 4"],
@@ -56,9 +56,7 @@ frame = SectionDataFrame(section)
 
 def test_plot_line3d__all_line() -> None:
     fig = go.Figure()
-    plt_line = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_test
-    )
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_local_test)
     plt_line.preview_line3d(fig)
     # fig.show()  # deactivate for auto unit testing
     assert (
@@ -76,9 +74,7 @@ def test_plot_line3d__all_line() -> None:
 
 def test_plot_line3d__view_option() -> None:
     fig = go.Figure()
-    plt_line = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_test
-    )
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_local_test)
     plt_line.preview_line3d(fig, view="analysis")
     # fig.show()
     assert (
@@ -96,9 +92,7 @@ def test_plot_line3d__view_option() -> None:
 
 def test_plot_line3d__wrong_view_option() -> None:
     fig = go.Figure()
-    plt_line = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_test
-    )
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_local_test)
     plt_line.preview_line3d(fig)
     with pytest.raises(ValueError):
         plt_line.preview_line3d(fig, view="wrong_parameter")  # type: ignore[arg-type]
@@ -112,9 +106,7 @@ def test_plot_line3d__with_beta():
         wind_pressure=np.array([240.12, 0.0, 600.0, np.nan]),
     )
 
-    plt_line = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_test
-    )
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_local_test)
     fig = go.Figure()
     plt_line.preview_line3d(fig)
     # fig.show() # deactivate for auto unit testing
@@ -154,10 +146,10 @@ def test_plot_support_shape():
 
 
 def test_reactive_plot(balance_engine_base_test: BalanceEngine):
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
     balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(
-        new_temperature=15 * np.array([1, 1, 1, 1])
+        new_temperature=15 * np.array([1, 1, 1])
     )
     fig = go.Figure()
     plt_line.preview_line3d(fig)
@@ -182,12 +174,12 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
 
 
 def test_plot_ice(balance_engine_base_test: BalanceEngine):
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
     balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(
-        new_temperature=15 * np.array([1, 1, 1, 1])
+        new_temperature=15 * np.array([1, 1, 1])
     )
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
     fig = go.Figure()
     plt_line.preview_line3d(fig)
     # balance_engine_base_test.solve_adjustment()
@@ -196,7 +188,7 @@ def test_plot_ice(balance_engine_base_test: BalanceEngine):
         # new_temperature=90 * np.array([1, 1, 1]),
     )
 
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
 
     plt_line.preview_line3d(fig)
 

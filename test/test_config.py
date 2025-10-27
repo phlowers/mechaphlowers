@@ -7,12 +7,12 @@
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
 from mechaphlowers.config import options
-from mechaphlowers.plotting.plot import PlotEngine
+from mechaphlowers.plotting.plot import PlotLine
 
 
 def test_config_on_plot(balance_engine_base_test) -> None:
     balance_engine_base_test.solve_adjustment()
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_line = PlotLine.builder_from_balance_engine(balance_engine_base_test)
 
     fig = go.Figure()
     options.graphics.resolution = 20

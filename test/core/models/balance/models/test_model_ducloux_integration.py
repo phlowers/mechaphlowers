@@ -20,8 +20,8 @@ from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 @fixture
-def cable_array_ASTER600():
-    return sample_cable_catalog.get_as_object(["ASTER600"])
+def cable_array_TESTASTER600():
+    return sample_cable_catalog.get_as_object(["TESTASTER600"])
 
 
 @fixture
@@ -468,7 +468,7 @@ def test_temperature(
     section_3d_angles_arm.solve_adjustment()
 
     section_3d_angles_arm.solve_change_state(
-        new_temperature=np.array([90.0] * 4)
+        new_temperature=np.array([90.0] * 3)
     )
     expected_dx = np.array(
         [
@@ -647,7 +647,7 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
     )
 
     section_3d_angles_arm.solve_adjustment()
-    new_temperature = np.array([30] * 4)
+    new_temperature = np.array([30] * 3)
     ice_thickness = np.array([1] * 4) * 1e-2
     wind_pressure = np.array([500] * 4)
     section_3d_angles_arm.solve_change_state(

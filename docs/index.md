@@ -21,55 +21,95 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-import mechaphlowers as mph
+from mechaphlowers import SectionDataFrame
+from mechaphlowers.entities.arrays import SectionArray, CableArray, WeatherArray
 
 
 # load data 
-section_array = mph.SectionArray(
-    pd.DataFrame(
-        {
-            "name": ["1", "2", "3", "4"],
-            "suspension": [False, True, True, False],
-            "conductor_attachment_altitude": [50, 100, 50, 50],
-            "crossarm_length": [10, 10, 10, 10],
-            "line_angle": mph.units(np.array([0, 0, 0, 0]), "grad")
-            .to('deg')
-            .magnitude,
-            "insulator_length": [3, 3, 3, 3],
-            "span_length": [500, 500, 500, np.nan],
-            "insulator_weight": [1000, 500, 500, 1000],
-            "load_weight": [0, 0, 0, 0],
-            "load_position": [0, 0, 0, 0],
-        }
-    )
-)
-section_array.sagging_parameter = 2000
-section_array.sagging_temperature = 15
+data = {
+	"name": ["1", "2", "three", "support 4"],
+	"suspension": [False, True, True, False],
+	"conductor_attachment_altitude": [50.0, 40.0, 20.0, 10.0],
+	"crossarm_length": [5.0,]* 4,
+	"line_angle": [0.]* 4,
+	"insulator_length": [0, 4, 3.2, 0],
+	"span_length": [100, 200, 300, np.nan],
+}
 
-# Load cable from catalog
-from mechaphlowers.data.catalog import sample_cable_catalog
-cable_array_AM600 = sample_cable_catalog.get_as_object(["ASTER600"])
+section = SectionArray(data=pd.DataFrame(data))
 
-# Create balance engine and plot engine
-engine = mph.BalanceEngine(cable_array=cable_array_AM600, section_array=section_array)
-plt = mph.PlotEngine.builder_from_balance_engine(engine)
+# Provide section to SectionDataFrame
+frame = SectionDataFrame(section)
 
-# initialize plotly figure
+# set sagging parameter and temperatur 
+section.sagging_parameter = 500
+section.sagging_temperature = 15
+
+# Display figure
 fig = go.Figure()
-
-# Chain your changes and preview for printing in figure
-engine.solve_adjustment()
-engine.solve_change_state(new_temperature=15 * np.ones(4))
-plt.preview_line3d(fig)
-
-engine.solve_change_state(new_temperature=90 * np.ones(4))
-plt.preview_line3d(fig)
-
-engine.solve_change_state(new_temperature=15 * np.ones(4), wind_pressure=np.array([0, 500, 500, 500]))
-plt.preview_line3d(fig, "analysis")
-
-# plot the result
+frame.plot.line3d(fig)
 fig.show()
-```
---8<-- "docs/user_guide/assets/result_example0.html"
 
+# Reset figure
+fig._data = []
+
+# display only first span
+frame.select(["1", "2"]).plot.line3d(fig)
+fig.show()
+
+# first calculus
+# cable data is needed. Arrays must of length 1
+cable_data = pd.DataFrame(
+		{
+			"section": [345.55],
+			"diameter": [22.4],
+			"linear_weight": [9.55494],
+			"young_modulus": [59],
+			"dilatation_coefficient": [23],
+			"temperature_reference": [0],
+			"a0": [0],
+			"a1": [59],
+			"a2": [0],
+			"a3": [0],
+			"a4": [0],
+			"b0": [0],
+			"b1": [0],
+			"b2": [0],
+			"b3": [0],
+			"b4": [0],
+		}
+	)
+
+# Generating a cable Array
+cable_array = CableArray(cable_data)
+
+# add cable to SectionDataFrame object
+frame.add_cable(cable_array)
+
+# Get some parameters
+frame.span.L()
+frame.state.L_ref(100)
+frame.span.T_mean()
+frame.span.T_h()
+
+# It is possible to add an external weather on cable
+weather = WeatherArray(
+	pd.DataFrame(
+		{
+			"ice_thickness": [1, 2.1, 0.0, np.nan],
+			"wind_pressure": [240.12, 0.0, 12.0, np.nan],
+		}
+	)
+)
+frame.add_weather(weather=weather)
+
+# You can get parameters associated with loads
+frame.cable_loads.load_angle
+
+# And you can display effect of loads on the previous plot
+# For the moment only the maximum wind is applied on all the span.
+fig = go.Figure()
+frame.plot.line3d(fig)
+
+
+```

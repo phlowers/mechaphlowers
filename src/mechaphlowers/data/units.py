@@ -9,4 +9,6 @@ import pint
 
 unit = pint.UnitRegistry()
 
+unit.define('grad = deg * 180 / 200')
+
 Q_ = unit.Quantity

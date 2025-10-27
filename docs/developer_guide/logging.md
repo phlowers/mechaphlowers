@@ -39,23 +39,6 @@ from mechaphlowers import SectionDataFrame
 # 2025-03-28 21:33:42,437 - mechaphlowers - INFO - Mechaphlowers version: ...
 ```
 
-## Logger in notebook
-
-```python
-import logging
-import sys
-
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-logging.basicConfig(format='%(asctime)s | %(levelname)s : %(message)s', level=logging.DEBUG, stream=sys.stdout)
-logger.info('Logging is set up.')
-
-# In the stdout:
-# 2025-10-27 12:29:17,750 | INFO : Logging is set up.
-# 2025-10-27 12:29:18,876 | INFO : Mechaphlowers package initialized.
-# 2025-10-27 12:29:18,876 | INFO : Mechaphlowers version: 0.4.0b0
-```
-
 # Loger helper for debug uses
 
 A helper is available to easily create a logger with the name of the current module for debug purposes:
