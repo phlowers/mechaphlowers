@@ -174,6 +174,13 @@ class CableArray(ElementArray):
         "b2": "Pa",
         "b3": "Pa",
         "b4": "Pa",
+        "diameter_heart": "m",
+        "section_conductor": "m^2",
+        "section_heart": "m^2",
+        # "solar_absorption": "1",
+        # "emissivity": "1",
+        "electric_resistance_20": "Ohm.m**-1",
+        "linear_resistance_temperature_coef": "K**-1",
     }
     mecha_attributes = [
         "section",
@@ -192,9 +199,9 @@ class CableArray(ElementArray):
         "b2",
         "b3",
         "b4",
-        # "diameter_heart",
-        # "section_heart",
-        # "section_conductor",
+        "diameter_heart",
+        "section_heart",
+        "section_conductor",
     ]
 
     thermal_attributes = [
@@ -231,6 +238,9 @@ class CableArray(ElementArray):
             "b2": "GPa",
             "b3": "GPa",
             "b4": "GPa",
+            "diameter_heart": "mm",
+            "section_conductor": "mm^2",
+            "section_heart": "mm^2",
         }
 
     @property

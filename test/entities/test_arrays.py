@@ -398,6 +398,10 @@ def test_create_cable_array__units(
     )
 
 
+def test_cable_array_mecha_units(cable_array_input_data: dict):
+    cable_array = CableArray(pd.DataFrame(cable_array_input_data))
+
+
 def test_create_weather_array() -> None:
     weather = WeatherArray(
         pd.DataFrame(

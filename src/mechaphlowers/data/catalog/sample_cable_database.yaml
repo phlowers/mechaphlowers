@@ -49,3 +49,6 @@ columns_units:
   - b2: MPa
   - b3: MPa
   - b4: MPa
+  - diameter_heart: mm
+  - section_conductor: mm^2
+  - section_heart: mm^2

@@ -373,6 +373,13 @@ def test_catalog_cable_array_units_df() -> None:
             "b2": [0.0],
             "b3": [0.0],
             "b4": [0.0],
+            "diameter_heart": [0.0],
+            "section_conductor": [600.4e-6],
+            "section_heart": [0.0],
+            "solar_absorption": [0.9],
+            "emissivity": [0.8],
+            "electric_resistance_20": [0.0554],
+            "linear_resistance_temperature_coef": [0.0036],
         }
     )
     assert_frame_equal(
