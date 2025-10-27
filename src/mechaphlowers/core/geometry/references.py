@@ -38,13 +38,14 @@ def cable_to_localsection_frame(
             z_span: Rotated z coordinates in the localsection frame.
     """
 
-    angle_proj_rad_inverted = -angle_proj * np.pi / 180
+    # beta is inverted because these formulas come from the prototype, which has indirect angles
+    angle_proj_inverted = -angle_proj
 
-    projected_x_span = x * np.cos(angle_proj_rad_inverted) - y * np.sin(
-        angle_proj_rad_inverted
+    projected_x_span = x * np.cos(angle_proj_inverted) - y * np.sin(
+        angle_proj_inverted
     )
-    projected_y_span = -x * np.sin(angle_proj_rad_inverted) + y * np.cos(
-        angle_proj_rad_inverted
+    projected_y_span = -x * np.sin(angle_proj_inverted) + y * np.cos(
+        angle_proj_inverted
     )
 
     return projected_x_span, projected_y_span, z
@@ -98,16 +99,17 @@ def cable_to_beta_plane(
             z_span: Rotated z coordinates in the span 3D frame.
     """
 
-    beta_rad_inverted = -beta * np.pi / 180
+    # beta is inverted because these formulas come from the prototype, which has indirect angles
+    beta_inverted = -beta
 
-    alpha = np.arctan((b_chain * np.sin(beta_rad_inverted)) / a_chain)
+    alpha = np.arctan((b_chain * np.sin(beta_inverted)) / a_chain)
 
     projected_x_span = x * np.cos(alpha)
-    projected_y_span = z * np.sin(beta_rad_inverted) - x * np.cos(
-        beta_rad_inverted
+    projected_y_span = z * np.sin(beta_inverted) - x * np.cos(
+        beta_inverted
     ) * np.sin(alpha)
-    projected_z_span = z * np.cos(beta_rad_inverted) + x * np.sin(
-        beta_rad_inverted
+    projected_z_span = z * np.cos(beta_inverted) + x * np.sin(
+        beta_inverted
     ) * np.sin(alpha)
 
     return projected_x_span, projected_y_span, projected_z_span

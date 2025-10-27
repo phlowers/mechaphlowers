@@ -190,7 +190,7 @@ class PlotEngine:
 
     @property
     def beta(self):
-        return self.cable_loads.load_angle * 180 / np.pi
+        return self.cable_loads.load_angle
 
     @staticmethod
     def builder_from_balance_engine(

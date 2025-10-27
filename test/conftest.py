@@ -14,7 +14,6 @@ import pandas as pd
 import pytest
 
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.data.units import Q_
 
 projet_dir: Path = Path(__file__).resolve().parents[1]
 source_dir: Path = projet_dir / "src"
@@ -252,7 +251,7 @@ def cable_array_AM600() -> CableArray:
             {
                 "section": [600.4],
                 "diameter": [31.86],
-                "linear_weight": [17.658],
+                "linear_mass": [1.8],
                 "young_modulus": [60],
                 "dilatation_coefficient": [23],
                 "temperature_reference": [15],
@@ -280,9 +279,7 @@ def balance_engine_base_test(cable_array_AM600: CableArray) -> BalanceEngine:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [50, 100, 50, 50],
                 "crossarm_length": [10, 10, 10, 10],
-                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad")
-                .to('deg')
-                .magnitude,
+                "line_angle": [0, 0, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 500, 500, np.nan],
                 "insulator_weight": [1000, 500, 500, 1000],
@@ -291,6 +288,7 @@ def balance_engine_base_test(cable_array_AM600: CableArray) -> BalanceEngine:
             }
         )
     )
+    section_array.add_units({"line_angle": "grad"})
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
     return BalanceEngine(
