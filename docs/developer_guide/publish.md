@@ -1,7 +1,7 @@
 # How to publish a new version of the package ?
 
 ## Last tests
-- checkout main and run make all
+- checkout main and run `make all`
 
 ## Local tests
 
@@ -32,6 +32,7 @@ make version=v0.3.0b0 build-local
 
 ```bash
 uv venv .venv_release
+source .venv_release/bin/activate
 uv pip install dist/mechaphlowers-0.3.0b0-py3-none-any.whl
 ```
 
