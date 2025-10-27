@@ -13,6 +13,12 @@ install: .uv
 rebuild-lockfiles: .uv
 	uv lock --upgrade
 
+.PHONY: build-local  ## build with versioning : use make version=<version> build-local
+build-local: .uv
+	git tag $(version)
+	uv build
+	git tag -d $(version)
+
 .PHONY: format  ## Auto-format python source files
 format: .uv
 	uv run ruff format $(sources)

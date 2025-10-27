@@ -1,3 +1,3 @@
-from mechaphlowers.plotting.plot import PlotLine
+from mechaphlowers.plotting.plot import PlotEngine
 
-__all__ = ["PlotLine"]
+__all__ = ["PlotEngine"]

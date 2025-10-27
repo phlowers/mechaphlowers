@@ -9,11 +9,11 @@ from importlib.metadata import version
 
 import pandas as pd
 
-from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.entities.arrays import SectionArray
-from mechaphlowers.plotting import PlotLine
+from mechaphlowers.data.units import Q_ as units
+from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.plotting import PlotEngine
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -27,9 +27,10 @@ logger.info(f"Mechaphlowers version: {__version__}")
 
 
 __all__ = [
-    "SectionDataFrame",
     "options",
     "BalanceEngine",
-    "PlotLine",
+    "PlotEngine",
     "SectionArray",
+    "CableArray",
+    "units",
 ]
