@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Callable, Literal
 
 import numpy as np
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
     from mechaphlowers.api.frames import SectionDataFrame
 
 from mechaphlowers.config import options as cfg
+
+logger = logging.getLogger(__name__)
 
 
 def plot_text_3d(
@@ -166,7 +169,7 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
     )
 
 
-class PlotLine:
+class PlotEngine:
     def __init__(
         self,
         span_model,
@@ -190,13 +193,28 @@ class PlotLine:
         return self.cable_loads.load_angle * 180 / np.pi
 
     @staticmethod
-    def builder_from_balance_engine(balance_engine: BalanceEngine) -> PlotLine:
-        return PlotLine(
+    def builder_from_balance_engine(
+        balance_engine: BalanceEngine,
+    ) -> PlotEngine:
+        logger.debug("Plot engine initialized from balance engine.")
+
+        return PlotEngine(
             balance_engine.span_model,
             balance_engine.cable_loads,
             balance_engine.section_array,
             balance_engine.get_displacement,
         )
+
+    def get_spans_points(
+        self, frame=Literal["section", "localsection", "cable"]
+    ) -> np.ndarray:
+        return self.section_pts.get_spans(frame).points(True)
+
+    def get_supports_points(self) -> np.ndarray:
+        return self.section_pts.get_supports().points(True)
+
+    def get_insulators_points(self) -> np.ndarray:
+        return self.section_pts.get_insulators().points(True)
 
     def preview_line3d(
         self, fig: go.Figure, view: Literal["full", "analysis"] = "full"

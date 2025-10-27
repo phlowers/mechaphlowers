@@ -1,6 +1,6 @@
 name,data_source,section,diameter,young_modulus,linear_weight,dilatation_coefficient,temperature_reference,stress_strain_a0,stress_strain_a1,stress_strain_a2,stress_strain_a3,stress_strain_a4,stress_strain_b0,stress_strain_b1,stress_strain_b2,stress_strain_b3,stress_strain_b4
-ASTER600,fictive,600.4,31.86,60000,1.8,2.3E-05,15,0,60000,0,0,0,0,0,0,0,0
-TESTASTER600,fictive,600.4,31.86,60000,17.658,23,15,0,60,0,0,0,0,0,0,0,0
-CROCUS400,fictive,400.9,26.16,72000,1.6,1.76E-05,15,0,72000,0,0,0,0,0,0,0,0
-NARCISSE600G,fictive,600.4,29.56,75565,2.2,1.77E-05,15,0,27804,-6590391,672009160,-24561975349,0,33140,0,0,0
-PETUNIA600,fictive,599.7,31.66,70000,2.3,1.82E-05,15,0,70000,0,0,0,0,0,0,0,0
+ASTER600,fictive,600.4,31.86,60,17.658,23,15,0,60,0,0,0,0,0,0,0,0
+TESTASTER600,fictive,600.4,31.86,60,17.658,23,15,0,60,0,0,0,0,0,0,0,0
+CROCUS400,fictive,400.9,26.16,72,15.696,17.6,15,0,72,0,0,0,0,0,0,0,0
+NARCISSE600G,fictive,600.4,29.56,75.565,21.582,17.7,15,0,27.804,-6590391,672009160,-24561975349,0,33140,0,0,0
+PETUNIA600,fictive,599.7,31.66,70,22.563,18.2,15,0,70,0,0,0,0,0,0,0,0
