@@ -5,18 +5,24 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+import logging
+from typing import TYPE_CHECKING, Callable, Literal
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
-from mechaphlowers.core.geometry.points import SectionPoints
+from mechaphlowers.core.geometry.points import (
+    SectionPoints,
+)
+from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
 
 if TYPE_CHECKING:
     from mechaphlowers.api.frames import SectionDataFrame
 
 from mechaphlowers.config import options as cfg
+
+logger = logging.getLogger(__name__)
 
 
 def plot_text_3d(
@@ -163,6 +169,84 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
     )
 
 
+class PlotEngine:
+    def __init__(
+        self,
+        span_model,
+        cable_loads,
+        section_array,
+        get_displacement: Callable,
+    ) -> None:
+        self.spans = span_model
+        self.cable_loads = cable_loads
+        self.section_array = section_array
+
+        self.section_pts = SectionPoints(
+            section_array=self.section_array,
+            span_model=span_model,
+            cable_loads=cable_loads,
+            get_displacement=get_displacement,
+        )
+
+    @property
+    def beta(self):
+        return self.cable_loads.load_angle * 180 / np.pi
+
+    @staticmethod
+    def builder_from_balance_engine(
+        balance_engine: BalanceEngine,
+    ) -> PlotEngine:
+        logger.debug("Plot engine initialized from balance engine.")
+
+        return PlotEngine(
+            balance_engine.span_model,
+            balance_engine.cable_loads,
+            balance_engine.section_array,
+            balance_engine.get_displacement,
+        )
+
+    def get_spans_points(
+        self, frame=Literal["section", "localsection", "cable"]
+    ) -> np.ndarray:
+        return self.section_pts.get_spans(frame).points(True)
+
+    def get_supports_points(self) -> np.ndarray:
+        return self.section_pts.get_supports().points(True)
+
+    def get_insulators_points(self) -> np.ndarray:
+        return self.section_pts.get_insulators().points(True)
+
+    def preview_line3d(
+        self, fig: go.Figure, view: Literal["full", "analysis"] = "full"
+    ) -> None:
+        """Plot 3D of power lines sections
+
+        Args:
+            fig (go.Figure): plotly figure where new traces has to be added
+            view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+
+        Raises:
+            ValueError: view is not an expected value
+        """
+
+        view_map = {"full": True, "analysis": False}
+
+        try:
+            _auto = view_map[view]
+        except KeyError:
+            raise ValueError(
+                f"{view=} : this argument has to be set to 'full' or 'analysis'"
+            )
+
+        plot_line(fig, self.section_pts.get_spans("section").points(True))
+
+        plot_support(fig, self.section_pts.get_supports().points(True))
+
+        plot_insulator(fig, self.section_pts.get_insulators().points(True))
+
+        set_layout(fig, auto=_auto)
+
+
 class PlotAccessor:
     """First accessor class for plots."""
 
@@ -196,10 +280,10 @@ class PlotAccessor:
         section_pts = SectionPoints(
             span_model=spans, **self.section.data_container.__dict__
         )
-        beta = np.zeros_like(spans.span_length)
-        if self.section.cable_loads is not None:
-            beta = self.section.cable_loads.load_angle
-        section_pts.beta = beta
+        # beta = np.zeros_like(spans.span_length)
+        # if self.section.cable_loads is not None:
+        #     beta = self.section.cable_loads.load_angle
+        # section_pts.beta = beta
         plot_line(fig, section_pts.get_spans("section").points(True))
 
         plot_support(fig, section_pts.get_supports().points(True))

@@ -8,10 +8,20 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.core.geometry.line_angles import (
-    CablePlane,
-)
+from mechaphlowers.core.geometry.points import SectionPoints
+from mechaphlowers.core.models.cable.span import CatenarySpan
+from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import SectionArray
+
+
+def create_default_displacement_vector(
+    insulator_length: np.ndarray,
+) -> np.ndarray:
+    displacement_vector = np.zeros((insulator_length.size, 3))
+    displacement_vector[1:-1, 2] = -insulator_length[1:-1]
+    displacement_vector[0, 0] = insulator_length[0]
+    displacement_vector[-1:, 0] = -insulator_length[-1]
+    return displacement_vector
 
 
 @pytest.mark.parametrize(
@@ -71,22 +81,29 @@ def test_span_lengths_values(
     section_array.sagging_temperature = 15
 
     span_length = section_array.data.span_length.to_numpy()
-    line_angle = section_array.data.line_angle.to_numpy()
-    conductor_attachment_altitude = (
-        section_array.data.conductor_attachment_altitude.to_numpy()
-    )
-    crossarm_length = section_array.data.crossarm_length.to_numpy()
+    elevation_difference = section_array.data.elevation_difference.to_numpy()
     insulator_length = section_array.data.insulator_length.to_numpy()
+    sagging_parameter = section_array.data.sagging_parameter.to_numpy()
 
-    cable_plane = CablePlane(
-        span_length=span_length,
-        conductor_attachment_altitude=conductor_attachment_altitude,
-        crossarm_length=crossarm_length,
-        insulator_length=insulator_length,
-        line_angle=line_angle,
+    mock_span_model = CatenarySpan(
+        span_length, elevation_difference, sagging_parameter
+    )
+    # arbitrary values, but unused
+    mock_cable_loads = CableLoads(
+        np.float64(1.0),
+        np.float64(1.0),
+        np.zeros(span_length.shape),
+        np.zeros(span_length.shape),
     )
 
-    a_prime = cable_plane.a_prime
-    b_prime = cable_plane.b_prime
-    np.testing.assert_allclose(a_prime, expected_a_prime, rtol=0, atol=1e-6)
-    np.testing.assert_allclose(b_prime, expected_b_prime)
+    def get_displacement():
+        return create_default_displacement_vector(insulator_length)
+
+    section_points = SectionPoints(
+        section_array, mock_span_model, mock_cable_loads, get_displacement
+    )
+
+    a_chain = section_points.plane.a_chain
+    b_chain = section_points.plane.b_chain
+    np.testing.assert_allclose(a_chain, expected_a_prime, rtol=0, atol=1e-6)
+    np.testing.assert_allclose(b_chain, expected_b_prime)

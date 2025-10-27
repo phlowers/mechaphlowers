@@ -24,6 +24,16 @@ from mechaphlowers.core.geometry.points import coords_to_points
 from mechaphlowers.entities.arrays import SectionArray
 
 
+def create_default_displacement_vector(
+    insulator_length: np.ndarray,
+) -> np.ndarray:
+    displacement_vector = np.zeros((insulator_length.size, 3))
+    displacement_vector[1:-1, 2] = -insulator_length[1:-1]
+    displacement_vector[0, 0] = insulator_length[0]
+    displacement_vector[-1:, 0] = -insulator_length[-1]
+    return displacement_vector
+
+
 @fixture
 def section_array_line_angles():
     section_array = SectionArray(
@@ -131,6 +141,8 @@ def test_build_attachments(section_array_line_angles):
     )
     crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
 
+    displacement_vector = create_default_displacement_vector(insulator_length)
+
     supports_ground_coords = get_supports_ground_coords(
         span_length, line_angle
     )
@@ -143,7 +155,7 @@ def test_build_attachments(section_array_line_angles):
     )
 
     attachment_coords = get_attachment_coords(
-        edge_arm_coords, conductor_attachment_altitude
+        edge_arm_coords, displacement_vector
     )
 
     expected_attachment = np.array(
@@ -259,6 +271,7 @@ def test_get_supports_coords(section_array_line_angles):
     insulator_length = (
         section_array_line_angles.data.insulator_length.to_numpy()
     )
+    displacement_vector = create_default_displacement_vector(insulator_length)
 
     ground_cds, center_arm_cds, arm_cds, attachment_cds = get_supports_coords(
         span_length,
@@ -266,6 +279,7 @@ def test_get_supports_coords(section_array_line_angles):
         conductor_attachment_altitude,
         crossarm_length,
         insulator_length,
+        displacement_vector,
     )
     assert True
 

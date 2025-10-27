@@ -131,6 +131,10 @@ class BalanceModel(IBalanceModel):
     def adjustment(self, value: bool) -> None:
         self._adjustment = value
 
+    def dxdydz(self) -> np.ndarray:
+        """Get the displacement vector of the nodes."""
+        return self.nodes.dxdydz.T
+
     @property
     def k_load(self) -> np.ndarray:
         # TODO: fix length array issues with mechaphlowers

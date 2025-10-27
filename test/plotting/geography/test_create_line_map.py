@@ -16,7 +16,7 @@ from mechaphlowers.plotting.maps import plot_line_map
 class TestCreateLineMap:
     """Test suite for plot_line_map function."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test data."""
         # Sample support geo info for testing - using arrays as per the actual implementation
         self.sample_supports: SupportGeoInfo = {
