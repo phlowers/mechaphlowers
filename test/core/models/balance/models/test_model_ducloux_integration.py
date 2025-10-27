@@ -20,8 +20,8 @@ from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 @fixture
-def cable_array_TESTASTER600():
-    return sample_cable_catalog.get_as_object(["TESTASTER600"])
+def cable_array_ASTER600():
+    return sample_cable_catalog.get_as_object(["ASTER600"])
 
 
 @fixture
