@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
+import logging
 
 import numpy as np
 import pandas as pd
@@ -19,6 +20,7 @@ from mechaphlowers.entities.schemas import (
 )
 from mechaphlowers.utils import df_to_dict
 
+logger = logging.getLogger(__name__)
 
 class ElementArray(ABC):
     array_input_type: Type[pa.DataFrameModel]
@@ -79,6 +81,7 @@ class SectionArray(ElementArray):
         super().__init__(data)  # type: ignore[arg-type]
         self.sagging_parameter = sagging_parameter
         self.sagging_temperature = sagging_temperature
+        logger.debug("Section Array initialized.")
 
     def compute_elevation_difference(self) -> np.ndarray:
         left_support_height = self._data["conductor_attachment_altitude"]

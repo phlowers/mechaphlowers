@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, Literal
+import logging
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
     from mechaphlowers.api.frames import SectionDataFrame
 
 from mechaphlowers.config import options as cfg
+
+logger = logging.getLogger(__name__)
 
 
 def plot_text_3d(
@@ -193,6 +196,9 @@ class PlotEngine:
     def builder_from_balance_engine(
         balance_engine: BalanceEngine,
     ) -> PlotEngine:
+        
+        logger.debug("Plot engine initialized from balance engine.")
+        
         return PlotEngine(
             balance_engine.span_model,
             balance_engine.cable_loads,
