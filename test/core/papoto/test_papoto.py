@@ -8,11 +8,11 @@
 import numpy as np
 
 from mechaphlowers.core.papoto.papoto_model import (
-    convert_grad_to_rad,
     papoto_2_points,
     papoto_3_points,
     papoto_validity,
 )
+from mechaphlowers.data.units import Q_
 
 
 def test_papoto_function_0():
@@ -27,14 +27,14 @@ def test_papoto_function_0():
     V2 = np.array([88.8639691159579, np.nan])
     parameter = papoto_2_points(
         a=a,
-        HL=convert_grad_to_rad(HL),
-        VL=convert_grad_to_rad(VL),
-        HR=convert_grad_to_rad(HR),
-        VR=convert_grad_to_rad(VR),
-        H1=convert_grad_to_rad(H1),
-        V1=convert_grad_to_rad(V1),
-        H2=convert_grad_to_rad(H2),
-        V2=convert_grad_to_rad(V2),
+        HL=Q_(HL, "grad").to("rad").magnitude,
+        VL=Q_(VL, "grad").to("rad").magnitude,
+        HR=Q_(HR, "grad").to("rad").magnitude,
+        VR=Q_(VR, "grad").to("rad").magnitude,
+        H1=Q_(H1, "grad").to("rad").magnitude,
+        V1=Q_(V1, "grad").to("rad").magnitude,
+        H2=Q_(H2, "grad").to("rad").magnitude,
+        V2=Q_(V2, "grad").to("rad").magnitude,
     )
     np.testing.assert_allclose(parameter, np.array([2000, np.nan]), atol=1.0)
 
@@ -53,16 +53,16 @@ def test_papoto_function_3_points():
     V3 = np.array([87.9335010245142, np.nan])
     parameter = papoto_3_points(
         a=a,
-        HL=convert_grad_to_rad(HL),
-        VL=convert_grad_to_rad(VL),
-        HR=convert_grad_to_rad(HR),
-        VR=convert_grad_to_rad(VR),
-        H1=convert_grad_to_rad(H1),
-        V1=convert_grad_to_rad(V1),
-        H2=convert_grad_to_rad(H2),
-        V2=convert_grad_to_rad(V2),
-        H3=convert_grad_to_rad(H3),
-        V3=convert_grad_to_rad(V3),
+        HL=Q_(HL, "grad").to("rad").magnitude,
+        VL=Q_(VL, "grad").to("rad").magnitude,
+        HR=Q_(HR, "grad").to("rad").magnitude,
+        VR=Q_(VR, "grad").to("rad").magnitude,
+        H1=Q_(H1, "grad").to("rad").magnitude,
+        V1=Q_(V1, "grad").to("rad").magnitude,
+        H2=Q_(H2, "grad").to("rad").magnitude,
+        V2=Q_(V2, "grad").to("rad").magnitude,
+        H3=Q_(H3, "grad").to("rad").magnitude,
+        V3=Q_(V3, "grad").to("rad").magnitude,
     )
     np.testing.assert_allclose(parameter, np.array([2000, np.nan]), atol=1.0)
 
