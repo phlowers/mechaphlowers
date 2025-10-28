@@ -99,7 +99,7 @@ class BalanceModel(IBalanceModel):
 
         self.load_model = LoadModel(
             self.cable_array,
-            self.nodes.load[self.nodes.has_load_on_span],
+            self.nodes.load_weight[self.nodes.has_load_on_span],
             self.nodes.load_position[self.nodes.has_load_on_span],
             arr.decr(self.span_model.span_length)[self.nodes.has_load_on_span],
             arr.decr(self.span_model.elevation_difference)[
@@ -379,14 +379,21 @@ class BalanceModel(IBalanceModel):
         self.update_span()
         self.update_tensions()
 
-    def dict_to_store(self):
+    def vhl_under_chain(self) -> np.ndarray:
+        V = -(self.nodes.Fz - self.nodes.weight_chain / 2)
+        return np.array([V, self.nodes.Fy, self.nodes.Fx])
+
+    def vhl_under_console(self) -> np.ndarray:
+        return np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
+
+    def dict_to_store(self) -> dict:
         return {
             "dx": self.nodes.dx,
             "dy": self.nodes.dy,
             "dz": self.nodes.dz,
         }
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         data = {
             'parameter': self.parameter,
             'cable_temperature': self.sagging_temperature,
@@ -398,7 +405,7 @@ class BalanceModel(IBalanceModel):
 
         return str(out)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__repr__()
 
 
@@ -457,7 +464,7 @@ class Nodes:
         z: np.ndarray,
         span_length: np.ndarray,
         # load and load_position must of length nb_supports - 1
-        load: np.ndarray,
+        load_weight: np.ndarray,
         load_position: np.ndarray,
     ):
         # TODO: docstring of this whole class
@@ -472,9 +479,11 @@ class Nodes:
         self.init_coordinates(span_length, z)
         # dx, dy, dz are the distances between the attachment point and the arm, including the chain
         self.dxdydz = np.zeros((3, len(z)), dtype=np.float64)
-        self.load = load
+        self.load_weight = load_weight
         self.load_position = load_position
-        self.has_load_on_span = np.logical_and(load != 0, load_position != 0)
+        self.has_load_on_span = np.logical_and(
+            load_weight != 0, load_position != 0
+        )
 
         nodes_type = [
             "anchor_first"
@@ -653,7 +662,7 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
     )
     z = section_array.data.conductor_attachment_altitude.to_numpy()
     span_length = arr.decr(section_array.data.span_length.to_numpy())
-    load = arr.decr(section_array.data.load_weight.to_numpy())
+    load_weight = arr.decr(section_array.data.load_weight.to_numpy())
     load_position = arr.decr(section_array.data.load_position.to_numpy())
     return Nodes(
         L_chain,
@@ -662,7 +671,7 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         line_angle,
         z,
         span_length,
-        load,
+        load_weight,
         load_position,
     )
 
@@ -676,7 +685,7 @@ class LoadModel(IModelForSolver):
     def __init__(
         self,
         cable_array: CableArray,
-        load: np.ndarray,
+        load_weight: np.ndarray,
         load_position: np.ndarray,
         # placeholder values for initialization
         a: np.ndarray,
@@ -700,7 +709,7 @@ class LoadModel(IModelForSolver):
         self.dilatation_coefficient = np.float64(
             self.cable_array.data.dilatation_coefficient.iloc[0]
         )
-        self.load = load
+        self.load_weight = load_weight
         self.load_position = load_position
         self.find_param_solver_type = find_param_solver_type
         # TODO: Need a way to choose Span model
@@ -817,7 +826,7 @@ class LoadModel(IModelForSolver):
         Tv_g_loc = self.span_model_right.T_v(x_m_right)
 
         Th_diff = Th_left - Th_right
-        Tv_diff = Tv_d_loc + Tv_g_loc - self.load * self.k_load
+        Tv_diff = Tv_d_loc + Tv_g_loc - self.load_weight * self.k_load
 
         return np.array([Th_diff, Tv_diff]).flatten('F')
 

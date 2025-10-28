@@ -98,3 +98,13 @@ class IBalanceModel(IModelForSolver, ABC):
     def dxdydz(self) -> np.ndarray:
         """Get the displacement vector of the nodes."""
         pass
+
+    @abstractmethod
+    def vhl_under_chain(self) -> np.ndarray:
+        """Get the VHL efforts under chain: without considering insulator_weight. Format: [[V0, H0, L0], [V1, H1, L1], ...]"""
+        pass
+
+    @abstractmethod
+    def vhl_under_console(self) -> np.ndarray:
+        """Get the VHL efforts under console: considering insulator_weight. Format: [[V0, H0, L0], [V1, H1, L1], ...]"""
+        pass
