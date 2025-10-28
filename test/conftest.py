@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from mechaphlowers.core.models.balance.engine import BalanceEngine
+
 projet_dir: Path = Path(__file__).resolve().parents[1]
 source_dir: Path = projet_dir / "src"
 sys.path.insert(0, str(source_dir))
@@ -240,3 +242,55 @@ def section_dataframe_with_cable_weather() -> SectionDataFrame:
     frame.add_weather(weather)
 
     return frame
+
+
+@pytest.fixture
+def cable_array_AM600() -> CableArray:
+    return CableArray(
+        pd.DataFrame(
+            {
+                "section": [600.4],
+                "diameter": [31.86],
+                "linear_mass": [1.8],
+                "young_modulus": [60],
+                "dilatation_coefficient": [23],
+                "temperature_reference": [15],
+                "a0": [0],
+                "a1": [60],
+                "a2": [0],
+                "a3": [0],
+                "a4": [0],
+                "b0": [0],
+                "b1": [0],
+                "b2": [0],
+                "b3": [0],
+                "b4": [0],
+            }
+        )
+    )
+
+
+@pytest.fixture
+def balance_engine_base_test(cable_array_AM600: CableArray) -> BalanceEngine:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [50, 100, 50, 50],
+                "crossarm_length": [10, 10, 10, 10],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 500, 500, np.nan],
+                "insulator_weight": [1000, 500, 500, 1000],
+                "load_weight": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        )
+    )
+    section_array.add_units({"line_angle": "grad"})
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    return BalanceEngine(
+        cable_array=cable_array_AM600, section_array=section_array
+    )
