@@ -379,12 +379,14 @@ class BalanceModel(IBalanceModel):
         self.update_span()
         self.update_tensions()
 
-    def vhl_under_chain(self) -> np.ndarray:
+    def vhl_under_chain(self, output_unit: str = "daN") -> np.ndarray:
         V = -(self.nodes.Fz - self.nodes.weight_chain / 2)
-        return np.array([V, self.nodes.Fy, self.nodes.Fx])
+        vhl_result = np.array([V, self.nodes.Fy, self.nodes.Fx])
+        return Q_(vhl_result, "N").to(output_unit).magnitude
 
-    def vhl_under_console(self) -> np.ndarray:
-        return np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
+    def vhl_under_console(self, output_unit: str = "daN") -> np.ndarray:
+        vhl_result = np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
+        return Q_(vhl_result, "N").to(output_unit).magnitude
 
     def dict_to_store(self) -> dict:
         return {
@@ -481,9 +483,7 @@ class Nodes:
         self.dxdydz = np.zeros((3, len(z)), dtype=np.float64)
         self.load = load
         self.load_position = load_position
-        self.has_load_on_span = np.logical_and(
-            load != 0, load_position != 0
-        )
+        self.has_load_on_span = np.logical_and(load != 0, load_position != 0)
 
         nodes_type = [
             "anchor_first"

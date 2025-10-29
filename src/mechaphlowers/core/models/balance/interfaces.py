@@ -100,11 +100,15 @@ class IBalanceModel(IModelForSolver, ABC):
         pass
 
     @abstractmethod
-    def vhl_under_chain(self) -> np.ndarray:
-        """Get the VHL efforts under chain: without considering insulator_weight. Format: [[V0, H0, L0], [V1, H1, L1], ...]"""
+    def vhl_under_chain(self, output_unit: str = "daN") -> np.ndarray:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
         pass
 
     @abstractmethod
-    def vhl_under_console(self) -> np.ndarray:
-        """Get the VHL efforts under console: considering insulator_weight. Format: [[V0, H0, L0], [V1, H1, L1], ...]"""
+    def vhl_under_console(self, output_unit: str = "daN") -> np.ndarray:
+        """Get the VHL efforts under console: considering insulator_weight.
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
         pass
