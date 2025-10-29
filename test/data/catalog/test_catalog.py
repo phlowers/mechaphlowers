@@ -171,7 +171,11 @@ def test_fake_catalog_rename():
         "Legendary": "Légendaire",
     }
     pkmn_catalog = Catalog(
-        "pokemon.csv", key_column_name="Name", rename_dict=rename_dict
+        "pokemon.csv",
+        key_column_name="Name",
+        columns_types={},
+        rename_dict=rename_dict,
+        units_dict={},
     )
     translated_columns = {"Attaque", "Vitesse", "Génération", "Légendaire"}
 
@@ -186,14 +190,24 @@ def test_type_valdiation():
         "Generation": int,
         "Legendary": bool,
     }
-    Catalog("pokemon.csv", key_column_name="Name", columns_types=types_dict)
+    Catalog(
+        "pokemon.csv",
+        key_column_name="Name",
+        columns_types=types_dict,
+        rename_dict={},
+        units_dict={},
+    )
 
 
 def test_fake_catalog_type_checking__missing_arg():
     types_dict = {"wrong_arg": int}
     with pytest.raises(pa.errors.SchemaError):
         Catalog(
-            "pokemon.csv", key_column_name="Name", columns_types=types_dict
+            "pokemon.csv",
+            key_column_name="Name",
+            columns_types=types_dict,
+            rename_dict={},
+            units_dict={},
         )
 
 
@@ -217,6 +231,8 @@ def test__read_csv__manage_empty_bool():
         "iris_dataset.csv",
         key_column_name="sepal length (cm)",
         columns_types=types_dict,
+        rename_dict={},
+        units_dict={},
     )
     assert np.isnan(catalog._data.loc["5.1", "boolean arg"])
 
@@ -227,6 +243,8 @@ def test_iris_catalog__drop_duplicates():
         "iris_dataset.csv",
         key_column_name="sepal length (cm)",
         columns_types={},
+        rename_dict={},
+        units_dict={},
     )
     extract_df = iris_catalog.get("5.1")
     assert len(extract_df) == 1
@@ -234,7 +252,13 @@ def test_iris_catalog__drop_duplicates():
 
 def test_duplicated_warning():
     with warnings.catch_warnings(record=True) as warning:
-        Catalog("iris_dataset.csv", key_column_name="sepal length (cm)")
+        Catalog(
+            "iris_dataset.csv",
+            key_column_name="sepal length (cm)",
+            columns_types={},
+            rename_dict={},
+            units_dict={},
+        )
         assert len(warning) == 1
         assert warning[0].category is UserWarning
         assert "iris_dataset.csv" in str(warning[0].message)

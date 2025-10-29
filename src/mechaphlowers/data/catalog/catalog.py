@@ -42,10 +42,10 @@ class Catalog:
         self,
         filename: str | PathLike,
         key_column_name: str,
+        columns_types: dict,
+        rename_dict: dict,
+        units_dict: dict,
         catalog_type: CatalogType = 'default_catalog',
-        columns_types: dict = {},
-        rename_dict: dict = {},
-        units_dict: dict = {},
         remove_duplicates: bool = True,
         user_filepath: str | PathLike = DATA_BASE_PATH,
     ) -> None:
@@ -283,10 +283,10 @@ def build_catalog_from_yaml(
     return Catalog(
         raw_data_yaml["csv_name"],
         raw_data_yaml["key_column_name"],
-        catalog_type,
         columns_types,
         rename_dict,
         units_dict,
+        catalog_type,
         remove_duplicates,
         user_filepath,
     )
