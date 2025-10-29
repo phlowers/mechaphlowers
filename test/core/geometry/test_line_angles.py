@@ -46,7 +46,7 @@ def section_array_line_angles():
                 "line_angle": np.array([0, -45, 60, -30]),
                 "insulator_length": np.array([0, 5, 82, 0]),
                 "span_length": np.array([500, 460, 520, np.nan]),
-                "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             }
         )
     )

@@ -13,7 +13,7 @@ import pandera as pa
 from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Self, Type
 
-from mechaphlowers.data.units import Q_
+from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     SectionArrayInput,
@@ -107,8 +107,8 @@ class SectionArray(ElementArray):
         "line_angle": "rad",
         "insulator_length": "m",
         "span_length": "m",
-        "insulator_weight": "m",
-        "load_weight": "m",
+        "insulator_mass": "kg",
+        "load_mass": "kg",
     }
 
     def __init__(
@@ -131,6 +131,14 @@ class SectionArray(ElementArray):
     @property
     def data(self) -> pd.DataFrame:
         data_output = super().data
+        data_output["insulator_weight"] = convert_mass_to_weight(
+            data_output["insulator_mass"].to_numpy()
+        )
+        if "load_mass" in data_output:
+            data_output["load_weight"] = convert_mass_to_weight(
+                data_output["load_mass"].to_numpy()
+            )
+
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
@@ -204,11 +212,12 @@ class CableArray(ElementArray):
 
     @property
     def data(self) -> pd.DataFrame:
-        data_SI = super().data
+        data_output = super().data
         # add new column using linear_mass data: linear_weight
-        data_SI["linear_weight"] = data_SI["linear_mass"].to_numpy() * 9.81
-        data_SI = data_SI.drop(columns=["linear_mass"])
-        return data_SI
+        data_output["linear_weight"] = convert_mass_to_weight(
+            data_output["linear_mass"].to_numpy()
+        )
+        return data_output
 
     @property
     def polynomial_conductor(self) -> Poly:

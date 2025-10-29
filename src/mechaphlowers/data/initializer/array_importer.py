@@ -53,7 +53,7 @@ class ImporterRte(Importer):
         "angle_ligne": "line_angle",
         "long_ch": "insulator_length",
         "portée": "span_length",
-        "pds_ch": "insulator_weight",
+        "pds_ch": "insulator_mass",
     }
 
     def __init__(self, filename: str | PathLike) -> None:

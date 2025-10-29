@@ -360,6 +360,7 @@ def test_catalog_cable_array_units_df() -> None:
             "section": [600.4e-6],
             "diameter": [31.86e-3],
             "linear_weight": [17.658],
+            "linear_mass": [1.8],
             "young_modulus": [60e9],
             "dilatation_coefficient": [23e-6],
             "temperature_reference": [15.0],
