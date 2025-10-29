@@ -688,7 +688,6 @@ def test_load_one_span(cable_array_AM600: CableArray):
                     [1000, 500, 500, 1000]
                 ),
                 "load_mass": convert_weight_to_mass([0, 1000, 0, np.nan]),
-                # currently does not work if a load_position is set to 0
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         )

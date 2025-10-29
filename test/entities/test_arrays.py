@@ -226,6 +226,55 @@ def test_section_array__data(section_array_input_data: dict) -> None:
     assert_frame_equal(section_array._data, inner_data)
 
 
+def test_section_array__data_with_loads() -> None:
+    df = pd.DataFrame(
+        {
+            "name": ["support 1", "2", "three", "support 4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
+            "crossarm_length": [10, 12.1, 10, 10.1],
+            "line_angle": [0, 360, 90.1, -90.2],
+            "insulator_length": [0, 4, 3.2, 0],
+            "span_length": [1, 500.2, 500.05, np.nan],
+            "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            "load_mass": [500, 1000, 500, np.nan],
+            "load_position": [0.2, 0.4, 0.6, np.nan],
+        }
+    )
+    section_array = SectionArray(
+        data=df, sagging_parameter=2_000, sagging_temperature=15
+    )
+    inner_data = section_array._data.copy()
+
+    exported_data = section_array.data
+
+    expected_data = pd.DataFrame(
+        {
+            "name": ["support 1", "2", "three", "support 4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
+            "crossarm_length": [10, 12.1, 10, 10.1],
+            "line_angle": [0.0, 6.283185, 1.572542, -1.574287],
+            "insulator_length": [0, 4, 3.2, 0],
+            "span_length": [1, 500.2, 500.05, np.nan],
+            "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
+            "elevation_difference": [2.8, -5.12, 0.12, np.nan],
+            "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
+            "sagging_temperature": [15] * 4,
+            "load_mass": [500, 1000, 500, np.nan],
+            "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
+            "load_position": [0.2, 0.4, 0.6, np.nan],
+        },
+    )
+
+    assert_frame_equal(
+        exported_data, expected_data, atol=1e-07, check_like=True
+    )
+    # section_array inner data shouldn't have been modified
+    assert_frame_equal(section_array._data, inner_data, check_like=True)
+
+
 def test_section_array__data_without_sagging_properties(
     section_array_input_data: dict,
 ) -> None:
