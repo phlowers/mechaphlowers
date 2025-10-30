@@ -52,6 +52,15 @@ class SolverConfig:
             "max_iter": 100,
         }
     )
+    balance_solver_load_params: dict = field(
+        default_factory=lambda: {
+            "perturb": 0.001,
+            "stop_condition": 1.0,
+            "relax_ratio": 0.5,
+            "relax_power": 3,
+            "max_iter": 100,
+        }
+    )
 
 
 @dataclass
