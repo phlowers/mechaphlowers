@@ -9,8 +9,9 @@ from typing import List
 
 import numpy as np
 import pint
+from pint import Quantity, UnitRegistry
 
-unit = pint.UnitRegistry()
+unit = UnitRegistry()
 
 c = pint.Context("mecha")
 c.add_transformation(
@@ -27,6 +28,8 @@ unit.add_context(c)
 unit.enable_contexts("mecha")
 
 Q_ = unit.Quantity
+
+__all__ = ["unit", "Q_", "Quantity"]
 
 
 def convert_weight_to_mass(weight: np.ndarray | List) -> np.ndarray:

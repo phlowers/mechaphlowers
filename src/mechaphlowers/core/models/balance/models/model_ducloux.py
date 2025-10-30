@@ -37,6 +37,7 @@ from mechaphlowers.core.models.cable.deformation import (
 from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.core import VhlStrength
 from mechaphlowers.numeric import cubic
 from mechaphlowers.utils import arr
 
@@ -379,14 +380,23 @@ class BalanceModel(IBalanceModel):
         self.update_span()
         self.update_tensions()
 
-    def dict_to_store(self):
+    def vhl_under_chain(self, output_unit: str = "daN") -> VhlStrength:
+        V = -(self.nodes.Fz - self.nodes.insulator_weight / 2)
+        vhl_result = np.array([V, self.nodes.Fy, self.nodes.Fx])
+        return VhlStrength(vhl_result, "N")
+
+    def vhl_under_console(self, output_unit: str = "daN") -> VhlStrength:
+        vhl_result = np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
+        return VhlStrength(vhl_result, "N")
+
+    def dict_to_store(self) -> dict:
         return {
             "dx": self.nodes.dx,
             "dy": self.nodes.dy,
             "dz": self.nodes.dz,
         }
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         data = {
             'parameter': self.parameter,
             'cable_temperature': self.sagging_temperature,
@@ -398,7 +408,7 @@ class BalanceModel(IBalanceModel):
 
         return str(out)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__repr__()
 
 

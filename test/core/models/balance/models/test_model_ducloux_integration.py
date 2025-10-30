@@ -359,6 +359,37 @@ def test_wind_no_altitude_change(
         ]
     )
 
+    expected_vhl_under_console = np.array(
+        [
+            [-4.84538576e02, -7.35729616e02, -6.47246587e02, -3.95064517e02],
+            [2.47336911e02, 3.72285443e02, 3.22182818e02, 2.01698053e02],
+            [3.91179538e03, -4.89819286e00, -5.35289351e-01, -3.90633048e03],
+        ]
+    )
+
+    expected_vhl_under_chain = np.array(
+        [
+            [
+                434.538575568931,
+                710.729616241837,
+                622.246586991382,
+                345.064517160492,
+            ],
+            [
+                247.336910630502,
+                372.285442725628,
+                322.182818012918,
+                201.698053053279,
+            ],
+            [
+                3911.79537992953,
+                -4.89819286209677,
+                -0.535289353509143,
+                -3906.33047935439,
+            ],
+        ]
+    )
+
     np.testing.assert_allclose(
         section_3d_no_altitude_change.balance_model.nodes.dx,
         expected_dx,
@@ -372,6 +403,16 @@ def test_wind_no_altitude_change(
     np.testing.assert_allclose(
         section_3d_no_altitude_change.balance_model.nodes.dz,
         expected_dz,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        section_3d_no_altitude_change.balance_model.vhl_under_chain().vhl_matrix.value,
+        expected_vhl_under_chain,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        section_3d_no_altitude_change.balance_model.vhl_under_console().vhl_matrix.value,
+        expected_vhl_under_console,
         atol=1e-4,
     )
 
