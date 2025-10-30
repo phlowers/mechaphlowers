@@ -6,7 +6,7 @@
 
 import numpy as np
 
-from mechaphlowers.data.units import unit
+from mechaphlowers.data.units import QuantityArray, unit
 
 
 def test_grad_to_deg():
@@ -16,3 +16,16 @@ def test_grad_to_deg():
     angles_grad = np.array([0, 100, 200, 300, 400])
     np.testing.assert_allclose(angles_deg.to('rad').magnitude, angles_rad)
     np.testing.assert_allclose(angles_deg.to('grad').magnitude, angles_grad)
+
+
+def test_quantity_array_creation():
+    arr = np.array([1, 2, 3, 4, 5])
+    expected_unit = "m"
+    quantity_arr = QuantityArray(arr, output_unit="m", input_unit="mm")
+    assert quantity_arr.unit == "meter"
+    assert quantity_arr.symbol == expected_unit
+
+    out_arr, out_unit = quantity_arr.to_tuple()
+    np.testing.assert_array_equal(out_arr, quantity_arr.array)
+    np.testing.assert_array_equal(quantity_arr.array, arr / 1000)
+    assert out_unit == expected_unit
