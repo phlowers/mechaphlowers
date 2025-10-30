@@ -16,7 +16,6 @@ import pandas as pd
 from mechaphlowers.core.models.balance.interfaces import (
     IBalanceModel,
     IModelForSolver,
-    VhlStrength,
 )
 from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
     Masks,
@@ -38,6 +37,7 @@ from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.core import VhlStrength
 from mechaphlowers.numeric import cubic
 from mechaphlowers.utils import arr
 

@@ -9,11 +9,10 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Tuple, Type
+from typing import Type
 
 import numpy as np
 
-from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.solvers.find_parameter_solver import (
     FindParamSolverForLoop,
     IFindParamSolver,
@@ -21,54 +20,10 @@ from mechaphlowers.core.models.balance.solvers.find_parameter_solver import (
 from mechaphlowers.core.models.cable.deformation import IDeformation
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.data.units import QuantityArray
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.core import VhlStrength
 
 logger = logging.getLogger(__name__)
-
-
-class VhlStrength:
-    output_unit = options.units.force
-
-    def __init__(self, vhl: np.ndarray, input_unit="N") -> None:
-        """expected format: [[V0, V1, ...], [H0, H1, ...], [L0, L1, ...]]"""
-        self._vhl_section = vhl
-        self.input_unit = input_unit
-
-    @property
-    def vhl_matrix(self) -> QuantityArray:
-        return QuantityArray(
-            self._vhl_section, self.input_unit, self.output_unit
-        )
-
-    @property
-    def vhl(self) -> Tuple[QuantityArray, QuantityArray, QuantityArray]:
-        return (self.V, self.H, self.L)
-
-    @property
-    def V(self) -> QuantityArray:
-        return QuantityArray(
-            self._vhl_section[0, :], self.input_unit, self.output_unit
-        )
-
-    @property
-    def H(self) -> QuantityArray:
-        return QuantityArray(
-            self._vhl_section[1, :], self.input_unit, self.output_unit
-        )
-
-    @property
-    def L(self) -> QuantityArray:
-        return QuantityArray(
-            self._vhl_section[2, :], self.input_unit, self.output_unit
-        )
-
-    def __str__(self) -> str:
-        return f"V: {str(self.V)}\nH: {str(self.H)}\nL: {str(self.L)}\n"
-
-    def __repr__(self) -> str:
-        class_name = type(self).__name__
-        return f"{class_name}\n{self.__str__()}"
 
 
 class IModelForSolver(ABC):

@@ -13,7 +13,7 @@ import numpy as np
 
 
 @dataclass
-class UnitsConfig:
+class OutputUnitsConfig:
     """Units configuration class."""
 
     force: str = "daN"
@@ -73,12 +73,12 @@ class Config:
         self._solver = SolverConfig()
         self._compute_config = ComputeConfig()
         self._precision = PrecisionConfig()
-        self._units = UnitsConfig()
+        self._output_units = OutputUnitsConfig()
 
     @property
-    def units(self) -> UnitsConfig:
+    def output_units(self) -> OutputUnitsConfig:
         """Units configuration property."""
-        return self._units
+        return self._output_units
 
     @property
     def graphics(self) -> GraphicsConfig:

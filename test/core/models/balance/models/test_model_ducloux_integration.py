@@ -423,12 +423,12 @@ def test_wind_no_altitude_change(
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.vhl_under_chain().vhl_matrix.array,
+        section_3d_no_altitude_change.balance_model.vhl_under_chain().vhl_matrix.value,
         expected_vhl_under_chain,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.vhl_under_console().vhl_matrix.array,
+        section_3d_no_altitude_change.balance_model.vhl_under_console().vhl_matrix.value,
         expected_vhl_under_console,
         atol=1e-4,
     )
