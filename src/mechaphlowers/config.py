@@ -6,7 +6,7 @@
 
 """Module for mechaphlowers configuration settings"""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Type
 
 import numpy as np
@@ -34,6 +34,33 @@ class SolverConfig:
 
     sagtension_zeta: float = 10.0
     deformation_imag_thresh: float = 1e-5
+    balance_solver_change_state_params: dict = field(
+        default_factory=lambda: {
+            "perturb": 0.0001,
+            "stop_condition": 1e-2,
+            "relax_ratio": 0.8,
+            "relax_power": 3,
+            "max_iter": 100,
+        }
+    )
+    balance_solver_adjustment_params: dict = field(
+        default_factory=lambda: {
+            "perturb": 0.0001,
+            "stop_condition": 1e-2,
+            "relax_ratio": 0.9,
+            "relax_power": 1,
+            "max_iter": 100,
+        }
+    )
+    balance_solver_load_params: dict = field(
+        default_factory=lambda: {
+            "perturb": 0.001,
+            "stop_condition": 1.0,
+            "relax_ratio": 0.5,
+            "relax_power": 3,
+            "max_iter": 100,
+        }
+    )
 
 
 @dataclass

@@ -13,6 +13,7 @@ from typing import Tuple, Type
 import numpy as np
 import pandas as pd
 
+from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.interfaces import (
     IBalanceModel,
     IModelForSolver,
@@ -113,7 +114,7 @@ class BalanceModel(IBalanceModel):
         )
         self.find_param_solver = find_param_solver_type(self.find_param_model)
         self.load_solver = BalanceSolver(
-            perturb=0.001, relax_ratio=0.5, stop_condition=1.0, relax_power=3
+            **options.solver.balance_solver_adjustment_params
         )
         self.update()
         self.nodes.compute_dx_dy_dz()
