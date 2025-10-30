@@ -12,6 +12,7 @@ from typing import Callable, Type
 
 import numpy as np
 
+from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.interfaces import IBalanceModel
 from mechaphlowers.core.models.balance.models.model_ducloux import BalanceModel
 from mechaphlowers.core.models.balance.solvers.balance_solver import (
@@ -116,8 +117,12 @@ class BalanceEngine:
             self.deformation_model,
             self.cable_loads,
         )
-        self.solver_change_state = BalanceSolver()
-        self.solver_adjustment = BalanceSolver()
+        self.solver_change_state = BalanceSolver(
+            **options.solver.balance_solver_change_state_params
+        )
+        self.solver_adjustment = BalanceSolver(
+            **options.solver.balance_solver_adjustment_params
+        )
         self.L_ref: np.ndarray
 
         self.get_displacement: Callable = self.balance_model.dxdydz

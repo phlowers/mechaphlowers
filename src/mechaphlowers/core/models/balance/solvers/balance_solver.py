@@ -36,7 +36,7 @@ class BalanceSolver:
     def __init__(
         self,
         perturb=0.0001,
-        stop_condition=1e-3,
+        stop_condition=1e-2,
         relax_ratio=0.8,
         relax_power=3,
         max_iter=100,
