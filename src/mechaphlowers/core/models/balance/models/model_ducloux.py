@@ -16,6 +16,7 @@ import pandas as pd
 from mechaphlowers.core.models.balance.interfaces import (
     IBalanceModel,
     IModelForSolver,
+    VhlStrength,
 )
 from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
     Masks,
@@ -379,14 +380,14 @@ class BalanceModel(IBalanceModel):
         self.update_span()
         self.update_tensions()
 
-    def vhl_under_chain(self, output_unit: str = "daN") -> np.ndarray:
+    def vhl_under_chain(self, output_unit: str = "daN") -> VhlStrength:
         V = -(self.nodes.Fz - self.nodes.weight_chain / 2)
         vhl_result = np.array([V, self.nodes.Fy, self.nodes.Fx])
-        return Q_(vhl_result, "N").to(output_unit).magnitude
+        return VhlStrength(vhl_result, "N")
 
-    def vhl_under_console(self, output_unit: str = "daN") -> np.ndarray:
+    def vhl_under_console(self, output_unit: str = "daN") -> VhlStrength:
         vhl_result = np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
-        return Q_(vhl_result, "N").to(output_unit).magnitude
+        return VhlStrength(vhl_result, "N")
 
     def dict_to_store(self) -> dict:
         return {

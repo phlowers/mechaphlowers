@@ -13,6 +13,17 @@ import numpy as np
 
 
 @dataclass
+class UnitsConfig:
+    """Units configuration class."""
+
+    force: str = "daN"
+    length: str = "m"
+    mass: str = "kg"
+    time: str = "s"
+    temperature: str = "degC"
+
+
+@dataclass
 class PrecisionConfig:
     """Precision configuration class."""
 
@@ -62,6 +73,12 @@ class Config:
         self._solver = SolverConfig()
         self._compute_config = ComputeConfig()
         self._precision = PrecisionConfig()
+        self._units = UnitsConfig()
+
+    @property
+    def units(self) -> UnitsConfig:
+        """Units configuration property."""
+        return self._units
 
     @property
     def graphics(self) -> GraphicsConfig:
