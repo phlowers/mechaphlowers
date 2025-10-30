@@ -23,7 +23,7 @@ def test_load_all_spans_wind_ice_temp_profiling():
             {
                 "section": [600.4],
                 "diameter": [31.86],
-                "linear_weight": [17.658],
+                "linear_mass": [1.8],
                 "young_modulus": [60],
                 "dilatation_coefficient": [23],
                 "temperature_reference": [15],
@@ -51,8 +51,8 @@ def test_load_all_spans_wind_ice_temp_profiling():
                 "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [500, 1000, 500, np.nan],
+                "insulator_mass": [1000, 500, 500, 1000],
+                "load_mass": [500, 1000, 500, np.nan],
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         )
@@ -68,7 +68,7 @@ def test_load_all_spans_wind_ice_temp_profiling():
     section_3d_angles_arm.solve_adjustment()
 
     for i in range(10):
-        new_temperature = np.array([random.randrange(-40, 90)] * 3)
+        new_temperature = np.array([random.randrange(-40, 90)] * 4)
         ice_thickness = np.array([random.randrange(0, 5)] * 4) * 1e-2
         wind_pressure = np.array([random.randrange(0, 700)] * 4)
         section_3d_angles_arm.solve_change_state(

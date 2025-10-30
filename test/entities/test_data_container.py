@@ -36,7 +36,7 @@ def test_data_container__factory(
         "conductor_attachment_altitude": np.array([2.2, 5, -0.12, 0]),
         "crossarm_length": np.array([10, 12.1, 10, 10.1]),
         "insulator_length": np.array([0, 4, 3.2, 0]),
-        "insulator_weight": np.array([1000, 500, 500, 1000]),
+        "insulator_weight": np.array([9810.0, 4905.0, 4905.0, 9810.0]),
         "span_length": np.array([400, 500.2, 500.0, np.nan]),
         "ice_thickness": 1e-2 * np.array([1, 2.1, 0.0, np.nan]),
         "wind_pressure": np.array([240.12, 0.0, 12.0, np.nan]),

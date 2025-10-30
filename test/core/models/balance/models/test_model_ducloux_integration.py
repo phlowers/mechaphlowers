@@ -16,6 +16,7 @@ from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import (
     sample_cable_catalog,
 )
+from mechaphlowers.data.units import convert_weight_to_mass
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
@@ -36,8 +37,10 @@ def section_array_angles() -> SectionArray:
                 "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
         )
@@ -60,8 +63,10 @@ def section_array_simple() -> SectionArray:
                 "line_angle": [0, 0, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
         )
@@ -84,8 +89,10 @@ def section_array_no_altitude_change() -> SectionArray:
                 "line_angle": [0, 0, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
         )
@@ -205,8 +212,10 @@ def test_adjust_with_arm(cable_array_AM600: CableArray):
                 "line_angle": [0, 0, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
         )
@@ -375,8 +384,10 @@ def test_wind(cable_array_AM600: CableArray):
                 "line_angle": [0, 20, 30, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, np.nan],
                 "load_position": [0, 0, 0, np.nan],
             }
         )
@@ -533,8 +544,10 @@ def test_load_all_spans(cable_array_AM600: CableArray):
                 "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [500, 1000, 500, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": convert_weight_to_mass([500, 1000, 500, np.nan]),
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         )
@@ -599,8 +612,10 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
                 "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [500, 1000, 500, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": convert_weight_to_mass([500, 1000, 500, np.nan]),
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         )
@@ -669,9 +684,10 @@ def test_load_one_span(cable_array_AM600: CableArray):
                 "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 1000, 0, np.nan],
-                # currently does not work if a load_position is set to 0
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": convert_weight_to_mass([0, 1000, 0, np.nan]),
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         )
@@ -739,8 +755,8 @@ def test_many_spans(cable_array_AM600: CableArray):
                 "line_angle": [0] * nb_spans,
                 "insulator_length": [3] * nb_spans,
                 "span_length": [500] * (nb_spans - 1) + [np.nan],
-                "insulator_weight": [500] * nb_spans,
-                "load_weight": [0] * nb_spans,
+                "insulator_mass": [500 / 9.81] * nb_spans,
+                "load_mass": [0] * nb_spans,
                 "load_position": [0] * nb_spans,
             }
         )
@@ -771,8 +787,8 @@ def test_many_spans_with_load(cable_array_AM600: CableArray):
                 "line_angle": [0] * nb_spans,
                 "insulator_length": [3] * nb_spans,
                 "span_length": [500] * (nb_spans - 1) + [np.nan],
-                "insulator_weight": [500] * nb_spans,
-                "load_weight": [500] * nb_spans,
+                "insulator_mass": [500 / 9.81] * nb_spans,
+                "load_mass": [500 / 9.81] * nb_spans,
                 "load_position": [0.5] * nb_spans,
             }
         )

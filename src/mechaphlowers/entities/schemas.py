@@ -34,8 +34,8 @@ class SectionArrayInput(pa.DataFrameModel):
     line_angle: pdt.Series[float] = pa.Field(coerce=True)
     insulator_length: pdt.Series[float] = pa.Field(coerce=True)
     span_length: pdt.Series[float] = pa.Field(nullable=True, coerce=True)
-    insulator_weight: pdt.Series[float] = pa.Field(coerce=True)
-    load_weight: Optional[pdt.Series[float]] = pa.Field(
+    insulator_mass: pdt.Series[float] = pa.Field(coerce=True)
+    load_mass: Optional[pdt.Series[float]] = pa.Field(
         nullable=True,
         coerce=True,
     )

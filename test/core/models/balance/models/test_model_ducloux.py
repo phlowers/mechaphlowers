@@ -27,8 +27,8 @@ def section_array_arm() -> SectionArray:
                 "line_angle": [0, 0, 0, 0],
                 "insulator_length": [0, 3, 3, 0],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
+                "insulator_mass": [1000, 500, 500, 1000],
+                "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
         )
