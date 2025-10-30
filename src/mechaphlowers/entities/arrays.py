@@ -64,7 +64,7 @@ class ElementArray(ABC):
         ```
 
         Args:
-            dict_units (dict[str, str]): dictionary of columns names and corresponding units
+            input_units (dict[str, str]): dictionary of columns names and corresponding units
         """
         self.input_units.update(input_units)
 
