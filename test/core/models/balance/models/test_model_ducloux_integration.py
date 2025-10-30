@@ -817,9 +817,8 @@ def test_balance_engine__large_angles(balance_engine_base_test) -> None:
     engine = copy.deepcopy(balance_engine_base_test)
 
     # Modify the section to have large angles and crossarm lengths
-    engine.section_array._data.line_angle = (
-        Q_(np.array([0, 90, 0, 0]), "grad").to('deg').magnitude
-    )
+    engine.section_array._data.line_angle = np.array([0, 90, 0, 0])
+    engine.section_array.add_units({"line_angle": "grad"})
     engine.section_array._data.crossarm_length = [0, 10, -10, 0]
 
     # uncomment to visualize the line
