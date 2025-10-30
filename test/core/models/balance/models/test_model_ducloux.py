@@ -12,12 +12,11 @@ from pytest import fixture
 from mechaphlowers.core.models.balance.models.model_ducloux import (
     nodes_builder,
 )
-from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import SectionArray
 
 
 @fixture
-def section_array_angles() -> SectionArray:
+def section_array_arm() -> SectionArray:
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -25,21 +24,20 @@ def section_array_angles() -> SectionArray:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad")
-                .to('rad')
-                .magnitude,
+                "line_angle": [0, 0, 0, 0],
                 "insulator_length": [0, 3, 3, 0],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
+                "insulator_mass": [1000, 500, 500, 1000],
+                "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
         )
     )
+    section_array.add_units({"line_angle": "grad"})
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
     return section_array
 
 
-def test_section_array_to_nodes(section_array_angles):
-    nodes_builder(section_array_angles)
+def test_section_array_to_nodes(section_array_arm):
+    nodes_builder(section_array_arm)

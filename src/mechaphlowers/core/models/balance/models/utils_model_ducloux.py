@@ -16,9 +16,11 @@ class Masks:
     """
 
     # TODO: wriste docstring
-    def __init__(self, nodes_type: List[str], L_chain: np.ndarray) -> None:
+    def __init__(
+        self, nodes_type: List[str], insulator_length: np.ndarray
+    ) -> None:
         self.nodes_type = nodes_type
-        self.L_chain = L_chain
+        self.insulator_length = insulator_length
         self.is_suspension = [x == "suspension" for x in self.nodes_type]
         self.is_anchor_first = [x == "anchor_first" for x in self.nodes_type]
         self.is_anchor_last = [x == "anchor_last" for x in self.nodes_type]
@@ -26,7 +28,7 @@ class Masks:
     def compute_dx_dy_dz(
         self, dx: np.ndarray, dy: np.ndarray, dz: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
-        L_chain = self.L_chain
+        L_chain = self.insulator_length
         is_suspension = self.is_suspension
         is_anchor_first = self.is_anchor_first
         is_anchor_last = self.is_anchor_last
@@ -90,12 +92,12 @@ class VectorProjection:
         beta: np.ndarray,
         line_angle: np.ndarray,
         proj_angle: np.ndarray,
-        weight_chain: np.ndarray,
+        insulator_weight: np.ndarray,
     ) -> None:
         self.set_tensions(Th, Tv_d, Tv_g)
         self.set_angles(alpha, beta, line_angle)
         self.set_proj_angle(proj_angle)
-        self.weight_chain = weight_chain
+        self.insulator_weight = insulator_weight
 
     # properties?
     def T_attachments_plane_left(self) -> np.ndarray:
@@ -153,7 +155,7 @@ class VectorProjection:
         Fy_first = t_left[0] * np.cos((self.line_angle / 2)[0]) + s_left[
             0
         ] * np.sin((self.line_angle / 2)[0])
-        Fz_first = z_left[0] + self.weight_chain[0] / 2  # also add load?
+        Fz_first = z_left[0] + self.insulator_weight[0] / 2  # also add load?
 
         Fx_suspension = (s_right + s_left_rolled) * np.cos(gamma) - (
             -t_right + t_left_rolled
@@ -161,7 +163,7 @@ class VectorProjection:
         Fy_suspension = (t_right + t_left_rolled) * np.cos(gamma) - (
             s_right - s_left_rolled
         ) * np.sin(gamma)
-        Fz_suspension = z_right + z_left_rolled + self.weight_chain[1:] / 2
+        Fz_suspension = z_right + z_left_rolled + self.insulator_weight[1:] / 2
 
         Fx_last = (s_right[-1]) * np.cos(gamma[-1]) - (-t_right[-1]) * np.sin(
             gamma[-1]
@@ -169,7 +171,7 @@ class VectorProjection:
         Fy_last = (t_right[-1]) * np.cos(gamma[-1]) - (s_right[-1]) * np.sin(
             gamma[-1]
         )
-        Fz_last = z_right[-1] + self.weight_chain[-1] / 2
+        Fz_last = z_right[-1] + self.insulator_weight[-1] / 2
 
         Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
         Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))

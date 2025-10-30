@@ -12,9 +12,9 @@ from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
 
 
 def test_proj_no_angles():
-    # L_chain=np.array([3, 3, 3, 3]),
-    # weight_chain=np.array([1000,  500, 500, 1000]),
-    # arm_length=np.array([0,  0, 0, 0]),
+    # insulator_length=np.array([3, 3, 3, 3]),
+    # insulator_weight=np.array([1000,  500, 500, 1000]),
+    # crossarm_length=np.array([0,  0, 0, 0]),
     # line_angle=np.array([0, 0, 0, 0]),
     # x=np.array([0, 500, 800, 1200]),
     # z=np.array([30, 50, 60, 65]),
@@ -24,7 +24,7 @@ def test_proj_no_angles():
     Th = np.array([35316.0, 35316.0, 35316.0])
     Tv_g = np.array([-2974.3816, -1473.2471, -3064.9025])
     Tv_d = np.array([-5831.3273, -3832.06, -3957.3933])
-    weight_chain = -np.array([1000.0, 500.0, 500.0, 1000.0])
+    insulator_weight = -np.array([1000.0, 500.0, 500.0, 1000.0])
     vector_projection = VectorProjection()
     vector_projection.set_all(
         Th=Th,
@@ -34,7 +34,7 @@ def test_proj_no_angles():
         beta=np.array([0, 0, 0]),
         line_angle=np.array([0, 0, 0, 0]),
         proj_angle=np.array([0, 0, 0]),
-        weight_chain=weight_chain,
+        insulator_weight=insulator_weight,
     )
     T_attachment_left = vector_projection.T_attachments_plane_left()
     T_attachment_right = vector_projection.T_attachments_plane_right()

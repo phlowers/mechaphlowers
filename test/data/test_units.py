@@ -6,7 +6,7 @@
 
 import numpy as np
 
-from mechaphlowers.data.units import unit
+from mechaphlowers.data.units import Q_, unit
 
 
 def test_grad_to_deg():
@@ -16,3 +16,11 @@ def test_grad_to_deg():
     angles_grad = np.array([0, 100, 200, 300, 400])
     np.testing.assert_allclose(angles_deg.to('rad').magnitude, angles_rad)
     np.testing.assert_allclose(angles_deg.to('grad').magnitude, angles_grad)
+
+
+def test_convert_weight_to_mass():
+    aa = Q_(1, "kg")
+    assert aa == Q_(9.81, "N")
+
+    aa = Q_(9.81, "N")
+    assert aa == Q_(1, "kg")

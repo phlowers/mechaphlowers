@@ -8,7 +8,7 @@ import logging
 import warnings
 from os import PathLike
 from pathlib import Path
-from typing import Literal, get_args
+from typing import Any, Literal, get_args
 
 import pandas as pd
 import pandera as pa
@@ -42,9 +42,10 @@ class Catalog:
         self,
         filename: str | PathLike,
         key_column_name: str,
+        columns_types: dict,
+        rename_dict: dict,
+        units_dict: dict,
         catalog_type: CatalogType = 'default_catalog',
-        columns_types: dict | None = None,
-        rename_dict: dict | None = None,
         remove_duplicates: bool = True,
         user_filepath: str | PathLike = DATA_BASE_PATH,
     ) -> None:
@@ -59,16 +60,13 @@ class Catalog:
                 filename (str | PathLike): filename of the csv data source
                 key_column_name (str): name of the column used as key (i.e. row identifier)
                 catalog_type (Literal['default_catalog', "cable_catalog"]): type of the catalog. Used in the `get_as_object` method to convert the catalog to a specific object type.
-                columns_types (dict | None): dictionnary of column names and their types.
-                rename_dict (dict | None): dictionnary of column names to rename. The key is the original name, the value is the new name.
+                columns_types (dict | None): dictionary of column names and their types.
+                rename_dict (dict | None): dictionary of column names to rename. The key is the original name, the value is the new name.
                 remove_duplicates (bool): whether to remove duplicate rows. Defaults to True.
                 user_filepath (str | PathLike): path to the folder containing the csv file. Defaults to internal data.
         """
         self.catalog_type = catalog_type
-        if columns_types is None:
-            columns_types = {}
-        if rename_dict is None:
-            rename_dict = {}
+        self.units_dict = units_dict
         if user_filepath is None:
             filepath = DATA_BASE_PATH / filename  # type: ignore[operator]
         else:
@@ -127,7 +125,7 @@ class Catalog:
 
         Args:
             key_column_name (str): name of the key index
-            rename_dict (dict): dictionnary of all column names that need to be renamed. This can include the key index.
+            rename_dict (dict): dictionary of all column names that need to be renamed. This can include the key index.
         """
         self._data = self._data.rename(columns=rename_dict)
         # also renaming index column
@@ -183,7 +181,7 @@ class Catalog:
                 f"Error when requesting catalog: {e.args[0]}. Try the .keys() method to gets the available keys?"
             ) from e
 
-    def get_as_object(self, keys: list) -> ElementArray:
+    def get_as_object(self, keys: list) -> Any:
         """Get rows from a list of keys.
 
         If a key is present several times in the `keys` argument, the returned dataframe
@@ -193,7 +191,7 @@ class Catalog:
         be returned.
 
         The type of the object returned depends on catalog_type.
-        The mapping between catalog_type and object type is made by dictionnary catalog_to_object
+        The mapping between catalog_type and object type is made by dictionary catalog_to_object
 
         Raises:
                 KeyError: if any of the requested `keys` doesn't match any row in the input data
@@ -214,7 +212,10 @@ class Catalog:
                 f"{list(catalog_to_object.keys())[1:]}"
             )
         df = self.get(keys)
-        return catalog_to_object[self.catalog_type](df)
+        element_array = catalog_to_object[self.catalog_type](df)
+        if isinstance(element_array, ElementArray):
+            element_array.add_units(self.units_dict)
+        return element_array
 
     def keys(self) -> list:
         """Get the keys available in the catalog"""
@@ -246,7 +247,7 @@ def build_catalog_from_yaml(
         yaml_filepath = user_filepath / yaml_filename  # type: ignore[operator]
 
         with open(yaml_filepath, "r") as file:
-            data = yaml.safe_load(file)
+            raw_data_yaml: dict = yaml.safe_load(file)
     except FileNotFoundError:
         raise FileNotFoundError(f"File {yaml_filepath} not found")
 
@@ -261,33 +262,45 @@ def build_catalog_from_yaml(
         bool: bool,
     }
     # fetch data for type validation
-    if "columns" in data:
+    if "columns" in raw_data_yaml:
         columns_types = {
             key: string_to_type_converters[value]
-            for list_item in data["columns"]
+            for list_item in raw_data_yaml["columns"]
             for (key, value) in list_item.items()
         }
     else:
         columns_types = {}
     # fetch data for renaming columns
-    if rename and "columns_renaming" in data:
-        rename_dict = {
-            key: value
-            for list_item in data["columns_renaming"]
-            for (key, value) in list_item.items()
-        }
-    else:
-        rename_dict = {}
-    catalog_type = data["catalog_type"]
+    # TODO: add test case no rename
+    rename_dict = (
+        fetch_dict_from_yaml("columns_renaming", raw_data_yaml)
+        if rename
+        else {}
+    )
+    # fetch data for input units
+    units_dict = fetch_dict_from_yaml("columns_units", raw_data_yaml)
+    catalog_type = raw_data_yaml["catalog_type"]
     return Catalog(
-        data["csv_name"],
-        data["key_column_name"],
-        catalog_type,
+        raw_data_yaml["csv_name"],
+        raw_data_yaml["key_column_name"],
         columns_types,
         rename_dict,
+        units_dict,
+        catalog_type,
         remove_duplicates,
         user_filepath,
     )
+
+
+def fetch_dict_from_yaml(dict_name: str, raw_data_yaml: dict) -> dict:
+    if dict_name in raw_data_yaml:
+        return {
+            key: value
+            for list_item in raw_data_yaml[dict_name]
+            for (key, value) in list_item.items()
+        }
+    else:
+        return {}
 
 
 def write_yaml_catalog_template(

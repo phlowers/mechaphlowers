@@ -46,7 +46,7 @@ def section_array_line_angles():
                 "line_angle": np.array([0, -45, 60, -30]),
                 "insulator_length": np.array([0, 5, 82, 0]),
                 "span_length": np.array([500, 460, 520, np.nan]),
-                "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             }
         )
     )
@@ -294,9 +294,7 @@ def test_compute_span_azimuth():
         ]
     )
 
-    expected_azimuth = np.array(
-        [-2.42764954, -50.26279675, 12.55236927, np.nan]
-    )
+    expected_azimuth = np.array([-0.04237048, -0.87725129, 0.21908017, np.nan])
 
     np.testing.assert_allclose(
         compute_span_azimuth(attachement_coords), expected_azimuth

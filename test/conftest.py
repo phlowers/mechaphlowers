@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.data.units import Q_
+from mechaphlowers.data.units import convert_weight_to_mass
 
 projet_dir: Path = Path(__file__).resolve().parents[1]
 source_dir: Path = projet_dir / "src"
@@ -39,7 +39,7 @@ def default_cable_array() -> CableArray:
             {
                 "section": [345.55],
                 "diameter": [22.4],
-                "linear_weight": [9.55494],
+                "linear_mass": [0.974],
                 "young_modulus": [59],
                 "dilatation_coefficient": [23],
                 "temperature_reference": [15],
@@ -70,7 +70,7 @@ def default_section_array_one_span() -> SectionArray:
                 "line_angle": [0, 0],
                 "insulator_length": [0, 0],
                 "span_length": [480, np.nan],
-                "insulator_weight": np.array([1000, 1000]),
+                "insulator_mass": np.array([1000, 1000]),
             }
         )
     )
@@ -91,7 +91,7 @@ def default_section_array_three_spans() -> SectionArray:
                 "line_angle": np.array([0, 360, 90.1, -90.2]),
                 "insulator_length": np.array([0, 4, 3.2, 0]),
                 "span_length": np.array([400, 500.2, 500.0, np.nan]),
-                "insulator_weight": np.array([1000.0, 500.0, 500.0, 1000.0]),
+                "insulator_mass": np.array([1000.0, 500.0, 500.0, 1000.0]),
             }
         )
     )
@@ -135,7 +135,7 @@ def default_data_container_one_span() -> DataContainer:
             {
                 "section": [345.55],
                 "diameter": [22.4],
-                "linear_weight": [9.55494],
+                "linear_mass": [0.974],
                 "young_modulus": [59],
                 "dilatation_coefficient": [23],
                 "temperature_reference": [15],
@@ -165,7 +165,7 @@ def default_data_container_one_span() -> DataContainer:
                 "span_length": [480, np.nan],
                 "sagging_parameter": [2000, 2000],
                 "sagging_temperature": [15, 15],
-                "insulator_weight": np.array([1000, 1000]),
+                "insulator_mass": np.array([1000, 1000]),
             }
         )
     )
@@ -199,7 +199,7 @@ def section_dataframe_with_cable_weather() -> SectionDataFrame:
                 "line_angle": np.array([0, 360, 90.1, -90.2]),
                 "insulator_length": np.array([0, 4, 3.2, 0]),
                 "span_length": np.array([400, 500.2, 500.0, np.nan]),
-                "insulator_weight": np.array([1000.0, 500.0, 500.0, 1000.0]),
+                "insulator_mass": np.array([1000.0, 500.0, 500.0, 1000.0]),
             }
         )
     )
@@ -213,7 +213,7 @@ def section_dataframe_with_cable_weather() -> SectionDataFrame:
             {
                 "section": [345.55],
                 "diameter": [22.4],
-                "linear_weight": [9.55494],
+                "linear_mass": [0.974],
                 "young_modulus": [59],
                 "dilatation_coefficient": [23],
                 "temperature_reference": [15],
@@ -252,7 +252,7 @@ def cable_array_AM600() -> CableArray:
             {
                 "section": [600.4],
                 "diameter": [31.86],
-                "linear_weight": [17.658],
+                "linear_mass": [1.8],
                 "young_modulus": [60],
                 "dilatation_coefficient": [23],
                 "temperature_reference": [15],
@@ -280,17 +280,18 @@ def balance_engine_base_test(cable_array_AM600: CableArray) -> BalanceEngine:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [50, 100, 50, 50],
                 "crossarm_length": [10, 10, 10, 10],
-                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad")
-                .to('deg')
-                .magnitude,
+                "line_angle": [0, 0, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 500, 500, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000.0, 500.0, 500.0, 1000.0]
+                ),
+                "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
         )
     )
+    section_array.add_units({"line_angle": "grad"})
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
     return BalanceEngine(

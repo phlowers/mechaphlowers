@@ -118,7 +118,7 @@ def test_catenary_span_model__tensions__wrong_dimension_array() -> None:
     b = np.array([0.0, 0.0])
     p = np.array([2_000, 2_000])
     k_load = np.array([1, 1])
-    lambd = np.float64(9.6)
+    lambd = np.float64()
 
     span_model = CatenarySpan(
         a, b, p, load_coefficient=k_load, linear_weight=lambd

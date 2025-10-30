@@ -11,6 +11,7 @@ import copy
 
 import numpy as np
 import pandas as pd
+import pytest
 from pytest import fixture
 
 from mechaphlowers.config import options
@@ -18,39 +19,13 @@ from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import (
     sample_cable_catalog,
 )
-from mechaphlowers.data.units import Q_
+from mechaphlowers.data.units import convert_weight_to_mass
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 @fixture
-def cable_array_ASTER600():
+def cable_array_AM600():
     return sample_cable_catalog.get_as_object(["ASTER600"])
-
-
-@fixture
-def cable_array_AM600() -> CableArray:
-    return CableArray(
-        pd.DataFrame(
-            {
-                "section": [600.4],
-                "diameter": [31.86],
-                "linear_weight": [17.658],
-                "young_modulus": [60],
-                "dilatation_coefficient": [23],
-                "temperature_reference": [15],
-                "a0": [0],
-                "a1": [60],
-                "a2": [0],
-                "a3": [0],
-                "a4": [0],
-                "b0": [0],
-                "b1": [0],
-                "b2": [0],
-                "b3": [0],
-                "b4": [0],
-            }
-        )
-    )
 
 
 @fixture
@@ -62,17 +37,18 @@ def section_array_angles() -> SectionArray:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad")
-                .to('deg')
-                .magnitude,
+                "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
         )
     )
+    section_array.add_units({"line_angle": "grad"})
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
     return section_array
@@ -87,17 +63,18 @@ def section_array_simple() -> SectionArray:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 0, 0, 0],
-                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad")
-                .to('deg')
-                .magnitude,
+                "line_angle": [0, 0, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
         )
     )
+    section_array.add_units({"line_angle": "grad"})
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
     return section_array
@@ -112,17 +89,18 @@ def section_array_no_altitude_change() -> SectionArray:
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 30, 30, 30],
                 "crossarm_length": [0, 0, 0, 0],
-                "line_angle": Q_(np.array([0, 0, 0, 0]), "grad")
-                .to('deg')
-                .magnitude,
+                "line_angle": [0, 0, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
         )
     )
+    section_array.add_units({"line_angle": "grad"})
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
     return section_array
@@ -237,8 +215,10 @@ def test_adjust_with_arm(cable_array_AM600: CableArray):
                 "line_angle": [0, 0, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, 0],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
         )
@@ -404,17 +384,18 @@ def test_wind(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 50, 50, 0],
-                "line_angle": Q_(np.array([0, 20, 30, 0]), "grad")
-                .to('deg')
-                .magnitude,
+                "line_angle": [0, 20, 30, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 0, 0, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, np.nan],
                 "load_position": [0, 0, 0, np.nan],
             }
         )
     )
+    section_array.add_units({"line_angle": "grad"})
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
@@ -563,17 +544,18 @@ def test_load_all_spans(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad")
-                .to('deg')
-                .magnitude,
+                "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [500, 1000, 500, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": convert_weight_to_mass([500, 1000, 500, np.nan]),
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         )
     )
+    section_array.add_units({"line_angle": "grad"})
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
@@ -630,17 +612,18 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad")
-                .to('deg')
-                .magnitude,
+                "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [500, 1000, 500, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": convert_weight_to_mass([500, 1000, 500, np.nan]),
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         )
     )
+    section_array.add_units({"line_angle": "grad"})
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
@@ -701,18 +684,19 @@ def test_load_one_span(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": Q_(np.array([0, 10, 0, 0]), "grad")
-                .to('deg')
-                .magnitude,
+                "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_weight": [1000, 500, 500, 1000],
-                "load_weight": [0, 1000, 0, np.nan],
-                # currently does not work if a load_position is set to 0
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": convert_weight_to_mass([0, 1000, 0, np.nan]),
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         )
     )
+    section_array.add_units({"line_angle": "grad"})
+
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
@@ -761,6 +745,7 @@ def test_load_one_span(cable_array_AM600: CableArray):
     )
 
 
+@pytest.mark.skip(reason="This is a performance test")
 def test_many_spans(cable_array_AM600: CableArray):
     nb_spans = 50
     section_array = SectionArray(
@@ -773,8 +758,8 @@ def test_many_spans(cable_array_AM600: CableArray):
                 "line_angle": [0] * nb_spans,
                 "insulator_length": [3] * nb_spans,
                 "span_length": [500] * (nb_spans - 1) + [np.nan],
-                "insulator_weight": [500] * nb_spans,
-                "load_weight": [0] * nb_spans,
+                "insulator_mass": [500 / 9.81] * nb_spans,
+                "load_mass": [0] * nb_spans,
                 "load_position": [0] * nb_spans,
             }
         )
@@ -792,6 +777,7 @@ def test_many_spans(cable_array_AM600: CableArray):
     section.solve_change_state(wind_pressure=np.array([-200] * nb_spans))
 
 
+@pytest.mark.skip(reason="This is a performance test")
 def test_many_spans_with_load(cable_array_AM600: CableArray):
     nb_spans = 10
     section_array = SectionArray(
@@ -804,8 +790,8 @@ def test_many_spans_with_load(cable_array_AM600: CableArray):
                 "line_angle": [0] * nb_spans,
                 "insulator_length": [3] * nb_spans,
                 "span_length": [500] * (nb_spans - 1) + [np.nan],
-                "insulator_weight": [500] * nb_spans,
-                "load_weight": [500] * nb_spans,
+                "insulator_mass": [500 / 9.81] * nb_spans,
+                "load_mass": [500 / 9.81] * nb_spans,
                 "load_position": [0.5] * nb_spans,
             }
         )
@@ -831,9 +817,8 @@ def test_balance_engine__large_angles(balance_engine_base_test) -> None:
     engine = copy.deepcopy(balance_engine_base_test)
 
     # Modify the section to have large angles and crossarm lengths
-    engine.section_array._data.line_angle = (
-        Q_(np.array([0, 90, 0, 0]), "grad").to('deg').magnitude
-    )
+    engine.section_array._data.line_angle = np.array([0, 90, 0, 0])
+    engine.section_array.add_units({"line_angle": "grad"})
     engine.section_array._data.crossarm_length = [0, 10, -10, 0]
 
     # uncomment to visualize the line

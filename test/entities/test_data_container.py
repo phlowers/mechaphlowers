@@ -35,9 +35,8 @@ def test_data_container__factory(
         "suspension": np.array([False, True, True, False]),
         "conductor_attachment_altitude": np.array([2.2, 5, -0.12, 0]),
         "crossarm_length": np.array([10, 12.1, 10, 10.1]),
-        "line_angle": np.array([0, 360, 90.1, -90.2]),
         "insulator_length": np.array([0, 4, 3.2, 0]),
-        "insulator_weight": np.array([1000, 500, 500, 1000]),
+        "insulator_weight": np.array([9810.0, 4905.0, 4905.0, 9810.0]),
         "span_length": np.array([400, 500.2, 500.0, np.nan]),
         "ice_thickness": 1e-2 * np.array([1, 2.1, 0.0, np.nan]),
         "wind_pressure": np.array([240.12, 0.0, 12.0, np.nan]),
@@ -67,6 +66,10 @@ def test_data_container__factory(
         np.testing.assert_allclose(
             data_container_new.__dict__[attribute], value_float, rtol=1e-5
         )
+    np.testing.assert_allclose(
+        data_container_new.line_angle,
+        np.array([0.0, 6.28318531, 1.57254166, -1.57428699]),
+    )
     assert data_container_new.polynomial_conductor == expected_result_poly
 
 
