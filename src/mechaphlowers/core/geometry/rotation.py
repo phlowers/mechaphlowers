@@ -40,7 +40,7 @@ def rotation_matrix_to_quaternion(
 
     Examples:
             Create two quaternions that serve as rotation matrix:
-            rotation of 90° around the axis $\\vec{x}$, and rotation of 180° around the axis $\\vec{z}$
+            rotation of $\\frac{\\pi}{2} rad$ around the axis $\\vec{x}$, and rotation of $\\pi rad$ around the axis $\\vec{z}$
 
             >>> beta = np.array([np.pi / 2, np.pi])
             >>> rotation_axes = np.array([[1, 0, 0], [0, 0, 1]])
@@ -80,7 +80,7 @@ def rotation_quaternion_same_axis(
             np.ndarray: array of new points that have been rotated by angles beta around rotation_axis
 
     Examples:
-            Rotation of vector $2\\vec{z}$ by angle of 90° and rotation of vector $\\vec{y}$ by angle of 45°, both around the axis $\\vec{x}$.
+            Rotation of vector $2\\vec{z}$ by angle of $\\frac{\\pi}{2} rad$ and rotation of vector $\\vec{y}$ by angle of $\\frac{\\pi}{4} rad$, both around the axis $\\vec{x}$.
 
             The rotated vectors are: $-2\\vec{y}$ and \\(\\frac{\\sqrt{2}}{2} \\vec{y} + \\frac{\\sqrt{2}}{2} \\vec{z} \\)
             >>> vector = np.array([[0, 0, 2], [0, 1, 0]])
@@ -112,7 +112,7 @@ def rotation_quaternion(
             np.ndarray: array of new points that have been rotated by angles beta around rotation_axes
 
     Examples:
-            Rotation of vector $2\\vec{z}$ by angle of 90° around the axis $\\vec{x}$, and rotation of vector $\\vec{y}$ by angle of -90° around the axis $\\vec{z}$
+            Rotation of vector $2\\vec{z}$ by angle of  $\\frac{\\pi}{2} rad$ around the axis $\\vec{x}$, and rotation of vector $\\vec{y}$ by angle of $- \\frac{\\pi}{2} rad$ around the axis $\\vec{z}$
 
             The rotated vectors are: $-2\\vec{y}$ and $\\vec{x}$
             >>> vector = np.array([[0, 0, 2], [0, 1, 0]])
