@@ -370,7 +370,6 @@ class SectionPoints:
         self.line_angle = line_angle
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
-        self._beta = self.cable_loads.load_angle * 180 / np.pi
         self.init_span(span_model)
 
     def init_span(self, span_model: ISpan) -> None:
@@ -394,7 +393,7 @@ class SectionPoints:
     def beta(self) -> np.ndarray:
         """Get the beta angles for the cable spans.
         Beta is the angle du to the load on the cable"""
-        return self.cable_loads.load_angle * 180 / np.pi
+        return self.cable_loads.load_angle
 
     def span_in_cable_frame(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the cable frame."""

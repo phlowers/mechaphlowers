@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,7 @@ import pandera as pa
 from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Self, Type
 
+from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     SectionArrayInput,
@@ -26,9 +27,14 @@ logger = logging.getLogger(__name__)
 class ElementArray(ABC):
     array_input_type: Type[pa.DataFrameModel]
 
+    # dict of target units after conversion: SI units used for computations
+    target_units: dict[str, str]
+
     def __init__(self, data: pd.DataFrame) -> None:
         _data = self._drop_extra_columns(data)
         self._data: pd.DataFrame = _data
+        # dict of default input units
+        self.input_units: dict[str, str] = {}
 
     def _drop_extra_columns(self, input_data: pd.DataFrame) -> pd.DataFrame:
         """Return a copy of the input pd.DataFrame, without irrelevant columns.
@@ -46,10 +52,33 @@ class ElementArray(ABC):
     def __copy__(self) -> Self:
         return type(self)(self._data)
 
+    def add_units(self, input_units: dict[str, str]) -> None:
+        """Add dictionary of units of the data input . This will overrides the default `input_units` dict
+
+        `input_units` has the following format:
+        ```py
+        {
+            "column_name_0": "unit0",
+            "column_name_1": "unit1",
+        }
+        ```
+
+        Args:
+            input_units (dict[str, str]): dictionary of columns names and corresponding units
+        """
+        self.input_units.update(input_units)
+
     @property
-    @abstractmethod
     def data(self) -> pd.DataFrame:
-        """Dataframe with updated data: SI units and added columns"""
+        """Returns a copy of self._data that converts values into SI units"""
+        data_SI = self._data.copy()
+        for column, input_unit in self.input_units.items():
+            data_SI[column] = (
+                Q_(self._data[column].to_numpy(), input_unit)
+                .to(self.target_units[column])
+                .magnitude
+            )
+        return data_SI
 
     def to_numpy(self) -> dict:
         return df_to_dict(self.data)
@@ -72,6 +101,15 @@ class SectionArray(ElementArray):
     """
 
     array_input_type: Type[pa.DataFrameModel] = SectionArrayInput
+    target_units = {
+        "conductor_attachment_altitude": "m",
+        "crossarm_length": "m",
+        "line_angle": "rad",
+        "insulator_length": "m",
+        "span_length": "m",
+        "insulator_mass": "kg",
+        "load_mass": "kg",
+    }
 
     def __init__(
         self,
@@ -82,6 +120,7 @@ class SectionArray(ElementArray):
         super().__init__(data)  # type: ignore[arg-type]
         self.sagging_parameter = sagging_parameter
         self.sagging_temperature = sagging_temperature
+        self.input_units = {"line_angle": "deg"}
         logger.debug("Section Array initialized.")
 
     def compute_elevation_difference(self) -> np.ndarray:
@@ -91,16 +130,25 @@ class SectionArray(ElementArray):
 
     @property
     def data(self) -> pd.DataFrame:
+        data_output = super().data
+        data_output["insulator_weight"] = (
+            Q_(data_output["insulator_mass"].to_numpy(), "kg").to("N").m
+        )
+        if "load_mass" in data_output:
+            data_output["load_weight"] = (
+                Q_(data_output["load_mass"].to_numpy(), "kg").to("N").m
+            )
+
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
             )
         else:
             sagging_parameter = np.repeat(
-                np.float64(self.sagging_parameter), self._data.shape[0]
+                np.float64(self.sagging_parameter), data_output.shape[0]
             )
             sagging_parameter[-1] = np.nan
-            return self._data.assign(
+            return data_output.assign(
                 elevation_difference=self.compute_elevation_difference(),
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
@@ -121,31 +169,55 @@ class CableArray(ElementArray):
     """
 
     array_input_type: Type[pa.DataFrameModel] = CableArrayInput
+    target_units: dict[str, str] = {
+        "section": "m^2",
+        "diameter": "m",
+        "young_modulus": "Pa",
+        "linear_mass": "kg/m",
+        "dilatation_coefficient": "1/K",
+        "temperature_reference": "°C",
+        "a0": "Pa",
+        "a1": "Pa",
+        "a2": "Pa",
+        "a3": "Pa",
+        "a4": "Pa",
+        "b0": "Pa",
+        "b1": "Pa",
+        "b2": "Pa",
+        "b3": "Pa",
+        "b4": "Pa",
+    }
 
     def __init__(
         self,
         data: pd.DataFrame,
     ) -> None:
-        super().__init__(data)  # type: ignore[arg-type]
+        super().__init__(data)
+        self.input_units: dict[str, str] = {
+            "section": "mm^2",
+            "diameter": "mm",
+            "young_modulus": "GPa",
+            "dilatation_coefficient": "1/MK",
+            "a0": "GPa",
+            "a1": "GPa",
+            "a2": "GPa",
+            "a3": "GPa",
+            "a4": "GPa",
+            "b0": "GPa",
+            "b1": "GPa",
+            "b2": "GPa",
+            "b3": "GPa",
+            "b4": "GPa",
+        }
 
     @property
     def data(self) -> pd.DataFrame:
-        """Returns a copy of self._data that converts values into SI units"""
-        data_SI = self._data.copy()
-        # section is in mm²
-        data_SI["section"] *= 1e-6
-        # diameter is in mm
-        data_SI["diameter"] *= 1e-3
-        # young_modulus is in GPa
-        data_SI["young_modulus"] *= 1e9
-        # dilatation_coefficient is in 10⁻⁶/°C
-        data_SI["dilatation_coefficient"] *= 1e-6
-
-        # polynomial coefficients are in GPa
-        for coef in ["a0", "a1", "a2", "a3", "a4"]:
-            if coef in data_SI:
-                data_SI[coef] *= 1e9
-        return data_SI
+        data_output = super().data
+        # add new column using linear_mass data: linear_weight
+        data_output["linear_weight"] = (
+            Q_(data_output["linear_mass"].to_numpy(), "kg").to("N").m
+        )
+        return data_output
 
     @property
     def polynomial_conductor(self) -> Poly:
@@ -179,16 +251,16 @@ class WeatherArray(ElementArray):
     """
 
     array_input_type: Type[pa.DataFrameModel] = WeatherArrayInput
+    target_units: dict[str, str] = {
+        "ice_thickness": "m",
+        "wind_pressure": "Pa",
+    }
 
     def __init__(
         self,
         data: pd.DataFrame,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
-
-    @property
-    def data(self) -> pd.DataFrame:
-        data_SI = self._data.copy()
-        # ice_thickness is in cm
-        data_SI["ice_thickness"] *= 1e-2
-        return data_SI
+        self.input_units: dict[str, str] = {
+            "ice_thickness": "cm",
+        }

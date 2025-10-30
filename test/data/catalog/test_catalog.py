@@ -22,6 +22,7 @@ from mechaphlowers.data.catalog.catalog import (
     sample_support_catalog,
     write_yaml_catalog_template,
 )
+from mechaphlowers.entities.arrays import CableArray
 from mechaphlowers.entities.shapes import SupportShape
 
 
@@ -170,7 +171,11 @@ def test_fake_catalog_rename():
         "Legendary": "Légendaire",
     }
     pkmn_catalog = Catalog(
-        "pokemon.csv", key_column_name="Name", rename_dict=rename_dict
+        "pokemon.csv",
+        key_column_name="Name",
+        columns_types={},
+        rename_dict=rename_dict,
+        units_dict={},
     )
     translated_columns = {"Attaque", "Vitesse", "Génération", "Légendaire"}
 
@@ -185,14 +190,24 @@ def test_type_valdiation():
         "Generation": int,
         "Legendary": bool,
     }
-    Catalog("pokemon.csv", key_column_name="Name", columns_types=types_dict)
+    Catalog(
+        "pokemon.csv",
+        key_column_name="Name",
+        columns_types=types_dict,
+        rename_dict={},
+        units_dict={},
+    )
 
 
 def test_fake_catalog_type_checking__missing_arg():
     types_dict = {"wrong_arg": int}
     with pytest.raises(pa.errors.SchemaError):
         Catalog(
-            "pokemon.csv", key_column_name="Name", columns_types=types_dict
+            "pokemon.csv",
+            key_column_name="Name",
+            columns_types=types_dict,
+            rename_dict={},
+            units_dict={},
         )
 
 
@@ -216,6 +231,8 @@ def test__read_csv__manage_empty_bool():
         "iris_dataset.csv",
         key_column_name="sepal length (cm)",
         columns_types=types_dict,
+        rename_dict={},
+        units_dict={},
     )
     assert np.isnan(catalog._data.loc["5.1", "boolean arg"])
 
@@ -226,6 +243,8 @@ def test_iris_catalog__drop_duplicates():
         "iris_dataset.csv",
         key_column_name="sepal length (cm)",
         columns_types={},
+        rename_dict={},
+        units_dict={},
     )
     extract_df = iris_catalog.get("5.1")
     assert len(extract_df) == 1
@@ -233,7 +252,13 @@ def test_iris_catalog__drop_duplicates():
 
 def test_duplicated_warning():
     with warnings.catch_warnings(record=True) as warning:
-        Catalog("iris_dataset.csv", key_column_name="sepal length (cm)")
+        Catalog(
+            "iris_dataset.csv",
+            key_column_name="sepal length (cm)",
+            columns_types={},
+            rename_dict={},
+            units_dict={},
+        )
         assert len(warning) == 1
         assert warning[0].category is UserWarning
         assert "iris_dataset.csv" in str(warning[0].message)
@@ -349,3 +374,69 @@ def test_write_yaml_catalog_template_str_path(tmp_path):
     write_yaml_catalog_template(str(tmp_path), template="support_catalog")
     expected_file = tmp_path / "sample_pylon_database.yaml"
     assert expected_file.exists()
+
+
+def test_catalog_cable_array_units_df() -> None:
+    cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
+
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "section": [600.4e-6],
+            "diameter": [31.86e-3],
+            "linear_weight": [17.658],
+            "linear_mass": [1.8],
+            "young_modulus": [60e9],
+            "dilatation_coefficient": [23e-6],
+            "temperature_reference": [15.0],
+            "a0": [0.0],
+            "a1": [60e9],
+            "a2": [0.0],
+            "a3": [0.0],
+            "a4": [0.0],
+            "b0": [0.0],
+            "b1": [0.0],
+            "b2": [0.0],
+            "b3": [0.0],
+            "b4": [0.0],
+        }
+    )
+    assert_frame_equal(
+        cable_array.data.reset_index(drop=True),
+        expected_result_SI_units,
+        check_like=True,
+        atol=1e-07,
+    )
+
+
+def test_catalog_cable_array_units_object() -> None:
+    cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
+
+    cable_array_original = CableArray(
+        pd.DataFrame(
+            {
+                "section": [600.4],
+                "diameter": [31.86],
+                "linear_mass": [1.8],
+                "young_modulus": [60],
+                "dilatation_coefficient": [23],
+                "temperature_reference": [15],
+                "a0": [0],
+                "a1": [60],
+                "a2": [0],
+                "a3": [0],
+                "a4": [0],
+                "b0": [0],
+                "b1": [0],
+                "b2": [0],
+                "b3": [0],
+                "b4": [0],
+            }
+        )
+    )
+
+    assert_frame_equal(
+        cable_array.data.reset_index(drop=True),
+        cable_array_original.data.reset_index(drop=True),
+        check_like=True,
+        atol=1e-07,
+    )

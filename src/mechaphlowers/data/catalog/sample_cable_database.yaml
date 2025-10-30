@@ -7,7 +7,7 @@ columns:
   - section: float
   - diameter: float
   - young_modulus: float
-  - linear_weight: float
+  - linear_mass: float
   - dilatation_coefficient: float
   - temperature_reference: float
   - stress_strain_a0: float
@@ -32,3 +32,20 @@ columns_renaming:
   - stress_strain_b2: b2
   - stress_strain_b3: b3
   - stress_strain_b4: b4
+
+columns_units:
+  - diameter: mm
+  - section: mm^2
+  - young_modulus: MPa
+  - linear_mass: kg/m
+  - dilatation_coefficient: 1/K
+  - a0: MPa
+  - a1: MPa
+  - a2: MPa
+  - a3: MPa
+  - a4: MPa
+  - b0: MPa
+  - b1: MPa
+  - b2: MPa
+  - b3: MPa
+  - b4: MPa

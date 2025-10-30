@@ -34,8 +34,8 @@ class SectionArrayInput(pa.DataFrameModel):
     line_angle: pdt.Series[float] = pa.Field(coerce=True)
     insulator_length: pdt.Series[float] = pa.Field(coerce=True)
     span_length: pdt.Series[float] = pa.Field(nullable=True, coerce=True)
-    insulator_weight: pdt.Series[float] = pa.Field(coerce=True)
-    load_weight: Optional[pdt.Series[float]] = pa.Field(
+    insulator_mass: pdt.Series[float] = pa.Field(coerce=True)
+    load_mass: Optional[pdt.Series[float]] = pa.Field(
         nullable=True,
         coerce=True,
     )
@@ -69,7 +69,7 @@ class CableArrayInput(pa.DataFrameModel):
 
     section: pdt.Series[float] = pa.Field(coerce=True)
     diameter: pdt.Series[float] = pa.Field(coerce=True)
-    linear_weight: pdt.Series[float] = pa.Field(coerce=True)
+    linear_mass: pdt.Series[float] = pa.Field(coerce=True)
     young_modulus: pdt.Series[float] = pa.Field(coerce=True)
     dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
     temperature_reference: pdt.Series[float] = pa.Field(coerce=True)

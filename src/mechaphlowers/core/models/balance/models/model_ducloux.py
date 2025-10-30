@@ -13,6 +13,7 @@ from typing import Tuple, Type
 import numpy as np
 import pandas as pd
 
+from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.interfaces import (
     IBalanceModel,
     IModelForSolver,
@@ -35,7 +36,6 @@ from mechaphlowers.core.models.cable.deformation import (
 )
 from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.core import VhlStrength
 from mechaphlowers.numeric import cubic
@@ -100,7 +100,7 @@ class BalanceModel(IBalanceModel):
 
         self.load_model = LoadModel(
             self.cable_array,
-            self.nodes.load[self.nodes.has_load_on_span],
+            self.nodes.load_weight[self.nodes.has_load_on_span],
             self.nodes.load_position[self.nodes.has_load_on_span],
             arr.decr(self.span_model.span_length)[self.nodes.has_load_on_span],
             arr.decr(self.span_model.elevation_difference)[
@@ -115,7 +115,7 @@ class BalanceModel(IBalanceModel):
         )
         self.find_param_solver = find_param_solver_type(self.find_param_model)
         self.load_solver = BalanceSolver(
-            perturb=0.001, relax_ratio=0.5, stop_condition=1.0, relax_power=3
+            **options.solver.balance_solver_adjustment_params
         )
         self.update()
         self.nodes.compute_dx_dy_dz()
@@ -318,7 +318,7 @@ class BalanceModel(IBalanceModel):
             beta,
             self.nodes.line_angle,
             self.proj_angle,
-            self.nodes.weight_chain,
+            self.nodes.insulator_weight,
         )
 
     def compute_inter(self) -> None:
@@ -381,7 +381,7 @@ class BalanceModel(IBalanceModel):
         self.update_tensions()
 
     def vhl_under_chain(self, output_unit: str = "daN") -> VhlStrength:
-        V = -(self.nodes.Fz - self.nodes.weight_chain / 2)
+        V = -(self.nodes.Fz - self.nodes.insulator_weight / 2)
         vhl_result = np.array([V, self.nodes.Fy, self.nodes.Fx])
         return VhlStrength(vhl_result, "N")
 
@@ -460,41 +460,43 @@ def approx_parameter(
 class Nodes:
     def __init__(
         self,
-        L_chain: np.ndarray,
-        weight_chain: np.ndarray,
-        arm_length: np.ndarray,
+        insulator_length: np.ndarray,
+        insulator_weight: np.ndarray,
+        crossarm_length: np.ndarray,
         line_angle: np.ndarray,
         z: np.ndarray,
         span_length: np.ndarray,
         # load and load_position must of length nb_supports - 1
-        load: np.ndarray,
+        load_weight: np.ndarray,
         load_position: np.ndarray,
     ):
         # TODO: docstring of this whole class
 
-        self.L_chain = L_chain
-        # weight_chain: positive weight means downward force
-        self.weight_chain = -weight_chain
+        self.insulator_length = insulator_length
+        # insulator_weight: positive weight means downward force
+        self.insulator_weight = -insulator_weight
         # arm length: positive length means further from observer
-        self.arm_length = arm_length
+        self.crossarm_length = crossarm_length
         # line_angle: anti clockwise
         self.line_angle = line_angle
         self.init_coordinates(span_length, z)
         # dx, dy, dz are the distances between the attachment point and the arm, including the chain
         self.dxdydz = np.zeros((3, len(z)), dtype=np.float64)
-        self.load = load
+        self.load_weight = load_weight
         self.load_position = load_position
-        self.has_load_on_span = np.logical_and(load != 0, load_position != 0)
+        self.has_load_on_span = np.logical_and(
+            load_weight != 0, load_position != 0
+        )
 
         nodes_type = [
             "anchor_first"
             if i == 0
             else "anchor_last"
-            if i == len(weight_chain) - 1
+            if i == len(insulator_weight) - 1
             else "suspension"
-            for i in range(len(weight_chain))
+            for i in range(len(insulator_weight))
         ]
-        self.masks = Masks(nodes_type, self.L_chain)
+        self.masks = Masks(nodes_type, self.insulator_length)
 
         self.vector_projection = VectorProjection()
 
@@ -523,7 +525,7 @@ class Nodes:
         self.dxdydz[2] = value
 
     def __len__(self):
-        return len(self.L_chain)
+        return len(self.insulator_length)
 
     @property
     def z(self) -> np.ndarray:
@@ -537,25 +539,27 @@ class Nodes:
 
     @property
     def proj_g(self) -> np.ndarray:
-        arm_length = self.arm_length
-        proj_s_axis = -(arm_length + self.dy) * np.sin(self.line_angle / 2) + (
+        arm_length = self.crossarm_length
+        gamma = self.line_angle
+        proj_s_axis = -(arm_length + self.dy) * np.sin(gamma / 2) + (
             self.dx
-        ) * np.cos(self.line_angle / 2)
-        proj_t_axis = (arm_length + self.dy) * np.cos(self.line_angle / 2) + (
+        ) * np.cos(gamma / 2)
+        proj_t_axis = (arm_length + self.dy) * np.cos(gamma / 2) + (
             self.dx
-        ) * np.sin(self.line_angle / 2)
+        ) * np.sin(gamma / 2)
 
         return np.array([proj_s_axis, proj_t_axis])
 
     @property
     def proj_d(self) -> np.ndarray:
-        arm_length = self.arm_length
-        proj_s_axis = (arm_length + self.dy) * np.sin(self.line_angle / 2) + (
+        arm_length = self.crossarm_length
+        gamma = self.line_angle
+        proj_s_axis = (arm_length + self.dy) * np.sin(gamma / 2) + (
             self.dx
-        ) * np.cos(self.line_angle / 2)
-        proj_t_axis = (arm_length + self.dy) * np.cos(self.line_angle / 2) - (
+        ) * np.cos(gamma / 2)
+        proj_t_axis = (arm_length + self.dy) * np.cos(gamma / 2) - (
             self.dx
-        ) * np.sin(self.line_angle / 2)
+        ) * np.sin(gamma / 2)
 
         return np.array([proj_s_axis, proj_t_axis])
 
@@ -580,10 +584,10 @@ class Nodes:
     def init_coordinates(self, span_length: np.ndarray, z: np.ndarray) -> None:
         # unused code?
         # self.x_anchor_chain = np.zeros_like(z)
-        # self.x_anchor_chain[0] = self.L_chain[0]
-        # self.x_anchor_chain[-1] = -self.L_chain[-1]
+        # self.x_anchor_chain[0] = self.insulator_length[0]
+        # self.x_anchor_chain[-1] = -self.insulator_length[-1]
         self.z_suspension_chain = np.zeros_like(z)
-        self.z_suspension_chain[1:-1] = -self.L_chain[1:-1]
+        self.z_suspension_chain[1:-1] = -self.insulator_length[1:-1]
 
         # warning: x0 and z0 does not mean the same thing
         # x0 is the absissa of the arm
@@ -593,7 +597,7 @@ class Nodes:
         self._y = np.zeros_like(z, dtype=np.float64)
 
     def compute_dx_dy_dz(self) -> None:
-        """Update dx and dz according to L_chain and the othre displacement, using Pytagoras.
+        """Update dx and dz according to insulator_length and the othre displacement, using Pytagoras.
 
         For anchor chains: update dx
 
@@ -654,25 +658,22 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
     line_angle is in radians.
     """
 
-    L_chain = section_array.data.insulator_length.to_numpy()
-    weight_chain = section_array.data.insulator_weight.to_numpy()
-    arm_length = section_array.data.crossarm_length.to_numpy()
-    # Convert degrees to rad
-    line_angle = (
-        Q_(section_array.data.line_angle.to_numpy(), "deg").to("rad").magnitude
-    )
+    insulator_length = section_array.data.insulator_length.to_numpy()
+    insulator_weight = section_array.data.insulator_weight.to_numpy()
+    crossarm_length = section_array.data.crossarm_length.to_numpy()
+    line_angle = section_array.data.line_angle.to_numpy()
     z = section_array.data.conductor_attachment_altitude.to_numpy()
     span_length = arr.decr(section_array.data.span_length.to_numpy())
-    load = arr.decr(section_array.data.load_weight.to_numpy())
+    load_weight = arr.decr(section_array.data.load_weight.to_numpy())
     load_position = arr.decr(section_array.data.load_position.to_numpy())
     return Nodes(
-        L_chain,
-        weight_chain,
-        arm_length,
+        insulator_length,
+        insulator_weight,
+        crossarm_length,
         line_angle,
         z,
         span_length,
-        load,
+        load_weight,
         load_position,
     )
 
@@ -686,7 +687,7 @@ class LoadModel(IModelForSolver):
     def __init__(
         self,
         cable_array: CableArray,
-        load: np.ndarray,
+        load_weight: np.ndarray,
         load_position: np.ndarray,
         # placeholder values for initialization
         a: np.ndarray,
@@ -710,7 +711,7 @@ class LoadModel(IModelForSolver):
         self.dilatation_coefficient = np.float64(
             self.cable_array.data.dilatation_coefficient.iloc[0]
         )
-        self.load = load
+        self.load_weight = load_weight
         self.load_position = load_position
         self.find_param_solver_type = find_param_solver_type
         # TODO: Need a way to choose Span model
@@ -827,7 +828,7 @@ class LoadModel(IModelForSolver):
         Tv_g_loc = self.span_model_right.T_v(x_m_right)
 
         Th_diff = Th_left - Th_right
-        Tv_diff = Tv_d_loc + Tv_g_loc - self.load * self.k_load
+        Tv_diff = Tv_d_loc + Tv_g_loc - self.load_weight * self.k_load
 
         return np.array([Th_diff, Tv_diff]).flatten('F')
 

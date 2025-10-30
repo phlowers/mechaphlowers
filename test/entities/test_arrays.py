@@ -28,7 +28,7 @@ def section_array_input_data() -> dict[str, list]:
         "line_angle": [0, 360, 90.1, -90.2],
         "insulator_length": [0, 4, 3.2, 0],
         "span_length": [1, 500.2, 500.05, np.nan],
-        "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
+        "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
     }
 
 
@@ -45,7 +45,7 @@ def cable_array_input_data() -> dict[str, list]:
     return {
         "section": [345.5],
         "diameter": [22.4],
-        "linear_weight": [9.6],
+        "linear_mass": [0.974],
         "young_modulus": [59],
         "dilatation_coefficient": [23],
         "temperature_reference": [15],
@@ -83,7 +83,7 @@ def test_create_section_array__only_ints() -> None:
             "line_angle": [0, 360, 90, -90],
             "insulator_length": [0, 4, 3, 0],
             "span_length": [1, 500, 500, np.nan],
-            "insulator_weight": np.array([1000.0, 500.0, 500.0, 1000.0]),
+            "insulator_mass": np.array([1000.0, 500.0, 500.0, 1000.0]),
         }
     )
     section = SectionArray(
@@ -113,7 +113,7 @@ def test_create_section_array__span_length_for_last_support(
         "line_angle",
         "insulator_length",
         "span_length",
-        "insulator_weight",
+        "insulator_mass",
     ],
 )
 def test_create_section_array__missing_column(
@@ -150,7 +150,7 @@ def test_create_section_array__extra_column(
         ("line_angle", ["1,2"] * 4),
         ("insulator_length", ["1,2"] * 4),
         ("span_length", ["1,2"] * 4),
-        ("insulator_weight", ["1,2"] * 4),
+        ("insulator_mass", ["1,2"] * 4),
     ],
 )
 def test_create_section_array__wrong_type(
@@ -179,7 +179,7 @@ def test_compute_elevation_difference() -> None:
         * 4,
         "insulator_length": [0, 4.0, 3.0, 0],
         "span_length": [50, 100, 500, np.nan],
-        "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
+        "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
     }
 
     df = pd.DataFrame(data)
@@ -210,10 +210,11 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "suspension": [False, True, True, False],
             "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
             "crossarm_length": [10, 12.1, 10, 10.1],
-            "line_angle": [0, 360, 90.1, -90.2],
+            "line_angle": [0.0, 6.283185, 1.572542, -1.574287],
             "insulator_length": [0, 4, 3.2, 0],
             "span_length": [1, 500.2, 500.05, np.nan],
-            "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
+            "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15] * 4,
@@ -223,6 +224,55 @@ def test_section_array__data(section_array_input_data: dict) -> None:
     assert_frame_equal(exported_data, expected_data, atol=1e-07)
     # section_array inner data shouldn't have been modified
     assert_frame_equal(section_array._data, inner_data)
+
+
+def test_section_array__data_with_loads() -> None:
+    df = pd.DataFrame(
+        {
+            "name": ["support 1", "2", "three", "support 4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
+            "crossarm_length": [10, 12.1, 10, 10.1],
+            "line_angle": [0, 360, 90.1, -90.2],
+            "insulator_length": [0, 4, 3.2, 0],
+            "span_length": [1, 500.2, 500.05, np.nan],
+            "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            "load_mass": [500, 1000, 500, np.nan],
+            "load_position": [0.2, 0.4, 0.6, np.nan],
+        }
+    )
+    section_array = SectionArray(
+        data=df, sagging_parameter=2_000, sagging_temperature=15
+    )
+    inner_data = section_array._data.copy()
+
+    exported_data = section_array.data
+
+    expected_data = pd.DataFrame(
+        {
+            "name": ["support 1", "2", "three", "support 4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
+            "crossarm_length": [10, 12.1, 10, 10.1],
+            "line_angle": [0.0, 6.283185, 1.572542, -1.574287],
+            "insulator_length": [0, 4, 3.2, 0],
+            "span_length": [1, 500.2, 500.05, np.nan],
+            "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
+            "elevation_difference": [2.8, -5.12, 0.12, np.nan],
+            "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
+            "sagging_temperature": [15] * 4,
+            "load_mass": [500, 1000, 500, np.nan],
+            "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
+            "load_position": [0.2, 0.4, 0.6, np.nan],
+        },
+    )
+
+    assert_frame_equal(
+        exported_data, expected_data, atol=1e-07, check_like=True
+    )
+    # section_array inner data shouldn't have been modified
+    assert_frame_equal(section_array._data, inner_data, check_like=True)
 
 
 def test_section_array__data_without_sagging_properties(
@@ -258,7 +308,7 @@ def test_section_array__data_original(section_array_input_data: dict) -> None:
             "line_angle": [0, 360, 90.1, -90.2],
             "insulator_length": [0, 4, 3.2, 0],
             "span_length": [1, 500.2, 500.05, np.nan],
-            "insulator_weight": [1000.0, 500.0, 500.0, 1000.0],
+            "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
         },
     )
 
@@ -276,7 +326,8 @@ def test_create_cable_array__with_floats(
         {
             "section": [345.5e-6],
             "diameter": [22.4e-3],
-            "linear_weight": [9.6],
+            "linear_weight": [9.55494],
+            "linear_mass": [0.974],
             "young_modulus": [59e9],
             "dilatation_coefficient": [23e-6],
             "temperature_reference": [15],
@@ -293,7 +344,11 @@ def test_create_cable_array__with_floats(
         }
     )
     assert_frame_equal(
-        cable.data, expected_result_SI_units, check_dtype=False, atol=1e-07
+        cable.data,
+        expected_result_SI_units,
+        check_like=True,
+        check_dtype=False,
+        atol=1e-07,
     )
 
 
@@ -302,7 +357,7 @@ def test_create_cable_array__with_floats(
     [
         "section",
         "diameter",
-        "linear_weight",
+        "linear_mass",
         "young_modulus",
         "dilatation_coefficient",
         "temperature_reference",
@@ -323,7 +378,7 @@ def test_create_cable_array__missing_column(
     [
         ("section", ["1,2"]),
         ("diameter", ["1,2"]),
-        ("linear_weight", ["1,2"]),
+        ("linear_mass", ["1,2"]),
         ("young_modulus", ["1,2"]),
         ("dilatation_coefficient", ["1,2"]),
         ("temperature_reference", ["1,2"]),
@@ -349,6 +404,103 @@ def test_create_cable_array__extra_column(
     section = CableArray(input_df)
 
     assert "extra column" not in section._data.columns
+
+
+def test_create_cable_array__units(
+    cable_array_input_data: dict,
+) -> None:
+    input_df = pd.DataFrame(cable_array_input_data)
+    cable = CableArray(input_df)
+
+    custom_units = {
+        "section": "cm^2",
+        "diameter": "cm",
+        "young_modulus": "MPa",
+    }
+
+    cable.add_units(custom_units)
+
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "section": [345.5e-4],
+            "diameter": [22.4e-2],
+            "linear_weight": [9.55494],
+            "linear_mass": [0.974],
+            "young_modulus": [59e6],
+            "dilatation_coefficient": [23e-6],
+            "temperature_reference": [15],
+            "a0": [0],
+            "a1": [59e9],
+            "a2": [0],
+            "a3": [0],
+            "a4": [0],
+            "b0": [0],
+            "b1": [0],
+            "b2": [0],
+            "b3": [0],
+            "b4": [0],
+        }
+    )
+    assert_frame_equal(
+        cable.data,
+        expected_result_SI_units,
+        check_like=True,
+        check_dtype=False,
+        atol=1e-07,
+    )
+
+
+def test_create_weather_array() -> None:
+    weather = WeatherArray(
+        pd.DataFrame(
+            {
+                "ice_thickness": [1, 2.1],
+                "wind_pressure": [240.12, 0],
+            }
+        )
+    )
+
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "ice_thickness": np.array([1e-2, 2.1e-2]),
+            "wind_pressure": np.array([240.12, 0]),
+        }
+    )
+
+    assert_frame_equal(
+        weather.data,
+        expected_result_SI_units,
+        check_like=True,
+        check_dtype=False,
+        atol=1e-07,
+    )
+
+
+def test_create_weather_array__units() -> None:
+    weather = WeatherArray(
+        pd.DataFrame(
+            {
+                "ice_thickness": [1, 2.1],
+                "wind_pressure": [240.12, 0],
+            }
+        )
+    )
+
+    weather.add_units({"ice_thickness": "dm"})
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "ice_thickness": np.array([1e-1, 2.1e-1]),
+            "wind_pressure": np.array([240.12, 0]),
+        }
+    )
+
+    assert_frame_equal(
+        weather.data,
+        expected_result_SI_units,
+        check_like=True,
+        check_dtype=False,
+        atol=1e-07,
+    )
 
 
 def test_create_weather_array__negative_ice() -> None:

@@ -16,10 +16,10 @@ from typing import Dict
 import numpy as np
 
 from mechaphlowers.core.papoto.papoto_model import (
-    convert_grad_to_rad,
     papoto_2_points,
     papoto_validity,
 )
+from mechaphlowers.data.units import Q_
 
 
 class ParameterMeasure(ABC):
@@ -68,21 +68,22 @@ class PapotoParameterMeasure(ParameterMeasure):
         V2: np.ndarray,
         H3: np.ndarray,
         V3: np.ndarray,
+        angle_unit: str = "grad",
     ):
         """Compute the PAPOTO measure.
 
         Args:
             a (np.ndarray): Length of the span
-            HL (np.ndarray): horizontal distance of the left part of the span
-            VL (np.ndarray): vertical distance of the left part of the span
-            HR (np.ndarray): horizontal distance of the right part of the span
-            VR (np.ndarray): vertical distance of the right part of the span
-            H1 (np.ndarray): horizontal distance of point 1
-            V1 (np.ndarray): vertical distance of point 1
-            H2 (np.ndarray): horizontal distance of point 2
-            V2 (np.ndarray): vertical distance of point 2
-            H3 (np.ndarray): horizontal distance of point 3
-            V3 (np.ndarray): vertical distance of point 3
+            HL (np.ndarray): horizontal angle of the left part of the span
+            VL (np.ndarray): vertical angle of the left part of the span
+            HR (np.ndarray): horizontal angle of the right part of the span
+            VR (np.ndarray): vertical angle of the right part of the span
+            H1 (np.ndarray): horizontal angle of point 1
+            V1 (np.ndarray): vertical angle of point 1
+            H2 (np.ndarray): horizontal angle of point 2
+            V2 (np.ndarray): vertical angle of point 2
+            H3 (np.ndarray): horizontal angle of point 3
+            V3 (np.ndarray): vertical angle of point 3
         Returns:
             None
         """
@@ -99,7 +100,7 @@ class PapotoParameterMeasure(ParameterMeasure):
             "H3": H3,
             "V3": V3,
         }
-
+        self.angle_unit = angle_unit
         measures_converted = self.input_conversion(self.measures)
         measures_converted["a"] = a
 
@@ -140,17 +141,12 @@ class PapotoParameterMeasure(ParameterMeasure):
         )
         return output_data
 
-    def _conversion_function(self, value):
-        """Convert inputs to the required format."""
-        # TODO: implement final version with pint
-        return convert_grad_to_rad(value)
-
     def input_conversion(
         self, data: Dict[str, np.ndarray]
     ) -> Dict[str, np.ndarray]:
         """Convert inputs to the required format."""
         for key, value in data.items():
-            data[key] = self._conversion_function(value)
+            data[key] = Q_(value, self.angle_unit).to("rad").magnitude
         return data
 
     @property

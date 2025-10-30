@@ -104,14 +104,14 @@ def papoto_2_points(
 
     Args:
         a (np.ndarray): Length of the span
-        HL (np.ndarray): horizontal distance of the left part of the span
-        VL (np.ndarray): vertical distance of the left part of the span
-        HR (np.ndarray): horizontal distance of the right part of the span
-        VR (np.ndarray): vertical distance of the right part of the span
-        H1 (np.ndarray): horizontal distance of point 1
-        V1 (np.ndarray): vertical distance of point 1
-        H2 (np.ndarray): horizontal distance of point 2
-        V2 (np.ndarray): vertical distance of point 2
+        HL (np.ndarray): horizontal angle in rad of the left part of the span
+        VL (np.ndarray): vertical angle in rad of the left part of the span
+        HR (np.ndarray): horizontal angle in rad of the right part of the span
+        VR (np.ndarray): vertical angle in rad of the right part of the span
+        H1 (np.ndarray): horizontal angle in rad of point 1
+        V1 (np.ndarray): vertical angle in rad of point 1
+        H2 (np.ndarray): horizontal angle in rad of point 2
+        V2 (np.ndarray): vertical angle in rad of point 2
     Returns:
         parameter (np.ndarray): parameter value
     """
@@ -217,7 +217,7 @@ def function_f(
 ) -> np.ndarray:
     """Function for which we want to find the root.
 
-    $f(p) = p * (\cosh(\\frac{val}{p}) - \cosh(\\frac{x-val}{p}) - \\delta$
+    $f(p) = p * (\\cosh(\\frac{val}{p}) - \\cosh(\\frac{x-val}{p}) - \\delta$
 
     with $val = \\frac{a}{2} - p * \\sinh^{-1}(\\frac{h} {2 * p * sinh(\\frac{a} {2 * p})})$
 
