@@ -8,8 +8,12 @@
 import numpy as np
 
 
-def section_factory_sample_data(size_section=5, seed=1) -> dict:
+def section_factory_sample_data(size_section: int = 5, seed: int = 1) -> dict:
     """Create sample data for a section DataFrame
+
+    Args:
+        size_section (int, optional): Number of sections to create. Defaults to 5.
+        seed (int, optional): Random seed for reproducibility. Defaults to 1.
 
     Returns:
         dict: sample data for a section DataFrame

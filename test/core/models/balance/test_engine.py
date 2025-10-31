@@ -130,7 +130,7 @@ def test_change_state_logic(balance_engine_simple: BalanceEngine):
     span_shape = balance_engine_simple.section_array.data.span_length.shape
     balance_engine_simple.solve_adjustment()
 
-    # Test with only wind_pressure provided
+    # Test with wind_pressure and ice_thickness provided
     balance_engine_simple.solve_change_state(
         wind_pressure=np.full(span_shape, 50.0),
         ice_thickness=1.0,
@@ -147,6 +147,25 @@ def test_change_state_logic(balance_engine_simple: BalanceEngine):
     np.testing.assert_array_equal(
         balance_engine_simple.deformation_model.current_temperature,
         np.full(span_shape, 15.0),
+    )
+
+    # Test with floats provided
+    balance_engine_simple.solve_change_state(
+        wind_pressure=100.0,
+        ice_thickness=1.0,
+        new_temperature=10.0,
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.wind_pressure,
+        np.full(span_shape, 100.0),
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.ice_thickness,
+        np.full(span_shape, 1.0),
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.deformation_model.current_temperature,
+        np.full(span_shape, 10.0),
     )
 
     # Test with only ice_thickness provided
