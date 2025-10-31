@@ -16,16 +16,8 @@ from pytest import fixture
 
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.data.catalog.catalog import (
-    sample_cable_catalog,
-)
 from mechaphlowers.data.units import convert_weight_to_mass
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-
-
-@fixture
-def cable_array_AM600():
-    return sample_cable_catalog.get_as_object(["ASTER600"])
 
 
 @fixture

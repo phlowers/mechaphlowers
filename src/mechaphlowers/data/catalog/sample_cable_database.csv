@@ -1,5 +1,5 @@
-name,data_source,section,diameter,young_modulus,linear_mass,dilatation_coefficient,temperature_reference,stress_strain_a0,stress_strain_a1,stress_strain_a2,stress_strain_a3,stress_strain_a4,stress_strain_b0,stress_strain_b1,stress_strain_b2,stress_strain_b3,stress_strain_b4,diameter_heart,section_conductor,section_heart,solar_absorption,emissivity,electric_resistance_20,linear_resistance_temperature_coef
-ASTER600,fictive,600.4,31.86,60000,1.8,2.3E-05,15,0,60000,0,0,0,0,0,0,0,0,0,600.4,0,0.9,0.8,0.0554,0.0036
-CROCUS400,fictive,400.9,26.16,72000,1.6,1.76E-05,15,0,72000,0,0,0,0,0,0,0,0,12,315,85.9,0.9,0.8,0.091,0.004
-NARCISSE600G,fictive,600.4,29.56,75565,2.2,1.77E-05,15,0,27804,-6590391,672009160,-24561975349,0,33140,0,0,0,13.8,486.7,113.7,0.9,0.8,0.0593,0.004
-PETUNIA600,fictive,599.7,31.66,70000,2.3,1.82E-05,15,0,70000,0,0,0,0,0,0,0,0,13.44,492.7,107,0.9,0.8,0.0681,0.0036
+name,data_source,section,diameter,young_modulus,linear_mass,dilatation_coefficient,temperature_reference,stress_strain_a0,stress_strain_a1,stress_strain_a2,stress_strain_a3,stress_strain_a4,stress_strain_b0,stress_strain_b1,stress_strain_b2,stress_strain_b3,stress_strain_b4,diameter_heart,section_conductor,section_heart,solar_absorption,emissivity,electric_resistance_20,linear_resistance_temperature_coef,is_polynomial,radial_thermal_conductivity
+ASTER600,fictive,600.4,31.86,60000,1.8,2.3E-05,15,0,60000,0,0,0,0,0,0,0,0,0,600.4,0,0.9,0.8,0.0554,0.0036,False,1
+CROCUS400,fictive,400.9,26.16,72000,1.6,1.76E-05,15,0,72000,0,0,0,0,0,0,0,0,12,315,85.9,0.9,0.8,0.091,0.004,False,1
+NARCISSE600G,fictive,600.4,29.56,75565,2.2,1.77E-05,15,0,27804,-6590391,672009160,-24561975349,0,33140,0,0,0,13.8,486.7,113.7,0.9,0.8,0.0593,0.004,True,1
+PETUNIA600,fictive,599.7,31.66,70000,2.3,1.82E-05,15,0,70000,0,0,0,0,0,0,0,0,13.44,492.7,107,0.9,0.8,0.0681,0.0036,False,1

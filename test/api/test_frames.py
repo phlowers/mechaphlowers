@@ -85,10 +85,10 @@ def test_SectionDataFrame__copy(default_section_array_three_spans) -> None:
 
 
 def test_SectionDataFrame__state(
-    default_cable_array, default_section_array_three_spans
+    cable_array_AM600, default_section_array_three_spans
 ):
     frame = SectionDataFrame(default_section_array_three_spans)
-    frame.add_cable(default_cable_array)
+    frame.add_cable(cable_array_AM600)
     assert np.array_equal(
         frame.state.L_ref(),
         frame.deformation.L_ref(),  # type: ignore[union-attr]
@@ -98,7 +98,7 @@ def test_SectionDataFrame__state(
 
 # test add_cable method
 def test_SectionDataFrame__add_cable(
-    default_cable_array, default_section_array_three_spans
+    cable_array_AM600, default_section_array_three_spans
 ):
     frame = SectionDataFrame(default_section_array_three_spans)
     with pytest.raises(TypeError):
@@ -106,16 +106,16 @@ def test_SectionDataFrame__add_cable(
         frame.add_cable(1)  # type: ignore[arg-type]
     with pytest.raises(NotImplementedError):
         wrong_length_array = CableArray(
-            default_cable_array._data.loc[
-                np.repeat(default_cable_array._data.index, 3)
+            cable_array_AM600._data.loc[
+                np.repeat(cable_array_AM600._data.index, 3)
             ].reset_index(drop=True)
         )
         frame.add_cable(wrong_length_array)
-    frame.add_cable(default_cable_array)
+    frame.add_cable(cable_array_AM600)
 
 
 def test_SectionDataFrame__add_weather(
-    default_cable_array, default_section_array_three_spans
+    cable_array_AM600, default_section_array_three_spans
 ):
     frame = SectionDataFrame(default_section_array_three_spans)
     weather = WeatherArray(
@@ -134,12 +134,12 @@ def test_SectionDataFrame__add_weather(
         weather_copy = copy(weather)
         weather_copy._data = weather_copy.data.iloc[:-1]
         frame.add_weather(weather_copy)
-    frame.add_cable(cable=default_cable_array)
+    frame.add_cable(cable=cable_array_AM600)
     frame.add_weather(weather=weather)
 
 
 def test_SectionDataFrame__add_array(
-    default_cable_array, default_section_array_three_spans
+    cable_array_AM600, default_section_array_three_spans
 ):
     frame = SectionDataFrame(default_section_array_three_spans)
     weather_array = WeatherArray(
@@ -151,8 +151,8 @@ def test_SectionDataFrame__add_array(
         )
     )
     # Testez l'ajout de CableArray
-    frame._add_array(default_cable_array, CableArray)
-    assert frame.cable == default_cable_array
+    frame._add_array(cable_array_AM600, CableArray)
+    assert frame.cable == cable_array_AM600
 
     # Testez l'ajout de WeatherArray
     frame._add_array(weather_array, WeatherArray)
@@ -160,7 +160,7 @@ def test_SectionDataFrame__add_array(
 
     # Wrong object type
     with pytest.raises(TypeError):
-        frame._add_array(default_cable_array._data, pd.DataFrame)  # type: ignore[arg-type]
+        frame._add_array(cable_array_AM600._data, pd.DataFrame)  # type: ignore[arg-type]
     # Testez les exceptions
     with pytest.raises(TypeError):
         frame._add_array("not_an_array", CableArray)  # type: ignore[arg-type]
@@ -168,11 +168,11 @@ def test_SectionDataFrame__add_array(
 
 def test_select_spans__after_added_arrays(
     default_section_array_three_spans,
-    default_cable_array,
+    cable_array_AM600,
     factory_neutral_weather_array,
 ):
     frame = SectionDataFrame(default_section_array_three_spans)
-    frame.add_cable(default_cable_array)
+    frame.add_cable(cable_array_AM600)
     frame.add_weather(factory_neutral_weather_array(4))
     frame_selected = frame.select(["support 1", "three"])
     assert len(frame_selected.data) == 3
@@ -183,24 +183,24 @@ def test_select_spans__after_added_arrays(
 
 
 def test_SectionDataFrame__data(
-    default_cable_array, default_section_array_three_spans
+    cable_array_AM600, default_section_array_three_spans
 ):
     frame = SectionDataFrame(default_section_array_three_spans)
     assert frame.data.equals(frame.section_array.data)
 
-    frame.add_cable(default_cable_array)
+    frame.add_cable(cable_array_AM600)
     assert not frame.data.equals(frame.section_array.data)
     assert (
         frame.data.shape[1]
         == frame.cable.data.shape[1] + frame.section_array.data.shape[1]  # type: ignore[union-attr]
     )
     assert frame.data.dilatation_coefficient.iloc[-1] == 23e-6
-    assert frame.data.a1.iloc[-1] == 59e9
+    assert frame.data.a1.iloc[-1] == 60e9
     assert frame.data.b1.iloc[-1] == 0
 
 
 def test_SectionDataFrame__add_weather_update_span(
-    default_cable_array, default_section_array_three_spans
+    cable_array_AM600, default_section_array_three_spans
 ):
     frame = SectionDataFrame(default_section_array_three_spans)
     weather_dict = {
@@ -209,14 +209,14 @@ def test_SectionDataFrame__add_weather_update_span(
     }
     weather = WeatherArray(pd.DataFrame(weather_dict))
     cable_loads_input = {
-        "diameter": default_cable_array.data.diameter.to_numpy(),
-        "linear_weight": default_cable_array.data.linear_weight.to_numpy(),
+        "diameter": cable_array_AM600.data.diameter.to_numpy(),
+        "linear_weight": cable_array_AM600.data.linear_weight.to_numpy(),
     }
     # Converts into SI units because CableArray automatically converts into SI units but not CableLoads
     cable_loads_input.update(weather_dict)
     cable_loads_input["ice_thickness"] *= 1e-2
     cable_loads = CableLoads(**cable_loads_input)
-    frame.add_cable(cable=default_cable_array)
+    frame.add_cable(cable=cable_array_AM600)
     frame.add_weather(weather=weather)
     np.testing.assert_equal(
         frame.span.load_coefficient, cable_loads.load_coefficient

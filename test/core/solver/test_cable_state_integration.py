@@ -48,11 +48,11 @@ def create_sag_tension_solver(
 
 def test_functions_to_solve__same_loads(
     default_section_array_three_spans: SectionArray,
-    default_cable_array: CableArray,
+    cable_array_AM600: CableArray,
 ) -> None:
     NB_SPAN = 4
     frame = SectionDataFrame(default_section_array_three_spans)
-    frame.add_cable(default_cable_array)
+    frame.add_cable(cable_array_AM600)
 
     weather_dict: WeatherDict = {
         "ice_thickness": np.zeros(NB_SPAN),
@@ -64,7 +64,7 @@ def test_functions_to_solve__same_loads(
     frame.add_weather(weather_array)
 
     data_container = factory_data_container(
-        default_section_array_three_spans, default_cable_array, weather_array
+        default_section_array_three_spans, cable_array_AM600, weather_array
     )
 
     sag_tension_calculation = SagTensionSolver(**data_container.__dict__)
@@ -146,7 +146,7 @@ def test_functions_to_solve__same_loads(
 )
 def test_functions_to_solve__different_weather(
     default_section_array_one_span: SectionArray,
-    default_cable_array: CableArray,
+    cable_array_AM600: CableArray,
     factory_neutral_weather_array: Callable[[int], WeatherArray],
     weather: dict,
     temperature: np.ndarray,
@@ -158,7 +158,7 @@ def test_functions_to_solve__different_weather(
 
     sag_tension_calculation = create_sag_tension_solver(
         default_section_array_one_span,
-        default_cable_array,
+        cable_array_AM600,
         initial_weather,
     )
     sag_tension_calculation.change_state(
@@ -177,7 +177,7 @@ def test_functions_to_solve__different_weather(
 
 def test_functions_to_solve__different_temp_ref(
     default_section_array_one_span: SectionArray,
-    default_cable_array: CableArray,
+    cable_array_AM600: CableArray,
     factory_neutral_weather_array: Callable[[int], WeatherArray],
 ) -> None:
     NB_SPAN = 2
@@ -186,7 +186,7 @@ def test_functions_to_solve__different_temp_ref(
 
     sag_tension_calculation_0 = create_sag_tension_solver(
         default_section_array_one_span,
-        default_cable_array,
+        cable_array_AM600,
         initial_weather_array,
     )
 
@@ -203,7 +203,7 @@ def test_functions_to_solve__different_temp_ref(
     assert T_h_state_0 is not None
     np.testing.assert_allclose(T_h_state_0, expected_result_0, atol=0.01)
 
-    new_cable_array = default_cable_array.__copy__()
+    new_cable_array = cable_array_AM600.__copy__()
     new_cable_array._data.temperature_reference = 0
 
     sag_tension_calculation_1 = create_sag_tension_solver(
@@ -222,7 +222,7 @@ def test_functions_to_solve__different_temp_ref(
 
 def test_functions_to_solve__no_memory_effect(
     default_section_array_one_span: SectionArray,
-    default_cable_array: CableArray,
+    cable_array_AM600: CableArray,
     factory_neutral_weather_array: Callable[[int], WeatherArray],
 ) -> None:
     """Create two solvers.
@@ -234,7 +234,7 @@ def test_functions_to_solve__no_memory_effect(
 
     sag_tension_calculation_indirect = create_sag_tension_solver(
         default_section_array_one_span,
-        default_cable_array,
+        cable_array_AM600,
         initial_weather,
     )
 
@@ -262,7 +262,7 @@ def test_functions_to_solve__no_memory_effect(
 
     sag_tension_calculation_direct = create_sag_tension_solver(
         default_section_array_one_span,
-        default_cable_array,
+        cable_array_AM600,
         initial_weather,
     )
 
@@ -281,7 +281,7 @@ def test_functions_to_solve__no_memory_effect(
 
 def test_functions_to_solve__reset_to_initial_state(
     default_section_array_one_span: SectionArray,
-    default_cable_array: CableArray,
+    cable_array_AM600: CableArray,
     factory_neutral_weather_array: Callable[[int], WeatherArray],
 ) -> None:
     """Test that checks that going back to initial state after an intermedial state, gives the same result:
@@ -292,7 +292,7 @@ def test_functions_to_solve__reset_to_initial_state(
 
     sag_tension_calculation = create_sag_tension_solver(
         default_section_array_one_span,
-        default_cable_array,
+        cable_array_AM600,
         initial_weather,
     )
     T_h_initial_state_0 = sag_tension_calculation.T_h_after_change

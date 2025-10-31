@@ -214,6 +214,7 @@ class CableArray(ElementArray):
         "diameter_heart",
         "section_heart",
         "section_conductor",
+        "is_polynomial",
     ]
 
     thermal_attributes = [
