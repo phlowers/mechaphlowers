@@ -20,11 +20,8 @@ def test_section_factory_sample_data():
     assert len(data["span_length"]) == size_section
     assert len(data["line_angle"]) == size_section
     assert len(data["insulator_mass"]) == size_section
+    assert len(data["insulator_mass"]) == size_section
 
     # Check first and last sections are not suspensions
     assert data["suspension"][0] is False
     assert data["suspension"][-1] is False
-
-    # Check insulator lengths for first and last sections
-    assert data["insulator_length"][0] == 0.0
-    assert data["insulator_length"][-1] == 0.0

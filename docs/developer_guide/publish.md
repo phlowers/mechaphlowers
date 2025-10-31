@@ -36,9 +36,14 @@ source .venv_release/bin/activate
 uv pip install dist/mechaphlowers-0.3.0b0-py3-none-any.whl
 ```
 
+## Check and complete the documentation if needed
+
+```python
+    make docs
+```
+
 ## Push to github
 
-- merge your release branch
 ```bash
 # tag with the version you want
 git tag v0.3.0b0
@@ -46,6 +51,7 @@ git tag v0.3.0b0
 git push --tags
 ```
 - On github run Action 🚀 Build upload on test-pypi
+- merge your release branch
 - If success you can replay the tests on the wheel delpoyed
 - make a release on github
 

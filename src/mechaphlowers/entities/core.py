@@ -55,6 +55,7 @@ class QuantityArray:
 
 class VhlStrength:
     """Class representing the VHL forces"""
+
     output_unit = options.output_units.force
 
     def __init__(self, vhl: np.ndarray, input_unit="N") -> None:
@@ -98,7 +99,7 @@ class VhlStrength:
         return QuantityArray(
             self._vhl_section[2, :], self.input_unit, self.output_unit
         )
-        
+
     @property
     def R(self) -> QuantityArray:
         """Return the resultant force of the VHL component as a QuantityArray"""
