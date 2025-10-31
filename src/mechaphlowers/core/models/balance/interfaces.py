@@ -21,6 +21,7 @@ from mechaphlowers.core.models.cable.deformation import IDeformation
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.core import VhlStrength
 
 logger = logging.getLogger(__name__)
 
@@ -97,4 +98,18 @@ class IBalanceModel(IModelForSolver, ABC):
     @abstractmethod
     def dxdydz(self) -> np.ndarray:
         """Get the displacement vector of the nodes."""
+        pass
+
+    @abstractmethod
+    def vhl_under_chain(self) -> VhlStrength:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
+        pass
+
+    @abstractmethod
+    def vhl_under_console(self) -> VhlStrength:
+        """Get the VHL efforts under console: considering insulator_weight.
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
         pass

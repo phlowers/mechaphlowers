@@ -9,22 +9,27 @@ from typing import List
 
 import numpy as np
 import pint
+from pint import Quantity, UnitRegistry
 
-unit = pint.UnitRegistry()
+unit = UnitRegistry()
+
+c = pint.Context("mecha")
+c.add_transformation(
+    "kg",
+    "N",
+    lambda unit, x: x * unit.Quantity(9.81, "m/s^2"),  # type: ignore
+)
+c.add_transformation(
+    "N",
+    "kg",
+    lambda unit, x: x / unit.Quantity(9.81, "m/s^2"),  # type: ignore
+)
+unit.add_context(c)
+unit.enable_contexts("mecha")
 
 Q_ = unit.Quantity
 
-
-def convert_mass_to_weight(mass: np.ndarray | List) -> np.ndarray:
-    """Convert mass in kg to weight in N
-
-    Args:
-        mass (np.ndarray): mass value in kg to convert
-
-    Returns:
-        np.ndarray: weight value in N
-    """
-    return np.array(mass) * 9.81
+__all__ = ["unit", "Q_", "Quantity"]
 
 
 def convert_weight_to_mass(weight: np.ndarray | List) -> np.ndarray:
@@ -36,4 +41,4 @@ def convert_weight_to_mass(weight: np.ndarray | List) -> np.ndarray:
     Returns:
         np.ndarray: mass value in kg
     """
-    return np.array(weight) / 9.81
+    return Q_(np.array(weight), "N").to("kg").magnitude

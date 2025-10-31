@@ -7,11 +7,14 @@
 # TODO: to reactivate when IBalanceModel interface is stabilized
 # mypy: disable-error-code=attr-defined
 
+import copy
+
 import numpy as np
 import pandas as pd
 import pytest
 from pytest import fixture
 
+from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import (
     sample_cable_catalog,
@@ -356,6 +359,37 @@ def test_wind_no_altitude_change(
         ]
     )
 
+    expected_vhl_under_console = np.array(
+        [
+            [-4.84538576e02, -7.35729616e02, -6.47246587e02, -3.95064517e02],
+            [2.47336911e02, 3.72285443e02, 3.22182818e02, 2.01698053e02],
+            [3.91179538e03, -4.89819286e00, -5.35289351e-01, -3.90633048e03],
+        ]
+    )
+
+    expected_vhl_under_chain = np.array(
+        [
+            [
+                434.538575568931,
+                710.729616241837,
+                622.246586991382,
+                345.064517160492,
+            ],
+            [
+                247.336910630502,
+                372.285442725628,
+                322.182818012918,
+                201.698053053279,
+            ],
+            [
+                3911.79537992953,
+                -4.89819286209677,
+                -0.535289353509143,
+                -3906.33047935439,
+            ],
+        ]
+    )
+
     np.testing.assert_allclose(
         section_3d_no_altitude_change.balance_model.nodes.dx,
         expected_dx,
@@ -369,6 +403,16 @@ def test_wind_no_altitude_change(
     np.testing.assert_allclose(
         section_3d_no_altitude_change.balance_model.nodes.dz,
         expected_dz,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        section_3d_no_altitude_change.balance_model.vhl_under_chain().vhl_matrix.value,
+        expected_vhl_under_chain,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        section_3d_no_altitude_change.balance_model.vhl_under_console().vhl_matrix.value,
+        expected_vhl_under_console,
         atol=1e-4,
     )
 
@@ -804,3 +848,45 @@ def test_many_spans_with_load(cable_array_AM600: CableArray):
     section.solve_adjustment()
 
     section.solve_change_state(wind_pressure=np.array([-200] * nb_spans))
+
+
+def test_balance_engine__large_angles(balance_engine_base_test) -> None:
+    """the balance engine is not converging with bad parameter initialization for solvers (see config object) when large angles are present.
+    This test ensures that such a situation is handled correctly.
+    """
+
+    engine = copy.deepcopy(balance_engine_base_test)
+
+    # Modify the section to have large angles and crossarm lengths
+    engine.section_array._data.line_angle = np.array([0, 90, 0, 0])
+    engine.section_array.add_units({"line_angle": "grad"})
+    engine.section_array._data.crossarm_length = [0, 10, -10, 0]
+
+    # uncomment to visualize the line
+    # import mechaphlowers as mph
+    # plt_line = mph.PlotEngine.builder_from_balance_engine(engine)
+    assert (
+        engine.solver_adjustment.relax_ratio
+        == options.solver.balance_solver_adjustment_params["relax_ratio"]
+    )
+
+    engine.solve_adjustment()
+
+    engine.solve_change_state(new_temperature=15 * np.array([1, 1, 1, np.nan]))
+    # import plotly.graph_objects as go
+    # fig = go.Figure()
+
+    # plt_line.preview_line3d(fig)
+    engine.solve_change_state(new_temperature=45 * np.array([1, 1, 1, np.nan]))
+
+    # plt_line.preview_line3d(fig)
+
+    engine.solve_change_state(
+        new_temperature=45 * np.array([1, 1, 1, np.nan]),
+        wind_pressure=500 * np.array([1, 1, 1, np.nan]),
+    )
+    # plt_line.preview_line3d(fig)
+    # print(engine.get_displacement())
+    # fig.show()
+
+    assert True

@@ -13,7 +13,7 @@ import pandera as pa
 from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Self, Type
 
-from mechaphlowers.data.units import Q_, convert_mass_to_weight
+from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     SectionArrayInput,
@@ -64,7 +64,7 @@ class ElementArray(ABC):
         ```
 
         Args:
-            dict_units (dict[str, str]): dictionary of columns names and corresponding units
+            input_units (dict[str, str]): dictionary of columns names and corresponding units
         """
         self.input_units.update(input_units)
 
@@ -131,12 +131,12 @@ class SectionArray(ElementArray):
     @property
     def data(self) -> pd.DataFrame:
         data_output = super().data
-        data_output["insulator_weight"] = convert_mass_to_weight(
-            data_output["insulator_mass"].to_numpy()
+        data_output["insulator_weight"] = (
+            Q_(data_output["insulator_mass"].to_numpy(), "kg").to("N").m
         )
         if "load_mass" in data_output:
-            data_output["load_weight"] = convert_mass_to_weight(
-                data_output["load_mass"].to_numpy()
+            data_output["load_weight"] = (
+                Q_(data_output["load_mass"].to_numpy(), "kg").to("N").m
             )
 
         if self.sagging_parameter is None or self.sagging_temperature is None:
@@ -259,8 +259,8 @@ class CableArray(ElementArray):
     def data(self) -> pd.DataFrame:
         data_output = super().data
         # add new column using linear_mass data: linear_weight
-        data_output["linear_weight"] = convert_mass_to_weight(
-            data_output["linear_mass"].to_numpy()
+        data_output["linear_weight"] = (
+            Q_(data_output["linear_mass"].to_numpy(), "kg").to("N").m
         )
         return data_output
 
