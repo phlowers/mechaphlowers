@@ -119,3 +119,104 @@ def test_change_state_size(balance_engine_simple: BalanceEngine):
         balance_engine_simple.solve_change_state(
             new_temperature=np.array([1, 1, 1])
         )
+
+
+def test_change_state_defaults(balance_engine_simple: BalanceEngine):
+    span_shape = balance_engine_simple.section_array.data.span_length.shape
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state(
+        wind_pressure=None, ice_thickness=None, new_temperature=None
+    )
+    # Check that default values are used
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.wind_pressure,
+        np.zeros(span_shape),
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.ice_thickness,
+        np.zeros(span_shape),
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.deformation_model.current_temperature,
+        np.full(span_shape, 15.0),
+    )
+
+
+def test_change_state_logic(balance_engine_simple: BalanceEngine):
+    span_shape = balance_engine_simple.section_array.data.span_length.shape
+    balance_engine_simple.solve_adjustment()
+
+    # Test with only wind_pressure provided
+    balance_engine_simple.solve_change_state(
+        wind_pressure=np.full(span_shape, 50.0),
+        ice_thickness=1.0,
+        new_temperature=None,
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.wind_pressure,
+        np.full(span_shape, 50.0),
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.ice_thickness,
+        np.zeros(span_shape) + 1.0,
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.deformation_model.current_temperature,
+        np.full(span_shape, 15.0),
+    )
+
+    # Test with only ice_thickness provided
+    balance_engine_simple.solve_change_state(
+        wind_pressure=None,
+        ice_thickness=np.full(span_shape, 0.01),
+        new_temperature=None,
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.wind_pressure,
+        np.zeros(span_shape),
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.ice_thickness,
+        np.full(span_shape, 0.01),
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.deformation_model.current_temperature,
+        np.full(span_shape, 15.0),
+    )
+
+    # Test with only new_temperature provided
+    balance_engine_simple.solve_change_state(
+        wind_pressure=None,
+        ice_thickness=None,
+        new_temperature=np.full(span_shape, 25.0),
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.wind_pressure,
+        np.zeros(span_shape),
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.ice_thickness,
+        np.zeros(span_shape),
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.deformation_model.current_temperature,
+        np.full(span_shape, 25.0),
+    )
+
+
+def test_change_state__input_errors(balance_engine_simple: BalanceEngine):
+    balance_engine_simple.solve_adjustment()
+
+    with pytest.raises(ValueError):
+        balance_engine_simple.solve_change_state(
+            wind_pressure=np.array([1, 2]),  # Incorrect shape
+            ice_thickness=None,
+            new_temperature=None,
+        )
+
+    with pytest.raises(TypeError):
+        balance_engine_simple.solve_change_state(
+            wind_pressure=None,
+            ice_thickness="0",  # type: ignore[arg-type]
+            new_temperature=None,
+        )
