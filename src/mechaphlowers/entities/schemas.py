@@ -86,7 +86,6 @@ class CableArrayInput(pa.DataFrameModel):
     diameter_heart: pdt.Series[float] = pa.Field(coerce=True)
     section_heart: pdt.Series[float] = pa.Field(coerce=True)
     section_conductor: pdt.Series[float] = pa.Field(coerce=True)
-    # specific_heat_capacity: pdt.Series[float] = pa.Field(coerce=True)
     solar_absorption: pdt.Series[float] = pa.Field(coerce=True)
     emissivity: pdt.Series[float] = pa.Field(coerce=True)
     electric_resistance_20: pdt.Series[float] = pa.Field(coerce=True)
@@ -95,6 +94,7 @@ class CableArrayInput(pa.DataFrameModel):
     )
     is_polynomial: pdt.Series[bool]
     radial_thermal_conductivity: pdt.Series[float] = pa.Field(coerce=True)
+    has_magnetic_heart: pdt.Series[bool]
 
 
 class WeatherArrayInput(pa.DataFrameModel):

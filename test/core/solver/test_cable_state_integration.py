@@ -146,7 +146,7 @@ def test_functions_to_solve__same_loads(
 )
 def test_functions_to_solve__different_weather(
     default_section_array_one_span: SectionArray,
-    cable_array_AM600: CableArray,
+    default_cable_array: CableArray,
     factory_neutral_weather_array: Callable[[int], WeatherArray],
     weather: dict,
     temperature: np.ndarray,
@@ -158,7 +158,7 @@ def test_functions_to_solve__different_weather(
 
     sag_tension_calculation = create_sag_tension_solver(
         default_section_array_one_span,
-        cable_array_AM600,
+        default_cable_array,
         initial_weather,
     )
     sag_tension_calculation.change_state(
@@ -177,7 +177,7 @@ def test_functions_to_solve__different_weather(
 
 def test_functions_to_solve__different_temp_ref(
     default_section_array_one_span: SectionArray,
-    cable_array_AM600: CableArray,
+    default_cable_array: CableArray,
     factory_neutral_weather_array: Callable[[int], WeatherArray],
 ) -> None:
     NB_SPAN = 2
@@ -186,7 +186,7 @@ def test_functions_to_solve__different_temp_ref(
 
     sag_tension_calculation_0 = create_sag_tension_solver(
         default_section_array_one_span,
-        cable_array_AM600,
+        default_cable_array,
         initial_weather_array,
     )
 
@@ -203,7 +203,7 @@ def test_functions_to_solve__different_temp_ref(
     assert T_h_state_0 is not None
     np.testing.assert_allclose(T_h_state_0, expected_result_0, atol=0.01)
 
-    new_cable_array = cable_array_AM600.__copy__()
+    new_cable_array = default_cable_array.__copy__()
     new_cable_array._data.temperature_reference = 0
 
     sag_tension_calculation_1 = create_sag_tension_solver(

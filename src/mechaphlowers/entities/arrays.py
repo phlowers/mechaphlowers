@@ -224,11 +224,11 @@ class CableArray(ElementArray):
         "section_heart",
         "section_conductor",
         "radial_thermal_conductivity",
-        "specific_heat_capacity",
         "solar_absorption",
         "emissivity",
         "electric_resistance_20",
         "linear_resistance_temperature_coef",
+        "has_magnetic_heart",
     ]
 
     def __init__(

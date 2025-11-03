@@ -28,7 +28,7 @@ def test_data_container__factory(
         cable_array_AM600,
         generic_weather_array_three_spans,
     )
-    expected_result_poly = Poly(np.array([0, 59e9, 0, 0, 0]))
+    expected_result_poly = Poly(np.array([0, 60e9, 0, 0, 0]))
 
     expected_result_arrays = {
         "support_name": np.array(["support 1", "2", "three", "support 4"]),
@@ -42,10 +42,10 @@ def test_data_container__factory(
         "wind_pressure": np.array([240.12, 0.0, 12.0, np.nan]),
     }
     expected_result_floats = {
-        "cable_section_area": np.float64(345.55e-6),
-        "diameter": np.float64(22.4e-3),
-        "linear_weight": np.float64(9.55494),
-        "young_modulus": np.float64(59e9),
+        "cable_section_area": np.float64(600.4e-6),
+        "diameter": np.float64(31.86e-3),
+        "linear_weight": np.float64(17.658),
+        "young_modulus": np.float64(60e9),
         "dilatation_coefficient": np.float64(23e-6),
         "temperature_reference": np.float64(15),
     }
