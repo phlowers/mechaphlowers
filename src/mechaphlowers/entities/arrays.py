@@ -189,10 +189,9 @@ class CableArray(ElementArray):
         "diameter_heart": "m",
         "section_conductor": "m^2",
         "section_heart": "m^2",
-        # "solar_absorption": "1",
-        # "emissivity": "1",
-        "electric_resistance_20": "Ohm.m**-1",
+        "electric_resistance_20": "ohm.m**-1",
         "linear_resistance_temperature_coef": "K**-1",
+        "radial_thermal_conductivity": "W.m**-1.K**-1",
     }
     mecha_attributes = [
         "section",
@@ -268,13 +267,11 @@ class CableArray(ElementArray):
     @property
     def data_mecha(self) -> pd.DataFrame:
         """Returns mechanical data for cable. These attributes are stored in mecha_attributes"""
-        # May return error if data is incomplete
         return self.data[self.mecha_attributes]
 
     @property
     def data_thermal(self) -> pd.DataFrame:
         """Returns thermal data for cable. These attributes are stored in thermal_attributes"""
-        # May return error if data is incomplete
         return self.data[self.thermal_attributes]
 
     @property
