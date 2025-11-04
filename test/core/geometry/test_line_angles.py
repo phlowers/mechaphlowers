@@ -14,8 +14,8 @@ from mechaphlowers.core.geometry.line_angles import (
     compute_span_azimuth,
     get_attachment_coords,
     get_edge_arm_coords,
-    get_elevation_diff_between_supports,
-    get_span_lengths_between_supports,
+    get_elevation_diff_between_attachments,
+    get_span_lengths_between_attachments,
     get_supports_coords,
     get_supports_ground_coords,
     get_supports_layer,
@@ -250,8 +250,8 @@ def test_span_lengths(section_array_line_angles):
         line_angle,
         insulator_length,
     )
-    new_span_length = get_span_lengths_between_supports(arm_coords)
-    new_altitude_diff = get_elevation_diff_between_supports(arm_coords)
+    new_span_length = get_span_lengths_between_attachments(arm_coords)
+    new_altitude_diff = get_elevation_diff_between_attachments(arm_coords)
 
     expected_span_length = np.array(
         [508.10969425, 484.69692488, 522.53577119, np.nan]

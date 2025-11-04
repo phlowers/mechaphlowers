@@ -243,7 +243,7 @@ class PlotEngine:
         )
 
     def get_spans_points(
-        self, frame=Literal["section", "localsection", "cable"]
+        self, frame: Literal["section", "localsection", "cable"]
     ) -> np.ndarray:
         return self.section_pts.get_spans(frame).points(True)
 
