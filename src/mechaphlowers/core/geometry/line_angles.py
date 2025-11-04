@@ -254,16 +254,17 @@ def get_supports_coords(
 
 
 class DisplacementVector:
-    """Class to store chain displacement, and change frame of displacement vector into the global frame 
-    """
-    def __init__(self, get_displacement: Callable, line_angle: np.ndarray) -> None:
+    """Class to store chain displacement, and change frame of displacement vector into the global frame"""
+
+    def __init__(
+        self, get_displacement: Callable, line_angle: np.ndarray
+    ) -> None:
         self.get_displacement = get_displacement
         self.line_angle = line_angle
         self.change_frame()
 
     def change_frame(self) -> None:
-        """Change frame of displacement vector from support frame to global frame
-        """
+        """Change frame of displacement vector from support frame to global frame"""
         line_angle_sums = np.cumsum(self.line_angle)
 
         temp_value = rotation_quaternion_same_axis(
@@ -350,8 +351,8 @@ class CablePlane:
 
     @property
     def angle_proj(self) -> np.ndarray:
-        """Azimuth angle: horizontal angle between 
-        the current span (chain and arm included) 
+        """Azimuth angle: horizontal angle between
+        the current span (chain and arm included)
         and the first line (the line between the first two supports)"""
         return compute_span_azimuth(self.attachment_coords)
 
