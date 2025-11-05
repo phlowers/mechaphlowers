@@ -109,17 +109,19 @@ def section_array_no_altitude_change() -> SectionArray:
 def test_element_sandbox(
     section_array_angles: SectionArray, cable_array_AM600: CableArray
 ):
-    section = BalanceEngine(
+    balance_engine = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=section_array_angles,
     )
-    section.solve_adjustment()
-    section.balance_model.L_ref
+    balance_engine.solve_adjustment()
+    balance_engine.balance_model.L_ref
 
     # section.sagging_temperature = 30
     # section.cable_loads.ice_thickness = np.array([1,1,1,1]) * 1e-2
-    section.balance_model.cable_loads.wind_pressure = np.array([200] * 4)
-    section.solve_change_state()
+    balance_engine.balance_model.cable_loads.wind_pressure = np.array(
+        [200] * 4
+    )
+    balance_engine.solve_change_state()
     assert True
 
 
@@ -127,10 +129,10 @@ def test_adjust_no_altitude_change(
     section_array_no_altitude_change: SectionArray,
     cable_array_AM600: CableArray,
 ):
-    section_3d_no_altitude_change = BalanceEngine(
+    be_no_altitude_change = BalanceEngine(
         cable_array_AM600, section_array_no_altitude_change
     )
-    section_3d_no_altitude_change.solve_adjustment()
+    be_no_altitude_change.solve_adjustment()
 
     expected_dx = np.array(
         [
@@ -148,22 +150,22 @@ def test_adjust_no_altitude_change(
     )
 
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dx,
+        be_no_altitude_change.balance_model.nodes.dx,
         expected_dx,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dy,
+        be_no_altitude_change.balance_model.nodes.dy,
         expected_dy,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dz,
+        be_no_altitude_change.balance_model.nodes.dz,
         expected_dz,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.L_ref,
+        be_no_altitude_change.balance_model.L_ref,
         expected_L_ref,
         atol=1e-4,
     )
@@ -172,8 +174,8 @@ def test_adjust_no_altitude_change(
 def test_adjust_simple(
     section_array_simple: SectionArray, cable_array_AM600: CableArray
 ):
-    section_3d_simple = BalanceEngine(cable_array_AM600, section_array_simple)
-    section_3d_simple.solve_adjustment()
+    balance_engine = BalanceEngine(cable_array_AM600, section_array_simple)
+    balance_engine.solve_adjustment()
     expected_dx = np.array(
         [
             2.98575572319031,
@@ -191,16 +193,16 @@ def test_adjust_simple(
     )
 
     np.testing.assert_allclose(
-        section_3d_simple.balance_model.nodes.dx, expected_dx, atol=1e-4
+        balance_engine.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_simple.balance_model.nodes.dy, expected_dy, atol=1e-4
+        balance_engine.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_simple.balance_model.nodes.dz, expected_dz, atol=1e-4
+        balance_engine.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_3d_simple.balance_model.L_ref, expected_L_ref, atol=1e-4
+        balance_engine.balance_model.L_ref, expected_L_ref, atol=1e-4
     )
 
 
@@ -226,10 +228,10 @@ def test_adjust_with_arm(cable_array_AM600: CableArray):
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
-    section_arm = BalanceEngine(
+    balance_engine_arm = BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
     )
-    section_arm.solve_adjustment()
+    balance_engine_arm.solve_adjustment()
     expected_dx = np.array(
         [
             2.98518900184611,
@@ -260,26 +262,26 @@ def test_adjust_with_arm(cable_array_AM600: CableArray):
     )
 
     np.testing.assert_allclose(
-        section_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
+        balance_engine_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
+        balance_engine_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
+        balance_engine_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
     np.testing.assert_allclose(
-        section_arm.balance_model.L_ref, expected_L_ref, atol=1e-4
+        balance_engine_arm.balance_model.L_ref, expected_L_ref, atol=1e-4
     )
 
 
 def test_adjust_with_angles(
     section_array_angles: SectionArray, cable_array_AM600: CableArray
 ):
-    section_3d_angles_arm = BalanceEngine(
+    balance_engine_angles_arm = BalanceEngine(
         cable_array_AM600, section_array_angles
     )
-    section_3d_angles_arm.solve_adjustment()
+    balance_engine_angles_arm.solve_adjustment()
     expected_dx = np.array(
         [
             2.98519820570843,
@@ -309,16 +311,24 @@ def test_adjust_with_angles(
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.L_ref, expected_L_ref, atol=1e-4
+        balance_engine_angles_arm.balance_model.L_ref,
+        expected_L_ref,
+        atol=1e-4,
     )
 
 
@@ -326,14 +336,12 @@ def test_wind_no_altitude_change(
     section_array_no_altitude_change: SectionArray,
     cable_array_AM600: CableArray,
 ):
-    section_3d_no_altitude_change = BalanceEngine(
+    be_no_altitude_change = BalanceEngine(
         cable_array_AM600, section_array_no_altitude_change
     )
-    section_3d_no_altitude_change.solve_adjustment()
+    be_no_altitude_change.solve_adjustment()
 
-    section_3d_no_altitude_change.solve_change_state(
-        wind_pressure=np.array([300] * 4)
-    )
+    be_no_altitude_change.solve_change_state(wind_pressure=np.array([300] * 4))
     expected_dx = np.array(
         [
             2.97140319423837,
@@ -391,27 +399,27 @@ def test_wind_no_altitude_change(
     )
 
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dx,
+        be_no_altitude_change.balance_model.nodes.dx,
         expected_dx,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dy,
+        be_no_altitude_change.balance_model.nodes.dy,
         expected_dy,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.nodes.dz,
+        be_no_altitude_change.balance_model.nodes.dz,
         expected_dz,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.vhl_under_chain().vhl_matrix.value,
+        be_no_altitude_change.balance_model.vhl_under_chain().vhl_matrix.value,
         expected_vhl_under_chain,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_no_altitude_change.balance_model.vhl_under_console().vhl_matrix.value,
+        be_no_altitude_change.balance_model.vhl_under_console().vhl_matrix.value,
         expected_vhl_under_console,
         atol=1e-4,
     )
@@ -440,14 +448,14 @@ def test_wind(cable_array_AM600: CableArray):
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
-    section = BalanceEngine(
+    balance_engine = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
 
-    section.solve_adjustment()
+    balance_engine.solve_adjustment()
 
-    section.solve_change_state(wind_pressure=np.array([200] * 4))
+    balance_engine.solve_change_state(wind_pressure=np.array([200] * 4))
     expected_dx = np.array(
         [
             2.95577748400265,
@@ -474,25 +482,25 @@ def test_wind(cable_array_AM600: CableArray):
     )
 
     np.testing.assert_allclose(
-        section.balance_model.nodes.dx, expected_dx, atol=1e-4
+        balance_engine.balance_model.nodes.dx, expected_dx, atol=1e-4
     )
     np.testing.assert_allclose(
-        section.balance_model.nodes.dy, expected_dy, atol=1e-4
+        balance_engine.balance_model.nodes.dy, expected_dy, atol=1e-4
     )
     np.testing.assert_allclose(
-        section.balance_model.nodes.dz, expected_dz, atol=1e-4
+        balance_engine.balance_model.nodes.dz, expected_dz, atol=1e-4
     )
 
 
 def test_temperature(
     section_array_angles: SectionArray, cable_array_AM600: CableArray
 ):
-    section_3d_angles_arm = BalanceEngine(
+    balance_engine_angles_arm = BalanceEngine(
         cable_array_AM600, section_array_angles
     )
-    section_3d_angles_arm.solve_adjustment()
+    balance_engine_angles_arm.solve_adjustment()
 
-    section_3d_angles_arm.solve_change_state(
+    balance_engine_angles_arm.solve_change_state(
         new_temperature=np.array([90.0] * 4)
     )
     expected_dx = np.array(
@@ -520,25 +528,31 @@ def test_temperature(
         ]
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
     )
 
 
 def test_ice(
     section_array_angles: SectionArray, cable_array_AM600: CableArray
 ):
-    section_3d_angles_arm = BalanceEngine(
+    balance_engine_angles_arm = BalanceEngine(
         cable_array_AM600, section_array_angles
     )
-    section_3d_angles_arm.solve_adjustment()
+    balance_engine_angles_arm.solve_adjustment()
 
-    section_3d_angles_arm.solve_change_state(
+    balance_engine_angles_arm.solve_change_state(
         ice_thickness=np.array([1, 1, 1, 1]) * 1e-2
     )
     expected_dx = np.array(
@@ -567,13 +581,19 @@ def test_ice(
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
     )
 
 
@@ -600,14 +620,14 @@ def test_load_all_spans(cable_array_AM600: CableArray):
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
-    section_3d_angles_arm = BalanceEngine(
+    balance_engine_angles_arm = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
 
-    section_3d_angles_arm.solve_adjustment()
+    balance_engine_angles_arm.solve_adjustment()
 
-    section_3d_angles_arm.solve_change_state()
+    balance_engine_angles_arm.solve_change_state()
 
     expected_dx = np.array(
         [
@@ -635,13 +655,19 @@ def test_load_all_spans(cable_array_AM600: CableArray):
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
     )
 
 
@@ -668,16 +694,16 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
-    section_3d_angles_arm = BalanceEngine(
+    balance_engine_angles_arm = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
 
-    section_3d_angles_arm.solve_adjustment()
+    balance_engine_angles_arm.solve_adjustment()
     new_temperature = np.array([30] * 4)
     ice_thickness = np.array([1] * 4) * 1e-2
     wind_pressure = np.array([500] * 4)
-    section_3d_angles_arm.solve_change_state(
+    balance_engine_angles_arm.solve_change_state(
         wind_pressure, ice_thickness, new_temperature
     )
 
@@ -707,13 +733,19 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
     )
 
 
@@ -741,14 +773,14 @@ def test_load_one_span(cable_array_AM600: CableArray):
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
-    section_3d_angles_arm = BalanceEngine(
+    balance_engine_angles_arm = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
 
-    section_3d_angles_arm.solve_adjustment()
+    balance_engine_angles_arm.solve_adjustment()
 
-    section_3d_angles_arm.solve_change_state()
+    balance_engine_angles_arm.solve_change_state()
 
     expected_dx = np.array(
         [
@@ -776,13 +808,19 @@ def test_load_one_span(cable_array_AM600: CableArray):
     )
 
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dx, expected_dx, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dy, expected_dy, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
     )
     np.testing.assert_allclose(
-        section_3d_angles_arm.balance_model.nodes.dz, expected_dz, atol=1e-4
+        balance_engine_angles_arm.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
     )
 
 
