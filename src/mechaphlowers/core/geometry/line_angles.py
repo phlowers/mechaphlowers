@@ -336,7 +336,7 @@ class CablePlane:
         return self.b_chain * np.cos(self.beta)
 
     @property
-    def angle_proj(self) -> np.ndarray:
+    def azimuth_angle(self) -> np.ndarray:
         return compute_span_azimuth(self.attachment_coords)
 
     @property

@@ -225,3 +225,41 @@ def test_plot_ice(balance_engine_base_test: BalanceEngine):
         )
         == 2
     )
+
+
+def test_plot_2d(balance_engine_angles: BalanceEngine):
+    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    balance_engine_angles.solve_adjustment()
+    balance_engine_angles.solve_change_state(
+        new_temperature=15 * np.array([1, 1, 1, 1])
+    )
+    fig = go.Figure()
+    # plt_line.preview_line2d(fig)
+    # balance_engine_base_test.solve_adjustment()
+    balance_engine_angles.solve_change_state(
+        wind_pressure=np.array([1, 1, 1, np.nan]) * 200,
+        # new_temperature=90 * np.array([1, 1, 1]),
+    )
+
+    plt_line.preview_line2d(fig, "profile", 1)
+
+    # fig.show()  # deactivate for auto unit testing
+
+
+def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
+    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    balance_engine_angles.solve_adjustment()
+    balance_engine_angles.solve_change_state(
+        new_temperature=15 * np.array([1, 1, 1, 1])
+    )
+    fig = go.Figure()
+    # plt_line.preview_line2d(fig)
+    # balance_engine_base_test.solve_adjustment()
+    balance_engine_angles.solve_change_state(
+        wind_pressure=np.array([1, 1, 1, np.nan]) * 200,
+        # new_temperature=90 * np.array([1, 1, 1]),
+    )
+
+    plt_line.preview_line3d(fig)
+
+    # fig.show()  # deactivate for auto unit testing

@@ -14,6 +14,7 @@ from mechaphlowers.core.geometry.line_angles import (
 from mechaphlowers.core.geometry.references import (
     cable_to_beta_plane,
     cable_to_localsection_frame,
+    project_coords,
     translate_cable_to_support_from_attachments,
 )
 from mechaphlowers.core.models.cable.span import ISpan
@@ -413,7 +414,7 @@ class SectionPoints:
         """Get spans as vectors in the localsection frame."""
         x_span, y_span, z_span = self.span_in_cable_frame()
         x_span, y_span, z_span = cable_to_localsection_frame(
-            x_span, y_span, z_span, self.plane.angle_proj[:-1]
+            x_span, y_span, z_span, self.plane.azimuth_angle[:-1]
         )
         return x_span, y_span, z_span
 
@@ -476,3 +477,55 @@ class SectionPoints:
             self.get_attachments_coords(),
         )
         return Points.from_coords(insulator_layers)
+
+    def get_points_for_plot(self, project=False, frame_index=1):
+        spans_points = self.get_spans("section")
+        supports_points = self.get_supports()
+        insulators_points = self.get_insulators()
+        if project:
+            spans_points, supports_points, insulators_points = (
+                self.project_to_selected_frame(
+                    spans_points,
+                    supports_points,
+                    insulators_points,
+                    frame_index,
+                )
+            )
+        return spans_points, supports_points, insulators_points
+
+    def project_to_selected_frame(
+        self,
+        spans_points: Points,
+        supports_points: Points,
+        insulators_points: Points,
+        frame_index: int,
+    ):
+        # angle_to_project =  self.plane.azimuth_angle[frame_index]
+        angle_to_project = -np.cumsum(self.line_angle)[frame_index]
+        translation_vector = -supports_points.coords[frame_index, 0]
+
+        spans_points.coords = spans_points.coords + translation_vector
+        supports_points.coords = supports_points.coords + translation_vector
+        insulators_points.coords = (
+            insulators_points.coords + translation_vector
+        )
+
+        x_span, y_span, z_span = spans_points.vectors
+        x_supports, y_supports, z_supports = supports_points.vectors
+        x_insulators, y_insulators, z_insulators = insulators_points.vectors
+
+        x_span, y_span = project_coords(x_span, y_span, angle_to_project)
+        x_supports, y_supports = project_coords(
+            x_supports, y_supports, angle_to_project
+        )
+        x_insulators, y_insulators = project_coords(
+            x_insulators, y_insulators, angle_to_project
+        )
+
+        new_span = Points.from_vectors(x_span, y_span, z_span)
+        new_supports = Points.from_vectors(x_supports, y_supports, z_supports)
+        new_insulators = Points.from_vectors(
+            x_insulators, y_insulators, z_insulators
+        )
+
+        return new_span, new_supports, new_insulators
