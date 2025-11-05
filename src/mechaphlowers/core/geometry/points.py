@@ -501,7 +501,7 @@ class SectionPoints:
         frame_index: int,
     ):
         # angle_to_project =  self.plane.azimuth_angle[frame_index]
-        angle_to_project = -np.cumsum(self.line_angle)[frame_index]
+        angle_to_project = np.cumsum(self.line_angle)[frame_index]
         translation_vector = -supports_points.coords[frame_index, 0]
 
         new_span = self.change_frame(

@@ -119,8 +119,8 @@ def project_coords(
     x1: np.ndarray, y1: np.ndarray, azimuth_angle: np.float64
 ) -> Tuple[np.ndarray, np.ndarray]:
     # formula specifically if frame 1 is rotated from frame 0 with angle azimuth_angle
-    x0 = np.cos(azimuth_angle) * x1 - np.sin(azimuth_angle) * y1
-    y0 = np.sin(azimuth_angle) * x1 + np.cos(azimuth_angle) * y1
+    x0 = np.cos(azimuth_angle) * x1 + np.sin(azimuth_angle) * y1
+    y0 = -np.sin(azimuth_angle) * x1 + np.cos(azimuth_angle) * y1
     return x0, y0
 
 

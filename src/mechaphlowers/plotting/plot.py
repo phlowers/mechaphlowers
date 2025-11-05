@@ -307,14 +307,6 @@ class PlotEngine:
             ValueError: view is not an expected value
         """
 
-        # view_map = {"full": True, "analysis": False}
-
-        # try:
-        #     _auto = view_map[view]
-        # except KeyError:
-        #     raise ValueError(
-        #         f"{view=} : this argument has to be set to 'full' or 'analysis'"
-        #     )
         span, supports, insulators = self.section_pts.get_points_for_plot(
             project=True, frame_index=frame_index
         )
@@ -340,7 +332,6 @@ class PlotEngine:
             name="Insulators",
             view=view,
         )
-        # set_layout(fig, auto=_auto)
 
 
 class PlotAccessor:
