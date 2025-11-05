@@ -168,7 +168,9 @@ def test_plot_support_shape():
 
 
 def test_reactive_plot(balance_engine_base_test: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_base_test
+    )
     balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
@@ -196,12 +198,16 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
 
 
 def test_plot_ice(balance_engine_base_test: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_base_test
+    )
     balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
     )
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_base_test
+    )
     fig = go.Figure()
     plt_engine.preview_line3d(fig)
     # balance_engine_base_test.solve_adjustment()
@@ -210,7 +216,9 @@ def test_plot_ice(balance_engine_base_test: BalanceEngine):
         # new_temperature=90 * np.array([1, 1, 1]),
     )
 
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_base_test
+    )
 
     plt_engine.preview_line3d(fig)
 
