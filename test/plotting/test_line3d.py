@@ -66,10 +66,10 @@ def test_plot_line3d__all_line(
     balance_engine_local_test: BalanceEngine,
 ) -> None:
     fig = go.Figure()
-    plt_line = PlotEngine.builder_from_balance_engine(
+    plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_local_test
     )
-    plt_line.preview_line3d(fig)
+    plt_engine.preview_line3d(fig)
     # fig.show()  # deactivate for auto unit testing
     assert (
         len(
@@ -88,10 +88,10 @@ def test_plot_line3d__view_option(
     balance_engine_local_test: BalanceEngine,
 ) -> None:
     fig = go.Figure()
-    plt_line = PlotEngine.builder_from_balance_engine(
+    plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_local_test
     )
-    plt_line.preview_line3d(fig, view="analysis")
+    plt_engine.preview_line3d(fig, view="analysis")
     # fig.show()
     assert (
         len(
@@ -110,14 +110,14 @@ def test_plot_line3d__wrong_view_option(
     balance_engine_local_test: BalanceEngine,
 ) -> None:
     fig = go.Figure()
-    plt_line = PlotEngine.builder_from_balance_engine(
+    plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_local_test
     )
-    plt_line.preview_line3d(fig)
+    plt_engine.preview_line3d(fig)
     with pytest.raises(ValueError):
-        plt_line.preview_line3d(fig, view="wrong_parameter")  # type: ignore[arg-type]
+        plt_engine.preview_line3d(fig, view="wrong_parameter")  # type: ignore[arg-type]
     with pytest.raises(ValueError):
-        plt_line.preview_line3d(fig, view=22)  # type: ignore[arg-type]
+        plt_engine.preview_line3d(fig, view=22)  # type: ignore[arg-type]
 
 
 def test_plot_line3d__with_beta(balance_engine_local_test: BalanceEngine):
@@ -126,11 +126,11 @@ def test_plot_line3d__with_beta(balance_engine_local_test: BalanceEngine):
         wind_pressure=np.array([240.12, 0.0, 600.0, np.nan]),
     )
 
-    plt_line = PlotEngine.builder_from_balance_engine(
+    plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_local_test
     )
     fig = go.Figure()
-    plt_line.preview_line3d(fig)
+    plt_engine.preview_line3d(fig)
     # fig.show() # deactivate for auto unit testing
     assert (
         len(
@@ -168,18 +168,18 @@ def test_plot_support_shape():
 
 
 def test_reactive_plot(balance_engine_base_test: BalanceEngine):
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
     balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
     )
     fig = go.Figure()
-    plt_line.preview_line3d(fig)
+    plt_engine.preview_line3d(fig)
     balance_engine_base_test.solve_change_state(
         wind_pressure=1000 * np.array([1, 1, 1, np.nan]),
     )
 
-    plt_line.preview_line3d(fig)
+    plt_engine.preview_line3d(fig)
 
     assert (
         len(
@@ -196,23 +196,23 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
 
 
 def test_plot_ice(balance_engine_base_test: BalanceEngine):
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
     balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
     )
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
     fig = go.Figure()
-    plt_line.preview_line3d(fig)
+    plt_engine.preview_line3d(fig)
     # balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(
         ice_thickness=np.array([1, 1, 1, np.nan]) * 1,
         # new_temperature=90 * np.array([1, 1, 1]),
     )
 
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
 
-    plt_line.preview_line3d(fig)
+    plt_engine.preview_line3d(fig)
 
     # fig.show()  # deactivate for auto unit testing
     assert (
@@ -234,7 +234,7 @@ def test_plot_2d(balance_engine_angles: BalanceEngine):
         new_temperature=15 * np.array([1, 1, 1, 1])
     )
 
-    # plt_line.preview_line2d(fig)
+    # plt_engine.preview_line2d(fig)
     # balance_engine_base_test.solve_adjustment()
     balance_engine_angles.solve_change_state(
         wind_pressure=np.array([1, 1, 1, np.nan]) * 200,
@@ -251,19 +251,19 @@ def test_plot_2d(balance_engine_angles: BalanceEngine):
 
 
 def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
     balance_engine_angles.solve_adjustment()
     balance_engine_angles.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
     )
     fig = go.Figure()
-    # plt_line.preview_line2d(fig)
+    # plt_engine.preview_line2d(fig)
     # balance_engine_base_test.solve_adjustment()
     balance_engine_angles.solve_change_state(
         wind_pressure=np.array([1, 1, 1, np.nan]) * 200,
         # new_temperature=90 * np.array([1, 1, 1]),
     )
 
-    plt_line.preview_line3d(fig)
+    plt_engine.preview_line3d(fig)
 
     # fig.show()  # deactivate for auto unit testing
