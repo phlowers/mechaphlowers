@@ -121,7 +121,7 @@ def plot_points_2d(
         size = cfg.graphics.marker_size
     v_coords = points[:, 2]
     if view == "line":
-        h_coords = -points[:, 1]
+        h_coords = points[:, 1]
     else:
         h_coords = points[:, 0]
 
@@ -281,11 +281,13 @@ class PlotEngine:
                 f"{view=} : this argument has to be set to 'full' or 'analysis'"
             )
 
-        plot_line(fig, self.section_pts.get_spans("section").points(True))
+        span, supports, insulators = self.section_pts.get_points_for_plot(
+            project=False
+        )
 
-        plot_support(fig, self.section_pts.get_supports().points(True))
-
-        plot_insulator(fig, self.section_pts.get_insulators().points(True))
+        plot_line(fig, span.points(True))
+        plot_support(fig, supports.points(True))
+        plot_insulator(fig, insulators.points(True))
 
         set_layout(fig, auto=_auto)
 

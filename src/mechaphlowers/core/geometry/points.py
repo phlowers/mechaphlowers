@@ -478,7 +478,7 @@ class SectionPoints:
         )
         return Points.from_coords(insulator_layers)
 
-    def get_points_for_plot(self, project=False, frame_index=1):
+    def get_points_for_plot(self, project=False, frame_index=0):
         spans_points = self.get_spans("section")
         supports_points = self.get_supports()
         insulators_points = self.get_insulators()
@@ -504,28 +504,27 @@ class SectionPoints:
         angle_to_project = -np.cumsum(self.line_angle)[frame_index]
         translation_vector = -supports_points.coords[frame_index, 0]
 
-        spans_points.coords = spans_points.coords + translation_vector
-        supports_points.coords = supports_points.coords + translation_vector
-        insulators_points.coords = (
-            insulators_points.coords + translation_vector
+        new_span = self.change_frame(
+            spans_points, angle_to_project, translation_vector
         )
-
-        x_span, y_span, z_span = spans_points.vectors
-        x_supports, y_supports, z_supports = supports_points.vectors
-        x_insulators, y_insulators, z_insulators = insulators_points.vectors
-
-        x_span, y_span = project_coords(x_span, y_span, angle_to_project)
-        x_supports, y_supports = project_coords(
-            x_supports, y_supports, angle_to_project
+        new_supports = self.change_frame(
+            supports_points, angle_to_project, translation_vector
         )
-        x_insulators, y_insulators = project_coords(
-            x_insulators, y_insulators, angle_to_project
-        )
-
-        new_span = Points.from_vectors(x_span, y_span, z_span)
-        new_supports = Points.from_vectors(x_supports, y_supports, z_supports)
-        new_insulators = Points.from_vectors(
-            x_insulators, y_insulators, z_insulators
+        new_insulators = self.change_frame(
+            insulators_points, angle_to_project, translation_vector
         )
 
         return new_span, new_supports, new_insulators
+
+    # convert to function? self unused
+    def change_frame(
+        self,
+        points: Points,
+        angle_to_project: np.float64,
+        translation_vector: np.ndarray,
+    ) -> Points:
+        points.coords = points.coords + translation_vector
+        x, y, z = points.vectors
+        x, y = project_coords(x, y, angle_to_project)
+        # invert y axis to get more natural view
+        return Points.from_vectors(x, -y, z)
