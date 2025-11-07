@@ -156,7 +156,7 @@ def get_attachment_coords(
 
     Args:
         edge_arm_coords (np.ndarray): coordinates of the edge of the arms (output of `get_edge_arm_coords()`)
-        conductor_attachment_altitude (np.ndarray): attachment altitude (input from SectionArray)
+        displacement_vector (np.ndarray): displacement vector of the chains (output of BalanceEngine.change_state())
 
     Returns:
         np.ndarray: coordinates of the attachment points in the global frame.
@@ -196,10 +196,10 @@ def get_insulator_layer(
     )
 
 
-def get_span_lengths_between_supports(
+def get_span_lengths_between_attachments(
     attachment_coords: np.ndarray,
 ) -> np.ndarray:
-    """Get the lengths between the supports."""
+    """Get the lengths between the attachment points."""
     attachment_coords_x_y = attachment_coords[
         :, :2
     ]  # Keep only x and y coordinates
@@ -212,10 +212,10 @@ def get_span_lengths_between_supports(
     return lengths
 
 
-def get_elevation_diff_between_supports(
+def get_elevation_diff_between_attachments(
     attachment_coords: np.ndarray,
 ) -> np.ndarray:
-    """Get the elevation differences between the supports."""
+    """Get the elevation differences between attachment points."""
     attachment_coords_z = attachment_coords[:, 2]  # Keep only z coordinates
     # Calculate the altitude differences between consecutive attachment points
     # warning: this is right minus left (z_N - z_M in the span notation)
@@ -254,12 +254,17 @@ def get_supports_coords(
 
 
 class DisplacementVector:
-    def __init__(self, get_displacement: Callable, line_angle: np.ndarray):
+    """Class to store chain displacement, and change frame of displacement vector into the global frame"""
+
+    def __init__(
+        self, get_displacement: Callable, line_angle: np.ndarray
+    ) -> None:
         self.get_displacement = get_displacement
         self.line_angle = line_angle
         self.change_frame()
 
     def change_frame(self) -> None:
+        """Change frame of displacement vector from support frame to global frame"""
         line_angle_sums = np.cumsum(self.line_angle)
 
         temp_value = rotation_quaternion_same_axis(
@@ -276,6 +281,13 @@ class DisplacementVector:
 
     @property
     def dxdydz_global_frame(self) -> np.ndarray:
+        """Returns displacement vector dxdydz in the global frame.
+
+        Format: `[[dx0, dy0, dz0], [dx1, dy1, dz1], ...]`
+
+        Returns:
+            np.ndarray: displacement vector in the global frame
+        """
         self.change_frame()
         return self._dxdydz_global_frame
 
@@ -308,7 +320,7 @@ class CablePlane:
 
     @property
     def attachment_coords(self) -> np.ndarray:
-        return self.get_attachments_coords()  # type: ignore
+        return self.get_attachments_coords()
 
     @property
     def b(self):
@@ -317,26 +329,31 @@ class CablePlane:
 
     @property
     def a_chain(self) -> np.ndarray:
-        return get_span_lengths_between_supports(self.attachment_coords)
+        """Span length, taking into account arm, line angles and chain"""
+        return get_span_lengths_between_attachments(self.attachment_coords)
 
     @property
     def b_chain(self) -> np.ndarray:
-        return get_elevation_diff_between_supports(self.attachment_coords)
+        """Elevation difference, taking into account arm, line angles and chain"""
+        return get_elevation_diff_between_attachments(self.attachment_coords)
 
     @property
     def a_prime(self) -> np.ndarray:
-        """Span length after wind angle into taking account"""
+        """Span length after taking wind angle into account"""
         return (
             self.a_chain**2 + self.b_chain**2 * np.sin(self.beta) ** 2
         ) ** 0.5
 
     @property
     def b_prime(self) -> np.ndarray:
-        """Elevation difference after wind angle into taking account"""
+        """Elevation difference after taking wind angle into account"""
         return self.b_chain * np.cos(self.beta)
 
     @property
     def angle_proj(self) -> np.ndarray:
+        """Azimuth angle: horizontal angle between
+        the current span (chain and arm included)
+        and the first line (the line between the first two supports)"""
         return compute_span_azimuth(self.attachment_coords)
 
     @property
