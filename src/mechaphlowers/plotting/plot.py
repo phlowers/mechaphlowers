@@ -25,6 +25,43 @@ from mechaphlowers.config import options as cfg
 logger = logging.getLogger(__name__)
 
 
+def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
+    """create_figure creates a plotly figure
+
+    Returns:
+        go.Figure: plotly figure
+    """
+    fig = go.Figure()
+    if context == "std":
+        fig.update_layout(
+            autosize=True,
+            height=800,
+            width=1400,
+            scene=dict(
+                xaxis=dict(
+                    backgroundcolor="lightgrey",
+                    gridcolor="dimgray",
+                ),
+                yaxis=dict(
+                    backgroundcolor="lightgrey",
+                    gridcolor="dimgray",
+                ),
+                zaxis=dict(
+                    backgroundcolor="lightgrey",
+                    gridcolor="dimgray",
+                ),
+            ),
+            scene_camera=dict(eye=dict(x=0.9, y=0.1, z=-0.1)),
+        )
+    elif context == "blank":
+        pass
+    else:
+        raise ValueError(
+            f"Unknown context: {context} try 'blank' or 'jupyter'"
+        )
+    return fig
+
+
 def plot_text_3d(
     fig: go.Figure,
     points: np.ndarray,
@@ -153,9 +190,9 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
     auto = bool(auto)
     aspect_mode: str = "data" if auto else "manual"
     zoom: float = (
-        0.1 if auto else 1
+        1 if auto else 5
     )  # perhaps this approx of the zoom will not be adequate for all cases
-    aspect_ratio = {'x': 1, 'y': 0.05, 'z': 0.5}
+    aspect_ratio = {'x': 1, 'y': 0.5, 'z': 0.5}
 
     fig.update_layout(
         scene={
@@ -163,7 +200,7 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
             'aspectmode': aspect_mode,
             'camera': {
                 'up': {'x': 0, 'y': 0, 'z': 1},
-                'eye': {'x': 0, 'y': -1 / zoom, 'z': 0},
+                'eye': {'x': -0.5, 'y': -5 / zoom, 'z': 2 / zoom},
             },
         }
     )

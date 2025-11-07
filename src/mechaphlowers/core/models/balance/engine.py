@@ -72,6 +72,12 @@ class BalanceEngine:
         deformation_model_type (Type[IDeformation], optional): Deformation model to use. Defaults to DeformationRte.
     """
 
+    default_value = {
+        "wind_pressure": 0.0,
+        "ice_thickness": 0.0,
+        "new_temperature": 15.0,
+    }
+
     def __init__(
         self,
         cable_array: CableArray,
@@ -145,18 +151,18 @@ class BalanceEngine:
 
     def solve_change_state(
         self,
-        wind_pressure: np.ndarray | None = None,
-        ice_thickness: np.ndarray | None = None,
-        new_temperature: np.ndarray | None = None,
+        wind_pressure: np.ndarray | float | None = None,
+        ice_thickness: np.ndarray | float | None = None,
+        new_temperature: np.ndarray | float | None = None,
     ) -> None:
         """Solve the chain positions, for a case of change of state.
         Updates weather conditions and/or sagging temperature if provided.
         Takes into account loads if any.
 
         Args:
-            wind_pressure (np.ndarray | None, optional): new wind pressure, in Pa. Defaults to None.
-            ice_thickness (np.ndarray | None, optional): new ice thickness, in m. Defaults to None.
-            new_temperature (np.ndarray | None, optional): new temperature. Defaults to None.
+            wind_pressure (np.ndarray | float | None): Wind pressure in Pa. Default to None
+            ice_thickness (np.ndarray | float | None): Ice thickness in m. Default to None
+            new_temperature (np.ndarray | float | None): New temperature in °C. Default to None
 
         After running this method, many attributes are updated.
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
@@ -168,26 +174,34 @@ class BalanceEngine:
 
         span_shape = self.section_array.data.span_length.shape
 
-        if wind_pressure is not None:
-            if wind_pressure.shape != span_shape:
-                raise AttributeError(
-                    f"wind_pressure has incorrect shape: {span_shape} is expected, recieved {wind_pressure.shape}"
-                )
-            self.balance_model.cable_loads.wind_pressure = wind_pressure
+        def validate_input(input_value, name: str):
+            if input_value is not None and not isinstance(
+                input_value, (float, np.ndarray)
+            ):
+                raise TypeError(f"{name} has incorrect type")
+            if input_value is None:
+                input_value = self.default_value[name]
+            if isinstance(input_value, float):
+                input_value = np.full(span_shape, input_value)
+            if isinstance(input_value, np.ndarray):
+                if input_value.shape != span_shape:
+                    raise ValueError(
+                        f"{name} has incorrect shape: {span_shape} is expected, recieved {input_value.shape}"
+                    )
+
+            return input_value
+
+        self.balance_model.cable_loads.wind_pressure = validate_input(
+            wind_pressure, "wind_pressure"
+        )
         # TODO: convert ice thickness from cm to m? Right now, user has to input in m
-        if ice_thickness is not None:
-            if ice_thickness.shape != span_shape:
-                raise AttributeError(
-                    f"ice_thickness has incorrect shape: {span_shape} is expected, recieved {ice_thickness.shape}"
-                )
-            self.balance_model.cable_loads.ice_thickness = ice_thickness
-        if new_temperature is not None:
-            if new_temperature.shape != span_shape:
-                raise AttributeError(
-                    f"new_temperature has incorrect shape: {span_shape} is expected, recieved {new_temperature.shape}"
-                )
-            self.balance_model.sagging_temperature = arr.decr(new_temperature)
-            self.deformation_model.current_temperature = new_temperature
+        self.balance_model.cable_loads.ice_thickness = validate_input(
+            ice_thickness, "ice_thickness"
+        )
+
+        new_t = validate_input(new_temperature, "new_temperature")
+        self.balance_model.sagging_temperature = arr.decr(new_t)
+        self.deformation_model.current_temperature = new_t
 
         # check if adjustment has been done before
         try:
