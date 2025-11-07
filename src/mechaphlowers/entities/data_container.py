@@ -86,32 +86,34 @@ class DataContainer:
 
         if len(cable_array.data.section) != 1:
             raise NotImplementedError("CableArray should only contain one row")
-        self.cable_section_area = cable_array.data.section[0]
-        self.diameter = cable_array.data.diameter[0]
-        self.linear_weight = cable_array.data.linear_weight[0]
-        self.young_modulus = cable_array.data.young_modulus[0]
-        self.dilatation_coefficient = cable_array.data.dilatation_coefficient[
-            0
-        ]
-        self.temperature_reference = cable_array.data.temperature_reference[0]
+        self.cable_section_area = cable_array.data.section.iloc[0]
+        self.diameter = cable_array.data.diameter.iloc[0]
+        self.linear_weight = cable_array.data.linear_weight.iloc[0]
+        self.young_modulus = cable_array.data.young_modulus.iloc[0]
+        self.dilatation_coefficient = (
+            cable_array.data.dilatation_coefficient.iloc[0]
+        )
+        self.temperature_reference = (
+            cable_array.data.temperature_reference.iloc[0]
+        )
 
         self.polynomial_conductor = Poly(
             [
-                cable_array.data.a0[0],
-                cable_array.data.a1[0],
-                cable_array.data.a2[0],
-                cable_array.data.a3[0],
-                cable_array.data.a4[0],
+                cable_array.data.a0.iloc[0],
+                cable_array.data.a1.iloc[0],
+                cable_array.data.a2.iloc[0],
+                cable_array.data.a3.iloc[0],
+                cable_array.data.a4.iloc[0],
             ]
         )
 
         self.polynomial_heart = Poly(
             [
-                cable_array.data.b0[0],
-                cable_array.data.b1[0],
-                cable_array.data.b2[0],
-                cable_array.data.b3[0],
-                cable_array.data.b4[0],
+                cable_array.data.b0.iloc[0],
+                cable_array.data.b1.iloc[0],
+                cable_array.data.b2.iloc[0],
+                cable_array.data.b3.iloc[0],
+                cable_array.data.b4.iloc[0],
             ]
         )
 

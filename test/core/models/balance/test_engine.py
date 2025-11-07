@@ -17,32 +17,6 @@ from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 @fixture
-def cable_array_AM600() -> CableArray:
-    return CableArray(
-        pd.DataFrame(
-            {
-                "section": [600.4],
-                "diameter": [31.86],
-                "linear_mass": [1.8],
-                "young_modulus": [60],
-                "dilatation_coefficient": [23],
-                "temperature_reference": [15],
-                "a0": [0],
-                "a1": [60],
-                "a2": [0],
-                "a3": [0],
-                "a4": [0],
-                "b0": [0],
-                "b1": [0],
-                "b2": [0],
-                "b3": [0],
-                "b4": [0],
-            }
-        )
-    )
-
-
-@fixture
 def balance_engine_simple(cable_array_AM600: CableArray) -> BalanceEngine:
     section_array = SectionArray(
         pd.DataFrame(

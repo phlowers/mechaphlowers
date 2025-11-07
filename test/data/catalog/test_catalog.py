@@ -376,9 +376,7 @@ def test_write_yaml_catalog_template_str_path(tmp_path):
     assert expected_file.exists()
 
 
-def test_catalog_cable_array_units_df() -> None:
-    cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
-
+def test_catalog_cable_array_units_aster(cable_array_AM600) -> None:
     expected_result_SI_units = pd.DataFrame(
         {
             "section": [600.4e-6],
@@ -398,19 +396,67 @@ def test_catalog_cable_array_units_df() -> None:
             "b2": [0.0],
             "b3": [0.0],
             "b4": [0.0],
+            "diameter_heart": [0.0],
+            "section_conductor": [600.4e-6],
+            "section_heart": [0.0],
+            "solar_absorption": [0.9],
+            "emissivity": [0.8],
+            "electric_resistance_20": [0.0554],
+            "linear_resistance_temperature_coef": [0.0036],
+            "is_polynomial": [False],
+            "radial_thermal_conductivity": [1.0],
+            "has_magnetic_heart": [False],
         }
     )
     assert_frame_equal(
-        cable_array.data.reset_index(drop=True),
+        cable_array_AM600.data.reset_index(drop=True),
         expected_result_SI_units,
         check_like=True,
         atol=1e-07,
     )
 
 
-def test_catalog_cable_array_units_object() -> None:
-    cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
+def test_catalog_cable_array_units_narcisse(cable_array_NARCISSE600G) -> None:
+    expected_result_SI_units = pd.DataFrame(
+        {
+            "section": [600.4e-6],
+            "diameter": [29.56e-3],
+            "linear_weight": [2.2 * 9.81],
+            "linear_mass": [2.2],
+            "young_modulus": [75565e6],
+            "dilatation_coefficient": [17.7e-6],
+            "temperature_reference": [15.0],
+            "a0": [0.0],
+            "a1": [27804e6],
+            "a2": [-6590391e6],
+            "a3": [672009160e6],
+            "a4": [-24561975349e6],
+            "b0": [0.0],
+            "b1": [33140e6],
+            "b2": [0.0],
+            "b3": [0.0],
+            "b4": [0.0],
+            "diameter_heart": [13.8e-3],
+            "section_conductor": [486.7e-6],
+            "section_heart": [113.7e-6],
+            "solar_absorption": [0.9],
+            "emissivity": [0.8],
+            "electric_resistance_20": [0.0593],
+            "linear_resistance_temperature_coef": [0.004],
+            "is_polynomial": [True],
+            "radial_thermal_conductivity": [1.0],
+            "has_magnetic_heart": [False],
+        }
+    )
+    assert_frame_equal(
+        cable_array_NARCISSE600G.data.reset_index(drop=True),
+        expected_result_SI_units,
+        check_like=True,
+        atol=1e-07,
+    )
 
+
+def test_catalog_correct_array(cable_array_AM600) -> None:
     cable_array_original = CableArray(
         pd.DataFrame(
             {
@@ -430,12 +476,22 @@ def test_catalog_cable_array_units_object() -> None:
                 "b2": [0],
                 "b3": [0],
                 "b4": [0],
+                "diameter_heart": [0.0],
+                "section_conductor": [600.4],
+                "section_heart": [0.0],
+                "solar_absorption": [0.9],
+                "emissivity": [0.8],
+                "electric_resistance_20": [0.0554],
+                "linear_resistance_temperature_coef": [0.0036],
+                "is_polynomial": [False],
+                "radial_thermal_conductivity": [1.0],
+                "has_magnetic_heart": [False],
             }
         )
     )
 
     assert_frame_equal(
-        cable_array.data.reset_index(drop=True),
+        cable_array_AM600.data.reset_index(drop=True),
         cable_array_original.data.reset_index(drop=True),
         check_like=True,
         atol=1e-07,
