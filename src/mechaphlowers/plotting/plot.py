@@ -122,8 +122,12 @@ def plot_points_2d(
     v_coords = points[:, 2]
     if view == "line":
         h_coords = points[:, 1]
-    else:
+    elif view == "profile":
         h_coords = points[:, 0]
+    else:
+        raise ValueError(
+            f"Incorrect value for 'view' argument: recieved {view}, expected 'profile' or 'line'"
+        )
 
     fig.add_trace(
         go.Scatter(
@@ -304,8 +308,12 @@ class PlotEngine:
             view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
 
         Raises:
-            ValueError: view is not an expected value
+            ValueError: view value is invalid
         """
+        if view not in ["profile", "line"]:
+            raise ValueError(
+                f"Incorrect value for 'view' argument: recieved {view}, expected 'profile' or 'line'"
+            )
 
         span, supports, insulators = self.section_pts.get_points_for_plot(
             project=True, frame_index=frame_index

@@ -19,7 +19,11 @@ from mechaphlowers.entities.arrays import (
     SectionArray,
 )
 from mechaphlowers.entities.shapes import SupportShape
-from mechaphlowers.plotting.plot import PlotEngine, plot_support_shape
+from mechaphlowers.plotting.plot import (
+    PlotEngine,
+    plot_points_2d,
+    plot_support_shape,
+)
 
 
 @fixture
@@ -275,3 +279,21 @@ def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
     plt_engine.preview_line3d(fig)
 
     # fig.show()  # deactivate for auto unit testing
+
+
+def test_plot_point_2d_wrong_view():
+    fig = go.Figure()
+    points = np.array([[0, 0, 0], [1, 1, 1]])
+    with pytest.raises(ValueError):
+        plot_points_2d(fig, points, view="wrong_view")
+
+
+def test_preview_2d_wrong_view(balance_engine_angles: BalanceEngine):
+    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    balance_engine_angles.solve_adjustment()
+    balance_engine_angles.solve_change_state(
+        new_temperature=15 * np.array([1, 1, 1, 1])
+    )
+    fig_line = go.Figure()
+    with pytest.raises(ValueError):
+        plt_engine.preview_line2d(fig_line, view="wrong_view", frame_index=1)  # type: ignore[arg-type]

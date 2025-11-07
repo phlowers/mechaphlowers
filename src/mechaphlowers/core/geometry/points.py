@@ -531,15 +531,22 @@ class SectionPoints:
 
         Args:
             project (bool, optional): Set to True if 2d graph: this project all objects into a support frame. Defaults to False.
-            frame_index (int, optional): Index of the frame the projection is made. Unused if project is set to False. Defaults to 0.
+            frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
 
         Returns:
             Tuple[Points, Points, Points]: Points for spans, supports and insulators respectively.
+
+        Raises:
+            ValueError: frame_index is out of range
         """
         spans_points = self.get_spans("section")
         supports_points = self.get_supports()
         insulators_points = self.get_insulators()
         if project:
+            if frame_index > spans_points.coords.shape[2]:
+                raise ValueError(
+                    f"frame_index out of range. Expected value between 0 and {spans_points.coords.shape[2]}, received {frame_index}"
+                )
             spans_points, supports_points, insulators_points = (
                 self.project_to_selected_frame(
                     spans_points,
@@ -569,7 +576,6 @@ class SectionPoints:
             Tuple[Points, Points, Points]: Points for spans, supports and insulators respectively,
             projected into the frame of support number `frame_index`.
         """
-        # angle_to_project =  self.plane.azimuth_angle[frame_index]
         angle_to_project = np.cumsum(self.line_angle)[frame_index]
         translation_vector = -supports_points.coords[frame_index, 0]
 
