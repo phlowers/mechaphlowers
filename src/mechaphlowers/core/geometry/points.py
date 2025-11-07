@@ -371,12 +371,10 @@ class SectionPoints:
         """Initialize the SectionPoints object with section parameters and a span model.
 
         Args:
-            span_length (np.ndarray): The length of the spans.
-            conductor_attachment_altitude (np.ndarray): The altitude of the conductor attachments.
-            crossarm_length (np.ndarray): The length of the crossarms.
-            insulator_length (np.ndarray): The length of the insulators.
-            line_angle (np.ndarray): The relative angle of the span.
-            span_model (Span): The span model to use for the points generation.
+            section_array (SectionArray): section array
+            span_model (ISpan): The span model to use for the points generation.
+            cable_loads (CableLoads): cable loads, used for beta angle
+            get_displacement (Callable): function that returns an array of chain displacement. Usually, comes from BalanceModel.get_displacement()
         """
         self.cable_loads = cable_loads
         self.section_array = section_array

@@ -14,6 +14,9 @@ import pandas as pd
 import pytest
 
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.data.catalog.catalog import (
+    sample_cable_catalog,
+)
 from mechaphlowers.data.units import convert_weight_to_mass
 
 projet_dir: Path = Path(__file__).resolve().parents[1]
@@ -53,6 +56,16 @@ def default_cable_array() -> CableArray:
                 "b2": [0],
                 "b3": [0],
                 "b4": [0],
+                "diameter_heart": [0.0],
+                "section_conductor": [345.55],
+                "section_heart": [0.0],
+                "solar_absorption": [0.9],
+                "emissivity": [0.8],
+                "electric_resistance_20": [0.0554],
+                "linear_resistance_temperature_coef": [0.0036],
+                "is_polynomial": [False],
+                "radial_thermal_conductivity": [1.0],
+                "has_magnetic_heart": [False],
             }
         )
     )
@@ -129,26 +142,35 @@ def generic_weather_array_three_spans() -> WeatherArray:
 
 @pytest.fixture
 def default_data_container_one_span() -> DataContainer:
-    NB_SPAN = 2
     cable_array = CableArray(
         pd.DataFrame(
             {
-                "section": [345.55],
-                "diameter": [22.4],
-                "linear_mass": [0.974],
-                "young_modulus": [59],
+                "section": [600.4],
+                "diameter": [31.86],
+                "linear_mass": [1.8],
+                "young_modulus": [60],
                 "dilatation_coefficient": [23],
-                "temperature_reference": [15],
-                "a0": [0],
-                "a1": [59],
-                "a2": [0],
-                "a3": [0],
-                "a4": [0],
-                "b0": [0],
-                "b1": [0],
-                "b2": [0],
-                "b3": [0],
-                "b4": [0],
+                "temperature_reference": [15.0],
+                "a0": [0.0],
+                "a1": [60],
+                "a2": [0.0],
+                "a3": [0.0],
+                "a4": [0.0],
+                "b0": [0.0],
+                "b1": [0.0],
+                "b2": [0.0],
+                "b3": [0.0],
+                "b4": [0.0],
+                "diameter_heart": [0.0],
+                "section_conductor": [600.4],
+                "section_heart": [0.0],
+                "solar_absorption": [0.9],
+                "emissivity": [0.8],
+                "electric_resistance_20": [0.0554],
+                "linear_resistance_temperature_coef": [0.0036],
+                "is_polynomial": [False],
+                "radial_thermal_conductivity": [1.0],
+                "has_magnetic_heart": [False],
             }
         )
     )
@@ -176,7 +198,7 @@ def default_data_container_one_span() -> DataContainer:
         pd.DataFrame(
             {
                 "ice_thickness": [0.0, 0.0],
-                "wind_pressure": np.zeros(NB_SPAN),
+                "wind_pressure": [0.0, 0.0],
             }
         )
     )
@@ -188,7 +210,9 @@ def default_data_container_one_span() -> DataContainer:
 
 
 @pytest.fixture
-def section_dataframe_with_cable_weather() -> SectionDataFrame:
+def section_dataframe_with_cable_weather(
+    cable_array_AM600,
+) -> SectionDataFrame:
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -208,28 +232,7 @@ def section_dataframe_with_cable_weather() -> SectionDataFrame:
 
     frame = SectionDataFrame(section_array)
 
-    cable_array = CableArray(
-        pd.DataFrame(
-            {
-                "section": [345.55],
-                "diameter": [22.4],
-                "linear_mass": [0.974],
-                "young_modulus": [59],
-                "dilatation_coefficient": [23],
-                "temperature_reference": [15],
-                "a0": [0],
-                "a1": [59],
-                "a2": [0],
-                "a3": [0],
-                "a4": [0],
-                "b0": [0],
-                "b1": [0],
-                "b2": [0],
-                "b3": [0],
-                "b4": [0],
-            }
-        )
-    )
+    cable_array = cable_array_AM600
     frame.add_cable(cable_array)
 
     weather = WeatherArray(
@@ -247,28 +250,12 @@ def section_dataframe_with_cable_weather() -> SectionDataFrame:
 
 @pytest.fixture
 def cable_array_AM600() -> CableArray:
-    return CableArray(
-        pd.DataFrame(
-            {
-                "section": [600.4],
-                "diameter": [31.86],
-                "linear_mass": [1.8],
-                "young_modulus": [60],
-                "dilatation_coefficient": [23],
-                "temperature_reference": [15],
-                "a0": [0],
-                "a1": [60],
-                "a2": [0],
-                "a3": [0],
-                "a4": [0],
-                "b0": [0],
-                "b1": [0],
-                "b2": [0],
-                "b3": [0],
-                "b4": [0],
-            }
-        )
-    )
+    return sample_cable_catalog.get_as_object(["ASTER600"])
+
+
+@pytest.fixture
+def cable_array_NARCISSE600G() -> CableArray:
+    return sample_cable_catalog.get_as_object(["NARCISSE600G"])
 
 
 @pytest.fixture

@@ -186,7 +186,49 @@ class CableArray(ElementArray):
         "b2": "Pa",
         "b3": "Pa",
         "b4": "Pa",
+        "diameter_heart": "m",
+        "section_conductor": "m^2",
+        "section_heart": "m^2",
+        "electric_resistance_20": "ohm.m**-1",
+        "linear_resistance_temperature_coef": "K**-1",
+        "radial_thermal_conductivity": "W.m**-1.K**-1",
     }
+    mecha_attributes = [
+        "section",
+        "diameter",
+        "linear_weight",
+        "young_modulus",
+        "dilatation_coefficient",
+        "temperature_reference",
+        "a0",
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "b0",
+        "b1",
+        "b2",
+        "b3",
+        "b4",
+        "diameter_heart",
+        "section_heart",
+        "section_conductor",
+        "is_polynomial",
+    ]
+
+    thermal_attributes = [
+        "diameter",
+        "linear_weight",
+        "diameter_heart",
+        "section_heart",
+        "section_conductor",
+        "radial_thermal_conductivity",
+        "solar_absorption",
+        "emissivity",
+        "electric_resistance_20",
+        "linear_resistance_temperature_coef",
+        "has_magnetic_heart",
+    ]
 
     def __init__(
         self,
@@ -208,6 +250,9 @@ class CableArray(ElementArray):
             "b2": "GPa",
             "b3": "GPa",
             "b4": "GPa",
+            "diameter_heart": "mm",
+            "section_conductor": "mm^2",
+            "section_heart": "mm^2",
         }
 
     @property
@@ -218,6 +263,16 @@ class CableArray(ElementArray):
             Q_(data_output["linear_mass"].to_numpy(), "kg").to("N").m
         )
         return data_output
+
+    @property
+    def data_mecha(self) -> pd.DataFrame:
+        """Returns mechanical data for cable. These attributes are stored in mecha_attributes"""
+        return self.data[self.mecha_attributes]
+
+    @property
+    def data_thermal(self) -> pd.DataFrame:
+        """Returns thermal data for cable. These attributes are stored in thermal_attributes"""
+        return self.data[self.thermal_attributes]
 
     @property
     def polynomial_conductor(self) -> Poly:

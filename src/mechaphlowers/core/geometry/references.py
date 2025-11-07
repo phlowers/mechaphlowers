@@ -30,7 +30,7 @@ def cable_to_localsection_frame(
         x (np.ndarray): n x d array spans x coordinates
         y (np.ndarray): n x d array spans y coordinates
         z (np.ndarray): n x d array spans z coordinates
-        alpha (np.ndarray): absolute angle of the span (degrees)
+        angle_proj (np.ndarray): absolute angle of the span (radians)
 
     Returns:
             x_span: Rotated x coordinates in the localsection frame.
@@ -276,10 +276,7 @@ def translate_cable_to_support_from_attachments(
         x_span (np.ndarray): x coordinates rotated
         y_span (np.ndarray): y coordinates rotated
         z_span (np.ndarray): z coordinates rotated
-        altitude (np.ndarray): conductor heigth altitude
-        span_length (np.ndarray): span length
-        crossarm_length (np.ndarray): crossarm length
-        insulator_length (np.ndarray): insulator length
+        attachment_coords (np.ndarray): coordinates of the attachement of the cable
 
     Returns:
         Tuple[np.ndarray]: translated x_span, y_span and z_span

@@ -115,7 +115,7 @@ class BalanceModel(IBalanceModel):
         )
         self.find_param_solver = find_param_solver_type(self.find_param_model)
         self.load_solver = BalanceSolver(
-            **options.solver.balance_solver_adjustment_params
+            **options.solver.balance_solver_load_params
         )
         self.update()
         self.nodes.compute_dx_dy_dz()

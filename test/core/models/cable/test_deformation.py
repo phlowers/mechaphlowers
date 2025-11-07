@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
+import pandas as pd
 import pytest
 from numpy.polynomial import Polynomial as Poly
 
@@ -12,7 +13,15 @@ from mechaphlowers.core.models.cable.deformation import DeformationRte
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
 )
-from mechaphlowers.entities.data_container import DataContainer
+from mechaphlowers.entities.arrays import (
+    CableArray,
+    SectionArray,
+    WeatherArray,
+)
+from mechaphlowers.entities.data_container import (
+    DataContainer,
+    factory_data_container,
+)
 
 
 def test_deformation_impl(
@@ -34,15 +43,29 @@ def test_deformation_impl(
 
 
 def test_deformation_values__default_data(
-    default_data_container_one_span: DataContainer,
+    default_section_array_one_span: SectionArray,
+    default_cable_array: CableArray,
 ) -> None:
-    default_data_container_one_span.sagging_temperature = np.array([30, 30])
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
+    weather_array = WeatherArray(
+        pd.DataFrame(
+            {
+                "ice_thickness": [0.0, 0.0],
+                "wind_pressure": [0.0, 0.0],
+            }
+        )
+    )
+
+    data_container = factory_data_container(
+        default_section_array_one_span, default_cable_array, weather_array
+    )
+
+    data_container.sagging_temperature = np.array([30, 30])
+    span_model = CatenarySpan(**data_container.__dict__)
     tension_mean = span_model.T_mean()
     cable_length = span_model.compute_L()
 
     deformation_model = DeformationRte(
-        **default_data_container_one_span.__dict__,
+        **data_container.__dict__,
         tension_mean=tension_mean,
         cable_length=cable_length,
     )
