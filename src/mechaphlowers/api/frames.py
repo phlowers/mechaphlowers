@@ -204,7 +204,7 @@ class SectionDataFrame:
 
     def update_cable(self) -> None:
         """update_cable method to update the cable-related properties"""
-        self.span.linear_weight = self.cable.data.linear_weight[0]  # type: ignore[union-attr]
+        self.span.linear_weight = self.cable.data.linear_weight.iloc[0]  # type: ignore[union-attr]
 
     def add_weather(self, weather: WeatherArray) -> None:
         """add_weather method to add a new weather to the SectionDataFrame

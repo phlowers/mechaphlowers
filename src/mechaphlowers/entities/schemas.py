@@ -73,16 +73,28 @@ class CableArrayInput(pa.DataFrameModel):
     young_modulus: pdt.Series[float] = pa.Field(coerce=True)
     dilatation_coefficient: pdt.Series[float] = pa.Field(coerce=True)
     temperature_reference: pdt.Series[float] = pa.Field(coerce=True)
-    a0: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-    a1: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-    a2: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-    a3: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-    a4: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-    b0: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-    b1: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-    b2: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-    b3: Optional[pdt.Series[float]] = pa.Field(coerce=True)
-    b4: Optional[pdt.Series[float]] = pa.Field(coerce=True)
+    a0: pdt.Series[float] = pa.Field(coerce=True)
+    a1: pdt.Series[float] = pa.Field(coerce=True)
+    a2: pdt.Series[float] = pa.Field(coerce=True)
+    a3: pdt.Series[float] = pa.Field(coerce=True)
+    a4: pdt.Series[float] = pa.Field(coerce=True)
+    b0: pdt.Series[float] = pa.Field(coerce=True)
+    b1: pdt.Series[float] = pa.Field(coerce=True)
+    b2: pdt.Series[float] = pa.Field(coerce=True)
+    b3: pdt.Series[float] = pa.Field(coerce=True)
+    b4: pdt.Series[float] = pa.Field(coerce=True)
+    diameter_heart: pdt.Series[float] = pa.Field(coerce=True)
+    section_heart: pdt.Series[float] = pa.Field(coerce=True)
+    section_conductor: pdt.Series[float] = pa.Field(coerce=True)
+    solar_absorption: pdt.Series[float] = pa.Field(coerce=True)
+    emissivity: pdt.Series[float] = pa.Field(coerce=True)
+    electric_resistance_20: pdt.Series[float] = pa.Field(coerce=True)
+    linear_resistance_temperature_coef: pdt.Series[float] = pa.Field(
+        coerce=True
+    )
+    is_polynomial: pdt.Series[bool]
+    radial_thermal_conductivity: pdt.Series[float] = pa.Field(coerce=True)
+    has_magnetic_heart: pdt.Series[bool]
 
 
 class WeatherArrayInput(pa.DataFrameModel):
