@@ -122,7 +122,7 @@ def test_plot_line3d__wrong_view_option(
 
 def test_plot_line3d__with_beta(balance_engine_local_test: BalanceEngine):
     balance_engine_local_test.solve_change_state(
-        ice_thickness=np.array([0.0, 60.0, 0.0, np.nan]),
+        ice_thickness=np.array([0.0, 0.6, 0.0, np.nan]),
         wind_pressure=np.array([240.12, 0.0, 600.0, np.nan]),
     )
 

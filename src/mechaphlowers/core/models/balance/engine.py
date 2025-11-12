@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Callable, Type
 
 import numpy as np
@@ -142,12 +143,16 @@ class BalanceEngine:
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
         """
         logger.debug("Starting adjustment.")
+        start = time.time()
+
         self.balance_model.adjustment = True
-
         self.solver_adjustment.solve(self.balance_model)
-
         self.L_ref = self.balance_model.update_L_ref()
+
+        duration = time.time() - start
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")
+        if options.log.log_perfs:
+            logger.debug(f"Adjustment solved in {duration:.4f} seconds.")
 
     def solve_change_state(
         self,
@@ -171,6 +176,7 @@ class BalanceEngine:
         logger.debug(
             f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}"
         )
+        start = time.time()
 
         span_shape = self.section_array.data.span_length.shape
 
@@ -220,3 +226,7 @@ class BalanceEngine:
         logger.debug(
             f"Output : get_displacement \n{str(self.get_displacement())}"
         )
+
+        duration = time.time() - start
+        if options.log.log_perfs:
+            logger.debug(f"Change state solved in {duration:.4f} seconds.")
