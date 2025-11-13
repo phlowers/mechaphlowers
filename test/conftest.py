@@ -284,3 +284,31 @@ def balance_engine_base_test(cable_array_AM600: CableArray) -> BalanceEngine:
     return BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
     )
+
+
+@pytest.fixture
+def balance_engine_angles(cable_array_AM600: CableArray) -> BalanceEngine:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [50, 100, 50, 60],
+                "crossarm_length": [10, 10, 10, 10],
+                "line_angle": [0, 10, 20, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 500, 500, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000.0, 500.0, 500.0, 1000.0]
+                ),
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        )
+    )
+    section_array.add_units({"line_angle": "grad"})
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    return BalanceEngine(
+        cable_array=cable_array_AM600, section_array=section_array
+    )
