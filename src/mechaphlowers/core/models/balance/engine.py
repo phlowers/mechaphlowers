@@ -151,7 +151,7 @@ class BalanceEngine:
 
         duration = time.time() - start
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")
-        if options.log.log_perfs:
+        if options.log.perfs:
             logger.debug(f"Adjustment solved in {duration:.4f} seconds.")
 
     def solve_change_state(
@@ -228,5 +228,5 @@ class BalanceEngine:
         )
 
         duration = time.time() - start
-        if options.log.log_perfs:
+        if options.log.perfs:
             logger.debug(f"Change state solved in {duration:.4f} seconds.")

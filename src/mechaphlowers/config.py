@@ -86,7 +86,7 @@ class ComputeConfig:
 class LogConfig:
     """Logging configuration class."""
 
-    log_perfs: bool = True
+    perfs: bool = True
 
 
 @dataclass
