@@ -83,6 +83,13 @@ class ComputeConfig:
 
 
 @dataclass
+class GroundConfig:
+    """Configuration class about ground."""
+
+    default_support_length: float = 30.0
+
+
+@dataclass
 class Config:
     """Configuration class for mechaphlowers settings.
 
@@ -101,6 +108,12 @@ class Config:
         self._compute_config = ComputeConfig()
         self._precision = PrecisionConfig()
         self._output_units = OutputUnitsConfig()
+        self._ground = GroundConfig()
+
+    @property
+    def ground(self) -> GroundConfig:
+        """Ground configuration property."""
+        return self._ground
 
     @property
     def output_units(self) -> OutputUnitsConfig:

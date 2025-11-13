@@ -13,6 +13,7 @@ import pandera as pa
 from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Self, Type
 
+from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
@@ -130,7 +131,10 @@ class SectionArray(ElementArray):
 
     def compute_ground_altitude(self) -> np.ndarray:
         """Generate ground altitude array using attachment altitude, and arbitrary a support length."""
-        return self._data["conductor_attachment_altitude"].to_numpy() - 30.0
+        return (
+            self._data["conductor_attachment_altitude"].to_numpy()
+            - options.ground.default_support_length
+        )
 
     # TODO: do no hard code 30, use config
 
