@@ -52,6 +52,7 @@ def section_array_line_angles():
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
     return section_array
 
 

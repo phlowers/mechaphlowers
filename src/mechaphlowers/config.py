@@ -114,8 +114,7 @@ class InputUnitsConfig:
         default_factory=lambda: {
             "conductor_attachment_altitude": "m",
             "crossarm_length": "m",
-            # TODO: degrees or grad?
-            "line_angle": "deg",
+            "line_angle": "grad",
             "insulator_length": "m",
             "span_length": "m",
             "insulator_mass": "kg",

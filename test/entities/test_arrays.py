@@ -35,9 +35,11 @@ def section_array_input_data() -> dict[str, list]:
 @pytest.fixture
 def section_array(section_array_input_data: dict[str, list]) -> SectionArray:
     df = pd.DataFrame(section_array_input_data)
-    return SectionArray(
+    section_array = SectionArray(
         data=df, sagging_parameter=2_000, sagging_temperature=15
     )
+    section_array.add_units({"line_angle": "deg"})
+    return section_array
 
 
 @pytest.fixture
@@ -210,6 +212,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
     section_array = SectionArray(
         data=df, sagging_parameter=2_000, sagging_temperature=15
     )
+    section_array.add_units({"line_angle": "deg"})
     inner_data = section_array._data.copy()
 
     exported_data = section_array.data
@@ -254,6 +257,8 @@ def test_section_array__data_with_loads() -> None:
     section_array = SectionArray(
         data=df, sagging_parameter=2_000, sagging_temperature=15
     )
+    section_array.add_units({"line_angle": "deg"})
+
     inner_data = section_array._data.copy()
 
     exported_data = section_array.data

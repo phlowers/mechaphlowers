@@ -110,6 +110,7 @@ def default_section_array_three_spans() -> SectionArray:
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
     return section_array
 
 
@@ -193,6 +194,7 @@ def default_data_container_one_span() -> DataContainer:
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
 
     weather_array = WeatherArray(
         pd.DataFrame(
@@ -229,6 +231,7 @@ def section_dataframe_with_cable_weather(
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
 
     frame = SectionDataFrame(section_array)
 
