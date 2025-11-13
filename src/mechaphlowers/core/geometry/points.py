@@ -339,6 +339,7 @@ class SectionPoints:
         crossarm_length = section_array.data.crossarm_length.to_numpy()
         insulator_length = section_array.data.insulator_length.to_numpy()
         line_angle = section_array.data.line_angle.to_numpy()
+        ground_altitude = section_array.data.ground_altitude.to_numpy()
 
         self.plane = CablePlane(
             span_length,
@@ -363,6 +364,7 @@ class SectionPoints:
             crossarm_length,
             insulator_length,
             self.plane.displacement_vector.dxdydz_global_frame,
+            ground_altitude,
         )
 
         self.line_angle = line_angle

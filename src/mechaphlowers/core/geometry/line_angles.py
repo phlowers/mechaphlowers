@@ -69,7 +69,9 @@ def angle_between_vectors(
 
 
 def get_supports_ground_coords(
-    span_length: np.ndarray, line_angle: np.ndarray
+    span_length: np.ndarray,
+    line_angle: np.ndarray,
+    ground_altitude: np.ndarray,
 ) -> np.ndarray:
     """Get the coordinates of the supports in the global frame. These are the coordinates of the barycenter of the support, at ground.
 
@@ -82,6 +84,7 @@ def get_supports_ground_coords(
     """
     line_angle_sums = np.cumsum(line_angle)
     # Creates the translations vectors: these are the vectors between two supports
+    # TODO: try with np.empty
     translations_vectors = np.zeros((span_length.size, 3))
     translations_vectors[:, 0] = span_length
     translations_vectors = rotation_quaternion_same_axis(
@@ -94,6 +97,8 @@ def get_supports_ground_coords(
     supports_ground_coords = np.roll(supports_ground_coords, 1, axis=0)
     # Ensure that the first coordinates are (0,0,0), and not (nan,nan,nan)
     supports_ground_coords[0, :] = np.array([0, 0, 0])
+    # Add ground altitudes
+    supports_ground_coords[:, 2] = ground_altitude
     return supports_ground_coords
 
 
@@ -232,10 +237,11 @@ def get_supports_coords(
     crossarm_length: np.ndarray,
     insulator_length: np.ndarray,
     displacement_vector: np.ndarray,
+    ground_altitude: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Helper to get all the coordinates of the supports packed in a tuple."""
     supports_ground_coords = get_supports_ground_coords(
-        span_length, line_angle
+        span_length, line_angle, ground_altitude
     )
     center_arm_coords, arm_coords = get_edge_arm_coords(
         supports_ground_coords,
