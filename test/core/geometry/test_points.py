@@ -15,8 +15,10 @@ from mechaphlowers.core.geometry.points import (
     stack_nan,
     vectors_to_coords,
 )
+from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.plotting.plot import PlotEngine
 
 
 @fixture
@@ -209,3 +211,13 @@ def test_span_with_wind(section_array_line_angles):
 
     # Check that the y-coordinates of the spans are not all the same: the wind is active
     assert ~((y_spans_no_nans == y_spans_no_nans[0]).all())
+
+
+def test_get_points(balance_engine_angles: BalanceEngine):
+    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    balance_engine_angles.solve_adjustment()
+    balance_engine_angles.solve_change_state(
+        new_temperature=15 * np.array([1, 1, 1, 1])
+    )
+    with pytest.raises(ValueError):
+        plt_engine.section_pts.get_points_for_plot(True, frame_index=4)
