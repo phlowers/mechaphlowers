@@ -136,8 +136,6 @@ class SectionArray(ElementArray):
             - options.ground.default_support_length
         )
 
-    # TODO: do no hard code 30, use config
-
     @property
     def data(self) -> pd.DataFrame:
         data_output = super().data

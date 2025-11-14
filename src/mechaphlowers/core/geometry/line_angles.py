@@ -84,9 +84,9 @@ def get_supports_ground_coords(
     """
     line_angle_sums = np.cumsum(line_angle)
     # Creates the translations vectors: these are the vectors between two supports
-    # TODO: try with np.empty
-    translations_vectors = np.zeros((span_length.size, 3))
+    translations_vectors = np.empty((span_length.size, 3))
     translations_vectors[:, 0] = span_length
+    translations_vectors[:, 1:2] = 0
     translations_vectors = rotation_quaternion_same_axis(
         translations_vectors,
         line_angle_sums,
