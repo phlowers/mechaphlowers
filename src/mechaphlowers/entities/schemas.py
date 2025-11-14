@@ -42,6 +42,9 @@ class SectionArrayInput(pa.DataFrameModel):
     load_position: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
+    ground_altitude: Optional[pdt.Series[float]] = pa.Field(
+        nullable=True, coerce=True
+    )
 
     @pa.dataframe_check(
         description="""Each row in the dataframe contains information about a support

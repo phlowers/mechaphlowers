@@ -41,12 +41,13 @@ def section_array_line_angles():
             {
                 "name": np.array(["support 1", "2", "three", "support 4"]),
                 "suspension": np.array([False, True, True, False]),
-                "conductor_attachment_altitude": np.array([30, 35, -22, 70]),
+                "conductor_attachment_altitude": np.array([30, 35, 22, 70]),
                 "crossarm_length": np.array([40, 20, -30, -50]),
                 "line_angle": np.array([0, -45, 60, -30]),
-                "insulator_length": np.array([0, 5, 82, 0]),
+                "insulator_length": np.array([0, 5, 38, 0]),
                 "span_length": np.array([500, 460, 520, np.nan]),
                 "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+                "ground_altitude": np.array([0, 0, 0, 0]),
             }
         )
     )
@@ -59,8 +60,10 @@ def section_array_line_angles():
 def test_get_supports_ground_coords(section_array_line_angles):
     span_length = section_array_line_angles.data.span_length.to_numpy()
     line_angle = section_array_line_angles.data.line_angle.to_numpy()
+    ground_altitude = section_array_line_angles.data.ground_altitude.to_numpy()
+
     supports_ground_coords = get_supports_ground_coords(
-        span_length, line_angle
+        span_length, line_angle, ground_altitude
     )
     expected_coords = np.array(
         [
@@ -68,6 +71,48 @@ def test_get_supports_ground_coords(section_array_line_angles):
             [500.0, 0.0, 0.0],
             [825.26911935, -325.26911935, 0.0],
             [1327.55054902, -190.68321589, 0.0],
+        ]
+    )
+    np.testing.assert_allclose(supports_ground_coords, expected_coords)
+
+    # import plotly.graph_objects as go
+    # from mechaphlowers.plotting.plot import plot_points_3d
+    # fig = go.Figure()
+    # plot_points_3d(fig, supports_ground_coords)
+    # fig.show()
+
+
+def test_get_supports_ground_coords_default_alt():
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["support 1", "2", "three", "support 4"]),
+                "suspension": np.array([False, True, True, False]),
+                "conductor_attachment_altitude": np.array([30, 35, 22, 70]),
+                "crossarm_length": np.array([40, 20, -30, -50]),
+                "line_angle": np.array([0, -45, 60, -30]),
+                "insulator_length": np.array([0, 5, 38, 0]),
+                "span_length": np.array([500, 460, 520, np.nan]),
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        )
+    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
+    span_length = section_array.data.span_length.to_numpy()
+    line_angle = section_array.data.line_angle.to_numpy()
+    ground_altitude = section_array.data.ground_altitude.to_numpy()
+
+    supports_ground_coords = get_supports_ground_coords(
+        span_length, line_angle, ground_altitude
+    )
+    expected_coords = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [500.0, 0.0, 5.0],
+            [825.26911935, -325.26911935, -8.0],
+            [1327.55054902, -190.68321589, 40.0],
         ]
     )
     np.testing.assert_allclose(supports_ground_coords, expected_coords)
@@ -89,9 +134,10 @@ def test_build_supports(section_array_line_angles):
         section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
     )
     crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
+    ground_altitude = section_array_line_angles.data.ground_altitude.to_numpy()
 
     supports_ground_coords = get_supports_ground_coords(
-        span_length, line_angle
+        span_length, line_angle, ground_altitude
     )
     center_arm_coords, edge_arm_coords = get_edge_arm_coords(
         supports_ground_coords,
@@ -141,11 +187,11 @@ def test_build_attachments(section_array_line_angles):
         section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
     )
     crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
+    ground_altitude = section_array_line_angles.data.ground_altitude.to_numpy()
 
     displacement_vector = create_default_displacement_vector(insulator_length)
-
     supports_ground_coords = get_supports_ground_coords(
-        span_length, line_angle
+        span_length, line_angle, ground_altitude
     )
     center_arm_coords, edge_arm_coords = get_edge_arm_coords(
         supports_ground_coords,
@@ -163,7 +209,7 @@ def test_build_attachments(section_array_line_angles):
         [
             [0.0, 40.0, 30.0],
             [507.65366865, 18.47759065, 35.0],
-            [817.50454799, -354.24689413, -22.0],
+            [817.50454799, -354.24689413, 22.0],
             [1327.55054902, -240.68321589, 70.0],
         ]
     )
@@ -190,9 +236,10 @@ def test_supports_coords_to_points(section_array_line_angles):
         section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
     )
     crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
+    ground_altitude = section_array_line_angles.data.ground_altitude.to_numpy()
 
     supports_ground_coords = get_supports_ground_coords(
-        span_length, line_angle
+        span_length, line_angle, ground_altitude
     )
     center_arm_coords, edge_arm_coords = get_edge_arm_coords(
         supports_ground_coords,
@@ -240,9 +287,10 @@ def test_span_lengths(section_array_line_angles):
         section_array_line_angles.data.conductor_attachment_altitude.to_numpy()
     )
     crossarm_length = section_array_line_angles.data.crossarm_length.to_numpy()
+    ground_altitude = section_array_line_angles.data.ground_altitude.to_numpy()
 
     supports_ground_coords = get_supports_ground_coords(
-        span_length, line_angle
+        span_length, line_angle, ground_altitude
     )
     center_arm_coords, arm_coords = get_edge_arm_coords(
         supports_ground_coords,
@@ -272,6 +320,7 @@ def test_get_supports_coords(section_array_line_angles):
     insulator_length = (
         section_array_line_angles.data.insulator_length.to_numpy()
     )
+    ground_altitude = section_array_line_angles.data.ground_altitude.to_numpy()
     displacement_vector = create_default_displacement_vector(insulator_length)
 
     ground_cds, center_arm_cds, arm_cds, attachment_cds = get_supports_coords(
@@ -281,6 +330,7 @@ def test_get_supports_coords(section_array_line_angles):
         crossarm_length,
         insulator_length,
         displacement_vector,
+        ground_altitude,
     )
     assert True
 
@@ -290,7 +340,7 @@ def test_compute_span_azimuth():
         [
             [0.0, 40.0, 30.0],
             [507.65366865, 18.47759065, 35.0],
-            [817.50454799, -354.24689413, -22.0],
+            [817.50454799, -354.24689413, 22.0],
             [1327.55054902, -240.68321589, 70.0],
         ]
     )

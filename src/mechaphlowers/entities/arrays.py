@@ -129,6 +129,13 @@ class SectionArray(ElementArray):
         right_support_height = left_support_height.shift(periods=-1)
         return (right_support_height - left_support_height).to_numpy()
 
+    def compute_ground_altitude(self) -> np.ndarray:
+        """Generate ground altitude array using attachment altitude, and arbitrary a support length."""
+        return (
+            self._data["conductor_attachment_altitude"].to_numpy()
+            - options.ground.default_support_length
+        )
+
     @property
     def data(self) -> pd.DataFrame:
         data_output = super().data
@@ -139,6 +146,8 @@ class SectionArray(ElementArray):
             data_output["load_weight"] = (
                 Q_(data_output["load_mass"].to_numpy(), "kg").to("N").m
             )
+
+        self.validate_ground_altitude(data_output)
 
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
@@ -154,6 +163,22 @@ class SectionArray(ElementArray):
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
             )
+
+    def validate_ground_altitude(self, data_output: pd.DataFrame):
+        if "ground_altitude" not in data_output:
+            data_output["ground_altitude"] = self.compute_ground_altitude()
+        else:
+            ground_alt = data_output["ground_altitude"].to_numpy()
+            attachment_alt = data_output[
+                "conductor_attachment_altitude"
+            ].to_numpy()
+            wrong_ground_altitude = attachment_alt < ground_alt
+            if wrong_ground_altitude.any():
+                data_output["ground_altitude"] = np.where(
+                    wrong_ground_altitude,
+                    self.compute_ground_altitude(),
+                    ground_alt,
+                )
 
     def __copy__(self) -> Self:
         copy_obj = super().__copy__()

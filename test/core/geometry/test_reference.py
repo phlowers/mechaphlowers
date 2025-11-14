@@ -159,6 +159,7 @@ def test_translate_cable_to_support() -> None:
         insulator_length,
         line_angle=np.array([0, 0, 0, np.nan]),
         displacement_vector=displacement_vector,
+        ground_altitude=np.array([0, 0, 0, 0]),
     )
 
     np.testing.assert_almost_equal(x_1, x_out)

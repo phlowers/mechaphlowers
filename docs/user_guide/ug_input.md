@@ -14,18 +14,27 @@ In mechaphlowers a line section is described by the following data:
 - a sagging parameter, denoted later as $p$,
 - a sagging temperature (in Celsius degrees)
 - for each support:
+    - the name of the support
     - a boolean named `suspension` describing whether it's a suspension or tension support
     - the conductor attachment altitude
     - the crossarm length
     - the line angle (in degrees)
     - the insulator length
+    - the insulator mass
+    - an optional field ground altitude
 - for each span:
     - the span length, denoted later as $a$.
 
 !!! important
 
-    For now, sagging parameter and temperature are assumed to be **the same for each span** in a line section - which doesn't necessarily reflect reality.
+    For now, sagging parameter and temperature are assumed to be **the same for each span** in a line section - which doesn't necessarily reflect reality.  
     Support for disparate sagging parameters and temperatures may be added later.
+
+!!! Warning
+
+    Ground altitude is optional because it is autofilled if not provided.  
+    Autofill rule: **ground_altitude = conductor_attachment_altitude - options_paramater**.  
+    options_parameter is globally defined in options.ground.default_support_length and can be modified by user.
 
 Input data should be organized in a table (for example a pandas dataframe), where each row describes one support with its following span, except the last row which only describes the last support (since it doesn't have a "following" span). Hence the last span length is expected to be "not a number", typically `numpy.nan`.
 

@@ -211,6 +211,7 @@ def project_coords(
 #     return x_span, y_span, z_span
 
 
+# unused function?
 def translate_cable_to_support(
     x_span: np.ndarray,
     y_span: np.ndarray,
@@ -221,6 +222,7 @@ def translate_cable_to_support(
     insulator_length: np.ndarray,
     line_angle: np.ndarray,
     displacement_vector: np.ndarray,
+    ground_altitude: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Translate cable using altitude and span length
 
@@ -240,6 +242,7 @@ def translate_cable_to_support(
     supports_ground_coords = get_supports_ground_coords(
         span_length=span_length,
         line_angle=line_angle,
+        ground_altitude=ground_altitude,
     )
 
     _, edge_arm_coords = get_edge_arm_coords(
