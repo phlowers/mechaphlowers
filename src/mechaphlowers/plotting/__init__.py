@@ -5,6 +5,10 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-from mechaphlowers.plotting.plot import PlotEngine, figure_factory
+from mechaphlowers.plotting.plot import (
+    PlotEngine,
+    figure_factory,
+    plot_support_shape,
+)
 
-__all__ = ["PlotEngine", "figure_factory"]
+__all__ = ["PlotEngine", "figure_factory", "plot_support_shape"]
