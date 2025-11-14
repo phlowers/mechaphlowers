@@ -99,7 +99,6 @@ class SupportShape:
         Returns:
             np.ndarray: (n,) array with set numbers of the arms of the support
         """
-        # points = np.vstack([self.xyz_arms.T[0] * 0, self.xyz_arms.T]).T
         points = self.xyz_arms.copy()
         return points
 
