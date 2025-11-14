@@ -87,6 +87,10 @@ class GroundConfig:
     """Configuration class about ground."""
 
     default_support_length: float = 30.0
+class LogConfig:
+    """Logging configuration class."""
+
+    perfs: bool = True
 
 
 @dataclass
@@ -149,6 +153,7 @@ class Config:
         self._precision = PrecisionConfig()
         self._output_units = OutputUnitsConfig()
         self._ground = GroundConfig()
+        self._log = LogConfig()
         self._input_units = InputUnitsConfig()
 
     @property
@@ -185,6 +190,11 @@ class Config:
     def precision(self) -> PrecisionConfig:
         """Precision configuration property."""
         return self._precision
+
+    @property
+    def log(self) -> LogConfig:
+        """Logging configuration property."""
+        return self._log
 
     class OptionError(Exception):
         """Exception raised when an option is not available."""

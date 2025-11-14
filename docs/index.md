@@ -24,23 +24,12 @@ import plotly.graph_objects as go
 import mechaphlowers as mph
 
 
-# load data 
+# load data
+from mechaphlowers.data.catalog import section_factory_sample_data
+
 section_array = mph.SectionArray(
     pd.DataFrame(
-        {
-            "name": ["1", "2", "3", "4"],
-            "suspension": [False, True, True, False],
-            "conductor_attachment_altitude": [50, 100, 50, 50],
-            "crossarm_length": [10, 10, 10, 10],
-            "line_angle": mph.units(np.array([0, 0, 0, 0]), "grad")
-            .to('deg')
-            .magnitude,
-            "insulator_length": [3, 3, 3, 3],
-            "span_length": [500, 500, 500, np.nan],
-            "insulator_weight": [1000, 500, 500, 1000],
-            "load_weight": [0, 0, 0, 0],
-            "load_position": [0, 0, 0, 0],
-        }
+        section_factory_sample_data(6,2)
     )
 )
 section_array.sagging_parameter = 2000
@@ -55,18 +44,20 @@ engine = mph.BalanceEngine(cable_array=cable_array_AM600, section_array=section_
 plt = mph.PlotEngine.builder_from_balance_engine(engine)
 
 # initialize plotly figure
-fig = go.Figure()
+fig = mph.plotting.figure_factory(context="std")
+# you can also do
+# fig = go.Figure()
 
 # Chain your changes and preview for printing in figure
 engine.solve_adjustment()
-engine.solve_change_state(new_temperature=15 * np.ones(4))
+engine.solve_change_state(new_temperature=15.)
 plt.preview_line3d(fig)
 
-engine.solve_change_state(new_temperature=90 * np.ones(4))
+engine.solve_change_state(new_temperature=90.)
 plt.preview_line3d(fig)
 
-engine.solve_change_state(new_temperature=15 * np.ones(4), wind_pressure=np.array([0, 500, 500, 500]))
-plt.preview_line3d(fig, "analysis")
+engine.solve_change_state(new_temperature=15., wind_pressure=np.array([0, 0, 0, 500, 500, 500]))
+plt.preview_line3d(fig)
 
 # plot the result
 fig.show()

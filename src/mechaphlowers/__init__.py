@@ -13,6 +13,7 @@ from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.units import Q_ as units
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.shapes import SupportShape
 from mechaphlowers.plotting import PlotEngine
 
 logger = logging.getLogger(__name__)
@@ -32,5 +33,6 @@ __all__ = [
     "PlotEngine",
     "SectionArray",
     "CableArray",
+    "SupportShape",
     "units",
 ]

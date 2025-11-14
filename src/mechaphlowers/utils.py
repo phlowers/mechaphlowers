@@ -5,10 +5,16 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
+from functools import wraps
+from time import time
 from typing import Callable
 
 import numpy as np
 import pandas as pd
+
+from mechaphlowers.config import options
+
+logger = logging.getLogger(__name__)
 
 
 def ppnp(arr: np.ndarray, prec: int = 2):
@@ -165,3 +171,20 @@ class ArrayTools:
 
 
 arr = ArrayTools()
+
+
+def check_time(f):
+    @wraps(f)
+    def wrap(self, *args, **kw):
+        if options.log.perfs:
+            ts = time()
+            result = f(self, *args, **kw)
+            te = time()
+            logger.debug(
+                f"function: {f.__name__} with args:[{args}, {kw} solved in {te-ts:.4f} seconds."
+            )
+        else:
+            result = f(self, *args, **kw)
+        return result
+
+    return wrap

@@ -92,6 +92,7 @@ class BalanceSolver:
             if counter == self.max_iter - 1:
                 logger.info("max iteration reached")
                 logger.info(f"{norm_d_param=}")
+                raise ValueError("Balance solver did not converge")
 
     def jacobian(
         self,

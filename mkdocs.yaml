@@ -57,6 +57,7 @@ nav:
               - Arrays: docstring/entities/arrays.md
               - Schemas: docstring/entities/schemas.md
               - Data container: docstring/entities/data_container.md
+              - Support Shapes: docstring/entities/shapes.md
           - Core:
               - Geometry:
                   - References: docstring/core/geometry/references.md
