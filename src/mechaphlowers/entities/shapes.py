@@ -81,7 +81,10 @@ class SupportShape:
         Returns:
             np.ndarray: (3*n, 3) with n the number on __nonzero__ values on the X coordinates of the arms of the support. If n=0 returns array([np.nan, np.nan, np.nan])
         """
-        point_2 = self.xyz_arms[self.xyz_arms[:, 0] != 0.0].copy()
+        mask_for_nonzero_set_points = self.xyz_arms[:, 0]
+        point_2 = self.xyz_arms[
+            np.abs(mask_for_nonzero_set_points) > 1e-6
+        ].copy()
         if len(point_2) == 0:
             return np.full((0, 3), np.nan)
         point_1 = point_2.copy()
