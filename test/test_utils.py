@@ -5,9 +5,12 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+import logging
+
 import numpy as np
 
-from mechaphlowers.utils import CachedAccessor, ppnp
+from mechaphlowers.config import options
+from mechaphlowers.utils import CachedAccessor, check_time, ppnp
 
 # FILE: src/mechaphlowers/test_utils.py
 
@@ -58,3 +61,31 @@ def test_ppnp_high_precision(capsys) -> None:
     ppnp(arr, prec=4)
     captured = capsys.readouterr()
     assert captured.out == "[1.1235 2.1235 3.1235]\n"
+
+
+def test_log(caplog) -> None:
+    save_option = options.log.perfs
+
+    class TestClass:
+        @check_time
+        def function_to_test(self) -> int:
+            logging.info("function executed")
+            return 1
+
+    caplog.set_level(logging.DEBUG)
+    test_class = TestClass()
+
+    options.log.perfs = False
+    test_class.function_to_test()
+    assert 'function_to_test' not in caplog.text
+    assert 'seconds' not in caplog.text
+    assert 'function executed' in caplog.text
+
+    options.log.perfs = True
+    test_class.function_to_test()
+
+    assert 'function_to_test' in caplog.text
+    assert 'seconds' in caplog.text
+    assert 'function executed' in caplog.text
+
+    options.log.perfs = save_option

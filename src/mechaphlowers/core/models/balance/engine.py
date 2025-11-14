@@ -30,7 +30,7 @@ from mechaphlowers.core.models.cable.span import (
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.utils import arr
+from mechaphlowers.utils import arr, check_time
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +134,7 @@ class BalanceEngine:
         self.get_displacement: Callable = self.balance_model.dxdydz
         logger.debug("Balance engine initialized.")
 
+    @check_time
     def solve_adjustment(self) -> None:
         """Solve the chain positions in the adjustment case, updating L_ref in the balance model.
         In this case, there is no weather, no loads, and temperature is the sagging temperature.
@@ -142,13 +143,14 @@ class BalanceEngine:
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
         """
         logger.debug("Starting adjustment.")
+
         self.balance_model.adjustment = True
-
         self.solver_adjustment.solve(self.balance_model)
-
         self.L_ref = self.balance_model.update_L_ref()
+
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")
 
+    @check_time
     def solve_change_state(
         self,
         wind_pressure: np.ndarray | float | None = None,
@@ -220,3 +222,7 @@ class BalanceEngine:
         logger.debug(
             f"Output : get_displacement \n{str(self.get_displacement())}"
         )
+
+    @property
+    def support_number(self) -> int:
+        return self.section_array.data.span_length.shape[0]

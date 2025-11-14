@@ -83,6 +83,13 @@ class ComputeConfig:
 
 
 @dataclass
+class LogConfig:
+    """Logging configuration class."""
+
+    perfs: bool = True
+
+
+@dataclass
 class InputUnitsConfig:
     cable_array: dict[str, str] = field(
         default_factory=lambda: {
@@ -141,6 +148,7 @@ class Config:
         self._compute_config = ComputeConfig()
         self._precision = PrecisionConfig()
         self._output_units = OutputUnitsConfig()
+        self._log = LogConfig()
         self._input_units = InputUnitsConfig()
 
     @property
@@ -172,6 +180,11 @@ class Config:
     def precision(self) -> PrecisionConfig:
         """Precision configuration property."""
         return self._precision
+
+    @property
+    def log(self) -> LogConfig:
+        """Logging configuration property."""
+        return self._log
 
     class OptionError(Exception):
         """Exception raised when an option is not available."""
