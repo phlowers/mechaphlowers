@@ -135,6 +135,8 @@ class BalanceEngine:
         self.get_displacement: Callable = self.balance_model.dxdydz
         logger.debug("Balance engine initialized.")
 
+
+    @check_time
     def solve_adjustment(self) -> None:
         """Solve the chain positions in the adjustment case, updating L_ref in the balance model.
         In this case, there is no weather, no loads, and temperature is the sagging temperature.
@@ -143,16 +145,13 @@ class BalanceEngine:
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
         """
         logger.debug("Starting adjustment.")
-        start = time.time()
 
         self.balance_model.adjustment = True
         self.solver_adjustment.solve(self.balance_model)
         self.L_ref = self.balance_model.update_L_ref()
 
-        duration = time.time() - start
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")
-        if options.log.perfs:
-            logger.debug(f"Adjustment solved in {duration:.4f} seconds.")
+
 
     @check_time
     def solve_change_state(
