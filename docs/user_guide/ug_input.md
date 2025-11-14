@@ -34,7 +34,7 @@ In mechaphlowers a line section is described by the following data:
 
     Ground altitude is optional because it is autofilled if not provided.  
     Autofill rule: **ground_altitude = conductor_attachment_altitude - options_paramater**.  
-    options_parameter is globally defined in options.ground.default_support_length nd can be modified by user.
+    options_parameter is globally defined in options.ground.default_support_length and can be modified by user.
 
 Input data should be organized in a table (for example a pandas dataframe), where each row describes one support with its following span, except the last row which only describes the last support (since it doesn't have a "following" span). Hence the last span length is expected to be "not a number", typically `numpy.nan`.
 
