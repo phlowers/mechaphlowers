@@ -83,6 +83,46 @@ class ComputeConfig:
 
 
 @dataclass
+class InputUnitsConfig:
+    cable_array: dict[str, str] = field(
+        default_factory=lambda: {
+            "section": "mm^2",
+            "diameter": "mm",
+            "young_modulus": "MPa",
+            "linear_mass": "kg/m",
+            "dilatation_coefficient": "1/K",
+            "temperature_reference": "°C",
+            "a0": "MPa",
+            "a1": "MPa",
+            "a2": "MPa",
+            "a3": "MPa",
+            "a4": "MPa",
+            "b0": "MPa",
+            "b1": "MPa",
+            "b2": "MPa",
+            "b3": "MPa",
+            "b4": "MPa",
+            "diameter_heart": "mm",
+            "section_conductor": "mm^2",
+            "section_heart": "mm^2",
+            "electric_resistance_20": "ohm.m**-1",
+            "linear_resistance_temperature_coef": "K**-1",
+            "radial_thermal_conductivity": "W.m**-1.K**-1",
+        }
+    )
+    section_array: dict[str, str] = field(
+        default_factory=lambda: {
+            "conductor_attachment_altitude": "m",
+            "crossarm_length": "m",
+            "line_angle": "grad",
+            "insulator_length": "m",
+            "span_length": "m",
+            "insulator_mass": "kg",
+        }
+    )
+
+
+@dataclass
 class Config:
     """Configuration class for mechaphlowers settings.
 
@@ -101,11 +141,17 @@ class Config:
         self._compute_config = ComputeConfig()
         self._precision = PrecisionConfig()
         self._output_units = OutputUnitsConfig()
+        self._input_units = InputUnitsConfig()
 
     @property
     def output_units(self) -> OutputUnitsConfig:
-        """Units configuration property."""
+        """Output units configuration property."""
         return self._output_units
+
+    @property
+    def input_units(self) -> InputUnitsConfig:
+        """Input units configuration property."""
+        return self._input_units
 
     @property
     def graphics(self) -> GraphicsConfig:

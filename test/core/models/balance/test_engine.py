@@ -36,6 +36,7 @@ def balance_engine_simple(cable_array_AM600: CableArray) -> BalanceEngine:
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "grad"})
     return BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
     )

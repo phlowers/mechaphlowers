@@ -79,6 +79,7 @@ def test_span_lengths_values(
     section_array = SectionArray(pd.DataFrame(section_array_dict))
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
 
     span_length = section_array.data.span_length.to_numpy()
     elevation_difference = section_array.data.elevation_difference.to_numpy()
