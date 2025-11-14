@@ -13,7 +13,3 @@ columns:
 columns_renaming:
   - family: family
   - set_number: set_number
-  - Z: Z
-  - X: X
-  - Y: Y
-  - L: L
