@@ -110,19 +110,29 @@ def plot_points_3d(
 
 def plot_points_2d(
     fig: go.Figure,
-    x: np.ndarray,
-    y: np.ndarray,
+    points: np.ndarray,
     color=None,
-    width=3,
+    width=8,
     size=None,
     name="Points",
+    view: Literal["profile", "line"] = "profile",
 ):
     if size is None:
         size = cfg.graphics.marker_size
+    v_coords = points[:, 2]
+    if view == "line":
+        h_coords = points[:, 1]
+    elif view == "profile":
+        h_coords = points[:, 0]
+    else:
+        raise ValueError(
+            f"Incorrect value for 'view' argument: recieved {view}, expected 'profile' or 'line'"
+        )
+
     fig.add_trace(
         go.Scatter(
-            x=x,
-            y=y,
+            x=h_coords,
+            y=v_coords,
             mode='markers+lines',
             marker={
                 'size': cfg.graphics.marker_size if size is None else size,
@@ -275,13 +285,61 @@ class PlotEngine:
                 f"{view=} : this argument has to be set to 'full' or 'analysis'"
             )
 
-        plot_line(fig, self.section_pts.get_spans("section").points(True))
+        span, supports, insulators = self.section_pts.get_points_for_plot(
+            project=False
+        )
 
-        plot_support(fig, self.section_pts.get_supports().points(True))
-
-        plot_insulator(fig, self.section_pts.get_insulators().points(True))
+        plot_line(fig, span.points(True))
+        plot_support(fig, supports.points(True))
+        plot_insulator(fig, insulators.points(True))
 
         set_layout(fig, auto=_auto)
+
+    def preview_line2d(
+        self,
+        fig: go.Figure,
+        view: Literal["profile", "line"] = "profile",
+        frame_index: int = 0,
+    ) -> None:
+        """Plot 2D of power lines sections
+
+        Args:
+            fig (go.Figure): plotly figure where new traces has to be added
+            view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+
+        Raises:
+            ValueError: view value is invalid
+        """
+        if view not in ["profile", "line"]:
+            raise ValueError(
+                f"Incorrect value for 'view' argument: recieved {view}, expected 'profile' or 'line'"
+            )
+
+        span, supports, insulators = self.section_pts.get_points_for_plot(
+            project=True, frame_index=frame_index
+        )
+
+        plot_points_2d(
+            fig,
+            span.points(True),
+            color="red",
+            name="Cable",
+            view=view,
+        )
+        plot_points_2d(
+            fig,
+            supports.points(True),
+            color="green",
+            name="Supports",
+            view=view,
+        )
+        plot_points_2d(
+            fig,
+            insulators.points(True),
+            color="orange",
+            name="Insulators",
+            view=view,
+        )
 
 
 class PlotAccessor:

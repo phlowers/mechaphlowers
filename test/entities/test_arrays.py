@@ -35,9 +35,11 @@ def section_array_input_data() -> dict[str, list]:
 @pytest.fixture
 def section_array(section_array_input_data: dict[str, list]) -> SectionArray:
     df = pd.DataFrame(section_array_input_data)
-    return SectionArray(
+    section_array = SectionArray(
         data=df, sagging_parameter=2_000, sagging_temperature=15
     )
+    section_array.add_units({"line_angle": "deg"})
+    return section_array
 
 
 @pytest.fixture
@@ -46,11 +48,11 @@ def cable_array_input_data() -> dict[str, list]:
         "section": [600.4],
         "diameter": [31.86],
         "linear_mass": [1.8],
-        "young_modulus": [60],
-        "dilatation_coefficient": [23],
+        "young_modulus": [60000],
+        "dilatation_coefficient": [23e-6],
         "temperature_reference": [15.0],
         "a0": [0.0],
-        "a1": [60],
+        "a1": [60000],
         "a2": [0.0],
         "a3": [0.0],
         "a4": [0.0],
@@ -210,6 +212,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
     section_array = SectionArray(
         data=df, sagging_parameter=2_000, sagging_temperature=15
     )
+    section_array.add_units({"line_angle": "deg"})
     inner_data = section_array._data.copy()
 
     exported_data = section_array.data
@@ -256,6 +259,8 @@ def test_section_array__data_with_optional() -> None:
     section_array = SectionArray(
         data=df, sagging_parameter=2_000, sagging_temperature=15
     )
+    section_array.add_units({"line_angle": "deg"})
+
     inner_data = section_array._data.copy()
 
     exported_data = section_array.data
@@ -307,6 +312,7 @@ def test_section_array__wrong_ground_altitude() -> None:
     section_array = SectionArray(
         data=df, sagging_parameter=2_000, sagging_temperature=15
     )
+    section_array.add_units({"line_angle": "deg"})
 
     exported_data = section_array.data
 
@@ -468,9 +474,10 @@ def test_create_cable_array__wrong_type(
 def test_create_cable_array__extra_column(
     cable_array_input_data: dict,
 ) -> None:
-    cable_array_input_data["extra column"] = [0]
+    cable_array_dict_copy = cable_array_input_data.copy()
+    cable_array_dict_copy["extra column"] = [0]
 
-    input_df = pd.DataFrame(cable_array_input_data)
+    input_df = pd.DataFrame(cable_array_dict_copy)
 
     section = CableArray(input_df)
 
@@ -486,7 +493,7 @@ def test_create_cable_array__units(
     custom_units = {
         "section": "cm^2",
         "diameter": "cm",
-        "young_modulus": "MPa",
+        "young_modulus": "kPa",
     }
 
     cable.add_units(custom_units)

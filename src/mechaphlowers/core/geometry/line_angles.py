@@ -356,7 +356,7 @@ class CablePlane:
         return self.b_chain * np.cos(self.beta)
 
     @property
-    def angle_proj(self) -> np.ndarray:
+    def azimuth_angle(self) -> np.ndarray:
         """Azimuth angle: horizontal angle between
         the current span (chain and arm included)
         and the first line (the line between the first two supports)"""

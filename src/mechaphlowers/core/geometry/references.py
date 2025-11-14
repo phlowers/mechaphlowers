@@ -21,7 +21,7 @@ Collections of technical functions to transform coordinates from the different f
 
 
 def cable_to_localsection_frame(
-    x: np.ndarray, y: np.ndarray, z: np.ndarray, angle_proj: np.ndarray
+    x: np.ndarray, y: np.ndarray, z: np.ndarray, azimuth_angle: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """cable_to_localsection_frame is a function that rotates the cable coordinates from the cable frame to the localsection frame
     The localsection frame is the the section frame with origin at the left support of the cable, but with the same axes than the section frame.
@@ -30,7 +30,7 @@ def cable_to_localsection_frame(
         x (np.ndarray): n x d array spans x coordinates
         y (np.ndarray): n x d array spans y coordinates
         z (np.ndarray): n x d array spans z coordinates
-        angle_proj (np.ndarray): absolute angle of the span (radians)
+        azimuth_angle (np.ndarray): absolute angle of the span (radians)
 
     Returns:
             x_span: Rotated x coordinates in the localsection frame.
@@ -39,13 +39,13 @@ def cable_to_localsection_frame(
     """
 
     # beta is inverted because these formulas come from the prototype, which has indirect angles
-    angle_proj_inverted = -angle_proj
+    azimuth_angle_inverted = -azimuth_angle
 
-    projected_x_span = x * np.cos(angle_proj_inverted) - y * np.sin(
-        angle_proj_inverted
+    projected_x_span = x * np.cos(azimuth_angle_inverted) - y * np.sin(
+        azimuth_angle_inverted
     )
-    projected_y_span = -x * np.sin(angle_proj_inverted) + y * np.cos(
-        angle_proj_inverted
+    projected_y_span = -x * np.sin(azimuth_angle_inverted) + y * np.cos(
+        azimuth_angle_inverted
     )
 
     return projected_x_span, projected_y_span, z
@@ -113,6 +113,15 @@ def cable_to_beta_plane(
     ) * np.sin(alpha)
 
     return projected_x_span, projected_y_span, projected_z_span
+
+
+def project_coords(
+    x1: np.ndarray, y1: np.ndarray, azimuth_angle: np.float64
+) -> Tuple[np.ndarray, np.ndarray]:
+    # formula specifically if frame 1 is rotated from frame 0 with angle azimuth_angle
+    x0 = np.cos(azimuth_angle) * x1 + np.sin(azimuth_angle) * y1
+    y0 = -np.sin(azimuth_angle) * x1 + np.cos(azimuth_angle) * y1
+    return x0, y0
 
 
 # Commentated code: previous version of functions using rotations. Current solution uses projection.

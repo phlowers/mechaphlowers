@@ -53,6 +53,7 @@ def section_array_line_angles():
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
     return section_array
 
 
@@ -98,6 +99,7 @@ def test_get_supports_ground_coords_default_alt():
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
     span_length = section_array.data.span_length.to_numpy()
     line_angle = section_array.data.line_angle.to_numpy()
     ground_altitude = section_array.data.ground_altitude.to_numpy()
