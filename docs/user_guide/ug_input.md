@@ -150,3 +150,51 @@ frame.add_weather(weather=weather)
 # get effects of the load: example with the load_angle
 frame.cable_loads.load_angle
 ```
+
+## Support Shapes / position sets
+
+Mechaphlowers provide a specific object to handle simple set representation: the SupportShape class.  
+The idea is to provide a simple way to define a set of arms, each arm being represented by X,Y,Z coordinates of the arms.  
+The arm length is computed from x, y coordinate.
+
+Assumption for the representation:
+
+- The support is centered with origin at the support ground.  
+- Trunk is a vertical bar  
+- base arms are on Y coordinate only, from the trunk  
+- set point are on X coordinate only, from the edge of the base arms  
+
+!!! Warning
+
+    This is a simplified representation to visualize sets positions on the geometry.
+
+
+```python
+import plotly.graph_objects as go
+import mechaphlowers as mph
+
+
+fig = go.Figure()
+
+pyl_shape = mph.SupportShape(
+    name="pyl",
+    xyz_arms=np.array(
+        [
+            [0, 0, 18.5],
+            [0, 3, 16.5],
+            [0, 6, 16.5],
+            [0, 9, 16.5],
+            [3, -3, 14.5],
+            [-3, -3, 14.5],
+            [0, -6, 14.5],
+            [0, -9, 14.5],
+        ]
+    ),
+    set_number=np.array([22, 28, 37, 44, 45, 46, 47, 55]),
+)
+mph.plotting.plot_support_shape(fig, pyl_shape)
+fig.show()
+```
+
+--8<-- "docs/user_guide/assets/plot_support_shape.html"
+

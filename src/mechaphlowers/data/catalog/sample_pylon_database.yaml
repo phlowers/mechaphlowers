@@ -5,11 +5,15 @@ key_column_name: name
 columns:
   - family: str
   - set_number: int
-  - arm_length: float
-  - altitude: float
+  - Z: float
+  - X: float
+  - Y: float
+  - L: float
 
 columns_renaming:
   - family: family
   - set_number: set_number
-  - arm_length: arm_length
-  - altitude: arm_altitude
+  - Z: Z
+  - X: X
+  - Y: Y
+  - L: L

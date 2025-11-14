@@ -7,6 +7,22 @@ You can find the following catalogs with sample data inside:
 - `sample_cable_catalog`
 - `sample_support_catalog`
 
+```python
+from mechaphlowers.data.catalog import sample_support_catalog
+
+# you can see the keys in the existing catalog
+sample_support_catalog.keys()
+
+# or see object directly
+sample_support_catalog
+
+# get data as the appropriate mechaphlowers object
+sample_support_catalog.get_as_object(["support_1", "support_5"])
+
+```
+
+
+
 ## Loading your data in the catalogs
 
 You can add new catalogs in `.csv` format to the a user folder.

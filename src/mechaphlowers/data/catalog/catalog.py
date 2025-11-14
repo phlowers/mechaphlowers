@@ -224,6 +224,9 @@ class Catalog:
     def __str__(self) -> str:
         return self._data.to_string()
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__} object of {self.catalog_type}\n{self.__str__()}"
+
 
 def build_catalog_from_yaml(
     yaml_filename: str | PathLike,

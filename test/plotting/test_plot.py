@@ -153,18 +153,19 @@ def test_plot_support_shape():
     fig = go.Figure()
     pyl_shape = SupportShape(
         name="pyl",
-        yz_arms=np.array(
+        xyz_arms=np.array(
             [
-                [0, 18.5],
-                [3, 14.5],
-                [6, 14.5],
-                [9, 14.5],
-                [-3, 14.5],
-                [-6, 14.5],
-                [-9, 14.5],
+                [0, 0, 18.5],
+                [0, 3, 16.5],
+                [0, 6, 16.5],
+                [0, 9, 16.5],
+                [3, -3, 14.5],
+                [-3, -3, 14.5],
+                [0, -6, 14.5],
+                [0, -9, 14.5],
             ]
         ),
-        set_number=np.array([22, 28, 37, 45, 46, 47, 55]),
+        set_number=np.array([22, 28, 37, 44, 45, 46, 47, 55]),
     )
     plot_support_shape(fig, pyl_shape)
     # fig.show()

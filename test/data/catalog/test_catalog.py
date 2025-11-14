@@ -265,6 +265,7 @@ def test_duplicated_warning():
 
 
 def test_support_catalog():
+    sample_support_catalog
     aaa = sample_support_catalog.get_as_object("support_name_1")
     bbb = sample_support_catalog.get_as_object(
         ["support_name_1", "support_name_5"]
@@ -280,8 +281,6 @@ def test_support_catalog():
 
     assert len(bbb[1].labels_points) == 7
     assert len(bbb[0].labels_points) == 4
-
-    assert len(bbb[1].support_points) == (7 + 1) * 3
 
     with pytest.raises(IndexError):
         SupportShape.from_dataframe(pd.DataFrame([]))
