@@ -87,6 +87,8 @@ class GroundConfig:
     """Configuration class about ground."""
 
     default_support_length: float = 30.0
+
+
 class LogConfig:
     """Logging configuration class."""
 
