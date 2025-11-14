@@ -37,6 +37,27 @@ class GraphicsConfig:
 
     resolution: int = 7
     marker_size: float = 3.0
+    width: float = 8.0
+    background_opacity: float = 0.3
+    cable_trace_profile: dict = field(
+        default_factory=lambda: {
+            "name": "cable",
+            "color": "dodgerblue",
+        }
+    )
+    support_trace_profile: dict = field(
+        default_factory=lambda: {
+            "name": "support",
+            "color": "indigo",
+        }
+    )
+    insulator_trace_profile: dict = field(
+        default_factory=lambda: {
+            "name": "insulator",
+            "color": "red",
+            "size": 5.0,
+        }
+    )
 
 
 @dataclass

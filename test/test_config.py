@@ -19,7 +19,7 @@ def test_config_on_plot(balance_engine_base_test) -> None:
 
     fig = go.Figure()
     options.graphics.resolution = 20
-    options.graphics.marker_size = 10.0
+    options.graphics.cable_trace_profile["size"] = 10.0
     plt_line.preview_line3d(fig)
     assert (
         fig._data[0].get('marker').get('size') == options.graphics.marker_size  # type: ignore[attr-defined]

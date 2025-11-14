@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import TYPE_CHECKING, Callable, Literal, Self
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -25,6 +25,88 @@ from mechaphlowers.config import options as cfg
 logger = logging.getLogger(__name__)
 
 
+class TraceProfile:
+    def __init__(
+        self,
+        name: str = "Test",
+        color: str = "blue",
+        size: float = cfg.graphics.marker_size,
+        width: float = 8.0,
+        opacity: float = 1.0,
+    ):
+        self.color = color
+        self.size = size
+        self.width = width
+        self.name = name
+        self.opacity = opacity
+        self._mode = "main"
+
+    @property
+    def dimension(self) -> str:
+        return self._dimension
+
+    @dimension.setter
+    def dimension(self, value: Literal["2d", "3d"]):
+        if not isinstance(value, str):
+            raise TypeError()
+        if value not in ["2d", "3d"]:
+            raise ValueError("Dimension must be either '2d' or '3d'")
+        self._dimension = value
+
+    @property
+    def mode(self) -> str:
+        return self._mode
+
+    @mode.setter
+    def mode(self, value):
+        if value not in ["background", "main"]:
+            raise ValueError("Mode must be either 'background' or 'main'")
+        self._mode = value
+        if value == "background":
+            self.opacity = cfg.graphics.background_opacity
+        elif value == "main":
+            self.opacity = 1.0
+
+    @property
+    def dashed(self) -> dict:
+        if self._mode == "background":
+            return {'dash': 'dot'}
+        return {}
+
+    @property
+    def line(self) -> dict:
+        if self._dimension == "2d":
+            width = self.size
+        else:
+            width = self.width
+        return {'color': self.color, 'width': width} | self.dashed
+
+    @property
+    def marker(self) -> dict:
+        return {'size': self.size, 'color': self.color}
+
+    @property
+    def name(self) -> str:
+        if self._mode == "background":
+            return f"{self._name} baseline"
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        if not isinstance(value, str):
+            raise TypeError("Name must be a string")
+        self._name = value
+
+    def __call__(self, mode) -> Self:
+        self.mode = mode
+        return self
+
+
+cable_trace = TraceProfile(**cfg.graphics.cable_trace_profile)
+insulator_trace = TraceProfile(**cfg.graphics.insulator_trace_profile)
+support_trace = TraceProfile(**cfg.graphics.support_trace_profile)
+
+
 def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
     """create_figure creates a plotly figure
 
@@ -39,15 +121,15 @@ def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
             width=1400,
             scene=dict(
                 xaxis=dict(
-                    backgroundcolor="lightgrey",
+                    backgroundcolor="gainsboro",
                     gridcolor="dimgray",
                 ),
                 yaxis=dict(
-                    backgroundcolor="lightgrey",
+                    backgroundcolor="gainsboro",
                     gridcolor="dimgray",
                 ),
                 zaxis=dict(
-                    backgroundcolor="lightgrey",
+                    backgroundcolor="gainsboro",
                     gridcolor="dimgray",
                 ),
             ),
@@ -87,23 +169,19 @@ def plot_text_3d(
 def plot_points_3d(
     fig: go.Figure,
     points: np.ndarray,
-    color=None,
-    width=3,
-    size=None,
-    name="Points",
-):
+    trace_profile: TraceProfile = TraceProfile(),
+) -> None:
+    trace_profile.dimension = "3d"
     fig.add_trace(
         go.Scatter3d(
             x=points[:, 0],
             y=points[:, 1],
             z=points[:, 2],
             mode='markers+lines',
-            marker={
-                'size': cfg.graphics.marker_size if size is None else size,
-                'color': color,
-            },
-            line={'color': color, 'width': width},
-            name=name,
+            marker=trace_profile.marker,
+            line=trace_profile.line,
+            opacity=trace_profile.opacity,
+            name=trace_profile.name,
         ),
     )
 
@@ -111,14 +189,10 @@ def plot_points_3d(
 def plot_points_2d(
     fig: go.Figure,
     points: np.ndarray,
-    color=None,
-    width=8,
-    size=None,
-    name="Points",
+    trace_profile: TraceProfile = TraceProfile(),
     view: Literal["profile", "line"] = "profile",
-):
-    if size is None:
-        size = cfg.graphics.marker_size
+) -> None:
+    trace_profile.dimension = "2d"
     v_coords = points[:, 2]
     if view == "line":
         h_coords = points[:, 1]
@@ -134,12 +208,10 @@ def plot_points_2d(
             x=h_coords,
             y=v_coords,
             mode='markers+lines',
-            marker={
-                'size': cfg.graphics.marker_size if size is None else size,
-                'color': color,
-            },
-            line={'color': color, 'width': width},
-            name=name,
+            marker=trace_profile.marker,
+            line=trace_profile.line,
+            opacity=trace_profile.opacity,
+            name=trace_profile.name,
         )
     )
 
@@ -155,37 +227,6 @@ def plot_support_shape(fig: go.Figure, support_shape: SupportShape):
     plot_text_3d(
         fig, points=support_shape.labels_points, text=support_shape.set_number
     )
-
-
-def plot_line(fig: go.Figure, points: np.ndarray) -> None:
-    """Plot the points of the cable onto the figure given
-
-    Args:
-        fig (go.Figure): plotly figure
-        points (np.ndarray): points of all the cables of the section in point format (3 x n)
-    """
-
-    plot_points_3d(fig, points, color="red", width=8, name="Cable")
-
-
-def plot_support(fig: go.Figure, points: np.ndarray) -> None:
-    """Plot the points of the support onto the figure given
-
-    Args:
-        fig (go.Figure): plotly figure
-        points (np.ndarray): points of all the supports of the section in point format (3 x n)
-    """
-    plot_points_3d(fig, points, color="green", width=8, name="Supports")
-
-
-def plot_insulator(fig: go.Figure, points: np.ndarray) -> None:
-    """Plot the points of the insulators onto the figure given
-
-    Args:
-        fig (go.Figure): plotly figure
-        points (np.ndarray): points of all the insulators of the section in point format (3 x n)
-    """
-    plot_points_3d(fig, points, color="orange", width=8, name="Insulators")
 
 
 def set_layout(fig: go.Figure, auto: bool = True) -> None:
@@ -264,7 +305,10 @@ class PlotEngine:
         return self.section_pts.get_insulators().points(True)
 
     def preview_line3d(
-        self, fig: go.Figure, view: Literal["full", "analysis"] = "full"
+        self,
+        fig: go.Figure,
+        view: Literal["full", "analysis"] = "full",
+        mode: Literal["main", "background"] = "main",
     ) -> None:
         """Plot 3D of power lines sections
 
@@ -285,13 +329,20 @@ class PlotEngine:
                 f"{view=} : this argument has to be set to 'full' or 'analysis'"
             )
 
+        if mode not in ["main", "background"]:
+            raise ValueError(
+                f"Incorrect value for 'mode' argument: recieved {mode}, expected 'background' or 'main'"
+            )
+
         span, supports, insulators = self.section_pts.get_points_for_plot(
             project=False
         )
 
-        plot_line(fig, span.points(True))
-        plot_support(fig, supports.points(True))
-        plot_insulator(fig, insulators.points(True))
+        plot_points_3d(fig, span.points(True), cable_trace(mode=mode))
+        plot_points_3d(fig, supports.points(True), support_trace(mode=mode))
+        plot_points_3d(
+            fig, insulators.points(True), insulator_trace(mode=mode)
+        )
 
         set_layout(fig, auto=_auto)
 
@@ -300,6 +351,7 @@ class PlotEngine:
         fig: go.Figure,
         view: Literal["profile", "line"] = "profile",
         frame_index: int = 0,
+        mode: Literal["main", "background"] = "main",
     ) -> None:
         """Plot 2D of power lines sections
 
@@ -315,6 +367,11 @@ class PlotEngine:
                 f"Incorrect value for 'view' argument: recieved {view}, expected 'profile' or 'line'"
             )
 
+        if mode not in ["main", "background"]:
+            raise ValueError(
+                f"Incorrect value for 'mode' argument: recieved {mode}, expected 'background' or 'main'"
+            )
+
         span, supports, insulators = self.section_pts.get_points_for_plot(
             project=True, frame_index=frame_index
         )
@@ -322,22 +379,19 @@ class PlotEngine:
         plot_points_2d(
             fig,
             span.points(True),
-            color="red",
-            name="Cable",
+            cable_trace(mode=mode),
             view=view,
         )
         plot_points_2d(
             fig,
             supports.points(True),
-            color="green",
-            name="Supports",
+            support_trace(mode=mode),
             view=view,
         )
         plot_points_2d(
             fig,
             insulators.points(True),
-            color="orange",
-            name="Insulators",
+            insulator_trace(mode=mode),
             view=view,
         )
 
@@ -375,14 +429,15 @@ class PlotAccessor:
         section_pts = SectionPoints(
             span_model=spans, **self.section.data_container.__dict__
         )
-        # beta = np.zeros_like(spans.span_length)
-        # if self.section.cable_loads is not None:
-        #     beta = self.section.cable_loads.load_angle
-        # section_pts.beta = beta
-        plot_line(fig, section_pts.get_spans("section").points(True))
 
-        plot_support(fig, section_pts.get_supports().points(True))
-
-        plot_insulator(fig, section_pts.get_insulators().points(True))
+        plot_points_3d(
+            fig, section_pts.get_spans("section").points(True), cable_trace
+        )
+        plot_points_3d(
+            fig, section_pts.get_supports().points(True), support_trace
+        )
+        plot_points_3d(
+            fig, section_pts.get_insulators().points(True), insulator_trace
+        )
 
         set_layout(fig, auto=_auto)

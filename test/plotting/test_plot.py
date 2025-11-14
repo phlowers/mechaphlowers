@@ -11,6 +11,7 @@ import plotly.graph_objects as go  # type: ignore[import-untyped]
 import pytest
 from pytest import fixture
 
+from mechaphlowers.config import options as options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.data.units import convert_weight_to_mass
@@ -21,6 +22,8 @@ from mechaphlowers.entities.arrays import (
 from mechaphlowers.entities.shapes import SupportShape
 from mechaphlowers.plotting.plot import (
     PlotEngine,
+    TraceProfile,
+    figure_factory,
     plot_points_2d,
     plot_support_shape,
 )
@@ -80,7 +83,7 @@ def test_plot_line3d__all_line(
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+                if f.name == "cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 1
@@ -102,7 +105,7 @@ def test_plot_line3d__view_option(
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+                if f.name == "cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 1
@@ -141,7 +144,7 @@ def test_plot_line3d__with_beta(balance_engine_local_test: BalanceEngine):
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+                if f.name == "cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 1
@@ -193,7 +196,7 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+                if f.name == "cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 2
@@ -233,7 +236,7 @@ def test_plot_ice(balance_engine_base_test: BalanceEngine):
             [
                 f
                 for f in fig.data
-                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+                if f.name == "cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 2
@@ -282,6 +285,26 @@ def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
     # fig.show()  # deactivate for auto unit testing
 
 
+def test_plot_3d__styles(balance_engine_angles: BalanceEngine):
+    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    balance_engine_angles.solve_adjustment()
+    balance_engine_angles.solve_change_state(
+        new_temperature=15 * np.array([1, 1, 1, 1])
+    )
+    fig = figure_factory("std")
+    plt_engine.preview_line3d(fig, mode="background")
+    # plt_engine.preview_line2d(fig)
+    # balance_engine_base_test.solve_adjustment()
+    balance_engine_angles.solve_change_state(
+        wind_pressure=np.array([1, 1, 1, np.nan]) * 500,
+        # new_temperature=90.
+    )
+
+    plt_engine.preview_line3d(fig)
+
+    # fig.show()  # deactivate for auto unit testing
+
+
 def test_plot_point_2d_wrong_view():
     fig = go.Figure()
     points = np.array([[0, 0, 0], [1, 1, 1]])
@@ -298,3 +321,26 @@ def test_preview_2d_wrong_view(balance_engine_angles: BalanceEngine):
     fig_line = go.Figure()
     with pytest.raises(ValueError):
         plt_engine.preview_line2d(fig_line, view="wrong_view", frame_index=1)  # type: ignore[arg-type]
+
+
+def test_trace_profile():
+    tp = TraceProfile(name="test", color="red", width=2, opacity=0.5)
+
+    with pytest.raises(ValueError):
+        tp.mode = "other_string"
+
+    with pytest.raises(ValueError):
+        tp.mode = 0.0
+
+    with pytest.raises(TypeError):
+        tp.name = 0.0
+
+    assert not tp.dashed
+    assert tp("background").dashed == {'dash': 'dot'}
+
+    # check tp keep the background state for mode
+    assert tp.dashed == {'dash': 'dot'}
+
+    # check the config reactivity : expected behavior no change
+    options.graphics.cable_trace_profile["name"] = "test2"
+    assert tp.name == "test baseline"
