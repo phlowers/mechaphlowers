@@ -31,7 +31,7 @@ from mechaphlowers.core.models.cable.span import (
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.utils import arr
+from mechaphlowers.utils import arr, check_time
 
 logger = logging.getLogger(__name__)
 
@@ -154,6 +154,7 @@ class BalanceEngine:
         if options.log.perfs:
             logger.debug(f"Adjustment solved in {duration:.4f} seconds.")
 
+    @check_time
     def solve_change_state(
         self,
         wind_pressure: np.ndarray | float | None = None,
@@ -176,7 +177,6 @@ class BalanceEngine:
         logger.debug(
             f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}"
         )
-        start = time.time()
 
         span_shape = self.section_array.data.span_length.shape
 
@@ -226,7 +226,3 @@ class BalanceEngine:
         logger.debug(
             f"Output : get_displacement \n{str(self.get_displacement())}"
         )
-
-        duration = time.time() - start
-        if options.log.perfs:
-            logger.debug(f"Change state solved in {duration:.4f} seconds.")
