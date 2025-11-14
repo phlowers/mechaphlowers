@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from typing import Callable, Type
 
 import numpy as np
@@ -135,7 +134,6 @@ class BalanceEngine:
         self.get_displacement: Callable = self.balance_model.dxdydz
         logger.debug("Balance engine initialized.")
 
-
     @check_time
     def solve_adjustment(self) -> None:
         """Solve the chain positions in the adjustment case, updating L_ref in the balance model.
@@ -151,7 +149,6 @@ class BalanceEngine:
         self.L_ref = self.balance_model.update_L_ref()
 
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")
-
 
     @check_time
     def solve_change_state(
@@ -229,5 +226,3 @@ class BalanceEngine:
     @property
     def support_number(self) -> int:
         return self.section_array.data.span_length.shape[0]
-
-
