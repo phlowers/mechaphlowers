@@ -230,3 +230,7 @@ class BalanceEngine:
         duration = time.time() - start
         if options.log.perfs:
             logger.debug(f"Change state solved in {duration:.4f} seconds.")
+
+    @property
+    def support_number(self) -> int:
+        return self.section_array.data.span_length.shape[0]

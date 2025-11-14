@@ -69,6 +69,7 @@ def section_array_arm() -> SectionArray:
 def test_element_initialisation(balance_engine_simple: BalanceEngine):
     print("\n")
     print(balance_engine_simple.balance_model)
+    assert balance_engine_simple.support_number == 4
 
 
 def test_element_change_state(balance_engine_simple: BalanceEngine):
