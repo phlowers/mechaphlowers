@@ -14,6 +14,7 @@ from mechaphlowers.core.geometry.line_angles import (
 from mechaphlowers.core.geometry.references import (
     cable_to_beta_plane,
     cable_to_localsection_frame,
+    project_coords,
     translate_cable_to_support_from_attachments,
 )
 from mechaphlowers.core.models.cable.span import ISpan
@@ -70,6 +71,15 @@ class Points:
     It provides methods to convert the coordinates to vectors, points, and to create a Points object from.
 
     Do not use this class directly, use the factory methods `from_vectors` or `from_coords`.
+
+    Examples:
+        >>> points = Points.from_vectors(x, y, z)
+        >>> span0, span1, span2, ... = points.coords
+        >>> span0
+        array([[x0, y0, z0],
+            [x1, y1, z1],
+            ...
+            ])
     """
 
     def __init__(self, coords: np.ndarray):
@@ -81,7 +91,20 @@ class Points:
 
     @property
     def vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Convert the coordinates to vectors."""
+        """Convert the coordinates to vectors. Returns the x, y, z coordinates as separate 2D arrays.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray, np.ndarray]: Three 2D arrays representing the x, y, and z coordinates.
+
+        Examples:
+            >>> x, y, z = points.vectors
+            >>> x
+            array([[x0_span0, x0_span1, x0_span2],
+                [x1_span0, x1_span1, x1_span2],
+                ...
+                ])
+
+        """
         return (
             self.coords[:, :, 0].T,
             self.coords[:, :, 1].T,
@@ -90,8 +113,31 @@ class Points:
 
     def points(self, stack=False) -> np.ndarray:
         """Convert the coordinates to a 2D array of points for plotting or other uses.
+
+        Args:
+            stack (bool, optional): If True, stack NaN values to separate spans when plotting. Defaults to False.
+
         Returns:
             np.ndarray: A 2D array of shape (number of points, 3) where each row is a point (x, y, z).
+
+        Examples:
+            >>> points_array = points.points(stack=False)
+            >>> points_array
+            array([[x0, y0, z0],
+                [x1, y1, z1],
+                [x2, y2, z2],
+                ...
+                ])
+            >>> points_array_stacked = points.points(stack=True)
+            >>> points_array_stacked
+            array([[x0_span0, y0_span0, z0_span0],
+                [x1_span0, y1_span0, z1_span0],
+                [x2_span0, y2_span0, z2_span0],
+                ...
+                [nan, nan, nan]
+                [x0_span1, y0_span1, z0_span1],
+                ...
+                ])
         """
         if stack is False:
             return coords_to_points(self.coords)
@@ -411,7 +457,7 @@ class SectionPoints:
         """Get spans as vectors in the localsection frame."""
         x_span, y_span, z_span = self.span_in_cable_frame()
         x_span, y_span, z_span = cable_to_localsection_frame(
-            x_span, y_span, z_span, self.plane.angle_proj[:-1]
+            x_span, y_span, z_span, self.plane.azimuth_angle[:-1]
         )
         return x_span, y_span, z_span
 
@@ -474,3 +520,94 @@ class SectionPoints:
             self.get_attachments_coords(),
         )
         return Points.from_coords(insulator_layers)
+
+    def get_points_for_plot(
+        self, project=False, frame_index=0
+    ) -> Tuple[Points, Points, Points]:
+        """Get Points objects for span, supports and insulators.
+        Can be used for plotting 2D or 3D graphs.
+
+        Args:
+            project (bool, optional): Set to True if 2d graph: this project all objects into a support frame. Defaults to False.
+            frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
+
+        Returns:
+            Tuple[Points, Points, Points]: Points for spans, supports and insulators respectively.
+
+        Raises:
+            ValueError: frame_index is out of range
+        """
+        spans_points = self.get_spans("section")
+        supports_points = self.get_supports()
+        insulators_points = self.get_insulators()
+        if project:
+            if frame_index > spans_points.coords.shape[2]:
+                raise ValueError(
+                    f"frame_index out of range. Expected value between 0 and {spans_points.coords.shape[2]}, received {frame_index}"
+                )
+            spans_points, supports_points, insulators_points = (
+                self.project_to_selected_frame(
+                    spans_points,
+                    supports_points,
+                    insulators_points,
+                    frame_index,
+                )
+            )
+        return spans_points, supports_points, insulators_points
+
+    def project_to_selected_frame(
+        self,
+        spans_points: Points,
+        supports_points: Points,
+        insulators_points: Points,
+        frame_index: int,
+    ) -> Tuple[Points, Points, Points]:
+        """Project spans, supports and insulators points into a support frame.
+
+        Args:
+            spans_points (Points): spans Points object
+            supports_points (Points): supports Points object
+            insulators_points (Points): insulators Points object
+            frame_index (int): Index of the frame the projection is made.
+
+        Returns:
+            Tuple[Points, Points, Points]: Points for spans, supports and insulators respectively,
+            projected into the frame of support number `frame_index`.
+        """
+        angle_to_project = np.cumsum(self.line_angle)[frame_index]
+        translation_vector = -supports_points.coords[frame_index, 0]
+
+        new_span = self.change_frame(
+            spans_points, translation_vector, angle_to_project
+        )
+        new_supports = self.change_frame(
+            supports_points, translation_vector, angle_to_project
+        )
+        new_insulators = self.change_frame(
+            insulators_points, translation_vector, angle_to_project
+        )
+
+        return new_span, new_supports, new_insulators
+
+    # convert to function? self unused
+    def change_frame(
+        self,
+        points: Points,
+        translation_vector: np.ndarray,
+        angle_to_project: np.float64,
+    ) -> Points:
+        """Change the frame of the given Points by applying a translation and a rotation.
+
+        Args:
+            points (Points): points to transform
+            translation_vector (np.ndarray): translation vector to apply
+            angle_to_project (np.float64): angle of the rotation
+
+        Returns:
+            Points: new Points object in the new frame
+        """
+        points.coords = points.coords + translation_vector
+        x, y, z = points.vectors
+        x, y = project_coords(x, y, angle_to_project)
+        # invert y axis to get more natural view
+        return Points.from_vectors(x, -y, z)

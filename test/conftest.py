@@ -43,11 +43,11 @@ def default_cable_array() -> CableArray:
                 "section": [345.55],
                 "diameter": [22.4],
                 "linear_mass": [0.974],
-                "young_modulus": [59],
-                "dilatation_coefficient": [23],
+                "young_modulus": [59000],
+                "dilatation_coefficient": [23e-6],
                 "temperature_reference": [15],
                 "a0": [0],
-                "a1": [59],
+                "a1": [59000],
                 "a2": [0],
                 "a3": [0],
                 "a4": [0],
@@ -110,6 +110,7 @@ def default_section_array_three_spans() -> SectionArray:
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
     return section_array
 
 
@@ -148,11 +149,11 @@ def default_data_container_one_span() -> DataContainer:
                 "section": [600.4],
                 "diameter": [31.86],
                 "linear_mass": [1.8],
-                "young_modulus": [60],
-                "dilatation_coefficient": [23],
+                "young_modulus": [60000],
+                "dilatation_coefficient": [23e-6],
                 "temperature_reference": [15.0],
                 "a0": [0.0],
-                "a1": [60],
+                "a1": [60000],
                 "a2": [0.0],
                 "a3": [0.0],
                 "a4": [0.0],
@@ -193,6 +194,7 @@ def default_data_container_one_span() -> DataContainer:
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
 
     weather_array = WeatherArray(
         pd.DataFrame(
@@ -229,6 +231,7 @@ def section_dataframe_with_cable_weather(
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
 
     frame = SectionDataFrame(section_array)
 
@@ -268,6 +271,34 @@ def balance_engine_base_test(cable_array_AM600: CableArray) -> BalanceEngine:
                 "conductor_attachment_altitude": [50, 100, 50, 50],
                 "crossarm_length": [10, 10, 10, 10],
                 "line_angle": [0, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 500, 500, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000.0, 500.0, 500.0, 1000.0]
+                ),
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        )
+    )
+    section_array.add_units({"line_angle": "grad"})
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    return BalanceEngine(
+        cable_array=cable_array_AM600, section_array=section_array
+    )
+
+
+@pytest.fixture
+def balance_engine_angles(cable_array_AM600: CableArray) -> BalanceEngine:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [50, 100, 50, 60],
+                "crossarm_length": [10, 10, 10, 10],
+                "line_angle": [0, 10, 20, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 500, 500, np.nan],
                 "insulator_mass": convert_weight_to_mass(

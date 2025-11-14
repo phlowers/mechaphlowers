@@ -36,6 +36,7 @@ def balance_engine_simple(cable_array_AM600: CableArray) -> BalanceEngine:
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "grad"})
     return BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
     )
@@ -68,6 +69,7 @@ def section_array_arm() -> SectionArray:
 def test_element_initialisation(balance_engine_simple: BalanceEngine):
     print("\n")
     print(balance_engine_simple.balance_model)
+    assert balance_engine_simple.support_number == 4
 
 
 def test_element_change_state(balance_engine_simple: BalanceEngine):

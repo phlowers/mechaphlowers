@@ -13,6 +13,7 @@ import pandera as pa
 from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Self, Type
 
+from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
@@ -120,7 +121,7 @@ class SectionArray(ElementArray):
         super().__init__(data)  # type: ignore[arg-type]
         self.sagging_parameter = sagging_parameter
         self.sagging_temperature = sagging_temperature
-        self.input_units = {"line_angle": "deg"}
+        self.input_units = options.input_units.section_array.copy()
         logger.debug("Section Array initialized.")
 
     def compute_elevation_difference(self) -> np.ndarray:
@@ -235,25 +236,9 @@ class CableArray(ElementArray):
         data: pd.DataFrame,
     ) -> None:
         super().__init__(data)
-        self.input_units: dict[str, str] = {
-            "section": "mm^2",
-            "diameter": "mm",
-            "young_modulus": "GPa",
-            "dilatation_coefficient": "1/MK",
-            "a0": "GPa",
-            "a1": "GPa",
-            "a2": "GPa",
-            "a3": "GPa",
-            "a4": "GPa",
-            "b0": "GPa",
-            "b1": "GPa",
-            "b2": "GPa",
-            "b3": "GPa",
-            "b4": "GPa",
-            "diameter_heart": "mm",
-            "section_conductor": "mm^2",
-            "section_heart": "mm^2",
-        }
+        self.input_units: dict[str, str] = (
+            options.input_units.cable_array.copy()
+        )
 
     @property
     def data(self) -> pd.DataFrame:

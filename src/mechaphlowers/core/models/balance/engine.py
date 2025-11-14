@@ -226,3 +226,9 @@ class BalanceEngine:
         logger.debug(
             f"Output : get_displacement \n{str(self.get_displacement())}"
         )
+
+    @property
+    def support_number(self) -> int:
+        return self.section_array.data.span_length.shape[0]
+
+
