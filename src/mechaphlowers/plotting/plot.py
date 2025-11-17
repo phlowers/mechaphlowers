@@ -26,6 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 class TraceProfile:
+    """TraceProfile is a configuration class to handle a trace parameter.
+    It is designed to be used with some plotly specific figures and getters are specialized to return the right format for plotly.
+    """
+
     def __init__(
         self,
         name: str = "Test",
@@ -83,7 +87,10 @@ class TraceProfile:
 
     @property
     def marker(self) -> dict:
-        return {'size': self.size, 'color': self.color}
+        if self._dimension == "2d":
+            return {'size': self.size + 1, 'color': self.color}
+        else:
+            return {'size': self.size, 'color': self.color}
 
     @property
     def name(self) -> str:
