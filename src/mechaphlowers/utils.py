@@ -7,7 +7,7 @@
 import logging
 from functools import wraps
 from time import time
-from typing import Callable
+from typing import Callable, Dict
 
 import numpy as np
 import pandas as pd
@@ -60,6 +60,16 @@ class CachedAccessor:
         # We need to use object.__setattr__ because we overwrite __setattr__ on
         object.__setattr__(obj, self._name, accessor_obj)
         return accessor_obj
+
+
+def float_to_array(data: Dict[str, np.ndarray | float | int]) -> Dict:
+    """Convert inputs to the required format."""
+    for key, value in data.items():
+        if isinstance(value, (int, float)):
+            data[key] = np.array([value, np.nan])
+        if isinstance(value, np.ndarray) and value.size == 1:
+            data[key] = np.array([value[0], np.nan])
+    return data
 
 
 def add_stderr_logger(

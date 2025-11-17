@@ -3,6 +3,47 @@ import numpy as np
 from mechaphlowers.data.measures import PapotoParameterMeasure
 
 
+def test_papoto_floats():
+    a = 498.565922913587
+    HL = 0.0
+    VL = 97.4327311161033
+    HR = 162.614599621714
+    VR = 88.6907631859419
+    H1 = 5.1134354937127
+    V1 = 98.4518011880176
+    H2 = 19.6314054626454
+    V2 = 97.6289296721015
+    H3 = 97.1475339907774
+    V3 = 87.9335010245142
+
+    papoto = PapotoParameterMeasure()
+    papoto(
+        a=a,
+        HL=HL,
+        VL=VL,
+        HR=HR,
+        VR=VR,
+        H1=H1,
+        V1=V1,
+        H2=H2,
+        V2=V2,
+        H3=H3,
+        V3=V3,
+    )
+    np.testing.assert_allclose(
+        papoto.parameter, np.array([2000, np.nan]), atol=1.0
+    )
+    np.testing.assert_allclose(
+        papoto.parameter_1_2, np.array([1999.78, np.nan]), atol=0.1
+    )
+    np.testing.assert_allclose(
+        papoto.validity, np.array([8.85880213e-05, np.nan]), atol=1e-5
+    )
+    np.testing.assert_allclose(
+        papoto.check_validity(), np.array([True, False]), atol=0.1
+    )
+
+
 def test_papoto_parameter_measure():
     a = np.array([498.565922913587, np.nan])
     HL = np.array([0.0, np.nan])
