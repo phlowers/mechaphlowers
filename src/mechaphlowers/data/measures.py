@@ -20,6 +20,7 @@ from mechaphlowers.core.papoto.papoto_model import (
     papoto_validity,
 )
 from mechaphlowers.data.units import Q_
+from mechaphlowers.utils import float_to_array
 
 
 class ParameterMeasure(ABC):
@@ -57,17 +58,17 @@ class PapotoParameterMeasure(ParameterMeasure):
 
     def measure_method(
         self,
-        a: np.ndarray,
-        HL: np.ndarray,
-        VL: np.ndarray,
-        HR: np.ndarray,
-        VR: np.ndarray,
-        H1: np.ndarray,
-        V1: np.ndarray,
-        H2: np.ndarray,
-        V2: np.ndarray,
-        H3: np.ndarray,
-        V3: np.ndarray,
+        a: np.ndarray | float | int,
+        HL: np.ndarray | float | int,
+        VL: np.ndarray | float | int,
+        HR: np.ndarray | float | int,
+        VR: np.ndarray | float | int,
+        H1: np.ndarray | float | int,
+        V1: np.ndarray | float | int,
+        H2: np.ndarray | float | int,
+        V2: np.ndarray | float | int,
+        H3: np.ndarray | float | int,
+        V3: np.ndarray | float | int,
         angle_unit: str = "grad",
     ):
         """Compute the PAPOTO measure.
@@ -100,6 +101,7 @@ class PapotoParameterMeasure(ParameterMeasure):
             "H3": H3,
             "V3": V3,
         }
+        self.measures = float_to_array(self.measures)
         self.angle_unit = angle_unit
         measures_converted = self.input_conversion(self.measures)
         measures_converted["a"] = a
@@ -141,9 +143,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         )
         return output_data
 
-    def input_conversion(
-        self, data: Dict[str, np.ndarray]
-    ) -> Dict[str, np.ndarray]:
+    def input_conversion(self, data: Dict) -> Dict:
         """Convert inputs to the required format."""
         for key, value in data.items():
             data[key] = Q_(value, self.angle_unit).to("rad").magnitude
