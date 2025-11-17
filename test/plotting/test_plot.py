@@ -14,6 +14,9 @@ from pytest import fixture
 from mechaphlowers.config import options as options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
+from mechaphlowers.data.catalog.sample_section import (
+    section_factory_sample_data,
+)
 from mechaphlowers.data.units import convert_weight_to_mass
 from mechaphlowers.entities.arrays import (
     CableArray,
@@ -261,6 +264,29 @@ def test_plot_2d(balance_engine_angles: BalanceEngine):
 
     fig_profile = go.Figure()
     plt_engine.preview_line2d(fig_profile, "profile", 1)
+
+    # fig_line.show()
+    # fig_profile.show()  # deactivate for auto unit testing
+
+
+def test_plot_more_spans(cable_array_AM600: CableArray):
+    section_array = SectionArray(pd.DataFrame(section_factory_sample_data(10)))
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    balance_engine = BalanceEngine(
+        cable_array=cable_array_AM600, section_array=section_array
+    )
+    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state(new_temperature=15)
+    balance_engine.solve_change_state(
+        wind_pressure=200,
+    )
+    fig_line = go.Figure()
+    plt_engine.preview_line2d(fig_line, "line", 8)
+
+    fig_profile = go.Figure()
+    plt_engine.preview_line2d(fig_profile, "profile", 8)
 
     # fig_line.show()
     # fig_profile.show()  # deactivate for auto unit testing
