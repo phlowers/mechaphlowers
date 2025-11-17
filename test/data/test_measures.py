@@ -42,7 +42,7 @@ def test_papoto_floats():
     np.testing.assert_allclose(
         papoto.check_validity(), np.array([True, False]), atol=0.1
     )
-    
+
 
 def test_papoto_parameter_measure():
     a = np.array([498.565922913587, np.nan])
