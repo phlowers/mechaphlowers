@@ -176,8 +176,12 @@ def plot_text_3d(
 def plot_points_3d(
     fig: go.Figure,
     points: np.ndarray,
-    trace_profile: TraceProfile = TraceProfile(),
+    trace_profile: TraceProfile | None = None,
 ) -> None:
+    
+    if  trace_profile is None:
+        trace_profile = TraceProfile()
+    
     trace_profile.dimension = "3d"
     fig.add_trace(
         go.Scatter3d(
@@ -196,9 +200,13 @@ def plot_points_3d(
 def plot_points_2d(
     fig: go.Figure,
     points: np.ndarray,
-    trace_profile: TraceProfile = TraceProfile(),
+    trace_profile: TraceProfile | None = None,
     view: Literal["profile", "line"] = "profile",
 ) -> None:
+    
+    if  trace_profile is None:
+        trace_profile = TraceProfile()
+    
     trace_profile.dimension = "2d"
     v_coords = points[:, 2]
     if view == "line":
