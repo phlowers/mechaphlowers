@@ -543,9 +543,9 @@ class SectionPoints:
         supports_points = self.get_supports()
         insulators_points = self.get_insulators()
         if project:
-            if frame_index > spans_points.coords.shape[2]:
+            if frame_index > spans_points.coords.shape[0]:
                 raise ValueError(
-                    f"frame_index out of range. Expected value between 0 and {spans_points.coords.shape[2]}, received {frame_index}"
+                    f"frame_index out of range. Expected value between 0 and {spans_points.coords.shape[0]}, received {frame_index}"
                 )
             spans_points, supports_points, insulators_points = (
                 self.project_to_selected_frame(
