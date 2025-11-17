@@ -262,6 +262,9 @@ def test_plot_2d(balance_engine_angles: BalanceEngine):
     fig_profile = go.Figure()
     plt_engine.preview_line2d(fig_profile, "profile", 1)
 
+    assert fig_line.layout.yaxis.scaleanchor == "x"
+    assert fig_profile.layout.yaxis.scaleanchor != "x"
+
     # fig_line.show()
     # fig_profile.show()  # deactivate for auto unit testing
 
