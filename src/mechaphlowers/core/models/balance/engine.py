@@ -178,12 +178,12 @@ class BalanceEngine:
 
         def validate_input(input_value, name: str):
             if input_value is not None and not isinstance(
-                input_value, (float, np.ndarray)
+                input_value, (int, float, np.ndarray)
             ):
                 raise TypeError(f"{name} has incorrect type")
             if input_value is None:
                 input_value = self.default_value[name]
-            if isinstance(input_value, float):
+            if isinstance(input_value, (int, float)):
                 input_value = np.full(span_shape, input_value)
             if isinstance(input_value, np.ndarray):
                 if input_value.shape != span_shape:
