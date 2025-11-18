@@ -32,6 +32,13 @@ class PrecisionConfig:
 
 
 @dataclass
+class DataConfig:
+    """configuration for data loading and saving"""
+
+    sagging_temperature_default: float = 15.0
+
+
+@dataclass
 class GraphicsConfig:
     """Graphics configuration class."""
 
@@ -178,6 +185,7 @@ class Config:
         self._ground = GroundConfig()
         self._log = LogConfig()
         self._input_units = InputUnitsConfig()
+        self._data_config = DataConfig()
 
     @property
     def ground(self) -> GroundConfig:
@@ -193,6 +201,10 @@ class Config:
     def input_units(self) -> InputUnitsConfig:
         """Input units configuration property."""
         return self._input_units
+
+    @property
+    def data(self) -> DataConfig:
+        return self._data_config
 
     @property
     def graphics(self) -> GraphicsConfig:

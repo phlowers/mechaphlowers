@@ -25,10 +25,10 @@ In mechaphlowers a line section is described by the following data:
 - for each span:
     - the span length, denoted later as $a$.
 
+
 !!! important
 
-    For now, sagging parameter and temperature are assumed to be **the same for each span** in a line section - which doesn't necessarily reflect reality.  
-    Support for disparate sagging parameters and temperatures may be added later.
+    Sagging parameter and temperature are assumed to be **the same for each span** in a line section - which doesn't necessarily reflect reality. This is not the case from the point you use physical engine to balance the line section.
 
 !!! Warning
 
@@ -71,6 +71,21 @@ You may use the following code to define this data and load it so that it can be
     })
     section_array = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
     print(section_array)
+
+### Sagging default values
+
+Sagging parameters and temperature have default values. In this way, user can vizualise section in the same time it is created.
+
+**Rules**:
+
+- sagging_temperature = 15°C
+- sagging_parameter = equivalent_span $\times$ 5
+- equivalent_span is the following, with $a_i$ the span length of the ith span:
+
+$$
+    L_{eq} = \sqrt{\frac{ \sum_{i \in span} a_i^3}{\sum_{i \in span} a_i}} 
+$$
+
 
 ## Cable
 

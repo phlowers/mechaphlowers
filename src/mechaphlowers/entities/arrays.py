@@ -119,8 +119,15 @@ class SectionArray(ElementArray):
         sagging_temperature: float | None = None,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
-        self.sagging_parameter = sagging_parameter
-        self.sagging_temperature = sagging_temperature
+
+        if sagging_parameter is None:
+            self.sagging_parameter = self.equivalent_span() * 5
+        else:
+            self.sagging_parameter = sagging_parameter
+        if sagging_temperature is None:
+            self.sagging_temperature = options.data.sagging_temperature_default
+        else:
+            self.sagging_temperature = sagging_temperature
         self.input_units = options.input_units.section_array.copy()
         logger.debug("Section Array initialized.")
 
@@ -163,6 +170,21 @@ class SectionArray(ElementArray):
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
             )
+
+    def equivalent_span(self) -> float:
+        """equivalent_span
+
+        compute equivalent span:
+           $L_{eq} = \\sqrt{\\sum(L_i ^ 3)/\\sum(L_i))}$
+
+
+        Returns:
+            float: equivalent span length (m)
+        """
+        span_length = self._data.span_length.to_numpy()
+        span_length_3 = span_length.copy() ** 3
+
+        return np.sqrt(np.nansum(span_length_3) / np.nansum(span_length))
 
     def validate_ground_altitude(self, data_output: pd.DataFrame):
         if "ground_altitude" not in data_output:
