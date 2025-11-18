@@ -11,6 +11,7 @@ import pytest
 from numpy.testing import assert_allclose
 from pandas.testing import assert_frame_equal
 
+from mechaphlowers.config import options
 from mechaphlowers.entities.arrays import (
     CableArray,
     SectionArray,
@@ -350,14 +351,23 @@ def test_section_array__data_without_sagging_properties(
     section_array_without_temperature = SectionArray(
         data=df, sagging_parameter=2_000
     )
-    with pytest.raises(AttributeError):
-        section_array_without_temperature.data
+    np.testing.assert_allclose(
+        section_array_without_temperature.data.sagging_temperature,
+        options.data.sagging_temperature_default
+        * np.ones(len(section_array_without_temperature.data)),
+    )
 
     section_array_without_parameter = SectionArray(
         data=df, sagging_temperature=15
     )
-    with pytest.raises(AttributeError):
-        section_array_without_parameter.data
+    np.testing.assert_allclose(
+        section_array_without_parameter.data.sagging_parameter,
+        section_array_without_parameter.equivalent_span()
+        * 5
+        * np.array(
+            [1] * (len(section_array_without_temperature.data) - 1) + [np.nan]
+        ),
+    )
 
 
 def test_section_array__data_original(section_array_input_data: dict) -> None:
@@ -659,3 +669,11 @@ def test_create_weather_array__negative_ice() -> None:
 
     with pytest.raises(pa.errors.SchemaErrors):
         WeatherArray(input_df)
+
+
+def test_equivalent_span(section_array) -> None:
+    res = (
+        section_array.data.span_length**3
+    ).sum() / section_array.data.span_length.sum()
+
+    np.testing.assert_allclose(section_array.equivalent_span() ** 2, res)
