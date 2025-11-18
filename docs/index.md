@@ -3,7 +3,8 @@
 # Mechaphlowers
 
 
-Mechaphlowers is a user oriented package dedicated to mechanical and geometrical calculations for overhead power lines.  
+Mechaphlowers is a user oriented package dedicated to mechanical and geometrical calculations for overhead power lines.
+
 Mechaphlowers is part of the [phlowers](https://phlowers.readthedocs.io/en/latest/) project.
 
 ## Features
