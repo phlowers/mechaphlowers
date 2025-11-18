@@ -175,7 +175,7 @@ class SectionArray(ElementArray):
         """equivalent_span
 
         compute equivalent span:
-           $L_{eq} = \\sqrt{\\sum(L_i ^ 3)/\\sum(L_i))}$
+           $L_{eq} = \\sqrt{\\sum(L_i ^ 3)/\\sum L_i}$
 
 
         Returns:

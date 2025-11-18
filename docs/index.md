@@ -3,13 +3,41 @@
 # Mechaphlowers
 
 
-Mechaphlowers is a user oriented package dedicated to mechanical and geometrical calculations for overhead power lines.  
+Mechaphlowers is a user oriented package dedicated to mechanical and geometrical calculations for overhead power lines.
+
 Mechaphlowers is part of the [phlowers](https://phlowers.readthedocs.io/en/latest/) project.
 
 ## Features
 
+🔌 Input:
+
 - loading simplified span referenced data of a section.
-- 3D plot of the section.
+- import from csv files
+
+🧮 Data:
+
+- catalogs : 
+   - samples provided for supports and cable datas
+   - easy configuration to use your own catalogs
+
+⚙️ Physics engine:
+
+- balance model for a section: RTE model available
+- load model on a span: RTE model available
+- span model available: catenary
+- solver: RTE solver available
+
+📏 Field Measurement:
+
+- Span parameter estimation: PAPOTO method implemented
+
+📈 Graphics engine:
+
+- 3D plot of the section with real scale and condensed view.
+- 2D plot of the section with "line" and "profile" options.
+- Support catalog explorer
+
+
 
 <!-- ## Why use mechaphlowers ? -->
 
