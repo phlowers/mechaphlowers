@@ -385,6 +385,16 @@ class PlotEngine:
                 f"Incorrect value for 'mode' argument: recieved {mode}, expected 'background' or 'main'"
             )
 
+        if view == "profile":
+            fig.update_layout(
+                yaxis={"autorange": True},
+            )
+
+        else:
+            fig.update_layout(
+                yaxis={"scaleanchor": "x", "scaleratio": 1},
+            )
+
         span, supports, insulators = self.section_pts.get_points_for_plot(
             project=True, frame_index=frame_index
         )
