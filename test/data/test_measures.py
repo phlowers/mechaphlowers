@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 
-from mechaphlowers.data.measures import PapotoParameterMeasure
+from mechaphlowers.data.measures import PapotoParameterMeasure, param_15_deg
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 def test_papoto_floats():
@@ -126,3 +128,26 @@ def test_select_points_in_dict():
     assert result2["V1"].tolist() == [21]
     assert result2["H2"].tolist() == [10]
     assert result2["V2"].tolist() == [11]
+
+def test_parameter_15_deg(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": [0, 10, 0, 0],
+                "insulator_length": [0.01, 3, 3, 0.01],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [000, 50, 50, 100],
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        )
+    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    
+    param_15_deg(2000, 200, section_array, cable_array_AM600)
+    assert True

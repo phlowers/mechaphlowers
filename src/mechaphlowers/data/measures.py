@@ -15,11 +15,13 @@ from typing import Dict
 
 import numpy as np
 
+from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.papoto.papoto_model import (
     papoto_2_points,
     papoto_validity,
 )
 from mechaphlowers.data.units import Q_
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.utils import float_to_array
 
 
@@ -163,3 +165,28 @@ class PapotoParameterMeasure(ParameterMeasure):
 
     def __call__(self, *args, **kwds):
         return self.measure_method(*args, **kwds)
+
+
+def param_15_deg(measured_parameter, measured_temperature, section_array: SectionArray, cable_array: CableArray):
+    section_array.sagging_parameter = measured_parameter
+    section_array.sagging_temperature = measured_temperature
+    balance_engine = BalanceEngine(cable_array=cable_array, section_array=section_array)
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state(new_temperature=15)
+    parameter_15_0 = balance_engine.span_model.sagging_parameter
+
+    section_array.sagging_parameter = parameter_15_0[0]
+    section_array.sagging_temperature = 15
+    balance_engine_1 = BalanceEngine(cable_array=cable_array, section_array=section_array)
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state(new_temperature=measured_temperature)
+    parameter_15_1 = balance_engine.span_model.sagging_parameter
+    mem = parameter_15_1 - measured_parameter
+    balance_engine_1.span_model.set_parameter(parameter_15_1 + 1)
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state()
+
+    mem1 = balance_engine.span_model.sagging_parameter - measured_parameter
+
+    return np.where(mem1 == mem, parameter_15_1, parameter_15_1 - mem / (mem1 - mem))
+
