@@ -5,8 +5,9 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
-from abc import ABC
 import warnings
+from abc import ABC
+
 import numpy as np
 import pandas as pd
 import pandera as pa
@@ -201,8 +202,10 @@ class SectionArray(ElementArray):
                     self.compute_ground_altitude(),
                     ground_alt,
                 )
-                warning_string = "ground_altitude is higher than conductor_attachment_altitude. \n" \
-                f"ground_altitude being replaced by default value for incorrect supports: \n {data_output['ground_altitude'].to_numpy()}"
+                warning_string = (
+                    "ground_altitude is higher than conductor_attachment_altitude. \n"
+                    f"ground_altitude being replaced by default value for incorrect supports: \n {data_output['ground_altitude'].to_numpy()}"
+                )
                 warnings.warn(warning_string)
                 logger.warning(warning_string)
 
