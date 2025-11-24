@@ -29,7 +29,6 @@ dependencies = [
     "multimethod<2.0",
     "pyyaml<=6.0.2",
     "pint==0.25",
-    "thermohl==1.3.2",
 ]
 
 [project.urls]
