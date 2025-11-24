@@ -149,5 +149,5 @@ def test_parameter_15_deg(cable_array_AM600: CableArray):
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
     
-    param_15_deg(2000, 200, section_array, cable_array_AM600)
+    param = param_15_deg(2000, 60, section_array, cable_array_AM600)
     assert True

@@ -175,18 +175,22 @@ def param_15_deg(measured_parameter, measured_temperature, section_array: Sectio
     balance_engine.solve_change_state(new_temperature=15)
     parameter_15_0 = balance_engine.span_model.sagging_parameter
 
-    section_array.sagging_parameter = parameter_15_0[0]
     section_array.sagging_temperature = 15
+    # error here: need to allow to put an array for sagging_parameter in section_array
+    section_array.sagging_parameter = parameter_15_0[0]
     balance_engine_1 = BalanceEngine(cable_array=cable_array, section_array=section_array)
-    balance_engine.solve_adjustment()
-    balance_engine.solve_change_state(new_temperature=measured_temperature)
-    parameter_15_1 = balance_engine.span_model.sagging_parameter
+    balance_engine_1.solve_adjustment()
+    balance_engine_1.solve_change_state(new_temperature=measured_temperature)
+    parameter_15_1 = balance_engine_1.span_model.sagging_parameter
     mem = parameter_15_1 - measured_parameter
-    balance_engine_1.span_model.set_parameter(parameter_15_1 + 1)
-    balance_engine.solve_adjustment()
-    balance_engine.solve_change_state()
+    
+    section_array.sagging_parameter = (parameter_15_0 + 1)[0]
+    balance_engine_2 = BalanceEngine(cable_array=cable_array, section_array=section_array)
 
-    mem1 = balance_engine.span_model.sagging_parameter - measured_parameter
+    balance_engine_2.solve_adjustment()
+    balance_engine_2.solve_change_state()
 
-    return np.where(mem1 == mem, parameter_15_1, parameter_15_1 - mem / (mem1 - mem))
+    mem1 = balance_engine_2.span_model.sagging_parameter - measured_parameter
+
+    return np.where(mem1 == mem, parameter_15_0, parameter_15_0 - mem / (mem1 - mem))
 
