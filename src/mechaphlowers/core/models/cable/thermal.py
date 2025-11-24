@@ -9,8 +9,14 @@ from thermohl import solver  # type: ignore
 from mechaphlowers.entities.arrays import CableArray
 
 
-def get_cable_temperature(cable_array: CableArray, heateq='3t'):
+def get_cable_temperature(cable_array: CableArray, month:int, day:int, hour:int, ambient_temp: float, wind_speed: float, wind_angle: float, heateq='3t'):
     dict_input = {
+        "month": month,
+        "day": day,
+        "hour": hour,
+        "Ta": ambient_temp,
+        "ws" : wind_speed,  # wind speed (m.s**-1)
+        "wa" : wind_angle,  # wind angle (deg, regarding north)
         "m": cable_array.data.linear_weight.iloc[0],
         "d": cable_array.data.diameter_heart.iloc[0],
         "D": cable_array.data.diameter.iloc[0],
