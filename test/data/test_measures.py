@@ -139,9 +139,9 @@ def test_parameter_15_deg(cable_array_AM600: CableArray):
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
                 "line_angle": [0, 10, 0, 0],
-                "insulator_length": [0.01, 3, 3, 0.01],
+                "insulator_length": [0.001, 3, 3, 0.001],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_mass": [000, 50, 50, 100],
+                "insulator_mass": [00, 50, 50, 00],
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
@@ -150,7 +150,17 @@ def test_parameter_15_deg(cable_array_AM600: CableArray):
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
-    param = param_15_deg(
-        2000, 60, section_array, cable_array_AM600, span_index=0
+    param_0 = param_15_deg(
+        2000, 60, section_array, cable_array_AM600, span_index=2
     )
-    assert True
+    np.testing.assert_allclose(param_0, 2548.389, atol=1e-2)
+
+    param_1 = param_15_deg(
+        2000, 60, section_array, cable_array_AM600, span_index=2
+    )
+    np.testing.assert_allclose(param_1, 2578.602, atol=1e-2)
+
+    param_2 = param_15_deg(
+        2000, 60, section_array, cable_array_AM600, span_index=2
+    )
+    np.testing.assert_allclose(param_2, 2576.706, atol=1e-2)
