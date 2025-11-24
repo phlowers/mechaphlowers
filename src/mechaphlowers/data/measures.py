@@ -167,30 +167,44 @@ class PapotoParameterMeasure(ParameterMeasure):
         return self.measure_method(*args, **kwds)
 
 
-def param_15_deg(measured_parameter, measured_temperature, section_array: SectionArray, cable_array: CableArray):
+# add index as arg?
+def param_15_deg(
+    measured_parameter: float,
+    measured_temperature: float,
+    section_array: SectionArray,
+    cable_array: CableArray,
+    span_index: int,
+):
     section_array.sagging_parameter = measured_parameter
     section_array.sagging_temperature = measured_temperature
-    balance_engine = BalanceEngine(cable_array=cable_array, section_array=section_array)
+    balance_engine = BalanceEngine(
+        cable_array=cable_array, section_array=section_array
+    )
     balance_engine.solve_adjustment()
     balance_engine.solve_change_state(new_temperature=15)
     parameter_15_0 = balance_engine.span_model.sagging_parameter
 
     section_array.sagging_temperature = 15
     # error here: need to allow to put an array for sagging_parameter in section_array
-    section_array.sagging_parameter = parameter_15_0[0]
-    balance_engine_1 = BalanceEngine(cable_array=cable_array, section_array=section_array)
+    section_array.sagging_parameter = parameter_15_0[span_index]
+    balance_engine_1 = BalanceEngine(
+        cable_array=cable_array, section_array=section_array
+    )
     balance_engine_1.solve_adjustment()
     balance_engine_1.solve_change_state(new_temperature=measured_temperature)
     parameter_15_1 = balance_engine_1.span_model.sagging_parameter
     mem = parameter_15_1 - measured_parameter
-    
-    section_array.sagging_parameter = (parameter_15_0 + 1)[0]
-    balance_engine_2 = BalanceEngine(cable_array=cable_array, section_array=section_array)
+
+    section_array.sagging_parameter = (parameter_15_0 + 1)[span_index]
+    balance_engine_2 = BalanceEngine(
+        cable_array=cable_array, section_array=section_array
+    )
 
     balance_engine_2.solve_adjustment()
     balance_engine_2.solve_change_state()
 
     mem1 = balance_engine_2.span_model.sagging_parameter - measured_parameter
 
-    return np.where(mem1 == mem, parameter_15_0, parameter_15_0 - mem / (mem1 - mem))
-
+    return np.where(
+        mem1 == mem, parameter_15_0, parameter_15_0 - mem / (mem1 - mem)
+    )

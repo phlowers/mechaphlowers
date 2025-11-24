@@ -129,6 +129,7 @@ def test_select_points_in_dict():
     assert result2["H2"].tolist() == [10]
     assert result2["V2"].tolist() == [11]
 
+
 def test_parameter_15_deg(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
@@ -148,6 +149,8 @@ def test_parameter_15_deg(cable_array_AM600: CableArray):
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
-    
-    param = param_15_deg(2000, 60, section_array, cable_array_AM600)
+
+    param = param_15_deg(
+        2000, 60, section_array, cable_array_AM600, span_index=0
+    )
     assert True
