@@ -151,12 +151,12 @@ def test_parameter_15_deg(cable_array_AM600: CableArray):
     section_array.sagging_temperature = 15
 
     param_0 = param_15_deg(
-        2000, 60, section_array, cable_array_AM600, span_index=2
+        2000, 60, section_array, cable_array_AM600, span_index=0
     )
     np.testing.assert_allclose(param_0, 2548.389, atol=1e-2)
 
     param_1 = param_15_deg(
-        2000, 60, section_array, cable_array_AM600, span_index=2
+        2000, 60, section_array, cable_array_AM600, span_index=1
     )
     np.testing.assert_allclose(param_1, 2578.602, atol=1e-2)
 
