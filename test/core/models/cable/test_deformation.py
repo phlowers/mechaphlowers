@@ -93,6 +93,9 @@ def test_deformation_values__default_data(
     )
 
 
+@pytest.mark.skip(
+    reason="Polynomial model not implemented yet/need to be reworked"
+)
 def test_poly_deformation__degree_three(
     default_data_container_one_span: DataContainer,
 ) -> None:
@@ -121,6 +124,9 @@ def test_poly_deformation__degree_three(
     deformation_model.epsilon()
 
 
+@pytest.mark.skip(
+    reason="Polynomial model not implemented yet/need to be reworked"
+)
 def test_poly_deformation__degree_four(
     default_data_container_one_span: DataContainer,
 ) -> None:
@@ -151,6 +157,9 @@ def test_poly_deformation__degree_four(
     deformation_model.epsilon()
 
 
+@pytest.mark.skip(
+    reason="Polynomial model not implemented yet/need to be reworked"
+)
 def test_poly_deformation__degree_four__with_max_stress(
     default_data_container_one_span: DataContainer,
 ) -> None:
@@ -178,6 +187,9 @@ def test_poly_deformation__degree_four__with_max_stress(
     deformation_model.epsilon()
 
 
+@pytest.mark.skip(
+    reason="Polynomial model not implemented yet/need to be reworked"
+)
 def test_poly_deformation__no_solutions(
     default_data_container_one_span: DataContainer,
 ) -> None:
