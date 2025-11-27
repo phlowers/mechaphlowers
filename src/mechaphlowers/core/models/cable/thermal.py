@@ -4,19 +4,41 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import numpy as np
 from thermohl import solver  # type: ignore
 
 from mechaphlowers.entities.arrays import CableArray
 
 
-def get_cable_temperature(cable_array: CableArray, month:int, day:int, hour:int, ambient_temp: float, wind_speed: float, wind_angle: float, heateq='3t'):
+def get_cable_temperature(
+    cable_array: CableArray,
+    latitude: float,
+    longitude: float,
+    altitude: float,
+    azimuth: float,
+    month: int,
+    day: int,
+    hour: int,
+    intensity: float,
+    ambient_temp: float,
+    wind_speed: float,
+    wind_angle: float,
+    solar_irradiance: float = np.nan,
+    heateq='3t',
+):
     dict_input = {
+        "Qs" : solar_irradiance,
+        "lat" : latitude,
+        "lon" : longitude,
+        "alt" : altitude,
+        "azm" : azimuth,
         "month": month,
         "day": day,
         "hour": hour,
         "Ta": ambient_temp,
-        "ws" : wind_speed,  # wind speed (m.s**-1)
-        "wa" : wind_angle,  # wind angle (deg, regarding north)
+        "ws": wind_speed,  # wind speed (m.s**-1)
+        "wa": wind_angle,  # wind angle (deg, regarding north)
+        "I": intensity,
         "m": cable_array.data.linear_weight.iloc[0],
         "d": cable_array.data.diameter_heart.iloc[0],
         "D": cable_array.data.diameter.iloc[0],
