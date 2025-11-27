@@ -174,38 +174,39 @@ def param_15_deg(
     cable_array: CableArray,
     span_index: int,
 ):
-    section_array.sagging_parameter = measured_parameter
-    section_array.sagging_temperature = measured_temperature
-    balance_engine = BalanceEngine(
-        cable_array=cable_array, section_array=section_array
-    )
-    balance_engine.solve_adjustment()
-    balance_engine.solve_change_state(new_temperature=15)
-    parameter_15_0 = balance_engine.span_model.sagging_parameter[span_index]
+    eps = 1.0
 
-    section_array.sagging_temperature = 15
-    # error here: need to allow to put an array for sagging_parameter in section_array
-    section_array.sagging_parameter = parameter_15_0
-    balance_engine_1 = BalanceEngine(
-        cable_array=cable_array, section_array=section_array
-    )
-    balance_engine_1.solve_adjustment()
-    balance_engine_1.solve_change_state(new_temperature=measured_temperature)
-    parameter_mes = balance_engine_1.span_model.sagging_parameter[span_index]
-    mem = parameter_mes - measured_parameter
+    def compute_parameter(
+        sagging_parameter: float,
+        sagging_temperature: float,
+        new_temperature: float,
+    ):
+        section_array.sagging_parameter = sagging_parameter
+        section_array.sagging_temperature = sagging_temperature
+        balance_engine = BalanceEngine(
+            cable_array=cable_array, section_array=section_array
+        )
+        balance_engine.solve_adjustment()
+        balance_engine.solve_change_state(new_temperature=new_temperature)
+        return balance_engine.parameter[span_index]
 
-    section_array.sagging_parameter = parameter_15_0 + 1
-    balance_engine_2 = BalanceEngine(
-        cable_array=cable_array, section_array=section_array
+    parameter_15_0 = compute_parameter(
+        measured_parameter, measured_temperature, 15
     )
-    balance_engine_2.solve_adjustment()
-    balance_engine_2.solve_change_state(new_temperature=measured_temperature)
 
-    mem1 = (
-        balance_engine_2.span_model.sagging_parameter[span_index]
-        - measured_parameter
+    parameter_mes_0 = compute_parameter(
+        parameter_15_0, 15, measured_temperature
     )
+
+    mem = parameter_mes_0 - measured_parameter
+
+    parameter_mes_1 = compute_parameter(
+        parameter_15_0 + eps, 15, measured_temperature
+    )
+
+    mem1 = parameter_mes_1 - measured_parameter
+    derivate = (mem1 - mem) / eps
     if mem1 == mem:
         return parameter_15_0
     else:
-        return parameter_15_0 - mem / (mem1 - mem)
+        return parameter_15_0 - mem / derivate
