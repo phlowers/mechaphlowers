@@ -269,6 +269,3 @@ def numpy_cache(f: Callable[..., Any]):
     _wrapped_any.cache_clear = cache_clear
     _wrapped_any._cache = cache
     return cast(CachedCallable, _wrapped_any)
-
-
-
