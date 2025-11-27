@@ -50,6 +50,7 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+output_test
 
 # Translations
 *.mo
@@ -102,3 +103,6 @@ datafiles
 
 # config file
 conf/default.json
+
+# data
+data/
