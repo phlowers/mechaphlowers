@@ -105,4 +105,4 @@ datafiles
 conf/default.json
 
 # data
-data/
+input_data

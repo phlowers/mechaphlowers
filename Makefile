@@ -41,7 +41,7 @@ typing: .uv
 
 .PHONY: test  ## Run all tests
 test: .uv
-	@uv run coverage run -m pytest --durations=10
+	@uv run coverage run -m pytest test --durations=10 -m "not benchmark"
 	@uv run coverage report
 
 .PHONY: benchmark  ## Run all benchmarks

@@ -5,12 +5,14 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
+import pytest
 
 from mechaphlowers.core.models.balance.models.utils_model_ducloux import (
     VectorProjection,
 )
 
 
+@pytest.mark.integration
 def test_proj_no_angles():
     # insulator_length=np.array([3, 3, 3, 3]),
     # insulator_weight=np.array([1000,  500, 500, 1000]),

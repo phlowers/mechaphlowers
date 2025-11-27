@@ -1,6 +1,7 @@
 """this module contains tests for functional benchmark"""
 
 import json
+import warnings
 from datetime import datetime
 from pathlib import Path
 
@@ -14,18 +15,27 @@ from mechaphlowers.data.units import convert_weight_to_mass
 from mechaphlowers.entities.arrays import SectionArray
 from test.utils import generate_html_from_json
 
-projet_dir: Path = Path(__file__).resolve().parents[1]
+try:
+    projet_dir: Path = Path(__file__).resolve().parents[2]
 
-EXTERNAL_DATA_DIR = projet_dir / "data"
+    EXTERNAL_DATA_DIR = projet_dir / "input_data"
+    EXTERNAL_DATA_DIR.mkdir(exist_ok=True)
 
-test_output_dir = Path(projet_dir / "output_test")
-test_output_dir.mkdir(exist_ok=True)
+    test_output_dir = Path(projet_dir / "output_test")
+    test_output_dir.mkdir(exist_ok=True)
+
+    # objects for benchmark tests
+    cable_bench = build_catalog_from_yaml(
+        "sample_cable_database.yaml", user_filepath=EXTERNAL_DATA_DIR
+    )
 
 
-# objects for benchmark tests
-cable_bench = build_catalog_from_yaml(
-    "sample_cable_database.yaml", user_filepath=EXTERNAL_DATA_DIR
-)
+except Exception as e:
+    warnings.warn(f"Error during benchmark setup: {str(e)}")
+    warnings.warn(
+        "you should add the path input_data with your data and the yaml"
+    )
+    from mechaphlowers.data.catalog import sample_cable_catalog as cable_bench
 
 cable_list = cable_bench.keys()
 
@@ -94,12 +104,16 @@ def section_array_angles() -> SectionArray:
     return section_array
 
 
-# @pytest.mark.xfail(reason="Functional benchmark tests - not a real unit test")
+@pytest.mark.xfail(reason="Functional benchmark tests - not a real unit test")
 @pytest.mark.benchmark
 @pytest.mark.parametrize("cable_name", cable_list)
 def test_element_sandbox(
     section_array_angles: SectionArray, cable_name: str, record_benchmark
 ):
+    if not cable_name:
+        raise ValueError(
+            "Cable name is empty / check your folder configuration"
+        )
     report_content = {}
 
     try:

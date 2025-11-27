@@ -65,7 +65,7 @@ jobs:
 
       - name: ✔️ Run tests and generate coverage report
         run: |
-          uv run pytest --cov-report xml --cov=mechaphlowers test/
+          uv run pytest --cov-report xml --cov=mechaphlowers test/ -m "not benchmark"
 
       - name: ✔️ Run Sonar analysis
         uses: SonarSource/sonarqube-scan-action@v5.3.1
