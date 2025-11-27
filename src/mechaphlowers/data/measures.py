@@ -191,14 +191,13 @@ def param_15_deg(
     )
     balance_engine_1.solve_adjustment()
     balance_engine_1.solve_change_state(new_temperature=measured_temperature)
-    parameter_15_1 = balance_engine_1.span_model.sagging_parameter[span_index]
-    mem = parameter_15_1 - measured_parameter
+    parameter_mes = balance_engine_1.span_model.sagging_parameter[span_index]
+    mem = parameter_mes - measured_parameter
 
     section_array.sagging_parameter = parameter_15_0 + 1
     balance_engine_2 = BalanceEngine(
         cable_array=cable_array, section_array=section_array
     )
-
     balance_engine_2.solve_adjustment()
     balance_engine_2.solve_change_state(new_temperature=measured_temperature)
 
