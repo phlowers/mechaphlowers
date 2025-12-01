@@ -24,6 +24,8 @@ from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.utils import float_to_array
 
+_ZETA = 1.0
+
 
 class ParameterMeasure(ABC):
     """Class to compute measures on parameters."""
@@ -174,8 +176,6 @@ def param_15_deg(
     cable_array: CableArray,
     span_index: int,
 ):
-    eps = 1.0
-
     def compute_parameter(
         sagging_parameter: float,
         sagging_temperature: float,
@@ -201,12 +201,12 @@ def param_15_deg(
     mem = parameter_mes_0 - measured_parameter
 
     parameter_mes_1 = compute_parameter(
-        parameter_15_0 + eps, 15, measured_temperature
+        parameter_15_0 + _ZETA, 15, measured_temperature
     )
 
     mem1 = parameter_mes_1 - measured_parameter
-    derivate = (mem1 - mem) / eps
-    if mem1 == mem:
+    derivate = (mem1 - mem) / _ZETA
+    if derivate == 0:
         return parameter_15_0
     else:
         return parameter_15_0 - mem / derivate
