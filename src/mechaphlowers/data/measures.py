@@ -176,6 +176,19 @@ def param_15_deg(
     cable_array: CableArray,
     span_index: int,
 ):
+    """Compute an approximation of the parameter at 15 degrees, based on the measured parameter, at a measured temperature.
+
+    This approximation is computed using only one loop of a Newton-Raphson method, more precision is not needed.
+
+    This method only works for one span at a time, so span index must be provided.
+
+    Args:
+        measured_parameter (float): parameter value measured, using papoto method usually
+        measured_temperature (float): temperature at which the parameter was measured
+        section_array (SectionArray): Section array
+        cable_array (CableArray): Cable array
+        span_index (int): index of the span to compute the parameter for
+    """
     def compute_parameter(
         sagging_parameter: float,
         sagging_temperature: float,
