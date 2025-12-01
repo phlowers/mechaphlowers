@@ -99,7 +99,7 @@ class DeformationRte(IDeformation):
             raise NotImplementedError(
                 "Deformation model for polynomial cables not implemented"
             )
-            # return self.epsilon_mecha_polynomial()
+            # previous version used to return self.epsilon_mecha_polynomial()
 
     def epsilon(self):
         return self.epsilon_mecha() + self.epsilon_therm()
