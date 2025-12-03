@@ -189,7 +189,7 @@ def param_calibration(
         cable_array (CableArray): Cable array
         span_index (int): index of the span to compute the parameter for
     """
-    ZETA = options.solver.param_calibration_zeta
+    _ZETA = options.solver.param_calibration_zeta
 
     def compute_parameter(
         sagging_parameter: float,
@@ -218,10 +218,10 @@ def param_calibration(
 
     # computing derivative by finite difference
     parameter_mes_1 = compute_parameter(
-        param_approx + ZETA, sagging_temperature, measured_temperature
+        param_approx + _ZETA, sagging_temperature, measured_temperature
     )
     delta_1 = parameter_mes_1 - measured_parameter
-    derivative = (delta_1 - delta) / ZETA
+    derivative = (delta_1 - delta) / _ZETA
 
     if derivative == 0:
         # case where we get the exact solution , avoid division by zero
