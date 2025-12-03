@@ -31,7 +31,7 @@ $\delta(p) = f(p) - p_m$
 
 In order to find this root, we use a Newton-Raphson method. However, since the required precision for this computation is not very high and the initial guess $p_0$ is already close to the true value, performing only one iteration of the Newton-Raphson method is sufficient.
 
-The Newton-Raphson update formula is given by:
+The Newton-Raphson update formula is:
 
 $p_1 = p_0 - \frac{\delta(p_0)}{\delta'(p_0)}$
 
