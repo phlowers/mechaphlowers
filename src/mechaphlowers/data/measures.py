@@ -175,7 +175,7 @@ def param_15_deg(
     section_array: SectionArray,
     cable_array: CableArray,
     span_index: int,
-):
+) -> float:
     """Compute an approximation of the parameter at 15 degrees, based on the measured parameter, at a measured temperature.
 
     This approximation is computed using only one loop of a Newton-Raphson method, more precision is not needed.
@@ -189,6 +189,7 @@ def param_15_deg(
         cable_array (CableArray): Cable array
         span_index (int): index of the span to compute the parameter for
     """
+
     def compute_parameter(
         sagging_parameter: float,
         sagging_temperature: float,
@@ -203,23 +204,27 @@ def param_15_deg(
         balance_engine.solve_change_state(new_temperature=new_temperature)
         return balance_engine.parameter[span_index]
 
+    # first estimatation of the parameter at 15 degrees
     parameter_15_0 = compute_parameter(
         measured_parameter, measured_temperature, 15
     )
 
+    # computing the delta function to be zeroed
     parameter_mes_0 = compute_parameter(
         parameter_15_0, 15, measured_temperature
     )
+    delta = parameter_mes_0 - measured_parameter
 
-    mem = parameter_mes_0 - measured_parameter
-
+    # computing derivative by finite difference
     parameter_mes_1 = compute_parameter(
         parameter_15_0 + _ZETA, 15, measured_temperature
     )
+    delta_1 = parameter_mes_1 - measured_parameter
+    derivative = (delta_1 - delta) / _ZETA
 
-    mem1 = parameter_mes_1 - measured_parameter
-    derivate = (mem1 - mem) / _ZETA
-    if derivate == 0:
+    if derivative == 0:
+        # case where we get the exact solution , avoid division by zero
         return parameter_15_0
     else:
-        return parameter_15_0 - mem / derivate
+        # newton-raphson update
+        return parameter_15_0 - delta / derivative

@@ -48,6 +48,7 @@ nav:
       - Wind speed conversion: user_guide/ug_wind_speed_conversion.md
       - Data catalog : user_guide/ug_catalog.md
       - Measures : user_guide/ug_measures.md
+      - Estimating sagging parameter: user_guide/ug_parameter_15_degrees.md
       - Configuration: user_guide/ug_configuration.md
       - Plotting: user_guide/ug_maps.md
   - Developer guide:
