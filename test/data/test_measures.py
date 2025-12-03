@@ -7,7 +7,10 @@
 import numpy as np
 import pandas as pd
 
-from mechaphlowers.data.measures import PapotoParameterMeasure, param_15_deg
+from mechaphlowers.data.measures import (
+    PapotoParameterMeasure,
+    param_calibration,
+)
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
@@ -156,8 +159,8 @@ def test_parameter_15_deg(cable_array_AM600: CableArray):
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
-    param_15_deg(2000, 60, section_array, cable_array_AM600, span_index=0)
+    param_calibration(2000, 60, section_array, cable_array_AM600, span_index=0)
 
-    param_15_deg(2000, 60, section_array, cable_array_AM600, span_index=1)
+    param_calibration(2000, 60, section_array, cable_array_AM600, span_index=1)
 
-    param_15_deg(2000, 60, section_array, cable_array_AM600, span_index=2)
+    param_calibration(2000, 60, section_array, cable_array_AM600, span_index=2)

@@ -169,14 +169,15 @@ class PapotoParameterMeasure(ParameterMeasure):
         return self.measure_method(*args, **kwds)
 
 
-def param_15_deg(
+def param_calibration(
     measured_parameter: float,
     measured_temperature: float,
     section_array: SectionArray,
     cable_array: CableArray,
     span_index: int,
+    sagging_temperature: float = 15.0,
 ) -> float:
-    """Compute an approximation of the parameter at 15 degrees, based on the measured parameter, at a measured temperature.
+    """Compute an approximation of the parameter at sagging temperature (usually 15 degrees Celsius), based on the measured parameter, at a given temperature.
 
     This approximation is computed using only one loop of a Newton-Raphson method, more precision is not needed.
 
@@ -204,27 +205,27 @@ def param_15_deg(
         balance_engine.solve_change_state(new_temperature=new_temperature)
         return balance_engine.parameter[span_index]
 
-    # first estimatation of the parameter at 15 degrees
-    parameter_15_0 = compute_parameter(
-        measured_parameter, measured_temperature, 15
+    # first estimatation of the parameter at sagging temperature
+    param_approx = compute_parameter(
+        measured_parameter, measured_temperature, sagging_temperature
     )
 
     # computing the delta function to be zeroed
     parameter_mes_0 = compute_parameter(
-        parameter_15_0, 15, measured_temperature
+        param_approx, sagging_temperature, measured_temperature
     )
     delta = parameter_mes_0 - measured_parameter
 
     # computing derivative by finite difference
     parameter_mes_1 = compute_parameter(
-        parameter_15_0 + _ZETA, 15, measured_temperature
+        param_approx + _ZETA, sagging_temperature, measured_temperature
     )
     delta_1 = parameter_mes_1 - measured_parameter
     derivative = (delta_1 - delta) / _ZETA
 
     if derivative == 0:
         # case where we get the exact solution , avoid division by zero
-        return parameter_15_0
+        return param_approx
     else:
         # newton-raphson update
-        return parameter_15_0 - delta / derivative
+        return param_approx - delta / derivative
