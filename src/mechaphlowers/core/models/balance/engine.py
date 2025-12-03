@@ -226,3 +226,7 @@ class BalanceEngine:
     @property
     def support_number(self) -> int:
         return self.section_array.data.span_length.shape[0]
+
+    @property
+    def parameter(self) -> np.ndarray:
+        return self.span_model.sagging_parameter
