@@ -15,6 +15,7 @@ from typing import Dict
 
 import numpy as np
 
+from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.papoto.papoto_model import (
     papoto_2_points,
@@ -23,8 +24,6 @@ from mechaphlowers.core.papoto.papoto_model import (
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.utils import float_to_array
-
-_ZETA = 1.0
 
 
 class ParameterMeasure(ABC):
@@ -190,6 +189,7 @@ def param_calibration(
         cable_array (CableArray): Cable array
         span_index (int): index of the span to compute the parameter for
     """
+    ZETA = options.solver.param_calibration_zeta
 
     def compute_parameter(
         sagging_parameter: float,
@@ -218,10 +218,10 @@ def param_calibration(
 
     # computing derivative by finite difference
     parameter_mes_1 = compute_parameter(
-        param_approx + _ZETA, sagging_temperature, measured_temperature
+        param_approx + ZETA, sagging_temperature, measured_temperature
     )
     delta_1 = parameter_mes_1 - measured_parameter
-    derivative = (delta_1 - delta) / _ZETA
+    derivative = (delta_1 - delta) / ZETA
 
     if derivative == 0:
         # case where we get the exact solution , avoid division by zero
