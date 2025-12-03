@@ -15,6 +15,9 @@ from mechaphlowers.core.geometry.points import (
     SectionPoints,
 )
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.core.models.cable.span import ISpan
+from mechaphlowers.core.models.external_loads import CableLoads
+from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
 
 if TYPE_CHECKING:
@@ -273,9 +276,9 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 class PlotEngine:
     def __init__(
         self,
-        span_model,
-        cable_loads,
-        section_array,
+        span_model: ISpan,
+        cable_loads: CableLoads,
+        section_array: SectionArray,
         get_displacement: Callable,
     ) -> None:
         self.spans = span_model
@@ -290,7 +293,7 @@ class PlotEngine:
         )
 
     @property
-    def beta(self):
+    def beta(self) -> np.ndarray:
         return self.cable_loads.load_angle
 
     @staticmethod
