@@ -9,6 +9,7 @@ Before performing any mechanical computation, it is needed to input a sagging pa
 Usually, this parameter is not directly measured at the wanted sagging temperature, but at a random cable temperature, using the PAPOTO method for example.
 
 When estimating the sagging parameter using measurement on the field, the usual procedure is the following:
+
 - Estimate the parameter on the field.
 - Compute the cable temperature during the measurement using the ThermOHL package.
 - Use the `param_calibration()` method to compute the sagging parameter at the desired sagging temperature.
@@ -19,9 +20,9 @@ The `param_calibration()` method takes for input the parameter measured, and a c
 
 We have the following input values:
 
-$p_m$ = Measured parameter (m)
-$\theta_m$ = Cable temperature during the measure (°C)
-$\theta_s$ = sagging temperature : wanted cable temperature (°C)
+- $p_m$ = Measured parameter (m)
+- $\theta_m$ = Cable temperature during the measure (°C)
+- $\theta_s$ = sagging temperature : wanted cable temperature (°C)
 
 Let $f(p)$ be the function that computes the parameter at temperature $\theta_m$ depending on the sagging parameter $p$:
 
@@ -41,6 +42,7 @@ where $\delta'(p)$ is the derivative of $\delta(p)$, approximated using finite d
 ## Initial parameter guess
 
 The initial guess $p_0$ is computed by setting a state where:
+
 - sagging_temperature is $\theta_m$ (and not $\theta_s$ )
 - sagging_parameter is $p_m$
 - changing state to $\theta_s$  and reading the sagging parameter at this state.
@@ -51,7 +53,7 @@ When computing the function $f(p)$, we compute the following states:
 | Initial state | Change state |
 | ------------- | ------------ |
 | $\theta_s$    | $\theta_m$   |
-| $p_s$           | $p_m$        |
+| $p_s$         | $p_m$        |
 
 
 To compute the initial guess, we reverse the state change process described above:

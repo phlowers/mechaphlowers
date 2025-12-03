@@ -11,7 +11,7 @@ from mechaphlowers.data.measures import param_calibration
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
-def test_parameter_15_deg(cable_array_AM600: CableArray):
+def test_param_calibr(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -45,7 +45,7 @@ def test_parameter_15_deg(cable_array_AM600: CableArray):
     np.testing.assert_allclose(param_2, 2578.5492, atol=1e-1)
 
 
-def test_parameter_15_deg_no_anchor(cable_array_AM600: CableArray):
+def test_param_calibr_deg_no_anchor(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -78,7 +78,7 @@ def test_parameter_15_deg_no_anchor(cable_array_AM600: CableArray):
     np.testing.assert_allclose(param_2, 2583.5351, atol=1e-1)
 
 
-def test_parameter_15_deg_simple_example(cable_array_AM600: CableArray):
+def test_param_calibr_deg_simple_example(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -112,7 +112,7 @@ def test_parameter_15_deg_simple_example(cable_array_AM600: CableArray):
     np.testing.assert_allclose(param_2, 2601.3522, atol=1e-1)
 
 
-def test_parameter_15_deg_elevation_diff(cable_array_AM600: CableArray):
+def test_param_calibr_deg_elevation_diff(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
             {
