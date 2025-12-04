@@ -421,6 +421,19 @@ class PlotEngine:
             view=view,
         )
 
+    def __str__(self) -> str:
+        return (
+            f"supports number: {self.section_array.data.span_length.shape[0]}\n"
+            f"parameter: {self.spans.sagging_parameter}\n"
+            f"wind: {self.cable_loads.wind_pressure}\n"
+            f"ice: {self.cable_loads.ice_thickness}\n"
+            f"beta: {self.beta}\n"
+        )
+
+    def __repr__(self) -> str:
+        class_name = type(self).__name__
+        return f"{class_name}\n{self.__str__()}"
+
 
 class PlotAccessor:
     """First accessor class for plots."""
