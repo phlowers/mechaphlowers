@@ -113,3 +113,7 @@ class IBalanceModel(IModelForSolver, ABC):
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
         Default unit is daN"""
         pass
+
+    @abstractmethod
+    def span_model_with_loads(self) -> ISpan:
+        pass

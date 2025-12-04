@@ -389,6 +389,19 @@ class BalanceModel(IBalanceModel):
         vhl_result = np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
         return VhlStrength(vhl_result, "N")
 
+
+    def span_model_with_loads(self) -> ISpan:
+        bool_mask = self.nodes.has_load_on_span
+        self.load_model.span_model_left
+        self.load_model.span_model_right
+
+        new_span_model = self.span_model
+        new_span_model.sagging_parameter[bool_mask] = self.load_model.span_model_left.sagging_parameter
+        insert_mask = np.where(bool_mask)[0]
+        np.insert(new_span_model.sagging_parameter, insert_mask, self.load_model.span_model_right.sagging_parameter)
+        return self.span_model
+
+
     def dict_to_store(self) -> dict:
         return {
             "dx": self.nodes.dx,
