@@ -373,3 +373,18 @@ def test_trace_profile():
     # check the config reactivity : expected behavior no change
     options.graphics.cable_trace_profile["name"] = "test2"
     assert tp.name == "test baseline"
+
+
+def test_plot_repr(balance_engine_base_test: BalanceEngine):
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_base_test
+    )
+    plt_engine.__repr__()
+    balance_engine_base_test.solve_adjustment()
+    balance_engine_base_test.solve_change_state(
+        new_temperature=30,
+        wind_pressure=200,
+        ice_thickness=2e-2,
+    )
+    repr_plot = plt_engine.__repr__()
+    assert repr_plot.startswith("PlotEngine")
