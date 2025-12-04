@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+from copy import copy
 import logging
 from typing import Tuple, Type
 
@@ -391,15 +392,25 @@ class BalanceModel(IBalanceModel):
 
 
     def span_model_with_loads(self) -> ISpan:
-        bool_mask = self.nodes.has_load_on_span
+        bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
         self.load_model.span_model_left
         self.load_model.span_model_right
+        
+        new_span_model = copy(self.span_model)
+        
+        def replace_insert(arr, arr_replace, arr_insert, mask):
+            arr_new = copy(arr)
+            arr_new[mask] = arr_replace
+            insert_mask = np.where(mask)[0]
+            np.insert(arr_new, insert_mask, arr_insert)
+            return np.insert(arr_new, insert_mask, arr_insert)
+        
+        
+        sagging_parameter = replace_insert(new_span_model.sagging_parameter, self.load_model.span_model_left.sagging_parameter, self.load_model.span_model_right.sagging_parameter, bool_mask)
+        span_length = replace_insert(new_span_model.span_length, self.load_model.span_model_left.span_length, self.load_model.span_model_right.span_length, bool_mask)
+        elevation_difference = replace_insert(new_span_model.elevation_difference, self.load_model.span_model_left.elevation_difference, self.load_model.span_model_right.elevation_difference, bool_mask)
 
-        new_span_model = self.span_model
-        new_span_model.sagging_parameter[bool_mask] = self.load_model.span_model_left.sagging_parameter
-        insert_mask = np.where(bool_mask)[0]
-        np.insert(new_span_model.sagging_parameter, insert_mask, self.load_model.span_model_right.sagging_parameter)
-        return self.span_model
+        return self.span_model.__class__(sagging_parameter=sagging_parameter, span_length=span_length, elevation_difference=elevation_difference)
 
 
     def dict_to_store(self) -> dict:
