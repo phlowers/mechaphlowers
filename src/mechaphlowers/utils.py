@@ -7,10 +7,11 @@
 import logging
 from functools import wraps
 from time import time
-from typing import Callable, Dict
+from typing import Any, Callable, Dict, Protocol, TypeVar, cast
 
 import numpy as np
 import pandas as pd
+from xxhash import xxh3_64
 
 from mechaphlowers.config import options
 
@@ -198,3 +199,73 @@ def check_time(f):
         return result
 
     return wrap
+
+
+def hash_numpy_xxhash(array: np.ndarray) -> bytes:
+    """Hash a numpy array using xxhash.
+
+    Args:
+        array (np.ndarray): The numpy array to hash.
+
+    Returns:
+        bytes: The hash digest of the array.
+    """
+    return xxh3_64(array.tobytes()).digest()
+
+
+T = TypeVar("T", bound=Callable[..., Any])
+
+
+class CachedCallable(Protocol):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    _cache: Dict[bytes, Any]
+
+    def cache_clear(self) -> None: ...
+
+
+def numpy_cache(f: Callable[..., Any]):
+    """Decorator to cache numpy array results of a function based on its arguments.
+
+    Warning: it is not designed for complex uses. For example, view of a same array are not distinguished, and there is no checks on contiguousness of arrays.
+
+    Args:
+        f (Callable[..., Any]): The function to be cached.
+
+    Returns:
+        Callable[..., Any]: The wrapped function with caching.
+    """
+    cache: dict[bytes, Any] = {}
+
+    @wraps(f)
+    def wrapped(*args: Any, **kwargs: Any) -> Any:
+        key_args = str(
+            [
+                hash_numpy_xxhash(arg)
+                if isinstance(arg, np.ndarray)
+                else str(arg)
+                for arg in args
+            ]
+        )
+        key_args += str(
+            [
+                hash_numpy_xxhash(kwargs[k])
+                if isinstance(kwargs[k], np.ndarray)
+                else str(kwargs[k])
+                for k in kwargs
+            ]
+        )
+        # key_args += key_kwargs
+        key = xxh3_64(key_args).digest()
+        if key not in cache:
+            cache[key] = f(*args, **kwargs)
+        return cache[key]
+
+    def cache_clear() -> None:
+        """Clear the cache."""
+        cache.clear()
+
+    _wrapped_any = cast(Any, wrapped)
+    _wrapped_any.cache_clear = cache_clear
+    _wrapped_any._cache = cache
+    return cast(CachedCallable, _wrapped_any)
