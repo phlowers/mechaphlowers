@@ -33,6 +33,7 @@ class ISpan(ABC):
         sagging_parameter: np.ndarray,
         load_coefficient: np.ndarray | None = None,
         linear_weight: np.float64 | None = None,
+        span_index: np.ndarray | None = None,
         **_,
     ) -> None:
         self.span_length = span_length
@@ -43,6 +44,10 @@ class ISpan(ABC):
             self.load_coefficient = np.ones_like(span_length)
         else:
             self.load_coefficient = load_coefficient
+        if span_index is None:
+            self.span_index = np.arange(len(span_length))
+        else:
+            self.span_index = span_index
         self.compute_values()
 
     def set_lengths(
@@ -235,6 +240,69 @@ class ISpan(ABC):
     @abstractmethod
     def T_mean(self) -> np.ndarray:
         """Mean tension along the whole cable."""
+
+
+class NewClass(ISpan):
+    def __init__(self, span: ISpan):
+        self.span = span
+
+
+
+    @abstractmethod
+    def z_many_points(self, x: np.ndarray) -> np.ndarray:
+        return self.span.z_many_points(x)
+
+    @abstractmethod
+    def z_one_point(self, x: np.ndarray) -> np.ndarray:
+        return self.span.z_one_point(x)
+
+    @abstractmethod
+    def compute_x_m(self) -> np.ndarray:
+        return self.span.compute_x_m()
+
+    @abstractmethod
+    def compute_x_n(self) -> np.ndarray:
+        return self.span.compute_x_n()
+
+    @abstractmethod
+    def x(self, resolution: int) -> np.ndarray:
+
+        return self.span.x(resolution)
+
+    @abstractmethod
+    def L_m(self) -> np.ndarray:
+        return self.span.L_m()
+
+    @abstractmethod
+    def L_n(self) -> np.ndarray:
+        return self.span.L_n()
+
+    @abstractmethod
+    def compute_L(self) -> np.ndarray:
+        return self.span.compute_L()
+
+    @abstractmethod
+    def T_h(self) -> np.ndarray:
+        return self.span.T_h()
+
+    @abstractmethod
+    def T_v(self, x_one_per_span: np.ndarray) -> np.ndarray:
+        return self.span.T_v(x_one_per_span)
+
+    @abstractmethod
+    def T(self, x_one_per_span: np.ndarray) -> np.ndarray:
+        return self.span.T(x_one_per_span)
+    
+    @abstractmethod
+    def T_mean_m(self) -> np.ndarray:
+        return self.span.T_mean_m()
+
+    @abstractmethod
+    def T_mean_n(self) -> np.ndarray:
+        return self.span.T_mean_n()
+
+    def T_mean(self):
+        return self.span.T_mean()
 
 
 class CatenarySpan(ISpan):
