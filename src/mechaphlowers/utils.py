@@ -227,7 +227,7 @@ class CachedCallable(Protocol):
 def numpy_cache(f: Callable[..., Any]):
     """Decorator to cache numpy array results of a function based on its arguments.
 
-    Warning: it is not designed for complex uses. For example, view of a same array are not distinguished, and there is no checks on continuguousness of arrays.
+    Warning: it is not designed for complex uses. For example, view of a same array are not distinguished, and there is no checks on contiguousness of arrays.
 
     Args:
         f (Callable[..., Any]): The function to be cached.
@@ -258,7 +258,7 @@ def numpy_cache(f: Callable[..., Any]):
         # key_args += key_kwargs
         key = xxh3_64(key_args).digest()
         if key not in cache:
-            cache[key] = f(*args)
+            cache[key] = f(*args, **kwargs)
         return cache[key]
 
     def cache_clear() -> None:

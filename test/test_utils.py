@@ -107,7 +107,7 @@ def test_hash_numpy_xxhash() -> None:
 
     A = np.random.randn(10, 10, 3)
     A.ravel()[np.random.choice(A.size, 10, replace=False)] = np.nan
-    np.isnan(A).sum() > 1
+    assert np.isnan(A).sum() > 1
 
     computed_hash_1 = hash_numpy_xxhash(A)
     computed_hash_2 = hash_numpy_xxhash(A)
@@ -196,4 +196,4 @@ def test_perf_numpy_cache_decorator() -> None:
     assert second_call_duration < first_call_duration
     compute_sum.cache_clear()
     compute_sum._cache
-    len(compute_sum._cache) == 0
+    assert len(compute_sum._cache) == 0
