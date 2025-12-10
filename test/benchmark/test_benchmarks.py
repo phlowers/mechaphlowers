@@ -26,12 +26,12 @@ try:
 
     # objects for benchmark tests
     cable_bench = build_catalog_from_yaml(
-        "sample_cable_database.yaml",
+        "rte_cable_database.yaml",
         user_filepath=EXTERNAL_DATA_DIR,
         separator=";",
         decimal=",",
     )
-    cable_bench.clean_catalog()
+    cable_bench.remove_wrong_rows()
 
 
 except Exception as e:
@@ -44,13 +44,15 @@ except Exception as e:
 cable_list = cable_bench.keys()
 
 
+# TODO: remove this test
 def test_import_csv():
-    build_catalog_from_yaml(
-        "sample_cable_database.yaml",
+    cable_catalog = build_catalog_from_yaml(
+        "rte_cable_database.yaml",
         user_filepath=EXTERNAL_DATA_DIR,
         separator=";",
         decimal=",",
     )
+    cable_catalog.remove_wrong_rows()
 
 
 @pytest.fixture(scope="session")
@@ -117,8 +119,8 @@ def section_array_angles() -> SectionArray:
     return section_array
 
 
-# @pytest.mark.xfail(reason="Functional benchmark tests - not a real unit test")
-# @pytest.mark.benchmark
+@pytest.mark.xfail(reason="Functional benchmark tests - not a real unit test")
+@pytest.mark.benchmark
 @pytest.mark.parametrize("cable_name", cable_list)
 def test_element_sandbox(
     section_array_angles: SectionArray, cable_name: str, record_benchmark
@@ -146,7 +148,7 @@ def test_element_sandbox(
 
     except Exception as e:
         report_content["error"] = str(e)
-        assert False
+        raise e
 
     finally:
         record_benchmark(

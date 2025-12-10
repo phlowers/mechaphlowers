@@ -221,7 +221,7 @@ class Catalog:
             element_array.add_units(self.units_dict)
         return element_array
 
-    def clean_catalog(self):
+    def remove_wrong_rows(self):
         """Remove wrong cables from Catalog"""
         wrong_cables = []
         try:
