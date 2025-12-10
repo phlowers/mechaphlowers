@@ -9,7 +9,6 @@ import pytest
 
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
-    DisplaySpan,
 )
 from mechaphlowers.entities.data_container import DataContainer
 
@@ -200,9 +199,6 @@ def test_display_span_model__general() -> None:
     p = np.array([2_112.2, 1999.0, 2_112.0])
 
     span_model = CatenarySpan(a, b, p)
-    dspan = DisplaySpan(span_model)
-
-    dspan.x(10)
 
     x = np.linspace(-223.2, 245.2, 250)
 

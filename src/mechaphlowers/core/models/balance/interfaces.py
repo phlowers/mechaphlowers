@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+from copy import copy
 import logging
 from abc import ABC, abstractmethod
 from typing import Type
@@ -77,7 +78,12 @@ class IBalanceModel(IModelForSolver, ABC):
     ):
         self.adjustment: bool = NotImplemented
         self.sagging_temperature = sagging_temperature
+        self.deformation_model = deformation_model
         self.cable_loads = cable_loads
+        self.span_model = span_model
+        self.nodes_span_model = copy(self.span_model)
+        self.parameter = parameter
+        self.cable_array = cable_array
 
     @abstractmethod
     def update_L_ref(self) -> np.ndarray:
@@ -119,6 +125,7 @@ class IBalanceModel(IModelForSolver, ABC):
         """Indicates if the balance model has loads applied."""
         pass
 
-    # @abstractmethod
-    # def span_model_with_loads(self) -> ISpan:
-    #     pass
+    @abstractmethod
+    def update_node_span_model(self) -> ISpan:
+        """Update the span model of the nodes if loads are applied."""
+        pass

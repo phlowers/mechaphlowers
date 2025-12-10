@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,7 +13,6 @@ from pytest import fixture
 
 from mechaphlowers.config import options as options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.core.models.cable.span import DisplaySpan
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.data.catalog.sample_section import (
     section_factory_sample_data,
@@ -62,15 +61,13 @@ def test_plot_loads(cable_array_AM600: CableArray):
         section_array=section_array,
     )
 
-
-
     plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_one_load
     )
 
     balance_engine_one_load.solve_adjustment()
     balance_engine_one_load.solve_change_state(
-        new_temperature=15 * np.array([1, 1, 1, 1])
+        new_temperature=15, wind_pressure = 560
     )
 
     fig = go.Figure()

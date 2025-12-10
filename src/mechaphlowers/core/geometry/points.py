@@ -1,3 +1,9 @@
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+
 from typing import Callable, Self, Tuple
 
 import numpy as np
@@ -17,7 +23,7 @@ from mechaphlowers.core.geometry.references import (
     project_coords,
     translate_cable_to_support_from_attachments,
 )
-from mechaphlowers.core.models.cable.span import DisplaySpan, ISpan
+from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import SectionArray
 
@@ -420,14 +426,13 @@ class SectionPoints:
 
     def init_span(self, span_model: ISpan) -> None:
         """change the span model and update the cable coordinates."""
-        self.span_model = DisplaySpan(span_model)
+        self.span_model = span_model
 
         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
 
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
         self.x_cable, self.z_cable = self.span_model.get_coords(resolution)
-        
 
     def get_attachments_coords(self):
         self.attachment_coords = get_attachment_coords(
@@ -469,7 +474,7 @@ class SectionPoints:
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the section frame."""
-        #TODO: warning here : double call to set_cable_coordinates
+        # TODO: warning here : double call to set_cable_coordinates
         x_span, y_span, z_span = self.span_in_localsection_frame()
         x_span, y_span, z_span = translate_cable_to_support_from_attachments(
             x_span,

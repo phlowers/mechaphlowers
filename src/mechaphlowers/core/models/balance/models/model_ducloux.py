@@ -85,7 +85,7 @@ class BalanceModel(IBalanceModel):
             self.cable_array.data.temperature_reference.iloc[0]
         )
         self.span_model = span_model
-        self.span_model_with_loads = copy(self.span_model)
+        self.nodes_span_model = copy(self.span_model)
         self.deformation_model = deformation_model
         self.cable_loads = cable_loads
 
@@ -394,8 +394,7 @@ class BalanceModel(IBalanceModel):
     def has_loads(self) -> bool:
         return self.nodes.has_load_on_span.any()
 
-
-    def update_span_model_with_loads(self) -> ISpan:
+    def update_node_span_model(self) -> ISpan:
         bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
         self.load_model.span_model_left
         self.load_model.span_model_right
@@ -437,11 +436,11 @@ class BalanceModel(IBalanceModel):
             bool_mask,
         )
 
-        self.span_model_with_loads.span_length = span_length
-        self.span_model_with_loads.elevation_difference = elevation_difference
-        self.span_model_with_loads.sagging_parameter = sagging_parameter
-        self.span_model_with_loads.span_index = span_index
-        self.span_model_with_loads.span_type = span_type
+        self.nodes_span_model.span_length = span_length
+        self.nodes_span_model.elevation_difference = elevation_difference
+        self.nodes_span_model.sagging_parameter = sagging_parameter
+        self.nodes_span_model.span_index = span_index
+        self.nodes_span_model.span_type = span_type
         # self.span_model_with_loads.set(self.span_model.__class__(
         #     sagging_parameter=sagging_parameter,
         #     span_length=span_length,
