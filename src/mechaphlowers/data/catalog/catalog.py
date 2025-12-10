@@ -48,6 +48,8 @@ class Catalog:
         catalog_type: CatalogType = 'default_catalog',
         remove_duplicates: bool = True,
         user_filepath: str | PathLike = DATA_BASE_PATH,
+        separator: str = ",",
+        decimal: str = ".",
     ) -> None:
         """Initialize catalog from a csv file.
 
@@ -92,6 +94,8 @@ class Catalog:
             filepath,
             index_col=key_column_name,
             dtype=dtype_dict_with_key,
+            sep=separator,
+            decimal=decimal,
         )
         # validating the pandera schema. Useful for checking missing fields
         self.validate_types(dtype_dict_without_bool)
@@ -217,6 +221,23 @@ class Catalog:
             element_array.add_units(self.units_dict)
         return element_array
 
+    def clean_catalog(self):
+        """Remove wrong cables from Catalog"""
+        wrong_cables = []
+        try:
+            self.get_as_object(self.keys())
+        except Exception as error:
+            if isinstance(error, pa.errors.SchemaErrors):
+                wrong_cables = error.failure_cases["index"].tolist()
+                warnings.warn(
+                    f"The following cables has incorrect data, and were removed from dataframe:"
+                    f"{wrong_cables}"
+                )
+            else:
+                raise error
+        self._data.drop(wrong_cables, inplace=True)
+        return wrong_cables
+
     def keys(self) -> list:
         """Get the keys available in the catalog"""
         return self._data.index.tolist()
@@ -233,6 +254,8 @@ def build_catalog_from_yaml(
     rename=True,
     remove_duplicates=True,
     user_filepath: str | PathLike = DATA_BASE_PATH,
+    separator: str = ",",
+    decimal: str = ".",
 ) -> Catalog:
     """Build a catalog from a yaml file.
 
@@ -292,6 +315,8 @@ def build_catalog_from_yaml(
         catalog_type,
         remove_duplicates,
         user_filepath,
+        separator=separator,
+        decimal=decimal,
     )
 
 
