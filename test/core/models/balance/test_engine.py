@@ -231,12 +231,14 @@ def test_load_one_span(cable_array_AM600: CableArray):
     balance_engine_angles_arm.solve_adjustment()
 
     balance_engine_angles_arm.solve_change_state()
-    span_model = balance_engine_angles_arm.balance_model.span_model_with_loads()
+    span_model = (
+        balance_engine_angles_arm.balance_model.span_model_with_loads()
+    )
     assert len(span_model.span_length) == 5
     replace_value = balance_engine_angles_arm.balance_model.load_model.span_model_right.span_length
     insert_value = balance_engine_angles_arm.balance_model.load_model.span_model_left.span_length
     old_value = balance_engine_angles_arm.span_model.span_length
-    
+
     assert span_model.span_length[1] == replace_value
     assert span_model.span_length[2] == insert_value
     assert span_model.span_length[3] == old_value[2]

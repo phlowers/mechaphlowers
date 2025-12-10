@@ -9,6 +9,7 @@ import pytest
 
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
+    DisplaySpan,
 )
 from mechaphlowers.entities.data_container import DataContainer
 
@@ -191,3 +192,25 @@ def test_catenary_span_model__data_container(
     span_model.T_mean_m()
     span_model.T_mean_n()
     span_model.T_mean()
+
+
+def test_display_span_model__general() -> None:
+    a = np.array([501.3, 150.0, 499.0])  # test here int and float
+    b = np.array([0.0, 10.0, -5.0])
+    p = np.array([2_112.2, 1999.0, 2_112.0])
+
+    span_model = CatenarySpan(a, b, p)
+    dspan = DisplaySpan(span_model)
+
+    dspan.x(10)
+
+    x = np.linspace(-223.2, 245.2, 250)
+
+    assert isinstance(span_model.z_many_points(x), np.ndarray)
+
+    assert isinstance(span_model.compute_x_m(), np.ndarray)
+
+    span_model.compute_x_m()  # check no error
+    span_model.compute_x_n()
+    span_model.L_m()
+    span_model.L_n()

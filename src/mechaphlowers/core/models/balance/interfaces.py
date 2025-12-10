@@ -115,5 +115,10 @@ class IBalanceModel(IModelForSolver, ABC):
         pass
 
     @abstractmethod
-    def span_model_with_loads(self) -> ISpan:
+    def has_loads(self) -> bool:
+        """Indicates if the balance model has loads applied."""
         pass
+
+    # @abstractmethod
+    # def span_model_with_loads(self) -> ISpan:
+    #     pass

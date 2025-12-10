@@ -85,6 +85,7 @@ class BalanceModel(IBalanceModel):
             self.cable_array.data.temperature_reference.iloc[0]
         )
         self.span_model = span_model
+        self.span_model_with_loads = copy(self.span_model)
         self.deformation_model = deformation_model
         self.cable_loads = cable_loads
 
@@ -390,28 +391,64 @@ class BalanceModel(IBalanceModel):
         vhl_result = np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
         return VhlStrength(vhl_result, "N")
 
+    def has_loads(self) -> bool:
+        return self.nodes.has_load_on_span.any()
 
-    def span_model_with_loads(self) -> ISpan:
+
+    def update_span_model_with_loads(self) -> ISpan:
         bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
         self.load_model.span_model_left
         self.load_model.span_model_right
-        
+
         new_span_model = copy(self.span_model)
-        
-        def replace_insert(arr, arr_replace, arr_insert, mask):
+
+        def insert_array(arr, arr_insert_left, arr_insert_right, mask):
             arr_new = copy(arr)
-            arr_new[mask] = arr_replace
+            arr_new[mask] = arr_insert_right
             insert_mask = np.where(mask)[0]
-            np.insert(arr_new, insert_mask, arr_insert)
-            return np.insert(arr_new, insert_mask, arr_insert)
-        
-        
-        sagging_parameter = replace_insert(new_span_model.sagging_parameter, self.load_model.span_model_left.sagging_parameter, self.load_model.span_model_right.sagging_parameter, bool_mask)
-        span_length = replace_insert(new_span_model.span_length, self.load_model.span_model_left.span_length, self.load_model.span_model_right.span_length, bool_mask)
-        elevation_difference = replace_insert(new_span_model.elevation_difference, self.load_model.span_model_left.elevation_difference, self.load_model.span_model_right.elevation_difference, bool_mask)
+            return np.insert(arr_new, insert_mask, arr_insert_left)
 
-        return self.span_model.__class__(sagging_parameter=sagging_parameter, span_length=span_length, elevation_difference=elevation_difference)
+        sagging_parameter = insert_array(
+            new_span_model.sagging_parameter,
+            self.load_model.span_model_left.sagging_parameter,
+            self.load_model.span_model_right.sagging_parameter,
+            bool_mask,
+        )
+        span_length = insert_array(
+            new_span_model.span_length,
+            self.load_model.span_model_left.span_length,
+            self.load_model.span_model_right.span_length,
+            bool_mask,
+        )
+        elevation_difference = insert_array(
+            new_span_model.elevation_difference,
+            self.load_model.span_model_left.elevation_difference,
+            self.load_model.span_model_right.elevation_difference,
+            bool_mask,
+        )
+        np_array = np.arange(len(self.span_model.span_length))
+        span_index = np.insert(
+            np_array, np.where(bool_mask)[0], np_array[bool_mask]
+        )
+        span_type = insert_array(
+            np.full_like(self.span_model.span_length, 0),
+            np.full_like(self.load_model.span_model_left.span_length, 1),
+            np.full_like(self.load_model.span_model_right.span_length, 2),
+            bool_mask,
+        )
 
+        self.span_model_with_loads.span_length = span_length
+        self.span_model_with_loads.elevation_difference = elevation_difference
+        self.span_model_with_loads.sagging_parameter = sagging_parameter
+        self.span_model_with_loads.span_index = span_index
+        self.span_model_with_loads.span_type = span_type
+        # self.span_model_with_loads.set(self.span_model.__class__(
+        #     sagging_parameter=sagging_parameter,
+        #     span_length=span_length,
+        #     elevation_difference=elevation_difference,
+        #     span_index=span_index,
+        #     span_type=span_type,
+        # ))
 
     def dict_to_store(self) -> dict:
         return {

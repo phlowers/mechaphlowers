@@ -12,6 +12,10 @@ import numpy as np
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
+
+
+
+
 class ISpan(ABC):
     """This abstract class is a base class for various models describing the cable in its own frame.
 
@@ -34,6 +38,7 @@ class ISpan(ABC):
         load_coefficient: np.ndarray | None = None,
         linear_weight: np.float64 | None = None,
         span_index: np.ndarray | None = None,
+        span_type: np.ndarray | None = None,
         **_,
     ) -> None:
         self.span_length = span_length
@@ -48,6 +53,10 @@ class ISpan(ABC):
             self.span_index = np.arange(len(span_length))
         else:
             self.span_index = span_index
+        if span_index is None:
+            self.span_type = np.full_like(span_length, 0)
+        else:
+            self.span_type = span_type
         self.compute_values()
 
     def set_lengths(
@@ -242,67 +251,112 @@ class ISpan(ABC):
         """Mean tension along the whole cable."""
 
 
-class NewClass(ISpan):
+class DisplaySpan:
     def __init__(self, span: ISpan):
         self.span = span
+    #     self.update_span()
+
+    # def update_span(self):
+    #     self._span = self.get_span()
+
+    # @property
+    # def span(self):
+    #     return self._span
+
+    def z_many_points_local(self, x: np.ndarray, p: np.ndarray) -> np.ndarray:
+        """Altitude of cable points depending on the abscissa. Many points per spans, used for graphs."""
+
+        # repeating value to perform multidim operation
+        xx = x.T
+        # self.p is a vector of size (nb support, ). I need to convert it in a matrix (nb support, 1) to perform matrix operation after.
+        # Ex: self.p = array([20,20,20,20]) -> self.p([:,new_axis]) = array([[20],[20],[20],[20]])
+        pp = p[:, np.newaxis]
+        # pp = Th / (load_coef * linear_weight) ?
+
+        rr = pp * (np.cosh(xx / pp) - 1)
+
+        # reshaping back to p,x -> (vertical, horizontal)
+        return rr.T
+
+    def interpolation(self, xq, x, y):
+        """
+        non-vectorized solution
+        """
+        return np.array(
+            [np.interp(xq[i], x[i], y[i]) for i in range(x.shape[0])]
+        )
+
+    def get_coords(self, resolution: int) -> np.ndarray:
+        start_points = self.span.compute_x_m()
+        end_points = self.span.compute_x_n()
+
+        if np.all(self.span.span_type == 0):
+            return np.linspace(start_points, end_points, resolution), self.z_many_points_local(
+                np.linspace(start_points, end_points, resolution), self.span.sagging_parameter
+            )
+        start_points_0 = start_points[self.span.span_type == 0]
+        end_points_0 = end_points[self.span.span_type == 0]
+
+        start_points_left = start_points[self.span.span_type == 1]
+        start_points_right = start_points[self.span.span_type == 2]
+        end_points_left = end_points[self.span.span_type == 1]
+        end_points_right = end_points[self.span.span_type == 2]
+
+        x_left = np.linspace(start_points_left, end_points_left, resolution)
+        x_right = np.linspace(start_points_right, end_points_right, resolution)
+        x_0 = np.linspace(start_points_0, end_points_0, resolution)
+
+        z_left = self.z_many_points_local(
+            x_left, self.span.sagging_parameter[self.span.span_type == 1]
+        )
+        z_right = self.z_many_points_local(
+            x_right, self.span.sagging_parameter[self.span.span_type == 2]
+        )
+        z_0 = self.z_many_points_local(
+            x_0, self.span.sagging_parameter[self.span.span_type == 0]
+        )
+
+        # join
+        x_load = np.concatenate(
+            (x_left, x_right + end_points_left - start_points_right), axis=0
+        )
+        z_load = np.concatenate(
+            (z_left, z_right + z_left[-1, :] - z_right[0, :]), axis=0
+        )
+
+        # interpolate
+        new_x = np.linspace(
+            np.min(x_load, axis=0), np.max(x_load, axis=0), resolution
+        )
+        new_z = self.interpolation(new_x.T, x_load.T, z_load.T).T
+
+        # we have to replace the endpoints left after interpolation
+        idx = (np.abs(new_x - end_points_left)).argmin(axis=0)
+
+        new_x[idx, np.arange(idx.shape[0])] = end_points_left
+        new_z[idx, np.arange(idx.shape[0])] = z_left[-1, :]
+
+        mask_output = np.logical_or(
+            self.span.span_type == 1, self.span.span_type == 0
+        )
+        x = np.full(
+            (resolution, self.span.span_type.shape[0]), np.nan, dtype=float
+        )
+        z = np.full(
+            (resolution, self.span.span_type.shape[0]), np.nan, dtype=float
+        )
+
+        x[:, self.span.span_type == 1] = new_x
+        x[:, self.span.span_type == 0] = x_0
+
+        z[:, self.span.span_type == 1] = new_z
+        z[:, self.span.span_type == 0] = z_0
+
+        self.load_idx = idx, self.span.span_index[self.span.span_type == 1]
+
+        return x[:, mask_output], z[:, mask_output]
 
 
-
-    @abstractmethod
-    def z_many_points(self, x: np.ndarray) -> np.ndarray:
-        return self.span.z_many_points(x)
-
-    @abstractmethod
-    def z_one_point(self, x: np.ndarray) -> np.ndarray:
-        return self.span.z_one_point(x)
-
-    @abstractmethod
-    def compute_x_m(self) -> np.ndarray:
-        return self.span.compute_x_m()
-
-    @abstractmethod
-    def compute_x_n(self) -> np.ndarray:
-        return self.span.compute_x_n()
-
-    @abstractmethod
-    def x(self, resolution: int) -> np.ndarray:
-
-        return self.span.x(resolution)
-
-    @abstractmethod
-    def L_m(self) -> np.ndarray:
-        return self.span.L_m()
-
-    @abstractmethod
-    def L_n(self) -> np.ndarray:
-        return self.span.L_n()
-
-    @abstractmethod
-    def compute_L(self) -> np.ndarray:
-        return self.span.compute_L()
-
-    @abstractmethod
-    def T_h(self) -> np.ndarray:
-        return self.span.T_h()
-
-    @abstractmethod
-    def T_v(self, x_one_per_span: np.ndarray) -> np.ndarray:
-        return self.span.T_v(x_one_per_span)
-
-    @abstractmethod
-    def T(self, x_one_per_span: np.ndarray) -> np.ndarray:
-        return self.span.T(x_one_per_span)
-    
-    @abstractmethod
-    def T_mean_m(self) -> np.ndarray:
-        return self.span.T_mean_m()
-
-    @abstractmethod
-    def T_mean_n(self) -> np.ndarray:
-        return self.span.T_mean_n()
-
-    def T_mean(self):
-        return self.span.T_mean()
 
 
 class CatenarySpan(ISpan):

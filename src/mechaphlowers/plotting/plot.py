@@ -301,7 +301,7 @@ class PlotEngine:
 
         return PlotEngine(
             # balance_engine.span_model,
-            balance_engine.balance_model.span_model_with_loads(),
+            balance_engine.balance_model.span_model_with_loads,
             balance_engine.cable_loads,
             balance_engine.section_array,
             balance_engine.get_displacement,

@@ -13,6 +13,7 @@ from pytest import fixture
 
 from mechaphlowers.config import options as options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.core.models.cable.span import DisplaySpan
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.data.catalog.sample_section import (
     section_factory_sample_data,
@@ -46,7 +47,7 @@ def test_plot_loads(cable_array_AM600: CableArray):
                 "insulator_mass": convert_weight_to_mass(
                     [1000, 500, 500, 1000]
                 ),
-                "load_mass": [50, 100, 0, np.nan],
+                "load_mass": [5000, 10000, 0, np.nan],
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         )
@@ -61,13 +62,19 @@ def test_plot_loads(cable_array_AM600: CableArray):
         section_array=section_array,
     )
 
+
+
     plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_one_load
     )
+
     balance_engine_one_load.solve_adjustment()
     balance_engine_one_load.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
     )
+
     fig = go.Figure()
 
     plt_engine.preview_line3d(fig)
+
+    fig.show()
