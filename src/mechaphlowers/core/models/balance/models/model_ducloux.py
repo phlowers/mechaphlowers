@@ -401,8 +401,6 @@ class BalanceModel(IBalanceModel):
         It integrates the nodes models left and right inside the span model creating new virtual nodes.
         """
         bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
-        self.load_model.span_model_left
-        self.load_model.span_model_right
 
         new_span_model = copy(self.span_model)
 
