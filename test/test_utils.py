@@ -6,11 +6,19 @@
 
 
 import logging
+from time import sleep, time
 
 import numpy as np
+from xxhash import xxh3_64
 
 from mechaphlowers.config import options
-from mechaphlowers.utils import CachedAccessor, check_time, ppnp
+from mechaphlowers.utils import (
+    CachedAccessor,
+    check_time,
+    hash_numpy_xxhash,
+    numpy_cache,
+    ppnp,
+)
 
 # FILE: src/mechaphlowers/test_utils.py
 
@@ -89,3 +97,103 @@ def test_log(caplog) -> None:
     assert 'function executed' in caplog.text
 
     options.log.perfs = save_option
+
+
+def test_hash_numpy_xxhash() -> None:
+    arr = np.random.rand(10, 100, 3)
+    expected_hash = xxh3_64(arr.tobytes()).digest()
+    computed_hash = hash_numpy_xxhash(arr)
+    assert computed_hash == expected_hash
+
+    A = np.random.randn(10, 10, 3)
+    A.ravel()[np.random.choice(A.size, 10, replace=False)] = np.nan
+    assert np.isnan(A).sum() > 1
+
+    computed_hash_1 = hash_numpy_xxhash(A)
+    computed_hash_2 = hash_numpy_xxhash(A)
+    assert computed_hash_1 == computed_hash_2
+
+    computed_hash_1 = hash_numpy_xxhash(A + 1)
+    computed_hash_2 = hash_numpy_xxhash(A)
+    assert computed_hash_1 != computed_hash_2
+
+
+def test_numpy_cache_decorator() -> None:
+    call_count = {"count": 0}
+
+    @numpy_cache
+    def compute_sum(arr: np.ndarray, arg2=1) -> float:
+        sleep(0.000001)  # Simulate a time-consuming computation
+        call_count["count"] += 1
+        return np.nansum(arr)
+
+    A = np.random.randn(10, 10, 3)
+    A.ravel()[np.random.choice(A.size, 10, replace=False)] = np.nan
+
+    result1 = compute_sum(A)
+    result2 = compute_sum(A)
+
+    assert result1 == result2
+    assert call_count["count"] == 1
+
+    B = A + 1
+    result3 = compute_sum(B)
+
+    assert result3 != result1
+    assert call_count["count"] == 2
+
+    t0 = time()
+    compute_sum(A + 2)
+    t1 = time()
+    compute_sum(A + 2)
+    t2 = time()
+    print(
+        f"First call took {t1 - t0:.6f} seconds, second call took {t2 - t1:.6f} seconds"
+    )
+    assert t1 - t0 > t2 - t1  # Second call should be faster due to caching
+
+    call_count["count"] = 0
+    compute_sum(B, 10)
+    compute_sum(B, 10)
+    assert call_count["count"] == 1
+    compute_sum(B, 1)
+    assert call_count["count"] == 2
+    compute_sum(B, "arg")
+    assert call_count["count"] == 3
+    compute_sum(B, "arg")
+    assert call_count["count"] == 3
+    compute_sum(B, np.nan)
+    assert call_count["count"] == 4
+    compute_sum(B, np.nan)
+    assert call_count["count"] == 4
+
+    assert len(compute_sum._cache) == 7
+
+    compute_sum.cache_clear()
+    assert len(compute_sum._cache) == 0
+
+
+def test_perf_numpy_cache_decorator() -> None:
+    @numpy_cache
+    def compute_sum(arr: np.ndarray) -> float:
+        sleep(0.01)  # Simulate a time-consuming computation
+        return np.nansum(arr)
+
+    A = np.random.randn(1000, 1000, 3)
+    A.ravel()[np.random.choice(A.size, 1000, replace=False)] = np.nan
+
+    start_time = time()
+    compute_sum(A)
+    first_call_duration = time() - start_time
+
+    start_time = time()
+    compute_sum(A)
+    second_call_duration = time() - start_time
+
+    print(f"First call duration: {first_call_duration:.6f} seconds")
+    print(f"Second call duration: {second_call_duration:.6f} seconds")
+
+    assert second_call_duration < first_call_duration
+    compute_sum.cache_clear()
+    compute_sum._cache
+    assert len(compute_sum._cache) == 0

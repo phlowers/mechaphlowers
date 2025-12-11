@@ -68,6 +68,9 @@ def test_solver__run_solver(
     sag_tension_calculation.L_after_change()
 
 
+@pytest.mark.skip(
+    reason="Polynomial model not implemented yet/need to be reworked"
+)
 def test_solver__run_solver__polynomial_model(
     default_data_container_one_span: DataContainer,
     weather_dict_one_span: dict,

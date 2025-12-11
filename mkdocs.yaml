@@ -92,6 +92,7 @@ nav:
                   - Create elevation profile: docstring/plotting/geography/plot_elevation_profile.md
                   - Create line map: docstring/plotting/geography/plot_line_map.md
       - Logging: developer_guide/logging.md
+      - Benchmarks: developer_guide/benchmark_mode.md
       - Building: developer_guide/publish.md
       - Guidelines: developer_guide/guidelines.md
       - Documentation: developer_guide/documentation.md

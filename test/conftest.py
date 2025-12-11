@@ -35,6 +35,23 @@ from mechaphlowers.entities.data_container import (
 )
 
 
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Capture test outcome and update benchmark report."""
+    outcome = yield
+    rep = outcome.get_result()
+
+    if rep.when == "call" and "benchmark_report" in item.funcargs:
+        benchmark_report = item.funcargs["benchmark_report"]
+
+        # Find the entry index that was just recorded for this test
+        if hasattr(item, "_benchmark_entry_idx"):
+            idx = item._benchmark_entry_idx
+            benchmark_report["tests"][idx]["status"] = rep.outcome
+            if rep.outcome == "failed" and rep.longrepr:
+                benchmark_report["tests"][idx]["error"] = str(rep.longrepr)
+
+
 @pytest.fixture
 def default_cable_array() -> CableArray:
     return CableArray(

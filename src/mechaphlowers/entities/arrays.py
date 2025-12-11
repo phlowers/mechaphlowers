@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
+import warnings
 from abc import ABC
 
 import numpy as np
@@ -201,6 +202,12 @@ class SectionArray(ElementArray):
                     self.compute_ground_altitude(),
                     ground_alt,
                 )
+                warning_string = (
+                    "ground_altitude is higher than conductor_attachment_altitude. \n"
+                    f"ground_altitude being replaced by default value for incorrect supports: \n {data_output['ground_altitude'].to_numpy()}"
+                )
+                warnings.warn(warning_string)
+                logger.warning(warning_string)
 
     def __copy__(self) -> Self:
         copy_obj = super().__copy__()
