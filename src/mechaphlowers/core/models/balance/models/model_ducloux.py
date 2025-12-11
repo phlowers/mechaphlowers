@@ -402,6 +402,8 @@ class BalanceModel(IBalanceModel):
         """
         bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
 
+        new_span_model = copy(self.span_model)
+
         def insert_array(arr, arr_insert_left, arr_insert_right, mask):
             arr_new = copy(arr)
             arr_new[mask] = arr_insert_right
@@ -442,6 +444,7 @@ class BalanceModel(IBalanceModel):
         self.nodes_span_model.sagging_parameter = sagging_parameter
         self.nodes_span_model.span_index = span_index
         self.nodes_span_model.span_type = span_type
+
     def dict_to_store(self) -> dict:
         return {
             "dx": self.nodes.dx,
