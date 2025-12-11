@@ -13,6 +13,7 @@ from mechaphlowers.data.geography.elevation import gps_to_elevation
 
 request = pytest.importorskip("request")
 
+
 @patch('requests.post')
 def test_gps_to_elevation(mock_post):
     """Test OpenElevationService."""

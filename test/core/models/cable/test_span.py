@@ -193,12 +193,13 @@ def test_catenary_span_model__data_container(
     span_model.T_mean()
 
 
-def test_display_span_model__general() -> None:
+def test_display_span_model__span_index() -> None:
     a = np.array([501.3, 150.0, 499.0])  # test here int and float
     b = np.array([0.0, 10.0, -5.0])
     p = np.array([2_112.2, 1999.0, 2_112.0])
+    span_index = np.array([10, 30, 20, 40])
 
-    span_model = CatenarySpan(a, b, p)
+    span_model = CatenarySpan(a, b, p, span_index=span_index)
 
     x = np.linspace(-223.2, 245.2, 250)
 
@@ -206,7 +207,17 @@ def test_display_span_model__general() -> None:
 
     assert isinstance(span_model.compute_x_m(), np.ndarray)
 
-    span_model.compute_x_m()  # check no error
-    span_model.compute_x_n()
-    span_model.L_m()
-    span_model.L_n()
+    span_index = np.array([10, 30, 20, 40, 50])
+    span_model = CatenarySpan(a, b, p, span_index=span_index)
+    span_model.get_coords(10)
+
+
+def test_display_span_model__span_type() -> None:
+    a = np.array([501.3, 150.0, 499.0])  # test here int and float
+    b = np.array([0.0, 10.0, -5.0])
+    p = np.array([2_112.2, 1999.0, 2_112.0])
+    span_type = np.array([1, 2, 0])
+
+    span_model = CatenarySpan(a, b, p, span_type=span_type)
+
+    span_model.get_coords(10)

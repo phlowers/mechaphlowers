@@ -13,6 +13,7 @@ from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 class ISpan(ABC):
+    # TODO: docstring seems old
     """This abstract class is a base class for various models describing the cable in its own frame.
 
     The coordinates are expressed in the cable frame.
@@ -26,10 +27,6 @@ class ISpan(ABC):
     Support for line angle and wind will be added later.
     """
 
-    # class DisplaySpan:
-    #     def __init__(self, span: ISpan):
-    #         self.span = span
-
     def __init__(
         self,
         span_length: np.ndarray,
@@ -41,6 +38,9 @@ class ISpan(ABC):
         span_type: np.ndarray | None = None,
         **_,
     ) -> None:
+        # TODO: check the vectors have the same size
+        # TODO: check that span_type == 0,1,2
+
         self.span_length = span_length
         self.elevation_difference = elevation_difference
         self.sagging_parameter = sagging_parameter

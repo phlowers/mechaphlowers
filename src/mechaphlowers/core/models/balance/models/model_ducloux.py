@@ -396,8 +396,8 @@ class BalanceModel(IBalanceModel):
         return self.nodes.has_load_on_span.any()
 
     def update_node_span_model(self) -> None:
-        """update_node_span_model updates the node span model. 
-        
+        """update_node_span_model updates the node span model.
+
         It integrates the nodes models left and right inside the span model creating new virtual nodes.
         """
         bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
