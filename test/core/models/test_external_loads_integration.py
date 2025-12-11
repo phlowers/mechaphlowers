@@ -5,12 +5,14 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
+import pytest
 
 from mechaphlowers.core.models.external_loads import (
     WindSpeedPressureConverter,
 )
 
 
+@pytest.mark.integration
 def test_convert_gust_wind():
     gust_wind = np.array([50, 30])
     wind_angle_cable_degrees = np.array([90, 70])
@@ -28,6 +30,7 @@ def test_convert_gust_wind():
     )
 
 
+@pytest.mark.integration
 def test_convert_average_wind():
     speed_average_wind_open_country = np.array([7, 10])
     wind_angle_cable_degrees = np.array([90, 70])
@@ -44,6 +47,7 @@ def test_convert_average_wind():
     )
 
 
+@pytest.mark.integration
 def test_convert_work_high_voltage():
     speed_average_wind_open_country = np.array([7, 10])
     wind_angle_cable_degrees = np.array([60, 70])

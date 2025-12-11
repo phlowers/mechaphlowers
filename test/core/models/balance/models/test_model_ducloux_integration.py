@@ -98,6 +98,7 @@ def section_array_no_altitude_change() -> SectionArray:
     return section_array
 
 
+@pytest.mark.integration
 def test_element_sandbox(
     section_array_angles: SectionArray, cable_array_AM600: CableArray
 ):
@@ -117,6 +118,7 @@ def test_element_sandbox(
     assert True
 
 
+@pytest.mark.integration
 def test_adjust_no_altitude_change(
     section_array_no_altitude_change: SectionArray,
     cable_array_AM600: CableArray,
@@ -163,6 +165,7 @@ def test_adjust_no_altitude_change(
     )
 
 
+@pytest.mark.integration
 def test_adjust_simple(
     section_array_simple: SectionArray, cable_array_AM600: CableArray
 ):
@@ -198,6 +201,7 @@ def test_adjust_simple(
     )
 
 
+@pytest.mark.integration
 def test_adjust_with_arm(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
@@ -267,6 +271,7 @@ def test_adjust_with_arm(cable_array_AM600: CableArray):
     )
 
 
+@pytest.mark.integration
 def test_adjust_with_angles(
     section_array_angles: SectionArray, cable_array_AM600: CableArray
 ):
@@ -324,6 +329,7 @@ def test_adjust_with_angles(
     )
 
 
+@pytest.mark.integration
 def test_wind_no_altitude_change(
     section_array_no_altitude_change: SectionArray,
     cable_array_AM600: CableArray,
@@ -417,6 +423,7 @@ def test_wind_no_altitude_change(
     )
 
 
+@pytest.mark.integration
 def test_wind(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
@@ -484,6 +491,7 @@ def test_wind(cable_array_AM600: CableArray):
     )
 
 
+@pytest.mark.integration
 def test_temperature(
     section_array_angles: SectionArray, cable_array_AM600: CableArray
 ):
@@ -536,6 +544,7 @@ def test_temperature(
     )
 
 
+@pytest.mark.integration
 def test_ice(
     section_array_angles: SectionArray, cable_array_AM600: CableArray
 ):
@@ -589,6 +598,7 @@ def test_ice(
     )
 
 
+@pytest.mark.integration
 def test_load_all_spans(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
@@ -663,6 +673,7 @@ def test_load_all_spans(cable_array_AM600: CableArray):
     )
 
 
+@pytest.mark.integration
 def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
@@ -741,6 +752,7 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
     )
 
 
+@pytest.mark.integration
 def test_load_one_span(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
@@ -816,70 +828,7 @@ def test_load_one_span(cable_array_AM600: CableArray):
     )
 
 
-@pytest.mark.skip(reason="This is a performance test")
-def test_many_spans(cable_array_AM600: CableArray):
-    nb_spans = 50
-    section_array = SectionArray(
-        pd.DataFrame(
-            {
-                "name": ["name"] * nb_spans,
-                "suspension": [False] + [True] * (nb_spans - 2) + [False],
-                "conductor_attachment_altitude": [50] * nb_spans,
-                "crossarm_length": [0] * nb_spans,
-                "line_angle": [0] * nb_spans,
-                "insulator_length": [3] * nb_spans,
-                "span_length": [500] * (nb_spans - 1) + [np.nan],
-                "insulator_mass": [500 / 9.81] * nb_spans,
-                "load_mass": [0] * nb_spans,
-                "load_position": [0] * nb_spans,
-            }
-        )
-    )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
-
-    section = BalanceEngine(
-        cable_array=cable_array_AM600,
-        section_array=section_array,
-    )
-
-    section.solve_adjustment()
-
-    section.solve_change_state(wind_pressure=np.array([-200] * nb_spans))
-
-
-@pytest.mark.skip(reason="This is a performance test")
-def test_many_spans_with_load(cable_array_AM600: CableArray):
-    nb_spans = 10
-    section_array = SectionArray(
-        pd.DataFrame(
-            {
-                "name": ["name"] * nb_spans,
-                "suspension": [False] + [True] * (nb_spans - 2) + [False],
-                "conductor_attachment_altitude": [50] * nb_spans,
-                "crossarm_length": [0] * nb_spans,
-                "line_angle": [0] * nb_spans,
-                "insulator_length": [3] * nb_spans,
-                "span_length": [500] * (nb_spans - 1) + [np.nan],
-                "insulator_mass": [500 / 9.81] * nb_spans,
-                "load_mass": [500 / 9.81] * nb_spans,
-                "load_position": [0.5] * nb_spans,
-            }
-        )
-    )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
-
-    section = BalanceEngine(
-        cable_array=cable_array_AM600,
-        section_array=section_array,
-    )
-
-    section.solve_adjustment()
-
-    section.solve_change_state(wind_pressure=np.array([-200] * nb_spans))
-
-
+@pytest.mark.integration
 def test_balance_engine__large_angles(balance_engine_base_test) -> None:
     """the balance engine is not converging with bad parameter initialization for solvers (see config object) when large angles are present.
     This test ensures that such a situation is handled correctly.

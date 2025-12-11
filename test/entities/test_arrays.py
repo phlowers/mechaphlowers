@@ -294,6 +294,7 @@ def test_section_array__data_with_optional() -> None:
     assert_frame_equal(section_array._data, inner_data, check_like=True)
 
 
+@pytest.mark.filterwarnings("ignore::UserWarning")
 def test_section_array__wrong_ground_altitude() -> None:
     df = pd.DataFrame(
         {
