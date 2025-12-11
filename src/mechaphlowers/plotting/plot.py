@@ -301,7 +301,6 @@ class PlotEngine:
         logger.debug("Plot engine initialized from balance engine.")
 
         return PlotEngine(
-            # balance_engine.span_model,
             balance_engine.balance_model.nodes_span_model,
             balance_engine.cable_loads,
             balance_engine.section_array,
