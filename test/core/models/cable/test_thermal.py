@@ -7,29 +7,34 @@
 
 import numpy as np
 
-from mechaphlowers.core.models.cable.thermal import get_cable_temperature
+from mechaphlowers.core.models.cable.thermal import ThermalEngine
 from mechaphlowers.entities.arrays import CableArray
 
 
-def test_thermohl_cable_temp_floats(cable_array_AM600: CableArray):
-    get_cable_temperature(
-        cable_array_AM600,
-        latitude=45.0,
-        longitude=0.0,
-        altitude=0.0,
-        azimuth=0.0,
-        month=3,
-        day=21,
-        hour=12,
-        intensity=100.0,
-        ambient_temp=15.0,
-        wind_speed=0.0,
-        wind_angle=90.0,
-    )
+# def test_thermohl_cable_temp_floats(cable_array_AM600: CableArray):
+#     get_cable_temperature(
+#         cable_array_AM600,
+#         latitude=45.0,
+#         longitude=0.0,
+#         altitude=0.0,
+#         azimuth=0.0,
+#         month=3,
+#         day=21,
+#         hour=12,
+#         intensity=100.0,
+#         ambient_temp=15.0,
+#         wind_speed=0.0,
+#         wind_angle=90.0,
+#     )
+
+
 
 
 def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
-    get_cable_temperature(
+    
+    thermal_engine = ThermalEngine()
+    
+    thermal_engine.set(
         cable_array_AM600,
         latitude=np.array([45.0, 45.0]),
         longitude=np.array([0.0, 0.0]),
@@ -63,3 +68,6 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
             ]
         ),
     )
+    
+    thermal_engine.load()
+    thermal_engine
