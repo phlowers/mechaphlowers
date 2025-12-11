@@ -205,7 +205,7 @@ def param_calibration(
         balance_engine.solve_change_state(new_temperature=new_temperature)
         return balance_engine.parameter[span_index]
 
-    # first estimatation of the parameter at sagging temperature
+    # first estimation of the parameter at sagging temperature
     param_approx = compute_parameter(
         measured_parameter, measured_temperature, sagging_temperature
     )
@@ -224,7 +224,7 @@ def param_calibration(
     derivative = (delta_1 - delta) / _ZETA
 
     if derivative == 0:
-        # case where we get the exact solution , avoid division by zero
+        # case where we get the exact solution, avoid division by zero
         return param_approx
     else:
         # newton-raphson update

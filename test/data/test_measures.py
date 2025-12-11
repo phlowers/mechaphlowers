@@ -159,6 +159,7 @@ def test_parameter_15_deg(cable_array_AM600: CableArray):
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
+    # checks that no error is raised
     param_calibration(2000, 60, section_array, cable_array_AM600, span_index=0)
 
     param_calibration(2000, 60, section_array, cable_array_AM600, span_index=1)
