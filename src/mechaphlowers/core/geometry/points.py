@@ -359,6 +359,23 @@ class Points:
 #         return Points.from_coords(insulator_layers)
 
 
+class SparsePoints:
+    # suggestion of class similar to points to store obstacle coordinates
+    # it have to behave similarly to Points class for plot engine (interface ? protocol ? :))
+    def __init__(self, data: pd.DataFrame) -> None:
+        self.data = data[["x", "y", "z"]].to_numpy()
+        self.object_name = data["name"].to_list()
+        self.span_index = data["span_number"].to_numpy()
+
+    def builder_from_obstacle_array(
+        obstacle_array,
+    ) -> Self:
+        data = obstacle_array.data
+        return SparsePoints(data)
+
+    def points(self, stack=False) -> np.ndarray:
+        raise NotImplementedError
+
 class SectionPoints:
     def __init__(
         self,
@@ -427,6 +444,17 @@ class SectionPoints:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
         self.x_cable: np.ndarray = self.span_model.x(resolution)
         self.z_cable: np.ndarray = self.span_model.z_many_points(self.x_cable)
+
+    def add_obstacles(
+        self,
+        obstacles_array,
+    ):
+        self.obstacles_array = obstacles_array
+
+    def get_obstacle_coords(self):
+        self.obstacle_coords = self.obstacles_array.get_data()
+        # TODO: some fancy processing here with list comprehension if needed because of non regular shape
+        return self.obstacle_coords
 
     def get_attachments_coords(self):
         self.attachment_coords = get_attachment_coords(

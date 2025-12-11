@@ -289,6 +289,11 @@ class PlotEngine:
             get_displacement=get_displacement,
         )
 
+    def add_obstacles(
+        self,
+        obstacles_array):
+        self.section_pts.add_obstacles(obstacles_array)
+
     @property
     def beta(self):
         return self.cable_loads.load_angle
