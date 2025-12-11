@@ -336,7 +336,7 @@ class CatenarySpan(ISpan):
     def get_coords(self, resolution: int) -> Tuple[np.ndarray, np.ndarray]:
         """Get x and z coordinates for catenary generation in cable frame. This method handles different span types in case of virtual nodes and produces an output of the same size than the real number of spans.
         Args:
-            resolution (int): Number of point to generation between supports.
+            resolution (int): Number of points to generate between supports.
         Returns:
             Tuple[np.ndarray, np.ndarray]: x and z coordinates of the cable
         """
