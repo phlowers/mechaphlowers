@@ -18,6 +18,7 @@ from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
+    ObstacleArrayInput,
     SectionArrayInput,
     WeatherArrayInput,
 )
@@ -358,3 +359,40 @@ class WeatherArray(ElementArray):
         self.input_units: dict[str, str] = {
             "ice_thickness": "cm",
         }
+
+
+
+    
+
+class ObstacleArray(ElementArray):
+    """Obstacles-related data, such as obstacle altitude and distance from the line.
+
+    They're typically used to compute clearance-related checks.
+    """
+
+    array_input_type: Type[pa.DataFrameModel] = ObstacleArrayInput
+    target_units: dict[str, str] = {
+        "x": "m",
+        "y": "m",
+        "z": "m",
+    }
+
+    def __init__(
+        self,
+        data: pd.DataFrame,
+    ) -> None:
+        super().__init__(data)  # type: ignore[arg-type]
+
+    def get_data(self) -> pd.DataFrame:
+        """Returns obstacle data for a given span number.
+
+        Args:
+            obstacle_name (str): Obstacle name"""
+        # TODO: an object cannot have multiple span_index
+
+
+        return SparsePoints(self.data)
+    
+
+
+
