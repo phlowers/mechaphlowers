@@ -44,17 +44,6 @@ except Exception as e:
 cable_list = cable_bench.keys()
 
 
-# TODO: remove this test
-def test_import_csv():
-    cable_catalog = build_catalog_from_yaml(
-        "rte_cable_database.yaml",
-        user_filepath=EXTERNAL_DATA_DIR,
-        separator=";",
-        decimal=",",
-    )
-    cable_catalog.check_wrong_rows()
-
-
 @pytest.fixture(scope="session")
 def benchmark_report():
     """Fixture to collect and report functional benchmark results."""

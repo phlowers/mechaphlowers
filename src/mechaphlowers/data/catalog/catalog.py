@@ -222,10 +222,13 @@ class Catalog:
         return element_array
 
     def check_wrong_rows(self, clean_catalog: bool = True) -> Set:
-        """Check if rows are invalid when running get_as_object(), and eventually remove them.
+        """Check if rows are causes pandera SchemaErrors when running get_as_object(), and eventually remove them.
 
         Args:
             clean_catalog (bool): If True, removes invalid rows from the catalog. Defaults to True.
+
+        Returns:
+            Set: Set of indices of rows that are invalid according to the pandera schema.
         """
         wrong_rows = []
         try:
@@ -236,13 +239,11 @@ class Catalog:
             if clean_catalog:
                 self._data.drop(wrong_rows, inplace=True)
                 warnings.warn(
-                    f"The following rows have incorrect data, and are removed from dataframe:"
-                    f" {wrong_rows}"
+                    f"The following rows have incorrect data, and are removed from dataframe: {wrong_rows}"
                 )
             else:
                 warnings.warn(
-                    f"The following rows have incorrect data, but are NOT removed from dataframe:"
-                    f" {wrong_rows}"
+                    f"The following rows have incorrect data, but are NOT removed from dataframe: {wrong_rows}"
                 )
         return set(wrong_rows)
 
