@@ -495,3 +495,18 @@ def test_catalog_correct_array(cable_array_AM600) -> None:
         check_like=True,
         atol=1e-07,
     )
+
+
+def test_catalog_check_wrong_rows() -> None:
+    catalog_wrong_data = build_catalog_from_yaml("sample_cable_database.yaml")
+    catalog_wrong_data._data.at["ASTER600", "a0"] = None
+    catalog_wrong_data._data.at["ASTER600", "a1"] = None
+
+    with pytest.warns(UserWarning):
+        wrong_rows = catalog_wrong_data.check_wrong_rows(clean_catalog=False)
+    assert wrong_rows == {"ASTER600"}
+    assert "ASTER600" in catalog_wrong_data._data.index
+
+    with pytest.warns(UserWarning):
+        catalog_wrong_data.check_wrong_rows(clean_catalog=True)
+    assert "ASTER600" not in catalog_wrong_data._data.index
