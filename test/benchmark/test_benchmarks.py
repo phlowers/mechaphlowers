@@ -31,7 +31,7 @@ try:
         separator=";",
         decimal=",",
     )
-    cable_bench.remove_wrong_rows()
+    cable_bench.check_wrong_rows()
 
 
 except Exception as e:
@@ -52,7 +52,7 @@ def test_import_csv():
         separator=";",
         decimal=",",
     )
-    cable_catalog.remove_wrong_rows()
+    cable_catalog.check_wrong_rows()
 
 
 @pytest.fixture(scope="session")

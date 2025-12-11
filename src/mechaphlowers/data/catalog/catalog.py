@@ -8,7 +8,7 @@ import logging
 import warnings
 from os import PathLike
 from pathlib import Path
-from typing import Any, Literal, get_args
+from typing import Any, Literal, Set, get_args
 
 import pandas as pd
 import pandera as pa
@@ -221,22 +221,30 @@ class Catalog:
             element_array.add_units(self.units_dict)
         return element_array
 
-    def remove_wrong_rows(self):
-        """Remove wrong cables from Catalog"""
-        wrong_cables = []
+    def check_wrong_rows(self, clean_catalog: bool = True) -> Set:
+        """Check if rows are invalid when running get_as_object(), and eventually remove them.
+
+        Args:
+            clean_catalog (bool): If True, removes invalid rows from the catalog. Defaults to True.
+        """
+        wrong_rows = []
         try:
             self.get_as_object(self.keys())
-        except Exception as error:
-            if isinstance(error, pa.errors.SchemaErrors):
-                wrong_cables = error.failure_cases["index"].tolist()
+        except pa.errors.SchemaErrors as error:
+            # get the index of the rows that caused an error, and remove the duplicates
+            wrong_rows = error.failure_cases["index"].unique()
+            if clean_catalog:
+                self._data.drop(wrong_rows, inplace=True)
                 warnings.warn(
-                    f"The following cables has incorrect data, and were removed from dataframe:"
-                    f"{wrong_cables}"
+                    f"The following rows have incorrect data, and are removed from dataframe:"
+                    f" {wrong_rows}"
                 )
             else:
-                raise error
-        self._data.drop(wrong_cables, inplace=True)
-        return wrong_cables
+                warnings.warn(
+                    f"The following rows have incorrect data, but are NOT removed from dataframe:"
+                    f" {wrong_rows}"
+                )
+        return set(wrong_rows)
 
     def keys(self) -> list:
         """Get the keys available in the catalog"""
