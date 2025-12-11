@@ -1,3 +1,9 @@
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+
 from typing import Callable, Self, Tuple
 
 import numpy as np
@@ -421,12 +427,12 @@ class SectionPoints:
     def init_span(self, span_model: ISpan) -> None:
         """change the span model and update the cable coordinates."""
         self.span_model = span_model
+
         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
 
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
-        self.x_cable: np.ndarray = self.span_model.x(resolution)
-        self.z_cable: np.ndarray = self.span_model.z_many_points(self.x_cable)
+        self.x_cable, self.z_cable = self.span_model.get_coords(resolution)
 
     def get_attachments_coords(self):
         self.attachment_coords = get_attachment_coords(
@@ -444,6 +450,7 @@ class SectionPoints:
     def span_in_cable_frame(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the cable frame."""
         # Rotate the cable with an angle to represent the wind
+        self.set_cable_coordinates(resolution=cfg.graphics.resolution)
         x_span, y_span, z_span = cable_to_beta_plane(
             self.x_cable[:, :-1],
             self.z_cable[:, :-1],
@@ -467,6 +474,7 @@ class SectionPoints:
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the section frame."""
+        # TODO: warning here : double call to set_cable_coordinates
         x_span, y_span, z_span = self.span_in_localsection_frame()
         x_span, y_span, z_span = translate_cable_to_support_from_attachments(
             x_span,

@@ -42,7 +42,7 @@ class DataConfig:
 class GraphicsConfig:
     """Graphics configuration class."""
 
-    resolution: int = 7
+    resolution: int = 30
     marker_size: float = 3.0
     width: float = 8.0
     background_opacity: float = 0.3

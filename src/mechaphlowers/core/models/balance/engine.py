@@ -222,6 +222,8 @@ class BalanceEngine:
         logger.debug(
             f"Output : get_displacement \n{str(self.get_displacement())}"
         )
+        if self.balance_model.has_loads:
+            self.balance_model.update_node_span_model()
 
     @property
     def support_number(self) -> int:
