@@ -7,9 +7,9 @@
 
 from __future__ import annotations
 
-from copy import copy
 import logging
 from abc import ABC, abstractmethod
+from copy import copy
 from typing import Type
 
 import numpy as np
@@ -120,12 +120,13 @@ class IBalanceModel(IModelForSolver, ABC):
         Default unit is daN"""
         pass
 
+    @property
     @abstractmethod
     def has_loads(self) -> bool:
         """Indicates if the balance model has loads applied."""
         pass
 
     @abstractmethod
-    def update_node_span_model(self) -> ISpan:
+    def update_node_span_model(self) -> None:
         """Update the span model of the nodes if loads are applied."""
         pass

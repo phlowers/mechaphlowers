@@ -5,13 +5,11 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
-from functools import partial
 from typing import Tuple, Type
 
 import numpy as np
 
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.utils import CachedAccessor
 
 
 class ISpan(ABC):
@@ -55,7 +53,7 @@ class ISpan(ABC):
             self.span_index = np.arange(len(span_length))
         else:
             self.span_index = span_index
-        if span_index is None:
+        if span_type is None:
             self.span_type = np.full_like(span_length, 0)
         else:
             self.span_type = span_type
@@ -202,6 +200,14 @@ class ISpan(ABC):
         """Total length of the cable."""
 
     @abstractmethod
+    def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
+        """Get x and z coordinates for catenary generation in cable frame
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: x and z coordinates of the cable
+        """
+
+    @abstractmethod
     def T_h(self) -> np.ndarray:
         """Horizontal tension on the cable.
         Right now, this tension is constant all along the cable, but that might not be true for elastic catenary model.
@@ -251,7 +257,6 @@ class ISpan(ABC):
     @abstractmethod
     def T_mean(self) -> np.ndarray:
         """Mean tension along the whole cable."""
-
 
 
 class CatenarySpan(ISpan):
@@ -388,15 +393,9 @@ class CatenarySpan(ISpan):
         new_x[idx, np.arange(idx.shape[0])] = end_points_left
         new_z[idx, np.arange(idx.shape[0])] = z_left[-1, :]
 
-        mask_output = np.logical_or(
-            self.span_type == 1, self.span_type == 0
-        )
-        x = np.full(
-            (resolution, self.span_type.shape[0]), np.nan, dtype=float
-        )
-        z = np.full(
-            (resolution, self.span_type.shape[0]), np.nan, dtype=float
-        )
+        mask_output = np.logical_or(self.span_type == 1, self.span_type == 0)
+        x = np.full((resolution, self.span_type.shape[0]), np.nan, dtype=float)
+        z = np.full((resolution, self.span_type.shape[0]), np.nan, dtype=float)
 
         x[:, self.span_type == 1] = new_x
         x[:, self.span_type == 0] = x_0

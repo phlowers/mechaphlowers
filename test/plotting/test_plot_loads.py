@@ -8,27 +8,16 @@
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go  # type: ignore[import-untyped]
-import pytest
-from pytest import fixture
 
 from mechaphlowers.config import options as options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.data.catalog.catalog import sample_cable_catalog
-from mechaphlowers.data.catalog.sample_section import (
-    section_factory_sample_data,
-)
 from mechaphlowers.data.units import convert_weight_to_mass
 from mechaphlowers.entities.arrays import (
     CableArray,
     SectionArray,
 )
-from mechaphlowers.entities.shapes import SupportShape
 from mechaphlowers.plotting.plot import (
     PlotEngine,
-    TraceProfile,
-    figure_factory,
-    plot_points_2d,
-    plot_support_shape,
 )
 
 
@@ -67,11 +56,11 @@ def test_plot_loads(cable_array_AM600: CableArray):
 
     balance_engine_one_load.solve_adjustment()
     balance_engine_one_load.solve_change_state(
-        new_temperature=15, wind_pressure = 560
+        new_temperature=15, wind_pressure=560
     )
 
     fig = go.Figure()
 
     plt_engine.preview_line3d(fig)
 
-    fig.show()
+    # fig.show()

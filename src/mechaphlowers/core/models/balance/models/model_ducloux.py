@@ -7,8 +7,8 @@
 
 from __future__ import annotations
 
-from copy import copy
 import logging
+from copy import copy
 from typing import Tuple, Type
 
 import numpy as np
@@ -391,10 +391,15 @@ class BalanceModel(IBalanceModel):
         vhl_result = np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
         return VhlStrength(vhl_result, "N")
 
+    @property
     def has_loads(self) -> bool:
         return self.nodes.has_load_on_span.any()
 
-    def update_node_span_model(self) -> ISpan:
+    def update_node_span_model(self) -> None:
+        """update_node_span_model updates the node span model. 
+        
+        It integrates the nodes models left and right inside the span model creating new virtual nodes.
+        """
         bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
         self.load_model.span_model_left
         self.load_model.span_model_right
