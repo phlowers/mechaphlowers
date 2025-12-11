@@ -446,14 +446,6 @@ class BalanceModel(IBalanceModel):
         self.nodes_span_model.sagging_parameter = sagging_parameter
         self.nodes_span_model.span_index = span_index
         self.nodes_span_model.span_type = span_type
-        # self.span_model_with_loads.set(self.span_model.__class__(
-        #     sagging_parameter=sagging_parameter,
-        #     span_length=span_length,
-        #     elevation_difference=elevation_difference,
-        #     span_index=span_index,
-        #     span_type=span_type,
-        # ))
-
     def dict_to_store(self) -> dict:
         return {
             "dx": self.nodes.dx,
