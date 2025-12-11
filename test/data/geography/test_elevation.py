@@ -11,7 +11,7 @@ import pytest
 
 from mechaphlowers.data.geography.elevation import gps_to_elevation
 
-request = pytest.importorskip("request")
+requests = pytest.importorskip("requests")
 
 
 @patch('requests.post')
