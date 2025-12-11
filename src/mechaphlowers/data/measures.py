@@ -15,11 +15,14 @@ from typing import Dict
 
 import numpy as np
 
+from mechaphlowers.config import options
+from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.papoto.papoto_model import (
     papoto_2_points,
     papoto_validity,
 )
 from mechaphlowers.data.units import Q_
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.utils import float_to_array
 
 
@@ -163,3 +166,66 @@ class PapotoParameterMeasure(ParameterMeasure):
 
     def __call__(self, *args, **kwds):
         return self.measure_method(*args, **kwds)
+
+
+def param_calibration(
+    measured_parameter: float,
+    measured_temperature: float,
+    section_array: SectionArray,
+    cable_array: CableArray,
+    span_index: int,
+    sagging_temperature: float = 15.0,
+) -> float:
+    """Compute an approximation of the parameter at sagging temperature (usually 15 degrees Celsius), based on the measured parameter, at a given temperature.
+
+    This approximation is computed using only one loop of a Newton-Raphson method, more precision is not needed.
+
+    This method only works for one span at a time, so span index must be provided.
+
+    Args:
+        measured_parameter (float): parameter value measured, using papoto method usually
+        measured_temperature (float): temperature at which the parameter was measured
+        section_array (SectionArray): Section array
+        cable_array (CableArray): Cable array
+        span_index (int): index of the span to compute the parameter for
+    """
+    _ZETA = options.solver.param_calibration_zeta
+
+    def compute_parameter(
+        sagging_parameter: float,
+        sagging_temperature: float,
+        new_temperature: float,
+    ):
+        section_array.sagging_parameter = sagging_parameter
+        section_array.sagging_temperature = sagging_temperature
+        balance_engine = BalanceEngine(
+            cable_array=cable_array, section_array=section_array
+        )
+        balance_engine.solve_adjustment()
+        balance_engine.solve_change_state(new_temperature=new_temperature)
+        return balance_engine.parameter[span_index]
+
+    # first estimation of the parameter at sagging temperature
+    param_approx = compute_parameter(
+        measured_parameter, measured_temperature, sagging_temperature
+    )
+
+    # computing the delta function to be zeroed
+    parameter_mes_0 = compute_parameter(
+        param_approx, sagging_temperature, measured_temperature
+    )
+    delta = parameter_mes_0 - measured_parameter
+
+    # computing derivative by finite difference
+    parameter_mes_1 = compute_parameter(
+        param_approx + _ZETA, sagging_temperature, measured_temperature
+    )
+    delta_1 = parameter_mes_1 - measured_parameter
+    derivative = (delta_1 - delta) / _ZETA
+
+    if derivative == 0:
+        # case where we get the exact solution, avoid division by zero
+        return param_approx
+    else:
+        # newton-raphson update
+        return param_approx - delta / derivative

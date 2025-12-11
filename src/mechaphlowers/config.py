@@ -72,6 +72,8 @@ class SolverConfig:
     """Solvers configuration class."""
 
     sagtension_zeta: float = 10.0
+    param_calibration_zeta: float = 1.0
+    papoto_zeta: float = 1.0
     deformation_imag_thresh: float = 1e-5
     balance_solver_change_state_params: dict = field(
         default_factory=lambda: {
