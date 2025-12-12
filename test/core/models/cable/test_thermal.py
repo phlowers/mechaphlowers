@@ -12,9 +12,8 @@ from mechaphlowers.entities.arrays import CableArray
 
 
 def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
-    
     thermal_engine = ThermalEngine()
-    
+
     thermal_engine.set(
         cable_array_AM600,
         latitude=np.array([45.0, 44.0]),
@@ -49,9 +48,9 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
             ]
         ),
     )
-    
+
     assert thermal_engine.steady_intensity.data.shape[0] == 2
-    
+
     thermal_engine.set(
         cable_array_AM600,
         latitude=np.array([45.0, 45.0]),
@@ -88,7 +87,6 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
     )
     # expected 2 output rows, got 1 thl issue
     assert thermal_engine.steady_intensity.data.shape[0] == 1
-
 
     thermal_engine.set(
         cable_array_AM600,
@@ -128,6 +126,6 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
             ]
         ),
     )
-    
+
     # issue in thl : expected 3 output rows, got 2
     assert thermal_engine.steady_intensity.data.shape[0] == 3

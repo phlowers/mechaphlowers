@@ -4,11 +4,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
+
 import numpy as np
 import pandas as pd
-from thermohl import solver    # type: ignore
+from thermohl import solver  # type: ignore
 
 from mechaphlowers.entities.arrays import CableArray
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 class ThermalResults(ABC):
     def __init__(self, data: dict | pd.DataFrame):
         self.data = self.parse_results(data)
-        
+
     @abstractmethod
     def parse_results(self, data: dict | pd.DataFrame) -> pd.DataFrame:
         pass
@@ -27,30 +28,32 @@ class ThermalResults(ABC):
 class ThermalTransientResults(ThermalResults):
     def __init__(self, data):
         super().__init__(data)
-        
+
     def parse_results(self, data):
         input_size = len(data["t_avg"])
         out = pd.DataFrame(
             {
                 "time": np.tile(data["time"], input_size[1]),
-                "id": np.tile(np.arange(input_size[1]),(input_size[0],1)).T.flatten(),
+                "id": np.tile(
+                    np.arange(input_size[1]), (input_size[0], 1)
+                ).T.flatten(),
                 "t_avg": data["t_avg"].T.flatten(),
                 "t_surf": data["t_surf"].T.flatten(),
                 "t_core": data["t_core"].T.flatten(),
             }
         )
         return out
-            
-        
+
 
 class ThermalSteadyResults(ThermalResults):
     def __init__(self, data):
         super().__init__(data)
-          
-    def parse_results(self, data: dict| pd.DataFrame) -> pd.DataFrame:
+
+    def parse_results(self, data: dict | pd.DataFrame) -> pd.DataFrame:
         if isinstance(data, pd.DataFrame):
             return data
         return pd.DataFrame(data)
+
 
 class ThermalForecastArray:
     # thl is strange to handle time series input TODO ?
@@ -58,26 +61,28 @@ class ThermalForecastArray:
     wind_speed = np.linspace(0, 5, 10)
     ambient_temp = np.linspace(15, 25, 10)
     solar_irradiance = np.linspace(0, 800, 10)
-    
+
 
 # TODO: the temperature outputs have some parameters, perhpas properties are not the best way to handle that
 # TODO: add latitude/longitude/altitude/azimuth in the section array
 # TODO: add weather in the weather array
 # TODO: conf array for intensity / target temperature ?
-# TODO: builders for ThermalEngine from array 
+# TODO: builders for ThermalEngine from array
 # TODO: add unit for ThermalEngine
 # TODO: add docstrings
 # TODO: verify reactivity
 # TODO: plot part
 
+
 class ThermalEngine:
-    
-    available_power_model = {"rte": solver.rte,}
+    available_power_model = {
+        "rte": solver.rte,
+    }
     available_heat_equation = {"3t": "3t"}
-    
+
     def __init__(self):
         self.power_model = self.available_power_model.get("rte", ValueError)
-        self.heateq= self.available_heat_equation.get("3t", ValueError)
+        self.heateq = self.available_heat_equation.get("3t", ValueError)
         self.dict_input = {}
         self.forecast = ThermalForecastArray()
         self.target_temperature = 65
@@ -123,38 +128,41 @@ class ThermalEngine:
             "epsilon": cable_array.data.emissivity.iloc[0],
             "RDC20": cable_array.data.electric_resistance_20.iloc[0],
             "kl": cable_array.data.linear_resistance_temperature_coef.iloc[0],
-            "km": 1.006 if cable_array.data.has_magnetic_heart.iloc[0] else 1.0,
-            "ki": 0.016 if cable_array.data.has_magnetic_heart.iloc[0] else 0.0,
+            "km": 1.006
+            if cable_array.data.has_magnetic_heart.iloc[0]
+            else 1.0,
+            "ki": 0.016
+            if cable_array.data.has_magnetic_heart.iloc[0]
+            else 0.0,
         }
         self.load()
-        
+
     def load(self):
         # expected to fail if arguments are not filled
         self.span = self.power_model(dic=self.dict_input, heateq=self.heateq)
-        
+
     @property
     def steady_temperature(self):
         return ThermalSteadyResults(self.span.steady_temperature())
-    
+
     @property
     def steady_intensity(self):
-        return ThermalSteadyResults(self.span.steady_intensity(
-            self.target_temperature
-        ))
-    
+        return ThermalSteadyResults(
+            self.span.steady_intensity(self.target_temperature)
+        )
+
     @property
     def transient_temperature(self):
-        return ThermalTransientResults(self.span.transient_temperature(
-            time = self.forecast.time
-            )   
-            )
-    
+        return ThermalTransientResults(
+            self.span.transient_temperature(time=self.forecast.time)
+        )
+
     @property
     def normal_wind(self):
         """property triggering normal_wind mode in models"""
         # has to return the formulae in thl.power.convective_cooling line 35
         raise NotImplementedError
-    
+
     @property
     def normal_wind_mode(self):
         """property triggering normal_wind mode in models"""
@@ -169,6 +177,7 @@ class ThermalEngine:
         Args:
             value (bool): calculus is in normal_wind mode
         """
+        # TODO: same than no wind mode but only for angle
         try:
             if not isinstance(value, bool):
                 raise TypeError
@@ -180,7 +189,7 @@ class ThermalEngine:
     def no_wind_mode(self):
         """property triggering now_wind mode in models"""
         return self._no_wind_mode
-    
+
     @no_wind_mode.setter
     def no_wind_mode(self, value: bool):
         """no_wind_mode
@@ -190,10 +199,10 @@ class ThermalEngine:
         Args:
             value (bool): calculus is in no_wind mode
         """
+        # TODO: modify thl inputs + config the wa ws values
         try:
             if not isinstance(value, bool):
                 raise TypeError
             self._no_wind_mode = bool(value)
         except TypeError:
             logger.warning("no_wind_mode is expected boolean")
-
