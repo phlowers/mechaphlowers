@@ -1,4 +1,4 @@
-from typing import Callable, Self, Tuple
+from typing import Callable, List, Self, Tuple
 
 import numpy as np
 from typing_extensions import Literal  # type: ignore[attr-defined]
@@ -16,10 +16,11 @@ from mechaphlowers.core.geometry.references import (
     cable_to_localsection_frame,
     project_coords,
     translate_cable_to_support_from_attachments,
+    translate_to_absolute_frame,
 )
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.arrays import ObstacleArray, SectionArray
 
 
 def stack_nan(coords: np.ndarray) -> np.ndarray:
@@ -362,19 +363,46 @@ class Points:
 class SparsePoints:
     # suggestion of class similar to points to store obstacle coordinates
     # it have to behave similarly to Points class for plot engine (interface ? protocol ? :))
-    def __init__(self, data: pd.DataFrame) -> None:
-        self.data = data[["x", "y", "z"]].to_numpy()
-        self.object_name = data["name"].to_list()
-        self.span_index = data["span_number"].to_numpy()
+    def __init__(
+        self,
+        object_name: List,
+        point_index: np.ndarray,
+        span_index: np.ndarray,
+        x: np.ndarray,
+        y: np.ndarray,
+        z: np.ndarray,
+        object_type: List,
+    ) -> None:
+        self.object_name = object_name
+        self.point_index = point_index
+        self.span_index = span_index
+        self.x = x
+        self.y = y
+        self.z = z
+        self.object_type = object_type
 
+    @classmethod
     def builder_from_obstacle_array(
-        obstacle_array,
+        cls, obstacle_array: ObstacleArray
     ) -> Self:
         data = obstacle_array.data
-        return SparsePoints(data)
+        object_name = data["name"].to_list()
+        point_index = data["point_index"].to_numpy()
+        span_index = data["span_index"].to_numpy()
+        x = data["x"].to_numpy()
+        y = data["y"].to_numpy()
+        z = data["z"].to_numpy()
+        object_type = data["object_type"].to_list()
+        return cls(object_name, point_index, span_index, x, y, z, object_type)
+
+    def update_vectors(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
 
     def points(self, stack=False) -> np.ndarray:
         raise NotImplementedError
+
 
 class SectionPoints:
     def __init__(
@@ -445,15 +473,30 @@ class SectionPoints:
         self.x_cable: np.ndarray = self.span_model.x(resolution)
         self.z_cable: np.ndarray = self.span_model.z_many_points(self.x_cable)
 
-    def add_obstacles(
-        self,
-        obstacles_array,
-    ):
+    def add_obstacles(self, obstacles_array: ObstacleArray):
         self.obstacles_array = obstacles_array
 
     def get_obstacle_coords(self):
-        self.obstacle_coords = self.obstacles_array.get_data()
+        # self.obstacle_coords = self.obstacles_array.get_data()
+        x, y, z = self.obstacles_array.get_vectors()
+        azimuth_line = np.cumsum(self.line_angle)
+        span_index = self.obstacles_array.data["span_index"]
+        azimuth_line_obstacles = azimuth_line[span_index]
+        x_rotated, y_rotated, z_rotated = cable_to_localsection_frame(
+            x, y, z, azimuth_line_obstacles
+        )
+        x_absolute, y_absolute, z_absolute = translate_to_absolute_frame(
+            x_rotated,
+            y_rotated,
+            z_rotated,
+            self.supports_ground_coords[span_index],
+        )
         # TODO: some fancy processing here with list comprehension if needed because of non regular shape
+        self.obstacle_coords = Points.from_vectors(
+            np.array([x_absolute]),
+            np.array([y_absolute]),
+            np.array([z_absolute]),
+        )
         return self.obstacle_coords
 
     def get_attachments_coords(self):

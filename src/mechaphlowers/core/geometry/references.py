@@ -290,3 +290,21 @@ def translate_cable_to_support_from_attachments(
     x_span += -x_span[0, :] + attachment_coords[:-1, 0]
 
     return x_span, y_span, z_span
+
+
+def translate_to_absolute_frame(
+    x: np.ndarray,
+    y: np.ndarray,
+    z: np.ndarray,
+    translation_vector: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """From local frame to absolute frame
+    x/y/z are already rotated
+    Used for obstacles
+    """
+
+    x = x + translation_vector[:, 0]
+    y = y + translation_vector[:, 1]
+    z = z + translation_vector[:, 2]
+
+    return x, y, z

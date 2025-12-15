@@ -7,6 +7,7 @@
 import logging
 import warnings
 from abc import ABC
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -361,9 +362,6 @@ class WeatherArray(ElementArray):
         }
 
 
-
-    
-
 class ObstacleArray(ElementArray):
     """Obstacles-related data, such as obstacle altitude and distance from the line.
 
@@ -382,17 +380,14 @@ class ObstacleArray(ElementArray):
         data: pd.DataFrame,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
+        # TODO: add validation for point_index: no 2 points should have same obstacle name + same point_index
+        # allow points not in order?
 
-    def get_data(self) -> pd.DataFrame:
-        """Returns obstacle data for a given span number.
-
-        Args:
-            obstacle_name (str): Obstacle name"""
-        # TODO: an object cannot have multiple span_index
-
-
-        return SparsePoints(self.data)
-    
-
+    def get_vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        return (
+            self.data["x"].to_numpy(),
+            self.data["y"].to_numpy(),
+            self.data["z"].to_numpy(),
+        )
 
 
