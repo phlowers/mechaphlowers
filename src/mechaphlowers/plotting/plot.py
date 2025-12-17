@@ -363,7 +363,7 @@ class PlotEngine:
 
         if hasattr(self.section_pts, "obstacles_array"):
             obstacles = self.section_pts.get_obstacle_coords()
-            plot_points_3d(fig, obstacles.points())
+            plot_points_3d(fig, obstacles.points(True))
 
         set_layout(fig, auto=_auto)
 

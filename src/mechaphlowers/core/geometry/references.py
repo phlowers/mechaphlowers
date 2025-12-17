@@ -305,6 +305,5 @@ def translate_to_absolute_frame(
 
     x = x + translation_vector[:, 0]
     y = y + translation_vector[:, 1]
-    z = z + translation_vector[:, 2]
 
     return x, y, z

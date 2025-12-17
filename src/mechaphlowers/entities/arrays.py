@@ -389,5 +389,3 @@ class ObstacleArray(ElementArray):
             self.data["y"].to_numpy(),
             self.data["z"].to_numpy(),
         )
-
-

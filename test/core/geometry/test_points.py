@@ -245,8 +245,8 @@ def test_plot_obstacles_sandbox(balance_engine_angles: BalanceEngine):
                     300.0,
                     200.0,
                 ],
-                "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
-                "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                "y": [0.0, 10.0, 0.0, 10.0, 10.0, -20.0],
+                "z": [0.0, 0.0, 0.0, 0.0, 50.0, 0.0],
                 "object_type": [
                     "ground",
                     "ground",
