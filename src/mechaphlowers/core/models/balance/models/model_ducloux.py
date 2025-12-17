@@ -407,7 +407,7 @@ class BalanceModel(IBalanceModel):
         def insert_array(arr, arr_insert_left, arr_insert_right, mask):
             arr_new = copy(arr)
             arr_new[mask] = arr_insert_right
-            insert_mask = np.where(mask)[0]
+            insert_mask = np.nonzero(mask)[0]
             return np.insert(arr_new, insert_mask, arr_insert_left)
 
         sagging_parameter = insert_array(
@@ -430,7 +430,7 @@ class BalanceModel(IBalanceModel):
         )
         np_array = np.arange(len(self.span_model.span_length))
         span_index = np.insert(
-            np_array, np.where(bool_mask)[0], np_array[bool_mask]
+            np_array, np.nonzero(bool_mask)[0], np_array[bool_mask]
         )
         span_type = insert_array(
             np.full_like(self.span_model.span_length, 0),

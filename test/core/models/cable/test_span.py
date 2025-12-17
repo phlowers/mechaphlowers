@@ -194,7 +194,7 @@ def test_catenary_span_model__data_container(
 
 
 def test_display_span_model__span_index() -> None:
-    a = np.array([501.3, 150.0, 499.0])  # test here int and float
+    a = np.array([501.3, 150.0, 499.0])
     b = np.array([0.0, 10.0, -5.0])
     p = np.array([2_112.2, 1999.0, 2_112.0])
     span_index = np.array([10, 30, 20, 40])
@@ -213,10 +213,23 @@ def test_display_span_model__span_index() -> None:
 
 
 def test_display_span_model__span_type() -> None:
-    a = np.array([501.3, 150.0, 499.0])  # test here int and float
+    a = np.array([501.3, 150.0, 499.0])
     b = np.array([0.0, 10.0, -5.0])
     p = np.array([2_112.2, 1999.0, 2_112.0])
     span_type = np.array([1, 2, 0])
+
+    span_model = CatenarySpan(a, b, p, span_type=span_type)
+
+    span_model.get_coords(10)
+
+
+def test_display_span_model__many_spans() -> None:
+    a = np.array(
+        [200.0, 100.0, 501.3, 150.0, 50.0, 75.0, 300, 600.0, 499.0]
+    )
+    b = np.array([0.0, 10.0, -5.0, 5.0, 0.0, 8.0, -7.0, 5.0, 0.0])
+    p = np.array([2_000] * 9)
+    span_type = np.array([1, 2, 0, 1, 2, 1, 2, 0, 0])
 
     span_model = CatenarySpan(a, b, p, span_type=span_type)
 

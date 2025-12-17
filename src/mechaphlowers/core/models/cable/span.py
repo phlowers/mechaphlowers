@@ -200,7 +200,7 @@ class ISpan(ABC):
         """Total length of the cable."""
 
     @abstractmethod
-    def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
+    def get_coords(self, resolution: int) -> Tuple[np.ndarray, np.ndarray]:
         """Get x and z coordinates for catenary generation in cable frame
 
         Returns:
@@ -345,12 +345,9 @@ class CatenarySpan(ISpan):
         end_points = self.compute_x_n()
 
         if np.all(self.span_type == 0):
-            return np.linspace(
-                start_points, end_points, resolution
-            ), self.z_many_points_local(
-                np.linspace(start_points, end_points, resolution),
-                self.sagging_parameter,
-            )
+            x = np.linspace(start_points, end_points, resolution)
+            z = self.z_many_points_local(x, self.sagging_parameter)
+            return x, z
         start_points_0 = start_points[self.span_type == 0]
         end_points_0 = end_points[self.span_type == 0]
 
@@ -388,7 +385,7 @@ class CatenarySpan(ISpan):
         new_z = self._interpolation(new_x.T, x_load.T, z_load.T).T
 
         # we have to replace the endpoints left after interpolation
-        idx = (np.abs(new_x - end_points_left)).argmin(axis=0)
+        idx = np.abs(new_x - end_points_left).argmin(axis=0)
 
         new_x[idx, np.arange(idx.shape[0])] = end_points_left
         new_z[idx, np.arange(idx.shape[0])] = z_left[-1, :]
