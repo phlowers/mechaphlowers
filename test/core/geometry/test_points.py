@@ -262,5 +262,5 @@ def test_plot_obstacles_sandbox(balance_engine_angles: BalanceEngine):
     fig = go.Figure()
     plt_engine.section_pts.get_obstacle_coords()
     plt_engine.preview_line3d(fig)
-    fig.show()
+    # fig.show()
     assert True

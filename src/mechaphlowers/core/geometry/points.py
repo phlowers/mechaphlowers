@@ -242,11 +242,11 @@ class SparsePoints:
         """
         [[x0, y0, z0], # first obstacle
         [x1, y1, z1],
-        ,
+        [np.nan, np.nan, np.nan], # separator if stack=True
         [x0, y0, z0], # second obstacle
         [x1, y1, z1],
         [x2, y2, z2],
-        ...
+        [np.nan, np.nan, np.nan], # separator if stack=True
         ]
         """
         points = np.array([self.x, self.y, self.z]).T
