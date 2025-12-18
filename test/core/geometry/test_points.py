@@ -266,6 +266,7 @@ def test_plot_obstacles_sandbox(balance_engine_angles: BalanceEngine):
     # fig.show()
     assert True
 
+
 def test_obstacles_coords(balance_engine_angles: BalanceEngine):
     plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
     balance_engine_angles.solve_adjustment()

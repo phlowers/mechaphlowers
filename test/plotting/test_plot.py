@@ -86,7 +86,7 @@ def test_plot_line3d__all_line(
             [
                 f
                 for f in fig.data
-                if f.name == "cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 1
@@ -108,7 +108,7 @@ def test_plot_line3d__view_option(
             [
                 f
                 for f in fig.data
-                if f.name == "cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 1
@@ -147,7 +147,7 @@ def test_plot_line3d__with_beta(balance_engine_local_test: BalanceEngine):
             [
                 f
                 for f in fig.data
-                if f.name == "cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 1
@@ -199,7 +199,7 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
             [
                 f
                 for f in fig.data
-                if f.name == "cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 2
@@ -239,7 +239,7 @@ def test_plot_ice(balance_engine_base_test: BalanceEngine):
             [
                 f
                 for f in fig.data
-                if f.name == "cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
+                if f.name == "Cable" and not np.isnan(f.x).all()  # type: ignore[attr-defined]
             ]
         )
         == 2
