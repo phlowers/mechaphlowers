@@ -7,6 +7,7 @@
 import logging
 import warnings
 from abc import ABC
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -18,6 +19,7 @@ from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
+    ObstacleArrayInput,
     SectionArrayInput,
     WeatherArrayInput,
 )
@@ -358,3 +360,32 @@ class WeatherArray(ElementArray):
         self.input_units: dict[str, str] = {
             "ice_thickness": "cm",
         }
+
+
+class ObstacleArray(ElementArray):
+    """Obstacles-related data, such as obstacle altitude and distance from the line.
+
+    They're typically used to compute clearance-related checks.
+    """
+
+    array_input_type: Type[pa.DataFrameModel] = ObstacleArrayInput
+    target_units: dict[str, str] = {
+        "x": "m",
+        "y": "m",
+        "z": "m",
+    }
+
+    def __init__(
+        self,
+        data: pd.DataFrame,
+    ) -> None:
+        super().__init__(data)  # type: ignore[arg-type]
+        # TODO: add validation for point_index: no 2 points should have same obstacle name + same point_index
+        # allow points not in order?
+
+    def get_vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        return (
+            self.data["x"].to_numpy(),
+            self.data["y"].to_numpy(),
+            self.data["z"].to_numpy(),
+        )
