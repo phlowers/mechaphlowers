@@ -258,6 +258,19 @@ class SparsePoints:
             points = np.insert(points, insert_indices, nan_array, axis=0)
         return points
 
+    def dict_coords(self):
+        points = self.points()
+        split_indices = np.nonzero(self.point_index == 0)[0]
+        if len(split_indices) > 1:
+            array_coords = np.split(points, split_indices[1:], axis=0)
+        else:
+            array_coords = np.array([points])
+        dict_coords = {}
+        for i in range(len(split_indices)):
+            object_name = self.object_name[split_indices[i]]
+            dict_coords[object_name] = array_coords[i]
+        return dict_coords
+
 
 class SectionPoints:
     def __init__(
