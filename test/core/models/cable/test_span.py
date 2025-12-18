@@ -224,9 +224,7 @@ def test_display_span_model__span_type() -> None:
 
 
 def test_display_span_model__many_spans() -> None:
-    a = np.array(
-        [200.0, 100.0, 501.3, 150.0, 50.0, 75.0, 300, 600.0, 499.0]
-    )
+    a = np.array([200.0, 100.0, 501.3, 150.0, 50.0, 75.0, 300, 600.0, 499.0])
     b = np.array([0.0, 10.0, -5.0, 5.0, 0.0, 8.0, -7.0, 5.0, 0.0])
     p = np.array([2_000] * 9)
     span_type = np.array([1, 2, 0, 1, 2, 1, 2, 0, 0])
