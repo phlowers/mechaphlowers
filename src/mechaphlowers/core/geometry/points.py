@@ -253,7 +253,7 @@ class SparsePoints:
         # TODO: rework inserting nan: this method assume that points are correctly ordered by object and point index
         if stack:
             # get indices at the beginning of each object
-            insert_indices = np.where(self.point_index == 0)[0]
+            insert_indices = np.nonzero(self.point_index == 0)[0]
             nan_array = np.array([np.nan, np.nan, np.nan])
             points = np.insert(points, insert_indices, nan_array, axis=0)
         return points
@@ -338,7 +338,7 @@ class SectionPoints:
         # self.obstacle_coords = self.obstacles_array.get_data()
         x, y, z = self.obstacles_array.get_vectors()
         azimuth_line = np.cumsum(self.line_angle)
-        span_index = self.obstacles_array.data["span_index"]
+        span_index = self.obstacles_array.data["span_index"].to_numpy()
         azimuth_line_obstacles = azimuth_line[span_index]
         x_rotated, y_rotated, z_rotated = cable_to_localsection_frame(
             x, y, z, azimuth_line_obstacles
@@ -349,15 +349,9 @@ class SectionPoints:
             z_rotated,
             self.supports_ground_coords[span_index],
         )
-        # TODO: some fancy processing here with list comprehension if needed because of non regular shape
         self.obstacles_points.update_vectors(
             x_absolute, y_absolute, z_absolute
         )
-        # self.obstacles_points.update_vectors = Points.from_vectors(
-        #     np.array([x_absolute]),
-        #     np.array([y_absolute]),
-        #     np.array([z_absolute]),
-        # )
         return self.obstacles_points
 
     def get_attachments_coords(self):
