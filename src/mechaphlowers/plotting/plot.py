@@ -424,7 +424,7 @@ class PlotEngine:
 
     def __str__(self) -> str:
         return (
-            f"supports number: {self.section_array.data.span_length.shape[0]}\n"
+            f"number of supports: {self.section_array.data.span_length.shape[0]}\n"
             f"parameter: {self.spans.sagging_parameter}\n"
             f"wind: {self.cable_loads.wind_pressure}\n"
             f"ice: {self.cable_loads.ice_thickness}\n"

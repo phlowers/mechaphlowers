@@ -232,7 +232,7 @@ class BalanceEngine:
     def __str__(self) -> str:
         dxdydz = self.balance_model.dxdydz().T
         return_string = (
-            f"supports number: {self.support_number}\n"
+            f"number of supports: {self.support_number}\n"
             f"parameter: {self.span_model.sagging_parameter}\n"
             f"wind: {self.balance_model.cable_loads.wind_pressure}\n"
             f"ice: {self.balance_model.cable_loads.ice_thickness}\n"
