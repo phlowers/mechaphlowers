@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from copy import deepcopy
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -199,3 +201,88 @@ def test_change_state__input_errors(balance_engine_simple: BalanceEngine):
             ice_thickness="0",  # type: ignore[arg-type]
             new_temperature=None,
         )
+
+
+def test_load_span__node_span_coherence_with_balance_model(
+    cable_array_AM600: CableArray,
+):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": [0, 10, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [100, 50, 50, 100],
+                "load_mass": [0, 1000, 0, np.nan],
+                "load_position": [0.2, 0.4, 0.6, np.nan],
+            }
+        )
+    )
+    section_array.add_units({"line_angle": "grad"})
+
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+
+    balance_engine_angles_arm = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=section_array,
+    )
+
+    balance_engine_angles_arm.solve_adjustment()
+
+    balance_engine_angles_arm.solve_change_state()
+    span_model = balance_engine_angles_arm.balance_model.nodes_span_model
+    assert len(span_model.span_length) == 5
+    expected_right_span_length = balance_engine_angles_arm.balance_model.load_model.span_model_right.span_length  # type: ignore[attr-defined]
+    expected_left_span_length = balance_engine_angles_arm.balance_model.load_model.span_model_left.span_length  # type: ignore[attr-defined]
+    old_value = balance_engine_angles_arm.span_model.span_length
+
+    assert span_model.span_length[1] == expected_left_span_length
+    assert span_model.span_length[2] == expected_right_span_length
+    assert span_model.span_length[3] == old_value[2]
+
+    assert balance_engine_angles_arm.balance_model.has_loads
+
+
+def test_load_span__check_node_span_changes(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": [0, 10, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [100, 50, 50, 100],
+                "load_mass": [0, 1000, 0, np.nan],
+                "load_position": [0.2, 0.4, 0.6, np.nan],
+            }
+        )
+    )
+    section_array.add_units({"line_angle": "grad"})
+
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+
+    balance_engine_angles_arm = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=section_array,
+    )
+
+    span_model_1 = deepcopy(
+        balance_engine_angles_arm.balance_model.nodes_span_model
+    )
+
+    balance_engine_angles_arm.solve_adjustment()
+
+    balance_engine_angles_arm.solve_change_state(new_temperature=75)
+
+    assert len(
+        balance_engine_angles_arm.balance_model.nodes_span_model.sagging_parameter
+    ) > len(span_model_1.sagging_parameter)
