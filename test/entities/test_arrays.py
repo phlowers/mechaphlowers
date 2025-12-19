@@ -82,7 +82,8 @@ def test_create_section_array__with_floats(
     section = SectionArray(
         input_df, sagging_parameter=2_000, sagging_temperature=15
     )
-
+    repr_section = section.__repr__()
+    assert repr_section.startswith("SectionArray")
     assert_frame_equal(input_df, section._data, check_dtype=False, atol=1e-07)
 
 

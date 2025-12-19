@@ -229,6 +229,26 @@ class BalanceEngine:
     def support_number(self) -> int:
         return self.section_array.data.span_length.shape[0]
 
+    def __str__(self) -> str:
+        dxdydz = self.balance_model.dxdydz().T
+        return_string = (
+            f"number of supports: {self.support_number}\n"
+            f"parameter: {self.span_model.sagging_parameter}\n"
+            f"wind: {self.balance_model.cable_loads.wind_pressure}\n"
+            f"ice: {self.balance_model.cable_loads.ice_thickness}\n"
+            f"temperature: {self.balance_model.sagging_temperature}\n"
+            f"dx: {dxdydz[0]}\n"
+            f"dy: {dxdydz[1]}\n"
+            f"dz: {dxdydz[2]}\n"
+        )
+        if hasattr(self, "L_ref"):
+            return_string += f"L_ref: {self.L_ref}\n"
+        return return_string
+
+    def __repr__(self) -> str:
+        class_name = type(self).__name__
+        return f"{class_name}\n{self.__str__()}"
+
     @property
     def parameter(self) -> np.ndarray:
         return self.span_model.sagging_parameter
