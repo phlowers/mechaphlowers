@@ -49,7 +49,7 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
         ),
     )
 
-    assert thermal_engine.steady_intensity.data.shape[0] == 2
+    assert thermal_engine.steady_intensity().data.shape[0] == 2
 
     thermal_engine.set(
         cable_array_AM600,
@@ -86,7 +86,7 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
         ),
     )
     # expected 2 output rows, got 1 thl issue
-    assert thermal_engine.steady_intensity.data.shape[0] == 1
+    assert thermal_engine.steady_intensity().data.shape[0] == 1
 
     thermal_engine.set(
         cable_array_AM600,
@@ -127,5 +127,52 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
         ),
     )
 
-    # issue in thl : expected 3 output rows, got 2
-    assert thermal_engine.steady_intensity.data.shape[0] == 3
+    # issue in thl : expected 3 output rows, got 3
+    assert thermal_engine.steady_intensity().data.shape[0] == 3
+    assert thermal_engine.steady_temperature().data.shape[0] == 3
+
+
+def test_transient_thermal(cable_array_AM600: CableArray):
+
+    thermal_engine = ThermalEngine()
+    thermal_engine.set(
+        cable_array_AM600,
+        latitude=np.array([45.0, 45.0, 45.0]),
+        longitude=np.array([0.0, 0.0, 0.0]),
+        altitude=np.array([0.0, 0.0, 0.0]),
+        azimuth=np.array([0.0, 0.0, 20.0]),
+        month=np.array(
+            [
+                3,
+                3,
+                3,
+            ]
+        ),
+        day=np.array(
+            [
+                21,
+                21,
+                21,
+            ]
+        ),
+        hour=np.array(
+            [
+                12,
+                12,
+                12,
+            ]
+        ),
+        intensity=np.array([100.0, 100.0, 100.0]),
+        ambient_temp=np.array([15.0, 15.0, 15.0]),
+        wind_speed=np.array([10.0, 10.0, 0.0]),
+        wind_angle=np.array(
+            [
+                90.0,
+                80.0,
+                90.0,
+            ]
+        ),
+    )
+    assert thermal_engine.transient_temperature().data.shape[0] == 3*10
+    
+    np.testing.assert_array_almost_equal(thermal_engine.wind_cable_angle, np.array([90., 80., 70.]))

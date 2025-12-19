@@ -30,7 +30,7 @@ class ThermalTransientResults(ThermalResults):
         super().__init__(data)
 
     def parse_results(self, data):
-        input_size = len(data["t_avg"])
+        input_size = data["t_avg"].shape
         out = pd.DataFrame(
             {
                 "time": np.tile(data["time"], input_size[1]),
@@ -141,32 +141,30 @@ class ThermalEngine:
         # expected to fail if arguments are not filled
         self.span = self.power_model(dic=self.dict_input, heateq=self.heateq)
 
-    @property
     def steady_temperature(self):
         return ThermalSteadyResults(self.span.steady_temperature())
 
-    @property
     def steady_intensity(self):
         return ThermalSteadyResults(
             self.span.steady_intensity(self.target_temperature)
         )
 
-    @property
     def transient_temperature(self):
         return ThermalTransientResults(
             self.span.transient_temperature(time=self.forecast.time)
         )
 
     @property
-    def normal_wind(self):
-        """property triggering normal_wind mode in models"""
-        # has to return the formulae in thl.power.convective_cooling line 35
-        raise NotImplementedError
+    def wind_cable_angle(self):
+        """property triggering ambient_wind_speed mode in models"""
+        # TODO: move this into thl (formulae in thl.power.convective_cooling line 35)
+        return np.rad2deg(np.arcsin(np.sin(np.deg2rad(np.abs(self.dict_input["azm"] - self.dict_input["wa"]) % 180.0))))
+
 
     @property
     def normal_wind_mode(self):
         """property triggering normal_wind mode in models"""
-        return not self._normal_wind_mode
+        raise NotImplementedError
 
     @normal_wind_mode.setter
     def normal_wind_mode(self, value: bool):
@@ -184,25 +182,3 @@ class ThermalEngine:
             self._normal_wind_mode = bool(value)
         except TypeError:
             logger.warning("normal_wind_mode is expected boolean")
-
-    @property
-    def no_wind_mode(self):
-        """property triggering now_wind mode in models"""
-        return self._no_wind_mode
-
-    @no_wind_mode.setter
-    def no_wind_mode(self, value: bool):
-        """no_wind_mode
-
-        property triggering now_wind mode in models
-
-        Args:
-            value (bool): calculus is in no_wind mode
-        """
-        # TODO: modify thl inputs + config the wa ws values
-        try:
-            if not isinstance(value, bool):
-                raise TypeError
-            self._no_wind_mode = bool(value)
-        except TypeError:
-            logger.warning("no_wind_mode is expected boolean")
