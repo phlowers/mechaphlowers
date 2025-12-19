@@ -400,6 +400,13 @@ class CatenarySpan(ISpan):
         z[:, self.span_type == 1] = new_z
         z[:, self.span_type == 0] = z_0
 
+        # Store the mapping between interpolated load positions and spans:
+        # - idx: indices in the interpolated x-grid (new_x) corresponding to the
+        #   left endpoints of loaded spans,
+        # - self.span_index[self.span_type == 1]: indices of the spans that
+        #   are actually loaded (span_type == 1).
+        # This tuple can be used later to retrieve or post-process load values
+        # at the correct positions along the interpolated cable.
         self.load_idx = idx, self.span_index[self.span_type == 1]
 
         return x[:, mask_output], z[:, mask_output]
