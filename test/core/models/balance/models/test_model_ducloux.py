@@ -55,7 +55,7 @@ def test_load_span_model(cable_array_AM600: CableArray):
                 "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_mass": [100, 50, 500, 000],
+                "insulator_mass": [100, 50, 500, 0],
                 "load_mass": [0, 500, 0, np.nan],
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
