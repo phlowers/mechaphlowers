@@ -191,3 +191,44 @@ def test_catenary_span_model__data_container(
     span_model.T_mean_m()
     span_model.T_mean_n()
     span_model.T_mean()
+
+
+def test_display_span_model__span_index() -> None:
+    a = np.array([501.3, 150.0, 499.0])
+    b = np.array([0.0, 10.0, -5.0])
+    p = np.array([2_112.2, 1999.0, 2_112.0])
+    span_index = np.array([10, 30, 20, 40])
+
+    span_model = CatenarySpan(a, b, p, span_index=span_index)
+
+    x = np.linspace(-223.2, 245.2, 250)
+
+    assert isinstance(span_model.z_many_points(x), np.ndarray)
+
+    assert isinstance(span_model.compute_x_m(), np.ndarray)
+
+    span_index = np.array([10, 30, 20, 40, 50])
+    span_model = CatenarySpan(a, b, p, span_index=span_index)
+    span_model.get_coords(10)
+
+
+def test_display_span_model__span_type() -> None:
+    a = np.array([501.3, 150.0, 499.0])
+    b = np.array([0.0, 10.0, -5.0])
+    p = np.array([2_112.2, 1999.0, 2_112.0])
+    span_type = np.array([1, 2, 0])
+
+    span_model = CatenarySpan(a, b, p, span_type=span_type)
+
+    span_model.get_coords(10)
+
+
+def test_display_span_model__many_spans() -> None:
+    a = np.array([200.0, 100.0, 501.3, 150.0, 50.0, 75.0, 300, 600.0, 499.0])
+    b = np.array([0.0, 10.0, -5.0, 5.0, 0.0, 8.0, -7.0, 5.0, 0.0])
+    p = np.array([2_000] * 9)
+    span_type = np.array([1, 2, 0, 1, 2, 1, 2, 0, 0])
+
+    span_model = CatenarySpan(a, b, p, span_type=span_type)
+
+    span_model.get_coords(10)

@@ -1,6 +1,17 @@
-import numpy as np
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
 
-from mechaphlowers.data.measures import PapotoParameterMeasure
+import numpy as np
+import pandas as pd
+
+from mechaphlowers.data.measures import (
+    PapotoParameterMeasure,
+    param_calibration,
+)
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 def test_papoto_floats():
@@ -126,3 +137,31 @@ def test_select_points_in_dict():
     assert result2["V1"].tolist() == [21]
     assert result2["H2"].tolist() == [10]
     assert result2["V2"].tolist() == [11]
+
+
+def test_parameter_15_deg(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": [0, 10, 0, 0],
+                "insulator_length": [0.001, 3, 3, 0.001],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [00, 0, 0, 00],
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        )
+    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+
+    # checks that no error is raised
+    param_calibration(2000, 60, section_array, cable_array_AM600, span_index=0)
+
+    param_calibration(2000, 60, section_array, cable_array_AM600, span_index=1)
+
+    param_calibration(2000, 60, section_array, cable_array_AM600, span_index=2)
