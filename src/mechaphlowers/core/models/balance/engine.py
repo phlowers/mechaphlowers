@@ -222,6 +222,8 @@ class BalanceEngine:
         logger.debug(
             f"Output : get_displacement \n{str(self.get_displacement())}"
         )
+        if self.balance_model.has_loads:
+            self.balance_model.update_node_span_model()
 
     @property
     def support_number(self) -> int:
@@ -246,3 +248,7 @@ class BalanceEngine:
     def __repr__(self) -> str:
         class_name = type(self).__name__
         return f"{class_name}\n{self.__str__()}"
+
+    @property
+    def parameter(self) -> np.ndarray:
+        return self.span_model.sagging_parameter

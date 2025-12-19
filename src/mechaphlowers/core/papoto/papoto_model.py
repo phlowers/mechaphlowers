@@ -12,7 +12,7 @@ try:
 except ImportError:
     import mechaphlowers.numeric.scipy as optimize
 
-_ZETA = 1.0
+from mechaphlowers.config import options
 
 
 def papoto_validity(
@@ -256,6 +256,7 @@ def function_f_prime(
     Returns:
         np.ndarray: approximation of $f'(p)$
     """
+    _ZETA = options.solver.papoto_zeta
     return (
         function_f(p + _ZETA, a, h, delta, x) - function_f(p, a, h, delta, x)
     ) / _ZETA
