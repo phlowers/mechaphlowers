@@ -6,8 +6,13 @@
 
 
 import numpy as np
+import pandas as pd
+import pytest
 
-from mechaphlowers.core.models.cable.thermal import ThermalEngine
+from mechaphlowers.core.models.cable.thermal import (
+    ThermalEngine,
+    ThermalTransientResults,
+)
 from mechaphlowers.entities.arrays import CableArray
 
 
@@ -133,7 +138,6 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
 
 
 def test_transient_thermal(cable_array_AM600: CableArray):
-
     thermal_engine = ThermalEngine()
     thermal_engine.set(
         cable_array_AM600,
@@ -173,6 +177,25 @@ def test_transient_thermal(cable_array_AM600: CableArray):
             ]
         ),
     )
-    assert thermal_engine.transient_temperature().data.shape[0] == 3*10
-    
-    np.testing.assert_array_almost_equal(thermal_engine.wind_cable_angle, np.array([90., 80., 70.]))
+    assert thermal_engine.transient_temperature().data.shape[0] == 3 * 10
+
+    np.testing.assert_array_almost_equal(
+        thermal_engine.wind_cable_angle, np.array([90.0, 80.0, 70.0])
+    )
+
+
+def test_transient_results_raise_for_df_input():
+    df_input = pd.DataFrame(
+        {
+            "time": [0, 1, 2],
+            "id": [100, 150, 200],
+            "t_avg": [15, 16, 17],
+            "t_surf": [5, 10, 15],
+            "t_core": [90, 80, 70],
+        }
+    )
+    with pytest.raises(
+        TypeError,
+        match="DataFrame input not supported for transient results parsing.",
+    ):
+        ThermalTransientResults.parse_results(df_input)

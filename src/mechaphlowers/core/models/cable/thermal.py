@@ -17,19 +17,27 @@ logger = logging.getLogger(__name__)
 
 
 class ThermalResults(ABC):
-    def __init__(self, data: dict | pd.DataFrame):
-        self.data = self.parse_results(data)
+    """Thermal results base class."""
 
+    def __init__(self, input_data: dict | pd.DataFrame):
+        self.data = self.parse_results(input_data)
+
+    @staticmethod
     @abstractmethod
-    def parse_results(self, data: dict | pd.DataFrame) -> pd.DataFrame:
+    def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
         pass
 
 
 class ThermalTransientResults(ThermalResults):
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, input_data):
+        super().__init__(input_data)
 
-    def parse_results(self, data):
+    @staticmethod
+    def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
+        if isinstance(data, pd.DataFrame):
+            raise TypeError(
+                "DataFrame input not supported for transient results parsing."
+            )
         input_size = data["t_avg"].shape
         out = pd.DataFrame(
             {
@@ -46,10 +54,11 @@ class ThermalTransientResults(ThermalResults):
 
 
 class ThermalSteadyResults(ThermalResults):
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, input_data):
+        super().__init__(input_data)
 
-    def parse_results(self, data: dict | pd.DataFrame) -> pd.DataFrame:
+    @staticmethod
+    def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
         if isinstance(data, pd.DataFrame):
             return data
         return pd.DataFrame(data)
@@ -75,12 +84,23 @@ class ThermalForecastArray:
 
 
 class ThermalEngine:
+    """Thermal engine is a wrapper for cable thermal modeling."""
+
     available_power_model = {
         "rte": solver.rte,
     }
     available_heat_equation = {"3t": "3t"}
 
     def __init__(self):
+        """Initialize ThermalEngine.
+
+        Attributes:
+            power_model: The power model used for thermal calculations.
+            heateq: The heat equation model used.
+            dict_input: Dictionary to store input parameters.
+            forecast: An instance of ThermalForecastArray for time series data.
+            target_temperature: Target temperature for steady-state calculations.
+        """
         self.power_model = self.available_power_model.get("rte", ValueError)
         self.heateq = self.available_heat_equation.get("3t", ValueError)
         self.dict_input = {}
@@ -103,6 +123,23 @@ class ThermalEngine:
         wind_angle: float | np.ndarray,
         solar_irradiance: float | np.ndarray | None = None,
     ):
+        """Set input parameters for thermal calculations.
+
+        Args:
+            cable_array: An instance of CableArray containing cable properties.
+            latitude: Latitude values.
+            longitude: Longitude values.
+            altitude: Altitude values.
+            azimuth: Azimuth values.
+            month: Month values.
+            day: Day values.
+            hour: Hour values.
+            intensity: Current intensity values.
+            ambient_temp: Ambient temperature values.
+            wind_speed: Wind speed values.
+            wind_angle: Wind angle values.
+            solar_irradiance: Solar irradiance values (optional). Defaults to None.
+        """
         if solar_irradiance is None:
             solar_irradiance = np.nan
         self.dict_input = {
@@ -138,39 +175,51 @@ class ThermalEngine:
         self.load()
 
     def load(self):
+        """Load or reload the thermal model with the current input parameters."""
         # expected to fail if arguments are not filled
         self.span = self.power_model(dic=self.dict_input, heateq=self.heateq)
 
-    def steady_temperature(self):
+    def steady_temperature(self) -> ThermalSteadyResults:
+        """Compute steady-state temperature results."""
         return ThermalSteadyResults(self.span.steady_temperature())
 
-    def steady_intensity(self):
+    def steady_intensity(self) -> ThermalSteadyResults:
+        """Compute steady-state intensity results."""
         return ThermalSteadyResults(
             self.span.steady_intensity(self.target_temperature)
         )
 
-    def transient_temperature(self):
+    def transient_temperature(self) -> ThermalTransientResults:
+        """Compute transient temperature results."""
         return ThermalTransientResults(
             self.span.transient_temperature(time=self.forecast.time)
         )
 
     @property
-    def wind_cable_angle(self):
+    def wind_cable_angle(self) -> float | np.ndarray:
         """property triggering ambient_wind_speed mode in models"""
         # TODO: move this into thl (formulae in thl.power.convective_cooling line 35)
-        return np.rad2deg(np.arcsin(np.sin(np.deg2rad(np.abs(self.dict_input["azm"] - self.dict_input["wa"]) % 180.0))))
-
+        return np.rad2deg(
+            np.arcsin(
+                np.sin(
+                    np.deg2rad(
+                        np.abs(self.dict_input["azm"] - self.dict_input["wa"])
+                        % 180.0
+                    )
+                )
+            )
+        )
 
     @property
     def normal_wind_mode(self):
-        """property triggering normal_wind mode in models"""
+        """property triggering normal_wind mode in models. Not implemented yet."""
         raise NotImplementedError
 
     @normal_wind_mode.setter
     def normal_wind_mode(self, value: bool):
         """normal_wind_mode
 
-        property triggering normal_wind mode in models
+        property triggering normal_wind mode in models. Not implemented yet.
 
         Args:
             value (bool): calculus is in normal_wind mode
