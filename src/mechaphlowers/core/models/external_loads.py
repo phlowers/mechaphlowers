@@ -10,7 +10,6 @@ from typing import Any, Literal
 
 import numpy as np
 
-
 DEFAULT_ICE_DENSITY = 6_000
 
 
@@ -193,4 +192,3 @@ class WindSpeedPressureConverter:
     def pressure_rounded(self) -> np.ndarray:
         """Returns the wind pressure rounded to the nearest 10 Pa."""
         return np.round(self.pressure / 10) * 10
-    

@@ -257,7 +257,7 @@ class ISpan(ABC):
     @abstractmethod
     def T_mean(self) -> np.ndarray:
         """Mean tension along the whole cable."""
-        
+
     @abstractmethod
     def slope(self) -> np.ndarray:
         """Slope angle at the supports in radians.
@@ -489,7 +489,7 @@ class CatenarySpan(ISpan):
             / self._L
             / 2
         )
-        
+
     def slope(self) -> np.ndarray:
         """Slope angle at the supports in radians.
 
