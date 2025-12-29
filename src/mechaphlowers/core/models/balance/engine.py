@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from typing import Callable, Type
+import warnings
 
 import numpy as np
 
@@ -31,6 +32,7 @@ from mechaphlowers.core.models.cable.span import (
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.utils import arr, check_time
+
 
 logger = logging.getLogger(__name__)
 
@@ -89,36 +91,50 @@ class BalanceEngine:
         # TODO: find a better way to initialize objects
         self.section_array = section_array
         self.cable_array = cable_array
+        self.balance_model_type = balance_model_type
+        self.span_model_type = span_model_type
+        self.deformation_model_type = deformation_model_type
 
+        self.reset()
+        
+
+    def reset(self) -> None:
+        """Reset the balance engine to initial state.
+        
+        This method re-initializes the span model, cable loads, deformation model, balance model, and solvers.
+        This method is useful when error occurs during solving provoking inconsistent state with nan.
+        """
+        
+        logger.debug("Resetting balance engine.")
         zeros_vector = np.zeros_like(
-            section_array.data.conductor_attachment_altitude.to_numpy()
+            self.section_array.data.conductor_attachment_altitude.to_numpy()
         )
 
         sagging_temperature = arr.decr(
-            (section_array.data.sagging_temperature.to_numpy())
+            (self.section_array.data.sagging_temperature.to_numpy())
         )
-        parameter = arr.decr(section_array.data.sagging_parameter.to_numpy())
+        parameter = arr.decr(self.section_array.data.sagging_parameter.to_numpy())
         self.span_model = span_model_builder(
-            section_array, cable_array, span_model_type
+            self.section_array, self.cable_array, self.span_model_type
         )
         self.cable_loads = CableLoads(
-            np.float64(cable_array.data.diameter.iloc[0]),
-            np.float64(cable_array.data.linear_weight.iloc[0]),
+            np.float64(self.cable_array.data.diameter.iloc[0]),
+            np.float64(self.cable_array.data.linear_weight.iloc[0]),
             zeros_vector,
             zeros_vector,
         )
         self.deformation_model = deformation_model_builder(
-            cable_array,
+            self.cable_array,
             self.span_model,
             sagging_temperature,
-            deformation_model_type,
+            self.deformation_model_type,
         )
 
-        self.balance_model = balance_model_type(
+        self.balance_model = self.balance_model_type(
             sagging_temperature,
             parameter,
-            section_array,
-            cable_array,
+            self.section_array,
+            self.cable_array,
             self.span_model,
             self.deformation_model,
             self.cable_loads,
@@ -132,6 +148,7 @@ class BalanceEngine:
         self.L_ref: np.ndarray
 
         self.get_displacement: Callable = self.balance_model.dxdydz
+        
         logger.debug("Balance engine initialized.")
 
     @check_time
@@ -208,11 +225,12 @@ class BalanceEngine:
         # check if adjustment has been done before
         try:
             _ = self.L_ref
-        except AttributeError as e:
-            logger.error(
-                "L_ref not defined. You must run solve_adjustment() before solve_change_state()."
+        except AttributeError:
+            logger.warning(
+                "L_ref is not defined. You must run solve_adjustment() before solve_change_state(). Running solve_adjustment() now."
             )
-            raise e
+            warnings.warn("L_ref is not defined. You must run solve_adjustment() before solve_change_state(). Running solve_adjustment() now.", UserWarning)
+            self.solve_adjustment()
 
         self.balance_model.adjustment = False
         self.span_model.load_coefficient = (
@@ -228,6 +246,9 @@ class BalanceEngine:
     @property
     def support_number(self) -> int:
         return self.section_array.data.span_length.shape[0]
+    
+    def __len__(self) -> int:
+        return self.support_number
 
     def __str__(self) -> str:
         dxdydz = self.balance_model.dxdydz().T

@@ -12,6 +12,7 @@ import logging
 import numpy as np
 
 from mechaphlowers.core.models.balance.interfaces import IModelForSolver
+from mechaphlowers.entities.errors import ConvergenceError
 
 logger = logging.getLogger(__name__)
 
@@ -90,9 +91,7 @@ class BalanceSolver:
             if norm_d_param < self.stop_condition:
                 break
             if counter == self.max_iter - 1:
-                logger.info("max iteration reached")
-                logger.info(f"{norm_d_param=}")
-                raise ValueError("Balance solver did not converge")
+                raise ConvergenceError("max iteration reached", level="balance_solver", details=f"{norm_d_param=}")
 
     def jacobian(
         self,

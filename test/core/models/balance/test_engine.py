@@ -16,6 +16,7 @@ from mechaphlowers.core.models.balance.engine import (
     BalanceEngine,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.errors import ConvergenceError
 
 
 @fixture
@@ -77,7 +78,7 @@ def test_element_initialisation(balance_engine_simple: BalanceEngine):
 
 
 def test_element_change_state(balance_engine_simple: BalanceEngine):
-    with pytest.raises(AttributeError):
+    with pytest.warns(UserWarning):
         balance_engine_simple.solve_change_state()
 
     balance_engine_simple.solve_adjustment()

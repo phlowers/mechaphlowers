@@ -14,6 +14,7 @@ from numpy.polynomial import Polynomial as Poly
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.entities.arrays import CableArray
+from mechaphlowers.entities.errors import ConvergenceError
 
 IMAGINARY_THRESHOLD = cfg.solver.deformation_imag_thresh  # type: ignore
 
@@ -123,7 +124,7 @@ class DeformationRte(IDeformation):
 
         sigma = T_mean / S
         if self.polynomial_conductor is None:
-            raise ValueError("Polynomial is not defined")
+            raise ValueError("polynomial_conductor is not defined")
         epsilon_plastic = self.epsilon_plastic()
         return epsilon_plastic + sigma / E
 
@@ -184,7 +185,7 @@ class DeformationRte(IDeformation):
         )
         real_smallest_root = real_positive_roots.min(axis=1).real
         if np.inf in real_smallest_root:
-            raise ValueError("No solution found for at least one span")
+            raise ConvergenceError("No solution found for at least one span", level="deformation_model")
         return real_smallest_root
 
 
