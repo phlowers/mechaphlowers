@@ -91,7 +91,11 @@ class BalanceSolver:
             if norm_d_param < self.stop_condition:
                 break
             if counter == self.max_iter - 1:
-                raise ConvergenceError("max iteration reached", level="balance_solver", details=f"{norm_d_param=}")
+                raise ConvergenceError(
+                    "max iteration reached",
+                    level="balance_solver",
+                    details=f"{norm_d_param=}",
+                )
 
     def jacobian(
         self,

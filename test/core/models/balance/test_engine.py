@@ -16,7 +16,6 @@ from mechaphlowers.core.models.balance.engine import (
     BalanceEngine,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.errors import ConvergenceError
 
 
 @fixture

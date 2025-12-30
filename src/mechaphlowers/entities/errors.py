@@ -7,17 +7,24 @@
 
 class SolverError(Exception):
     """Base class for solver errors."""
-    def __init__(self, message: str, level: str = "", details: str = "") -> None:
-       self.level = level
-       self.details = details
-       prefix = f"[{level}]"
-       
-       super().__init__(f"{prefix} {message} | {details}")
+
+    def __init__(
+        self, message: str, level: str = "", details: str = ""
+    ) -> None:
+        self.level = level
+        self.details = details
+        prefix = f"[{level}]"
+
+        super().__init__(f"{prefix} {message} | {details}")
+
 
 class ConvergenceError(SolverError):
     """Raised when solver fails to converge."""
+
     pass
+
 
 class ShapeError(ValueError):
     """Raised when there is a shape mismatch in arrays."""
+
     pass

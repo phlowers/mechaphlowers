@@ -160,6 +160,8 @@ class FindParamSolverForLoop(IFindParamSolver):
                 logger.error(
                     f"Maximum number of iterations reached in {str(__name__)}"
                 )
-                raise ConvergenceError("Find parameter solver did not converge")
+                raise ConvergenceError(
+                    "Find parameter solver did not converge"
+                )
 
         return parameter
