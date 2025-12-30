@@ -77,5 +77,5 @@ clean:
 
 .PHONY: docs  ## Generate the docs
 docs:
-	uv run mkdocs serve -a localhost:8001
+	uv run --only-group docs mkdocs serve -a localhost:8001
 
