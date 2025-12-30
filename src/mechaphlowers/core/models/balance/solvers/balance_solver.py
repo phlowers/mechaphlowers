@@ -32,6 +32,9 @@ class BalanceSolver:
         >>> solver.solve(balance_model)
         >>> balance_model.state_vector  # updated state vector after solving
         np.array([...])
+
+    raises:
+        ConvergenceError: if the solver fails to converge within max_iter iterations.
     """
 
     def __init__(

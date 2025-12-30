@@ -159,6 +159,9 @@ class BalanceEngine:
 
         After running this method, many attributes are updated.
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
+
+        raises:
+            SolverError: If the solver fails to converge.
         """
         logger.debug("Starting adjustment.")
 
@@ -194,6 +197,11 @@ class BalanceEngine:
 
         After running this method, many attributes are updated.
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
+
+        raises:
+            SolverError: If the solver fails to converge.
+            TypeError: If input parameters have incorrect type.
+            ValueError: If input parameters have incorrect shape.
         """
         logger.debug("Starting change state.")
         logger.debug(

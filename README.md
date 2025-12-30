@@ -177,7 +177,7 @@ You can check the build option to control the output folder or the desired outpu
 You can build and serve the documentation using or `make docs`:
 
 ```console
-    uv run mkdocs serve -a localhost:8001
+    uv run --only-group docs mkdocs serve -a localhost:8001
 ```
 
 ### Testing in a browser via pyodide

@@ -11,6 +11,25 @@ class SolverError(Exception):
     def __init__(
         self, message: str, level: str = "", details: str = ""
     ) -> None:
+        """SolverError specific exception.
+
+        origin attribute is available to add origin of the error (e.g., class name, calling function, etc.)
+
+        Args:
+            message (str): _error message
+            level (str, optional): _error level. Defaults to "".
+            details (str, optional): _error details. Defaults to "".
+
+        Example:
+
+            >>> error = SolverError(
+            ...     "An error occurred", level="CRITICAL", details="Matrix is singular"
+            ... )
+            >>> error.origin = "MatrixSolver"
+            >>> raise error
+            [CRITICAL][MatrixSolver] An error occurred | Matrix is singular
+
+        """
         self.level = level
         self.details = details
         self.origin = ""
@@ -22,10 +41,6 @@ class SolverError(Exception):
 class ConvergenceError(SolverError):
     """Raised when solver fails to converge."""
 
-    pass
-
 
 class ShapeError(ValueError):
     """Raised when there is a shape mismatch in arrays."""
-
-    pass
