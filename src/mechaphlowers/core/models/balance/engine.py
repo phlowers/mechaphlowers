@@ -169,6 +169,7 @@ class BalanceEngine:
             logger.error(
                 "Error during solve_adjustment, resetting balance engine."
             )
+            e.origin = "solve_adjustment"
             raise e
 
         self.L_ref = self.balance_model.update_L_ref()
@@ -254,6 +255,7 @@ class BalanceEngine:
             logger.error(
                 "Error during solve_change_state, you should reset the balance engine."
             )
+            e.origin = "solve_change_state"
             raise e
 
         logger.debug(

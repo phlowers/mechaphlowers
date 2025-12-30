@@ -13,7 +13,8 @@ class SolverError(Exception):
     ) -> None:
         self.level = level
         self.details = details
-        prefix = f"[{level}]"
+        self.origin = ""
+        prefix = f"[{level}][{self.origin}]"
 
         super().__init__(f"{prefix} {message} | {details}")
 

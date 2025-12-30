@@ -16,6 +16,7 @@ from mechaphlowers.core.models.balance.engine import (
     BalanceEngine,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.errors import ConvergenceError
 
 
 @fixture
@@ -288,3 +289,66 @@ def test_load_span__check_node_span_changes(cable_array_AM600: CableArray):
     assert len(
         balance_engine_angles_arm.balance_model.nodes_span_model.sagging_parameter
     ) > len(span_model_1.sagging_parameter)
+    
+    
+def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
+    def fail(_: object):
+        raise ConvergenceError("did not converge", level="adjustment")
+
+    # Mock the solver to raise
+    monkeypatch.setattr(balance_engine_simple.solver_adjustment, "solve", fail)
+
+    with pytest.raises(ConvergenceError, match="did not converge"):
+        balance_engine_simple.solve_adjustment()
+
+
+def test_adjustment_convergence_error_origin(monkeypatch, balance_engine_simple):
+    
+    def fail_generator(level: str):
+        def fail(_: object):
+            raise ConvergenceError("did not converge", level=level)
+        return fail
+
+    monkeypatch.setattr(balance_engine_simple.solver_adjustment, "solve", fail_generator("adjustment"))
+
+    with pytest.raises(ConvergenceError) as excinfo:
+        balance_engine_simple.solve_adjustment()
+
+    assert excinfo.value.level == "adjustment"
+    assert getattr(excinfo.value, "origin", None) == "solve_adjustment"
+    
+    monkeypatch.setattr(balance_engine_simple.solver_change_state, "solve", fail_generator("change_state"))
+    # mocking L_ref to avoid launching adjustment solver first
+    balance_engine_simple.L_ref = 500.0
+
+    with pytest.raises(ConvergenceError) as excinfo:
+        balance_engine_simple.solve_change_state()
+
+    assert excinfo.value.level == "change_state"
+    assert getattr(excinfo.value, "origin", None) == "solve_change_state"
+
+
+def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
+    initial_span_param = balance_engine_simple.span_model.sagging_parameter.copy()
+    initial_wind = balance_engine_simple.cable_loads.wind_pressure.copy()
+
+    balance_engine_simple.span_model.sagging_parameter = np.ones_like(
+        initial_span_param
+    )
+    balance_engine_simple.cable_loads.wind_pressure = np.ones_like(
+        initial_wind
+    )
+
+    balance_engine_simple.reset()
+
+    np.testing.assert_array_equal(
+        balance_engine_simple.span_model.sagging_parameter, initial_span_param
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.cable_loads.wind_pressure, initial_wind
+    )
+    assert balance_engine_simple.balance_model.adjustment is True
+    
+    
+
+
