@@ -195,7 +195,7 @@ class SectionArray(ElementArray):
         if "ground_altitude" not in data_output:
             data_output["ground_altitude"] = self.compute_ground_altitude()
         else:
-            ground_alt = data_output["ground_altitude"].to_numpy()  
+            ground_alt = data_output["ground_altitude"].to_numpy()
             attachment_alt = data_output[
                 "conductor_attachment_altitude"
             ].to_numpy()
