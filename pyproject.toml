@@ -22,14 +22,14 @@ classifiers = [
 ]
 requires-python = ">=3.11,<3.13"
 dependencies = [
-    "numpy<=2.0.2",
-    "pandas<=2.2.3",
+    "numpy==2.2.5",
+    "pandas==2.3.1",
     "pandera<=0.21.1",
     "plotly<=5.24.1",
     "multimethod<2.0",
-    "pyyaml<=6.0.2",
+    "pyyaml==6.0.2",
     "pint==0.25",
-    "xxhash>=3.5.0",
+    "xxhash==3.5.0",
 ]
 
 [project.urls]
