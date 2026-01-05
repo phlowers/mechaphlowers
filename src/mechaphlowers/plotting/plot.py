@@ -1,8 +1,9 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2025, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
+
 from __future__ import annotations
 
 import logging
@@ -15,6 +16,9 @@ from mechaphlowers.core.geometry.points import (
     SectionPoints,
 )
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.core.models.cable.span import ISpan
+from mechaphlowers.core.models.external_loads import CableLoads
+from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
 
 if TYPE_CHECKING:
@@ -273,9 +277,9 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 class PlotEngine:
     def __init__(
         self,
-        span_model,
-        cable_loads,
-        section_array,
+        span_model: ISpan,
+        cable_loads: CableLoads,
+        section_array: SectionArray,
         get_displacement: Callable,
     ) -> None:
         self.spans = span_model
@@ -294,7 +298,7 @@ class PlotEngine:
         self.section_pts.add_obstacles(obstacles_array)
 
     @property
-    def beta(self):
+    def beta(self) -> np.ndarray:
         return self.cable_loads.load_angle
 
     @staticmethod
@@ -304,7 +308,7 @@ class PlotEngine:
         logger.debug("Plot engine initialized from balance engine.")
 
         return PlotEngine(
-            balance_engine.span_model,
+            balance_engine.balance_model.nodes_span_model,
             balance_engine.cable_loads,
             balance_engine.section_array,
             balance_engine.get_displacement,
@@ -427,6 +431,19 @@ class PlotEngine:
             insulator_trace(mode=mode),
             view=view,
         )
+
+    def __str__(self) -> str:
+        return (
+            f"number of supports: {self.section_array.data.span_length.shape[0]}\n"
+            f"parameter: {self.spans.sagging_parameter}\n"
+            f"wind: {self.cable_loads.wind_pressure}\n"
+            f"ice: {self.cable_loads.ice_thickness}\n"
+            f"beta: {self.beta}\n"
+        )
+
+    def __repr__(self) -> str:
+        class_name = type(self).__name__
+        return f"{class_name}\n{self.__str__()}"
 
 
 class PlotAccessor:

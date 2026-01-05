@@ -50,12 +50,6 @@ class ElementArray(ABC):
         array_input_schema.strict = 'filter'
         return array_input_schema.validate(input_data, lazy=True)
 
-    def __str__(self) -> str:
-        return self._data.to_string()
-
-    def __copy__(self) -> Self:
-        return type(self)(self._data)
-
     def add_units(self, input_units: dict[str, str]) -> None:
         """Add dictionary of units of the data input . This will overrides the default `input_units` dict
 
@@ -93,6 +87,16 @@ class ElementArray(ABC):
         original units and no columns added
         """
         return self._data
+
+    def __str__(self) -> str:
+        return self._data.to_string()
+
+    def __copy__(self) -> Self:
+        return type(self)(self._data)
+
+    def __repr__(self) -> str:
+        class_name = type(self).__name__
+        return f"{class_name}\n{self.__str__()}"
 
 
 class SectionArray(ElementArray):

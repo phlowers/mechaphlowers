@@ -8,7 +8,7 @@ import logging
 import warnings
 from os import PathLike
 from pathlib import Path
-from typing import Any, Literal, get_args
+from typing import Any, Literal, Set, get_args
 
 import pandas as pd
 import pandera as pa
@@ -48,6 +48,8 @@ class Catalog:
         catalog_type: CatalogType = 'default_catalog',
         remove_duplicates: bool = True,
         user_filepath: str | PathLike = DATA_BASE_PATH,
+        separator: str = ",",
+        decimal: str = ".",
     ) -> None:
         """Initialize catalog from a csv file.
 
@@ -92,6 +94,8 @@ class Catalog:
             filepath,
             index_col=key_column_name,
             dtype=dtype_dict_with_key,
+            sep=separator,
+            decimal=decimal,
         )
         # validating the pandera schema. Useful for checking missing fields
         self.validate_types(dtype_dict_without_bool)
@@ -217,6 +221,32 @@ class Catalog:
             element_array.add_units(self.units_dict)
         return element_array
 
+    def check_wrong_rows(self, clean_catalog: bool = True) -> Set:
+        """Check if rows are causes pandera SchemaErrors when running get_as_object(), and eventually remove them.
+
+        Args:
+            clean_catalog (bool): If True, removes invalid rows from the catalog. Defaults to True.
+
+        Returns:
+            Set: Set of indices of rows that are invalid according to the pandera schema.
+        """
+        wrong_rows = []
+        try:
+            self.get_as_object(self.keys())
+        except pa.errors.SchemaErrors as error:
+            # get the index of the rows that caused an error, and remove the duplicates
+            wrong_rows = error.failure_cases["index"].unique()
+            if clean_catalog:
+                self._data.drop(wrong_rows, inplace=True)
+                warnings.warn(
+                    f"The following rows have incorrect data, and are removed from dataframe: {wrong_rows}"
+                )
+            else:
+                warnings.warn(
+                    f"The following rows have incorrect data, but are NOT removed from dataframe: {wrong_rows}"
+                )
+        return set(wrong_rows)
+
     def keys(self) -> list:
         """Get the keys available in the catalog"""
         return self._data.index.tolist()
@@ -233,6 +263,8 @@ def build_catalog_from_yaml(
     rename=True,
     remove_duplicates=True,
     user_filepath: str | PathLike = DATA_BASE_PATH,
+    separator: str = ",",
+    decimal: str = ".",
 ) -> Catalog:
     """Build a catalog from a yaml file.
 
@@ -292,6 +324,8 @@ def build_catalog_from_yaml(
         catalog_type,
         remove_duplicates,
         user_filepath,
+        separator=separator,
+        decimal=decimal,
     )
 
 

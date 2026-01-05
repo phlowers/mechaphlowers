@@ -26,8 +26,12 @@ try:
 
     # objects for benchmark tests
     cable_bench = build_catalog_from_yaml(
-        "sample_cable_database.yaml", user_filepath=EXTERNAL_DATA_DIR
+        "rte_cable_database.yaml",
+        user_filepath=EXTERNAL_DATA_DIR,
+        separator=";",
+        decimal=",",
     )
+    cable_bench.check_wrong_rows()
 
 
 except Exception as e:
@@ -133,7 +137,7 @@ def test_element_sandbox(
 
     except Exception as e:
         report_content["error"] = str(e)
-        assert False
+        raise e
 
     finally:
         record_benchmark(
