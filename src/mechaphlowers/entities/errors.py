@@ -9,16 +9,16 @@ class SolverError(Exception):
     """Base class for solver errors."""
 
     def __init__(
-        self, message: str, level: str = "", details: str = ""
+        self, message: str, level: str = "ERROR", details: str = ""
     ) -> None:
         """SolverError specific exception.
 
         origin attribute is available to add origin of the error (e.g., class name, calling function, etc.)
 
         Args:
-            message (str): _error message
-            level (str, optional): _error level. Defaults to "".
-            details (str, optional): _error details. Defaults to "".
+            message (str): error message
+            level (str, optional): error level. Defaults to "".
+            details (str, optional): error details. Defaults to "".
 
         Example:
 
@@ -32,7 +32,7 @@ class SolverError(Exception):
         """
         self.level = level
         self.details = details
-        self.origin = ""
+        self.origin = "unknown"
         prefix = f"[{level}][{self.origin}]"
 
         super().__init__(f"{prefix} {message} | {details}")

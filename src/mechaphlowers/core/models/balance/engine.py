@@ -101,7 +101,7 @@ class BalanceEngine:
         """Reset the balance engine to initial state.
 
         This method re-initializes the span model, cable loads, deformation model, balance model, and solvers.
-        This method is useful when error occurs during solving provoking inconsistent state with nan.
+        This method is useful when an error occurs during solving that may cause an inconsistent state with NaN values.
         """
 
         logger.debug("Resetting balance engine.")
@@ -277,6 +277,7 @@ class BalanceEngine:
         return self.section_array.data.span_length.shape[0]
 
     def __len__(self) -> int:
+        """Return the number of supports in the balance engine."""
         return self.support_number
 
     def __str__(self) -> str:
