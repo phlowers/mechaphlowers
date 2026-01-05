@@ -14,6 +14,7 @@ import numpy as np
 
 from mechaphlowers.core.models.cable.deformation import IDeformation
 from mechaphlowers.core.models.cable.span import ISpan
+from mechaphlowers.entities.errors import ConvergenceError
 from mechaphlowers.utils import arr
 
 try:
@@ -134,7 +135,7 @@ class FindParamSolverScipy(IFindParamSolver):
             full_output=True,
         )
         if not np.all(solver_result.converged):
-            raise ValueError("Solver did not converge")
+            raise ConvergenceError("Solver did not converge")
         return solver_result.root
 
 
@@ -159,6 +160,8 @@ class FindParamSolverForLoop(IFindParamSolver):
                 logger.error(
                     f"Maximum number of iterations reached in {str(__name__)}"
                 )
-                raise ValueError("Find parameter solver did not converge")
+                raise ConvergenceError(
+                    "Find parameter solver did not converge"
+                )
 
         return parameter

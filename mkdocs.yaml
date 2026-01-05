@@ -51,6 +51,7 @@ nav:
       - Parameter calibration : user_guide/ug_parameter_calibration.md
       - Configuration: user_guide/ug_configuration.md
       - Plotting: user_guide/ug_maps.md
+      - Specific errors used: user_guide/ug_mph_errors.md
   - Developer guide:
       - API Reference:
           - API: docstring/api/frames.md
@@ -59,6 +60,7 @@ nav:
               - Schemas: docstring/entities/schemas.md
               - Data container: docstring/entities/data_container.md
               - Support Shapes: docstring/entities/shapes.md
+              - Errors: docstring/entities/errors.md
           - Core:
               - Geometry:
                   - References: docstring/core/geometry/references.md
