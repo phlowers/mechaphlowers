@@ -395,11 +395,21 @@ class BalanceModel(IBalanceModel):
     def has_loads(self) -> bool:
         return self.nodes.has_load_on_span.any()
 
-    def update_node_span_model(self) -> None:
-        """update_node_span_model updates the node span model.
+    def update_nodes_span_model(self) -> None:
+        """update_nodes_span_model updates nodes_span_model.
 
         It integrates the nodes models left and right inside the span model creating new virtual nodes.
         """
+        if not self.has_loads:
+            self.nodes_span_model.span_length = self.span_model.span_length
+            self.nodes_span_model.elevation_difference = self.span_model.elevation_difference
+            self.nodes_span_model.sagging_parameter = self.span_model.sagging_parameter
+            self.nodes_span_model.span_index = self.span_model.span_index
+            self.nodes_span_model.span_type = self.span_model.span_type
+        else:
+            return self.merge_loads_to_span_model()
+
+    def merge_loads_to_span_model(self):
         bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
 
         new_span_model = copy(self.span_model)
@@ -411,33 +421,33 @@ class BalanceModel(IBalanceModel):
             return np.insert(arr_new, insert_mask, arr_insert_left)
 
         sagging_parameter = insert_array(
-            new_span_model.sagging_parameter,
-            self.load_model.span_model_left.sagging_parameter,
-            self.load_model.span_model_right.sagging_parameter,
-            bool_mask,
-        )
+                new_span_model.sagging_parameter,
+                self.load_model.span_model_left.sagging_parameter,
+                self.load_model.span_model_right.sagging_parameter,
+                bool_mask,
+            )
         span_length = insert_array(
-            new_span_model.span_length,
-            self.load_model.span_model_left.span_length,
-            self.load_model.span_model_right.span_length,
-            bool_mask,
-        )
+                new_span_model.span_length,
+                self.load_model.span_model_left.span_length,
+                self.load_model.span_model_right.span_length,
+                bool_mask,
+            )
         elevation_difference = insert_array(
-            new_span_model.elevation_difference,
-            self.load_model.span_model_left.elevation_difference,
-            self.load_model.span_model_right.elevation_difference,
-            bool_mask,
-        )
+                new_span_model.elevation_difference,
+                self.load_model.span_model_left.elevation_difference,
+                self.load_model.span_model_right.elevation_difference,
+                bool_mask,
+            )
         np_array = np.arange(len(self.span_model.span_length))
         span_index = np.insert(
-            np_array, np.nonzero(bool_mask)[0], np_array[bool_mask]
-        )
+                np_array, np.nonzero(bool_mask)[0], np_array[bool_mask]
+            )
         span_type = insert_array(
-            np.full_like(self.span_model.span_length, 0),
-            np.full_like(self.load_model.span_model_left.span_length, 1),
-            np.full_like(self.load_model.span_model_right.span_length, 2),
-            bool_mask,
-        )
+                np.full_like(self.span_model.span_length, 0),
+                np.full_like(self.load_model.span_model_left.span_length, 1),
+                np.full_like(self.load_model.span_model_right.span_length, 2),
+                bool_mask,
+            )
 
         self.nodes_span_model.span_length = span_length
         self.nodes_span_model.elevation_difference = elevation_difference
