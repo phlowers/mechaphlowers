@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -400,16 +400,14 @@ class BalanceModel(IBalanceModel):
 
         It integrates the nodes models left and right inside the span model creating new virtual nodes.
         """
+        # If no loads, only update with data from self.span_model
         if not self.has_loads:
-            self.nodes_span_model.span_length = self.span_model.span_length
-            self.nodes_span_model.elevation_difference = self.span_model.elevation_difference
-            self.nodes_span_model.sagging_parameter = self.span_model.sagging_parameter
-            self.nodes_span_model.span_index = self.span_model.span_index
-            self.nodes_span_model.span_type = self.span_model.span_type
+            self.nodes_span_model.copy_attributes(self.span_model)
         else:
             return self.merge_loads_to_span_model()
 
     def merge_loads_to_span_model(self):
+        """Fetch load_model and give it to nodes_span_model, splitting spans into two, if they contains a load."""
         bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
 
         new_span_model = copy(self.span_model)
@@ -421,33 +419,33 @@ class BalanceModel(IBalanceModel):
             return np.insert(arr_new, insert_mask, arr_insert_left)
 
         sagging_parameter = insert_array(
-                new_span_model.sagging_parameter,
-                self.load_model.span_model_left.sagging_parameter,
-                self.load_model.span_model_right.sagging_parameter,
-                bool_mask,
-            )
+            new_span_model.sagging_parameter,
+            self.load_model.span_model_left.sagging_parameter,
+            self.load_model.span_model_right.sagging_parameter,
+            bool_mask,
+        )
         span_length = insert_array(
-                new_span_model.span_length,
-                self.load_model.span_model_left.span_length,
-                self.load_model.span_model_right.span_length,
-                bool_mask,
-            )
+            new_span_model.span_length,
+            self.load_model.span_model_left.span_length,
+            self.load_model.span_model_right.span_length,
+            bool_mask,
+        )
         elevation_difference = insert_array(
-                new_span_model.elevation_difference,
-                self.load_model.span_model_left.elevation_difference,
-                self.load_model.span_model_right.elevation_difference,
-                bool_mask,
-            )
+            new_span_model.elevation_difference,
+            self.load_model.span_model_left.elevation_difference,
+            self.load_model.span_model_right.elevation_difference,
+            bool_mask,
+        )
         np_array = np.arange(len(self.span_model.span_length))
         span_index = np.insert(
-                np_array, np.nonzero(bool_mask)[0], np_array[bool_mask]
-            )
+            np_array, np.nonzero(bool_mask)[0], np_array[bool_mask]
+        )
         span_type = insert_array(
-                np.full_like(self.span_model.span_length, 0),
-                np.full_like(self.load_model.span_model_left.span_length, 1),
-                np.full_like(self.load_model.span_model_right.span_length, 2),
-                bool_mask,
-            )
+            np.full_like(self.span_model.span_length, 0),
+            np.full_like(self.load_model.span_model_left.span_length, 1),
+            np.full_like(self.load_model.span_model_right.span_length, 2),
+            bool_mask,
+        )
 
         self.nodes_span_model.span_length = span_length
         self.nodes_span_model.elevation_difference = elevation_difference

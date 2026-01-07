@@ -1,11 +1,11 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
-from typing import Tuple, Type
+from typing import Self, Tuple, Type
 
 import numpy as np
 
@@ -49,10 +49,17 @@ class ISpan(ABC):
             self.load_coefficient = np.ones_like(span_length)
         else:
             self.load_coefficient = load_coefficient
+        # span_index refers to the index of the span:
+        # is [0, 1, 2, ...], if there is no loads
+        # is [0, 1, 1, 2 ...], if there is a load in span number 1, and that ISpan reprensents this span by two values in the arrays
         if span_index is None:
             self.span_index = np.arange(len(span_length))
         else:
             self.span_index = span_index
+        # span_type value of 0, 1 or 2 depending on the relationship with the load on the span:
+        # - 0 if default span
+        # - 1 if semi-span to the left of a load
+        # - 2 if semi-span to the right of a load
         if span_type is None:
             self.span_type = np.full_like(span_length, 0)
         else:
@@ -92,6 +99,21 @@ class ISpan(ABC):
         self._x_m = self.compute_x_m()
         self._x_n = self.compute_x_n()
         self._L = self.compute_L()
+
+    def copy_attributes(self, span_model: Self) -> None:
+        """Copy attributes from an other ISpan object.
+        This method is useful for copying values and keeping the reference of the current object.
+
+        Args:
+            span_model (Self): other ISpan object to copy attribute from
+        """
+        self.span_length = span_model.span_length
+        self.elevation_difference = span_model.elevation_difference
+        self.sagging_parameter = span_model.sagging_parameter
+        self.linear_weight = span_model.linear_weight
+        self.load_coefficient = span_model.load_coefficient
+        self.span_index = span_model.span_index
+        self.span_type = span_model.span_type
 
     @property
     def x_m(self):

@@ -1,9 +1,8 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
-
 
 import numpy as np
 import pandas as pd
@@ -30,6 +29,7 @@ from mechaphlowers.plotting.plot import (
     plot_points_2d,
     plot_support_shape,
 )
+from test.tools.plot_tools import is_end_cable_linked_to_next_cable
 
 
 @fixture
@@ -310,8 +310,8 @@ def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
     )
 
     plt_engine.preview_line3d(fig)
-
-    # fig.show()  # deactivate for auto unit testing
+    assert is_end_cable_linked_to_next_cable()
+    fig.show()  # deactivate for auto unit testing
 
 
 def test_plot_3d__styles(balance_engine_angles: BalanceEngine):
