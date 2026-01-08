@@ -35,9 +35,19 @@ source .venv_release/bin/activate
 uv pip install dist/mechaphlowers-0.3.0b0-py3-none-any.whl
 ```
 
+## Automatic release tests
+
+Specific tests for release are available and can be triggered through make recipe.
+
+The tests triggered are marked via pytest mark `release`.
+
+```shell
+make test-release
+```
+
 ## Check and complete the documentation if needed
 
-```python
+```shell
     make docs
 ```
 
