@@ -216,35 +216,35 @@ class ThermalEngine:
     def set(
         self,
         cable_array: CableArray,
-        latitude: float | np.ndarray,
-        longitude: float | np.ndarray,
-        altitude: float | np.ndarray,
-        azimuth: float | np.ndarray,
-        month: int | np.ndarray,
-        day: int | np.ndarray,
-        hour: int | np.ndarray,
-        intensity: float | np.ndarray,
-        ambient_temp: float | np.ndarray,
-        wind_speed: float | np.ndarray,
-        wind_angle: float | np.ndarray,
-        solar_irradiance: float | np.ndarray | None = None,
+        latitude: np.ndarray,
+        longitude: np.ndarray,
+        altitude: np.ndarray,
+        azimuth: np.ndarray,
+        month: np.ndarray,
+        day: np.ndarray,
+        hour: np.ndarray,
+        intensity: np.ndarray,
+        ambient_temp: np.ndarray,
+        wind_speed: np.ndarray,
+        wind_angle: np.ndarray,
+        solar_irradiance: np.ndarray | None = None,
     ):
         """Set input parameters for thermal calculations.
 
         Args:
-            cable_array: An instance of CableArray containing cable properties.
-            latitude: Latitude values.
-            longitude: Longitude values.
-            altitude: Altitude values.
-            azimuth: Azimuth values.
-            month: Month values.
-            day: Day values.
-            hour: Hour values.
-            intensity: Current intensity values.
-            ambient_temp: Ambient temperature values.
-            wind_speed: Wind speed values.
-            wind_angle: Wind angle values.
-            solar_irradiance: Solar irradiance values (optional). Defaults to None.
+            cable_array (np.array): An instance of CableArray containing cable properties.
+            latitude (np.array): Latitude values.
+            longitude (np.array): Longitude values.
+            altitude (np.array): Altitude values.
+            azimuth (np.array): Azimuth values.
+            month (np.array): Month values.
+            day (np.array): Day values.
+            hour (np.array): Hour values.
+            intensity (np.array): Current intensity values.
+            ambient_temp (np.array): Ambient temperature values.
+            wind_speed (np.array): Wind speed values.
+            wind_angle (np.array): Wind angle values.
+            solar_irradiance (np.array): Solar irradiance values (optional). Defaults to None.
         """
         # Normalize and validate all input parameters
         inputs, array_length = normalize_inputs(
