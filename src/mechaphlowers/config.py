@@ -7,7 +7,6 @@
 """Module for mechaphlowers configuration settings"""
 
 from dataclasses import dataclass, field
-from typing import Type
 
 import numpy as np
 
