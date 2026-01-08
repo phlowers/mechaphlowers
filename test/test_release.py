@@ -1,10 +1,10 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-
+import pytest
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -19,7 +19,7 @@ from mechaphlowers import (
 )
 from mechaphlowers.data.catalog import sample_cable_catalog
 
-
+@pytest.mark.release_test
 def test_create_cable_array():
     CableArray(
         pd.DataFrame(
@@ -54,7 +54,7 @@ def test_create_cable_array():
         )
     )
 
-
+@pytest.mark.release_test
 def test_run_balance_engine():
     cable_AM600 = sample_cable_catalog.get_as_object(["ASTER600"])
 
@@ -85,7 +85,7 @@ def test_run_balance_engine():
     balance_engine.solve_adjustment()
     balance_engine.solve_change_state(new_temperature=90, wind_pressure=200)
 
-
+@pytest.mark.release_test
 def test_run_balance_engine_plot():
     cable_AM600 = sample_cable_catalog.get_as_object(["ASTER600"])
 
@@ -125,7 +125,7 @@ def test_run_balance_engine_plot():
     fig = go.Figure()
     plt_engine.preview_line3d(fig)
 
-
+@pytest.mark.release_test
 def test_papoto_measure():
     a = 498.565922913587
     HL = 0.0
@@ -154,7 +154,7 @@ def test_papoto_measure():
         V3=V3,
     )
 
-
+@pytest.mark.release_test
 def test_parameter_calibration():
     cable_AM600 = sample_cable_catalog.get_as_object(["ASTER600"])
 
@@ -178,3 +178,4 @@ def test_parameter_calibration():
     section_array.sagging_temperature = 15
 
     param_calibration(2000, 60, section_array, cable_AM600, span_index=0)
+
