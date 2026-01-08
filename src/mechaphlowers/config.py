@@ -7,7 +7,6 @@
 """Module for mechaphlowers configuration settings"""
 
 from dataclasses import dataclass, field
-from typing import Type
 
 import numpy as np
 
@@ -27,8 +26,8 @@ class OutputUnitsConfig:
 class PrecisionConfig:
     """Precision configuration class."""
 
-    dtype_float: Type[np.floating] = np.float64
-    dtype_int: Type[np.integer] = np.int64
+    dtype_float: np.typing.DTypeLike = np.dtype('float64')
+    dtype_int: np.typing.DTypeLike = np.dtype('int64')
 
 
 @dataclass
