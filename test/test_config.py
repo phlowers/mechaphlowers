@@ -18,6 +18,8 @@ def test_config_on_plot(balance_engine_base_test) -> None:
     plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
 
     fig = go.Figure()
+    original_res = options.graphics.resolution
+    original_trace_profile = options.graphics.cable_trace_profile.copy()
     options.graphics.resolution = 20
     options.graphics.cable_trace_profile["size"] = 10.0
     plt_line.preview_line3d(fig)
@@ -28,9 +30,15 @@ def test_config_on_plot(balance_engine_base_test) -> None:
         options.graphics.resolution + 1
     ) * (balance_engine_base_test.section_array.data.shape[0] - 1)
     # fig.show() # deactivate for auto unit testing
+    # restore original settings
+    options.graphics.resolution = original_res
+    options.graphics.cable_trace_profile = original_trace_profile
 
 
 def test_change_values_input_unit__one_value() -> None:
+    original_diameter_unit = options.input_units.cable_array["diameter"]
+    original_angle_unit = options.input_units.section_array["line_angle"]
+
     options.input_units.cable_array["diameter"] = "cm"
     options.input_units.section_array["line_angle"] = "rad"
 
@@ -71,8 +79,14 @@ def test_change_values_input_unit__one_value() -> None:
     assert options.input_units.cable_array == expected_dict_cable
     assert options.input_units.section_array == expected_dict_section
 
+    options.input_units.cable_array["diameter"] = original_diameter_unit
+    options.input_units.section_array["line_angle"] = original_angle_unit
+
 
 def test_input_unit__arrays() -> None:
+    original_diameter_unit = options.input_units.cable_array["diameter"]
+    original_angle_unit = options.input_units.section_array["line_angle"]
+
     options.input_units.cable_array["diameter"] = "cm"
     options.input_units.section_array["line_angle"] = "rad"
 
@@ -125,3 +139,5 @@ def test_input_unit__arrays() -> None:
 
     assert cable_array.input_units["diameter"] == "cm"
     assert section_array.input_units["line_angle"] == "rad"
+    options.input_units.cable_array["diameter"] = original_diameter_unit
+    options.input_units.section_array["line_angle"] = original_angle_unit

@@ -168,7 +168,7 @@ def test_parameter_calibration():
                 "line_angle": [0, 10, 0, 0],
                 "insulator_length": [0.001, 3, 3, 0.001],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_mass": [00, 0, 0, 00],
+                "insulator_mass": [0, 0, 0, 0],
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
