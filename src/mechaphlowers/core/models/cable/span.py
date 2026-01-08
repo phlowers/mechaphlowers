@@ -51,7 +51,7 @@ class ISpan(ABC):
             self.load_coefficient = load_coefficient
         # span_index refers to the index of the span:
         # is [0, 1, 2, ...], if there is no loads
-        # is [0, 1, 1, 2 ...], if there is a load in span number 1, and that ISpan reprensents this span by two values in the arrays
+        # is [0, 1, 1, 2 ...], if there is a load in span number 1, and that ISpan represents this span by two values in the arrays
         if span_index is None:
             self.span_index = np.arange(len(span_length))
         else:
