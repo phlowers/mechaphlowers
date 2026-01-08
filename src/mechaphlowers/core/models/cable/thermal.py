@@ -298,12 +298,13 @@ class ThermalEngine:
         self._load()
 
     def load(self):
-        """Load or reload the thermal model with the current input parameters."""
-        _, _ = normalize_inputs(**self.dict_input)
+        """Load or reload the thermal model, and checks the shape of the input parameters.
+        Can be used if the input parameters are modified without using set()."""
+        normalize_inputs(**self.dict_input)
         self._load()
 
     def _load(self):
-        """Load or reload the thermal model with the current input parameters."""
+        """Load the thermal model with the current input parameters."""
         # expected to fail if arguments are not filled
         self.thermal_model = self.power_model(
             dic=self.dict_input, heateq=self.heateq
