@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 from thermohl import solver  # type: ignore
+from typing_extensions import Self
 
 from mechaphlowers.entities.arrays import CableArray
 
@@ -34,6 +35,19 @@ class ThermalResults(ABC):
             pd.DataFrame: Parsed results as a pandas DataFrame.
         """
         pass
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __str__(self) -> str:
+        return self.data.to_string()
+
+    def __copy__(self) -> Self:
+        return type(self)(self.data)
+
+    def __repr__(self) -> str:
+        class_name = type(self).__name__
+        return f"{class_name}\n{self.__str__()}"
 
 
 class ThermalTransientResults(ThermalResults):
@@ -123,16 +137,18 @@ class ThermalForecastArray:
 
 # TODO: the temperature outputs have some parameters, perhpas properties are not the best way to handle that
 # TODO: add latitude/longitude/altitude/azimuth in the section array
-# TODO: add weather in the weather array
+# TODO: add weather in the weather array ?
+# TODO: warning, the thermal engine is using default parameters from thl, need to mirror that in mechaphlowers / future array structure ?
 # TODO: conf array for intensity / target temperature ?
 # TODO: builders for ThermalEngine from array
 # TODO: add unit for ThermalEngine
 # TODO: verify reactivity
 # TODO: plot part
 
+
 def normalize_inputs(
-    **kwargs: float | np.ndarray | None
-) -> tuple[dict[str, np.ndarray], int | None]:
+    **kwargs: float | np.ndarray | None,
+) -> tuple[dict[str, np.ndarray | float], int | None]:
     """Normalize and validate input parameters.
 
     Converts scalar floats to arrays and ensures all array inputs have the same shape.
@@ -142,13 +158,13 @@ def normalize_inputs(
         **kwargs: Input parameters as floats or arrays.
 
     Returns:
-        dict: Dictionary with all inputs converted to numpy arrays.
+        dict: Dictionary with inputs as numpy arrays or floats.
 
     Raises:
         ValueError: If array inputs have incompatible shapes.
     """
-    normalized = {}
-    array_length = None
+    normalized: dict[str, np.ndarray | float] = {}
+    array_length: int | None = None
 
     for key, value in kwargs.items():
         if value is None:
@@ -196,7 +212,6 @@ class ThermalEngine:
         self.dict_input = {}
         self.forecast = ThermalForecastArray()
         self.target_temperature = 65
-
 
     def set(
         self,
@@ -246,10 +261,10 @@ class ThermalEngine:
             wind_angle=wind_angle,
             solar_irradiance=solar_irradiance,
         )
-        
+
         # Set __len__ attribute if any array input was found
-        self.__len__ = array_length if array_length is not None else 1
-        
+        self._len = array_length if array_length is not None else 1
+
         self.dict_input = {
             "Qs": inputs["solar_irradiance"],
             "lat": inputs["latitude"],
@@ -263,7 +278,7 @@ class ThermalEngine:
             "ws": inputs["wind_speed"],  # wind speed (m.s**-1)
             "wa": inputs["wind_angle"],  # wind angle (deg, regarding north)
             "I": inputs["intensity"],
-            "m": cable_array.data.linear_weight.iloc[0],
+            "m": cable_array.data.linear_mass.iloc[0],
             "d": cable_array.data.diameter_heart.iloc[0],
             "D": cable_array.data.diameter.iloc[0],
             "a": cable_array.data.section_heart.iloc[0],
@@ -280,9 +295,14 @@ class ThermalEngine:
             if cable_array.data.has_magnetic_heart.iloc[0]
             else 0.0,
         }
-        self.load()
+        self._load()
 
     def load(self):
+        """Load or reload the thermal model with the current input parameters."""
+        _, _ = normalize_inputs(**self.dict_input)
+        self._load()
+
+    def _load(self):
         """Load or reload the thermal model with the current input parameters."""
         # expected to fail if arguments are not filled
         self.thermal_model = self.power_model(
@@ -299,6 +319,7 @@ class ThermalEngine:
         """
         if intensity is not None:
             self.dict_input["I"] = intensity
+            self.load()
         return ThermalSteadyResults(self.thermal_model.steady_temperature())
 
     def steady_intensity(
@@ -382,3 +403,28 @@ class ThermalEngine:
             self._normal_wind_mode = bool(value)
         except TypeError:
             logger.warning("normal_wind_mode is expected boolean")
+
+    def __len__(self) -> int:
+        """Get the length of input vectors.
+
+        Returns:
+            int: Length of input vectors.
+        """
+        if hasattr(self, "_len"):
+            return self._len
+        else:
+            raise AttributeError(
+                "Thermal Engine has no length, please set input parameters first."
+            )
+
+    def __str__(self) -> str:
+        return f"power_model={self.power_model.__name__}, heateq={self.heateq}"
+
+    def __repr__(self) -> str:
+        """Get string representation of ThermalEngine.
+
+        Returns:
+            str: String representation of the ThermalEngine instance.
+        """
+        class_name = type(self).__name__
+        return f"<{class_name}(power_model={self.power_model.__name__}, heateq={self.heateq})>"

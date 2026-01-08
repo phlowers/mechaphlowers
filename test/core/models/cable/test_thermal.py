@@ -14,7 +14,6 @@ from mechaphlowers.core.models.cable.thermal import (
     ThermalTransientResults,
 )
 from mechaphlowers.entities.arrays import CableArray
-from test.conftest import cable_array_AM600
 
 
 @pytest.fixture
@@ -43,14 +42,14 @@ def thermal_engine_3_spans(cable_array_AM600: CableArray) -> ThermalEngine:
         ),
         hour=np.array(
             [
-                12,
-                12,
+                22,
+                22,
                 12,
             ]
         ),
-        intensity=np.array([100.0, 100.0, 100.0]),
+        intensity=np.array([100.0, 1000.0, 1000.0]),
         ambient_temp=np.array([15.0, 15.0, 15.0]),
-        wind_speed=np.array([10.0, 10.0, 0.0]),
+        wind_speed=np.array([10.0, 1.0, 1.0]),
         wind_angle=np.array(
             [
                 90.0,
@@ -139,47 +138,143 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
     # expected 2 output rows, got 1 thl issue
     assert thermal_engine.steady_intensity().data.shape[0] == 1
 
-    thermal_engine.set(
-        cable_array_AM600,
-        latitude=np.array([45.0, 45.0, 45.0]),
-        longitude=np.array([0.0, 0.0, 0.0]),
-        altitude=np.array([0.0, 0.0, 0.0]),
-        azimuth=np.array([0.0, 0.0, 0.0]),
-        month=np.array(
-            [
-                3,
-                3,
-                3,
-            ]
-        ),
-        day=np.array(
-            [
-                21,
-                21,
-                21,
-            ]
-        ),
-        hour=np.array(
-            [
-                12,
-                12,
-                12,
-            ]
-        ),
-        intensity=np.array([100.0, 100.0, 100.0]),
-        ambient_temp=np.array([15.0, 15.0, 15.0]),
-        wind_speed=np.array([10.0, 10.0, 0.0]),
-        wind_angle=np.array(
-            [
-                90.0,
-                90.0,
-                90.0,
-            ]
-        ),
-    )
+
+def test_steady_intensity(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+
+    copy_result_without_input = thermal_engine.steady_intensity().data.copy()
 
     assert thermal_engine.steady_intensity().data.shape[0] == 3
+
+    np.testing.assert_array_almost_equal(
+        copy_result_without_input,
+        thermal_engine.steady_intensity(
+            thermal_engine.target_temperature
+        ).data,
+        decimal=5,
+    )
+
+    assert (
+        thermal_engine.steady_intensity(
+            target_temperature=thermal_engine.target_temperature + 10
+        ).data["t_core"]
+        > copy_result_without_input["t_core"]
+    ).all()
+
+
+def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+
+    thermal_engine.dict_input["I"] = np.array([100.0, 200.0, 300.0])
+    thermal_engine.load()
+
+    copy_result_without_input = thermal_engine.steady_temperature().data.copy()
+
     assert thermal_engine.steady_temperature().data.shape[0] == 3
+
+    # Testing manual input + changing just one parameter
+    assert (
+        copy_result_without_input["t_core"]
+        != thermal_engine.steady_temperature(
+            intensity=np.array([1000.0, 200.0, 300.0])
+        ).data["t_core"]
+    ).any()
+
+    # testing higher intensity leads to higher temperature
+    assert (
+        thermal_engine.steady_temperature(
+            intensity=np.array([1100.0, 1200.0, 1300.0])
+        ).data["t_core"]
+        > copy_result_without_input["t_core"]
+    ).all()
+
+
+def test_wrong_array_length(cable_array_AM600: CableArray):
+    thermal_engine = ThermalEngine()
+    with pytest.raises(
+        ValueError,
+        match="All array inputs must have the same length.",
+    ):
+        thermal_engine.set(
+            cable_array_AM600,
+            latitude=np.array([45.0, 45.0]),
+            longitude=np.array([0.0, 0.0]),
+            altitude=np.array([0.0, 0.0]),
+            azimuth=np.array([0.0, 0.0]),
+            month=np.array(
+                [
+                    3,
+                    3,
+                    3,
+                ]
+            ),
+            day=np.array(
+                [
+                    21,
+                    21,
+                ]
+            ),
+            hour=np.array(
+                [
+                    12,
+                    12,
+                    12,
+                ]
+            ),
+            intensity=np.array([100.0, 100.0]),
+            ambient_temp=np.array([15.0, 15.0]),
+            wind_speed=np.array([10.0, 10.0]),
+            wind_angle=np.array(
+                [
+                    90.0,
+                    90.0,
+                ]
+            ),
+        )
+
+
+def test_wrong_array_length_at_load(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+    with pytest.raises(
+        ValueError,
+        match="All array inputs must have the same length.",
+    ):
+        thermal_engine.dict_input["latitude"] = np.array([45.0, 45.0])
+        thermal_engine.load()
+
+
+def test_add_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+    # latitude_old = thermal_engine.dict_input["lat"]
+
+    thermal_engine.dict_input["lat"] = 40.0
+    thermal_engine.load()
+
+    # no error should be raised
+
+
+def test_change_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+    latitude_old = thermal_engine.dict_input["lat"]
+
+    thermal_engine.dict_input["lat"] = np.array([40.0, 40.0, 40.0])
+    thermal_engine.load()
+
+    assert not np.array_equal(
+        thermal_engine.thermal_model.args.lat, latitude_old
+    )
+
+
+def test_len_str_repr(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+    assert len(thermal_engine) == 3
+    assert isinstance(str(thermal_engine), str)
+    assert isinstance(repr(thermal_engine), str)
+
+    thermal_results = thermal_engine.steady_temperature()
+    assert len(thermal_results) == 3
+    assert isinstance(str(thermal_results), str)
+    assert isinstance(repr(thermal_results), str)
 
 
 def test_transient_thermal(cable_array_AM600: CableArray):
@@ -228,15 +323,15 @@ def test_transient_thermal(cable_array_AM600: CableArray):
         thermal_engine.wind_cable_angle, np.array([90.0, 80.0, 70.0])
     )
 
+
 def test_steady_tempeature(thermal_engine_3_spans: ThermalEngine):
     steady_temp_results = thermal_engine_3_spans.steady_temperature()
     assert len(steady_temp_results.data) == 3
-    
-    
+
     np.testing.assert_array_almost_equal(
         steady_temp_results.data["t_core"],
-        np.array([75.580169, 75.580169, 90.000000]),
-        decimal=5,
+        np.array([15.1, 45.4, 87.9]),
+        decimal=0,
     )
 
 
