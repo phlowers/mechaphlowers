@@ -402,7 +402,7 @@ class BalanceModel(IBalanceModel):
         """
         # If no loads, only update with data from self.span_model
         if not self.has_loads:
-            self.nodes_span_model.copy_attributes(self.span_model)
+            self.nodes_span_model.mirror(self.span_model)
         else:
             return self.merge_loads_to_span_model()
 

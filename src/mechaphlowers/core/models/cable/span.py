@@ -100,7 +100,7 @@ class ISpan(ABC):
         self._x_n = self.compute_x_n()
         self._L = self.compute_L()
 
-    def copy_attributes(self, span_model: Self) -> None:
+    def mirror(self, span_model: Self) -> None:
         """Copy attributes from an other ISpan object.
         This method is useful for copying values and keeping the reference of the current object.
 
