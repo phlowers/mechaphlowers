@@ -64,7 +64,61 @@ def test_plot_loads(cable_array_AM600: CableArray):
 
     plt_engine.preview_line3d(fig)
 
-    # fig.show()
+    fig.show()
+
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot()
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
+
+
+def test_plot_add_loads_later(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": [0, 10, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, np.nan],
+                "load_position": [0, 0., 0., np.nan],
+            }
+        )
+    )
+    section_array.add_units({"line_angle": "grad"})
+
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+
+    balance_engine_one_load = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=section_array,
+    )
+
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_one_load
+    )
+
+    balance_engine_one_load.solve_adjustment()
+    balance_engine_one_load.section_array._data["load_position"] = [0.2, 0.4, 0.7, np.nan]
+    balance_engine_one_load.section_array._data["load_mass"] = [5000, 10000, 0, np.nan]
+    balance_engine_one_load.reset()
+    balance_engine_one_load.solve_adjustment()
+    balance_engine_one_load.solve_change_state(
+        new_temperature=15, wind_pressure=560
+    )
+
+    fig = go.Figure()
+
+    plt_engine.preview_line3d(fig)
+
+    fig.show()
 
     span_points, _, insulators_points = (
         plt_engine.section_pts.get_points_for_plot()
