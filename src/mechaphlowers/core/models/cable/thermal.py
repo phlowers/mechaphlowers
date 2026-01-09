@@ -135,7 +135,7 @@ class ThermalForecastArray:
     solar_irradiance = np.linspace(0, 800, 10)
 
 
-# TODO: the temperature outputs have some parameters, perhpas properties are not the best way to handle that
+# TODO: the temperature outputs have some parameters, perhaps properties are not the best way to handle that
 # TODO: add latitude/longitude/altitude/azimuth in the section array
 # TODO: add weather in the weather array ?
 # TODO: warning, the thermal engine is using default parameters from thl, need to mirror that in mechaphlowers / future array structure ?

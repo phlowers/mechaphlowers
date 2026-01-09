@@ -324,7 +324,7 @@ def test_transient_thermal(cable_array_AM600: CableArray):
     )
 
 
-def test_steady_tempeature(thermal_engine_3_spans: ThermalEngine):
+def test_steady_temperature_1(thermal_engine_3_spans: ThermalEngine):
     steady_temp_results = thermal_engine_3_spans.steady_temperature()
     assert len(steady_temp_results.data) == 3
 

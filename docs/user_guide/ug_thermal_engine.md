@@ -12,7 +12,7 @@ The ThermalEngine computes the temperature distribution in power transmission ca
 
 - Cable properties (resistance, thermal conductivity, dimensions)
 - Operational parameters (electrical current)
-- Environmental conditions (ambient temperature, wind speed, winf angle, solar radiation)
+- Environmental conditions (ambient temperature, wind speed, wind angle, solar radiation)
 - Geographic location and time (latitude, longitude, altitude, month, day, hour)
 
 ### Thermal Calculations Supported
