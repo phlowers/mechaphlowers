@@ -51,6 +51,7 @@ nav:
       - Parameter calibration : user_guide/ug_parameter_calibration.md
       - Configuration: user_guide/ug_configuration.md
       - Plotting: user_guide/ug_maps.md
+      - Thermal engine: user_guide/ug_thermal_engine.md
       - Specific errors used: user_guide/ug_mph_errors.md
   - Developer guide:
       - API Reference:
@@ -80,6 +81,7 @@ nav:
                   - Cable:
                       - Span: docstring/core/models/cable/span.md
                       - Deformation: docstring/core/models/cable/deformation.md
+                      - Thermal Engine: docstring/core/models/cable/thermal_engine.md
                   - External loads: docstring/core/models/external_loads.md
               - Solver:
                   - Cable state: docstring/core/solver/cable_state.md

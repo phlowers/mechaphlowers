@@ -11,6 +11,7 @@ import pandas as pd
 
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.core.models.cable.thermal import ThermalEngine
 from mechaphlowers.data.measures import (
     PapotoParameterMeasure,
     param_calibration,
@@ -41,4 +42,5 @@ __all__ = [
     "units",
     "PapotoParameterMeasure",
     "param_calibration",
+    "ThermalEngine",
 ]
