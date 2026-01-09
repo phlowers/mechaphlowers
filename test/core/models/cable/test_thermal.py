@@ -248,10 +248,9 @@ def test_add_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
     # latitude_old = thermal_engine.dict_input["lat"]
 
     thermal_engine.dict_input["lat"] = 40.0
-    
+
     with pytest.raises(TypeError):
         thermal_engine.load()
-
 
 
 def test_change_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
