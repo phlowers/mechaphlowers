@@ -146,47 +146,47 @@ class ThermalForecastArray:
 # TODO: plot part
 
 
-def normalize_inputs(
-    **kwargs: float | np.ndarray | None,
-) -> tuple[dict[str, np.ndarray | float], int | None]:
-    """Normalize and validate input parameters.
+def check_inputs(
+    **kwargs: np.ndarray,
+) -> tuple[dict[str, np.ndarray], int]:
+    """Validate input parameters.
 
-    Converts scalar floats to arrays and ensures all array inputs have the same shape.
-    Sets the __len__ attribute to the length of input vectors.
+    Ensures all inputs are numpy arrays with the same size.
 
     Args:
-        **kwargs: Input parameters as floats or arrays.
+        **kwargs: Input parameters as numpy arrays.
 
     Returns:
-        dict: Dictionary with inputs as numpy arrays or floats.
+        tuple: A tuple containing:
+            - dict: Dictionary with the input numpy arrays.
+            - int: The common length of all arrays.
 
     Raises:
-        ValueError: If array inputs have incompatible shapes.
+        ValueError: If array inputs have incompatible sizes.
+        TypeError: If any input is not a numpy array.
     """
-    normalized: dict[str, np.ndarray | float] = {}
+
     array_length: int | None = None
 
     for key, value in kwargs.items():
-        if value is None:
-            normalized[key] = np.nan
-        elif isinstance(value, (int, float)):
-            # Convert scalar to array, will broadcast later if needed
-            normalized[key] = np.asarray(value)
-        elif isinstance(value, np.ndarray):
-            normalized[key] = value
-            # Track the length of array inputs
-            if value.size > 1:
-                if array_length is None:
-                    array_length = value.size
-                elif value.size != array_length:
-                    raise ValueError(
-                        f"All array inputs must have the same length. "
-                        f"Expected {array_length}, got {value.size} for {key}."
-                    )
-        else:
-            normalized[key] = np.asarray(value)
+        if not isinstance(value, np.ndarray):
+            raise TypeError(
+                f"Expected numpy array for '{key}', got {type(value).__name__}."
+            )
 
-    return normalized, array_length
+        # Track and validate the length of array inputs
+        if array_length is None:
+            array_length = value.size
+        elif value.size != array_length:
+            raise ValueError(
+                f"All array inputs must have the same length. "
+                f"Expected {array_length}, got {value.size} for {key}."
+            )
+
+    if array_length is None:
+        array_length = 0
+
+    return kwargs, array_length
 
 
 class ThermalEngine:
@@ -232,22 +232,26 @@ class ThermalEngine:
         """Set input parameters for thermal calculations.
 
         Args:
-            cable_array (np.array): An instance of CableArray containing cable properties.
-            latitude (np.array): Latitude values.
-            longitude (np.array): Longitude values.
-            altitude (np.array): Altitude values.
-            azimuth (np.array): Azimuth values.
-            month (np.array): Month values.
-            day (np.array): Day values.
-            hour (np.array): Hour values.
-            intensity (np.array): Current intensity values.
-            ambient_temp (np.array): Ambient temperature values.
-            wind_speed (np.array): Wind speed values.
-            wind_angle (np.array): Wind angle values.
-            solar_irradiance (np.array): Solar irradiance values (optional). Defaults to None.
+            cable_array (CableArray): An instance of CableArray containing cable properties.
+            latitude (np.ndarray): Latitude values.
+            longitude (np.ndarray): Longitude values.
+            altitude (np.ndarray): Altitude values.
+            azimuth (np.ndarray): Azimuth values.
+            month (np.ndarray): Month values.
+            day (np.ndarray): Day values.
+            hour (np.ndarray): Hour values.
+            intensity (np.ndarray): Current intensity values.
+            ambient_temp (np.ndarray): Ambient temperature values.
+            wind_speed (np.ndarray): Wind speed values.
+            wind_angle (np.ndarray): Wind angle values.
+            solar_irradiance (np.ndarray | None): Solar irradiance values (optional). Defaults to None.
         """
+        # Handle optional solar_irradiance - create NaN array if not provided
+        if solar_irradiance is None:
+            solar_irradiance = np.full_like(latitude, np.nan, dtype=np.float64)
+
         # Normalize and validate all input parameters
-        inputs, array_length = normalize_inputs(
+        inputs, self._len = check_inputs(
             latitude=latitude,
             longitude=longitude,
             altitude=altitude,
@@ -262,9 +266,6 @@ class ThermalEngine:
             solar_irradiance=solar_irradiance,
         )
 
-        # Set __len__ attribute if any array input was found
-        self._len = array_length if array_length is not None else 1
-
         self.dict_input = {
             "Qs": inputs["solar_irradiance"],
             "lat": inputs["latitude"],
@@ -278,29 +279,42 @@ class ThermalEngine:
             "ws": inputs["wind_speed"],  # wind speed (m.s**-1)
             "wa": inputs["wind_angle"],  # wind angle (deg, regarding north)
             "I": inputs["intensity"],
-            "m": cable_array.data.linear_mass.iloc[0],
-            "d": cable_array.data.diameter_heart.iloc[0],
-            "D": cable_array.data.diameter.iloc[0],
-            "a": cable_array.data.section_heart.iloc[0],
-            "A": cable_array.data.section_conductor.iloc[0],
-            "l": cable_array.data.radial_thermal_conductivity.iloc[0],
-            "alpha": cable_array.data.solar_absorption.iloc[0],
-            "epsilon": cable_array.data.emissivity.iloc[0],
-            "RDC20": cable_array.data.electric_resistance_20.iloc[0],
-            "kl": cable_array.data.linear_resistance_temperature_coef.iloc[0],
-            "km": 1.006
-            if cable_array.data.has_magnetic_heart.iloc[0]
-            else 1.0,
-            "ki": 0.016
-            if cable_array.data.has_magnetic_heart.iloc[0]
-            else 0.0,
+            "m": np.full(self._len, cable_array.data.linear_mass.iloc[0]),
+            "d": np.full(self._len, cable_array.data.diameter_heart.iloc[0]),
+            "D": np.full(self._len, cable_array.data.diameter.iloc[0]),
+            "a": np.full(self._len, cable_array.data.section_heart.iloc[0]),
+            "A": np.full(
+                self._len, cable_array.data.section_conductor.iloc[0]
+            ),
+            "l": np.full(
+                self._len, cable_array.data.radial_thermal_conductivity.iloc[0]
+            ),
+            "alpha": np.full(
+                self._len, cable_array.data.solar_absorption.iloc[0]
+            ),
+            "epsilon": np.full(self._len, cable_array.data.emissivity.iloc[0]),
+            "RDC20": np.full(
+                self._len, cable_array.data.electric_resistance_20.iloc[0]
+            ),
+            "kl": np.full(
+                self._len,
+                cable_array.data.linear_resistance_temperature_coef.iloc[0],
+            ),
+            "km": np.full(
+                self._len,
+                1.006 if cable_array.data.has_magnetic_heart.iloc[0] else 1.0,
+            ),
+            "ki": np.full(
+                self._len,
+                0.016 if cable_array.data.has_magnetic_heart.iloc[0] else 0.0,
+            ),
         }
         self._load()
 
     def load(self):
         """Load or reload the thermal model, and checks the shape of the input parameters.
         Can be used if the input parameters are modified without using set()."""
-        normalize_inputs(**self.dict_input)
+        check_inputs(**self.dict_input)
         self._load()
 
     def _load(self):

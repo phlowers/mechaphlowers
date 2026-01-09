@@ -79,6 +79,7 @@ nav:
                   - Cable:
                       - Span: docstring/core/models/cable/span.md
                       - Deformation: docstring/core/models/cable/deformation.md
+                      - Thermal Engine: docstring/core/models/cable/thermal_engine.md
                   - External loads: docstring/core/models/external_loads.md
               - Solver:
                   - Cable state: docstring/core/solver/cable_state.md

@@ -35,7 +35,7 @@ thermal_engine = ThermalEngine()
 
 ### Setting Input Parameters
 
-Use the `set()` method to configure all input parameters:
+Use the `set()` method to configure all input parameters. **All inputs must be numpy arrays**:
 
 ```python
 import numpy as np
@@ -43,20 +43,20 @@ import numpy as np
 # Get a cable from the catalog
 cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
 
-# Set thermal engine parameters
+# Set thermal engine parameters (all inputs as numpy arrays)
 thermal_engine.set(
     cable_array=cable_array,
-    latitude=45.0,
-    longitude=0.0,
-    altitude=0.0,
-    azimuth=0.0,  # Cable direction (degrees from north)
-    month=3,
-    day=21,
-    hour=12,
-    intensity=500.0,  # Current in Amperes
-    ambient_temp=15.0,  # Ambient temperature in Celsius
-    wind_speed=10.0,  # Wind speed in m/s
-    wind_angle=90.0,  # Wind direction angle (degrees from north)
+    latitude=np.array([45.0]),
+    longitude=np.array([0.0]),
+    altitude=np.array([0.0]),
+    azimuth=np.array([0.0]),  # Cable direction (degrees from north)
+    month=np.array([3]),
+    day=np.array([21]),
+    hour=np.array([12]),
+    intensity=np.array([500.0]),  # Current in Amperes
+    ambient_temp=np.array([15.0]),  # Ambient temperature in Celsius
+    wind_speed=np.array([10.0]),  # Wind speed in m/s
+    wind_angle=np.array([90.0]),  # Wind direction angle (degrees from north)
     solar_irradiance=None,  # Optional: solar radiation (W/m²)
 )
 ```
@@ -66,39 +66,39 @@ thermal_engine.set(
 | Parameter | Type | Unit | Description |
 |-----------|------|------|-------------|
 | `cable_array` | CableArray | - | Cable properties (diameter, resistance, thermal conductivity, etc.) |
-| `latitude` | float/array | degrees | Geographic latitude |
-| `longitude` | float/array | degrees | Geographic longitude |
-| `altitude` | float/array | meters | Altitude above sea level |
-| `azimuth` | float/array | degrees | Cable direction (0°=North, 90°=East, 180°=South, 270°=West) |
-| `month` | int/array | 1-12 | Month of the year |
-| `day` | int/array | 1-31 | Day of the month |
-| `hour` | int/array | 0-23 | Hour of the day |
-| `intensity` | float/array | Amperes | Electrical current through the cable |
-| `ambient_temp` | float/array | °C | Ambient air temperature |
-| `wind_speed` | float/array | m/s | Wind speed magnitude |
-| `wind_angle` | float/array | degrees | Wind direction (0°=North, 90°=East) |
-| `solar_irradiance` | float/array | W/m² | Solar radiation (optional, auto-calculated if None) |
+| `latitude` | np.ndarray | degrees | Geographic latitude |
+| `longitude` | np.ndarray | degrees | Geographic longitude |
+| `altitude` | np.ndarray | meters | Altitude above sea level |
+| `azimuth` | np.ndarray | degrees | Cable direction (0°=North, 90°=East, 180°=South, 270°=West) |
+| `month` | np.ndarray | 1-12 | Month of the year |
+| `day` | np.ndarray | 1-31 | Day of the month |
+| `hour` | np.ndarray | 0-23 | Hour of the day |
+| `intensity` | np.ndarray | Amperes | Electrical current through the cable |
+| `ambient_temp` | np.ndarray | °C | Ambient air temperature |
+| `wind_speed` | np.ndarray | m/s | Wind speed magnitude |
+| `wind_angle` | np.ndarray | degrees | Wind direction (0°=North, 90°=East) |
+| `solar_irradiance` | np.ndarray \| None | W/m² | Solar radiation (optional, auto-calculated if None) |
 
 ## Features and Usage
 
-### 1. Scalar Inputs (Single Location/Condition)
+### 1. Single Location/Condition
 
-Calculate thermal conditions for a single set of conditions:
+Calculate thermal conditions for a single set of conditions (using single-element arrays):
 
 ```python
 thermal_engine.set(
     cable_array=cable_array,
-    latitude=45.0,
-    longitude=0.0,
-    altitude=0.0,
-    azimuth=0.0,
-    month=3,
-    day=21,
-    hour=12,
-    intensity=500.0,
-    ambient_temp=15.0,
-    wind_speed=10.0,
-    wind_angle=90.0,
+    latitude=np.array([45.0]),
+    longitude=np.array([0.0]),
+    altitude=np.array([0.0]),
+    azimuth=np.array([0.0]),
+    month=np.array([3]),
+    day=np.array([21]),
+    hour=np.array([12]),
+    intensity=np.array([500.0]),
+    ambient_temp=np.array([15.0]),
+    wind_speed=np.array([10.0]),
+    wind_angle=np.array([90.0]),
 )
 
 # Compute steady-state temperature
@@ -211,28 +211,28 @@ print(result.data)
 
 ### 6. Dynamic Parameter Updates
 
-Modify parameters after initialization without resetting the entire engine:
+Modify parameters after initialization without resetting the entire engine. **Note: All values must be numpy arrays with the same length**:
 
 ```python
 # Initial setup
 thermal_engine.set(
     cable_array=cable_array,
-    latitude=45.0,
-    longitude=0.0,
-    altitude=0.0,
-    azimuth=0.0,
-    month=3,
-    day=21,
-    hour=12,
-    intensity=500.0,
-    ambient_temp=15.0,
-    wind_speed=10.0,
-    wind_angle=90.0,
+    latitude=np.array([45.0, 46.0]),
+    longitude=np.array([0.0, 1.0]),
+    altitude=np.array([0.0, 100.0]),
+    azimuth=np.array([0.0, 45.0]),
+    month=np.array([3, 3]),
+    day=np.array([21, 21]),
+    hour=np.array([12, 14]),
+    intensity=np.array([500.0, 600.0]),
+    ambient_temp=np.array([15.0, 18.0]),
+    wind_speed=np.array([10.0, 8.0]),
+    wind_angle=np.array([90.0, 90.0]),
 )
 
-# Update specific parameters
-thermal_engine.dict_input["I"] = 600.0  # Change intensity
-thermal_engine.dict_input["Ta"] = 20.0  # Change ambient temperature
+# Update specific parameters (must be numpy arrays of same length)
+thermal_engine.dict_input["I"] = np.array([700.0, 800.0])  # Change intensity
+thermal_engine.dict_input["Ta"] = np.array([20.0, 22.0])  # Change ambient temperature
 thermal_engine.load()  # Reload with new parameters
 
 # Compute new results
