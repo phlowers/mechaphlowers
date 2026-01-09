@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -232,3 +232,51 @@ def test_display_span_model__many_spans() -> None:
     span_model = CatenarySpan(a, b, p, span_type=span_type)
 
     span_model.get_coords(10)
+
+
+def test_copy_attributes_partial() -> None:
+    a = np.array([501.3, 499.0])  # test here int and float
+    b = np.array([0.0, -5.0])
+    p = np.array([2_112.2, 2_112.0])
+    span_model = CatenarySpan(a, b, p)
+    copy_span_model = CatenarySpan(
+        np.array([100]), np.array([1]), np.array([2000])
+    )
+    old_id = id(copy_span_model)
+    copy_span_model.mirror(span_model)
+    np.testing.assert_equal(copy_span_model.span_length, a)
+    np.testing.assert_equal(copy_span_model.elevation_difference, b)
+    np.testing.assert_equal(copy_span_model.sagging_parameter, p)
+    assert old_id == id(copy_span_model)
+
+
+def test_copy_attributes_full() -> None:
+    a = np.array([501.3, 499.0])  # test here int and float
+    b = np.array([0.0, -5.0])
+    p = np.array([2_112.2, 2_112.0])
+    k_load = np.array([1, 1])
+    lambd = np.float64(16.0)
+    span_index = np.array([0, 0])
+    span_type = np.array([0, 1])
+
+    span_model = CatenarySpan(
+        a,
+        b,
+        p,
+        k_load,
+        linear_weight=lambd,
+        span_index=span_index,
+        span_type=span_type,
+    )
+    copy_span_model = CatenarySpan(
+        np.array([100]), np.array([1]), np.array([2000])
+    )
+    old_id = id(copy_span_model)
+    copy_span_model.mirror(span_model)
+    np.testing.assert_equal(copy_span_model.span_length, a)
+    np.testing.assert_equal(copy_span_model.elevation_difference, b)
+    np.testing.assert_equal(copy_span_model.sagging_parameter, p)
+    np.testing.assert_equal(copy_span_model.load_coefficient, k_load)
+    np.testing.assert_equal(copy_span_model.span_index, span_index)
+    np.testing.assert_equal(copy_span_model.span_type, span_type)
+    assert old_id == id(copy_span_model)

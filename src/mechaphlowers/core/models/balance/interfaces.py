@@ -127,6 +127,6 @@ class IBalanceModel(IModelForSolver, ABC):
         pass
 
     @abstractmethod
-    def update_node_span_model(self) -> None:
+    def update_nodes_span_model(self) -> None:
         """Update the span model of the nodes if loads are applied."""
         pass

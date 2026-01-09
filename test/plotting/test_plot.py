@@ -1,9 +1,8 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
-
 
 import numpy as np
 import pandas as pd
@@ -30,10 +29,11 @@ from mechaphlowers.plotting.plot import (
     plot_points_2d,
     plot_support_shape,
 )
+from test.tools.plot_tools import assert_cable_linked_to_attachment
 
 
 @fixture
-def balance_engine_local_test() -> BalanceEngine:
+def balance_engine_local_initialized() -> BalanceEngine:
     data = {
         "name": ["1", "2", "three", "support 4"],
         "suspension": [False, True, True, False],
@@ -66,6 +66,7 @@ def balance_engine_local_test() -> BalanceEngine:
         cable_array=cable_array_AM600, section_array=section
     )
     balance_engine_local_test.solve_adjustment()
+    balance_engine_local_test.solve_change_state()
     return balance_engine_local_test
 
 
@@ -73,11 +74,11 @@ def balance_engine_local_test() -> BalanceEngine:
 
 
 def test_plot_line3d__all_line(
-    balance_engine_local_test: BalanceEngine,
+    balance_engine_local_initialized: BalanceEngine,
 ) -> None:
     fig = go.Figure()
     plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_test
+        balance_engine_local_initialized
     )
     plt_engine.preview_line3d(fig)
     # fig.show()  # deactivate for auto unit testing
@@ -92,14 +93,18 @@ def test_plot_line3d__all_line(
         == 1
     )
     assert len(fig.data) == 3  # Just trying to see if the previous code raises
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot()
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
 def test_plot_line3d__view_option(
-    balance_engine_local_test: BalanceEngine,
+    balance_engine_local_initialized: BalanceEngine,
 ) -> None:
     fig = go.Figure()
     plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_test
+        balance_engine_local_initialized
     )
     plt_engine.preview_line3d(fig, view="analysis")
     # fig.show()
@@ -117,11 +122,11 @@ def test_plot_line3d__view_option(
 
 
 def test_plot_line3d__wrong_view_option(
-    balance_engine_local_test: BalanceEngine,
+    balance_engine_local_initialized: BalanceEngine,
 ) -> None:
     fig = go.Figure()
     plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_test
+        balance_engine_local_initialized
     )
     plt_engine.preview_line3d(fig)
     with pytest.raises(ValueError):
@@ -130,14 +135,16 @@ def test_plot_line3d__wrong_view_option(
         plt_engine.preview_line3d(fig, view=22)  # type: ignore[arg-type]
 
 
-def test_plot_line3d__with_beta(balance_engine_local_test: BalanceEngine):
-    balance_engine_local_test.solve_change_state(
+def test_plot_line3d__with_beta(
+    balance_engine_local_initialized: BalanceEngine,
+):
+    balance_engine_local_initialized.solve_change_state(
         ice_thickness=np.array([0.0, 0.6, 0.0, np.nan]),
         wind_pressure=np.array([240.12, 0.0, 600.0, np.nan]),
     )
 
     plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_test
+        balance_engine_local_initialized
     )
     fig = go.Figure()
     plt_engine.preview_line3d(fig)
@@ -153,6 +160,11 @@ def test_plot_line3d__with_beta(balance_engine_local_test: BalanceEngine):
         == 1
     )
     assert len(fig.data) == 3  # Just trying to see if the previous code raises
+
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot()
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
 def test_plot_support_shape():
@@ -207,15 +219,18 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
 
     # fig.show()  # deactivate for auto unit testing
 
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot()
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
+
 
 def test_plot_ice(balance_engine_base_test: BalanceEngine):
     plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_base_test
     )
     balance_engine_base_test.solve_adjustment()
-    balance_engine_base_test.solve_change_state(
-        new_temperature=15 * np.array([1, 1, 1, 1])
-    )
+    balance_engine_base_test.solve_change_state(new_temperature=15)
     plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_base_test
     )
@@ -244,6 +259,10 @@ def test_plot_ice(balance_engine_base_test: BalanceEngine):
         )
         == 2
     )
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot()
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
 def test_plot_2d(balance_engine_angles: BalanceEngine):
@@ -270,6 +289,10 @@ def test_plot_2d(balance_engine_angles: BalanceEngine):
 
     # fig_line.show()
     # fig_profile.show()  # deactivate for auto unit testing
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot(project=True, frame_index=1)
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
 def test_plot_more_spans(cable_array_AM600: CableArray):
@@ -293,6 +316,10 @@ def test_plot_more_spans(cable_array_AM600: CableArray):
 
     # fig_line.show()
     # fig_profile.show()  # deactivate for auto unit testing
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot()
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
 def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
@@ -310,7 +337,10 @@ def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
     )
 
     plt_engine.preview_line3d(fig)
-
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot()
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
     # fig.show()  # deactivate for auto unit testing
 
 
@@ -325,12 +355,14 @@ def test_plot_3d__styles(balance_engine_angles: BalanceEngine):
     # plt_engine.preview_line2d(fig)
     # balance_engine_base_test.solve_adjustment()
     balance_engine_angles.solve_change_state(
-        wind_pressure=np.array([1, 1, 1, np.nan]) * 500,
-        # new_temperature=90.
+        wind_pressure=500,
     )
 
     plt_engine.preview_line3d(fig)
-
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot()
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
     # fig.show()  # deactivate for auto unit testing
 
 

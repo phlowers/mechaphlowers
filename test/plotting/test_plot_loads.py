@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -19,6 +19,7 @@ from mechaphlowers.entities.arrays import (
 from mechaphlowers.plotting.plot import (
     PlotEngine,
 )
+from test.tools.plot_tools import assert_cable_linked_to_attachment
 
 
 def test_plot_loads(cable_array_AM600: CableArray):
@@ -64,3 +65,8 @@ def test_plot_loads(cable_array_AM600: CableArray):
     plt_engine.preview_line3d(fig)
 
     # fig.show()
+
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot()
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
