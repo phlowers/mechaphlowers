@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Callable, Self, Tuple
+from typing import Callable, List, Self, Tuple
 
 import numpy as np
 from typing_extensions import Literal  # type: ignore[attr-defined]
@@ -22,10 +22,11 @@ from mechaphlowers.core.geometry.references import (
     cable_to_localsection_frame,
     project_coords,
     translate_cable_to_support_from_attachments,
+    translate_to_absolute_frame,
 )
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.arrays import ObstacleArray, SectionArray
 
 
 def stack_nan(coords: np.ndarray) -> np.ndarray:
@@ -200,169 +201,81 @@ class Points:
         return cls(coords)
 
 
-# class SectionPoints:
-#     def __init__(
-#         self,
-#         span_length: np.ndarray,
-#         conductor_attachment_altitude: np.ndarray,
-#         crossarm_length: np.ndarray,
-#         insulator_length: np.ndarray,
-#         line_angle: np.ndarray,
-#         span_model: ISpan,
-#         **_,
-#     ):
-#         """Initialize the SectionPoints object with section parameters and a span model.
+class SparsePoints:
+    # suggestion of class similar to points to store obstacle coordinates
+    # it have to behave similarly to Points class for plot engine (interface ? protocol ? :))
+    def __init__(
+        self,
+        object_name: List,
+        point_index: np.ndarray,
+        span_index: np.ndarray,
+        x: np.ndarray,
+        y: np.ndarray,
+        z: np.ndarray,
+        object_type: List,
+    ) -> None:
+        self.object_name = object_name
+        self.point_index = point_index
+        self.span_index = span_index
+        self.x = x
+        self.y = y
+        self.z = z
+        self.object_type = object_type
 
-#         Args:
-#             span_length (np.ndarray): The length of the spans.
-#             conductor_attachment_altitude (np.ndarray): The altitude of the conductor attachments.
-#             crossarm_length (np.ndarray): The length of the crossarms.
-#             insulator_length (np.ndarray): The length of the insulators.
-#             line_angle (np.ndarray): The relative angle of the span.
-#             span_model (Span): The span model to use for the points generation.
-#         """
-#         (
-#             self.supports_ground_coords,
-#             self.center_arm_coords,
-#             self.arm_coords,
-#             self.attachment_coords,
-#         ) = get_supports_coords(
-#             span_length,
-#             line_angle,
-#             conductor_attachment_altitude,
-#             crossarm_length,
-#             insulator_length,
-#         )
-#         self.plane = CablePlane(
-#             span_length,
-#             conductor_attachment_altitude,
-#             crossarm_length,
-#             insulator_length,
-#             line_angle,
-#         )
+    @classmethod
+    def builder_from_obstacle_array(
+        cls, obstacle_array: ObstacleArray
+    ) -> Self:
+        data = obstacle_array.data
+        object_name = data["name"].to_list()
+        point_index = data["point_index"].to_numpy()
+        span_index = data["span_index"].to_numpy()
+        x = data["x"].to_numpy()
+        y = data["y"].to_numpy()
+        z = data["z"].to_numpy()
+        object_type = data["object_type"].to_list()
+        return cls(object_name, point_index, span_index, x, y, z, object_type)
 
-#         # self.a = span_length
-#         self.line_angle = line_angle
-#         # self.b = conductor_attachment_altitude
-#         self.crossarm_length = crossarm_length
-#         self.insulator_length = insulator_length
-#         self._beta = np.array([])
-#         self.init_span(span_model)
+    def update_vectors(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
 
-#     def init_span(self, span_model: ISpan) -> None:
-#         """change the span model and update the cable coordinates."""
-#         self.span_model = span_model
-#         self.update_ab()
-#         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
+    def get_vectors(self):
+        return self.x, self.y, self.z
 
-#     def update_ab(self):
-#         """Sometimes plane object is updated, so we need to update the span model."""
-#         self.span_model.span_length = self.plane.a_chain
-#         self.span_model.elevation_difference = self.plane.b_chain
+    def points(self, stack=False) -> np.ndarray:
+        """
+        [[x0, y0, z0], # first obstacle
+        [x1, y1, z1],
+        [np.nan, np.nan, np.nan], # separator if stack=True
+        [x0, y0, z0], # second obstacle
+        [x1, y1, z1],
+        [x2, y2, z2],
+        [np.nan, np.nan, np.nan], # separator if stack=True
+        ]
+        """
+        points = np.array([self.x, self.y, self.z]).T
+        # TODO: rework inserting nan: this method assume that points are correctly ordered by object and point index
+        if stack:
+            # get indices at the beginning of each object
+            insert_indices = np.nonzero(self.point_index == 0)[0]
+            nan_array = np.array([np.nan, np.nan, np.nan])
+            points = np.insert(points, insert_indices, nan_array, axis=0)
+        return points
 
-#     def set_cable_coordinates(self, resolution: int) -> None:
-#         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
-#         self.x_cable: np.ndarray = self.span_model.x(resolution)
-#         self.z_cable: np.ndarray = self.span_model.z_many_points(self.x_cable)
-
-#     @property
-#     def beta(self) -> np.ndarray:
-#         """Get the beta angles for the cable spans.
-#         Beta is the angle du to the load on the cable"""
-#         if self._beta.size == 0:
-#             beta = np.zeros(self.x_cable.shape[1])
-#         else:
-#             beta = self._beta
-#         return beta
-
-#     @beta.setter
-#     def beta(self, value: np.ndarray):
-#         if not isinstance(value, np.ndarray):
-#             raise TypeError("Beta must be a numpy array")
-#         if value.ndim != 1:
-#             raise ValueError("Beta must be a 1D array")
-#         self._beta = value
-
-#     def span_in_cable_frame(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-#         """Get spans as vectors in the cable frame."""
-#         # Rotate the cable with an angle to represent the wind
-#         x_span, y_span, z_span = cable_to_beta_plane(
-#             self.x_cable[:, :-1], self.z_cable[:, :-1], beta=self.beta[:-1]
-#         )
-#         return x_span, y_span, z_span
-
-#     def span_in_localsection_frame(
-#         self,
-#     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-#         """Get spans as vectors in the localsection frame."""
-#         x_span, y_span, z_span = self.span_in_cable_frame()
-#         x_span, y_span, z_span = cable_to_localsection_frame(
-#             x_span, y_span, z_span, self.plane.angle_proj[:-1]
-#         )
-#         return x_span, y_span, z_span
-
-#     def span_in_section_frame(
-#         self,
-#     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-#         """Get spans as vectors in the section frame."""
-#         x_span, y_span, z_span = self.span_in_localsection_frame()
-#         x_span, y_span, z_span = translate_cable_to_support(
-#             x_span,
-#             y_span,
-#             z_span,
-#             self.plane.conductor_attachment_altitude,
-#             self.plane.a,
-#             self.crossarm_length,
-#             self.insulator_length,
-#             self.line_angle,
-#         )
-#         return x_span, y_span, z_span
-
-#     def get_spans(
-#         self, frame: Literal["cable", "localsection", "section"]
-#     ) -> Points:
-#         """get_spans
-
-#         Get the spans Points in the specified frame.
-
-#         Args:
-#             frame (Literal['cable', 'localsection', 'section']): frame
-
-#         Raises:
-#             ValueError: If the frame is not one of 'cable', 'localsection', or 'section'.
-
-#         Returns:
-#             Points: Points object containing the spans in the specified frame.
-#         """
-#         if frame == "cable":
-#             x_span, y_span, z_span = self.span_in_cable_frame()
-#         elif frame == "localsection":
-#             x_span, y_span, z_span = self.span_in_localsection_frame()
-#         elif frame == "section":
-#             x_span, y_span, z_span = self.span_in_section_frame()
-#         else:
-#             raise ValueError(
-#                 "Frame must be 'cable', 'localsection' or 'section'"
-#             )
-
-#         return Points.from_vectors(x_span, y_span, z_span)
-
-#     def get_supports(self) -> Points:
-#         """Get the supports in the section frame."""
-#         supports_layers = get_supports_layer(
-#             self.supports_ground_coords,
-#             self.center_arm_coords,
-#             self.arm_coords,
-#         )
-#         return Points.from_coords(supports_layers)
-
-#     def get_insulators(self) -> Points:
-#         """Get the insulators in the section frame."""
-#         insulator_layers = get_insulator_layer(
-#             self.arm_coords,
-#             self.attachment_coords,
-#         )
-#         return Points.from_coords(insulator_layers)
+    def dict_coords(self):
+        points = self.points()
+        split_indices = np.nonzero(self.point_index == 0)[0]
+        if len(split_indices) > 1:
+            array_coords = np.split(points, split_indices[1:], axis=0)
+        else:
+            array_coords = np.array([points])
+        dict_coords = {}
+        for i in range(len(split_indices)):
+            object_name = self.object_name[split_indices[i]]
+            dict_coords[object_name] = array_coords[i]
+        return dict_coords
 
 
 class SectionPoints:
@@ -433,6 +346,32 @@ class SectionPoints:
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
         self.x_cable, self.z_cable = self.span_model.get_coords(resolution)
+
+    def add_obstacles(self, obstacles_array: ObstacleArray):
+        self.obstacles_array = obstacles_array
+        self.obstacles_points = SparsePoints.builder_from_obstacle_array(
+            obstacles_array
+        )
+
+    def get_obstacle_coords(self):
+        # self.obstacle_coords = self.obstacles_array.get_data()
+        x, y, z = self.obstacles_array.get_vectors()
+        azimuth_line = np.cumsum(self.line_angle)
+        span_index = self.obstacles_array.data["span_index"].to_numpy()
+        azimuth_line_obstacles = azimuth_line[span_index]
+        x_rotated, y_rotated, z_rotated = cable_to_localsection_frame(
+            x, y, z, azimuth_line_obstacles
+        )
+        x_absolute, y_absolute, z_absolute = translate_to_absolute_frame(
+            x_rotated,
+            y_rotated,
+            z_rotated,
+            self.supports_ground_coords[span_index],
+        )
+        self.obstacles_points.update_vectors(
+            x_absolute, y_absolute, z_absolute
+        )
+        return self.obstacles_points
 
     def get_attachments_coords(self):
         self.attachment_coords = get_attachment_coords(

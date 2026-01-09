@@ -293,6 +293,10 @@ class PlotEngine:
             get_displacement=get_displacement,
         )
 
+    def add_obstacles(self, obstacles_array):
+        self.obstacles_array = obstacles_array
+        self.section_pts.add_obstacles(obstacles_array)
+
     @property
     def beta(self) -> np.ndarray:
         return self.cable_loads.load_angle
@@ -360,6 +364,12 @@ class PlotEngine:
         plot_points_3d(
             fig, insulators.points(True), insulator_trace(mode=mode)
         )
+
+        if hasattr(self.section_pts, "obstacles_array"):
+            obstacles = self.section_pts.get_obstacle_coords()
+            plot_points_3d(
+                fig, obstacles.points(True), TraceProfile(name="Obstacles")
+            )
 
         set_layout(fig, auto=_auto)
 
