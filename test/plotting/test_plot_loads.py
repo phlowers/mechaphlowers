@@ -114,7 +114,7 @@ def test_plot_add_loads_later(cable_array_AM600: CableArray):
 
     # Reset objects to factor in modifications
     balance_engine.reset()
-    plt_engine = plt_engine.reset()
+    plt_engine = plt_engine.generate_reset()
 
     balance_engine.solve_adjustment()
     balance_engine.solve_change_state(new_temperature=15, wind_pressure=560)
@@ -145,8 +145,6 @@ def test_plot_reset(cable_array_AM600: CableArray):
                 "insulator_mass": convert_weight_to_mass(
                     [1000, 500, 500, 1000]
                 ),
-                # "load_mass": [5000, 10000, 0, np.nan],
-                # "load_position":  [0.2, 0.4, 0.7, np.nan]
                 "load_mass": [0, 0, 0, np.nan],
                 "load_position": [0, 0.0, 0.0, np.nan],
             }
@@ -163,7 +161,7 @@ def test_plot_reset(cable_array_AM600: CableArray):
     plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
 
     balance_engine.reset()
-    plt_engine = plt_engine.reset()
+    plt_engine = plt_engine.generate_reset()
 
     # Checks that id are still the same
     assert id(balance_engine.balance_model.nodes_span_model) == id(

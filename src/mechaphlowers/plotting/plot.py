@@ -313,7 +313,7 @@ class PlotEngine:
             balance_engine.get_displacement,
         )
 
-    def reset(self) -> Self:
+    def generate_reset(self) -> PlotEngine:
         """Returns a PlotEngine object using stored BalanceEngine object.
         Method used if BalanceEngine attributes have changed.
 
