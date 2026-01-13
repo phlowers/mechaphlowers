@@ -7,12 +7,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Literal, Self
+from typing import TYPE_CHECKING, Callable, Literal, Self, Tuple
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
 from mechaphlowers.core.geometry.points import (
+    Points,
     SectionPoints,
 )
 from mechaphlowers.core.models.balance.engine import BalanceEngine
@@ -321,6 +322,24 @@ class PlotEngine:
     def get_insulators_points(self) -> np.ndarray:
         return self.section_pts.get_insulators().points(True)
 
+    def get_points_for_plot(
+        self, project=False, frame_index=0
+    ) -> Tuple[Points, Points, Points]:
+        """Get Points objects for span, supports and insulators.
+        Can be used for plotting 2D or 3D graphs.
+
+        Args:
+            project (bool, optional): Set to True if 2d graph: this project all objects into a support frame. Defaults to False.
+            frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
+
+        Returns:
+            Tuple[Points, Points, Points]: Points for spans, supports and insulators respectively.
+
+        Raises:
+            ValueError: frame_index is out of range
+        """
+        return self.section_pts.get_points_for_plot(project, frame_index)
+
     def preview_line3d(
         self,
         fig: go.Figure,
@@ -351,9 +370,7 @@ class PlotEngine:
                 f"Incorrect value for 'mode' argument: recieved {mode}, expected 'background' or 'main'"
             )
 
-        span, supports, insulators = self.section_pts.get_points_for_plot(
-            project=False
-        )
+        span, supports, insulators = self.get_points_for_plot(project=False)
 
         plot_points_3d(fig, span.points(True), cable_trace(mode=mode))
         plot_points_3d(fig, supports.points(True), support_trace(mode=mode))
@@ -399,7 +416,7 @@ class PlotEngine:
                 yaxis={"scaleanchor": "x", "scaleratio": 1},
             )
 
-        span, supports, insulators = self.section_pts.get_points_for_plot(
+        span, supports, insulators = self.get_points_for_plot(
             project=True, frame_index=frame_index
         )
 

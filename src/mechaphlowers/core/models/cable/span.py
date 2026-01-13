@@ -429,6 +429,7 @@ class CatenarySpan(ISpan):
         #   are actually loaded (span_type == 1).
         # This tuple can be used later to retrieve or post-process load values
         # at the correct positions along the interpolated cable.
+        # TODO: declare attribute in __init__
         self.load_idx = idx, self.span_index[self.span_type == 1]
 
         return x[:, mask_output], z[:, mask_output]

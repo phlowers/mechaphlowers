@@ -121,9 +121,9 @@ def test_run_balance_engine_plot():
     plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
 
     # get coordinates for plotting in 3D
-    plt_engine.section_pts.get_points_for_plot()
+    plt_engine.get_points_for_plot()
     # 2D
-    plt_engine.section_pts.get_points_for_plot(project=False, frame_index=1)
+    plt_engine.get_points_for_plot(project=False, frame_index=1)
 
     fig = go.Figure()
     plt_engine.preview_line3d(fig)

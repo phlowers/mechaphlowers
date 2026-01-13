@@ -66,7 +66,5 @@ def test_plot_loads(cable_array_AM600: CableArray):
 
     # fig.show()
 
-    span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
-    )
+    span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
