@@ -38,8 +38,8 @@ def balance_engine_no_loads(cable_array_AM600: CableArray) -> BalanceEngine:
                 "insulator_mass": convert_weight_to_mass(
                     [1000, 500, 500, 1000]
                 ),
-                "load_mass": [5000, 10000, 0, np.nan],
-                "load_position": [0.2, 0.4, 0.6, np.nan],
+                "load_mass": [0, 0, 0, np.nan],
+                "load_position": [0, 0, 0, np.nan],
             }
         )
     )
@@ -133,7 +133,7 @@ def test_plot_add_loads_later(balance_engine_no_loads: BalanceEngine):
     balance_engine_no_loads.solve_change_state(
         new_temperature=15, wind_pressure=560
     )
-
+    assert plt_engine.spans.span_length.size == 6
     fig = go.Figure()
 
     plt_engine.preview_line3d(fig)
@@ -182,6 +182,7 @@ def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
     balance_engine_no_loads.solve_change_state(
         new_temperature=15, wind_pressure=560
     )
+    assert plt_engine.spans.span_length.size == 6
 
     fig = go.Figure()
 
