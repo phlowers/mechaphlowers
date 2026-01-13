@@ -279,11 +279,13 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 class PlotEngine:
     def __init__(
         self,
+        balance_engine: BalanceEngine,
         span_model: ISpan,
         cable_loads: CableLoads,
         section_array: SectionArray,
         get_displacement: Callable,
     ) -> None:
+        self.balance_engine = balance_engine
         self.spans = span_model
         self.cable_loads = cable_loads
         self.section_array = section_array
@@ -306,11 +308,28 @@ class PlotEngine:
         logger.debug("Plot engine initialized from balance engine.")
 
         return PlotEngine(
+            balance_engine,
             balance_engine.balance_model.nodes_span_model,
             balance_engine.cable_loads,
             balance_engine.section_array,
             balance_engine.get_displacement,
         )
+
+    def generate_reset(self) -> PlotEngine:
+        """Create and returns a PlotEngine object using stored BalanceEngine object.
+        This method does not modify the current PlotEngine instance.
+
+        Method used if BalanceEngine attributes have changed.
+
+        Example:
+            >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+            >>> balance_engine.add_loads(...)  # modification on balance engine
+            >>> plt_engine = plt_engine.generate_reset()
+
+        Returns:
+            PlotEngine: object with reset attributes
+        """
+        return self.builder_from_balance_engine(self.balance_engine)
 
     def get_spans_points(
         self, frame: Literal["section", "localsection", "cable"]
