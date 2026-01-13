@@ -79,6 +79,7 @@ class BalanceEngine:
         "ice_thickness": 0.0,
         "new_temperature": 15.0,
     }
+    _warning_no_L_ref = "L_ref is not defined. You must run solve_adjustment() before solve_change_state(). Running solve_adjustment() now."
 
     def __init__(
         self,
@@ -161,13 +162,8 @@ class BalanceEngine:
         try:
             _ = self.L_ref
         except AttributeError:
-            logger.warning(
-                "L_ref is not defined. You must run solve_adjustment() before solve_change_state(). Running solve_adjustment() now."
-            )
-            warnings.warn(
-                "L_ref is not defined. You must run solve_adjustment() before solve_change_state(). Running solve_adjustment() now.",
-                UserWarning,
-            )
+            logger.warning(self._warning_no_L_ref)
+            warnings.warn(self._warning_no_L_ref, UserWarning)
             self.solve_adjustment()
 
         load_position_ratio = load_position_distance / arr.incr(self.L_ref)
@@ -175,13 +171,8 @@ class BalanceEngine:
         self.section_array._data["load_mass"] = load_mass
 
         self.reset()
-        logger.warning(
-            "Loads have been added. If you are using a PlotEngine object, you should reset it, using PlotEngine.generate_reset()"
-        )
-        warnings.warn(
-            "Loads have been added. If you are using a PlotEngine object, you should reset it, using PlotEngine.generate_reset()",
-            UserWarning,
-        )
+        debug_loads = "Loads have been added. If you are using a PlotEngine object, you should reset it, using PlotEngine.generate_reset()"
+        logger.debug(debug_loads)
 
     @check_time
     def solve_adjustment(self) -> None:
@@ -274,13 +265,8 @@ class BalanceEngine:
         try:
             _ = self.L_ref
         except AttributeError:
-            logger.warning(
-                "L_ref is not defined. You must run solve_adjustment() before solve_change_state(). Running solve_adjustment() now."
-            )
-            warnings.warn(
-                "L_ref is not defined. You must run solve_adjustment() before solve_change_state(). Running solve_adjustment() now.",
-                UserWarning,
-            )
+            logger.warning(self._warning_no_L_ref)
+            warnings.warn(self._warning_no_L_ref, UserWarning)
             self.solve_adjustment()
 
         self.balance_model.adjustment = False
