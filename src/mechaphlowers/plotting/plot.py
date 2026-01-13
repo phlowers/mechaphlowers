@@ -219,7 +219,7 @@ def plot_points_2d(
         h_coords = points[:, 0]
     else:
         raise ValueError(
-            f"Incorrect value for 'view' argument: recieved {view}, expected 'profile' or 'line'"
+            f"Incorrect value for 'view' argument: received {view}, expected 'profile' or 'line'"
         )
 
     fig.add_trace(
@@ -345,7 +345,7 @@ class PlotEngine:
     def get_loads_coords(self, project=False, frame_index=0) -> np.ndarray:
         spans_points, _, _ = self.get_points_for_plot(project, frame_index)
         if not hasattr(self.spans, "loads_indices"):
-            no_loads_message = "No loads coords are found. You should run ISpan.get_coords() before PlotEngine.get_loads_coords()."
+            no_loads_message = "No loads coordinates are found. You should run ISpan.get_coords() before PlotEngine.get_loads_coords()."
             logger.warning(no_loads_message)
             warnings.warn(no_loads_message, UserWarning)
             return np.array([[]])
@@ -398,7 +398,7 @@ class PlotEngine:
 
         if mode not in ["main", "background"]:
             raise ValueError(
-                f"Incorrect value for 'mode' argument: recieved {mode}, expected 'background' or 'main'"
+                f"Incorrect value for 'mode' argument: received {mode}, expected 'background' or 'main'"
             )
 
         span, supports, insulators = self.get_points_for_plot(project=False)
@@ -429,12 +429,12 @@ class PlotEngine:
         """
         if view not in ["profile", "line"]:
             raise ValueError(
-                f"Incorrect value for 'view' argument: recieved {view}, expected 'profile' or 'line'"
+                f"Incorrect value for 'view' argument: received {view}, expected 'profile' or 'line'"
             )
 
         if mode not in ["main", "background"]:
             raise ValueError(
-                f"Incorrect value for 'mode' argument: recieved {mode}, expected 'background' or 'main'"
+                f"Incorrect value for 'mode' argument: received {mode}, expected 'background' or 'main'"
             )
 
         if view == "profile":

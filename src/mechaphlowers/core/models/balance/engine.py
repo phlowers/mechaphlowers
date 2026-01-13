@@ -244,7 +244,7 @@ class BalanceEngine:
             if isinstance(input_value, np.ndarray):
                 if input_value.shape != span_shape:
                     raise ValueError(
-                        f"{name} has incorrect shape: {span_shape} is expected, recieved {input_value.shape}"
+                        f"{name} has incorrect shape: {span_shape} is expected, received {input_value.shape}"
                     )
 
             return input_value
