@@ -65,6 +65,13 @@ class ISpan(ABC):
         else:
             self.span_type = span_type
         self.compute_values()
+        # loads_indices stores data about the loads:
+        # - span indices where loads are located. Example: [0,2] means that spans number 0 and 2 have loads.
+        # - indices of the load points, for each spans coordinates.
+        # Example: [0,2], [6,12] means that point number 6 in the span number 0 is a load,
+        # as well as point number 12 in span number 2
+        # This tuple is used to retrieve load coords after plotting.
+        self.loads_indices: Tuple[np.ndarray, np.ndarray]
 
     def set_lengths(
         self, span_length: np.ndarray, elevation_difference: np.ndarray
@@ -407,10 +414,14 @@ class CatenarySpan(ISpan):
         new_z = self._interpolation(new_x.T, x_load.T, z_load.T).T
 
         # we have to replace the endpoints left after interpolation
-        idx = np.abs(new_x - end_points_left).argmin(axis=0)
+        load_idx_in_coords = np.abs(new_x - end_points_left).argmin(axis=0)
 
-        new_x[idx, np.arange(idx.shape[0])] = end_points_left
-        new_z[idx, np.arange(idx.shape[0])] = z_left[-1, :]
+        new_x[load_idx_in_coords, np.arange(load_idx_in_coords.shape[0])] = (
+            end_points_left
+        )
+        new_z[load_idx_in_coords, np.arange(load_idx_in_coords.shape[0])] = (
+            z_left[-1, :]
+        )
 
         mask_output = np.logical_or(self.span_type == 1, self.span_type == 0)
         x = np.full((resolution, self.span_type.shape[0]), np.nan, dtype=float)
@@ -422,15 +433,10 @@ class CatenarySpan(ISpan):
         z[:, self.span_type == 1] = new_z
         z[:, self.span_type == 0] = z_0
 
-        # Store the mapping between interpolated load positions and spans:
-        # - idx: indices in the interpolated x-grid (new_x) corresponding to the
-        #   left endpoints of loaded spans,
-        # - self.span_index[self.span_type == 1]: indices of the spans that
-        #   are actually loaded (span_type == 1).
-        # This tuple can be used later to retrieve or post-process load values
-        # at the correct positions along the interpolated cable.
-        # TODO: declare attribute in __init__
-        self.load_idx = idx, self.span_index[self.span_type == 1]
+        self.loads_indices = (
+            self.span_index[self.span_type == 1],
+            load_idx_in_coords,
+        )
 
         return x[:, mask_output], z[:, mask_output]
 
