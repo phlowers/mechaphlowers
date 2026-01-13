@@ -147,7 +147,6 @@ def test_plot_add_loads_later(balance_engine_no_loads: BalanceEngine):
 
 
 def test_plot_reset(balance_engine_no_loads: BalanceEngine):
-    balance_engine_no_loads
     plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_no_loads
     )
