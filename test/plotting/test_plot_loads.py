@@ -188,7 +188,7 @@ def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
 
     plt_engine.preview_line3d(fig)
 
-    fig.show()
+    # fig.show()
 
     span_points, _, insulators_points = (
         plt_engine.section_pts.get_points_for_plot()
