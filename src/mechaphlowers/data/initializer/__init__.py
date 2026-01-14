@@ -9,7 +9,6 @@ from importlib.metadata import version
 
 import pandas as pd
 
-from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.config import options
 
 logger = logging.getLogger(__name__)
@@ -23,4 +22,4 @@ logger.info("Mechaphlowers package initialized.")
 logger.info(f"Mechaphlowers version: {__version__}")
 
 
-__all__ = ["SectionDataFrame", "options"]
+__all__ = ["options"]

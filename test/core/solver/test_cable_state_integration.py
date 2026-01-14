@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.core.solver.cable_state import (
     SagTensionSolver,
 )
