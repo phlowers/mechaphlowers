@@ -12,7 +12,6 @@ import pytest
 
 from mechaphlowers.config import options as options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.data.units import convert_weight_to_mass
 from mechaphlowers.entities.arrays import (
     CableArray,
     SectionArray,
@@ -35,9 +34,7 @@ def balance_engine_no_loads(cable_array_AM600: CableArray) -> BalanceEngine:
                 "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_mass": convert_weight_to_mass(
-                    [1000, 500, 500, 1000]
-                ),
+                "insulator_mass": [100, 50, 50, 100],
                 "load_mass": [0, 0, 0, np.nan],
                 "load_position": [0, 0, 0, np.nan],
             }
@@ -66,9 +63,7 @@ def balance_engine_with_loads(cable_array_AM600: CableArray) -> BalanceEngine:
                 "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_mass": convert_weight_to_mass(
-                    [1000, 500, 500, 1000]
-                ),
+                "insulator_mass": [100, 50, 50, 100],
                 "load_mass": [5000, 10000, 0, np.nan],
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
