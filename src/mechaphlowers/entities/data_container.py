@@ -9,8 +9,10 @@ from mechaphlowers.entities.arrays import (
 
 
 class DataContainer:
-    """This class contains data from SectionArray, CableArray and WeatherArray.
-    It allows SectionDataFrame to store all data in one class instead of three separate classes.
+    """Currently unused.
+
+    This class contains data from SectionArray, CableArray and WeatherArray.
+    Its former goal was to allow SectionDataFrame to store all data in one class instead of three separate classes.
     Data is stored as attributes, allowing the use of .__dict__() method.
 
     """

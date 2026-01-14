@@ -11,12 +11,10 @@ from pytest import fixture
 
 from mechaphlowers.core.geometry.points import (
     Points,
-    SectionPoints,
     stack_nan,
     vectors_to_coords,
 )
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.plotting.plot import PlotEngine
 
