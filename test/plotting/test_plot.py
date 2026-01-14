@@ -70,8 +70,6 @@ def balance_engine_local_initialized() -> BalanceEngine:
     return balance_engine_local_test
 
 
-
-
 def test_plot_line3d__all_line(
     balance_engine_local_initialized: BalanceEngine,
 ) -> None:

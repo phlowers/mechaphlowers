@@ -227,7 +227,6 @@ def default_data_container_one_span() -> DataContainer:
     return data_container
 
 
-
 @pytest.fixture
 def cable_array_AM600() -> CableArray:
     return sample_cable_catalog.get_as_object(["ASTER600"])

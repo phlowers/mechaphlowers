@@ -7,11 +7,12 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Literal, Self
+from typing import Callable, Literal, Self
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
+from mechaphlowers.config import options as cfg
 from mechaphlowers.core.geometry.points import (
     SectionPoints,
 )
@@ -20,9 +21,6 @@ from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
-
-
-from mechaphlowers.config import options as cfg
 
 logger = logging.getLogger(__name__)
 
@@ -432,4 +430,3 @@ class PlotEngine:
     def __repr__(self) -> str:
         class_name = type(self).__name__
         return f"{class_name}\n{self.__str__()}"
-
