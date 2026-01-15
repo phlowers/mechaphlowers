@@ -13,10 +13,7 @@ from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 class ISpan(ABC):
-    # TODO: docstring seems old
-    """This abstract class is a base class for various models describing the cable in its own frame.
-
-    The coordinates are expressed in the cable frame.
+    """Abstract base class for cable span models in the cable frame.
 
     Because the coordinates are in the cable frame, there is no need to factor in wind or angle,
     so we work under the following simplifying assumptions:
@@ -24,6 +21,51 @@ class ISpan(ABC):
     - a = a' = span_length
     - b = b' = elevation_difference
 
+    The class handles both simple regular spans and spans with point loads. When factoring in point loads,
+    virtual nodes are created, and the span is divided into semi-spans, thus modifiying the number of spans.
+
+    Attributes:
+        span_length (np.ndarray): Horizontal length of each span.
+        elevation_difference (np.ndarray): Vertical difference between support points for each span.
+        sagging_parameter (np.ndarray): Parameter controlling the cable sag (model-dependent).
+        linear_weight (np.float64): Linear weight of the cable per unit length.
+        load_coefficient (np.ndarray): Coefficient applied to loads for each span (defaults to ones).
+        span_index (np.ndarray): Index identifying each span, with duplicates for spans with loads.
+        span_type (np.ndarray): Type indicator for each span:
+            <ul>
+                <li> 0: default span (no load or full span)</li>
+                <li> 1: semi-span to the left of a point load </li>
+                <li> 2: semi-span to the right of a point load </li>
+            </ul>
+
+        loads_indices (Tuple[np.ndarray, np.ndarray]): Tuple containing:
+            <ul>
+                <li>Array of span indices where loads are located</li>
+                <li>Array of point indices within those spans where loads occur</li>
+            </ul>
+
+    Notes:
+        - The class uses caching for computed values (x_m, x_n, L) to optimize performance
+        during iterative solving.
+        - Therefore, if sagging_parameter, span_length, or elevation_difference are updated,
+        it should be done by calling set_parameter or set_lengths methods to ensure consistency.
+        - Arrays are vectorized to handle multiple spans simultaneously.
+
+    Examples:
+        >>> span = CatenarySpan(
+        ...     span_length=np.array([500, 600]),
+        ...     elevation_difference=np.array([10, 20]),
+        ...     sagging_parameter=np.array([2000, 1500]),
+        ...     linear_weight=9.5,
+        ... )
+        >>> span_with_load = CatenarySpan(
+        ...     span_length=np.array([500, 200, 400]),
+        ...     elevation_difference=np.array([10, -10, 30]),
+        ...     sagging_parameter=np.array([2000, 1500, 1500]),
+        ...     linear_weight=9.5
+        ...     span_index=np.array([0, 1, 1]),
+        ...     span_type=np.array([0, 1, 2]),
+        ... )  # point load in span 1, split into two semi-spans
     """
 
     def __init__(
@@ -115,6 +157,22 @@ class ISpan(ABC):
 
         Args:
             span_model (Self): other ISpan object to copy attribute from
+
+        Examples:
+                >>> span1 = CatenarySpan(
+                ...     span_length=np.array([500, 600]),
+                ...     elevation_difference=np.array([10, 20]),
+                ...     sagging_parameter=np.array([2000, 1500]),
+                ...)
+                >>> span2 = CatenarySpan(
+                ...     span_length=np.array([100, 100]),
+                ...     elevation_difference=np.array([0, 0]),
+                ...     sagging_parameter=np.array([500, 500]),
+                ... )
+                >>> span2.mirror(span1)
+                # now span2 has the same attributes as span1
+                >>> span2.span_length
+                array([500, 600])
         """
         self.span_length = span_model.span_length
         self.elevation_difference = span_model.elevation_difference
@@ -365,9 +423,15 @@ class CatenarySpan(ISpan):
         )
 
     def get_coords(self, resolution: int) -> Tuple[np.ndarray, np.ndarray]:
-        """Get x and z coordinates for catenary generation in cable frame. This method handles different span types in case of virtual nodes and produces an output of the same size than the real number of spans.
+        """Get x and z coordinates for catenary generation in cable frame.
+
+        This method handles different span types in case of virtual nodes and produces an output of the same size than the real number of spans.
+
+        Updates the `loads_indices` attribute to store the positions of the loads.
+
         Args:
             resolution (int): Number of points to generate between supports.
+
         Returns:
             Tuple[np.ndarray, np.ndarray]: x and z coordinates of the cable
         """
