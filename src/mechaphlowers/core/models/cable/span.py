@@ -18,13 +18,12 @@ class ISpan(ABC):
 
     The coordinates are expressed in the cable frame.
 
-    Notes: For now we assume in these span models that there's
-    no line angle or wind (or other load on the cable), so we work under the following simplifying assumptions:
+    Because the coordinates are in the cable frame, there is no need to factor in wind or angle,
+    so we work under the following simplifying assumptions:
 
     - a = a' = span_length
     - b = b' = elevation_difference
 
-    Support for line angle and wind will be added later.
     """
 
     def __init__(
@@ -71,7 +70,10 @@ class ISpan(ABC):
         # Example: [0,2], [6,12] means that point number 6 in the span number 0 is a load,
         # as well as point number 12 in span number 2
         # This tuple is used to retrieve load coords after plotting.
-        self.loads_indices: Tuple[np.ndarray, np.ndarray]
+        self.loads_indices: Tuple[np.ndarray, np.ndarray] = (
+            np.array([], dtype=np.int64),
+            np.array([], dtype=np.int64),
+        )
 
     def set_lengths(
         self, span_length: np.ndarray, elevation_difference: np.ndarray

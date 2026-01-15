@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import logging
-import warnings
 from typing import TYPE_CHECKING, Callable, Literal, Self, Tuple
 
 import numpy as np
@@ -344,13 +343,7 @@ class PlotEngine:
 
     def get_loads_coords(self, project=False, frame_index=0) -> np.ndarray:
         spans_points, _, _ = self.get_points_for_plot(project, frame_index)
-        if not hasattr(self.spans, "loads_indices"):
-            no_loads_message = "No loads coordinates are found. You should run ISpan.get_coords() before PlotEngine.get_loads_coords()."
-            logger.warning(no_loads_message)
-            warnings.warn(no_loads_message, UserWarning)
-            return np.array([[]])
-        else:
-            loads_spans_idx, loads_points_idx = self.spans.loads_indices
+        loads_spans_idx, loads_points_idx = self.spans.loads_indices
         return spans_points.coords[loads_spans_idx, loads_points_idx]
 
     def get_points_for_plot(

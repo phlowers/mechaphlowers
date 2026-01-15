@@ -192,13 +192,12 @@ def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
-@pytest.mark.filterwarnings("ignore::UserWarning")
 def test_get_loads_coords(balance_engine_with_loads: BalanceEngine):
     plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_with_loads
     )
     coords_loads_before_solve = plt_engine.get_loads_coords()
-    np.testing.assert_equal(coords_loads_before_solve, np.array([[]]))
+    assert coords_loads_before_solve.size == 0
 
     balance_engine_with_loads.solve_adjustment()
     balance_engine_with_loads.solve_change_state(
@@ -212,7 +211,6 @@ def test_get_loads_coords(balance_engine_with_loads: BalanceEngine):
     # fig.show()
 
 
-@pytest.mark.filterwarnings("ignore::UserWarning")
 def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
     plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_no_loads
@@ -223,7 +221,7 @@ def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
         new_temperature=15, wind_pressure=560
     )
     coords_loads = plt_engine.get_loads_coords()
-    np.testing.assert_equal(coords_loads, np.array([[]]))
+    assert coords_loads.size == 0
 
     # fig = go.Figure()
     # plt_engine.preview_line3d(fig)
