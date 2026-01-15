@@ -5,7 +5,7 @@ The deformation class implements the cable deformation models described in [Cabl
 This class is called in two situations:
 
 - When computing $L_{ref}$, which is done only one time
-- When solving the new state after giving new wind pressure, ice thickness and temperature in `cable_state.py`. In this case, the solver calls `IDeformation` many times in order to find the solution
+- When solving the new state after giving new wind pressure, ice thickness and temperature in `find_parameter_solver.py`. In this case, the solver calls `IDeformation` many times in order to find the solution
 
 In the former case, the computation is made without wind, ice, and class attribute `current_temperature` is equal to `sagging_temperature` (usually 15°C). That is why `current_temperature` equals to `sagging_temperature` by default when creating the class.
 

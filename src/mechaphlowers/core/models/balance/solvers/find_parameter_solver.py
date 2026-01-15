@@ -48,7 +48,6 @@ class IModelToSolve(ABC):
 
 
 class FindParamModel(IModelToSolve):
-    # TODO: write docstring (use SagTensionSolver for inspiration)
     def __init__(
         self,
         span_model: ISpan,
@@ -101,6 +100,9 @@ class FindParamModel(IModelToSolve):
         return (L - self.L_ref) / self.L_ref - (eps_mecha + eps_therm)
 
     def _delta_prime(self, parameter) -> np.ndarray:
+        """Approximation of the derivative of the function to solve
+        $$\\delta'(p) = \\frac{\\delta(p + \\zeta) - \\delta(p)}{\\zeta}$$
+        """
         return (
             self._delta(parameter + self.param_step) - self._delta(parameter)
         ) / self.param_step

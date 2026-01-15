@@ -201,7 +201,7 @@ class BalanceModel(IBalanceModel):
     def compute_Th_and_extremum(
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """Run SagTensionSolver to compute parameter, and then compute Th, x_m and x_n.
+        """Run FindParamSolver to compute parameter, and then compute Th, x_m and x_n.
         Used only in change_state case.
 
         Returns:
@@ -240,7 +240,7 @@ class BalanceModel(IBalanceModel):
 
         - adjustment: simple computation
 
-        - change state without loads: run SagTensionSolver once
+        - change state without loads: run FindParamSolver once
 
         - change state with loads: solve LoadModel
         """

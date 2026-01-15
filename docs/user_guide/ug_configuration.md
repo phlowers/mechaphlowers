@@ -7,13 +7,18 @@ The following code snippet shows how to import and use these parameters:
 ```python
 import mechaphlowers as mph
 
-frame = mph.SectionDataFrame(section)
+# Computations before plotting
+balance_engine = mph.BalanceEngine(cable_array, section_array)
+balance_engine.solve_adjustment()
+balance_engine.solve_change_state()
 
 # use options to set the graphics resolution and marker size
 mph.options.graphics.marker_size = 10
 mph.options.graphics.resolution = 20
 
 # plot then without changing locally those parameters
+plot_engine = mph.PlotEngine(balance_engine)
 fig = go.Figure()
-frame.plot.line3d(fig)
+plot_engine.preview_line3d(fig)
+fig.show()
 ```
