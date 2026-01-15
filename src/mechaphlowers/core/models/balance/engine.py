@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Callable, Type
+from typing import Callable, List, Type
 
 import numpy as np
 
@@ -79,6 +79,7 @@ class BalanceEngine:
         "ice_thickness": 0.0,
         "new_temperature": 15.0,
     }
+    _warning_no_L_ref = "L_ref is not defined. You must run solve_adjustment() before solve_change_state(). Running solve_adjustment() now."
 
     def __init__(
         self,
@@ -151,6 +152,50 @@ class BalanceEngine:
         self.get_displacement: Callable = self.balance_model.dxdydz
 
         logger.debug("Balance engine initialized.")
+
+    def add_loads(
+        self,
+        load_position_distance: np.ndarray | List,
+        load_mass: np.ndarray | List,
+    ) -> None:
+        """Adds loads to BalanceEngine.
+        Updates load_position and load_mass fields in SectionArray.
+
+        Input for postition is a distance, and will be converted into ratio to match SectionArray.
+
+        Expected input are arrays of size matching the number of supports. Each value refers to a span.
+
+        Args:
+            load_position_distance (np.ndarray | List): Poisition of the loads, in meters
+            load_mass (np.ndarray | List): Mass of the loads
+
+        Raises:
+            ValueError: if load_position_distance is not in [0, span_length] for at least one span
+
+        Examples:
+            >>> load_position_distance = np.array([150, 200, 0, np.nan])  # 4 supports/3 spans
+            >>> load_mass = np.array([500, 70, 0, np.nan])
+            >>> engine.add_loads(load_position_distance, load_mass)
+            >>> plot_engine.reset()  # necessary if plot_engine already exists
+        """
+        span_length = self.section_array.data["span_length"].to_numpy()
+        load_position_distance = np.array(load_position_distance)
+        if (
+            arr.decr(load_position_distance > span_length).any()
+            or arr.decr(load_position_distance < 0).any()
+        ):
+            raise ValueError(
+                f"{load_position_distance=} should be all between 0 and {span_length=}"
+            )
+
+        # This formula for load_position_ratio may change later
+        load_position_ratio = load_position_distance / span_length
+        self.section_array._data["load_position"] = load_position_ratio
+        self.section_array._data["load_mass"] = load_mass
+
+        self.reset()
+        debug_loads = "Loads have been added. If you are using a PlotEngine object, you should reset it, using PlotEngine.generate_reset()"
+        logger.debug(debug_loads)
 
     @check_time
     def solve_adjustment(self) -> None:
@@ -243,13 +288,8 @@ class BalanceEngine:
         try:
             _ = self.L_ref
         except AttributeError:
-            logger.warning(
-                "L_ref is not defined. You must run solve_adjustment() before solve_change_state(). Running solve_adjustment() now."
-            )
-            warnings.warn(
-                "L_ref is not defined. You must run solve_adjustment() before solve_change_state(). Running solve_adjustment() now.",
-                UserWarning,
-            )
+            logger.warning(self._warning_no_L_ref)
+            warnings.warn(self._warning_no_L_ref, UserWarning)
             self.solve_adjustment()
 
         self.balance_model.adjustment = False
