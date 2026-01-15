@@ -33,7 +33,7 @@ Log.debug("This is a debug message")
 # In the example.log file:
 # 2025-03-28 21:33:41,771 - MyApp - DEBUG - This is a debug message
 
-from mechaphlowers import SectonArray
+from mechaphlowers import SectionArray
 # In the example.log file:
 # 2025-03-28 21:33:42,437 - mechaphlowers - INFO - Mechaphlowers package initialized.
 # 2025-03-28 21:33:42,437 - mechaphlowers - INFO - Mechaphlowers version: ...
