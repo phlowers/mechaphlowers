@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # important to define the logger in this way, to avoid circular imports
 # also in this way, the output can export the module name as well
 # Output example: 
-# 2025-03-28 21:33:47,634 - mechaphlowers.api.frames - DEBUG - initializing SectionDataFrame
+# 2025-03-28 21:33:47,634 - mechaphlowers.entities.arrays - DEBUG - Section Array initialized.
 
 # later in the module code
 logger.info("This is an info message")
@@ -33,7 +33,7 @@ Log.debug("This is a debug message")
 # In the example.log file:
 # 2025-03-28 21:33:41,771 - MyApp - DEBUG - This is a debug message
 
-from mechaphlowers import SectionDataFrame
+from mechaphlowers import SectonArray
 # In the example.log file:
 # 2025-03-28 21:33:42,437 - mechaphlowers - INFO - Mechaphlowers package initialized.
 # 2025-03-28 21:33:42,437 - mechaphlowers - INFO - Mechaphlowers version: ...

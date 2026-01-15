@@ -55,15 +55,15 @@ def balance_engine_local_initialized() -> BalanceEngine:
         "load_position": [0, 0, 0, 0],
     }
 
-    section = SectionArray(data=pd.DataFrame(data))
-    section.sagging_parameter = 500
-    section.sagging_temperature = 15
+    section_array = SectionArray(data=pd.DataFrame(data))
+    section_array.sagging_parameter = 500
+    section_array.sagging_temperature = 15
     cable_array_AM600: CableArray = sample_cable_catalog.get_as_object(
         ["ASTER600"]
     )  # type: ignore[assignment]
 
     balance_engine_local_test = BalanceEngine(
-        cable_array=cable_array_AM600, section_array=section
+        cable_array=cable_array_AM600, section_array=section_array
     )
     balance_engine_local_test.solve_adjustment()
     balance_engine_local_test.solve_change_state()
