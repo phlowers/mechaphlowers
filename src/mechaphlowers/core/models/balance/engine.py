@@ -158,15 +158,38 @@ class BalanceEngine:
         load_position_distance: np.ndarray | List,
         load_mass: np.ndarray | List,
     ) -> None:
-        # check if adjustment has been done before
-        try:
-            _ = self.L_ref
-        except AttributeError:
-            logger.warning(self._warning_no_L_ref)
-            warnings.warn(self._warning_no_L_ref, UserWarning)
-            self.solve_adjustment()
+        """Adds loads to BalanceEngine.
+        Updates load_position and load_mass fields in SectionArray.
 
-        load_position_ratio = load_position_distance / arr.incr(self.L_ref)
+        Input for postition is a distance, and will be converted into ratio to match SectionArray.
+
+        Expected input are arrays of size matching the number of supports. Each value refers to a span.
+
+        Args:
+            load_position_distance (np.ndarray | List): Poisition of the loads, in meters
+            load_mass (np.ndarray | List): Mass of the loads
+
+        Raises:
+            ValueError: if load_position_distance is not in [0, span_length] for at least one span
+
+        Examples:
+            >>> load_position_distance = np.array([150, 200, 0, np.nan])  # 4 supports/3 spans
+            >>> load_mass = np.array([500, 70, 0, np.nan])
+            >>> engine.add_loads(load_position_distance, load_mass)
+            >>> plot_engine.reset()  # necessary if plot_engine already exists
+        """
+        span_length = self.section_array.data["span_length"].to_numpy()
+        load_position_distance = np.array(load_position_distance)
+        if (
+            arr.decr(load_position_distance > span_length).any()
+            or arr.decr(load_position_distance < 0).any()
+        ):
+            raise ValueError(
+                f"{load_position_distance=} should be all between 0 and {span_length=}"
+            )
+
+        # This formula for load_position_ratio may change later
+        load_position_ratio = load_position_distance / span_length
         self.section_array._data["load_position"] = load_position_ratio
         self.section_array._data["load_mass"] = load_mass
 

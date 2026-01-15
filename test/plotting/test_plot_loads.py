@@ -159,7 +159,6 @@ def test_plot_reset(balance_engine_no_loads: BalanceEngine):
     )
 
 
-@pytest.mark.filterwarnings("ignore::UserWarning")
 def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
     plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_no_loads
@@ -217,12 +216,37 @@ def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
     )
 
     balance_engine_no_loads.solve_adjustment()
+
+    # Modify loads positions and mass
+    balance_engine_no_loads.section_array._data["load_mass"] = [
+        5000,
+        10000,
+        0,
+        np.nan,
+    ]
+    balance_engine_no_loads.section_array._data["load_position"] = [
+        0.2,
+        0.4,
+        0.7,
+        np.nan,
+    ]
+
+    # Reset objects to factor in modifications
+    balance_engine_no_loads.reset()
+    plt_engine = plt_engine.generate_reset()
+
+    balance_engine_no_loads.solve_adjustment()
     balance_engine_no_loads.solve_change_state(
         new_temperature=15, wind_pressure=560
     )
-    coords_loads = plt_engine.get_loads_coords()
-    assert coords_loads.size == 0
+    assert plt_engine.spans.span_length.size == 6
+    fig = go.Figure()
 
-    # fig = go.Figure()
-    # plt_engine.preview_line3d(fig)
+    plt_engine.preview_line3d(fig)
+
     # fig.show()
+
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot()
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
