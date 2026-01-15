@@ -360,3 +360,15 @@ def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
         balance_engine_simple.cable_loads.wind_pressure, initial_wind
     )
     assert balance_engine_simple.balance_model.adjustment is True
+
+
+def test_add_loads_wrong_values(balance_engine_simple: BalanceEngine):
+    load_mass = np.array([500, 70, 0, np.nan])
+    with pytest.raises(ValueError):
+        balance_engine_simple.add_loads(
+            np.array([-1, 200, 0, np.nan]), load_mass
+        )
+    with pytest.raises(ValueError):
+        balance_engine_simple.add_loads(
+            np.array([0, 1000, 0, np.nan]), load_mass
+        )
