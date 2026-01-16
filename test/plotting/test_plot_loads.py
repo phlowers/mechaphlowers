@@ -8,11 +8,10 @@
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-import pytest  # type: ignore[import-untyped]
+import pytest
 
 from mechaphlowers.config import options as options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.data.units import convert_weight_to_mass
 from mechaphlowers.entities.arrays import (
     CableArray,
     SectionArray,
@@ -35,9 +34,7 @@ def balance_engine_no_loads(cable_array_AM600: CableArray) -> BalanceEngine:
                 "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_mass": convert_weight_to_mass(
-                    [1000, 500, 500, 1000]
-                ),
+                "insulator_mass": [100, 50, 50, 100],
                 "load_mass": [0, 0, 0, np.nan],
                 "load_position": [0, 0, 0, np.nan],
             }
@@ -54,7 +51,8 @@ def balance_engine_no_loads(cable_array_AM600: CableArray) -> BalanceEngine:
     )
 
 
-def test_plot_loads(cable_array_AM600: CableArray):
+@pytest.fixture
+def balance_engine_with_loads(cable_array_AM600: CableArray) -> BalanceEngine:
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -65,9 +63,7 @@ def test_plot_loads(cable_array_AM600: CableArray):
                 "line_angle": [0, 10, 0, 0],
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
-                "insulator_mass": convert_weight_to_mass(
-                    [1000, 500, 500, 1000]
-                ),
+                "insulator_mass": [100, 50, 50, 100],
                 "load_mass": [5000, 10000, 0, np.nan],
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
@@ -78,17 +74,19 @@ def test_plot_loads(cable_array_AM600: CableArray):
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
 
-    balance_engine_two_loads = BalanceEngine(
+    return BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
 
+
+def test_plot_loads(balance_engine_with_loads: BalanceEngine):
     plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_two_loads
+        balance_engine_with_loads
     )
 
-    balance_engine_two_loads.solve_adjustment()
-    balance_engine_two_loads.solve_change_state(
+    balance_engine_with_loads.solve_adjustment()
+    balance_engine_with_loads.solve_change_state(
         new_temperature=15, wind_pressure=560
     )
 
@@ -98,9 +96,7 @@ def test_plot_loads(cable_array_AM600: CableArray):
 
     # fig.show()
 
-    span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
-    )
+    span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
@@ -163,7 +159,6 @@ def test_plot_reset(balance_engine_no_loads: BalanceEngine):
     )
 
 
-@pytest.mark.filterwarnings("ignore::UserWarning")
 def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
     plt_engine = PlotEngine.builder_from_balance_engine(
         balance_engine_no_loads
@@ -184,6 +179,67 @@ def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
     )
     assert plt_engine.spans.span_length.size == 6
 
+    fig = go.Figure()
+
+    plt_engine.preview_line3d(fig)
+
+    # fig.show()
+
+    span_points, _, insulators_points = (
+        plt_engine.section_pts.get_points_for_plot()
+    )
+    assert_cable_linked_to_attachment(span_points, insulators_points)
+
+
+def test_get_loads_coords(balance_engine_with_loads: BalanceEngine):
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_with_loads
+    )
+    coords_loads_before_solve = plt_engine.get_loads_coords()
+    assert coords_loads_before_solve.size == 0
+
+    balance_engine_with_loads.solve_adjustment()
+    balance_engine_with_loads.solve_change_state(
+        new_temperature=15, wind_pressure=560
+    )
+
+    coords_loads = plt_engine.get_loads_coords()
+    assert coords_loads.shape == (2, 3)
+    # fig = go.Figure()
+    # plt_engine.preview_line3d(fig)
+    # fig.show()
+
+
+def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_no_loads
+    )
+
+    balance_engine_no_loads.solve_adjustment()
+
+    # Modify loads positions and mass
+    balance_engine_no_loads.section_array._data["load_mass"] = [
+        5000,
+        10000,
+        0,
+        np.nan,
+    ]
+    balance_engine_no_loads.section_array._data["load_position"] = [
+        0.2,
+        0.4,
+        0.7,
+        np.nan,
+    ]
+
+    # Reset objects to factor in modifications
+    balance_engine_no_loads.reset()
+    plt_engine = plt_engine.generate_reset()
+
+    balance_engine_no_loads.solve_adjustment()
+    balance_engine_no_loads.solve_change_state(
+        new_temperature=15, wind_pressure=560
+    )
+    assert plt_engine.spans.span_length.size == 6
     fig = go.Figure()
 
     plt_engine.preview_line3d(fig)
