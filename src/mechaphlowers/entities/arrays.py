@@ -385,7 +385,10 @@ class ObstacleArray(ElementArray):
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
         # TODO: add validation for point_index: no 2 points should have same obstacle name + same point_index
-        # allow points not in order?
+        # TODO: same obstacle should have same span
+
+        
+
 
     def get_vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return (
@@ -393,3 +396,9 @@ class ObstacleArray(ElementArray):
             self.data["y"].to_numpy(),
             self.data["z"].to_numpy(),
         )
+
+    @property
+    def data(self) -> pd.DataFrame:
+        data_output = super().data
+        data_output.sort_values(by=["name", "point_index"], inplace=True)
+        return data_output

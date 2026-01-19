@@ -708,3 +708,90 @@ def test_create_obstacle_array() -> None:
     }
     obs_array = ObstacleArray(pd.DataFrame(input_data))
     obs_array
+
+
+def test_sort_obstacle_array() -> None:
+    input_data = {
+        "name": ["obs_0", "obs_1", "obs_0", "obs_2", "obs_1", "obs_1"],
+        "point_index": [0, 1, 1, 0, 2, 0],
+        "span_index": [0, 1, 0, 1, 1, 1],
+        "x": [
+            100.0,
+            200.0,
+            100.0,
+            200.0,
+            300.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
+        "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+        ],
+    }
+    obs_array = ObstacleArray(pd.DataFrame(input_data))
+    obs_array.data
+    assert True
+
+
+def test_obstacle_array_duplicate_point() -> None:
+    input_data = {
+        "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
+        "point_index": [0, 1, 0, 1, 1, 0],
+        "span_index": [0, 0, 1, 1, 1, 1],
+        "x": [
+            100.0,
+            200.0,
+            100.0,
+            200.0,
+            300.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
+        "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+        ],
+    }
+    with pytest.raises(ValueError): 
+    # should return error because two points of the same obstacle have the same index
+        ObstacleArray(pd.DataFrame(input_data))
+
+
+def test_obstacle_array_different_span() -> None:
+    input_data = {
+        "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
+        "point_index": [0, 1, 0, 1, 1, 0],
+        "span_index": [0, 0, 1, 0, 1, 1],
+        "x": [
+            100.0,
+            200.0,
+            100.0,
+            200.0,
+            300.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
+        "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+        ],
+    }
+    with pytest.raises(ValueError): 
+    # should return error because two points of the same obstacle have different span_index
+        ObstacleArray(pd.DataFrame(input_data))
