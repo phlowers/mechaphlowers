@@ -78,6 +78,7 @@ class GuyingLoads:
                 span_slope_left=slope_left,
             )
         else:
+            # unused args?
             vhl_h_d = vhl.H.value[num_guying - 1]
             vhl_l_d = vhl.L.value[num_guying - 1]
             vhl_v_d = vhl.V.value[num_guying - 1]
@@ -196,12 +197,12 @@ class GuyingLoads:
         charge_l = 0.0
 
         return {
-            "resultant_h_l": result_h_l,
-            "delta_altitude": delta_alt,
             "guying_load": guying_load_rounded,
             "vertical_load": charge_v,
-            "guying_angle_deg": guying_angle_deg,
             "longitudinal_load": charge_l,
+            "guying_angle_degrees": guying_angle_deg,
+            "delta_altitude": delta_alt,
+            "resultant_h_l": result_h_l,
         }
 
     @staticmethod

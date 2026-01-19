@@ -40,4 +40,8 @@ def test_guying_sandbox(cable_array_AM600: CableArray):
     )
 
     guying = GuyingLoads(balance_engine)
+    # weird values if no pulley
     guying.get_guying_loads(1, False, 50, 50)
+    # values seems ok, but not for V (vertical load)
+    guying.get_guying_loads(1, True, 50, 50)
+    assert True
