@@ -496,7 +496,8 @@ class CatenarySpan(ISpan):
         Returns:
             np.ndarray: slope angle at each support in radians.
         """
-        return self.T_v / self.T_h
+        # sign? / absolute value?
+        return self.T_v(self._x_m) / self.T_h()
 
 
 def span_model_builder(

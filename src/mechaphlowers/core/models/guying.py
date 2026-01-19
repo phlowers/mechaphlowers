@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -55,8 +55,8 @@ class GuyingLoads:
         vhl_h_g = vhl.H.value[num_guying]
         vhl_l_g = vhl.L.value[num_guying]
 
-        slope_left = self.balance_engine.span_model.slope[num_guying]
-        span_tension = self.balance_engine.span_model.T_h[num_guying]
+        slope_left = self.balance_engine.span_model.slope()[num_guying]
+        span_tension = self.balance_engine.span_model.T_h()[num_guying]
 
         if with_pulley:
             return self.static_calculate_guying_loads_with_pulley(
@@ -66,7 +66,7 @@ class GuyingLoads:
                 ],
                 guying_height=guying_height,
                 guying_horizontal_distance=guying_horizontal_distance,
-                insulator_mass=self.balance_engine.section_array.data.insulator_chain_weight.iloc[
+                insulator_mass=self.balance_engine.section_array.data.insulator_weight.iloc[
                     num_guying
                 ],
                 counterweight=self.counterweight,
@@ -83,24 +83,24 @@ class GuyingLoads:
             vhl_v_d = vhl.V.value[num_guying - 1]
 
             return self.static_calculate_guying_loads(
-                num_guying=num_guying,
-                num_profil=num_guying,
-                is_suspension=self.balance_engine.section_array.data.suspension.iloc[
-                    num_guying
-                ],
-                vhl_h_d=vhl_h_d,
-                vhl_l_d=vhl_l_d,
+                # num_guying=num_guying,
+                # num_profil=num_guying,
+                # is_suspension=self.balance_engine.section_array.data.suspension.iloc[
+                #     num_guying
+                # ],
+                # vhl_h_d=vhl_h_d,
+                # vhl_l_d=vhl_l_d,
                 vhl_h_g=vhl_h_g,
                 vhl_l_g=vhl_l_g,
-                vhl_v_d=vhl_v_d,
+                # vhl_v_d=vhl_v_d,
                 vhl_v_g=vhl_v_g,
                 alt_acc=self.balance_engine.section_array.data.conductor_attachment_altitude.iloc[
                     num_guying
                 ],
-                with_pulley=with_pulley,
+                # with_pulley=with_pulley,
                 guying_height=guying_height,
                 guying_horizontal_distance=guying_horizontal_distance,
-                insulator_mass=self.balance_engine.section_array.data.insulator_chain_weight.iloc[
+                insulator_mass=self.balance_engine.section_array.data.insulator_weight.iloc[
                     num_guying
                 ],
                 counterweight=self.counterweight,
