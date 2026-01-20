@@ -278,7 +278,7 @@ class ThermalEngine:
             "Ta": inputs["ambient_temp"],
             "ws": inputs["wind_speed"],  # wind speed (m.s**-1)
             "wa": inputs["wind_angle"],  # wind angle (deg, regarding north)
-            "I": inputs["intensity"],
+            "transit": inputs["intensity"],
             "m": np.full(self._len, cable_array.data.linear_mass.iloc[0]),
             "d": np.full(self._len, cable_array.data.diameter_heart.iloc[0]),
             "D": np.full(self._len, cable_array.data.diameter.iloc[0]),
@@ -333,7 +333,7 @@ class ThermalEngine:
             ThermalSteadyResults: An instance containing steady-state temperature data.
         """
         if intensity is not None:
-            self.dict_input["I"] = intensity
+            self.dict_input["transit"] = intensity
             self.load()
         return ThermalSteadyResults(self.thermal_model.steady_temperature())
 
