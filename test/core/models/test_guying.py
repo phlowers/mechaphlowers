@@ -31,26 +31,26 @@ def test_guying_sandbox(cable_array_AM600: CableArray):
     # )
     # section_array.add_units({"line_angle": "grad"})
     
-    # section_array = SectionArray(
-    #     pd.DataFrame(
-    #         {
-    #             "name": ["1", "2", "3", "4"],
-    #             "suspension": [False, True, True, False],
-    #             "conductor_attachment_altitude": [30, 30, 30, 30],
-    #             "crossarm_length": [0, 0, 0, 0],
-    #             "line_angle": [0, 0, 0, 0],
-    #             "insulator_length": [.01, 3, 3, .01],
-    #             "span_length": [400, 400, 400, np.nan],
-    #             "insulator_mass": [0, 100, 100, 0],
-    #             "load_mass": [0, 0, 0, np.nan],
-    #             "load_position": [0.2, 0.4, 0.6, np.nan],
-    #         }
-    #     )
-    # )
-    # section_array.add_units({"line_angle": "grad"})
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [.01, 3, 3, .01],
+                "span_length": [400, 400, 400, np.nan],
+                "insulator_mass": [0, 100, 100, 0],
+                "load_mass": [0, 0, 0, np.nan],
+                "load_position": [0.2, 0.4, 0.6, np.nan],
+            }
+        )
+    )
+    section_array.add_units({"line_angle": "grad"})
 
-    # section_array.sagging_parameter = 2000
-    # section_array.sagging_temperature = 15
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
 
     # V: [353.73123844 707.49778662 707.49778662 353.73123844] daN
     # H: [0. 0. 0. 0.] daN
@@ -160,26 +160,26 @@ def test_guying_sandbox(cable_array_AM600: CableArray):
 # H: [ 12.94774701 641.19219594  20.00663983   0.67411651] daN
 # L: [ 4200.81242104   197.97405918   -96.37927151 -4302.41078276] daN
 
-    section_array = SectionArray(
-        pd.DataFrame(
-            {
-                "name": ["1", "2", "3", "4"],
-                "suspension": [False, True, True, False],
-                "conductor_attachment_altitude": [30, 50, 60, 65],
-                "crossarm_length": [0, 0, 0, 0],
-                "line_angle": [0, 10, 0, 0],
-                "insulator_length": [.01, 3, 3, .01],
-                "span_length": [500, 300, 400, np.nan],
-                "insulator_mass": [0, 100, 100, 0],
-                "load_mass": [0, 500, 0, np.nan],
-                "load_position": [0.2, 0.4, 0.6, np.nan],
-            }
-        )
-    )
-    section_array.add_units({"line_angle": "grad"})
+    # section_array = SectionArray(
+    #     pd.DataFrame(
+    #         {
+    #             "name": ["1", "2", "3", "4"],
+    #             "suspension": [False, True, True, False],
+    #             "conductor_attachment_altitude": [30, 50, 60, 65],
+    #             "crossarm_length": [0, 0, 0, 0],
+    #             "line_angle": [0, 10, 0, 0],
+    #             "insulator_length": [.01, 3, 3, .01],
+    #             "span_length": [500, 300, 400, np.nan],
+    #             "insulator_mass": [0, 100, 100, 0],
+    #             "load_mass": [0, 500, 0, np.nan],
+    #             "load_position": [0.2, 0.4, 0.6, np.nan],
+    #         }
+    #     )
+    # )
+    # section_array.add_units({"line_angle": "grad"})
 
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
+    # section_array.sagging_parameter = 2000
+    # section_array.sagging_temperature = 15
 
 
     balance_engine = BalanceEngine(

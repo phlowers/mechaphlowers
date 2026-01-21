@@ -49,11 +49,17 @@ class GuyingLoads:
                 "With pulley, guying number must be between 1 and number of spans - 2"
             )
 
-        vhl = self.balance_engine.balance_model.vhl_under_chain()
+        vhl_left = self.balance_engine.balance_model.vhl_under_chain_right()
 
-        vhl_v_g = vhl.V.value[num_guying]
-        vhl_h_g = vhl.H.value[num_guying]
-        vhl_l_g = vhl.L.value[num_guying]
+        vhl_v_g = vhl_left.V.value[num_guying] *10
+        vhl_h_g = vhl_left.H.value[num_guying] *10
+        vhl_l_g = vhl_left.L.value[num_guying] *10
+        
+        vhl_right = self.balance_engine.balance_model.vhl_under_chain_left()
+
+        vhl_v_d = vhl_right.V.value[num_guying]
+        vhl_h_d = vhl_right.H.value[num_guying]
+        vhl_l_d = vhl_right.L.value[num_guying]
 
         slope_left = self.balance_engine.span_model.slope()[num_guying]
         span_tension = self.balance_engine.span_model.T_h()[num_guying]
@@ -70,7 +76,7 @@ class GuyingLoads:
                     num_guying
                 ],
                 counterweight=self.counterweight,
-                cable_linear_mass=self.balance_engine.cable_array.data.linear_mass.iloc[
+                cable_linear_weight=self.balance_engine.cable_array.data.linear_weight.iloc[
                     0
                 ],
                 bundle_number=self.bundle_number,
@@ -79,9 +85,9 @@ class GuyingLoads:
             )
         else:
             # unused args?
-            vhl_h_d = vhl.H.value[num_guying - 1]
-            vhl_l_d = vhl.L.value[num_guying - 1]
-            vhl_v_d = vhl.V.value[num_guying - 1]
+            vhl_h_d = vhl_left.H.value[num_guying - 1]
+            vhl_l_d = vhl_left.L.value[num_guying - 1]
+            vhl_v_d = vhl_left.V.value[num_guying - 1]
 
             return self.static_calculate_guying_loads(
                 # num_guying=num_guying,
@@ -105,7 +111,7 @@ class GuyingLoads:
                     num_guying
                 ],
                 counterweight=self.counterweight,
-                cable_linear_mass=self.balance_engine.cable_array.data.linear_mass.iloc[
+                cable_linear_weight=self.balance_engine.cable_array.data.linear_weight.iloc[
                     0
                 ],
                 bundle_number=self.bundle_number,
@@ -121,7 +127,7 @@ class GuyingLoads:
         guying_horizontal_distance: float,  # TextBox22
         insulator_mass: float,  # chain weight
         counterweight: float,  # counter weight
-        cable_linear_mass: float,  # linear weight of conductor
+        cable_linear_weight: float,  # linear weight of conductor
         bundle_number: float,  # bundle coefficient
     ) -> dict:
         """
@@ -150,7 +156,7 @@ class GuyingLoads:
 
         # Calculate resultant of H and L loads for guying system compensation
         result_h_l = np.round(
-            np.sqrt(vhl_h_g**2 + vhl_l_g**2) / 10, 0
+            np.sqrt(vhl_h_g**2 + vhl_l_g**2), 0
         )  # same here (/10)
 
         # Calculate altitude difference between chain attachment and guying attachment
@@ -167,7 +173,7 @@ class GuyingLoads:
 
         # Calculate total vertical load under console
         # (Assumption: linear weight of guying = linear weight of cable * cable/bundle)
-        charge_v = np.round(vhl_v_g / 10, 0)
+        charge_v = np.round(vhl_v_g, 0)
 
         # Total vertical load = base + chain weight + counter weight
         #                      + vertical component of guying load
@@ -176,12 +182,11 @@ class GuyingLoads:
         #  warning here, /10 means unit conversion from N to daN
         charge_v = np.round(
             charge_v
-            + insulator_mass / 10
-            + counterweight / 10
+            + insulator_mass
+            + counterweight
             + (result_h_l / guying_horizontal_distance) * delta_alt
             + np.sqrt(guying_horizontal_distance**2 + delta_alt**2)
-            * cable_linear_mass
-            / 10
+            * cable_linear_weight 
             * bundle_number,
             0,
         )
@@ -213,7 +218,7 @@ class GuyingLoads:
         guying_horizontal_distance: float,  # TextBox22
         insulator_mass: float,  # chain weight (pds_chaine)
         counterweight: float,  # counter weight (contre_pds)
-        cable_linear_mass: float,  # linear weight of conductor (pds_lin)
+        cable_linear_weight: float,  # linear weight of conductor (pds_lin)
         bundle_number: float,  # bundle coefficient (faisceau)
         span_tension: float,  # span horizontal tension (th)
         span_slope_left: float,  # left span slope in radians (pente_g)
@@ -281,7 +286,7 @@ class GuyingLoads:
             + insulator_mass / 10
             + counterweight / 10
             + guying_load * np.sin(guying_angle_rad) / 10
-            + cable_length * cable_linear_mass * bundle_number / 10,
+            + cable_length * cable_linear_weight * bundle_number / 10,
             0,
         )
 
