@@ -383,12 +383,23 @@ class ObstacleArray(ElementArray):
         self,
         data: pd.DataFrame,
     ) -> None:
-        super().__init__(data)  # type: ignore[arg-type]
-        # TODO: add validation for point_index: no 2 points should have same obstacle name + same point_index
-        # TODO: same obstacle should have same span
-
-        
-
+        super().__init__(data)
+        # Check if points from the same obstacle have the same indices
+        points_has_same_indices = data.duplicated(
+            subset=['name', 'point_index']
+        ).any()
+        if points_has_same_indices:
+            raise ValueError(
+                "An obstacle have two points with the same point_index"
+            )
+        # Check if each group of 'name' has only one unique 'span_index'
+        obstacle_has_same_span_index = (
+            data.groupby('name')['span_index'].nunique().eq(1).all()
+        )
+        if not obstacle_has_same_span_index:
+            raise ValueError(
+                "All points from the same obstacle should have the same span_index"
+            )
 
     def get_vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return (

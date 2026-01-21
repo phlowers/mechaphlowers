@@ -763,15 +763,15 @@ def test_obstacle_array_duplicate_point() -> None:
             "ground",
         ],
     }
-    with pytest.raises(ValueError): 
-    # should return error because two points of the same obstacle have the same index
+    with pytest.raises(ValueError):
+        # should return error because two points of the same obstacle have the same index
         ObstacleArray(pd.DataFrame(input_data))
 
 
 def test_obstacle_array_different_span() -> None:
     input_data = {
         "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
-        "point_index": [0, 1, 0, 1, 1, 0],
+        "point_index": [0, 1, 0, 1, 2, 0],
         "span_index": [0, 0, 1, 0, 1, 1],
         "x": [
             100.0,
@@ -792,6 +792,6 @@ def test_obstacle_array_different_span() -> None:
             "ground",
         ],
     }
-    with pytest.raises(ValueError): 
-    # should return error because two points of the same obstacle have different span_index
+    with pytest.raises(ValueError):
+        # should return error because two points of the same obstacle have different span_index
         ObstacleArray(pd.DataFrame(input_data))
