@@ -325,6 +325,9 @@ class PlotEngine:
     def get_insulators_points(self) -> np.ndarray:
         return self.section_pts.get_insulators().points(True)
 
+    def get_obstacles_points(self) -> np.ndarray:
+        return self.section_pts.get_obstacle_coords().points(True)
+
     def preview_line3d(
         self,
         fig: go.Figure,
