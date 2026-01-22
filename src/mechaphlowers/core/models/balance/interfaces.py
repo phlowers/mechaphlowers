@@ -113,6 +113,23 @@ class IBalanceModel(IModelForSolver, ABC):
         Default unit is daN"""
         pass
 
+# TODO: check left/sright
+    @abstractmethod
+    def vhl_under_chain_left(self) -> VhlStrength:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+        VHL at the left of the support.
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
+        pass
+
+    @abstractmethod
+    def vhl_under_chain_right(self) -> VhlStrength:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+        VHL at the right of the support.
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
+        pass
+
     @abstractmethod
     def vhl_under_console(self) -> VhlStrength:
         """Get the VHL efforts under console: considering insulator_weight.

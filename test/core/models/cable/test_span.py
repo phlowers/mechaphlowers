@@ -244,7 +244,7 @@ def test_span_model__slope() -> None:
     expected_slope_values = np.array([7.1])  # Expected slope value in radians
 
     np.testing.assert_allclose(
-        np.degrees(span_model.slope()), expected_slope_values, rtol=1e-3
+        np.degrees(span_model.slope('left')), expected_slope_values, rtol=1e-3
     )
 
 
@@ -260,7 +260,7 @@ def test_span_model__slope_2_spans() -> None:
     )  # Expected slope value in radians
 
     np.testing.assert_allclose(
-        span_model.slope(), expected_slope_values, rtol=1e-3
+        span_model.slope('left'), expected_slope_values, rtol=1e-3
     )
 
 

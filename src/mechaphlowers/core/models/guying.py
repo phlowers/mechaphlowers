@@ -4,6 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from typing import Literal
 import numpy as np
 
 from mechaphlowers.core.models.balance.engine import BalanceEngine
@@ -28,6 +29,7 @@ class GuyingLoads:
         with_pulley: bool,
         guying_height: float,
         guying_horizontal_distance: float,
+        side: Literal['left', 'right'] = 'left'
     ) -> dict:
         """Calculate guying system loads and forces.
 
@@ -48,25 +50,30 @@ class GuyingLoads:
             raise ValueError(
                 "With pulley, guying number must be between 1 and number of spans - 2"
             )
+        if side=='left':
 
-        vhl_left = self.balance_engine.balance_model.vhl_under_chain_right()
+            vhl_left = self.balance_engine.balance_model.vhl_under_chain_right()
+            vhl_v = vhl_left.V.value('N')[num_guying]
+            vhl_h = vhl_left.H.value('N')[num_guying]
+            vhl_l = vhl_left.L.value('N')[num_guying]
 
-        vhl_v_g = vhl_left.V.value[num_guying] *10
-        vhl_h_g = vhl_left.H.value[num_guying] *10
-        vhl_l_g = vhl_left.L.value[num_guying] *10
+        elif side =='right':
+            
+            vhl_right = self.balance_engine.balance_model.vhl_under_chain_left()
+            vhl_v = vhl_right.V.value('N')[num_guying]
+            vhl_h = vhl_right.H.value('N')[num_guying]
+            vhl_l = vhl_right.L.value('N')[num_guying]
+
         
-        vhl_right = self.balance_engine.balance_model.vhl_under_chain_left()
+        else:
+            raise AttributeError("side must be 'left' or 'right'")
 
-        vhl_v_d = vhl_right.V.value[num_guying]
-        vhl_h_d = vhl_right.H.value[num_guying]
-        vhl_l_d = vhl_right.L.value[num_guying]
-
-        slope_left = self.balance_engine.span_model.slope()[num_guying]
+        slope = self.balance_engine.span_model.slope(side)[num_guying]
         span_tension = self.balance_engine.span_model.T_h()[num_guying]
 
         if with_pulley:
             return self.static_calculate_guying_loads_with_pulley(
-                vhl_v_g=vhl_v_g,
+                vhl_v_g=vhl_v,
                 alt_acc=self.balance_engine.section_array.data.conductor_attachment_altitude.iloc[
                     num_guying
                 ],
@@ -81,13 +88,9 @@ class GuyingLoads:
                 ],
                 bundle_number=self.bundle_number,
                 span_tension=span_tension,
-                span_slope_left=slope_left,
+                span_slope_left=slope,
             )
         else:
-            # unused args?
-            vhl_h_d = vhl_left.H.value[num_guying - 1]
-            vhl_l_d = vhl_left.L.value[num_guying - 1]
-            vhl_v_d = vhl_left.V.value[num_guying - 1]
 
             return self.static_calculate_guying_loads(
                 # num_guying=num_guying,
@@ -97,10 +100,10 @@ class GuyingLoads:
                 # ],
                 # vhl_h_d=vhl_h_d,
                 # vhl_l_d=vhl_l_d,
-                vhl_h_g=vhl_h_g,
-                vhl_l_g=vhl_l_g,
                 # vhl_v_d=vhl_v_d,
-                vhl_v_g=vhl_v_g,
+                vhl_h_g=vhl_h,
+                vhl_l_g=vhl_l,
+                vhl_v_g=vhl_v,
                 alt_acc=self.balance_engine.section_array.data.conductor_attachment_altitude.iloc[
                     num_guying
                 ],
@@ -262,7 +265,7 @@ class GuyingLoads:
 
         # Tension in guying cable = span tension / cos(slope) * bundle factor
         guying_load = span_tension / np.cos(slope_rad) * bundle_number
-        guying_load_rounded = np.round(guying_load / 10, 0)
+        guying_load_rounded = np.round(guying_load, 0)
 
         # Calculate altitude difference between chain attachment and guying attachment
         delta_alt = alt_acc - guying_height
@@ -273,7 +276,7 @@ class GuyingLoads:
         guying_angle_deg = np.round(np.degrees(guying_angle_rad), 1)
 
         # Calculate total vertical load under console
-        charge_v = np.round(vhl_v_g / 10, 0)
+        charge_v = np.round(vhl_v_g, 0)
 
         # Add all vertical components:
         # - chain weight (insulator_mass)
@@ -283,10 +286,10 @@ class GuyingLoads:
         cable_length = np.sqrt(guying_horizontal_distance**2 + delta_alt**2)
         charge_v = np.round(
             charge_v
-            + insulator_mass / 10
-            + counterweight / 10
-            + guying_load * np.sin(guying_angle_rad) / 10
-            + cable_length * cable_linear_weight * bundle_number / 10,
+            + insulator_mass
+            + counterweight
+            + guying_load * np.sin(guying_angle_rad)
+            + cable_length * cable_linear_weight * bundle_number,
             0,
         )
 
@@ -295,7 +298,7 @@ class GuyingLoads:
         charge_l = span_tension * bundle_number - guying_load * np.cos(
             guying_angle_rad
         )
-        charge_l_rounded = np.round(charge_l / 10, 0)
+        charge_l_rounded = np.round(charge_l, 0)
 
         return {
             "guying_load": guying_load_rounded,

@@ -14,7 +14,7 @@ from mechaphlowers.data.units import Q_, Quantity
 
 class QuantityArray:
     def __init__(
-        self, value: np.ndarray, input_unit: str, output_unit: str
+        self, value: np.ndarray, input_unit: str, user_output_unit: str
     ) -> None:
         """Convert a numpy array from input_unit to output_unit
         Args:
@@ -22,14 +22,16 @@ class QuantityArray:
             input_unit (str): unit of the input values
             output_unit (str): desired unit of the output values
         """
-        self.quantity = Q_(value, input_unit).to(output_unit)
+        self.quantity = Q_(value, input_unit).to(user_output_unit)
         self.input_unit = input_unit  # for debug
-        self.output_unit = output_unit
+        self.output_unit = user_output_unit
 
-    @property
-    def value(self) -> np.ndarray:
+    def value(self, output_unit: str | None = None) -> np.ndarray:
         """Return the magnitude of the quantity array in the output unit"""
-        return self.quantity.m
+        if output_unit is None:
+            return self.quantity.m
+        else:
+            return self.quantity.to(output_unit).m
 
     @property
     def unit(self) -> str:

@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
-from typing import Tuple, Type
+from typing import Literal, Tuple, Type
 
 import numpy as np
 
@@ -259,7 +259,7 @@ class ISpan(ABC):
         """Mean tension along the whole cable."""
 
     @abstractmethod
-    def slope(self) -> np.ndarray:
+    def slope(self, side: Literal['left', 'right']) -> np.ndarray:
         """Slope angle at the supports in radians.
 
         Returns:
@@ -490,14 +490,15 @@ class CatenarySpan(ISpan):
             / 2
         )
 
-    def slope(self) -> np.ndarray:
+    def slope(self, side: Literal['left', 'right']) -> np.ndarray:
         """Slope angle at the supports in radians.
 
         Returns:
             np.ndarray: slope angle at each support in radians.
         """
         # sign? / absolute value?
-        return self.T_v(self._x_m) / self.T_h()
+        x_extremum = self._x_m if side == 'left' else self._x_n
+        return self.T_v(x_extremum) / self.T_h()
 
 
 def span_model_builder(

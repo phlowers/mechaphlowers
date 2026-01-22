@@ -21,13 +21,13 @@ def test_vhl_strength():
     vhl = VhlStrength(arr, input_unit="N")
 
     V, H, L = vhl.vhl
-    np.testing.assert_array_equal(V.value, np.array([1000, 2000, 3000]) / 10)
-    np.testing.assert_array_equal(H.value, np.array([4000, 5000, 6000]) / 10)
-    np.testing.assert_array_equal(L.value, np.array([7000, 8000, 9000]) / 10)
+    np.testing.assert_array_equal(V.value(), np.array([1000, 2000, 3000]) / 10)
+    np.testing.assert_array_equal(H.value(), np.array([4000, 5000, 6000]) / 10)
+    np.testing.assert_array_equal(L.value(), np.array([7000, 8000, 9000]) / 10)
 
-    np.testing.assert_array_equal(V.value, vhl.V.value)
-    np.testing.assert_array_equal(H.value, vhl.H.value)
-    np.testing.assert_array_equal(L.value, vhl.L.value)
+    np.testing.assert_array_equal(V.value(), vhl.V.value())
+    np.testing.assert_array_equal(H.value(), vhl.H.value())
+    np.testing.assert_array_equal(L.value(), vhl.L.value())
 
     options.output_units.force = save_option
 
@@ -53,11 +53,11 @@ def test_vhl_strength_str_repr():
 def test_quantity_array_creation():
     arr = np.array([1, 2, 3, 4, 5])
     expected_unit = "m"
-    quantity_arr = QuantityArray(arr, output_unit="m", input_unit="mm")
+    quantity_arr = QuantityArray(arr, user_output_unit="m", input_unit="mm")
     assert quantity_arr.unit == "meter"
     assert quantity_arr.symbol == expected_unit
 
     out_arr, out_unit = quantity_arr.to_tuple()
-    np.testing.assert_array_equal(out_arr, quantity_arr.value)
-    np.testing.assert_array_equal(quantity_arr.value, arr / 1000)
+    np.testing.assert_array_equal(out_arr, quantity_arr.value())
+    np.testing.assert_array_equal(quantity_arr.value(), arr / 1000)
     assert out_unit == expected_unit
