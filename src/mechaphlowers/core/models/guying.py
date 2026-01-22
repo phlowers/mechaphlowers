@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from typing import Literal
+
 import numpy as np
 
 from mechaphlowers.core.models.balance.engine import BalanceEngine
@@ -29,7 +30,7 @@ class GuyingLoads:
         with_pulley: bool,
         guying_height: float,
         guying_horizontal_distance: float,
-        side: Literal['left', 'right'] = 'left'
+        side: Literal['left', 'right'] = 'left',
     ) -> dict:
         """Calculate guying system loads and forces.
 
@@ -50,21 +51,22 @@ class GuyingLoads:
             raise ValueError(
                 "With pulley, guying number must be between 1 and number of spans - 2"
             )
-        if side=='left':
-
-            vhl_left = self.balance_engine.balance_model.vhl_under_chain_right()
+        if side == 'left':
+            vhl_left = (
+                self.balance_engine.balance_model.vhl_under_chain_right()
+            )
             vhl_v = vhl_left.V.value('N')[num_guying]
             vhl_h = vhl_left.H.value('N')[num_guying]
             vhl_l = vhl_left.L.value('N')[num_guying]
 
-        elif side =='right':
-            
-            vhl_right = self.balance_engine.balance_model.vhl_under_chain_left()
+        elif side == 'right':
+            vhl_right = (
+                self.balance_engine.balance_model.vhl_under_chain_left()
+            )
             vhl_v = vhl_right.V.value('N')[num_guying]
             vhl_h = vhl_right.H.value('N')[num_guying]
             vhl_l = vhl_right.L.value('N')[num_guying]
 
-        
         else:
             raise AttributeError("side must be 'left' or 'right'")
 
@@ -91,7 +93,6 @@ class GuyingLoads:
                 span_slope_left=slope,
             )
         else:
-
             return self.static_calculate_guying_loads(
                 # num_guying=num_guying,
                 # num_profil=num_guying,
@@ -189,7 +190,7 @@ class GuyingLoads:
             + counterweight
             + (result_h_l / guying_horizontal_distance) * delta_alt
             + np.sqrt(guying_horizontal_distance**2 + delta_alt**2)
-            * cable_linear_weight 
+            * cable_linear_weight
             * bundle_number,
             0,
         )

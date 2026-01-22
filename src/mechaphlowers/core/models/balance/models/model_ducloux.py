@@ -386,14 +386,13 @@ class BalanceModel(IBalanceModel):
         V = -(self.nodes.Fz - self.nodes.insulator_weight / 2)
         vhl_result = np.array([V, self.nodes.Fy, self.nodes.Fx])
         return VhlStrength(vhl_result, "N")
-    
-    
+
     def vhl_under_chain_left(self, output_unit: str = "daN") -> VhlStrength:
         Fx, Fy, Fz = self.nodes.vector_projection.forces_left()
         V = -(Fz - self.nodes.insulator_weight / 2)
         vhl_result = np.array([V, Fy, Fx])
         return VhlStrength(vhl_result, "N")
-    
+
     # TODO: right and left are swapped
     def vhl_under_chain_right(self, output_unit: str = "daN") -> VhlStrength:
         Fx, Fy, Fz = self.nodes.vector_projection.forces_right()

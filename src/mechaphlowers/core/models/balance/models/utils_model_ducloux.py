@@ -178,7 +178,6 @@ class VectorProjection:
         Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
         return Fx, Fy, Fz
 
-
     def forces_left(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         s_right, t_right, z_right = self.T_line_plane_right()
         T_line_plane_left = self.T_line_plane_left()
@@ -216,8 +215,7 @@ class VectorProjection:
         Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
         Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
         return Fx, Fy, Fz
-    
-    
+
     def forces_right(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         s_right, t_right, z_right = self.T_line_plane_right()
         T_line_plane_left = self.T_line_plane_left()
@@ -235,12 +233,8 @@ class VectorProjection:
         Fy_first = 0
         Fz_first = self.insulator_weight[0] / 2  # also add load?
 
-        Fx_suspension = (s_right) * np.cos(gamma) - (
-            -t_right
-        ) * np.sin(gamma)
-        Fy_suspension = (t_right) * np.cos(gamma) - (
-            s_right
-        ) * np.sin(gamma)
+        Fx_suspension = (s_right) * np.cos(gamma) - (-t_right) * np.sin(gamma)
+        Fy_suspension = (t_right) * np.cos(gamma) - (s_right) * np.sin(gamma)
         Fz_suspension = z_right + self.insulator_weight[1:] / 2
 
         Fx_last = (s_right[-1]) * np.cos(gamma[-1]) - (-t_right[-1]) * np.sin(
