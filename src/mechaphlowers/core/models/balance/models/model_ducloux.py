@@ -66,8 +66,112 @@ class BalanceModel(IBalanceModel):
     ) -> None:
         # tempertaure and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
-        self.parameter = parameter
-        self.nodes = nodes_builder(section_array)
+        self.parameter_init = parameter
+        self.section_array = section_array
+        self.find_param_solver_type = find_param_solver_type
+
+        self.reset(
+            cable_array, span_model, deformation_model, cable_loads, full=True
+        )
+
+    def reset(
+        self,
+        cable_array: CableArray,
+        span_model: ISpan,
+        deformation_model: IDeformation,
+        cable_loads: CableLoads,
+        full: bool = False,
+    ) -> None:
+        """set or reset the model.
+        
+        For full=True, all attributes are re-initialized, including cable data and nodes.
+        Else, only models references are updated. It is useful for loads update for examples.
+        
+        Args:
+            cable_array (CableArray): cable data
+            span_model (ISpan): span model
+            deformation_model (IDeformation): deformation model
+            cable_loads (CableLoads): cable loads
+            full (bool, optional): whether to re-initialize all attributes or only models references. Defaults to False.
+        """
+        
+        # declaration of attributes
+        self.a: np.ndarray
+        self.b: np.ndarray
+        self.Th: np.ndarray
+        self.Tv_d: np.ndarray
+        self.Tv_g: np.ndarray
+
+        self._adjustment: bool = True
+        
+        
+        # if full is True:
+        self.parameter = self.parameter_init
+        self.initialize_cable(cable_array)
+        
+        self.nodes = nodes_builder(self.section_array)
+
+        self.initialize_models_references(
+            span_model, deformation_model, cable_loads, full=full
+        )
+
+        # TODO: during adjustment computation, perhaps set cable_temperature = 0
+        # temperature here is tuning temperature / only in the real span part
+        # there is another temperature : change state
+
+        self.initialize_loadmodel()
+        self.initialize_solvers()
+        self.initialize_state()
+
+    def initialize_state(self):
+        """Initialize the state of the model. Mainly used as a preprocess before a computation."""
+        self.update()
+        self.nodes.compute_dx_dy_dz()
+        self.nodes.vector_projection.set_tensions(
+            self.Th, self.Tv_d, self.Tv_g
+        )
+        self.nodes.compute_moment()
+
+    def initialize_models_references(
+        self,
+        span_model: ISpan,
+        deformation_model: IDeformation,
+        cable_loads: CableLoads,
+        full: bool = False,
+    ):
+        """Initialize or reset models references. Special behavior for nodes_span_model if full is False to avoid breaking references.
+        
+        Args:
+            span_model (ISpan): span model
+            deformation_model (IDeformation): deformation model
+            cable_loads (CableLoads): cable loads
+            full (bool, optional): whether to re-initialize all attributes or only models references. Defaults to False.
+        """
+        self.span_model = span_model
+        if full is True:
+            self.nodes_span_model = copy(self.span_model)
+        else:
+            self.nodes_span_model.mirror(self.span_model)
+        self.deformation_model = deformation_model
+        self.cable_loads = cable_loads
+
+    def initialize_loadmodel(self):
+        """Initialize LoadModel object used in change_state case with loads. """
+        self.load_model = LoadModel(
+            self.cable_array,
+            self.nodes.load_weight[self.nodes.has_load_on_span],
+            self.nodes.load_position[self.nodes.has_load_on_span],
+            arr.decr(self.span_model.span_length)[self.nodes.has_load_on_span],
+            arr.decr(self.span_model.elevation_difference)[
+                self.nodes.has_load_on_span
+            ],
+            self.k_load[self.nodes.has_load_on_span],
+            self.sagging_temperature[self.nodes.has_load_on_span],
+            self.parameter[self.nodes.has_load_on_span],
+        )
+
+    def initialize_cable(self, cable_array):
+        """Configure cable data from cable_array by copying attributes to local. Mainly used during full reset."""
         self.cable_array = cable_array
         # TODO: temporary solution to manage cable data, must find a better way to do this
         self.cable_section = np.float64(self.cable_array.data.section.iloc[0])
@@ -84,47 +188,19 @@ class BalanceModel(IBalanceModel):
         self.temperature_reference = np.float64(
             self.cable_array.data.temperature_reference.iloc[0]
         )
-        self.span_model = span_model
-        self.nodes_span_model = copy(self.span_model)
-        self.deformation_model = deformation_model
-        self.cable_loads = cable_loads
 
-        self.a: np.ndarray
-        self.b: np.ndarray
-        self.Th: np.ndarray
-        self.Tv_d: np.ndarray
-        self.Tv_g: np.ndarray
+    def initialize_solvers(self):
+        """initialize_solvers initializes the solvers used in the model."""
 
-        self._adjustment: bool = True
-        # TODO: during adjustment computation, perhaps set cable_temperature = 0
-        # temperature here is tuning temperature / only in the real span part
-        # there is another temperature : change state
-
-        self.load_model = LoadModel(
-            self.cable_array,
-            self.nodes.load_weight[self.nodes.has_load_on_span],
-            self.nodes.load_position[self.nodes.has_load_on_span],
-            arr.decr(self.span_model.span_length)[self.nodes.has_load_on_span],
-            arr.decr(self.span_model.elevation_difference)[
-                self.nodes.has_load_on_span
-            ],
-            self.k_load[self.nodes.has_load_on_span],
-            self.sagging_temperature[self.nodes.has_load_on_span],
-            self.parameter[self.nodes.has_load_on_span],
-        )
         self.find_param_model = FindParamModel(
             self.span_model, self.deformation_model
         )
-        self.find_param_solver = find_param_solver_type(self.find_param_model)
+        self.find_param_solver = self.find_param_solver_type(
+            self.find_param_model
+        )
         self.load_solver = BalanceSolver(
             **options.solver.balance_solver_load_params
         )
-        self.update()
-        self.nodes.compute_dx_dy_dz()
-        self.nodes.vector_projection.set_tensions(
-            self.Th, self.Tv_d, self.Tv_g
-        )
-        self.nodes.compute_moment()
 
     @property
     def adjustment(self) -> bool:

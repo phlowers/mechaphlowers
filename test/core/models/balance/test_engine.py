@@ -351,7 +351,7 @@ def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
         initial_wind
     )
 
-    balance_engine_simple.reset()
+    balance_engine_simple.reset(True)
 
     np.testing.assert_array_equal(
         balance_engine_simple.span_model.sagging_parameter, initial_span_param

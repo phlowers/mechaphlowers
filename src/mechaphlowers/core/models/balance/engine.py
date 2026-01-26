@@ -32,6 +32,7 @@ from mechaphlowers.core.models.cable.span import (
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import SolverError
+from mechaphlowers.entities.reactivity import Notifier
 from mechaphlowers.utils import arr, check_time
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ class DisplacementResult:
         self.dxdydz = dxdydz
 
 
-class BalanceEngine:
+class BalanceEngine(Notifier):
     """Engine for solving insulator chains positions.
 
     After solving any situation, many attributes are updated in the models.
@@ -96,9 +97,9 @@ class BalanceEngine:
         self.span_model_type = span_model_type
         self.deformation_model_type = deformation_model_type
 
-        self.reset()
+        self.reset(full=True)
 
-    def reset(self) -> None:
+    def reset(self, full: bool = False) -> None:
         """Reset the balance engine to initial state.
 
         This method re-initializes the span model, cable loads, deformation model, balance model, and solvers.
@@ -106,52 +107,73 @@ class BalanceEngine:
         """
 
         logger.debug("Resetting balance engine.")
-        zeros_vector = np.zeros_like(
-            self.section_array.data.conductor_attachment_altitude.to_numpy()
-        )
 
-        sagging_temperature = arr.decr(
-            (self.section_array.data.sagging_temperature.to_numpy())
-        )
-        parameter = arr.decr(
-            self.section_array.data.sagging_parameter.to_numpy()
-        )
-        self.span_model = span_model_builder(
-            self.section_array, self.cable_array, self.span_model_type
-        )
-        self.cable_loads = CableLoads(
-            np.float64(self.cable_array.data.diameter.iloc[0]),
-            np.float64(self.cable_array.data.linear_weight.iloc[0]),
-            zeros_vector,
-            zeros_vector,
-        )
-        self.deformation_model = deformation_model_builder(
-            self.cable_array,
-            self.span_model,
-            sagging_temperature,
-            self.deformation_model_type,
-        )
 
-        self.balance_model = self.balance_model_type(
-            sagging_temperature,
-            parameter,
-            self.section_array,
-            self.cable_array,
-            self.span_model,
-            self.deformation_model,
-            self.cable_loads,
-        )
-        self.solver_change_state = BalanceSolver(
-            **options.solver.balance_solver_change_state_params
-        )
-        self.solver_adjustment = BalanceSolver(
-            **options.solver.balance_solver_adjustment_params
-        )
-        self.L_ref: np.ndarray
 
-        self.get_displacement: Callable = self.balance_model.dxdydz
 
+
+        if full:
+            self.initialized = False
+            zeros_vector = np.zeros_like(
+                self.section_array.data.conductor_attachment_altitude.to_numpy()
+            )
+            sagging_temperature = arr.decr(
+                (self.section_array.data.sagging_temperature.to_numpy())
+            )
+            parameter = arr.decr(
+                self.section_array.data.sagging_parameter.to_numpy()
+            )
+            self.span_model = span_model_builder(
+                self.section_array, self.cable_array, self.span_model_type
+            )
+            self.cable_loads = CableLoads(
+                np.float64(self.cable_array.data.diameter.iloc[0]),
+                np.float64(self.cable_array.data.linear_weight.iloc[0]),
+                zeros_vector,
+                zeros_vector,
+            )
+            self.deformation_model = deformation_model_builder(
+                self.cable_array,
+                self.span_model,
+                sagging_temperature,
+                self.deformation_model_type,
+            )
+            super().__init__()
+            self.balance_model = self.balance_model_type(
+                sagging_temperature,
+                parameter,
+                self.section_array,
+                self.cable_array,
+                self.span_model,
+                self.deformation_model,
+                self.cable_loads,
+            )
+        else:
+            self.balance_model.reset(
+                cable_array=self.cable_array,
+                span_model=self.span_model,
+                deformation_model=self.deformation_model,
+                cable_loads=self.cable_loads,
+                full=full,
+            )
+        
+        if full:
+            self.solver_change_state = BalanceSolver(
+                **options.solver.balance_solver_change_state_params
+            )
+            self.solver_adjustment = BalanceSolver(
+                **options.solver.balance_solver_adjustment_params
+            )
+            self.L_ref: np.ndarray
+
+            self.get_displacement: Callable = self.balance_model.dxdydz
+
+        self.notify()
+        self.initialized = True
         logger.debug("Balance engine initialized.")
+        
+
+        
 
     def add_loads(
         self,
@@ -193,7 +215,15 @@ class BalanceEngine:
         self.section_array._data["load_position"] = load_position_ratio
         self.section_array._data["load_mass"] = load_mass
 
-        self.reset()
+        self.reset(full=False)
+        # self.balance_model.reset(
+        #     cable_array=self.cable_array,
+        #     span_model=self.span_model,
+        #     deformation_model=self.deformation_model,
+        #     cable_loads=self.cable_loads,
+        #     full=False
+        # )
+            
         debug_loads = "Loads have been added. If you are using a PlotEngine object, you should reset it, using PlotEngine.generate_reset()"
         logger.debug(debug_loads)
 
