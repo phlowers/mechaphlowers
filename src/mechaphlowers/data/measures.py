@@ -10,6 +10,7 @@
 This module provides functions to compute various measures on sections and spans.
 """
 
+import logging
 from abc import ABC, abstractmethod
 from typing import Dict
 
@@ -24,6 +25,8 @@ from mechaphlowers.core.papoto.papoto_model import (
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.utils import float_to_array
+
+logger = logging.getLogger(__name__)
 
 
 class ParameterMeasure(ABC):
@@ -91,6 +94,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         Returns:
             None
         """
+        logger.debug("Start running PapotoParameterMeasure.measure_method()")
 
         self.measures = {
             "HL": HL,
@@ -127,6 +131,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         self._validity = papoto_validity(
             self.parameter_1_2, self.parameter_2_3, self.parameter_1_3
         )
+        logger.debug("PapotoParameterMeasure.measure_method() ended")
 
     @staticmethod
     def select_points_in_dict(point_1, point_2, data):
@@ -189,6 +194,8 @@ def param_calibration(
         cable_array (CableArray): Cable array
         span_index (int): index of the span to compute the parameter for
     """
+
+    logger.debug("Start running param_calibration()")
     _ZETA = options.solver.param_calibration_zeta
 
     def compute_parameter(
@@ -223,9 +230,9 @@ def param_calibration(
     delta_1 = parameter_mes_1 - measured_parameter
     derivative = (delta_1 - delta) / _ZETA
 
-    if derivative == 0:
-        # case where we get the exact solution, avoid division by zero
-        return param_approx
-    else:
+    # derivative == 0 means we got the exact solution, avoid division by zero
+    if derivative != 0:
         # newton-raphson update
-        return param_approx - delta / derivative
+        param_approx = param_approx - delta / derivative
+    logger.debug(f"param_calibration() finished, param found: {param_approx}")
+    return param_approx
