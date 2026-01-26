@@ -4,17 +4,16 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from unittest.mock import patch
+
 import numpy as np
 
-from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.interfaces import VhlStrength
 from mechaphlowers.entities.core import QuantityArray
 
 
+@patch('mechaphlowers.config.options.output_units.force', 'daN')
 def test_vhl_strength():
-    save_option = options.output_units.force
-    options.output_units.force = "daN"
-
     arr = np.array(
         [[1000, 2000, 3000], [4000, 5000, 6000], [7000, 8000, 9000]]
     )
@@ -29,13 +28,9 @@ def test_vhl_strength():
     np.testing.assert_array_equal(H.value(), vhl.H.value())
     np.testing.assert_array_equal(L.value(), vhl.L.value())
 
-    options.output_units.force = save_option
 
-
+@patch('mechaphlowers.config.options.output_units.force', 'daN')
 def test_vhl_strength_str_repr():
-    save_option = options.output_units.force
-    options.output_units.force = "daN"
-
     arr = np.array([[1000, 2000], [3000, 4000], [5000, 6000]])
     vhl = VhlStrength(arr, input_unit="N")
     vhl_str = str(vhl)
@@ -46,8 +41,6 @@ def test_vhl_strength_str_repr():
     vhl_repr = repr(vhl)
     expected_repr = f"VhlStrength\n{expected_str}"
     assert vhl_repr == expected_repr
-
-    options.output_units.force = save_option
 
 
 def test_quantity_array_creation():

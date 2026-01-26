@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
 
@@ -12,6 +14,8 @@ from mechaphlowers.core.models.guying import GuyingLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
+@patch('mechaphlowers.config.options.output_units.force', 'daN')
+@patch('mechaphlowers.config.options.output_units.length', 'm')
 def test_guying_sandbox(cable_array_AM600: CableArray):
     # section_array = SectionArray(
     #     pd.DataFrame(
@@ -48,9 +52,50 @@ def test_guying_sandbox(cable_array_AM600: CableArray):
         )
     )
     section_array.add_units({"line_angle": "grad"})
+    
+    # expected_guying_loads_left = {
+    #     "guying_load": 353.0,
+    #     "vertical_load": 353.73123844,
+    #     "longitudinal_load": -3531.0,
+    #     "guying_angle_degrees": 45.0,
+    #     "delta_altitude": -20,
+    # }
+    
+    # expected_guying_loads_right = {
+    #     "guying_load": 353.0,
+    #     "vertical_load": 353.73123844,
+    #     "longitudinal_load": -3531.0,
+    #     "guying_angle_degrees": 45.0,
+    #     "delta_altitude": -20,
+    # }
+    
+    expected_guying_loads_left = {
+        "guying_load": 4119.0,
+        "vertical_load": 2676.0,
+        "longitudinal_load": 0.0,
+        "guying_angle_degrees": 31.0,
+        "delta_altitude": -20,
+    }
+    
+    expected_guying_pulley_loads_left = {
+        "guying_load": 3549.0,
+        "vertical_load": 2383.0,
+        "longitudinal_load": 488.0,
+        "guying_angle_degrees": 31.0,
+        "delta_altitude": -20,
+    }
+    
+    # expected_guying_pulley_loads_right = {
+    #     "guying_load": 353.0,
+    #     "vertical_load": 353.73123844,
+    #     "longitudinal_load": -3531.0,
+    #     "guying_angle_degrees": 45.0,
+    #     "delta_altitude": -20,
+    # }
+    
 
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
+    # section_array.sagging_parameter = 2000
+    # section_array.sagging_temperature = 15
 
     # V: [353.73123844 707.49778662 707.49778662 353.73123844] daN
     # H: [0. 0. 0. 0.] daN
@@ -177,8 +222,8 @@ def test_guying_sandbox(cable_array_AM600: CableArray):
     # )
     # section_array.add_units({"line_angle": "grad"})
 
-    # section_array.sagging_parameter = 2000
-    # section_array.sagging_temperature = 15
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
 
     balance_engine = BalanceEngine(
         cable_array=cable_array_AM600,
@@ -190,8 +235,15 @@ def test_guying_sandbox(cable_array_AM600: CableArray):
         wind_pressure=0,
     )
     guying = GuyingLoads(balance_engine)
-    # weird values if no pulley
-    guying.get_guying_loads(1, False, 0, 50)
-    # values seems ok, but not for V (vertical load)
-    guying.get_guying_loads(1, True, 50, 50)
-    assert True
+    
+    
+    guying_loads = guying.get_guying_loads(
+        1, False, 0, 50)
+    guyin
+
+    
+    assert dict_approx_equal(, "daN", expected_guying_loads_left)
+    assert dict_approx_equal(guying.get_guying_loads(1, True, 0, 50), "daN", expected_guying_pulley_loads_left)
+
+    
+    
