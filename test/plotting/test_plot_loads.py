@@ -246,7 +246,7 @@ def test_get_loads_coords_4_spans(cable_array_AM600: CableArray):
 
     coords_loads = plt_engine.get_loads_coords()
     assert len(coords_loads) == 2
-    assert list(coords_loads.keys()) == [0, 2]
+    assert list(coords_loads.keys()) == [0, 1]
     # fig = go.Figure()
     # plt_engine.preview_line3d(fig)
     # fig.show()

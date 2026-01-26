@@ -310,6 +310,7 @@ class ThermalEngine:
             ),
         }
         self._load()
+        logger.debug("Thermal attribute set")
 
     def load(self):
         """Load or reload the thermal model, and checks the shape of the input parameters.
@@ -332,6 +333,7 @@ class ThermalEngine:
         Returns:
             ThermalSteadyResults: An instance containing steady-state temperature data.
         """
+        logger.debug("Get steady_temperature()")
         if intensity is not None:
             self.dict_input["transit"] = intensity
             self.load()
