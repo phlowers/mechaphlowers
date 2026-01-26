@@ -342,7 +342,7 @@ class PlotEngine:
         return self.section_pts.get_insulators().points(True)
 
     def get_loads_coords(self, project=False, frame_index=0) -> Dict:
-        """Get a dictionnary of coordinates of the loads.
+        """Get a dictionary of coordinates of the loads.
 
         If there are two loads in spans $0$ and $2$, the format is the following:
 
@@ -355,7 +355,7 @@ class PlotEngine:
             frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
 
         Returns:
-            Dict: dictionnary that stores the coordinates. Key is span index. Value is a np.array of coordinates.
+            Dict: dictionary that stores the coordinates. Key is span index. Value is a np.array of coordinates.
         """
         spans_points, _, _ = self.get_points_for_plot(project, frame_index)
         loads_spans_idx, loads_points_idx = self.spans.loads_indices
