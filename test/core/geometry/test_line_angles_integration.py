@@ -66,7 +66,7 @@ def create_default_displacement_vector(
                 "span_length": np.array([500, 460, 520, np.nan]),
                 "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             },
-            np.array([497.83008 , 460.886778, 528.685653, np.nan]),
+            np.array([497.83008, 460.886778, 528.685653, np.nan]),
             np.array([10, 20, 15, np.nan]),
         ),
     ],

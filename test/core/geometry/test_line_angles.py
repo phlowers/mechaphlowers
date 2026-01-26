@@ -205,14 +205,18 @@ def test_build_attachments(section_array_line_angles):
         edge_arm_coords, displacement_vector
     )
 
-    expected_attachment =     np.array([[ 1.000000e-02,  4.000000e+01,  3.000000e+01],
-              [ 5.076537e+02,  1.847759e+01,  3.500000e+01],
-              [ 8.175045e+02, -3.542469e+02,  2.200000e+01],
-              [ 1.327541e+03, -2.406832e+02,  7.000000e+01]])
-    
+    expected_attachment = np.array(
+        [
+            [1.000000e-02, 4.000000e01, 3.000000e01],
+            [5.076537e02, 1.847759e01, 3.500000e01],
+            [8.175045e02, -3.542469e02, 2.200000e01],
+            [1.327541e03, -2.406832e02, 7.000000e01],
+        ]
+    )
 
-
-    np.testing.assert_allclose(attachment_coords, expected_attachment, rtol=1e-3)
+    np.testing.assert_allclose(
+        attachment_coords, expected_attachment, rtol=1e-3
+    )
     # import plotly.graph_objects as go
     # from mechaphlowers.plotting.plot import plot_points_3d
     # fig = go.Figure()

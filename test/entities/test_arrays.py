@@ -683,52 +683,29 @@ def test_equivalent_span(section_array) -> None:
 
 
 def test_correct_insulator_length(section_array) -> None:
-    
-    
-    s = SectionArray(
-        data=pd.DataFrame(
-            {
-                "name": ["support 1", "2", "three", "support 4"],
-                "suspension": [False, True, True, False],
-                "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
-                "crossarm_length": [10, 12.1, 10, 10.1],
-                "line_angle": [0, 360, 90.1, -90.2],
-                "insulator_length": [0.09, 4, 3.2, 0.01],
-                "span_length": [1, 500.2, 500.05, np.nan],
-                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
-            }
-        ),
-        sagging_parameter=2000,
-        sagging_temperature=15,
-    )
-    
-    
     expected_lengths = np.array([0.01, 4.0, 3.2, 0.01])
-    
-    
+
     np.testing.assert_allclose(
         section_array.data.insulator_length, expected_lengths
     )
     np.testing.assert_allclose(
         section_array._data.insulator_length, expected_lengths
     )
-    
+
     # test on .data property
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
     np.testing.assert_allclose(
         section_array.data.insulator_length, expected_lengths
     )
-    
+
     # nothing to correct
     section_array._data.insulator_length = np.array([0.01, 4.0, 3.2, 0.01])
     section_array.correct_insulator_length()
     np.testing.assert_allclose(
         section_array.data.insulator_length, expected_lengths
     )
-    
-    
-    
-    
+
+
 def test_warning_on_insulator_length_correction(section_array) -> None:
     # Force invalid lengths and ensure they are corrected with a warning
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])

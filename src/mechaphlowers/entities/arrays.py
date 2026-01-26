@@ -149,7 +149,7 @@ class SectionArray(ElementArray):
             self._data["conductor_attachment_altitude"].to_numpy()
             - options.ground.default_support_length
         )
-        
+
     def correct_insulator_length(self) -> None:
         """Correct insulator length to be at least 0.01 m to avoid numerical issues."""
         if (self._data["insulator_length"] < 0.01).any():
@@ -160,11 +160,9 @@ class SectionArray(ElementArray):
         self._data["insulator_length"] = self._data["insulator_length"].apply(
             lambda x: max(x, 0.01)
         )
-        
 
     @property
     def data(self) -> pd.DataFrame:
-        
         self.correct_insulator_length()
         data_output = super().data
         data_output["insulator_weight"] = (
