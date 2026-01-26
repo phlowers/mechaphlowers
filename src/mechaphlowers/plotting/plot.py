@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Literal, Self, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, Literal, Self, Tuple
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -320,7 +320,7 @@ class PlotEngine:
 
         Method used if BalanceEngine attributes have changed.
 
-        Example:
+        Examples:
             >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
             >>> balance_engine.add_loads(...)  # modification on balance engine
             >>> plt_engine = plt_engine.generate_reset()
@@ -341,10 +341,32 @@ class PlotEngine:
     def get_insulators_points(self) -> np.ndarray:
         return self.section_pts.get_insulators().points(True)
 
-    def get_loads_coords(self, project=False, frame_index=0) -> np.ndarray:
+    def get_loads_coords(self, project=False, frame_index=0) -> Dict:
+        """Get a dictionnary of coordinates of the loads.
+
+        If there are two loads in spans $0$ and $2$, the format is the following:
+
+        `{0: [x0, y0, z0], 2: [x2, y2, z2]}`
+
+        The arguments should be the same as `get_points_for_plot()`.
+
+        Args:
+            project (bool, optional): Set to True if 2d graph: this project all objects into a support frame. Defaults to False.
+            frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
+
+        Returns:
+            Dict: dictionnary that stores the coordinates. Key is span index. Value is a np.array of coordinates.
+        """
         spans_points, _, _ = self.get_points_for_plot(project, frame_index)
         loads_spans_idx, loads_points_idx = self.spans.loads_indices
-        return spans_points.coords[loads_spans_idx, loads_points_idx]
+        result_dict = {}
+        for index_in_small_array, span_index in enumerate(loads_spans_idx):
+            # point_index is the index of the load point in spans_points.coords
+            point_index = loads_points_idx[index_in_small_array]
+            result_dict[int(span_index)] = spans_points.coords[
+                span_index, point_index
+            ]
+        return result_dict
 
     def get_points_for_plot(
         self, project=False, frame_index=0
