@@ -44,3 +44,6 @@ class ConvergenceError(SolverError):
 
 class ShapeError(ValueError):
     """Raised when there is a shape mismatch in arrays."""
+
+class DataWarning(UserWarning):
+    """Base class for data-related warnings."""

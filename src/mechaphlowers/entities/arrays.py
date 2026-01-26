@@ -16,6 +16,7 @@ from typing_extensions import Self, Type
 
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_
+from mechaphlowers.entities.errors import DataWarning
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     SectionArrayInput,
@@ -134,6 +135,7 @@ class SectionArray(ElementArray):
         else:
             self.sagging_temperature = sagging_temperature
         self.input_units = options.input_units.section_array.copy()
+        self.correct_insulator_length()
         logger.debug("Section Array initialized.")
 
     def compute_elevation_difference(self) -> np.ndarray:
@@ -147,9 +149,23 @@ class SectionArray(ElementArray):
             self._data["conductor_attachment_altitude"].to_numpy()
             - options.ground.default_support_length
         )
+        
+    def correct_insulator_length(self) -> None:
+        """Correct insulator length to be at least 0.01 m to avoid numerical issues."""
+        if (self._data["insulator_length"] < 0.01).any():
+            warnings.warn(
+                "Some insulator_length values are less than 0.01 m. They will be set to 0.01 m to avoid numerical issues.",
+                category=DataWarning,
+            )
+        self._data["insulator_length"] = self._data["insulator_length"].apply(
+            lambda x: max(x, 0.01)
+        )
+        
 
     @property
     def data(self) -> pd.DataFrame:
+        
+        self.correct_insulator_length()
         data_output = super().data
         data_output["insulator_weight"] = (
             Q_(data_output["insulator_mass"].to_numpy(), "kg").to("N").m

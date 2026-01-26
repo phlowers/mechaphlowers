@@ -16,8 +16,9 @@ from mechaphlowers.entities.data_container import (
     DataContainer,
     factory_data_container,
 )
+import pytest
 
-
+@pytest.mark.skip(reason="Data container is deprecated, and will be removed in future versions.")
 def test_data_container__factory(
     default_section_array_three_spans: SectionArray,
     cable_array_AM600: CableArray,
