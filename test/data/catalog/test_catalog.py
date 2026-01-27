@@ -23,6 +23,7 @@ from mechaphlowers.data.catalog.catalog import (
     write_yaml_catalog_template,
 )
 from mechaphlowers.entities.arrays import CableArray
+from mechaphlowers.entities.errors import DataWarning
 from mechaphlowers.entities.shapes import SupportShape
 
 
@@ -260,7 +261,7 @@ def test_duplicated_warning():
             units_dict={},
         )
         assert len(warning) == 1
-        assert warning[0].category is UserWarning
+        assert warning[0].category is DataWarning
         assert "iris_dataset.csv" in str(warning[0].message)
 
 
