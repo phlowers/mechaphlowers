@@ -122,7 +122,7 @@ section_array_inputs = [
 @pytest.mark.parametrize(
     "section_array, expected_guying_loads_left, expected_guying_pulley_loads_left",
     section_array_inputs,
-    ids=["flat_section_array", "complete_section_array"],
+    ids=["flat_section_array", "span_change_section_array", "complete_section_array"],
 )
 def test_guying_sandbox(section_array: SectionArray, expected_guying_loads_left: dict, expected_guying_pulley_loads_left: dict ,cable_array_AM600: CableArray):
 
