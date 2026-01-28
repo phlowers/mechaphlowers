@@ -18,7 +18,7 @@ from mechaphlowers.data.units import Q_
 class GuyingLoadsResults:
     """Class to store guying loads results."""
 
-    tol_map = {
+    atol_map = {
         "guying_load": [10, "daN"],
         "vertical_load": [10, "daN"],
         "longitudinal_load": [10, "daN"],
@@ -32,6 +32,32 @@ class GuyingLoadsResults:
         longitudinal_load: Quantity,
         guying_angle_degrees: Quantity,
     ):
+        """Initialize GuyingLoadsResults with calculated values.
+        
+        Args:
+            guying_load (Quantity): Tension in guying cable
+            vertical_load (Quantity): Total vertical load under console
+            longitudinal_load (Quantity): Longitudinal load component
+            guying_angle_degrees (Quantity): Angle of guying cable with horizontal plane
+            
+        Raises:
+            TypeError: If any of the inputs are not of type Quantity
+            
+        Examples:
+            >>> from pint import UnitRegistry
+            >>> ureg = UnitRegistry()
+            >>> guying_load = 1000 * ureg.newton
+            >>> vertical_load = 500 * ureg.newton
+            >>> longitudinal_load = 200 * ureg.newton
+            >>> guying_angle_degrees = 30 * ureg.degree
+            >>> results = GuyingLoadsResults(guying_load, vertical_load, longitudinal_load, guying_angle_degrees)
+            >>> print(results)
+            Guying Load: 1000.0 newton
+            Vertical Load: 500.0 newton
+            Longitudinal Load: 200.0 newton
+            Guying Angle (degrees): 30.0 degree
+            
+        """
         for name, qty in {
             "guying_load": guying_load,
             "vertical_load": vertical_load,
@@ -90,15 +116,11 @@ class GuyingLoadsResults:
         """Return a user-friendly string representation of the results."""
         return self.str_repr
 
-    def __call__(self, *args, **kwds):
-        return self.value_dict
-
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, GuyingLoadsResults):
             return False
         for name in self.value_dict.keys():
-            
-            if abs(getattr(self,name) - getattr(value,name)) > Q_(*self.tol_map[name]):
+            if abs(getattr(self,name) - getattr(value,name)) > Q_(*self.atol_map[name]):
                 return False
 
         return True
@@ -114,8 +136,8 @@ class GuyingLoads:
             balance_engine (BalanceEngine): balance engine instance
         """
         self.balance_engine = balance_engine
-        self.counterweight = 0.0
-        self.bundle_number = 1.0
+        self.counterweight = 0.0 # TODO: link later with balance_engine.section_array.data.counterweight
+        self.bundle_number = 1.0 # TODO: link later with balance_engine.section_array.data.bundle_number
 
     def get_guying_loads(
         self,
@@ -137,8 +159,11 @@ class GuyingLoads:
 
         Returns:
             GuyingLoadsResults: Results containing guying_load, vertical_load, angle
+            
         Raises:
             ValueError: If with_pulley is True and support_index is not a suspension support.
+            TypeError: If input types are incorrect.
+            AttributeError: If side is not 'left' or 'right'.
         """
         if not isinstance(support_index, int):
             raise TypeError("support_index must be int")
@@ -152,6 +177,11 @@ class GuyingLoads:
                 raise TypeError(f"{name} must be a real number")
 
         span_shape = self.balance_engine.support_number
+        
+        
+        # counterweight = self.balance_engine.section_array.data.counterweight.iloc[
+        #     support_index
+        # ]
 
         if with_pulley and (
             support_index == 0 or support_index >= span_shape - 1
@@ -159,6 +189,12 @@ class GuyingLoads:
             raise ValueError(
                 "With pulley, guying number must be between 1 and number of spans - 2"
             )
+        
+        if support_index < 0 or support_index >= span_shape:
+            raise ValueError(
+                f"support_index must be between 0 and {span_shape - 1}"
+            )
+        
         if side == 'left':
             vhl_right = (
                 self.balance_engine.balance_model.vhl_under_chain_right()

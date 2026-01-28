@@ -185,6 +185,114 @@ def test_guying_sandbox(
         **expected_guying_pulley_loads_left
     )
 
+@pytest.fixture()
+def guying_basic_setup(cable_array_AM600):
+    balance_engine = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=section_array_flat,
+    )
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state(
+        new_temperature=15,
+        wind_pressure=0,
+    )
+    guying = GuyingLoads(balance_engine)
+    return guying
+
+
+def test_guying_invalid_support_index(guying_basic_setup):
+
+    guying = guying_basic_setup
+    
+    with pytest.raises(ValueError):
+        guying.get_guying_loads(
+            support_index=10, # out of range
+            side='left',
+            with_pulley=False,
+            guying_height=0,
+            guying_horizontal_distance=50,
+        )
+        
+    with pytest.raises(AttributeError):
+        guying.get_guying_loads(
+            support_index=0,
+            side='xxx', # not in the authorized list
+            with_pulley=False,
+            guying_height=0,
+            guying_horizontal_distance=50,
+        )
+        
+    with pytest.raises(TypeError):
+        guying.get_guying_loads(
+            support_index=1,
+            side='left',
+            with_pulley=0, # should be bool
+            guying_height=0,
+            guying_horizontal_distance=50,
+        )
+        
+    with pytest.raises(TypeError):
+        guying.get_guying_loads(
+            support_index=1,
+            side='left',
+            with_pulley=0, 
+            guying_height="e", # should be Real
+            guying_horizontal_distance=50,
+        )
+        
+    with pytest.raises(TypeError):
+        guying.get_guying_loads(
+            support_index=1,
+            side='left',
+            with_pulley=0, 
+            guying_height=0,
+            guying_horizontal_distance="e", # should be Real
+        )
+       
+       
+def test_guying_support_index_with_pulley(guying_basic_setup):
+    guying = guying_basic_setup
+    
+    # passing without pulley on first support
+    guying.get_guying_loads(
+            support_index=0, # out of range
+            side='left',
+            with_pulley=False,
+            guying_height=0,
+            guying_horizontal_distance=50,
+        ) 
+    
+    # should raise error with pulley on first support
+    with pytest.raises(ValueError):
+        guying.get_guying_loads(
+            support_index=0, # out of range
+            side='left',
+            with_pulley=True,
+            guying_height=0,
+            guying_horizontal_distance=50,
+        )
+        
+    # passing without pulley on last support
+    guying.get_guying_loads(
+        support_index=3, # out of range
+        side='left',
+        with_pulley=False,
+        guying_height=0,
+        guying_horizontal_distance=50,
+    )
+    
+    # should raise error with pulley on last support
+    with pytest.raises(ValueError):
+        guying.get_guying_loads(
+            support_index=3, # out of range
+            side='left',
+            with_pulley=True,
+            guying_height=0,
+            guying_horizontal_distance=50,
+        )
+
+
+
     # section_array = SectionArray(
     #     pd.DataFrame(
     #         {
