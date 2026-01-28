@@ -4,17 +4,15 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from dataclasses import dataclass
 from numbers import Real
-from typing import Literal, Self
-
-from pint import Quantity
+from typing import Literal
 
 import numpy as np
+from pint import Quantity
 
+from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.units import Q_
-from mechaphlowers.config import options
 
 
 class GuyingLoadsResults:
@@ -22,10 +20,10 @@ class GuyingLoadsResults:
 
     def __init__(
         self,
-        guying_load: Q_,
-        vertical_load: Q_,
-        longitudinal_load: Q_,
-        guying_angle_degrees: Q_,
+        guying_load: Quantity,
+        vertical_load: Quantity,
+        longitudinal_load: Quantity,
+        guying_angle_degrees: Quantity,
     ):
         for name, qty in {
             "guying_load": guying_load,
@@ -76,11 +74,13 @@ class GuyingLoadsResults:
     def __call__(self, *args, **kwds):
         return self.value_dict
 
-    def __eq__(self, value: Self) -> bool:
+    def __eq__(self, value: object) -> bool:
         if not isinstance(value, GuyingLoadsResults):
             return False
         for name in self.value_dict.keys():
-            if not np.isclose(self.value_dict[name], value.value_dict[name], atol=10):
+            if not np.isclose(
+                self.value_dict[name], value.value_dict[name], atol=10
+            ):
                 return False
 
         return True
