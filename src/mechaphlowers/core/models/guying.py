@@ -142,20 +142,20 @@ class GuyingLoads:
                 "With pulley, guying number must be between 1 and number of spans - 2"
             )
         if side == 'left':
-            vhl_left = (
-                self.balance_engine.balance_model.vhl_under_chain_right()
-            )
-            vhl_v = vhl_left.V.value('N')[support_index]
-            vhl_h = vhl_left.H.value('N')[support_index]
-            vhl_l = vhl_left.L.value('N')[support_index]
-
-        elif side == 'right':
             vhl_right = (
-                self.balance_engine.balance_model.vhl_under_chain_left()
+                self.balance_engine.balance_model.vhl_under_chain_right()
             )
             vhl_v = vhl_right.V.value('N')[support_index]
             vhl_h = vhl_right.H.value('N')[support_index]
             vhl_l = vhl_right.L.value('N')[support_index]
+
+        elif side == 'right':
+            vhl_left = (
+                self.balance_engine.balance_model.vhl_under_chain_left()
+            )
+            vhl_v = vhl_left.V.value('N')[support_index]
+            vhl_h = vhl_left.H.value('N')[support_index]
+            vhl_l = vhl_left.L.value('N')[support_index]
 
         else:
             raise AttributeError("side must be 'left' or 'right'")

@@ -178,11 +178,11 @@ class VectorProjection:
         Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
         return Fx, Fy, Fz
 
-    def forces_left(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        s_right, t_right, z_right = self.T_line_plane_right()
+    def forces_right(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        s_right_span, t_right_span, z_right_span = self.T_line_plane_right()
         T_line_plane_left = self.T_line_plane_left()
-        s_left, t_left, z_left = T_line_plane_left
-        s_left_rolled, t_left_rolled, z_left_rolled = np.roll(
+        s_left_span, t_left_span, z_left_span = T_line_plane_left
+        s_left_span_rolled, t_left_span_rolled, z_left_span_rolled = np.roll(
             T_line_plane_left, -1, axis=1
         )
 
@@ -191,21 +191,21 @@ class VectorProjection:
         # Not entierly sure about indices and left/right
 
         # index 1 ou 0?
-        Fx_first = s_left[0] * np.cos((self.line_angle / 2)[0]) - t_left[
+        Fx_first = s_left_span[0] * np.cos((self.line_angle / 2)[0]) - t_left_span[
             0
         ] * np.sin((self.line_angle / 2)[0])
-        Fy_first = t_left[0] * np.cos((self.line_angle / 2)[0]) + s_left[
+        Fy_first = t_left_span[0] * np.cos((self.line_angle / 2)[0]) + s_left_span[
             0
         ] * np.sin((self.line_angle / 2)[0])
-        Fz_first = z_left[0] + self.insulator_weight[0] / 2  # also add load?
+        Fz_first = z_left_span[0] + self.insulator_weight[0] / 2  # also add load?
 
-        Fx_suspension = (s_left_rolled) * np.cos(gamma) - (
-            t_left_rolled
+        Fx_suspension = (s_left_span_rolled) * np.cos(gamma) - (
+            t_left_span_rolled
         ) * np.sin(gamma)
-        Fy_suspension = (t_left_rolled) * np.cos(gamma) - (
-            s_left_rolled
+        Fy_suspension = (t_left_span_rolled) * np.cos(gamma) - (
+            s_left_span_rolled
         ) * np.sin(gamma)
-        Fz_suspension = z_left_rolled + self.insulator_weight[1:] / 2
+        Fz_suspension = z_left_span_rolled + self.insulator_weight[1:] / 2
 
         Fx_last = 0
         Fy_last = 0
@@ -216,11 +216,11 @@ class VectorProjection:
         Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
         return Fx, Fy, Fz
 
-    def forces_right(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        s_right, t_right, z_right = self.T_line_plane_right()
+    def forces_left(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        s_right_span, t_right_span, z_right_span = self.T_line_plane_right()
         T_line_plane_left = self.T_line_plane_left()
-        s_left, t_left, z_left = T_line_plane_left
-        s_left_rolled, t_left_rolled, z_left_rolled = np.roll(
+        s_left_span, t_left_span, z_left_span = T_line_plane_left
+        s_left_span_rolled, t_left_span_rolled, z_left_span_rolled = np.roll(
             T_line_plane_left, -1, axis=1
         )
 
@@ -233,17 +233,17 @@ class VectorProjection:
         Fy_first = 0
         Fz_first = self.insulator_weight[0] / 2  # also add load?
 
-        Fx_suspension = (s_right) * np.cos(gamma) - (-t_right) * np.sin(gamma)
-        Fy_suspension = (t_right) * np.cos(gamma) - (s_right) * np.sin(gamma)
-        Fz_suspension = z_right + self.insulator_weight[1:] / 2
+        Fx_suspension = (s_right_span) * np.cos(gamma) - (-t_right_span) * np.sin(gamma)
+        Fy_suspension = (t_right_span) * np.cos(gamma) - (s_right_span) * np.sin(gamma)
+        Fz_suspension = z_right_span + self.insulator_weight[1:] / 2
 
-        Fx_last = (s_right[-1]) * np.cos(gamma[-1]) - (-t_right[-1]) * np.sin(
+        Fx_last = (s_right_span[-1]) * np.cos(gamma[-1]) - (-t_right_span[-1]) * np.sin(
             gamma[-1]
         )
-        Fy_last = (t_right[-1]) * np.cos(gamma[-1]) - (s_right[-1]) * np.sin(
+        Fy_last = (t_right_span[-1]) * np.cos(gamma[-1]) - (s_right_span[-1]) * np.sin(
             gamma[-1]
         )
-        Fz_last = z_right[-1] + self.insulator_weight[-1] / 2
+        Fz_last = z_right_span[-1] + self.insulator_weight[-1] / 2
 
         Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
         Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
