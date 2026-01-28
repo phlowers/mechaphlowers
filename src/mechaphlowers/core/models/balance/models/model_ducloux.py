@@ -135,9 +135,20 @@ class BalanceModel(IBalanceModel):
     def adjustment(self, value: bool) -> None:
         self._adjustment = value
 
-    def dxdydz(self) -> np.ndarray:
-        """Get the displacement vector of the nodes."""
+    def chain_displacement(self) -> np.ndarray:
+        """Get the displacement vector of the chains.
+
+        Format: [[x0, y0, z0], [x1, y1, z1],...]
+        """
         return self.nodes.dxdydz.T
+
+    @property
+    def attachment_altitude_after_solve(self) -> np.ndarray:
+        """Attachment altitude after considering chain displacement.
+
+        Format: [z0, z1, z2,...]
+        """
+        return self.nodes.z
 
     @property
     def k_load(self) -> np.ndarray:
@@ -550,6 +561,7 @@ class Nodes:
         self.line_angle = line_angle
         self.init_coordinates(span_length, z)
         # dx, dy, dz are the distances between the attachment point and the arm, including the chain
+        # format: [[x0, x1, ...], [y0, y1, ...], [z0, z1, ...]]
         self.dxdydz = np.zeros((3, len(z)), dtype=np.float64)
         self.load_weight = load_weight
         self.load_position = load_position

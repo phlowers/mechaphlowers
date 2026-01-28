@@ -131,7 +131,7 @@ class BalanceEngine:
         )
         self.L_ref: np.ndarray
 
-        self.get_displacement: Callable = self.balance_model.dxdydz
+        self.get_displacement: Callable = self.balance_model.chain_displacement
         logger.debug("Balance engine initialized.")
 
     @check_time
@@ -230,7 +230,7 @@ class BalanceEngine:
         return self.section_array.data.span_length.shape[0]
 
     def __str__(self) -> str:
-        dxdydz = self.balance_model.dxdydz().T
+        dxdydz = self.balance_model.chain_displacement().T
         return_string = (
             f"number of supports: {self.support_number}\n"
             f"parameter: {self.span_model.sagging_parameter}\n"

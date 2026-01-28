@@ -111,7 +111,8 @@ class GuyingLoads:
 
         Args:
             support_index (int): support index
-            with_pulley (bool): whether the guying system uses a pulley. Warning: if with_pulley is True, support_index must be a suspension support (between 1 and number of spans - 2)            guying_height (float): guying attachment height
+            with_pulley (bool): whether the guying system uses a pulley. Warning: if with_pulley is True, support_index must be a suspension support (between 1 and number of spans - 2)
+            guying_height (float): guying attachment height
             guying_horizontal_distance (float): horizontal distance to guying attachment
             guying_height (float): guying attachment height
             side (Literal['left', 'right']): side of the guying system
@@ -165,7 +166,7 @@ class GuyingLoads:
         if with_pulley:
             return self.static_calculate_guying_loads_with_pulley(
                 vhl_v=vhl_v,
-                alt_acc=self.balance_engine.section_array.data.conductor_attachment_altitude.iloc[
+                alt_acc=self.balance_engine.balance_model.attachment_altitude_after_solve[
                     support_index
                 ],
                 guying_height=guying_height,
@@ -186,7 +187,7 @@ class GuyingLoads:
                 vhl_h=vhl_h,
                 vhl_l=vhl_l,
                 vhl_v=vhl_v,
-                alt_acc=self.balance_engine.section_array.data.conductor_attachment_altitude.iloc[
+                alt_acc=self.balance_engine.balance_model.attachment_altitude_after_solve[
                     support_index
                 ],
                 guying_height=guying_height,

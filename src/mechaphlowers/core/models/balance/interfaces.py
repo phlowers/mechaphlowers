@@ -102,9 +102,17 @@ class IBalanceModel(IModelForSolver, ABC):
         pass
 
     @abstractmethod
-    def dxdydz(self) -> np.ndarray:
+    def chain_displacement(self) -> np.ndarray:
         """Get the displacement vector of the nodes."""
         pass
+
+    @property
+    @abstractmethod
+    def attachment_altitude_after_solve(self) -> np.ndarray:
+        """Attachment altitude after considering chain displacement.
+
+        Format: [z0, z1, z2,...]
+        """
 
     @abstractmethod
     def vhl_under_chain(self) -> VhlStrength:
