@@ -164,6 +164,24 @@ class GuyingLoads:
             ValueError: If with_pulley is True and support_index is not a suspension support.
             TypeError: If input types are incorrect.
             AttributeError: If side is not 'left' or 'right'.
+            
+        Examples:
+            >>> from mechaphlowers.core.models.balance.engine import BalanceEngine
+            >>> from mechaphlowers.core.models.guying import GuyingLoads
+            >>> balance_engine = BalanceEngine(...)  # Initialize with appropriate parameters
+            >>> guying_loads_calculator = GuyingLoads(balance_engine)
+            >>> results = guying_loads_calculator.get_guying_loads(
+            ...     support_index=2,
+            ...     with_pulley=False,
+            ...     guying_height=30.0,
+            ...     guying_horizontal_distance=50.0,
+            ...     side='left'
+            ... )
+            >>> print(results)
+            Guying Load: 1234.0 N
+            Vertical Load: 567.0 N
+            Longitudinal Load: 89.0 N
+            Guying Angle (degrees): 25.0 deg
         """
         if not isinstance(support_index, int):
             raise TypeError("support_index must be int")
