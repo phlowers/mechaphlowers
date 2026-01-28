@@ -179,7 +179,8 @@ class VectorProjection:
         return Fx, Fy, Fz
 
     def forces_right(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        s_right_span, t_right_span, z_right_span = self.T_line_plane_right()
+        
+        # Here we are on the left/right side of the span
         T_line_plane_left = self.T_line_plane_left()
         s_left_span, t_left_span, z_left_span = T_line_plane_left
         s_left_span_rolled, t_left_span_rolled, z_left_span_rolled = np.roll(
@@ -188,9 +189,10 @@ class VectorProjection:
 
         gamma = (self.line_angle / 2)[1:]
 
-        # Not entierly sure about indices and left/right
-
-        # index 1 ou 0?
+        # Here we are now calculating forces on the support.
+        # Warning here !
+        # keep in mind for the support, right side of the support is the left side of the span
+        
         Fx_first = s_left_span[0] * np.cos((self.line_angle / 2)[0]) - t_left_span[
             0
         ] * np.sin((self.line_angle / 2)[0])
@@ -217,18 +219,16 @@ class VectorProjection:
         return Fx, Fy, Fz
 
     def forces_left(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        
+        # Here we are on the left/right side of the span
         s_right_span, t_right_span, z_right_span = self.T_line_plane_right()
-        T_line_plane_left = self.T_line_plane_left()
-        s_left_span, t_left_span, z_left_span = T_line_plane_left
-        s_left_span_rolled, t_left_span_rolled, z_left_span_rolled = np.roll(
-            T_line_plane_left, -1, axis=1
-        )
 
         gamma = (self.line_angle / 2)[1:]
 
-        # Not entierly sure about indices and left/right
-
-        # index 1 ou 0?
+        # Here we are now calculating forces on the support.
+        # Warning here !
+        # keep in mind for the support, right side of the support is the left side of the span
+        
         Fx_first = 0
         Fy_first = 0
         Fz_first = self.insulator_weight[0] / 2  # also add load?

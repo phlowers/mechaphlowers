@@ -18,6 +18,13 @@ from mechaphlowers.data.units import Q_
 class GuyingLoadsResults:
     """Class to store guying loads results."""
 
+    tol_map = {
+        "guying_load": [10, "daN"],
+        "vertical_load": [10, "daN"],
+        "longitudinal_load": [10, "daN"],
+        "guying_angle_degrees": [0.1, "degree"],
+    }
+
     def __init__(
         self,
         guying_load: Quantity,
@@ -52,6 +59,18 @@ class GuyingLoadsResults:
             ).m,
             "guying_angle_degrees": self.guying_angle_degrees.to("deg").m,
         }
+        
+    @property
+    def quantity_dict(self) -> dict:
+        """Return the values as a dictionary with appropriate units."""
+        return {
+            "guying_load": self.guying_load.to(self.output_unit_force),
+            "vertical_load": self.vertical_load.to(self.output_unit_force),
+            "longitudinal_load": self.longitudinal_load.to(
+                self.output_unit_force
+            ),
+            "guying_angle_degrees": self.guying_angle_degrees.to("deg"),
+        }
 
     @property
     def str_repr(self) -> str:
@@ -65,7 +84,7 @@ class GuyingLoadsResults:
 
     def __repr__(self) -> str:
         """Return a detailed representation of the results."""
-        return f"GuyingLoadsResults\n{self.str_repr}"
+        return f"<GuyingLoadsResults>\n{self.str_repr}"
 
     def __str__(self):
         """Return a user-friendly string representation of the results."""
@@ -78,9 +97,8 @@ class GuyingLoadsResults:
         if not isinstance(value, GuyingLoadsResults):
             return False
         for name in self.value_dict.keys():
-            if not np.isclose(
-                self.value_dict[name], value.value_dict[name], atol=10
-            ):
+            
+            if abs(getattr(self,name) - getattr(value,name)) > Q_(*self.tol_map[name]):
                 return False
 
         return True
