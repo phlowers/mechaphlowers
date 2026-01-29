@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -419,11 +419,19 @@ class BalanceModel(IBalanceModel):
     def has_loads(self) -> bool:
         return self.nodes.has_load_on_span.any()
 
-    def update_node_span_model(self) -> None:
-        """update_node_span_model updates the node span model.
+    def update_nodes_span_model(self) -> None:
+        """update_nodes_span_model updates nodes_span_model.
 
         It integrates the nodes models left and right inside the span model creating new virtual nodes.
         """
+        # If no loads, only update with data from self.span_model
+        if not self.has_loads:
+            self.nodes_span_model.mirror(self.span_model)
+        else:
+            return self.merge_loads_to_span_model()
+
+    def merge_loads_to_span_model(self):
+        """Fetch load_model and give it to nodes_span_model, splitting spans into two, if they contains a load."""
         bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
 
         new_span_model = copy(self.span_model)

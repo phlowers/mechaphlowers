@@ -52,3 +52,4 @@ columns_units:
   - diameter_heart: mm
   - section_conductor: mm^2
   - section_heart: mm^2
+  - electric_resistance_20: ohm/km

@@ -2,7 +2,7 @@
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/mechaphlowers.svg)](https://pypi.org/project/mechaphlowers/)
 [![MPL-2.0 License](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
-[![versions](https://img.shields.io/badge/python-3.11%7C3.12-blue)](https://github.com/phlowers/mechaphlowers)
+[![versions](https://img.shields.io/badge/python-3.11%7C3.12%7C3.13-blue)](https://github.com/phlowers/mechaphlowers)
 [![Documentation](https://readthedocs.org/projects/mechaphlowers/badge/?version=latest)](https://phlowers.readthedocs.io/projects/mechaphlowers/en/latest)
 [![Actions Status](https://github.com/phlowers/mechaphlowers/actions/workflows/dev-ci.yml/badge.svg)](https://github.com/phlowers/mechaphlowers/actions)
 
@@ -177,7 +177,7 @@ You can check the build option to control the output folder or the desired outpu
 You can build and serve the documentation using or `make docs`:
 
 ```console
-    uv run mkdocs serve -a localhost:8001
+    uv run --only-group docs mkdocs serve -a localhost:8001
 ```
 
 ### Testing in a browser via pyodide

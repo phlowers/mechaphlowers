@@ -53,6 +53,17 @@ testcov: test
 	@echo "building coverage html"
 	@uv run coverage html
 
+.PHONY: test-release  ## Run release tests against the built package in an isolated environment
+test-release: .uv
+	@echo "Building package to temporary directory..."
+	@mkdir -p .dist-release
+	@uv build --out-dir .dist-release
+	@echo "Running release tests in isolated environment..."
+	@uv run --isolated --with pytest --with .dist-release/*.whl -- pytest test/ -m release_test -v
+	@echo "Cleaning up temporary build artifacts..."
+	@rm -rf .dist-release
+	@echo "Release tests completed and artifacts cleaned up"
+
 .PHONY: all  ## Run the standard set of checks performed in CI
 all: check-lint check-format typing testcov
 
@@ -77,5 +88,5 @@ clean:
 
 .PHONY: docs  ## Generate the docs
 docs:
-	uv run mkdocs serve -a localhost:8001
+	uv run --only-group docs mkdocs serve -a localhost:8001
 

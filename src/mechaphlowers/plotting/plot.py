@@ -7,12 +7,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Literal, Self
+from typing import TYPE_CHECKING, Callable, Dict, Literal, Self, Tuple
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
 from mechaphlowers.core.geometry.points import (
+    Points,
     SectionPoints,
 )
 from mechaphlowers.core.models.balance.engine import BalanceEngine
@@ -217,7 +218,7 @@ def plot_points_2d(
         h_coords = points[:, 0]
     else:
         raise ValueError(
-            f"Incorrect value for 'view' argument: recieved {view}, expected 'profile' or 'line'"
+            f"Incorrect value for 'view' argument: received {view}, expected 'profile' or 'line'"
         )
 
     fig.add_trace(
@@ -277,11 +278,13 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 class PlotEngine:
     def __init__(
         self,
+        balance_engine: BalanceEngine,
         span_model: ISpan,
         cable_loads: CableLoads,
         section_array: SectionArray,
         get_displacement: Callable,
     ) -> None:
+        self.balance_engine = balance_engine
         self.spans = span_model
         self.cable_loads = cable_loads
         self.section_array = section_array
@@ -304,11 +307,28 @@ class PlotEngine:
         logger.debug("Plot engine initialized from balance engine.")
 
         return PlotEngine(
+            balance_engine,
             balance_engine.balance_model.nodes_span_model,
             balance_engine.cable_loads,
             balance_engine.section_array,
             balance_engine.get_displacement,
         )
+
+    def generate_reset(self) -> PlotEngine:
+        """Create and returns a PlotEngine object using stored BalanceEngine object.
+        This method does not modify the current PlotEngine instance.
+
+        Method used if BalanceEngine attributes have changed.
+
+        Examples:
+            >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+            >>> balance_engine.add_loads(...)  # modification on balance engine
+            >>> plt_engine = plt_engine.generate_reset()
+
+        Returns:
+            PlotEngine: object with reset attributes
+        """
+        return self.builder_from_balance_engine(self.balance_engine)
 
     def get_spans_points(
         self, frame: Literal["section", "localsection", "cable"]
@@ -320,6 +340,51 @@ class PlotEngine:
 
     def get_insulators_points(self) -> np.ndarray:
         return self.section_pts.get_insulators().points(True)
+
+    def get_loads_coords(self, project=False, frame_index=0) -> Dict:
+        """Get a dictionary of coordinates of the loads.
+
+        If there are two loads in spans $0$ and $2$, the format is the following:
+
+        `{0: [x0, y0, z0], 2: [x2, y2, z2]}`
+
+        The arguments should be the same as `get_points_for_plot()`.
+
+        Args:
+            project (bool, optional): Set to True if 2d graph: this project all objects into a support frame. Defaults to False.
+            frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
+
+        Returns:
+            Dict: dictionary that stores the coordinates. Key is span index. Value is a np.array of coordinates.
+        """
+        spans_points, _, _ = self.get_points_for_plot(project, frame_index)
+        loads_spans_idx, loads_points_idx = self.spans.loads_indices
+        result_dict = {}
+        for index_in_small_array, span_index in enumerate(loads_spans_idx):
+            # point_index is the index of the load point in spans_points.coords
+            point_index = loads_points_idx[index_in_small_array]
+            result_dict[int(span_index)] = spans_points.coords[
+                span_index, point_index
+            ]
+        return result_dict
+
+    def get_points_for_plot(
+        self, project=False, frame_index=0
+    ) -> Tuple[Points, Points, Points]:
+        """Get Points objects for span, supports and insulators.
+        Can be used for plotting 2D or 3D graphs.
+
+        Args:
+            project (bool, optional): Set to True if 2d graph: this project all objects into a support frame. Defaults to False.
+            frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
+
+        Returns:
+            Tuple[Points, Points, Points]: Points for spans, supports and insulators respectively.
+
+        Raises:
+            ValueError: frame_index is out of range
+        """
+        return self.section_pts.get_points_for_plot(project, frame_index)
 
     def preview_line3d(
         self,
@@ -348,12 +413,10 @@ class PlotEngine:
 
         if mode not in ["main", "background"]:
             raise ValueError(
-                f"Incorrect value for 'mode' argument: recieved {mode}, expected 'background' or 'main'"
+                f"Incorrect value for 'mode' argument: received {mode}, expected 'background' or 'main'"
             )
 
-        span, supports, insulators = self.section_pts.get_points_for_plot(
-            project=False
-        )
+        span, supports, insulators = self.get_points_for_plot(project=False)
 
         plot_points_3d(fig, span.points(True), cable_trace(mode=mode))
         plot_points_3d(fig, supports.points(True), support_trace(mode=mode))
@@ -381,12 +444,12 @@ class PlotEngine:
         """
         if view not in ["profile", "line"]:
             raise ValueError(
-                f"Incorrect value for 'view' argument: recieved {view}, expected 'profile' or 'line'"
+                f"Incorrect value for 'view' argument: received {view}, expected 'profile' or 'line'"
             )
 
         if mode not in ["main", "background"]:
             raise ValueError(
-                f"Incorrect value for 'mode' argument: recieved {mode}, expected 'background' or 'main'"
+                f"Incorrect value for 'mode' argument: received {mode}, expected 'background' or 'main'"
             )
 
         if view == "profile":
@@ -399,7 +462,7 @@ class PlotEngine:
                 yaxis={"scaleanchor": "x", "scaleratio": 1},
             )
 
-        span, supports, insulators = self.section_pts.get_points_for_plot(
+        span, supports, insulators = self.get_points_for_plot(
             project=True, frame_index=frame_index
         )
 

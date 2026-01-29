@@ -7,6 +7,8 @@
 
 import numpy as np
 
+from mechaphlowers.entities.errors import ConvergenceError
+
 try:
     from scipy import optimize  # type: ignore
 except ImportError:
@@ -204,7 +206,7 @@ def parameter_solver(
         full_output=True,
     )
     if not solver_result.converged.all():
-        raise ValueError("Solver did not converge")
+        raise ConvergenceError("Solver did not converge", level="papoto_model")
     return solver_result.root
 
 
