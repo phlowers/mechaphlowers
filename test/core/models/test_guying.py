@@ -303,7 +303,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup):
     # passing without pulley on first support
     guying.get_guying_loads(
         support_index=0,  # out of range
-        side='left',
+        guying_side='left',
         with_pulley=False,
         guying_height=0,
         guying_horizontal_distance=50,
@@ -313,7 +313,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup):
     with pytest.raises(ValueError):
         guying.get_guying_loads(
             support_index=0,  # out of range
-            side='left',
+            guying_side='left',
             with_pulley=True,
             guying_height=0,
             guying_horizontal_distance=50,
@@ -322,7 +322,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup):
     # passing without pulley on last support
     guying.get_guying_loads(
         support_index=3,  # out of range
-        side='left',
+        guying_side='left',
         with_pulley=False,
         guying_height=0,
         guying_horizontal_distance=50,
@@ -332,7 +332,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup):
     with pytest.raises(ValueError):
         guying.get_guying_loads(
             support_index=3,  # out of range
-            side='left',
+            guying_side='left',
             with_pulley=True,
             guying_height=0,
             guying_horizontal_distance=50,

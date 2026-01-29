@@ -493,6 +493,10 @@ class CatenarySpan(ISpan):
     def slope(self, side: Literal['left', 'right']) -> np.ndarray:
         """Slope angle at the supports in radians.
 
+        Note that the left side corresponds to the slope for support_index 0 to N-1 and the right side corresponds to the slope for support_index 1 to N.
+
+        Args:
+            side (Literal['left', 'right']): side of the support to compute the slope regarding the span
         Returns:
             np.ndarray: slope angle at each support in radians.
         """

@@ -256,12 +256,18 @@ def test_span_model__slope_2_spans() -> None:
     lambd = np.float64(1.6)
 
     span_model = CatenarySpan(a, b, p, linear_weight=lambd)
-    expected_slope_values = np.array(
-        [-7.1, -7.1]
-    )  # Expected slope value in radians
+    expected_left_slope_values_degree = np.array([-7.1, -7.6])
+    expected_right_slope_values_degree = np.array([7.1, 9.5])
 
     np.testing.assert_allclose(
-        span_model.slope('left'), expected_slope_values, rtol=1e-1
+        np.degrees(span_model.slope('left')),
+        expected_left_slope_values_degree,
+        rtol=1e-1,
+    )
+    np.testing.assert_allclose(
+        np.degrees(span_model.slope('right')),
+        expected_right_slope_values_degree,
+        rtol=1e-1,
     )
 
 
