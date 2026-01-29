@@ -77,7 +77,7 @@ class GuyingLoadsResults:
         self.output_unit_length = options.output_units.length
 
     @property
-    def value_dict(self) -> dict:
+    def value_dict(self) -> dict[str, float]:
         """Return the values as a dictionary with appropriate units."""
         return {
             "guying_load": self.guying_load.to(self.output_unit_force).m,
@@ -89,7 +89,7 @@ class GuyingLoadsResults:
         }
 
     @property
-    def quantity_dict(self) -> dict:
+    def quantity_dict(self) -> dict[str, Quantity]:
         """Return the values as a dictionary with appropriate units."""
         return {
             "guying_load": self.guying_load.to(self.output_unit_force),
@@ -114,7 +114,7 @@ class GuyingLoadsResults:
         """Return a detailed representation of the results."""
         return f"<GuyingLoadsResults>\n{self.str_repr}"
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a user-friendly string representation of the results."""
         return self.str_repr
 
@@ -157,12 +157,11 @@ class GuyingLoads:
         """Calculate guying system loads and forces.
 
         Args:
-            support_index (int): support index
-            with_pulley (bool): whether the guying system uses a pulley. Warning: if with_pulley is True, support_index must be a suspension support (between 1 and number of spans - 2)
-            guying_height (float): guying attachment height
-            guying_horizontal_distance (float): horizontal distance to guying attachment
-            guying_height (float): guying attachment height
-            guying_side (Literal['left', 'right']): side of the guying system
+            support_index (int): Index of the support (0 to number of supports - 1)
+            with_pulley (bool): Whether the guying system uses a pulley. If True, support_index must be a suspension support (between 1 and number of spans - 2)
+            guying_height (float): Guying cable attachment height (m)
+            guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
+            guying_side (Literal['left', 'right']): Side of the guying system ('left' or 'right')
 
         Returns:
             GuyingLoadsResults: Results containing guying_load, vertical_load, angle
@@ -258,7 +257,7 @@ class GuyingLoads:
                 ],
                 bundle_number=self.bundle_number,
                 span_tension=span_tension,
-                span_slope_left=slope,
+                span_slope=slope,
             )
         else:
             return self.static_calculate_guying_loads(
@@ -294,24 +293,22 @@ class GuyingLoads:
         bundle_number: float,  # bundle coefficient
     ) -> GuyingLoadsResults:
         """
-        Calculate guying system loads and forces.
+        Calculate guying system loads and forces (direct guying without pulley).
 
         Args:
-            num_haubanage: guying number
-            num_profil: profile number
-            vhl_h: horizontal load right
-            vhl_l: lateral load right
-            vhl_v: vertical load left
-            alt_acc: attachment altitude
-            guying_height: guying attachment height
-            horizontal_distance: horizontal distance to guying attachment
-            insulator_mass: chain weight (kg/m)
-            counterweight: counter weight (kg/m)
-            cable_linear_weight: linear weight of conductor (N/m)
-            bundle_number: bundle coefficient
+            vhl_h (float): Horizontal load component (N)
+            vhl_l (float): Lateral/longitudinal load component (N)
+            vhl_v (float): Vertical load component (N)
+            alt_acc (float): Attachment altitude of chain (m)
+            guying_height (float): Guying cable attachment height (m)
+            guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
+            insulator_mass (float): Chain/insulator weight (N)
+            counterweight (float): Counter weight (N)
+            cable_linear_weight (float): Linear weight of conductor (N/m)
+            bundle_number (float): Bundle coefficient (dimensionless)
 
         Returns:
-            dict: Results containing guying_load, vertical_load, angle
+            GuyingLoadsResults: Results containing guying_load, vertical_load, longitudinal_load, and guying_angle_degrees
         """
 
         # Calculate resultant of H and L loads for guying system compensation
@@ -375,44 +372,41 @@ class GuyingLoads:
         cable_linear_weight: float,  # linear weight of conductor (pds_lin)
         bundle_number: float,  # bundle coefficient (faisceau)
         span_tension: float,  # span horizontal tension (th)
-        span_slope_left: float,  # left span slope in radians (pente_g)
+        span_slope: float,  # span slope in radians (pente_g)
     ) -> GuyingLoadsResults:
         """
-        Calculate guying system loads and forces WITH PULLEY.
+        Calculate guying system loads and forces with pulley.
 
         This method calculates the tension in the bundle at the pulley point,
-        which becomes the tension in the guying cable. It includes lateral load
+        which becomes the tension in the guying cable. It includes longitudinal load
         calculation which is specific to pulley configuration.
 
         Args:
-            num_guying: guying profile number
-            num_profil: reference profile number (used to select slope direction)
-            vhl_v_d: vertical load right (daN)
-            vhl_v_g: vertical load left (daN)
-            alt_acc: attachment altitude of chain (m)
-            guying_height: attachment altitude of guying cable (m)
-            guying_horizontal_distance: horizontal distance to guying attachment point (m)
-            insulator_mass: chain weight (daN)
-            counterweight: counter weight (daN)
-            cable_linear_mass: linear weight of conductor (kg/m)
-            bundle_number: bundle coefficient (dimensionless)
-            span_tension: horizontal tension in span (daN)
-            span_slope_left: left span slope angle (radians)
-            span_slope_right: right span slope angle (radians)
+            vhl_v (float): Vertical load component (N)
+            alt_acc (float): Attachment altitude of chain (m)
+            guying_height (float): Guying cable attachment height (m)
+            guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
+            insulator_mass (float): Chain/insulator weight (N)
+            counterweight (float): Counter weight (N)
+            cable_linear_weight (float): Linear weight of conductor (N/m)
+            bundle_number (float): Bundle coefficient (dimensionless)
+            span_tension (float): Horizontal tension in span (N)
+            span_slope (float): Span slope angle (radians)
 
         Returns:
-            dict: Calculated loads and angles containing:
-                - "guying_load": tension in guying cable (daN)
-                - "vertical_load": total vertical load under console (daN)
-                - "lateral_load": lateral load component (daN)
-                - "angle_degrees": angle of guying cable with horizontal plane (degrees)
-                - "delta_altitude": altitude difference between chain and guying attachments (m)
+            GuyingLoadsResults: Results containing:
+                <ul>
+                    <li>guying_load: tension in guying cable (daN)</li>
+                    <li>vertical_load: total vertical load under console (daN)</li>
+                    <li>longitudinal_load: longitudinal load component (daN)</li>
+                    <li>guying_angle_degrees: angle of guying cable with horizontal plane (degrees)</li>
+                </ul>
         """
 
         # ===== CALCULATION WITH PULLEY =====
 
         # Calculate tension in bundle at pulley point
-        slope_rad = span_slope_left  # left slope (pente_g)
+        slope_rad = span_slope  # left slope (pente_g)
 
         # Tension in guying cable = span tension / cos(slope) * bundle factor
         guying_load = span_tension / np.cos(slope_rad) * bundle_number
