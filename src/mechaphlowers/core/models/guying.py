@@ -18,11 +18,11 @@ from mechaphlowers.data.units import Q_
 class GuyingLoadsResults:
     """Class to store guying loads results."""
 
-    atol_map = {
-        "guying_load": [5, "daN"],
-        "vertical_load": [5, "daN"],
-        "longitudinal_load": [5, "daN"],
-        "guying_angle_degrees": [0.1, "degree"],
+    atol_map: dict[str, tuple[float, str]] = {
+        "guying_load": (5.0, "daN"),
+        "vertical_load": (5.0, "daN"),
+        "longitudinal_load": (5.0, "daN"),
+        "guying_angle_degrees": (0.1, "degree"),
     }
 
     def __init__(
@@ -119,13 +119,16 @@ class GuyingLoadsResults:
         return self.str_repr
 
     def __eq__(self, value: object) -> bool:
-        if not isinstance(value, GuyingLoadsResults):
-            return False
-        for name in self.value_dict.keys():
-            if abs(getattr(self, name) - getattr(value, name)) > Q_(
-                *self.atol_map[name]
-            ):
-                return False
+        if isinstance(value, GuyingLoadsResults):
+            for name in self.value_dict.keys():
+                if abs(getattr(self, name) - getattr(value, name)) > Q_(
+                    *self.atol_map[name]
+                ):
+                    return False
+        else:
+            raise TypeError(
+                "Comparison is only supported between GuyingLoadsResults instances"
+            )
 
         return True
 

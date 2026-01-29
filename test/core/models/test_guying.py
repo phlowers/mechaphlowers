@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from typing import Literal
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -176,7 +178,7 @@ section_array_inputs = [
 def test_guying_sandbox(
     section_array: SectionArray,
     support_index: int,
-    side: str,
+    side: Literal["left", "right"],
     expected_guying_loads_left: dict,
     expected_guying_pulley_loads_left: dict,
     cable_array_AM600: CableArray,
@@ -202,10 +204,10 @@ def test_guying_sandbox(
 
     # imposing custom tolerances for the test because of small differences with prototypes setup
     guying_results.atol_map = {
-        "guying_load": [15, "daN"],
-        "vertical_load": [15, "daN"],
-        "longitudinal_load": [15, "daN"],
-        "guying_angle_degrees": [0.1, "degree"],
+        "guying_load": (15.0, "daN"),
+        "vertical_load": (15.0, "daN"),
+        "longitudinal_load": (15.0, "daN"),
+        "guying_angle_degrees": (0.1, "degree"),
     }
 
     assert guying_results == GuyingLoadsResults(**expected_guying_loads_left)
@@ -220,10 +222,10 @@ def test_guying_sandbox(
 
     # imposing custom tolerances for the test because of small differences with prototypes setup
     guying_pulley_results.atol_map = {
-        "guying_load": [15, "daN"],
-        "vertical_load": [15, "daN"],
-        "longitudinal_load": [15, "daN"],
-        "guying_angle_degrees": [0.1, "degree"],
+        "guying_load": (15.0, "daN"),
+        "vertical_load": (15.0, "daN"),
+        "longitudinal_load": (15.0, "daN"),
+        "guying_angle_degrees": (0.1, "degree"),
     }
 
     # for v1, v2 in zip(guying_pulley_results().values, GuyingLoadsResults(**expected_guying_pulley_loads_left)().values):
@@ -254,7 +256,7 @@ def test_guying_invalid_support_index(guying_basic_setup):
     with pytest.raises(ValueError):
         guying.get_guying_loads(
             support_index=10,  # out of range
-            side='left',
+            guying_side='left',
             with_pulley=False,
             guying_height=0,
             guying_horizontal_distance=50,
@@ -263,7 +265,7 @@ def test_guying_invalid_support_index(guying_basic_setup):
     with pytest.raises(AttributeError):
         guying.get_guying_loads(
             support_index=0,
-            side='xxx',  # not in the authorized list
+            guying_side='xxx',  # not in the authorized list
             with_pulley=False,
             guying_height=0,
             guying_horizontal_distance=50,
@@ -272,7 +274,7 @@ def test_guying_invalid_support_index(guying_basic_setup):
     with pytest.raises(TypeError):
         guying.get_guying_loads(
             support_index=1,
-            side='left',
+            guying_side='left',
             with_pulley=0,  # should be bool
             guying_height=0,
             guying_horizontal_distance=50,
@@ -281,7 +283,7 @@ def test_guying_invalid_support_index(guying_basic_setup):
     with pytest.raises(TypeError):
         guying.get_guying_loads(
             support_index=1,
-            side='left',
+            guying_side='left',
             with_pulley=0,
             guying_height="e",  # should be Real
             guying_horizontal_distance=50,
@@ -290,7 +292,7 @@ def test_guying_invalid_support_index(guying_basic_setup):
     with pytest.raises(TypeError):
         guying.get_guying_loads(
             support_index=1,
-            side='left',
+            guying_side='left',
             with_pulley=0,
             guying_height=0,
             guying_horizontal_distance="e",  # should be Real
