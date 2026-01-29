@@ -149,7 +149,7 @@ class GuyingLoads:
         with_pulley: bool,
         guying_height: float,
         guying_horizontal_distance: float,
-        side: Literal['left', 'right'] = 'left',
+        guying_side: Literal['left', 'right'] = 'left',
     ) -> GuyingLoadsResults:
         """Calculate guying system loads and forces.
 
@@ -159,7 +159,7 @@ class GuyingLoads:
             guying_height (float): guying attachment height
             guying_horizontal_distance (float): horizontal distance to guying attachment
             guying_height (float): guying attachment height
-            side (Literal['left', 'right']): side of the guying system
+            guying_side (Literal['left', 'right']): side of the guying system
 
         Returns:
             GuyingLoadsResults: Results containing guying_load, vertical_load, angle
@@ -167,7 +167,7 @@ class GuyingLoads:
         Raises:
             ValueError: If with_pulley is True and support_index is not a suspension support.
             TypeError: If input types are incorrect.
-            AttributeError: If side is not 'left' or 'right'.
+            AttributeError: If guying_side is not 'left' or 'right'.
 
         Examples:
             >>> from mechaphlowers.core.models.balance.engine import BalanceEngine
@@ -179,7 +179,7 @@ class GuyingLoads:
             ...     with_pulley=False,
             ...     guying_height=30.0,
             ...     guying_horizontal_distance=50.0,
-            ...     side='left',
+            ...     guying_side='left',
             ... )
             >>> print(results)
             Guying Load: 1234.0 N
@@ -216,7 +216,7 @@ class GuyingLoads:
                 f"support_index must be between 0 and {span_shape - 1}"
             )
 
-        if side == 'left':
+        if guying_side == 'left':
             vhl_right = (
                 self.balance_engine.balance_model.vhl_under_chain_right()
             )
@@ -224,7 +224,7 @@ class GuyingLoads:
             vhl_h = vhl_right.H.value('N')[support_index]
             vhl_l = vhl_right.L.value('N')[support_index]
 
-        elif side == 'right':
+        elif guying_side == 'right':
             vhl_left = self.balance_engine.balance_model.vhl_under_chain_left()
             vhl_v = vhl_left.V.value('N')[support_index]
             vhl_h = vhl_left.H.value('N')[support_index]
@@ -233,7 +233,9 @@ class GuyingLoads:
         else:
             raise AttributeError("side must be 'left' or 'right'")
 
-        slope = self.balance_engine.span_model.slope(side)[support_index]
+        slope = self.balance_engine.span_model.slope(guying_side)[
+            support_index
+        ]
         span_tension = self.balance_engine.span_model.T_h()[support_index]
 
         if with_pulley:
