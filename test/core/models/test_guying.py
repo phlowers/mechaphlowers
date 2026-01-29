@@ -194,7 +194,7 @@ def test_guying_sandbox(
 
     guying_results = guying.get_guying_loads(
         support_index=support_index,
-        side=side,
+        guying_side=side,
         with_pulley=False,
         guying_height=0,
         guying_horizontal_distance=50,
@@ -212,7 +212,7 @@ def test_guying_sandbox(
 
     guying_pulley_results = guying.get_guying_loads(
         support_index=support_index,
-        side=side,
+        guying_side=side,
         with_pulley=True,
         guying_height=0,
         guying_horizontal_distance=50,
