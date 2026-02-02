@@ -35,7 +35,7 @@ Here is a complete example showing how to calculate guying efforts:
 import pandas as pd
 import numpy as np
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.core.models.guying import GuyingLoads
+from mechaphlowers.core.models.guying import Guying
 from mechaphlowers.data.catalog import sample_cable_catalog
 from mechaphlowers.entities.arrays import SectionArray
 
@@ -78,11 +78,11 @@ balance_engine.solve_change_state(
 )
 
 # Create the guying calculation instance
-guying = GuyingLoads(balance_engine)
+guying = Guying(balance_engine)
 
 # Calculate guying efforts at support 1 (suspension support)
 # Without pulley, guy cable on the left side of the support
-guying_results = guying.get_guying_loads(
+guying_results = guying.get_guying_results(
     support_index=1,
     with_pulley=False,
     guying_altitude=0,  # guy cable attachment altitude (m)
@@ -95,12 +95,12 @@ print(guying_results)
 
 # Access individual results
 print(f"Guy cable tension: {guying_results.guying_tension}")
-print(f"Vertical load: {guying_results.vertical_load}")
-print(f"Longitudinal load: {guying_results.longitudinal_load}")
+print(f"Vertical load: {guying_results.vertical_force}")
+print(f"Longitudinal load: {guying_results.longitudinal_force}")
 print(f"Guy cable angle: {guying_results.guying_angle_degrees}")
 
 # Calculate efforts with pulley at support 2
-guying_results_pulley = guying.get_guying_loads(
+guying_results_pulley = guying.get_guying_results(
     support_index=2,
     with_pulley=True,
     guying_altitude=0,
@@ -125,11 +125,11 @@ print(f"\nResults with pulley: {guying_results_pulley}")
 
 ### Results
 
-The `get_guying_loads()` method returns a `GuyingLoadsResults` object containing:
+The `get_guying_results()` method returns a `GuyingResults` object containing:
 
 | Property | Description |
 |----------|-------------|
 | `guying_tension` | Tension in the guy cable (daN) |
-| `vertical_load` | Total vertical load under the console (daN) |
-| `longitudinal_load` | Longitudinal load (daN) |
+| `vertical_force` | Total vertical load under the console (daN) |
+| `longitudinal_force` | Longitudinal load (daN) |
 | `guying_angle_degrees` | Angle of the guy cable with the horizontal plane (degrees) |

@@ -12,7 +12,7 @@ import pandas as pd
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.cable.thermal import ThermalEngine
-from mechaphlowers.core.models.guying import GuyingLoads
+from mechaphlowers.core.models.guying import Guying
 from mechaphlowers.data.measures import (
     PapotoParameterMeasure,
     param_calibration,
@@ -44,5 +44,5 @@ __all__ = [
     "PapotoParameterMeasure",
     "param_calibration",
     "ThermalEngine",
-    "GuyingLoads",
+    "Guying",
 ]
