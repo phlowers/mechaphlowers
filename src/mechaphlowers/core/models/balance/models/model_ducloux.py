@@ -399,6 +399,12 @@ class BalanceModel(IBalanceModel):
         return VhlStrength(vhl_result, "N")
 
     def vhl_under_chain_left(self, output_unit: str = "daN") -> VhlStrength:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+
+        VHL at the left of the support.
+
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
         Fx, Fy, Fz = self.nodes.vector_projection.forces_left()
         V = -(Fz - self.nodes.insulator_weight / 2)
         vhl_result = np.array([V, Fy, Fx])
@@ -406,6 +412,12 @@ class BalanceModel(IBalanceModel):
 
     # TODO: right and left are swapped
     def vhl_under_chain_right(self, output_unit: str = "daN") -> VhlStrength:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+
+        VHL at the left of the support.
+
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
         Fx, Fy, Fz = self.nodes.vector_projection.forces_right()
         V = -(Fz - self.nodes.insulator_weight / 2)
         vhl_result = np.array([V, Fy, Fx])
