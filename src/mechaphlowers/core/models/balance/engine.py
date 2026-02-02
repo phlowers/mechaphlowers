@@ -31,7 +31,7 @@ from mechaphlowers.core.models.cable.span import (
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.errors import SolverError
+from mechaphlowers.entities.errors import BalanceEngineWarning, SolverError
 from mechaphlowers.utils import arr, check_time
 
 logger = logging.getLogger(__name__)
@@ -267,7 +267,7 @@ class BalanceEngine:
             if isinstance(input_value, np.ndarray):
                 if input_value.shape != span_shape:
                     raise ValueError(
-                        f"{name} has incorrect shape: {span_shape} is expected, recieved {input_value.shape}"
+                        f"{name} has incorrect shape: {span_shape} is expected, received {input_value.shape}"
                     )
 
             return input_value
@@ -289,7 +289,7 @@ class BalanceEngine:
             _ = self.L_ref
         except AttributeError:
             logger.warning(self._warning_no_L_ref)
-            warnings.warn(self._warning_no_L_ref, UserWarning)
+            warnings.warn(self._warning_no_L_ref, BalanceEngineWarning)
             self.solve_adjustment()
 
         self.balance_model.adjustment = False

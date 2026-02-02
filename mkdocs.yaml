@@ -89,6 +89,7 @@ nav:
               - Measures: docstring/data/measures.md
           - Configuration: docstring/config.md
           - Plotting:
+              - Plot: docstring/plotting/plot.md
               - Geography:
                   - Create elevation profile: docstring/plotting/geography/plot_elevation_profile.md
                   - Create line map: docstring/plotting/geography/plot_line_map.md

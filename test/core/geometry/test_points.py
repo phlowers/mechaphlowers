@@ -158,4 +158,4 @@ def test_get_points(balance_engine_angles: BalanceEngine):
         new_temperature=15 * np.array([1, 1, 1, 1])
     )
     with pytest.raises(ValueError):
-        plt_engine.section_pts.get_points_for_plot(True, frame_index=4)
+        plt_engine.get_points_for_plot(True, frame_index=4)

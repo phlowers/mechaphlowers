@@ -90,9 +90,7 @@ def test_plot_line3d__all_line(
         == 1
     )
     assert len(fig.data) == 3  # Just trying to see if the previous code raises
-    span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
-    )
+    span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
@@ -158,9 +156,7 @@ def test_plot_line3d__with_beta(
     )
     assert len(fig.data) == 3  # Just trying to see if the previous code raises
 
-    span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
-    )
+    span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
@@ -216,9 +212,7 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
 
     # fig.show()  # deactivate for auto unit testing
 
-    span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
-    )
+    span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
@@ -256,9 +250,7 @@ def test_plot_ice(balance_engine_base_test: BalanceEngine):
         )
         == 2
     )
-    span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
-    )
+    span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
@@ -286,8 +278,8 @@ def test_plot_2d(balance_engine_angles: BalanceEngine):
 
     # fig_line.show()
     # fig_profile.show()  # deactivate for auto unit testing
-    span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot(project=True, frame_index=1)
+    span_points, _, insulators_points = plt_engine.get_points_for_plot(
+        project=True, frame_index=1
     )
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
@@ -313,9 +305,7 @@ def test_plot_more_spans(cable_array_AM600: CableArray):
 
     # fig_line.show()
     # fig_profile.show()  # deactivate for auto unit testing
-    span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
-    )
+    span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
 
@@ -334,9 +324,7 @@ def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
     )
 
     plt_engine.preview_line3d(fig)
-    span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
-    )
+    span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
     # fig.show()  # deactivate for auto unit testing
 
@@ -356,9 +344,7 @@ def test_plot_3d__styles(balance_engine_angles: BalanceEngine):
     )
 
     plt_engine.preview_line3d(fig)
-    span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
-    )
+    span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
     # fig.show()  # deactivate for auto unit testing
 

@@ -18,6 +18,7 @@ from mechaphlowers.entities.arrays import (
     CableArray,
     ElementArray,
 )
+from mechaphlowers.entities.errors import DataWarning
 from mechaphlowers.entities.shapes import SupportShape
 
 # Resolve the 'data' folder
@@ -151,7 +152,7 @@ class Catalog:
             )
             warnings.warn(
                 f'Duplicate key indices found for catalog {filename}',
-                UserWarning,
+                DataWarning,
             )
 
     def get(self, keys: list | str) -> pd.DataFrame:
