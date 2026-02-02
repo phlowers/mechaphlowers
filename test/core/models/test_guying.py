@@ -77,42 +77,42 @@ section_array_complete.add_units({"line_angle": "grad"})
 
 
 expected_guying_loads_left_flat = {
-    "guying_load": Q_(4119.0, "daN"),
+    "guying_tension": Q_(4119.0, "daN"),
     "vertical_load": Q_(2676.0, "daN"),
     "longitudinal_load": Q_(0.0, "daN"),
     "guying_angle_degrees": Q_(31.0, "degrees"),
 }
 
 expected_guying_pulley_loads_left_flat = {
-    "guying_load": Q_(3549.0, "daN"),
+    "guying_tension": Q_(3549.0, "daN"),
     "vertical_load": Q_(2383.0, "daN"),
     "longitudinal_load": Q_(488.0, "daN"),
     "guying_angle_degrees": Q_(31.0, "degrees"),
 }
 
 expected_guying_loads_left_span_change = {
-    "guying_load": Q_(4119.0, "daN"),
+    "guying_tension": Q_(4119.0, "daN"),
     "vertical_load": Q_(2585.0, "daN"),
     "longitudinal_load": Q_(0.0, "daN"),
     "guying_angle_degrees": Q_(31.0, "degrees"),
 }
 
 expected_guying_pulley_loads_left_span_change = {
-    "guying_load": Q_(3542.0, "daN"),
+    "guying_tension": Q_(3542.0, "daN"),
     "vertical_load": Q_(2290.0, "daN"),
     "longitudinal_load": Q_(495.0, "daN"),
     "guying_angle_degrees": Q_(31.0, "degrees"),
 }
 
 expected_guying_loads_left_complete = {
-    "guying_load": Q_(5016.0, "daN"),
+    "guying_tension": Q_(5016.0, "daN"),
     "vertical_load": Q_(3888.0, "daN"),
     "longitudinal_load": Q_(0.0, "daN"),
     "guying_angle_degrees": Q_(45.2, "degrees"),
 }
 
 expected_guying_pulley_loads_left_complete = {
-    "guying_load": Q_(3535.0, "daN"),
+    "guying_tension": Q_(3535.0, "daN"),
     "vertical_load": Q_(2836.0, "daN"),
     "longitudinal_load": Q_(1043.0, "daN"),
     "guying_angle_degrees": Q_(45.2, "degrees"),
@@ -120,14 +120,14 @@ expected_guying_pulley_loads_left_complete = {
 
 
 expected_guying_loads_right_complete = {
-    "guying_load": Q_(5518.0, "daN"),
+    "guying_tension": Q_(5518.0, "daN"),
     "vertical_load": Q_(5255.0, "daN"),
     "longitudinal_load": Q_(0.0, "daN"),
     "guying_angle_degrees": Q_(50.2, "degrees"),
 }
 
 expected_guying_pulley_loads_right_complete = {
-    "guying_load": Q_(3552.0, "daN"),
+    "guying_tension": Q_(3552.0, "daN"),
     "vertical_load": Q_(3745.0, "daN"),
     "longitudinal_load": Q_(1258.0, "daN"),
     "guying_angle_degrees": Q_(50.2, "degrees"),
@@ -198,13 +198,13 @@ def test_guying_sandbox(
         support_index=support_index,
         guying_side=side,
         with_pulley=False,
-        guying_height=0,
+        guying_altitude=0,
         guying_horizontal_distance=50,
     )
 
     # imposing custom tolerances for the test because of small differences with prototypes setup
     guying_results.atol_map = {
-        "guying_load": (15.0, "daN"),
+        "guying_tension": (15.0, "daN"),
         "vertical_load": (15.0, "daN"),
         "longitudinal_load": (15.0, "daN"),
         "guying_angle_degrees": (0.1, "degree"),
@@ -216,13 +216,13 @@ def test_guying_sandbox(
         support_index=support_index,
         guying_side=side,
         with_pulley=True,
-        guying_height=0,
+        guying_altitude=0,
         guying_horizontal_distance=50,
     )
 
     # imposing custom tolerances for the test because of small differences with prototypes setup
     guying_pulley_results.atol_map = {
-        "guying_load": (15.0, "daN"),
+        "guying_tension": (15.0, "daN"),
         "vertical_load": (15.0, "daN"),
         "longitudinal_load": (15.0, "daN"),
         "guying_angle_degrees": (0.1, "degree"),
@@ -258,7 +258,7 @@ def test_guying_invalid_support_index(guying_basic_setup):
             support_index=10,  # out of range
             guying_side='left',
             with_pulley=False,
-            guying_height=0,
+            guying_altitude=0,
             guying_horizontal_distance=50,
         )
 
@@ -267,7 +267,7 @@ def test_guying_invalid_support_index(guying_basic_setup):
             support_index=0,
             guying_side='xxx',  # not in the authorized list
             with_pulley=False,
-            guying_height=0,
+            guying_altitude=0,
             guying_horizontal_distance=50,
         )
 
@@ -276,7 +276,7 @@ def test_guying_invalid_support_index(guying_basic_setup):
             support_index=1,
             guying_side='left',
             with_pulley=0,  # should be bool
-            guying_height=0,
+            guying_altitude=0,
             guying_horizontal_distance=50,
         )
 
@@ -285,7 +285,7 @@ def test_guying_invalid_support_index(guying_basic_setup):
             support_index=1,
             guying_side='left',
             with_pulley=0,
-            guying_height="e",  # should be Real
+            guying_altitude="e",  # should be Real
             guying_horizontal_distance=50,
         )
 
@@ -294,7 +294,7 @@ def test_guying_invalid_support_index(guying_basic_setup):
             support_index=1,
             guying_side='left',
             with_pulley=0,
-            guying_height=0,
+            guying_altitude=0,
             guying_horizontal_distance="e",  # should be Real
         )
 
@@ -307,7 +307,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup):
         support_index=0,  # out of range
         guying_side='left',
         with_pulley=False,
-        guying_height=0,
+        guying_altitude=0,
         guying_horizontal_distance=50,
     )
 
@@ -317,7 +317,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup):
             support_index=0,  # out of range
             guying_side='left',
             with_pulley=True,
-            guying_height=0,
+            guying_altitude=0,
             guying_horizontal_distance=50,
         )
 
@@ -326,7 +326,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup):
         support_index=3,  # out of range
         guying_side='left',
         with_pulley=False,
-        guying_height=0,
+        guying_altitude=0,
         guying_horizontal_distance=50,
     )
 
@@ -336,7 +336,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup):
             support_index=3,  # out of range
             guying_side='left',
             with_pulley=True,
-            guying_height=0,
+            guying_altitude=0,
             guying_horizontal_distance=50,
         )
 
@@ -377,7 +377,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup):
     # section_array.add_units({"line_angle": "grad"})
 
     # expected_guying_loads_left = {
-    #     "guying_load": 353.0,
+    #     "guying_tension": 353.0,
     #     "vertical_load": 353.73123844,
     #     "longitudinal_load": -3531.0,
     #     "guying_angle_degrees": 45.0,
@@ -385,7 +385,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup):
     # }
 
     # expected_guying_loads_right = {
-    #     "guying_load": 353.0,
+    #     "guying_tension": 353.0,
     #     "vertical_load": 353.73123844,
     #     "longitudinal_load": -3531.0,
     #     "guying_angle_degrees": 45.0,
@@ -393,7 +393,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup):
     # }
 
     # expected_guying_pulley_loads_right = {
-    #     "guying_load": 353.0,
+    #     "guying_tension": 353.0,
     #     "vertical_load": 353.73123844,
     #     "longitudinal_load": -3531.0,
     #     "guying_angle_degrees": 45.0,

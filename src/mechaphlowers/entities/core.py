@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -20,11 +20,11 @@ class QuantityArray:
         Args:
             value (np.ndarray): array of values to convert
             input_unit (str): unit of the input values
-            output_unit (str): desired unit of the output values
+            user_output_unit (str): desired unit of the output values
         """
         self.quantity = Q_(value, input_unit).to(user_output_unit)
         self.input_unit = input_unit  # for debug
-        self.output_unit = user_output_unit
+        self.user_output_unit = user_output_unit
 
     def value(self, output_unit: str | None = None) -> np.ndarray:
         """Return the magnitude of the quantity array in the output unit"""

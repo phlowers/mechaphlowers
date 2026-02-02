@@ -2,7 +2,7 @@
 
 ## Overview
 
-Mechaphlowers provides simple guying calculations necessary for certain types of field work. The guying module calculates the forces in guy cables and the associated vertical, horizontal, and longitudinal loads.
+Mechaphlowers provides simple guying calculations necessary for field work involving guy cables. The guying module calculates the forces in guy cables and the associated vertical, horizontal, and longitudinal loads.
 
 Guying is performed by using the loads at the selected support (the VHL - Vertical, Horizontal, Longitudinal loads) which are themselves calculated via the balance physics engine.
 
@@ -15,7 +15,7 @@ Guying is performed by using the loads at the selected support (the VHL - Vertic
 
 !!! Warning
 
-    There are subtleties in the naming of _left_ and _right_ for guying. Note that for a selected support, if you guy to the _left_ of the support, you need to retrieve the VHL to the _right_ of the support, as seen in the code.
+    The naming of _left_ and _right_ for guying may be confusing. Note that for a selected support, if you guy to the _left_ of the support, you need to retrieve the VHL to the _right_ of the support, as seen in the code.
 
 !!! Assumption
 
@@ -23,7 +23,7 @@ Guying is performed by using the loads at the selected support (the VHL - Vertic
 
 ## Geometric Configuration
 
-It is possible to use a pulley on suspension supports (neither the first nor the last). The configuration without a pulley corresponds to a direct guy cable, while the configuration with a pulley uses the span tension to calculate the tension in the guy cable.
+It is possible to use a pulley on suspension supports (neither the first nor the last support). The configuration without a pulley corresponds to a direct guy cable, while the configuration with a pulley uses the span tension to calculate the tension in the guy cable.
 
 ![Guying setup](./assets/guying.drawio.png "Guying setup image")
 
@@ -43,7 +43,7 @@ from mechaphlowers.entities.arrays import SectionArray
 section_data = pd.DataFrame({
     "name": ["1", "2", "3", "4"],
     "suspension": [False, True, True, False],
-    "conductor_attachment_altitude": [30, 30, 30, 30],  # conductor attachment height (m)
+    "conductor_attachment_altitude": [30, 30, 30, 30],  # conductor attachment altitude (m)
     "crossarm_length": [0, 0, 0, 0],  # crossarm length (m)
     "line_angle": [0, 0, 0, 0],  # line deflection angle (grad)
     "insulator_length": [0.01, 3, 3, 0.01],  # insulator chain length (m)
@@ -58,12 +58,11 @@ section_array = SectionArray(
     sagging_parameter=2000,  # sagging parameter (daN)
     sagging_temperature=15,  # reference temperature (°C)
 )
-section_array.add_units({"line_angle": "grad"})
 
 # Get cable from catalog
 from mechaphlowers.data.catalog import sample_cable_catalog
 
-cable_array = sample_cable_catalog.get_as_object(["AM600"])
+cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
 
 # Initialize the balance engine
 balance_engine = BalanceEngine(
@@ -86,7 +85,7 @@ guying = GuyingLoads(balance_engine)
 guying_results = guying.get_guying_loads(
     support_index=1,
     with_pulley=False,
-    guying_height=0,  # guy cable attachment height (m)
+    guying_altitude=0,  # guy cable attachment altitude (m)
     guying_horizontal_distance=50,  # horizontal distance to anchorage (m)
     guying_side='left',
 )
@@ -95,7 +94,7 @@ guying_results = guying.get_guying_loads(
 print(guying_results)
 
 # Access individual results
-print(f"Guy cable tension: {guying_results.guying_load}")
+print(f"Guy cable tension: {guying_results.guying_tension}")
 print(f"Vertical load: {guying_results.vertical_load}")
 print(f"Longitudinal load: {guying_results.longitudinal_load}")
 print(f"Guy cable angle: {guying_results.guying_angle_degrees}")
@@ -104,7 +103,7 @@ print(f"Guy cable angle: {guying_results.guying_angle_degrees}")
 guying_results_pulley = guying.get_guying_loads(
     support_index=2,
     with_pulley=True,
-    guying_height=0,
+    guying_altitude=0,
     guying_horizontal_distance=50,
     guying_side='right',
 )
@@ -120,7 +119,7 @@ print(f"\nResults with pulley: {guying_results_pulley}")
 |-----------|------|-------------|
 | `support_index` | `int` | Support index (0 to n-1) |
 | `with_pulley` | `bool` | Use a pulley (True) or direct guy cable (False) |
-| `guying_height` | `float` | Guy cable attachment height (m) |
+| `guying_altitude` | `float` | Guy cable attachment altitude (m) |
 | `guying_horizontal_distance` | `float` | Horizontal distance to anchorage (m) |
 | `guying_side` | `str` | Side of the guy cable: `'left'` or `'right'` |
 
@@ -130,7 +129,7 @@ The `get_guying_loads()` method returns a `GuyingLoadsResults` object containing
 
 | Property | Description |
 |----------|-------------|
-| `guying_load` | Tension in the guy cable (daN) |
+| `guying_tension` | Tension in the guy cable (daN) |
 | `vertical_load` | Total vertical load under the console (daN) |
 | `longitudinal_load` | Longitudinal load (daN) |
 | `guying_angle_degrees` | Angle of the guy cable with the horizontal plane (degrees) |

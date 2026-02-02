@@ -19,7 +19,7 @@ class GuyingLoadsResults:
     """Class to store guying loads results."""
 
     atol_map: dict[str, tuple[float, str]] = {
-        "guying_load": (5.0, "daN"),
+        "guying_tension": (5.0, "daN"),
         "vertical_load": (5.0, "daN"),
         "longitudinal_load": (5.0, "daN"),
         "guying_angle_degrees": (0.1, "degree"),
@@ -27,7 +27,7 @@ class GuyingLoadsResults:
 
     def __init__(
         self,
-        guying_load: Quantity,
+        guying_tension: Quantity,
         vertical_load: Quantity,
         longitudinal_load: Quantity,
         guying_angle_degrees: Quantity,
@@ -35,7 +35,7 @@ class GuyingLoadsResults:
         """Initialize GuyingLoadsResults with calculated values.
 
         Args:
-            guying_load (Quantity): Tension in guying cable
+            guying_tension (Quantity): Tension in guying cable
             vertical_load (Quantity): Total vertical load under console
             longitudinal_load (Quantity): Longitudinal load component
             guying_angle_degrees (Quantity): Angle of guying cable with horizontal plane
@@ -46,12 +46,12 @@ class GuyingLoadsResults:
         Examples:
             >>> from pint import UnitRegistry
             >>> ureg = UnitRegistry()
-            >>> guying_load = 1000 * ureg.newton
+            >>> guying_tension = 1000 * ureg.newton
             >>> vertical_load = 500 * ureg.newton
             >>> longitudinal_load = 200 * ureg.newton
             >>> guying_angle_degrees = 30 * ureg.degree
             >>> results = GuyingLoadsResults(
-            ...     guying_load, vertical_load, longitudinal_load, guying_angle_degrees
+            ...     guying_tension, vertical_load, longitudinal_load, guying_angle_degrees
             ... )
             >>> print(results)
             Guying Load: 1000.0 newton
@@ -61,14 +61,14 @@ class GuyingLoadsResults:
 
         """
         for name, qty in {
-            "guying_load": guying_load,
+            "guying_tension": guying_tension,
             "vertical_load": vertical_load,
             "longitudinal_load": longitudinal_load,
             "guying_angle_degrees": guying_angle_degrees,
         }.items():
             if not isinstance(qty, Quantity):
                 raise TypeError(f"{name} must be a Quantity")
-        self.guying_load = guying_load
+        self.guying_tension = guying_tension
         self.vertical_load = vertical_load
         self.longitudinal_load = longitudinal_load
         self.guying_angle_degrees = guying_angle_degrees
@@ -80,7 +80,7 @@ class GuyingLoadsResults:
     def value_dict(self) -> dict[str, float]:
         """Return the values as a dictionary with appropriate units."""
         return {
-            "guying_load": self.guying_load.to(self.output_unit_force).m,
+            "guying_tension": self.guying_tension.to(self.output_unit_force).m,
             "vertical_load": self.vertical_load.to(self.output_unit_force).m,
             "longitudinal_load": self.longitudinal_load.to(
                 self.output_unit_force
@@ -92,7 +92,7 @@ class GuyingLoadsResults:
     def quantity_dict(self) -> dict[str, Quantity]:
         """Return the values as a dictionary with appropriate units."""
         return {
-            "guying_load": self.guying_load.to(self.output_unit_force),
+            "guying_tension": self.guying_tension.to(self.output_unit_force),
             "vertical_load": self.vertical_load.to(self.output_unit_force),
             "longitudinal_load": self.longitudinal_load.to(
                 self.output_unit_force
@@ -104,7 +104,7 @@ class GuyingLoadsResults:
     def str_repr(self) -> str:
         """Return a string representation of the results."""
         return (
-            f"Guying Load: {self.guying_load.to(self.output_unit_force)}\n"
+            f"Guying Tension: {self.guying_tension.to(self.output_unit_force)}\n"
             f"Vertical Load: {self.vertical_load.to(self.output_unit_force)}\n"
             f"Longitudinal Load: {self.longitudinal_load.to(self.output_unit_force)}\n"
             f"Guying Angle (degrees): {self.guying_angle_degrees.to('deg')}\n"
@@ -120,9 +120,9 @@ class GuyingLoadsResults:
 
     def __eq__(self, value: object) -> bool:
         if isinstance(value, GuyingLoadsResults):
-            for name in self.value_dict.keys():
-                if abs(getattr(self, name) - getattr(value, name)) > Q_(
-                    *self.atol_map[name]
+            for attr_name in self.value_dict.keys():
+                if abs(getattr(self, attr_name) - getattr(value, attr_name)) > Q_(
+                    *self.atol_map[attr_name]
                 ):
                     return False
         else:
@@ -150,7 +150,7 @@ class GuyingLoads:
         self,
         support_index: int,
         with_pulley: bool,
-        guying_height: float,
+        guying_altitude: float,
         guying_horizontal_distance: float,
         guying_side: Literal['left', 'right'] = 'left',
     ) -> GuyingLoadsResults:
@@ -159,12 +159,12 @@ class GuyingLoads:
         Args:
             support_index (int): Index of the support (0 to number of supports - 1)
             with_pulley (bool): Whether the guying system uses a pulley. If True, support_index must be a suspension support (between 1 and number of spans - 2)
-            guying_height (float): Guying cable attachment height (m)
+            guying_altitude (float): Guying cable attachment height (m)
             guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
             guying_side (Literal['left', 'right']): Side of the guying system ('left' or 'right')
 
         Returns:
-            GuyingLoadsResults: Results containing guying_load, vertical_load, angle
+            GuyingLoadsResults: Results containing guying_tension, vertical_load, angle
 
         Raises:
             ValueError: If with_pulley is True and support_index is not a suspension support.
@@ -179,7 +179,7 @@ class GuyingLoads:
             >>> results = guying_loads_calculator.get_guying_loads(
             ...     support_index=2,
             ...     with_pulley=False,
-            ...     guying_height=30.0,
+            ...     guying_altitude=30.0,
             ...     guying_horizontal_distance=50.0,
             ...     guying_side='left',
             ... )
@@ -194,7 +194,7 @@ class GuyingLoads:
         if not isinstance(with_pulley, bool):
             raise TypeError("with_pulley must be bool")
         for name, value in {
-            "guying_height": guying_height,
+            "guying_altitude": guying_altitude,
             "guying_horizontal_distance": guying_horizontal_distance,
         }.items():
             if not isinstance(value, Real):
@@ -243,10 +243,10 @@ class GuyingLoads:
         if with_pulley:
             return self.static_calculate_guying_loads_with_pulley(
                 vhl_v=vhl_v,
-                alt_acc=self.balance_engine.balance_model.attachment_altitude_after_solve[
+                attachment_altitude=self.balance_engine.balance_model.attachment_altitude_after_solve[
                     support_index
                 ],
-                guying_height=guying_height,
+                guying_altitude=guying_altitude,
                 guying_horizontal_distance=guying_horizontal_distance,
                 insulator_mass=self.balance_engine.section_array.data.insulator_weight.iloc[
                     support_index
@@ -264,10 +264,10 @@ class GuyingLoads:
                 vhl_h=vhl_h,
                 vhl_l=vhl_l,
                 vhl_v=vhl_v,
-                alt_acc=self.balance_engine.balance_model.attachment_altitude_after_solve[
+                attachment_altitude=self.balance_engine.balance_model.attachment_altitude_after_solve[
                     support_index
                 ],
-                guying_height=guying_height,
+                guying_altitude=guying_altitude,
                 guying_horizontal_distance=guying_horizontal_distance,
                 insulator_mass=self.balance_engine.section_array.data.insulator_weight.iloc[
                     support_index
@@ -284,8 +284,8 @@ class GuyingLoads:
         vhl_h: float,
         vhl_l: float,
         vhl_v: float,
-        alt_acc: float,
-        guying_height: float,  # TextBox21
+        attachment_altitude: float,
+        guying_altitude: float,  # TextBox21
         guying_horizontal_distance: float,  # TextBox22
         insulator_mass: float,  # chain weight
         counterweight: float,  # counter weight
@@ -299,8 +299,8 @@ class GuyingLoads:
             vhl_h (float): Horizontal load component (N)
             vhl_l (float): Lateral/longitudinal load component (N)
             vhl_v (float): Vertical load component (N)
-            alt_acc (float): Attachment altitude of chain (m)
-            guying_height (float): Guying cable attachment height (m)
+            attachment_altitude (float): Attachment altitude of chain (m)
+            guying_altitude (float): Guying cable attachment height (m)
             guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
             insulator_mass (float): Chain/insulator weight (N)
             counterweight (float): Counter weight (N)
@@ -308,18 +308,18 @@ class GuyingLoads:
             bundle_number (float): Bundle coefficient (dimensionless)
 
         Returns:
-            GuyingLoadsResults: Results containing guying_load, vertical_load, longitudinal_load, and guying_angle_degrees
+            GuyingLoadsResults: Results containing guying_tension, vertical_load, longitudinal_load, and guying_angle_degrees
         """
 
         # Calculate resultant of H and L loads for guying system compensation
         result_h_l = np.sqrt(vhl_h**2 + vhl_l**2)
 
         # Calculate altitude difference between chain attachment and guying attachment
-        delta_alt = alt_acc - guying_height
+        delta_alt = attachment_altitude - guying_altitude
 
         # Calculate the load in the guying cable
         # (horizontal_distance = horizontal distance to guying point)
-        guying_load = (
+        guying_tension = (
             result_h_l
             / guying_horizontal_distance
             * np.sqrt(guying_horizontal_distance**2 + delta_alt**2)
@@ -343,8 +343,8 @@ class GuyingLoads:
         )
 
         # Calculate angle of guying cable with horizontal (in degrees)
-        if guying_load != 0:
-            guying_angle_rad = np.arccos(result_h_l / guying_load)
+        if guying_tension != 0:
+            guying_angle_rad = np.arccos(result_h_l / guying_tension)
             guying_angle_deg = np.round(np.degrees(guying_angle_rad), 1)
         else:
             guying_angle_deg = 0.0
@@ -354,7 +354,7 @@ class GuyingLoads:
 
         return GuyingLoadsResults(
             **{
-                "guying_load": Q_(np.round(guying_load, 0), "N"),
+                "guying_tension": Q_(np.round(guying_tension, 0), "N"),
                 "vertical_load": Q_(np.round(charge_v, 0), "N"),
                 "longitudinal_load": Q_(charge_l, "N"),
                 "guying_angle_degrees": Q_(guying_angle_deg, "deg"),
@@ -364,8 +364,8 @@ class GuyingLoads:
     @staticmethod
     def static_calculate_guying_loads_with_pulley(
         vhl_v: float,
-        alt_acc: float,
-        guying_height: float,  # TextBox21
+        attachment_altitude: float,
+        guying_altitude: float,  # TextBox21
         guying_horizontal_distance: float,  # TextBox22
         insulator_mass: float,  # chain weight (pds_chaine)
         counterweight: float,  # counter weight (contre_pds)
@@ -383,8 +383,8 @@ class GuyingLoads:
 
         Args:
             vhl_v (float): Vertical load component (N)
-            alt_acc (float): Attachment altitude of chain (m)
-            guying_height (float): Guying cable attachment height (m)
+            attachment_altitude (float): Attachment altitude of chain (m)
+            guying_altitude (float): Guying cable attachment height (m)
             guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
             insulator_mass (float): Chain/insulator weight (N)
             counterweight (float): Counter weight (N)
@@ -396,7 +396,7 @@ class GuyingLoads:
         Returns:
             GuyingLoadsResults: Results containing:
                 <ul>
-                    <li>guying_load: tension in guying cable (daN)</li>
+                    <li>guying_tension: tension in guying cable (daN)</li>
                     <li>vertical_load: total vertical load under console (daN)</li>
                     <li>longitudinal_load: longitudinal load component (daN)</li>
                     <li>guying_angle_degrees: angle of guying cable with horizontal plane (degrees)</li>
@@ -409,10 +409,10 @@ class GuyingLoads:
         slope_rad = span_slope  # left slope (pente_g)
 
         # Tension in guying cable = span tension / cos(slope) * bundle factor
-        guying_load = span_tension / np.cos(slope_rad) * bundle_number
+        guying_tension = span_tension / np.cos(slope_rad) * bundle_number
 
         # Calculate altitude difference between chain attachment and guying attachment
-        delta_alt = alt_acc - guying_height
+        delta_alt = attachment_altitude - guying_altitude
 
         # Calculate angle of guying cable with horizontal plane (in degrees)
         # Using arctan for angle calculation with pulley configuration
@@ -432,20 +432,20 @@ class GuyingLoads:
             charge_v
             + insulator_mass
             + counterweight
-            + guying_load * np.sin(guying_angle_rad)
+            + guying_tension * np.sin(guying_angle_rad)
             + cable_length * cable_linear_weight * bundle_number,
             0,
         )
 
         # Calculate lateral load (L)
         # = bundle tension - horizontal component of guying load
-        charge_l = span_tension * bundle_number - guying_load * np.cos(
+        charge_l = span_tension * bundle_number - guying_tension * np.cos(
             guying_angle_rad
         )
 
         return GuyingLoadsResults(
             **{
-                "guying_load": Q_(np.round(guying_load, 0), "N"),
+                "guying_tension": Q_(np.round(guying_tension, 0), "N"),
                 "vertical_load": Q_(np.round(charge_v, 0), "N"),
                 "longitudinal_load": Q_(np.round(charge_l, 0), "N"),
                 "guying_angle_degrees": Q_(guying_angle_deg, "deg"),
