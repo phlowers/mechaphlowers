@@ -23,7 +23,6 @@ projet_dir: Path = Path(__file__).resolve().parents[1]
 source_dir: Path = projet_dir / "src"
 sys.path.append(str(source_dir))
 
-from mechaphlowers.api.frames import SectionDataFrame
 from mechaphlowers.entities.arrays import (
     CableArray,
     SectionArray,
@@ -226,46 +225,6 @@ def default_data_container_one_span() -> DataContainer:
         section_array, cable_array, weather_array
     )
     return data_container
-
-
-@pytest.fixture
-def section_dataframe_with_cable_weather(
-    cable_array_AM600,
-) -> SectionDataFrame:
-    section_array = SectionArray(
-        pd.DataFrame(
-            {
-                "name": np.array(["support 1", "2", "three", "support 4"]),
-                "suspension": np.array([False, True, True, False]),
-                "conductor_attachment_altitude": np.array([2.2, 5, -0.12, 0]),
-                "crossarm_length": np.array([10, 12.1, 10, 10.1]),
-                "line_angle": np.array([0, 360, 90.1, -90.2]),
-                "insulator_length": np.array([0, 4, 3.2, 0]),
-                "span_length": np.array([400, 500.2, 500.0, np.nan]),
-                "insulator_mass": np.array([1000.0, 500.0, 500.0, 1000.0]),
-            }
-        )
-    )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
-    section_array.add_units({"line_angle": "deg"})
-
-    frame = SectionDataFrame(section_array)
-
-    cable_array = cable_array_AM600
-    frame.add_cable(cable_array)
-
-    weather = WeatherArray(
-        pd.DataFrame(
-            {
-                "ice_thickness": [1, 2.1, 0.0, np.nan],
-                "wind_pressure": [1840.12, 0.0, 12.0, np.nan],
-            }
-        )
-    )
-    frame.add_weather(weather)
-
-    return frame
 
 
 @pytest.fixture

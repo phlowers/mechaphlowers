@@ -7,11 +7,12 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Dict, Literal, Self, Tuple
+from typing import Callable, Dict, Literal, Self, Tuple
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
+from mechaphlowers.config import options as cfg
 from mechaphlowers.core.geometry.points import (
     Points,
     SectionPoints,
@@ -21,11 +22,6 @@ from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
-
-if TYPE_CHECKING:
-    from mechaphlowers.api.frames import SectionDataFrame
-
-from mechaphlowers.config import options as cfg
 
 logger = logging.getLogger(__name__)
 
@@ -497,50 +493,3 @@ class PlotEngine:
     def __repr__(self) -> str:
         class_name = type(self).__name__
         return f"{class_name}\n{self.__str__()}"
-
-
-class PlotAccessor:
-    """First accessor class for plots."""
-
-    def __init__(self, section: SectionDataFrame):
-        self.section: SectionDataFrame = section
-
-    def line3d(
-        self, fig: go.Figure, view: Literal["full", "analysis"] = "full"
-    ) -> None:
-        """Plot 3D of power lines sections
-
-        Args:
-            fig (go.Figure): plotly figure where new traces has to be added
-            view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
-
-        Raises:
-            ValueError: view is not an expected value
-        """
-
-        view_map = {"full": True, "analysis": False}
-
-        try:
-            _auto = view_map[view]
-        except KeyError:
-            raise ValueError(
-                f"{view=} : this argument has to be set to 'full' or 'analysis'"
-            )
-        spans = self.section._span_model(
-            **self.section.data_container.__dict__
-        )
-        section_pts = SectionPoints(
-            span_model=spans, **self.section.data_container.__dict__
-        )
-
-        plot_points_3d(
-            fig, section_pts.get_spans("section").points(True), cable_trace
-        )
-        plot_points_3d(
-            fig, section_pts.get_supports().points(True), support_trace
-        )
-        plot_points_3d(
-            fig, section_pts.get_insulators().points(True), insulator_trace
-        )
-
-        set_layout(fig, auto=_auto)

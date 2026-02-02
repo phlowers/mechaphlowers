@@ -80,12 +80,14 @@ def test_create_section_array__with_floats(
     section_array_input_data: dict,
 ) -> None:
     input_df = pd.DataFrame(section_array_input_data)
-    section = SectionArray(
+    section_array = SectionArray(
         input_df, sagging_parameter=2_000, sagging_temperature=15
     )
-    repr_section = section.__repr__()
-    assert repr_section.startswith("SectionArray")
-    assert_frame_equal(input_df, section._data, check_dtype=False, atol=1e-07)
+    repr_section_array = section_array.__repr__()
+    assert repr_section_array.startswith("SectionArray")
+    assert_frame_equal(
+        input_df, section_array._data, check_dtype=False, atol=1e-07
+    )
 
 
 def test_create_section_array__only_ints() -> None:
@@ -101,11 +103,13 @@ def test_create_section_array__only_ints() -> None:
             "insulator_mass": np.array([1000.0, 500.0, 500.0, 1000.0]),
         }
     )
-    section = SectionArray(
+    section_array = SectionArray(
         input_df, sagging_parameter=2_000, sagging_temperature=15
     )
 
-    assert_frame_equal(input_df, section._data, check_dtype=False, atol=1e-07)
+    assert_frame_equal(
+        input_df, section_array._data, check_dtype=False, atol=1e-07
+    )
 
 
 def test_create_section_array__span_length_for_last_support(
@@ -148,11 +152,11 @@ def test_create_section_array__extra_column(
 
     input_df = pd.DataFrame(section_array_input_data)
 
-    section = SectionArray(
+    section_array = SectionArray(
         input_df, sagging_parameter=2_000, sagging_temperature=15
     )
 
-    assert "extra column" not in section._data.columns
+    assert "extra column" not in section_array._data.columns
 
 
 @pytest.mark.parametrize(
@@ -492,9 +496,9 @@ def test_create_cable_array__extra_column(
 
     input_df = pd.DataFrame(cable_array_dict_copy)
 
-    section = CableArray(input_df)
+    cable_array = CableArray(input_df)
 
-    assert "extra column" not in section._data.columns
+    assert "extra column" not in cable_array._data.columns
 
 
 def test_create_cable_array__units(
