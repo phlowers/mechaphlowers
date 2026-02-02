@@ -23,6 +23,7 @@ from mechaphlowers.data.catalog.catalog import (
     write_yaml_catalog_template,
 )
 from mechaphlowers.entities.arrays import CableArray
+from mechaphlowers.entities.errors import DataWarning
 from mechaphlowers.entities.shapes import SupportShape
 
 
@@ -260,7 +261,7 @@ def test_duplicated_warning():
             units_dict={},
         )
         assert len(warning) == 1
-        assert warning[0].category is UserWarning
+        assert warning[0].category is DataWarning
         assert "iris_dataset.csv" in str(warning[0].message)
 
 
@@ -400,7 +401,7 @@ def test_catalog_cable_array_units_aster(cable_array_AM600) -> None:
             "section_heart": [0.0],
             "solar_absorption": [0.9],
             "emissivity": [0.8],
-            "electric_resistance_20": [0.0554],
+            "electric_resistance_20": [0.0000554],
             "linear_resistance_temperature_coef": [0.0036],
             "is_polynomial": [False],
             "radial_thermal_conductivity": [1.0],
@@ -440,7 +441,7 @@ def test_catalog_cable_array_units_narcisse(cable_array_NARCISSE600G) -> None:
             "section_heart": [113.7e-6],
             "solar_absorption": [0.9],
             "emissivity": [0.8],
-            "electric_resistance_20": [0.0593],
+            "electric_resistance_20": [0.0000593],
             "linear_resistance_temperature_coef": [0.004],
             "is_polynomial": [True],
             "radial_thermal_conductivity": [1.0],
@@ -480,7 +481,7 @@ def test_catalog_correct_array(cable_array_AM600) -> None:
                 "section_heart": [0.0],
                 "solar_absorption": [0.9],
                 "emissivity": [0.8],
-                "electric_resistance_20": [0.0554],
+                "electric_resistance_20": [0.0000554],
                 "linear_resistance_temperature_coef": [0.0036],
                 "is_polynomial": [False],
                 "radial_thermal_conductivity": [1.0],

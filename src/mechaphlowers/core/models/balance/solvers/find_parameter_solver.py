@@ -14,6 +14,7 @@ import numpy as np
 
 from mechaphlowers.core.models.cable.deformation import IDeformation
 from mechaphlowers.core.models.cable.span import ISpan
+from mechaphlowers.entities.errors import ConvergenceError
 from mechaphlowers.utils import arr
 
 try:
@@ -47,7 +48,6 @@ class IModelToSolve(ABC):
 
 
 class FindParamModel(IModelToSolve):
-    # TODO: write docstring (use SagTensionSolver for inspiration)
     def __init__(
         self,
         span_model: ISpan,
@@ -100,6 +100,9 @@ class FindParamModel(IModelToSolve):
         return (L - self.L_ref) / self.L_ref - (eps_mecha + eps_therm)
 
     def _delta_prime(self, parameter) -> np.ndarray:
+        """Approximation of the derivative of the function to solve
+        $$\\delta'(p) = \\frac{\\delta(p + \\zeta) - \\delta(p)}{\\zeta}$$
+        """
         return (
             self._delta(parameter + self.param_step) - self._delta(parameter)
         ) / self.param_step
@@ -134,7 +137,7 @@ class FindParamSolverScipy(IFindParamSolver):
             full_output=True,
         )
         if not np.all(solver_result.converged):
-            raise ValueError("Solver did not converge")
+            raise ConvergenceError("Solver did not converge")
         return solver_result.root
 
 
@@ -159,6 +162,8 @@ class FindParamSolverForLoop(IFindParamSolver):
                 logger.error(
                     f"Maximum number of iterations reached in {str(__name__)}"
                 )
-                raise ValueError("Find parameter solver did not converge")
+                raise ConvergenceError(
+                    "Find parameter solver did not converge"
+                )
 
         return parameter

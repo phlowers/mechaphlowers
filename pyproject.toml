@@ -18,18 +18,20 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Operating System :: OS Independent",
 ]
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.11,<3.14"
 dependencies = [
-    "numpy<=2.0.2",
-    "pandas<=2.2.3",
-    "pandera<=0.21.1",
+    "numpy==2.2.5",
+    "pandas==2.3.1",
+    "pandera<=0.23.1",
     "plotly<=5.24.1",
-    "multimethod<2.0",
-    "pyyaml<=6.0.2",
+    "pyyaml==6.0.2",
     "pint==0.25",
-    "xxhash>=3.5.0",
+    "thermohl==1.4.0rc1",
+    "xxhash==3.5.0",
+    "pydantic==2.10.6",
 ]
 
 [project.urls]
@@ -129,8 +131,8 @@ log_cli = true
 log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
-addopts = ["-s", "-vv", "-m", "not benchmark"]
-markers = ["unit_test", "integration", "benchmark"]
+addopts = ["-s", "-vv", "-m", "not benchmark and not release_test"]
+markers = ["unit_test", "integration", "benchmark", "release_test"]
 
 
 [tool.coverage.run]

@@ -11,6 +11,11 @@ import pandas as pd
 
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.core.models.cable.thermal import ThermalEngine
+from mechaphlowers.data.measures import (
+    PapotoParameterMeasure,
+    param_calibration,
+)
 from mechaphlowers.data.units import Q_ as units
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.shapes import SupportShape
@@ -35,4 +40,7 @@ __all__ = [
     "CableArray",
     "SupportShape",
     "units",
+    "PapotoParameterMeasure",
+    "param_calibration",
+    "ThermalEngine",
 ]
