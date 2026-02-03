@@ -217,16 +217,28 @@ class SectionPoints:
             cable_loads (CableLoads): cable loads, used for beta angle
             get_displacement (Callable): function that returns an array of chain displacement. Usually, comes from BalanceModel.get_displacement()
         """
+        self.store_references(
+            section_array, span_model, cable_loads, get_displacement
+        )
+        self.reset()
+
+    def store_references(
+        self, section_array, span_model, cable_loads, get_displacement
+    ):
         self.cable_loads = cable_loads
         self.section_array = section_array
-        span_length = section_array.data.span_length.to_numpy()
+        self.span_model = span_model
+        self.get_displacement = get_displacement
+
+    def reset(self):
+        span_length = self.section_array.data.span_length.to_numpy()
         conductor_attachment_altitude = (
-            section_array.data.conductor_attachment_altitude.to_numpy()
+            self.section_array.data.conductor_attachment_altitude.to_numpy()
         )
-        crossarm_length = section_array.data.crossarm_length.to_numpy()
-        insulator_length = section_array.data.insulator_length.to_numpy()
-        line_angle = section_array.data.line_angle.to_numpy()
-        ground_altitude = section_array.data.ground_altitude.to_numpy()
+        crossarm_length = self.section_array.data.crossarm_length.to_numpy()
+        insulator_length = self.section_array.data.insulator_length.to_numpy()
+        line_angle = self.section_array.data.line_angle.to_numpy()
+        ground_altitude = self.section_array.data.ground_altitude.to_numpy()
 
         self.plane = CablePlane(
             span_length,
@@ -234,8 +246,8 @@ class SectionPoints:
             crossarm_length,
             insulator_length,
             line_angle,
-            beta=cable_loads.load_angle,
-            get_displacement=get_displacement,
+            beta=self.cable_loads.load_angle,
+            get_displacement=self.get_displacement,
             get_attachments_coords=self.get_attachments_coords,
         )
 
@@ -257,13 +269,10 @@ class SectionPoints:
         self.line_angle = line_angle
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
-        self.init_span(span_model)
-
-    def init_span(self, span_model: ISpan) -> None:
-        """change the span model and update the cable coordinates."""
-        self.span_model = span_model
-
         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
+
+    # def init_span(self, span_model: ISpan) -> None:
+    #     """change the span model and update the cable coordinates."""
 
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""

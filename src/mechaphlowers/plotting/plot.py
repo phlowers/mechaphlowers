@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Dict, Literal, Self, Tuple
+from typing import Dict, Literal, Self, Tuple
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -18,9 +18,7 @@ from mechaphlowers.core.geometry.points import (
     SectionPoints,
 )
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.core.models.cable.span import ISpan
-from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.reactivity import Notifier, Observer
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
 
 logger = logging.getLogger(__name__)
@@ -271,60 +269,74 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
     )
 
 
-class PlotEngine:
+class PlotEngine(Observer):
+    """PlotEngine object
+
+    Engine to handle plotting of power line sections from a BalanceEngine object.
+
+    Args:
+        balance_engine (BalanceEngine): BalanceEngine object to link to the PlotEngine
+
+    Example:
+        >>> from mechaphlowers.core.models.balance.engine import BalanceEngine
+        >>> from mechaphlowers.plotting.plot import PlotEngine
+        >>> import plotly.graph_objects as go
+        >>> # Initialize balance engine and plot engine
+        >>> balance_engine = BalanceEngine(...)
+        >>> plt_engine = PlotEngine(balance_engine)
+        >>> # Create and display 3D plot
+        >>> fig = go.Figure()
+        >>> plt_engine.preview_line3d(fig, view="full")
+        >>> fig.show()
+        >>> # Create and display 2D profile plot
+        >>> fig = go.Figure()
+        >>> plt_engine.preview_line2d(fig, view="profile")
+        >>> fig.show()
+        >>> # When balance engine is modified, plot engine updates automatically
+        >>> balance_engine.add_loads(wind_pressure=50, ice_thickness=10)
+        >>> # PlotEngine receives update notification via observer pattern
+    """
+
     def __init__(
         self,
         balance_engine: BalanceEngine,
-        span_model: ISpan,
-        cable_loads: CableLoads,
-        section_array: SectionArray,
-        get_displacement: Callable,
     ) -> None:
-        self.balance_engine = balance_engine
-        self.spans = span_model
-        self.cable_loads = cable_loads
-        self.section_array = section_array
+        balance_engine.bind_to(self)
 
+        self.initialize_engine(balance_engine)
+        self.reset(balance_engine=balance_engine)
+
+    def initialize_engine(self, balance_engine):
+        self.spans = balance_engine.balance_model.nodes_span_model
+        self.cable_loads = balance_engine.cable_loads
+        self.section_array = balance_engine.section_array
         self.section_pts = SectionPoints(
             section_array=self.section_array,
-            span_model=span_model,
-            cable_loads=cable_loads,
-            get_displacement=get_displacement,
+            span_model=self.spans,
+            cable_loads=self.cable_loads,
+            get_displacement=balance_engine.get_displacement,
         )
+
+    def reset(self, balance_engine: BalanceEngine) -> None:
+        """Reset the plot engine with a new balance engine if needed (e.g. after re-initialization of the balance engine)."""
+
+        if not isinstance(balance_engine, BalanceEngine):
+            raise TypeError(
+                "balance_engine must be an instance of BalanceEngine"
+            )
+        if balance_engine.initialized is False:
+            self.initialize_engine(balance_engine)
+        self.section_pts.reset()
+
+    def update(self, notifier: Notifier) -> None:
+        logger.debug("Plot engine notified from balance engine.")
+        # BalanceEngine notifies observers; refresh plot state when possible.
+        if isinstance(notifier, BalanceEngine):
+            self.reset(balance_engine=notifier)
 
     @property
     def beta(self) -> np.ndarray:
         return self.cable_loads.load_angle
-
-    @staticmethod
-    def builder_from_balance_engine(
-        balance_engine: BalanceEngine,
-    ) -> PlotEngine:
-        logger.debug("Plot engine initialized from balance engine.")
-
-        return PlotEngine(
-            balance_engine,
-            balance_engine.balance_model.nodes_span_model,
-            balance_engine.cable_loads,
-            balance_engine.section_array,
-            balance_engine.get_displacement,
-        )
-
-    def generate_reset(self) -> PlotEngine:
-        """Create and returns a PlotEngine object using stored BalanceEngine object.
-        This method does not modify the current PlotEngine instance.
-
-        Method used if BalanceEngine attributes have changed.
-
-        Examples:
-            >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
-            >>> balance_engine.add_loads(...)  # modification on balance engine
-            >>> plt_engine = plt_engine.generate_reset()
-
-        Returns:
-            PlotEngine: object with reset attributes
-        """
-        return self.builder_from_balance_engine(self.balance_engine)
 
     def get_spans_points(
         self, frame: Literal["section", "localsection", "cable"]

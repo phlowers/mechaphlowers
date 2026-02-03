@@ -15,7 +15,7 @@ from mechaphlowers.plotting.plot import PlotEngine
 
 def test_config_on_plot(balance_engine_base_test) -> None:
     balance_engine_base_test.solve_adjustment()
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_line = PlotEngine(balance_engine_base_test)
 
     fig = go.Figure()
     original_res = options.graphics.resolution
