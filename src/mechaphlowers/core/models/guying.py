@@ -158,7 +158,7 @@ class Guying:
 
         Args:
             support_index (int): Index of the support (0 to number of supports - 1)
-            with_pulley (bool): Whether the guying system uses a pulley. If True, support_index must be a suspension support (between 1 and number of spans - 2)
+            with_pulley (bool): Whether the guying system uses a pulley. If True, support_index must be a suspension support (between 1 and number of supports - 2)
             guying_altitude (float): Guying cable attachment height (m)
             guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
             guying_side (Literal['left', 'right']): Side of the guying system ('left' or 'right')
@@ -210,7 +210,7 @@ class Guying:
             support_index == 0 or support_index >= span_shape - 1
         ):
             raise ValueError(
-                "With pulley, guying number must be between 1 and number of spans - 2"
+                "With pulley, guying number must be between 1 and number of supports - 2"
             )
 
         if support_index < 0 or support_index >= span_shape:
@@ -278,6 +278,42 @@ class Guying:
                 ],
                 bundle_number=self.bundle_number,
             )
+
+    def get_guying_results_span_view(
+        self,
+        span_index: int,
+        with_pulley: bool,
+        guying_altitude: float,
+        guying_horizontal_distance: float,
+        selected_support: Literal['left', 'right'],
+    ) -> GuyingResults:
+        """Calculate guying system loads and forces.
+
+        Uses the span point of view: input the span index and which support in the selected span. The guying is made in the selected span.
+
+        Args:
+            span_index (int): Index of the span (0 to number of supports - 1)
+            with_pulley (bool): Whether the guying system uses a pulley. If True, support_index must be a suspension support (between 1 and number of supports - 2)
+            guying_altitude (float): Guying cable attachment height (m)
+            guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
+            selected_support (Literal['left', 'right']): Selected support: left support or right support of the span
+
+        Returns:
+            GuyingResults: Results containing guying_tension, vertical_force, angle
+        """
+        if selected_support == "right":
+            support_index = span_index + 1
+            guying_side: Literal['left', 'right'] = "left"
+        else:
+            support_index = span_index
+            guying_side = "right"
+        return self.get_guying_results(
+            support_index,
+            with_pulley,
+            guying_altitude,
+            guying_horizontal_distance,
+            guying_side,
+        )
 
     @staticmethod
     def static_calculate_guying_loads(

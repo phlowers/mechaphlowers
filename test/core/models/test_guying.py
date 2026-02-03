@@ -343,3 +343,38 @@ def test_guying_support_index_with_pulley(guying_basic_setup: Guying):
             guying_altitude=0,
             guying_horizontal_distance=50,
         )
+
+
+def test_span_view(guying_basic_setup: Guying):
+    guying = guying_basic_setup
+    expected_result_0 = guying.get_guying_results(
+        support_index=1,
+        guying_side='left',
+        with_pulley=False,
+        guying_altitude=0,
+        guying_horizontal_distance=50,
+    )
+    result_span_view_0 = guying.get_guying_results_span_view(
+        span_index=1,
+        selected_support='right',
+        with_pulley=False,
+        guying_altitude=0,
+        guying_horizontal_distance=50,
+    )
+    assert expected_result_0 == result_span_view_0
+
+    expected_result_1 = guying.get_guying_results(
+        support_index=1,
+        guying_side='right',
+        with_pulley=False,
+        guying_altitude=0,
+        guying_horizontal_distance=50,
+    )
+    result_span_view_1 = guying.get_guying_results_span_view(
+        span_index=2,
+        selected_support='left',
+        with_pulley=False,
+        guying_altitude=0,
+        guying_horizontal_distance=50,
+    )
+    assert expected_result_1 == result_span_view_1
