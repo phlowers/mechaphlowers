@@ -27,6 +27,16 @@ It is possible to use a pulley on suspension supports (neither the first nor the
 
 ![Guying setup](./assets/guying.drawio.png "Guying setup image")
 
+!!! Warning
+
+    In the chart below you can see the impact of the **view** parameter.  
+    Be careful to the point of view you choose when setting guying parameters. Indeed left guying side with span centered view is equivalent to right guying side  with support centered view
+
+    ![Guying warning](./assets/guying_warning.drawio.png "Guying warning image")
+
+
+
+
 ## Usage Example
 
 Here is a complete example showing how to calculate guying efforts:
@@ -110,26 +120,3 @@ guying_results_pulley = guying.get_guying_results(
 
 print(f"\nResults with pulley: {guying_results_pulley}")
 ```
-
-## Calculation Parameters
-
-### Input Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `support_index` | `int` | Support index (0 to n-1) |
-| `with_pulley` | `bool` | Use a pulley (True) or direct guy cable (False) |
-| `guying_altitude` | `float` | Guy cable attachment altitude (m) |
-| `guying_horizontal_distance` | `float` | Horizontal distance to anchorage (m) |
-| `guying_side` | `str` | Side of the guy cable: `'left'` or `'right'` |
-
-### Results
-
-The `get_guying_results()` method returns a `GuyingResults` object containing:
-
-| Property | Description |
-|----------|-------------|
-| `guying_tension` | Tension in the guy cable (daN) |
-| `vertical_force` | Total vertical load under the console (daN) |
-| `longitudinal_force` | Longitudinal load (daN) |
-| `guying_angle_degrees` | Angle of the guy cable with the horizontal plane (degrees) |
