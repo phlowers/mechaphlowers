@@ -55,7 +55,6 @@ nav:
       - Specific errors used: user_guide/ug_mph_errors.md
   - Developer guide:
       - API Reference:
-          - API: docstring/api/frames.md
           - Entities:
               - Arrays: docstring/entities/arrays.md
               - Schemas: docstring/entities/schemas.md
@@ -83,8 +82,6 @@ nav:
                       - Deformation: docstring/core/models/cable/deformation.md
                       - Thermal Engine: docstring/core/models/cable/thermal_engine.md
                   - External loads: docstring/core/models/external_loads.md
-              - Solver:
-                  - Cable state: docstring/core/solver/cable_state.md
               - Papoto: docstring/core/papoto/papoto_model.md
           - Data:
               - Catalog: docstring/data/catalog/catalog.md
@@ -92,6 +89,7 @@ nav:
               - Measures: docstring/data/measures.md
           - Configuration: docstring/config.md
           - Plotting:
+              - Plot: docstring/plotting/plot.md
               - Geography:
                   - Create elevation profile: docstring/plotting/geography/plot_elevation_profile.md
                   - Create line map: docstring/plotting/geography/plot_line_map.md

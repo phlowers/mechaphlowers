@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
+import pytest
 from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.entities.arrays import (
@@ -18,6 +19,9 @@ from mechaphlowers.entities.data_container import (
 )
 
 
+@pytest.mark.skip(
+    reason="Data container is deprecated, and will be removed in future versions."
+)
 def test_data_container__factory(
     default_section_array_three_spans: SectionArray,
     cable_array_AM600: CableArray,

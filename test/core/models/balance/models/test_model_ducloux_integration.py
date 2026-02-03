@@ -108,9 +108,6 @@ def test_element_sandbox(
     )
     balance_engine.solve_adjustment()
     balance_engine.balance_model.L_ref
-
-    # section.sagging_temperature = 30
-    # section.cable_loads.ice_thickness = np.array([1,1,1,1]) * 1e-2
     balance_engine.balance_model.cable_loads.wind_pressure = np.array(
         [200] * 4
     )

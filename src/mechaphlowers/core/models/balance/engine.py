@@ -31,7 +31,7 @@ from mechaphlowers.core.models.cable.span import (
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.errors import SolverError
+from mechaphlowers.entities.errors import BalanceEngineWarning, SolverError
 from mechaphlowers.entities.reactivity import Notifier
 from mechaphlowers.utils import arr, check_time
 
@@ -108,10 +108,6 @@ class BalanceEngine(Notifier):
 
         logger.debug("Resetting balance engine.")
 
-
-
-
-
         if full:
             self.initialized = False
             zeros_vector = np.zeros_like(
@@ -156,7 +152,7 @@ class BalanceEngine(Notifier):
                 cable_loads=self.cable_loads,
                 full=full,
             )
-        
+
         if full:
             self.solver_change_state = BalanceSolver(
                 **options.solver.balance_solver_change_state_params
@@ -171,9 +167,6 @@ class BalanceEngine(Notifier):
         self.notify()
         self.initialized = True
         logger.debug("Balance engine initialized.")
-        
-
-        
 
     def add_loads(
         self,
@@ -223,7 +216,7 @@ class BalanceEngine(Notifier):
         #     cable_loads=self.cable_loads,
         #     full=False
         # )
-            
+
         debug_loads = "Loads have been added. If you are using a PlotEngine object, you should reset it, using PlotEngine.generate_reset()"
         logger.debug(debug_loads)
 
@@ -319,7 +312,7 @@ class BalanceEngine(Notifier):
             _ = self.L_ref
         except AttributeError:
             logger.warning(self._warning_no_L_ref)
-            warnings.warn(self._warning_no_L_ref, UserWarning)
+            warnings.warn(self._warning_no_L_ref, BalanceEngineWarning)
             self.solve_adjustment()
 
         self.balance_model.adjustment = False

@@ -17,6 +17,7 @@ from mechaphlowers.entities.arrays import (
     SectionArray,
     WeatherArray,
 )
+from mechaphlowers.entities.errors import DataWarning
 
 
 @pytest.fixture
@@ -27,7 +28,7 @@ def section_array_input_data() -> dict[str, list]:
         "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
         "crossarm_length": [10, 12.1, 10, 10.1],
         "line_angle": [0, 360, 90.1, -90.2],
-        "insulator_length": [0, 4, 3.2, 0],
+        "insulator_length": [0.01, 4, 3.2, 0.01],
         "span_length": [1, 500.2, 500.05, np.nan],
         "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
     }
@@ -79,12 +80,14 @@ def test_create_section_array__with_floats(
     section_array_input_data: dict,
 ) -> None:
     input_df = pd.DataFrame(section_array_input_data)
-    section = SectionArray(
+    section_array = SectionArray(
         input_df, sagging_parameter=2_000, sagging_temperature=15
     )
-    repr_section = section.__repr__()
-    assert repr_section.startswith("SectionArray")
-    assert_frame_equal(input_df, section._data, check_dtype=False, atol=1e-07)
+    repr_section_array = section_array.__repr__()
+    assert repr_section_array.startswith("SectionArray")
+    assert_frame_equal(
+        input_df, section_array._data, check_dtype=False, atol=1e-07
+    )
 
 
 def test_create_section_array__only_ints() -> None:
@@ -95,16 +98,18 @@ def test_create_section_array__only_ints() -> None:
             "conductor_attachment_altitude": [2, 5, 0, 0],
             "crossarm_length": [10, 12, 10, 10],
             "line_angle": [0, 360, 90, -90],
-            "insulator_length": [0, 4, 3, 0],
+            "insulator_length": [0.01, 4, 3, 0.01],
             "span_length": [1, 500, 500, np.nan],
             "insulator_mass": np.array([1000.0, 500.0, 500.0, 1000.0]),
         }
     )
-    section = SectionArray(
+    section_array = SectionArray(
         input_df, sagging_parameter=2_000, sagging_temperature=15
     )
 
-    assert_frame_equal(input_df, section._data, check_dtype=False, atol=1e-07)
+    assert_frame_equal(
+        input_df, section_array._data, check_dtype=False, atol=1e-07
+    )
 
 
 def test_create_section_array__span_length_for_last_support(
@@ -147,11 +152,11 @@ def test_create_section_array__extra_column(
 
     input_df = pd.DataFrame(section_array_input_data)
 
-    section = SectionArray(
+    section_array = SectionArray(
         input_df, sagging_parameter=2_000, sagging_temperature=15
     )
 
-    assert "extra column" not in section._data.columns
+    assert "extra column" not in section_array._data.columns
 
 
 @pytest.mark.parametrize(
@@ -226,7 +231,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
             "crossarm_length": [10, 12.1, 10, 10.1],
             "line_angle": [0.0, 6.283185, 1.572542, -1.574287],
-            "insulator_length": [0, 4, 3.2, 0],
+            "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
@@ -250,7 +255,7 @@ def test_section_array__data_with_optional() -> None:
             "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
             "crossarm_length": [10, 12.1, 10, 10.1],
             "line_angle": [0, 360, 90.1, -90.2],
-            "insulator_length": [0, 4, 3.2, 0],
+            "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             "load_mass": [500, 1000, 500, np.nan],
@@ -274,7 +279,7 @@ def test_section_array__data_with_optional() -> None:
             "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
             "crossarm_length": [10, 12.1, 10, 10.1],
             "line_angle": [0.0, 6.283185, 1.572542, -1.574287],
-            "insulator_length": [0, 4, 3.2, 0],
+            "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
@@ -304,7 +309,7 @@ def test_section_array__wrong_ground_altitude() -> None:
             "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
             "crossarm_length": [10, 12.1, 10, 10.1],
             "line_angle": [0, 360, 90.1, -90.2],
-            "insulator_length": [0, 4, 3.2, 0],
+            "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             "load_mass": [500, 1000, 500, np.nan],
@@ -326,7 +331,7 @@ def test_section_array__wrong_ground_altitude() -> None:
             "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
             "crossarm_length": [10, 12.1, 10, 10.1],
             "line_angle": [0.0, 6.283185, 1.572542, -1.574287],
-            "insulator_length": [0, 4, 3.2, 0],
+            "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
@@ -385,7 +390,7 @@ def test_section_array__data_original(section_array_input_data: dict) -> None:
             "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
             "crossarm_length": [10, 12.1, 10, 10.1],
             "line_angle": [0, 360, 90.1, -90.2],
-            "insulator_length": [0, 4, 3.2, 0],
+            "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
         },
@@ -491,9 +496,9 @@ def test_create_cable_array__extra_column(
 
     input_df = pd.DataFrame(cable_array_dict_copy)
 
-    section = CableArray(input_df)
+    cable_array = CableArray(input_df)
 
-    assert "extra column" not in section._data.columns
+    assert "extra column" not in cable_array._data.columns
 
 
 def test_create_cable_array__units(
@@ -679,3 +684,38 @@ def test_equivalent_span(section_array) -> None:
     ).sum() / section_array.data.span_length.sum()
 
     np.testing.assert_allclose(section_array.equivalent_span() ** 2, res)
+
+
+def test_correct_insulator_length(section_array) -> None:
+    expected_lengths = np.array([0.01, 4.0, 3.2, 0.01])
+
+    np.testing.assert_allclose(
+        section_array.data.insulator_length, expected_lengths
+    )
+    np.testing.assert_allclose(
+        section_array._data.insulator_length, expected_lengths
+    )
+
+    # test on .data property
+    section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
+    np.testing.assert_allclose(
+        section_array.data.insulator_length, expected_lengths
+    )
+
+    # nothing to correct
+    section_array._data.insulator_length = np.array([0.01, 4.0, 3.2, 0.01])
+    section_array.correct_insulator_length()
+    np.testing.assert_allclose(
+        section_array.data.insulator_length, expected_lengths
+    )
+
+
+def test_warning_on_insulator_length_correction(section_array) -> None:
+    # Force invalid lengths and ensure they are corrected with a warning
+    section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
+    with pytest.warns(DataWarning):
+        section_array.correct_insulator_length()
+
+    section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
+    with pytest.warns(DataWarning):
+        section_array.data

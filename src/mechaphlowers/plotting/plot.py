@@ -7,11 +7,12 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal, Self, Tuple
+from typing import Dict, Literal, Self, Tuple
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
+from mechaphlowers.config import options as cfg
 from mechaphlowers.core.geometry.points import (
     Points,
     SectionPoints,
@@ -19,11 +20,6 @@ from mechaphlowers.core.geometry.points import (
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.reactivity import Notifier, Observer
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
-
-if TYPE_CHECKING:
-    from mechaphlowers.api.frames import SectionDataFrame
-
-from mechaphlowers.config import options as cfg
 
 logger = logging.getLogger(__name__)
 
@@ -275,7 +271,7 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 
 class PlotEngine(Observer):
     """PlotEngine object
-    
+
     Engine to handle plotting of power line sections from a BalanceEngine object.
 
     Args:
@@ -285,31 +281,28 @@ class PlotEngine(Observer):
         >>> from mechaphlowers.core.models.balance.engine import BalanceEngine
         >>> from mechaphlowers.plotting.plot import PlotEngine
         >>> import plotly.graph_objects as go
-        >>> 
         >>> # Initialize balance engine and plot engine
         >>> balance_engine = BalanceEngine(...)
         >>> plt_engine = PlotEngine(balance_engine)
-        >>> 
         >>> # Create and display 3D plot
         >>> fig = go.Figure()
         >>> plt_engine.preview_line3d(fig, view="full")
         >>> fig.show()
-        >>> 
         >>> # Create and display 2D profile plot
         >>> fig = go.Figure()
         >>> plt_engine.preview_line2d(fig, view="profile")
         >>> fig.show()
-        >>> 
         >>> # When balance engine is modified, plot engine updates automatically
         >>> balance_engine.add_loads(wind_pressure=50, ice_thickness=10)
         >>> # PlotEngine receives update notification via observer pattern
     """
+
     def __init__(
         self,
         balance_engine: BalanceEngine,
     ) -> None:
         balance_engine.bind_to(self)
-        
+
         self.initialize_engine(balance_engine)
         self.reset(balance_engine=balance_engine)
 
@@ -326,9 +319,11 @@ class PlotEngine(Observer):
 
     def reset(self, balance_engine: BalanceEngine) -> None:
         """Reset the plot engine with a new balance engine if needed (e.g. after re-initialization of the balance engine)."""
-        
+
         if not isinstance(balance_engine, BalanceEngine):
-            raise TypeError("balance_engine must be an instance of BalanceEngine")
+            raise TypeError(
+                "balance_engine must be an instance of BalanceEngine"
+            )
         if balance_engine.initialized is False:
             self.initialize_engine(balance_engine)
         self.section_pts.reset()
@@ -354,10 +349,32 @@ class PlotEngine(Observer):
     def get_insulators_points(self) -> np.ndarray:
         return self.section_pts.get_insulators().points(True)
 
-    def get_loads_coords(self, project=False, frame_index=0) -> np.ndarray:
+    def get_loads_coords(self, project=False, frame_index=0) -> Dict:
+        """Get a dictionary of coordinates of the loads.
+
+        If there are two loads in spans $0$ and $2$, the format is the following:
+
+        `{0: [x0, y0, z0], 2: [x2, y2, z2]}`
+
+        The arguments should be the same as `get_points_for_plot()`.
+
+        Args:
+            project (bool, optional): Set to True if 2d graph: this project all objects into a support frame. Defaults to False.
+            frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
+
+        Returns:
+            Dict: dictionary that stores the coordinates. Key is span index. Value is a np.array of coordinates.
+        """
         spans_points, _, _ = self.get_points_for_plot(project, frame_index)
         loads_spans_idx, loads_points_idx = self.spans.loads_indices
-        return spans_points.coords[loads_spans_idx, loads_points_idx]
+        result_dict = {}
+        for index_in_small_array, span_index in enumerate(loads_spans_idx):
+            # point_index is the index of the load point in spans_points.coords
+            point_index = loads_points_idx[index_in_small_array]
+            result_dict[int(span_index)] = spans_points.coords[
+                span_index, point_index
+            ]
+        return result_dict
 
     def get_points_for_plot(
         self, project=False, frame_index=0
@@ -488,50 +505,3 @@ class PlotEngine(Observer):
     def __repr__(self) -> str:
         class_name = type(self).__name__
         return f"{class_name}\n{self.__str__()}"
-
-
-class PlotAccessor:
-    """First accessor class for plots."""
-
-    def __init__(self, section: SectionDataFrame):
-        self.section: SectionDataFrame = section
-
-    def line3d(
-        self, fig: go.Figure, view: Literal["full", "analysis"] = "full"
-    ) -> None:
-        """Plot 3D of power lines sections
-
-        Args:
-            fig (go.Figure): plotly figure where new traces has to be added
-            view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
-
-        Raises:
-            ValueError: view is not an expected value
-        """
-
-        view_map = {"full": True, "analysis": False}
-
-        try:
-            _auto = view_map[view]
-        except KeyError:
-            raise ValueError(
-                f"{view=} : this argument has to be set to 'full' or 'analysis'"
-            )
-        spans = self.section._span_model(
-            **self.section.data_container.__dict__
-        )
-        section_pts = SectionPoints(
-            span_model=spans, **self.section.data_container.__dict__
-        )
-
-        plot_points_3d(
-            fig, section_pts.get_spans("section").points(True), cable_trace
-        )
-        plot_points_3d(
-            fig, section_pts.get_supports().points(True), support_trace
-        )
-        plot_points_3d(
-            fig, section_pts.get_insulators().points(True), insulator_trace
-        )
-
-        set_layout(fig, auto=_auto)

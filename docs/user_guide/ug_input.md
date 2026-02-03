@@ -140,12 +140,26 @@ print(cable_array)
 ```
 ## External loads
 
-External loads can be added to the cable array. We only support wind loads, but it's easy to extend this by adding more external loads. To add a weather load, you need to create an instance of `WeatherArray` class, and pass it to the SectionDataFrame.
+External loads can be added to the cable array. We only support wind loads, but it's easy to extend this by adding more external loads. To add a weather load, you can use `BalanceEngine.solve_change_state(...)` method.
+
+```python
+
+# add weather
+balance_engine.solve_change_state(
+    ice_thickness=np.array([1e-2, 2.1e-2, 0.0, np.nan]),
+    wind_pressure=np.array([240.12, 0.0, 12.0, np.nan]),
+)
+
+# get effects of the load: example with the load_angle
+balance_engine_angles.cable_loads.load_angle
+```
+
+
 The following example shows how to add a wind load on the cable.
 
 !!! important
 
-	The ice_thickness and wind_pressure are in cm and Pa respectively.
+	The ice_thickness and wind_pressure are in meters and Pascal respectively.
 	The format of those vectors is span oriented: their size is the same than the section but the last value is not used 
 	That's why we put `np.nan` at the end.
 
@@ -157,23 +171,6 @@ Then you can display the effect of this load with:
 - ice_load
 - wind_load
 
-```python
-# Define data
-weather = WeatherArray(
-	pd.DataFrame(
-		{
-			"ice_thickness": [1, 2.1, 0.0, np.nan],
-			"wind_pressure": [240.12, 0.0, 12.0, np.nan],
-		}
-	)
-)
-
-# add weather
-frame.add_weather(weather=weather)
-
-# get effects of the load: example with the load_angle
-frame.cable_loads.load_angle
-```
 
 ## Support Shapes / position sets
 
