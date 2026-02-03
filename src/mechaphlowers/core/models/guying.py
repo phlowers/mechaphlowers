@@ -331,33 +331,34 @@ class Guying:
         #                      + guying cable self-weight
 
         #  warning here, /10 means unit conversion from N to daN
-        charge_v = np.round(
+        force_v = (
             vhl_v
             + insulator_weight
             + counterweight
             + (result_h_l / guying_horizontal_distance) * delta_alt
             + np.sqrt(guying_horizontal_distance**2 + delta_alt**2)
             * cable_linear_weight
-            * bundle_number,
-            0,
+            * bundle_number
         )
 
         # Calculate angle of guying cable with horizontal (in degrees)
         if guying_tension != 0:
             guying_angle_rad = np.arccos(result_h_l / guying_tension)
-            guying_angle_deg = np.round(np.degrees(guying_angle_rad), 1)
+            guying_angle_deg = np.degrees(guying_angle_rad)
         else:
             guying_angle_deg = 0.0
 
         # Longitudinal load (L) is zero
-        charge_l = 0.0
+        force_l = 0.0
 
         return GuyingResults(
             **{
                 "guying_tension": Q_(np.round(guying_tension, 0), "N"),
-                "vertical_force": Q_(np.round(charge_v, 0), "N"),
-                "longitudinal_force": Q_(charge_l, "N"),
-                "guying_angle_degrees": Q_(guying_angle_deg, "deg"),
+                "vertical_force": Q_(np.round(force_v, 0), "N"),
+                "longitudinal_force": Q_(force_l, "N"),
+                "guying_angle_degrees": Q_(
+                    np.round(guying_angle_deg, 1), "deg"
+                ),
             }
         )
 
@@ -417,10 +418,9 @@ class Guying:
         # Calculate angle of guying cable with horizontal plane (in degrees)
         # Using arctan for angle calculation with pulley configuration
         guying_angle_rad = np.arctan(delta_alt / guying_horizontal_distance)
-        guying_angle_deg = np.round(np.degrees(guying_angle_rad), 1)
+        guying_angle_deg = np.degrees(guying_angle_rad)
 
         # Calculate total vertical load under console
-        charge_v = np.round(vhl_v, 0)
 
         # Add all vertical components:
         # - chain weight
@@ -428,26 +428,27 @@ class Guying:
         # - vertical component of guying load (sin of angle * tension)
         # - self-weight of guying cable
         cable_length = np.sqrt(guying_horizontal_distance**2 + delta_alt**2)
-        charge_v = np.round(
-            charge_v
+        force_v = (
+            vhl_v
             + insulator_weight
             + counterweight
             + guying_tension * np.sin(guying_angle_rad)
-            + cable_length * cable_linear_weight * bundle_number,
-            0,
+            + cable_length * cable_linear_weight * bundle_number
         )
 
         # Calculate lateral load (L)
         # = bundle tension - horizontal component of guying load
-        charge_l = span_tension * bundle_number - guying_tension * np.cos(
+        force_l = span_tension * bundle_number - guying_tension * np.cos(
             guying_angle_rad
         )
 
         return GuyingResults(
             **{
                 "guying_tension": Q_(np.round(guying_tension, 0), "N"),
-                "vertical_force": Q_(np.round(charge_v, 0), "N"),
-                "longitudinal_force": Q_(np.round(charge_l, 0), "N"),
-                "guying_angle_degrees": Q_(guying_angle_deg, "deg"),
+                "vertical_force": Q_(np.round(force_v, 0), "N"),
+                "longitudinal_force": Q_(np.round(force_l, 0), "N"),
+                "guying_angle_degrees": Q_(
+                    np.round(guying_angle_deg, 1), "deg"
+                ),
             }
         )
