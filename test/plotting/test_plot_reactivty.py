@@ -1,8 +1,6 @@
 from unittest.mock import MagicMock
 
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.data.catalog.catalog import sample_cable_catalog
-
 from mechaphlowers.plotting.plot import PlotEngine
 
 
@@ -17,6 +15,6 @@ def test_plot_engine_reset_called_on_notify(
 
     balance_engine_base_test.notify()
 
-    plot_engine.reset.assert_called_once_with(balance_engine=balance_engine_base_test)
-    
- 
+    plot_engine.reset.assert_called_once_with(
+        balance_engine=balance_engine_base_test
+    )

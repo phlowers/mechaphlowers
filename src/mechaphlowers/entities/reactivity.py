@@ -12,6 +12,7 @@ from typing import List
 
 class Notifier:
     """Subject in Observer pattern."""
+
     def __init__(self) -> None:
         self._observers: List[Observer] = []
 
@@ -25,6 +26,7 @@ class Notifier:
 
 class Observer(ABC):
     """Abstract observer in Observer pattern. To be implemented by concrete observers."""
+
     @abstractmethod
     def update(self, notifier: Notifier, *args, **kwargs) -> None:
         """

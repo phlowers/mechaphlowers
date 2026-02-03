@@ -83,10 +83,10 @@ class BalanceModel(IBalanceModel):
         full: bool = False,
     ) -> None:
         """set or reset the model.
-        
+
         For full=True, all attributes are re-initialized, including cable data and nodes.
         Else, only models references are updated. It is useful for loads update for examples.
-        
+
         Args:
             cable_array (CableArray): cable data
             span_model (ISpan): span model
@@ -94,7 +94,7 @@ class BalanceModel(IBalanceModel):
             cable_loads (CableLoads): cable loads
             full (bool, optional): whether to re-initialize all attributes or only models references. Defaults to False.
         """
-        
+
         # declaration of attributes
         self.a: np.ndarray
         self.b: np.ndarray
@@ -103,12 +103,11 @@ class BalanceModel(IBalanceModel):
         self.Tv_g: np.ndarray
 
         self._adjustment: bool = True
-        
-        
+
         # if full is True:
         self.parameter = self.parameter_init
         self.initialize_cable(cable_array)
-        
+
         self.nodes = nodes_builder(self.section_array)
 
         self.initialize_models_references(
@@ -140,7 +139,7 @@ class BalanceModel(IBalanceModel):
         full: bool = False,
     ):
         """Initialize or reset models references. Special behavior for nodes_span_model if full is False to avoid breaking references.
-        
+
         Args:
             span_model (ISpan): span model
             deformation_model (IDeformation): deformation model
@@ -156,7 +155,7 @@ class BalanceModel(IBalanceModel):
         self.cable_loads = cable_loads
 
     def initialize_loadmodel(self):
-        """Initialize LoadModel object used in change_state case with loads. """
+        """Initialize LoadModel object used in change_state case with loads."""
         self.load_model = LoadModel(
             self.cable_array,
             self.nodes.load_weight[self.nodes.has_load_on_span],

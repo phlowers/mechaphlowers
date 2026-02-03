@@ -227,7 +227,7 @@ def test_get_loads_coords_4_spans(cable_array_AM600: CableArray):
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+    plt_engine = PlotEngine(balance_engine)
     coords_loads_before_solve = plt_engine.get_loads_coords()
     assert coords_loads_before_solve == {}
 
@@ -280,6 +280,3 @@ def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
         plt_engine.section_pts.get_points_for_plot()
     )
     assert_cable_linked_to_attachment(span_points, insulators_points)
-    
-    
-
