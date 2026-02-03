@@ -79,6 +79,12 @@ build-backend = "pdm.backend"
 
 ### Tools configuration
 
+[tool.uv]
+constraint-dependencies = [
+    "urllib3<3.0.0,>=2.6.3",
+    "pymdown-extensions>=10.16.1"
+]
+
 [tool.pdm]
 version = { source = "scm", version_format = "pdm_build:format_version" }
 distribution = true
