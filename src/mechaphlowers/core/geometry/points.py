@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Callable, List, Self, Tuple
+from typing import Callable, Dict, List, Self, Tuple
 
 import numpy as np
 from typing_extensions import Literal  # type: ignore[attr-defined]
@@ -202,8 +202,11 @@ class Points:
 
 
 class SparsePoints:
-    # suggestion of class similar to points to store obstacle coordinates
-    # it have to behave similarly to Points class for plot engine (interface ? protocol ? :))
+    """Class handle set of 3D points grouped by objects, but all objects do not have the same number of points.
+
+    Main use case is for managing obstacle points.
+    """
+
     def __init__(
         self,
         object_name: List,
@@ -236,12 +239,16 @@ class SparsePoints:
         object_type = data["object_type"].to_list()
         return cls(object_name, point_index, span_index, x, y, z, object_type)
 
-    def update_vectors(self, x, y, z):
+    @property
+    def coords(self) -> np.ndarray:
+        return np.array([self.x, self.y, self.z]).T
+
+    def update_vectors(self, x, y, z) -> None:
         self.x = x
         self.y = y
         self.z = z
 
-    def get_vectors(self):
+    def get_vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return self.x, self.y, self.z
 
     def points(self, stack=False) -> np.ndarray:
@@ -255,8 +262,8 @@ class SparsePoints:
         [np.nan, np.nan, np.nan], # separator if stack=True
         ]
         """
-        points = np.array([self.x, self.y, self.z]).T
-        # TODO: rework inserting nan: this method assume that points are correctly ordered by object and point index
+        points = self.coords
+        # This method assume that points are correctly ordered by object and point index
         if stack:
             # get indices at the beginning of each object
             insert_indices = np.nonzero(self.point_index == 0)[0]
@@ -264,13 +271,13 @@ class SparsePoints:
             points = np.insert(points, insert_indices, nan_array, axis=0)
         return points
 
-    def dict_coords(self):
+    def dict_coords(self) -> Dict:
         points = self.points()
         split_indices = np.nonzero(self.point_index == 0)[0]
         if len(split_indices) > 1:
             array_coords = np.split(points, split_indices[1:], axis=0)
         else:
-            array_coords = np.array([points])
+            array_coords = [points]
         dict_coords = {}
         for i in range(len(split_indices)):
             object_name = self.object_name[split_indices[i]]
@@ -354,7 +361,6 @@ class SectionPoints:
         )
 
     def get_obstacle_coords(self):
-        # self.obstacle_coords = self.obstacles_array.get_data()
         x, y, z = self.obstacles_array.get_vectors()
         azimuth_line = np.cumsum(self.line_angle)
         span_index = self.obstacles_array.data["span_index"].to_numpy()
@@ -469,6 +475,9 @@ class SectionPoints:
             self.get_attachments_coords(),
         )
         return Points.from_coords(insulator_layers)
+
+    def get_obstacles_dict_for_plot(self) -> Dict:
+        return self.obstacles_points.dict_coords()
 
     def get_points_for_plot(
         self, project=False, frame_index=0

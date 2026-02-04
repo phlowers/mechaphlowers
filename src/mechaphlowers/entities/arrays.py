@@ -383,7 +383,7 @@ class WeatherArray(ElementArray):
 class ObstacleArray(ElementArray):
     """Obstacles-related data, such as obstacle altitude and distance from the line.
 
-    They're typically used to compute clearance-related checks.
+    They are typically used to compute clearance-related checks.
     """
 
     array_input_type: Type[pa.DataFrameModel] = ObstacleArrayInput
@@ -425,5 +425,6 @@ class ObstacleArray(ElementArray):
     @property
     def data(self) -> pd.DataFrame:
         data_output = super().data
+        # Sort points by obstacle and index order
         data_output.sort_values(by=["name", "point_index"], inplace=True)
         return data_output

@@ -69,3 +69,5 @@ def test_plot_obstacles(balance_engine_angles: BalanceEngine):
 
     # TODO: test keys in dict
     plt_engine.section_pts.obstacles_points.dict_coords()
+    plt_engine.section_pts.get_obstacle_coords()
+    assert True
