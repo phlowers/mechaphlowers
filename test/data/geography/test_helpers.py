@@ -6,6 +6,7 @@
 
 
 import numpy as np
+import pandas as pd
 
 from mechaphlowers.data.geography.helpers import (
     bearing_to_direction,
@@ -16,6 +17,7 @@ from mechaphlowers.data.geography.helpers import (
     reverse_haversine,
     support_distances_to_gps,
 )
+from mechaphlowers.entities.arrays import SectionArray
 
 # French cities mock data
 FRENCH_CITIES_GPS = {
@@ -375,3 +377,91 @@ def test_support_distances_to_gps():
 
     np.testing.assert_array_equal(gps_coordinates[0], expected_lats)
     np.testing.assert_array_equal(gps_coordinates[1], expected_lons)
+
+
+def test_gps_on_section_array():
+    """Test gps_on_section with multiple points along a section."""
+
+    start_lat = np.array([48.8566], dtype=np.float64)  # Paris latitude
+    start_lon = np.array([2.3522], dtype=np.float64)  # Paris longitude
+
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["support 1", "2", "three", "support 4"]),
+                "suspension": np.array([False, True, True, False]),
+                "conductor_attachment_altitude": np.array([2.2, 5, -0.12, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1]),
+                "line_angle": np.array([90, 90, 90, 90]),
+                "insulator_length": np.array([0, 4, 3.2, 0]),
+                "span_length": np.array([500, 500, 500.0, np.nan]),
+                "insulator_mass": np.array([1000.0, 500.0, 500.0, 1000.0]),
+            }
+        )
+    )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    section_array.add_units({"line_angle": "deg"})
+    
+    
+    lat, lon = reverse_haversine(
+        start_lat,
+        start_lon,
+        section_array.data.line_angle,
+        section_array.data.span_length,
+    )
+    
+    # generate map plot with plotly
+    import plotly.graph_objects as go
+    
+    # Combine start point with calculated points
+    all_lats = np.concatenate([start_lat, lat])
+    all_lons = np.concatenate([start_lon, lon])
+    
+    # Create hover text with support information
+    hover_text = [f"Start: {section_array.data.name.iloc[0]}"] + [
+        f"Support: {name}<br>"
+        f"Span: {span:.1f}m<br>"
+        f"Altitude: {alt:.2f}m<br>"
+        f"Suspension: {susp}"
+        for name, span, alt, susp in zip(
+            section_array.data.name.iloc[1:],
+            section_array.data.span_length.iloc[:-1],
+            section_array.data.conductor_attachment_altitude.iloc[1:],
+            section_array.data.suspension.iloc[1:]
+        )
+    ]
+    
+    # Create the map figure
+    fig = go.Figure()
+    
+    # Add line connecting the supports
+    fig.add_trace(go.Scattermapbox(
+        lat=all_lats,
+        lon=all_lons,
+        mode='lines+markers',
+        marker=dict(size=10, color='red'),
+        line=dict(width=2, color='blue'),
+        text=hover_text,
+        hoverinfo='text',
+        name='Section supports'
+    ))
+    
+    # Calculate center point for map
+    center_lat = np.mean(all_lats)
+    center_lon = np.mean(all_lons)
+    
+    # Update layout with mapbox
+    fig.update_layout(
+        mapbox=dict(
+            style='open-street-map',
+            center=dict(lat=center_lat, lon=center_lon),
+            # zoom=10
+        ),
+        title='Section Support Locations',
+        showlegend=True,
+        height=600
+    )
+    
+    fig.show()
+    
