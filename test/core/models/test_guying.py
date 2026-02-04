@@ -175,7 +175,7 @@ section_array_inputs = [
         "complete_section_array_right",
     ],
 )
-def test_guying_sandbox(
+def test_guying_integration(
     section_array: SectionArray,
     support_index: int,
     side: Literal["left", "right"],
@@ -194,12 +194,12 @@ def test_guying_sandbox(
     )
     guying = Guying(balance_engine)
 
-    guying_results = guying.get_guying_results(
-        support_index=support_index,
-        guying_side=side,
+    guying_results = guying.compute(
+        index=support_index,
+        side=side,
         with_pulley=False,
-        guying_altitude=0,
-        guying_horizontal_distance=50,
+        altitude=0,
+        horizontal_distance=50,
     )
 
     # imposing custom tolerances for the test because of small differences with prototypes setup
@@ -212,12 +212,12 @@ def test_guying_sandbox(
 
     assert guying_results == GuyingResults(**expected_guying_left)
 
-    guying_pulley_results = guying.get_guying_results(
-        support_index=support_index,
-        guying_side=side,
+    guying_pulley_results = guying.compute(
+        index=support_index,
+        side=side,
         with_pulley=True,
-        guying_altitude=0,
-        guying_horizontal_distance=50,
+        altitude=0,
+        horizontal_distance=50,
     )
 
     # imposing custom tolerances for the test because of small differences with prototypes setup
@@ -254,52 +254,74 @@ def test_guying_invalid_support_index(guying_basic_setup: Guying):
     guying = guying_basic_setup
 
     with pytest.raises(ValueError):
-        guying.get_guying_results(
-            support_index=10,  # out of range
-            guying_side='left',
+        guying.compute(
+            index=10,  # out of range
+            side='left',
             with_pulley=False,
-            guying_altitude=0,
-            guying_horizontal_distance=50,
+            altitude=0,
+            horizontal_distance=50,
         )
 
     with pytest.raises(AttributeError):
         # guying_side not in the authorized list
-        guying.get_guying_results(
-            support_index=0,
-            guying_side='xxx',  # type: ignore[arg-type]
+        guying.compute(
+            index=0,
+            side='xxx',  # type: ignore[arg-type]
             with_pulley=False,
-            guying_altitude=0,
-            guying_horizontal_distance=50,
+            altitude=0,
+            horizontal_distance=50,
         )
 
     with pytest.raises(TypeError):
         # with_pulley should be bool
-        guying.get_guying_results(
-            support_index=1,
-            guying_side='left',
+        guying.compute(
+            index=1,
+            side='left',
             with_pulley=0,  # type: ignore[arg-type]
-            guying_altitude=0,
-            guying_horizontal_distance=50,
+            altitude=0,
+            horizontal_distance=50,
         )
 
     with pytest.raises(TypeError):
         # guying_altitude should be Real
-        guying.get_guying_results(
-            support_index=1,
-            guying_side='left',
+        guying.compute(
+            index=1,
+            side='left',
             with_pulley=False,
-            guying_altitude="e",  # type: ignore[arg-type]
-            guying_horizontal_distance=50,
+            altitude="e",  # type: ignore[arg-type]
+            horizontal_distance=50,
         )
 
     with pytest.raises(TypeError):
         # guying_horizontal_distance should be Real
-        guying.get_guying_results(
-            support_index=1,
-            guying_side='left',
+        guying.compute(
+            index=1,
+            side='left',
             with_pulley=False,
-            guying_altitude=0,
-            guying_horizontal_distance="e",  # type: ignore[arg-type]
+            altitude=0,
+            horizontal_distance="e",  # type: ignore[arg-type]
+        )
+
+    with pytest.raises(ValueError):
+        # view should be in the authorized list
+        guying.compute(
+            index=1,
+            side='left',
+            with_pulley=False,
+            altitude=0,
+            horizontal_distance=50,
+            view='xxx',  # type: ignore[arg-type]
+        )
+
+    with pytest.raises(TypeError):
+        # view should be str
+        guying.compute(
+            index=1,
+            side='left',
+            with_pulley=False,
+            altitude=0,
+            horizontal_distance=50,
+            view=0,  # type: ignore[arg-type]
         )
 
 
@@ -307,74 +329,90 @@ def test_guying_support_index_with_pulley(guying_basic_setup: Guying):
     guying = guying_basic_setup
 
     # passing without pulley on first support
-    guying.get_guying_results(
-        support_index=0,
-        guying_side='left',
+    guying.compute(
+        index=0,
+        side='left',
         with_pulley=False,
-        guying_altitude=0,
-        guying_horizontal_distance=50,
+        altitude=0,
+        horizontal_distance=50,
     )
 
     # should raise error with pulley on first support
     with pytest.raises(ValueError):
-        guying.get_guying_results(
-            support_index=0,  # out of range # type: ignore[arg-type]
-            guying_side='left',
+        guying.compute(
+            index=0,  # out of range # type: ignore[arg-type]
+            side='left',
             with_pulley=True,
-            guying_altitude=0,
-            guying_horizontal_distance=50,
+            altitude=0,
+            horizontal_distance=50,
         )
 
     # passing without pulley on last support
-    guying.get_guying_results(
-        support_index=3,
-        guying_side='left',
+    guying.compute(
+        index=3,
+        side='left',
         with_pulley=False,
-        guying_altitude=0,
-        guying_horizontal_distance=50,
+        altitude=0,
+        horizontal_distance=50,
     )
 
     # should raise error with pulley on last support
     with pytest.raises(ValueError):
-        guying.get_guying_results(
-            support_index=3,  # out of range # type: ignore[arg-type]
-            guying_side='left',
+        guying.compute(
+            index=3,  # out of range # type: ignore[arg-type]
+            side='left',
             with_pulley=True,
-            guying_altitude=0,
-            guying_horizontal_distance=50,
+            altitude=0,
+            horizontal_distance=50,
         )
 
 
 def test_span_view(guying_basic_setup: Guying):
     guying = guying_basic_setup
-    expected_result_0 = guying.get_guying_results(
-        support_index=1,
-        guying_side='left',
+    expected_result_0 = guying.compute(
+        index=1,
+        side='left',
         with_pulley=False,
-        guying_altitude=0,
-        guying_horizontal_distance=50,
+        altitude=0,
+        horizontal_distance=50,
     )
-    result_span_view_0 = guying.get_guying_results_span_view(
-        span_index=1,
-        selected_support='right',
+    result_span_view_0 = guying.compute(
+        index=1,
+        side='right',
         with_pulley=False,
-        guying_altitude=0,
-        guying_horizontal_distance=50,
+        altitude=0,
+        horizontal_distance=50,
+        view='span',
     )
     assert expected_result_0 == result_span_view_0
 
-    expected_result_1 = guying.get_guying_results(
-        support_index=1,
-        guying_side='right',
+    expected_result_1 = guying.compute(
+        index=1,
+        side='right',
         with_pulley=False,
-        guying_altitude=0,
-        guying_horizontal_distance=50,
+        altitude=0,
+        horizontal_distance=50,
     )
-    result_span_view_1 = guying.get_guying_results_span_view(
-        span_index=2,
-        selected_support='left',
+    result_span_view_1 = guying.compute(
+        index=2,
+        side='left',
         with_pulley=False,
-        guying_altitude=0,
-        guying_horizontal_distance=50,
+        altitude=0,
+        horizontal_distance=50,
+        view='span',
     )
     assert expected_result_1 == result_span_view_1
+
+
+def test_span_view_warnings(guying_basic_setup: Guying, caplog):
+    guying = guying_basic_setup
+
+    with pytest.warns(UserWarning):
+        guying.compute(
+            index=1,
+            side='right',
+            with_pulley=False,
+            altitude=0,
+            horizontal_distance=50,
+            view='span',
+        )

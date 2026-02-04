@@ -92,12 +92,12 @@ guying = Guying(balance_engine)
 
 # Calculate guying efforts at support 1 (suspension support)
 # Without pulley, guy cable on the left side of the support
-guying_results = guying.get_guying_results(
-    support_index=1,
+guying_results = guying.compute(
+    index=1,
     with_pulley=False,
-    guying_altitude=0,  # guy cable attachment altitude (m)
-    guying_horizontal_distance=50,  # horizontal distance to anchorage (m)
-    guying_side='left',
+    altitude=0,  # guy cable attachment altitude (m)
+    horizontal_distance=50,  # horizontal distance to anchorage (m)
+    side='left',
 )
 
 # Display results
@@ -110,13 +110,28 @@ print(f"Longitudinal load: {guying_results.longitudinal_force}")
 print(f"Guy cable angle: {guying_results.guying_angle_degrees}")
 
 # Calculate efforts with pulley at support 2
-guying_results_pulley = guying.get_guying_results(
-    support_index=2,
+guying_results_pulley = guying.compute(
+    index=2,
     with_pulley=True,
-    guying_altitude=0,
-    guying_horizontal_distance=50,
-    guying_side='right',
+    altitude=0,
+    horizontal_distance=50,
+    side='right',
 )
 
 print(f"\nResults with pulley: {guying_results_pulley}")
+
+# Guying Tension: 4118.5 decanewton
+# Vertical Load: 2673.8 decanewton
+# Longitudinal Load: 0.0 decanewton
+# Guying Angle (degrees): 31.0 degree
+
+# Guy cable tension: 41185.0 newton
+# Vertical load: 26738.0 newton
+# Longitudinal load: 0.0 newton
+# Guy cable angle: 31.0 degree
+
+# Results with pulley: Guying Tension: 3549.4 decanewton
+# Vertical Load: 2381.0 decanewton
+# Longitudinal Load: 488.0 decanewton
+# Guying Angle (degrees): 31.0 degree
 ```

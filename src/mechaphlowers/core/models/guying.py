@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
+import warnings
 from numbers import Real
 from typing import Literal
 
@@ -13,6 +15,8 @@ from pint import Quantity
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.units import Q_
+
+logger = logging.getLogger(__name__)
 
 
 class GuyingResults:
@@ -146,42 +150,45 @@ class Guying:
         self.counterweight = 0.0  # TODO: link later with balance_engine.section_array.data.counterweight
         self.bundle_number = 1.0  # TODO: link later with balance_engine.section_array.data.bundle_number
 
-    def get_guying_results(
+    def compute(
         self,
-        support_index: int,
+        index: int,
         with_pulley: bool,
-        guying_altitude: float,
-        guying_horizontal_distance: float,
-        guying_side: Literal['left', 'right'] = 'left',
+        altitude: float,
+        horizontal_distance: float,
+        side: Literal['left', 'right'] = 'left',
+        view: Literal['support', 'span'] = 'support',
     ) -> GuyingResults:
         """Calculate guying system loads and forces.
 
         Args:
-            support_index (int): Index of the support (0 to number of supports - 1)
+            index (int): Index of the support (0 to number of supports - 1)
             with_pulley (bool): Whether the guying system uses a pulley. If True, support_index must be a suspension support (between 1 and number of supports - 2)
-            guying_altitude (float): Guying cable attachment height (m)
-            guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
-            guying_side (Literal['left', 'right']): Side of the guying system ('left' or 'right')
+            altitude (float): Guying cable attachment height (m)
+            horizontal_distance (float): Horizontal distance to guying attachment point (m)
+            side (Literal['left', 'right']): Side of the guying system ('left' or 'right')
+            view (Literal['support', 'span']): View of the guying system ('support' or 'span')
 
         Returns:
             GuyingResults: Results containing guying_tension, vertical_force, angle
 
         Raises:
-            ValueError: If with_pulley is True and support_index is not a suspension support.
+            ValueError: If with_pulley is True and index is not a suspension support.
             TypeError: If input types are incorrect.
-            AttributeError: If guying_side is not 'left' or 'right'.
+            AttributeError: If side is not 'left' or 'right'.
 
         Examples:
             >>> from mechaphlowers.core.models.balance.engine import BalanceEngine
             >>> from mechaphlowers.core.models.guying import Guying
             >>> balance_engine = BalanceEngine(...)  # Initialize with appropriate parameters
             >>> guying_calculator = Guying(balance_engine)
-            >>> results = guying_calculator.get_guying_results(
-            ...     support_index=2,
+            >>> results = guying_calculator.compute(
+            ...     index=2,
             ...     with_pulley=False,
-            ...     guying_altitude=30.0,
-            ...     guying_horizontal_distance=50.0,
-            ...     guying_side='left',
+            ...     altitude=30.0,
+            ...     horizontal_distance=50.0,
+            ...     side='left',
+            ...     view='support',
             ... )
             >>> print(results)
             Guying Load: 1234.0 N
@@ -189,13 +196,17 @@ class Guying:
             Longitudinal Load: 89.0 N
             Guying Angle (degrees): 25.0 deg
         """
-        if not isinstance(support_index, int):
-            raise TypeError("support_index must be int")
+        if not isinstance(index, int):
+            raise TypeError("index must be int")
         if not isinstance(with_pulley, bool):
             raise TypeError("with_pulley must be bool")
+        if not isinstance(view, str):
+            raise TypeError("view must be str")
+        if view not in ['support', 'span']:
+            raise ValueError("view must be 'support' or 'span'")
         for name, value in {
-            "guying_altitude": guying_altitude,
-            "guying_horizontal_distance": guying_horizontal_distance,
+            "guying_altitude": altitude,
+            "guying_horizontal_distance": horizontal_distance,
         }.items():
             if not isinstance(value, Real):
                 raise TypeError(f"{name} must be a real number")
@@ -203,53 +214,50 @@ class Guying:
         span_shape = self.balance_engine.support_number
 
         # counterweight = self.balance_engine.section_array.data.counterweight.iloc[
-        #     support_index
+        #     index
         # ]
 
-        if with_pulley and (
-            support_index == 0 or support_index >= span_shape - 1
-        ):
+        if view == 'span':
+            index, side = self.transform_span_view(index, side)
+
+        if with_pulley and (index == 0 or index >= span_shape - 1):
             raise ValueError(
                 "With pulley, guying number must be between 1 and number of supports - 2"
             )
 
-        if support_index < 0 or support_index >= span_shape:
-            raise ValueError(
-                f"support_index must be between 0 and {span_shape - 1}"
-            )
+        if index < 0 or index >= span_shape:
+            raise ValueError(f"index must be between 0 and {span_shape - 1}")
 
-        if guying_side == 'left':
+        if side == 'left':
             vhl_right = (
                 self.balance_engine.balance_model.vhl_under_chain_right()
             )
-            vhl_v = vhl_right.V.value('N')[support_index]
-            vhl_h = vhl_right.H.value('N')[support_index]
-            vhl_l = vhl_right.L.value('N')[support_index]
+            vhl_v = vhl_right.V.value('N')[index]
+            vhl_h = vhl_right.H.value('N')[index]
+            vhl_l = vhl_right.L.value('N')[index]
 
-        elif guying_side == 'right':
+        elif side == 'right':
             vhl_left = self.balance_engine.balance_model.vhl_under_chain_left()
-            vhl_v = vhl_left.V.value('N')[support_index]
-            vhl_h = vhl_left.H.value('N')[support_index]
-            vhl_l = vhl_left.L.value('N')[support_index]
+            vhl_v = vhl_left.V.value('N')[index]
+            vhl_h = vhl_left.H.value('N')[index]
+            vhl_l = vhl_left.L.value('N')[index]
 
         else:
             raise AttributeError("side must be 'left' or 'right'")
 
-        slope = self.balance_engine.span_model.slope(guying_side)[
-            support_index
-        ]
-        span_tension = self.balance_engine.span_model.T_h()[support_index]
+        slope = self.balance_engine.span_model.slope(side)[index]
+        span_tension = self.balance_engine.span_model.T_h()[index]
 
         if with_pulley:
             return self.static_calculate_guying_loads_with_pulley(
                 vhl_v=vhl_v,
                 attachment_altitude=self.balance_engine.balance_model.attachment_altitude_after_solve[
-                    support_index
+                    index
                 ],
-                guying_altitude=guying_altitude,
-                guying_horizontal_distance=guying_horizontal_distance,
+                guying_altitude=altitude,
+                guying_horizontal_distance=horizontal_distance,
                 insulator_weight=self.balance_engine.section_array.data.insulator_weight.iloc[
-                    support_index
+                    index
                 ],
                 counterweight=self.counterweight,
                 cable_linear_weight=self.balance_engine.cable_array.data.linear_weight.iloc[
@@ -265,12 +273,12 @@ class Guying:
                 vhl_l=vhl_l,
                 vhl_v=vhl_v,
                 attachment_altitude=self.balance_engine.balance_model.attachment_altitude_after_solve[
-                    support_index
+                    index
                 ],
-                guying_altitude=guying_altitude,
-                guying_horizontal_distance=guying_horizontal_distance,
+                guying_altitude=altitude,
+                guying_horizontal_distance=horizontal_distance,
                 insulator_weight=self.balance_engine.section_array.data.insulator_weight.iloc[
-                    support_index
+                    index
                 ],
                 counterweight=self.counterweight,
                 cable_linear_weight=self.balance_engine.cable_array.data.linear_weight.iloc[
@@ -279,41 +287,40 @@ class Guying:
                 bundle_number=self.bundle_number,
             )
 
-    def get_guying_results_span_view(
+    def transform_span_view(
         self,
         span_index: int,
-        with_pulley: bool,
-        guying_altitude: float,
-        guying_horizontal_distance: float,
         selected_support: Literal['left', 'right'],
-    ) -> GuyingResults:
-        """Calculate guying system loads and forces.
+    ) -> tuple[int, Literal['left', 'right']]:
+        """Calculate equivalent support centered view index and side from span centered view.
 
-        Uses the span point of view: input the span index and which support in the selected span. The guying is made in the selected span.
+        Transform span point of view to support point of view: input the span index and which support in the selected span.
 
         Args:
             span_index (int): Index of the span (0 to number of supports - 1)
-            with_pulley (bool): Whether the guying system uses a pulley. If True, support_index must be a suspension support (between 1 and number of supports - 2)
-            guying_altitude (float): Guying cable attachment height (m)
-            guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
-            selected_support (Literal['left', 'right']): Selected support: left support or right support of the span
+            selected_support (Literal['left', 'right']): Selected support: left support or right support regarding the span
 
         Returns:
-            GuyingResults: Results containing guying_tension, vertical_force, angle
+            tuple[int, Literal['left', 'right']]: Equivalent support index and side
         """
+        logger.debug("Span view is selected for guying calculation.")
+        logger.debug(
+            f"Span index: {span_index}, Selected support: {selected_support}"
+        )
+        warnings.warn("Span view is selected for guying calculation.")
         if selected_support == "right":
             support_index = span_index + 1
-            guying_side: Literal['left', 'right'] = "left"
+            support_side: Literal['left', 'right'] = "left"
         else:
             support_index = span_index
-            guying_side = "right"
-        return self.get_guying_results(
-            support_index,
-            with_pulley,
-            guying_altitude,
-            guying_horizontal_distance,
-            guying_side,
+            support_side = "right"
+        logger.debug(
+            f"Equivalent support for calculation: index: {support_index}, side: {support_side}"
         )
+        warnings.warn(
+            f"Equivalent support view for calculation: index: {support_index}, side: {support_side}"
+        )
+        return support_index, support_side
 
     @staticmethod
     def static_calculate_guying_loads(
