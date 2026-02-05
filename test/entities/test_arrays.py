@@ -884,14 +884,14 @@ def test_add_obstacle_bad_arguments() -> None:
     }
     obstacle_array = ObstacleArray(pd.DataFrame(input_data))
     # coords bad shape
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         obstacle_array.add_obstacle(
             name="obs_1",
             span_index=1,
             coords=np.array([50, 0, 0]),
             support_reference='left',
         )
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         obstacle_array.add_obstacle(
             name="obs_1",
             span_index=1,
@@ -899,7 +899,7 @@ def test_add_obstacle_bad_arguments() -> None:
             support_reference='left',
         )
     # span_length missing
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         obstacle_array.add_obstacle(
             name="obs_2",
             span_index=1,
