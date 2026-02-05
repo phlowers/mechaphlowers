@@ -41,6 +41,7 @@ nav:
   - User Guide:
       - Introduction: user_guide/ug_general_concepts.md
       - Input data: user_guide/ug_input.md
+      - Obstacles data: user_guide/ug_obstacles.md
       - Coordinates system: user_guide/ug_coordinates_system.md
       - Cable modeling: user_guide/ug_cable_model.md
       - Sag-tension calculation: user_guide/ug_sag_tension_calc.md

@@ -20,7 +20,7 @@ from mechaphlowers.core.geometry.points import (
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.arrays import ObstacleArray, SectionArray
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
 
 logger = logging.getLogger(__name__)
@@ -292,7 +292,7 @@ class PlotEngine:
             get_displacement=get_displacement,
         )
 
-    def add_obstacles(self, obstacles_array):
+    def add_obstacles(self, obstacles_array: ObstacleArray):
         self.obstacles_array = obstacles_array
         self.section_pts.add_obstacles(obstacles_array)
 
@@ -342,7 +342,16 @@ class PlotEngine:
         return self.section_pts.get_insulators().points(True)
 
     def get_obstacles_points(self) -> np.ndarray:
-        return self.section_pts.get_obstacle_coords().points(True)
+        return self.section_pts.compute_obstacle_coords().points(True)
+
+    def obstacles_dict(self) -> dict:
+        """Returns a dictionary storing object coordinates.
+
+        Key is object name, value is coordinates of object.
+
+        Format: {'obs_0': [[x0, y0, z0], [x1, y1, z1], ...]}
+        """
+        return self.section_pts.obstacles_dict()
 
     def get_loads_coords(self, project=False, frame_index=0) -> Dict:
         """Get a dictionary of coordinates of the loads.
@@ -428,7 +437,7 @@ class PlotEngine:
         )
 
         if hasattr(self.section_pts, "obstacles_array"):
-            obstacles = self.section_pts.get_obstacle_coords()
+            obstacles = self.section_pts.compute_obstacle_coords()
             plot_points_3d(
                 fig, obstacles.points(True), TraceProfile(name="Obstacles")
             )

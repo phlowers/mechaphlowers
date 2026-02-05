@@ -47,8 +47,10 @@ def test_plot_obstacles(balance_engine_angles: BalanceEngine):
     )
     plt_engine.add_obstacles(obs_array)
     fig = go.Figure()
-    # plt_engine.section_pts.get_obstacle_coords()
-    # plt_engine.section_pts.obstacles_points.dict_coords()
+    obstacle_dict = plt_engine.obstacles_dict()
+
+    assert list(obstacle_dict.keys()) == ['obs_0', 'obs_1', 'obs_2']
+
     plt_engine.preview_line3d(fig)
     # fig.show()
     points_result = plt_engine.get_obstacles_points()
@@ -66,8 +68,3 @@ def test_plot_obstacles(balance_engine_angles: BalanceEngine):
         ]
     )
     np.testing.assert_allclose(points_result, expected_result)
-
-    # TODO: test keys in dict
-    plt_engine.section_pts.obstacles_points.dict_coords()
-    plt_engine.section_pts.get_obstacle_coords()
-    assert True

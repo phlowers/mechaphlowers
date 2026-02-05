@@ -366,7 +366,7 @@ class SectionPoints:
             obstacles_array
         )
 
-    def get_obstacle_coords(self):
+    def compute_obstacle_coords(self):
         x, y, z = self.obstacles_array.get_vectors()
         azimuth_line = np.cumsum(self.line_angle)
         span_index = self.obstacles_array.data["span_index"].to_numpy()
@@ -482,8 +482,12 @@ class SectionPoints:
         )
         return Points.from_coords(insulator_layers)
 
-    def get_obstacles_dict_for_plot(self) -> Dict:
-        return self.obstacles_points.dict_coords()
+    def obstacles_dict(self) -> Dict:
+        if hasattr(self, "obstacles_array"):
+            self.compute_obstacle_coords()
+            return self.obstacles_points.dict_coords()
+        else:
+            return {}
 
     def get_points_for_plot(
         self, project=False, frame_index=0
