@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import pandera as pa
 from numpy.polynomial import Polynomial as Poly
-from typing_extensions import Self, Type
+from typing_extensions import Literal, Self, Type
 
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_
@@ -414,6 +414,57 @@ class ObstacleArray(ElementArray):
             raise ValueError(
                 "All points from the same obstacle should have the same span_index"
             )
+
+    def add_obstacle(
+        self,
+        name: str,
+        span_index: int,
+        coords: np.ndarray,
+        object_type: str = "ground",
+        support_reference: Literal['left', 'right'] = 'left',
+        span_length: np.ndarray | None = None,
+    ):
+        """
+        Method used for adding an obstacle to ObstacleArray
+
+        coords format: [[x0, y0, z0], [x1, y1, z1],...]
+
+        If support_reference == "left", span_length is required
+        """
+
+        if len(coords.shape) != 2 or coords.shape[1] != 3:
+            raise TypeError(
+                "coords have incorrenct dimension: it should be (n x 3)"
+            )
+        nb_points = coords.shape[0]
+
+        x = coords[:, 0]
+
+        if support_reference == 'right':
+            if span_length is None:
+                raise TypeError(
+                    "If support_reference is set to 'right', span_length is required"
+                )
+            x = self.reverse_x_coord(x, span_length, span_index)
+
+        new_obstacle = pd.DataFrame(
+            {
+                "name": [name] * nb_points,
+                "point_index": np.arange(nb_points),
+                "span_index": [span_index] * nb_points,
+                "x": x,
+                "y": coords[:, 1],
+                "z": coords[:, 2],
+                "object_type": [object_type] * nb_points,
+            }
+        )
+        self._data = pd.concat([self._data, new_obstacle], ignore_index=True)
+        logger.debug(f"Obstacle {name} added")
+
+    def reverse_x_coord(
+        self, x: np.ndarray, span_length: np.ndarray, span_index
+    ) -> np.ndarray:
+        return span_length[span_index] - x
 
     def get_vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return (

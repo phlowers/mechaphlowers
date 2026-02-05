@@ -271,7 +271,13 @@ class SparsePoints:
             points = np.insert(points, insert_indices, nan_array, axis=0)
         return points
 
-    def dict_coords(self) -> Dict:
+    def dict_coords(self) -> dict:
+        """Returns a dictionary storing object coordinates.
+
+        Key is object name, value is coordinates of object.
+
+        Format: {'obs_0': [[x0, y0, z0], [x1, y1, z1], ...]}
+        """
         points = self.points()
         split_indices = np.nonzero(self.point_index == 0)[0]
         if len(split_indices) > 1:

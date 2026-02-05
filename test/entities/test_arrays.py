@@ -802,7 +802,113 @@ def test_obstacle_array_different_span() -> None:
         ObstacleArray(pd.DataFrame(input_data))
 
 
-def test_correct_insulator_length(section_array) -> None:
+def test_add_obstacle() -> None:
+    input_data = {
+        "name": ["obs_0", "obs_0"],
+        "point_index": [0, 1],
+        "span_index": [0, 0],
+        "x": [
+            100.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0],
+        "z": [0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+        ],
+    }
+    obstacle_array = ObstacleArray(pd.DataFrame(input_data))
+    obstacle_array.add_obstacle(
+        name="obs_1",
+        span_index=1,
+        coords=np.array([[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]),
+        support_reference='left',
+    )
+    obstacle_array.add_obstacle(
+        name="obs_2",
+        span_index=1,
+        coords=np.array([[35, 0, 0], [100, 0, 10]]),
+        support_reference='right',
+        span_length=np.array([500, 400, 450, np.nan]),
+    )
+
+    expected_df = pd.DataFrame(
+        {
+            "name": [
+                "obs_0",
+                "obs_0",
+                "obs_1",
+                "obs_1",
+                "obs_1",
+                "obs_1",
+                "obs_2",
+                "obs_2",
+            ],
+            "point_index": [0, 1, 0, 1, 2, 3, 0, 1],
+            "span_index": [0, 0, 1, 1, 1, 1, 1, 1],
+            "x": [100.0, 200.0, 50.0, 100.0, 150.0, 200.0, 365.0, 300.0],
+            "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0],
+            "z": [0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0],
+            "object_type": [
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+            ],
+        }
+    )
+
+    assert_frame_equal(obstacle_array.data, expected_df, check_like=True)
+
+
+def test_add_obstacle_bad_arguments() -> None:
+    input_data = {
+        "name": ["obs_0", "obs_0"],
+        "point_index": [0, 1],
+        "span_index": [0, 0],
+        "x": [
+            100.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0],
+        "z": [0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+        ],
+    }
+    obstacle_array = ObstacleArray(pd.DataFrame(input_data))
+    # coords bad shape
+    with pytest.raises(ValueError):
+        obstacle_array.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array([50, 0, 0]),
+            support_reference='left',
+        )
+    with pytest.raises(ValueError):
+        obstacle_array.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array([[50, 0], [60, 0]]),
+            support_reference='left',
+        )
+    # span_length missing
+    with pytest.raises(ValueError):
+        obstacle_array.add_obstacle(
+            name="obs_2",
+            span_index=1,
+            coords=np.array([[35, 0, 0], [100, 0, 10]]),
+            support_reference='right',
+        )
+
+
+def test_correct_insulator_length(section_array: SectionArray) -> None:
     expected_lengths = np.array([0.01, 4.0, 3.2, 0.01])
 
     np.testing.assert_allclose(
@@ -826,7 +932,9 @@ def test_correct_insulator_length(section_array) -> None:
     )
 
 
-def test_warning_on_insulator_length_correction(section_array) -> None:
+def test_warning_on_insulator_length_correction(
+    section_array: SectionArray,
+) -> None:
     # Force invalid lengths and ensure they are corrected with a warning
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
     with pytest.warns(DataWarning):
