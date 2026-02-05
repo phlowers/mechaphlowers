@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Callable, Self, Tuple
+from typing import Callable, Dict, List, Self, Tuple
 
 import numpy as np
 from typing_extensions import Literal  # type: ignore[attr-defined]
@@ -22,10 +22,11 @@ from mechaphlowers.core.geometry.references import (
     cable_to_localsection_frame,
     project_coords,
     translate_cable_to_support_from_attachments,
+    translate_to_absolute_frame,
 )
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.arrays import ObstacleArray, SectionArray
 
 
 def stack_nan(coords: np.ndarray) -> np.ndarray:
@@ -200,6 +201,96 @@ class Points:
         return cls(coords)
 
 
+class SparsePoints:
+    """Class handle set of 3D points grouped by objects, but all objects do not have the same number of points.
+
+    Main use case is for managing obstacle points.
+    """
+
+    def __init__(
+        self,
+        object_name: List,
+        point_index: np.ndarray,
+        span_index: np.ndarray,
+        x: np.ndarray,
+        y: np.ndarray,
+        z: np.ndarray,
+        object_type: List,
+    ) -> None:
+        self.object_name = object_name
+        self.point_index = point_index
+        self.span_index = span_index
+        self.x = x
+        self.y = y
+        self.z = z
+        self.object_type = object_type
+
+    @classmethod
+    def builder_from_obstacle_array(
+        cls, obstacle_array: ObstacleArray
+    ) -> Self:
+        data = obstacle_array.data
+        object_name = data["name"].to_list()
+        point_index = data["point_index"].to_numpy()
+        span_index = data["span_index"].to_numpy()
+        x = data["x"].to_numpy()
+        y = data["y"].to_numpy()
+        z = data["z"].to_numpy()
+        object_type = data["object_type"].to_list()
+        return cls(object_name, point_index, span_index, x, y, z, object_type)
+
+    @property
+    def coords(self) -> np.ndarray:
+        return np.array([self.x, self.y, self.z]).T
+
+    def update_vectors(self, x, y, z) -> None:
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def get_vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        return self.x, self.y, self.z
+
+    def points(self, stack=False) -> np.ndarray:
+        """
+        [[x0, y0, z0], # first obstacle
+        [x1, y1, z1],
+        [np.nan, np.nan, np.nan], # separator if stack=True
+        [x0, y0, z0], # second obstacle
+        [x1, y1, z1],
+        [x2, y2, z2],
+        [np.nan, np.nan, np.nan], # separator if stack=True
+        ]
+        """
+        points = self.coords
+        # This method assume that points are correctly ordered by object and point index
+        if stack:
+            # get indices at the beginning of each object
+            insert_indices = np.nonzero(self.point_index == 0)[0]
+            nan_array = np.array([np.nan, np.nan, np.nan])
+            points = np.insert(points, insert_indices, nan_array, axis=0)
+        return points
+
+    def dict_coords(self) -> dict:
+        """Returns a dictionary storing object coordinates.
+
+        Key is object name, value is coordinates of object.
+
+        Format: {'obs_0': [[x0, y0, z0], [x1, y1, z1], ...]}
+        """
+        points = self.points()
+        split_indices = np.nonzero(self.point_index == 0)[0]
+        if len(split_indices) > 1:
+            array_coords = np.split(points, split_indices[1:], axis=0)
+        else:
+            array_coords = [points]
+        dict_coords = {}
+        for i in range(len(split_indices)):
+            object_name = self.object_name[split_indices[i]]
+            dict_coords[object_name] = array_coords[i]
+        return dict_coords
+
+
 class SectionPoints:
     def __init__(
         self,
@@ -268,6 +359,31 @@ class SectionPoints:
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
         self.x_cable, self.z_cable = self.span_model.get_coords(resolution)
+
+    def add_obstacles(self, obstacles_array: ObstacleArray):
+        self.obstacles_array = obstacles_array
+        self.obstacles_points = SparsePoints.builder_from_obstacle_array(
+            obstacles_array
+        )
+
+    def compute_obstacle_coords(self):
+        x, y, z = self.obstacles_array.get_vectors()
+        azimuth_line = np.cumsum(self.line_angle)
+        span_index = self.obstacles_array.data["span_index"].to_numpy()
+        azimuth_line_obstacles = azimuth_line[span_index]
+        x_rotated, y_rotated, z_rotated = cable_to_localsection_frame(
+            x, y, z, azimuth_line_obstacles
+        )
+        x_absolute, y_absolute, z_absolute = translate_to_absolute_frame(
+            x_rotated,
+            y_rotated,
+            z_rotated,
+            self.supports_ground_coords[span_index],
+        )
+        self.obstacles_points.update_vectors(
+            x_absolute, y_absolute, z_absolute
+        )
+        return self.obstacles_points
 
     def get_attachments_coords(self):
         self.attachment_coords = get_attachment_coords(
@@ -365,6 +481,13 @@ class SectionPoints:
             self.get_attachments_coords(),
         )
         return Points.from_coords(insulator_layers)
+
+    def obstacles_dict(self) -> Dict:
+        if hasattr(self, "obstacles_array"):
+            self.compute_obstacle_coords()
+            return self.obstacles_points.dict_coords()
+        else:
+            return {}
 
     def get_points_for_plot(
         self, project=False, frame_index=0
