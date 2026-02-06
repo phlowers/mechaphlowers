@@ -162,11 +162,11 @@ class Guying:
         """Calculate guying system loads and forces.
 
         Args:
-            index (int): Index of the support (0 to number of supports - 1)
+            index (int): Index of the support (0 to number of supports - 1) or span (0 to number of supports - 2) depending on the view
             with_pulley (bool): Whether the guying system uses a pulley. If True, support_index must be a suspension support (between 1 and number of supports - 2)
             altitude (float): Guying cable attachment height (m)
             horizontal_distance (float): Horizontal distance to guying attachment point (m)
-            side (Literal['left', 'right']): Side of the guying system ('left' or 'right')
+            side (Literal['left', 'right']): Side of the guying system ('left' or 'right') depending on the view. For 'support' view, it indicates the side of the support. For 'span' view, it indicates the selected support in the span (left or right support regarding the span)
             view (Literal['support', 'span']): View of the guying system ('support' or 'span')
 
         Returns:
