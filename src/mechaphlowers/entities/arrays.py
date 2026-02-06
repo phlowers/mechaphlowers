@@ -27,6 +27,10 @@ from mechaphlowers.utils import df_to_dict
 logger = logging.getLogger(__name__)
 
 
+class DefaultValueWarning(Warning):
+    """Warning for default values being used when not provided by user."""
+
+
 class ElementArray(ABC):
     array_input_type: Type[pa.DataFrameModel]
 
@@ -127,6 +131,10 @@ class SectionArray(ElementArray):
         super().__init__(data)  # type: ignore[arg-type]
 
         if sagging_parameter is None:
+            warnings.warn(
+                "sagging_parameter not provided. It will be set to 5 times the equivalent span.",
+                DefaultValueWarning,
+            )
             self.sagging_parameter = self.equivalent_span() * 5
         else:
             self.sagging_parameter = sagging_parameter

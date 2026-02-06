@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
-from typing import Self, Tuple, Type
+from typing import Literal, Self, Tuple, Type
 
 import numpy as np
 
@@ -347,6 +347,14 @@ class ISpan(ABC):
     def T_mean(self) -> np.ndarray:
         """Mean tension along the whole cable."""
 
+    @abstractmethod
+    def slope(self, side: Literal['left', 'right']) -> np.ndarray:
+        """Slope angle at the supports in radians.
+
+        Returns:
+            np.ndarray: slope angle at each support in radians.
+        """
+
 
 class CatenarySpan(ISpan):
     """Implementation of a span cable model according to the catenary equation.
@@ -576,6 +584,20 @@ class CatenarySpan(ISpan):
             / self._L
             / 2
         )
+
+    def slope(self, side: Literal['left', 'right']) -> np.ndarray:
+        """Slope angle at the supports in radians.
+
+        Note that the left side corresponds to the slope for support_index 0 to N-1 and the right side corresponds to the slope for support_index 1 to N.
+
+        Args:
+            side (Literal['left', 'right']): side regarding the span, in order to select the correct support to compute the slope.
+        Returns:
+            np.ndarray: slope angle at each support in radians.
+        """
+        # values are signed: T_h is negative, T_v can be either positive of negative depending on side
+        x_extremum = self._x_m if side == 'left' else self._x_n
+        return self.T_v(x_extremum) / self.T_h()
 
 
 def span_model_builder(
