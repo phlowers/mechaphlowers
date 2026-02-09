@@ -434,7 +434,7 @@ class ObstacleArray(ElementArray):
 
         if len(coords.shape) != 2 or coords.shape[1] != 3:
             raise TypeError(
-                "coords have incorrenct dimension: it should be (n x 3)"
+                "coords have incorrect dimension: it should be (n x 3)"
             )
         nb_points = coords.shape[0]
 

@@ -740,8 +740,15 @@ def test_sort_obstacle_array() -> None:
         ],
     }
     obs_array = ObstacleArray(pd.DataFrame(input_data))
-    obs_array.data
-    assert True
+    assert obs_array.data["name"].to_list() == [
+        'obs_0',
+        'obs_0',
+        'obs_1',
+        'obs_1',
+        'obs_1',
+        'obs_2',
+    ]
+    assert obs_array.data["point_index"].to_list() == [0, 1, 0, 1, 2, 0]
 
 
 def test_obstacle_array_duplicate_point() -> None:
