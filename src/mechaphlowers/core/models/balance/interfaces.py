@@ -84,6 +84,8 @@ class IBalanceModel(IModelForSolver, ABC):
         self.nodes_span_model = copy(self.span_model)
         self.parameter = parameter
         self.cable_array = cable_array
+        self.a: np.ndarray
+        self.b: np.ndarray
 
     @abstractmethod
     def update_L_ref(self) -> np.ndarray:
@@ -130,3 +132,12 @@ class IBalanceModel(IModelForSolver, ABC):
     def update_nodes_span_model(self) -> None:
         """Update the span model of the nodes if loads are applied."""
         pass
+
+    def tensions_sup_inf(self):
+        """Cable tensions at attachment points. The two attachments have different values, the
+
+        Returns (T_high, T_low), T_high being the higher tension of the two values.
+        """
+        x_m, x_n = self.span_model.x_m(), self.span_model.x_n()
+        Tm_Tn = np.array([self.span_model.T(x_m), self.span_model.T(x_n)])
+        return (np.max(Tm_Tn, axis=0), np.min(Tm_Tn, axis=0))
