@@ -234,6 +234,44 @@ def test_display_span_model__many_spans() -> None:
     span_model.get_coords(10)
 
 
+def test_span_model__slope() -> None:
+    a = np.array([500])
+    b = np.array([0])
+    p = np.array([2_000])
+    lambd = np.float64(1.6)
+
+    span_model = CatenarySpan(a, b, p, linear_weight=lambd)
+    # there is a diff here because in the prototype z axis point to the down
+    expected_slope_values = np.array([-7.1])  # Expected slope value in radians
+
+    np.testing.assert_allclose(
+        np.degrees(span_model.slope('left')), expected_slope_values, rtol=1e-1
+    )
+
+
+def test_span_model__slope_2_spans() -> None:
+    a = np.array([500, 600])
+    b = np.array([0, 10])
+    p = np.array([2_000, 2_000])
+    lambd = np.float64(1.6)
+
+    span_model = CatenarySpan(a, b, p, linear_weight=lambd)
+    expected_left_slope_values_degree = np.array([-7.1, -7.6])
+    expected_right_slope_values_degree = np.array([7.1, 9.5])
+
+    np.testing.assert_allclose(
+        np.degrees(span_model.slope('left')),
+        expected_left_slope_values_degree,
+        rtol=1e-1,
+    )
+    np.testing.assert_allclose(
+        np.degrees(span_model.slope('right')),
+        expected_right_slope_values_degree,
+        rtol=1e-1,
+    )
+
+
+# TODO: add test with a np.nan case
 def test_copy_attributes_partial() -> None:
     a = np.array([501.3, 499.0])  # test here int and float
     b = np.array([0.0, -5.0])

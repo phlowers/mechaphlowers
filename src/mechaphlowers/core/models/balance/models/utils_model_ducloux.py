@@ -146,9 +146,8 @@ class VectorProjection:
 
         gamma = (self.line_angle / 2)[1:]
 
-        # Not entierly sure about indices and left/right
+        # Here left means left side of the span
 
-        # index 1 ou 0?
         Fx_first = s_left[0] * np.cos((self.line_angle / 2)[0]) - t_left[
             0
         ] * np.sin((self.line_angle / 2)[0])
@@ -172,6 +171,82 @@ class VectorProjection:
             gamma[-1]
         )
         Fz_last = z_right[-1] + self.insulator_weight[-1] / 2
+
+        Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
+        Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
+        Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
+        return Fx, Fy, Fz
+
+    def forces_right(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Compute forces at the right side of the support"""
+        T_line_plane_left = self.T_line_plane_left()
+        s_left_span, t_left_span, z_left_span = T_line_plane_left
+        s_left_span_rolled, t_left_span_rolled, z_left_span_rolled = np.roll(
+            T_line_plane_left, -1, axis=1
+        )
+
+        gamma = (self.line_angle / 2)[1:]
+
+        # Here we are now calculating forces on the support.
+        # Warning here !
+        # keep in mind, right side of the support is the left side of the span
+
+        Fx_first = s_left_span[0] * np.cos(
+            (self.line_angle / 2)[0]
+        ) - t_left_span[0] * np.sin((self.line_angle / 2)[0])
+        Fy_first = t_left_span[0] * np.cos(
+            (self.line_angle / 2)[0]
+        ) + s_left_span[0] * np.sin((self.line_angle / 2)[0])
+        Fz_first = (
+            z_left_span[0] + self.insulator_weight[0] / 2
+        )  # also add load?
+
+        Fx_suspension = (s_left_span_rolled) * np.cos(gamma) - (
+            t_left_span_rolled
+        ) * np.sin(gamma)
+        Fy_suspension = (t_left_span_rolled) * np.cos(gamma) - (
+            s_left_span_rolled
+        ) * np.sin(gamma)
+        Fz_suspension = z_left_span_rolled + self.insulator_weight[1:] / 2
+
+        Fx_last = 0
+        Fy_last = 0
+        Fz_last = self.insulator_weight[-1] / 2
+
+        Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
+        Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
+        Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
+        return Fx, Fy, Fz
+
+    def forces_left(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Compute forces at the left side of the support"""
+        s_right_span, t_right_span, z_right_span = self.T_line_plane_right()
+
+        gamma = (self.line_angle / 2)[1:]
+
+        # Here we are now calculating forces on the support.
+        # Warning here !
+        # keep in mind, left side of the support is the right side of the span
+
+        Fx_first = 0
+        Fy_first = 0
+        Fz_first = self.insulator_weight[0] / 2  # also add load?
+
+        Fx_suspension = (s_right_span) * np.cos(gamma) - (
+            -t_right_span
+        ) * np.sin(gamma)
+        Fy_suspension = (t_right_span) * np.cos(gamma) - (
+            s_right_span
+        ) * np.sin(gamma)
+        Fz_suspension = z_right_span + self.insulator_weight[1:] / 2
+
+        Fx_last = (s_right_span[-1]) * np.cos(gamma[-1]) - (
+            -t_right_span[-1]
+        ) * np.sin(gamma[-1])
+        Fy_last = (t_right_span[-1]) * np.cos(gamma[-1]) - (
+            s_right_span[-1]
+        ) * np.sin(gamma[-1])
+        Fz_last = z_right_span[-1] + self.insulator_weight[-1] / 2
 
         Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
         Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))

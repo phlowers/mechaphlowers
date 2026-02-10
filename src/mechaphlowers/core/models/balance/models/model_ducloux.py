@@ -135,9 +135,20 @@ class BalanceModel(IBalanceModel):
     def adjustment(self, value: bool) -> None:
         self._adjustment = value
 
-    def dxdydz(self) -> np.ndarray:
-        """Get the displacement vector of the nodes."""
+    def chain_displacement(self) -> np.ndarray:
+        """Get the displacement vector of the chains.
+
+        Format: [[x0, y0, z0], [x1, y1, z1],...]
+        """
         return self.nodes.dxdydz.T
+
+    @property
+    def attachment_altitude_after_solve(self) -> np.ndarray:
+        """Attachment altitude after considering chain displacement.
+
+        Format: [z0, z1, z2,...]
+        """
+        return self.nodes.z
 
     @property
     def k_load(self) -> np.ndarray:
@@ -387,6 +398,31 @@ class BalanceModel(IBalanceModel):
         vhl_result = np.array([V, self.nodes.Fy, self.nodes.Fx])
         return VhlStrength(vhl_result, "N")
 
+    def vhl_under_chain_left(self, output_unit: str = "daN") -> VhlStrength:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+
+        VHL at the left of the support.
+
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
+        Fx, Fy, Fz = self.nodes.vector_projection.forces_left()
+        V = -(Fz - self.nodes.insulator_weight / 2)
+        vhl_result = np.array([V, Fy, Fx])
+        return VhlStrength(vhl_result, "N")
+
+    # TODO: right and left are swapped
+    def vhl_under_chain_right(self, output_unit: str = "daN") -> VhlStrength:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+
+        VHL at the left of the support.
+
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
+        Fx, Fy, Fz = self.nodes.vector_projection.forces_right()
+        V = -(Fz - self.nodes.insulator_weight / 2)
+        vhl_result = np.array([V, Fy, Fx])
+        return VhlStrength(vhl_result, "N")
+
     def vhl_under_console(self, output_unit: str = "daN") -> VhlStrength:
         vhl_result = np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
         return VhlStrength(vhl_result, "N")
@@ -545,6 +581,7 @@ class Nodes:
         self.line_angle = line_angle
         self.init_coordinates(span_length, z)
         # dx, dy, dz are the distances between the attachment point and the arm, including the chain
+        # format: [[x0, x1, ...], [y0, y1, ...], [z0, z1, ...]]
         self.dxdydz = np.zeros((3, len(z)), dtype=np.float64)
         self.load_weight = load_weight
         self.load_position = load_position
