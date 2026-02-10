@@ -711,8 +711,7 @@ def test_create_obstacle_array() -> None:
             "ground",
         ],
     }
-    obs_array = ObstacleArray(pd.DataFrame(input_data))
-    obs_array
+    ObstacleArray(pd.DataFrame(input_data))
 
 
 def test_sort_obstacle_array() -> None:
