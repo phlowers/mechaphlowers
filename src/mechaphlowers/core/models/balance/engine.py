@@ -317,6 +317,7 @@ class BalanceEngine:
             "elevation_difference": self.section_array.data[
                 "elevation_difference"
             ],
+            "parameter": self.parameter,
             "tension_sup": T_sup,
             "tension_inf": T_inf,
             "L_0": self.L_ref,

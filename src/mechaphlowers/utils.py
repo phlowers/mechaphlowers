@@ -95,9 +95,11 @@ def span_to_support_view(
     if selected_support == "right":
         support_index = span_index + 1
         support_side: Literal['left', 'right'] = "left"
-    else:
+    elif selected_support =="left":
         support_index = span_index
         support_side = "right"
+    else:
+        raise AttributeError("support_side must be 'left' or 'right'")
     logger.debug(
         f"Equivalent support for calculation: index: {support_index}, side: {support_side}"
     )
