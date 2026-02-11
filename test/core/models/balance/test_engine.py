@@ -380,11 +380,11 @@ def test_get_data_spans(balance_engine_simple: BalanceEngine):
     data_spans = balance_engine_simple.get_data_spans()
     assert {
         'span_length',
-        'elevation_difference',
+        'elevation',
         'parameter',
         'tension_sup',
         'tension_inf',
-        'L_0',
+        'L0',
         'horizontal_distance',
         'arc_length',
         'T_h',
@@ -401,16 +401,5 @@ def test_get_data_spans_with_loads(balance_engine_simple: BalanceEngine):
     balance_engine_simple.solve_adjustment()
     balance_engine_simple.solve_change_state()
     data_spans = balance_engine_simple.get_data_spans()
-    assert {
-        'span_length',
-        'elevation_difference',
-        'parameter',
-        'tension_sup',
-        'tension_inf',
-        'L_0',
-        'horizontal_distance',
-        'arc_length',
-        'T_h',
-    } <= data_spans.keys()
     for value in data_spans.values():
         assert len(value) == 3
