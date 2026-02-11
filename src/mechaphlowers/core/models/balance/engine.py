@@ -313,17 +313,20 @@ class BalanceEngine:
     def get_data_spans(self):
         T_sup, T_inf = self.balance_model.tensions_sup_inf()
         result_dict = {
-            "span_length": self.section_array.data["span_length"],
-            "elevation_difference": self.section_array.data[
-                "elevation_difference"
-            ],
-            "parameter": self.parameter,
-            "tension_sup": T_sup,
-            "tension_inf": T_inf,
+            # maybe not optimal for span_length and elevation_difference
+            "span_length": arr.decr(
+                self.section_array.data["span_length"].to_numpy()
+            ),
+            "elevation_difference": arr.decr(
+                self.section_array.data["elevation_difference"].to_numpy()
+            ),
+            "parameter": arr.decr(self.parameter),
+            "tension_sup": arr.decr(T_sup),
+            "tension_inf": arr.decr(T_inf),
             "L_0": self.L_ref,
             "horizontal_distance": self.balance_model.a,
-            "arc_length": self.span_model.compute_L(),
-            "T_h": self.span_model.T_h(),
+            "arc_length": arr.decr(self.span_model.compute_L()),
+            "T_h": arr.decr(self.span_model.T_h()),
         }
         return result_dict
 

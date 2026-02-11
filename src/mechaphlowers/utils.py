@@ -95,7 +95,7 @@ def span_to_support_view(
     if selected_support == "right":
         support_index = span_index + 1
         support_side: Literal['left', 'right'] = "left"
-    elif selected_support =="left":
+    elif selected_support == "left":
         support_index = span_index
         support_side = "right"
     else:

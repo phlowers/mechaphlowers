@@ -166,6 +166,6 @@ class IBalanceModel(IModelForSolver, ABC):
 
         Returns (T_high, T_low), T_high being the higher tension of the two values.
         """
-        x_m, x_n = self.span_model.x_m(), self.span_model.x_n()
+        x_m, x_n = self.span_model.x_m, self.span_model.x_n
         Tm_Tn = np.array([self.span_model.T(x_m), self.span_model.T(x_n)])
         return (np.max(Tm_Tn, axis=0), np.min(Tm_Tn, axis=0))

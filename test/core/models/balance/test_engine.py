@@ -35,10 +35,10 @@ def balance_engine_simple(cable_array_AM600: CableArray) -> BalanceEngine:
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     section_array.add_units({"line_angle": "grad"})
     return BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
@@ -372,3 +372,45 @@ def test_add_loads_wrong_values(balance_engine_simple: BalanceEngine):
         balance_engine_simple.add_loads(
             np.array([0, 1000, 0, np.nan]), load_mass
         )
+
+
+def test_get_data_spans(balance_engine_simple: BalanceEngine):
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state()
+    data_spans = balance_engine_simple.get_data_spans()
+    assert {
+        'span_length',
+        'elevation_difference',
+        'parameter',
+        'tension_sup',
+        'tension_inf',
+        'L_0',
+        'horizontal_distance',
+        'arc_length',
+        'T_h',
+    } <= data_spans.keys()
+    for value in data_spans.values():
+        assert len(value) == 3
+
+
+def test_get_data_spans_with_loads(balance_engine_simple: BalanceEngine):
+    balance_engine_simple.add_loads(
+        load_position_distance=[150, 200, 0, np.nan],
+        load_mass=[200, 500, 0, np.nan],
+    )
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state()
+    data_spans = balance_engine_simple.get_data_spans()
+    assert {
+        'span_length',
+        'elevation_difference',
+        'parameter',
+        'tension_sup',
+        'tension_inf',
+        'L_0',
+        'horizontal_distance',
+        'arc_length',
+        'T_h',
+    } <= data_spans.keys()
+    for value in data_spans.values():
+        assert len(value) == 3
