@@ -206,7 +206,7 @@ class SectionPoints:
         section_array: SectionArray,
         span_model: ISpan,
         cable_loads: CableLoads,
-        get_displacement: Callable,
+        get_displacement: Callable[[], np.ndarray],
         **_,
     ):
         """Initialize the SectionPoints object with section parameters and a span model.

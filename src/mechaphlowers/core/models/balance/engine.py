@@ -149,7 +149,9 @@ class BalanceEngine:
         )
         self.L_ref: np.ndarray
 
-        self.get_displacement: Callable = self.balance_model.chain_displacement
+        self.get_displacement: Callable[[], np.ndarray] = (
+            self.balance_model.chain_displacement
+        )
         logger.debug("Balance engine initialized.")
 
     def add_loads(
