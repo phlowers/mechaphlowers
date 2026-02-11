@@ -313,7 +313,25 @@ class BalanceEngine:
         )
         self.balance_model.update_nodes_span_model()
 
-    def get_data_spans(self) -> dict:
+    def get_data_spans(self) -> dict[str, list]:
+        """Fetch data from BalanceEngine about spans.
+
+        This data is stored as a dictionary containing lists.
+
+        Returns:
+            dict: dictionnary contains following fields:
+                <ul>
+                    <li>span_length</li>
+                    <li>elevation</li>
+                    <li>parameter</li>
+                    <li>tension_sup</li>
+                    <li>tension_inf</li>
+                    <li>L0</li>
+                    <li>horizontal_distance</li>
+                    <li>arc_length</li>
+                    <li>T_h</li>
+                </ul>
+        """
         T_sup, T_inf = self.balance_model.tensions_sup_inf()
         force_output_unit = options.output_units.force
         T_sup_q_array, T_inf_q_array = (
