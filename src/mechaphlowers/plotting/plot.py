@@ -269,6 +269,7 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
             },
         }
     )
+    
 
 
 class PlotEngine:
