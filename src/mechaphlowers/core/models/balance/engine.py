@@ -31,6 +31,7 @@ from mechaphlowers.core.models.cable.span import (
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.core import QuantityArray
 from mechaphlowers.entities.errors import BalanceEngineWarning, SolverError
 from mechaphlowers.utils import arr, check_time
 
@@ -312,23 +313,30 @@ class BalanceEngine:
         )
         self.balance_model.update_nodes_span_model()
 
-    def get_data_spans(self):
+    def get_data_spans(self) -> dict:
         T_sup, T_inf = self.balance_model.tensions_sup_inf()
+        force_output_unit = options.output_units.force
+        T_sup_q_array, T_inf_q_array = (
+            QuantityArray(T_sup, 'N', force_output_unit),
+            QuantityArray(T_inf, 'N', force_output_unit),
+        )
+        T_h_q_array = QuantityArray(
+            self.span_model.T_h(), 'N', force_output_unit
+        )
         result_dict = {
-            # maybe not optimal for span_length and elevation_difference
             "span_length": arr.decr(
                 self.section_array.data["span_length"].to_numpy()
-            ),
+            ).tolist(),
             "elevation": arr.decr(
                 self.section_array.data["elevation_difference"].to_numpy()
-            ),
-            "parameter": arr.decr(self.parameter),
-            "tension_sup": arr.decr(T_sup),
-            "tension_inf": arr.decr(T_inf),
-            "L0": self.L_ref,
-            "horizontal_distance": self.balance_model.a,
-            "arc_length": arr.decr(self.span_model.compute_L()),
-            "T_h": arr.decr(self.span_model.T_h()),
+            ).tolist(),
+            "parameter": arr.decr(self.parameter).tolist(),
+            "tension_sup": arr.decr(T_sup_q_array.value()).tolist(),
+            "tension_inf": arr.decr(T_inf_q_array.value()).tolist(),
+            "L0": self.L_ref.tolist(),
+            "horizontal_distance": self.balance_model.a.tolist(),
+            "arc_length": arr.decr(self.span_model.compute_L()).tolist(),
+            "T_h": arr.decr(T_h_q_array.value()).tolist(),
         }
         return result_dict
 
