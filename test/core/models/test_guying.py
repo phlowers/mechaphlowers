@@ -367,6 +367,7 @@ def test_guying_support_index_with_pulley(guying_basic_setup: Guying):
         )
 
 
+@pytest.mark.filterwarnings("ignore::UserWarning")
 def test_span_view(guying_basic_setup: Guying):
     guying = guying_basic_setup
     expected_result_0 = guying.compute(
