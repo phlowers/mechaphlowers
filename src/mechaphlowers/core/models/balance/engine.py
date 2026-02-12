@@ -31,6 +31,7 @@ from mechaphlowers.core.models.cable.span import (
 )
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.core import QuantityArray
 from mechaphlowers.entities.errors import BalanceEngineWarning, SolverError
 from mechaphlowers.utils import arr, check_time
 
@@ -149,7 +150,9 @@ class BalanceEngine:
         )
         self.L_ref: np.ndarray
 
-        self.get_displacement: Callable = self.balance_model.chain_displacement
+        self.get_displacement: Callable[[], np.ndarray] = (
+            self.balance_model.chain_displacement
+        )
         logger.debug("Balance engine initialized.")
 
     def add_loads(
@@ -309,6 +312,51 @@ class BalanceEngine:
             f"Output : get_displacement \n{str(self.get_displacement())}"
         )
         self.balance_model.update_nodes_span_model()
+
+    def get_data_spans(self) -> dict[str, list]:
+        """Fetch data from BalanceEngine about spans.
+
+        This data is stored as a dictionary containing lists.
+
+        Returns:
+            dict: dictionnary contains following fields:
+                <ul>
+                    <li>span_length</li>
+                    <li>elevation</li>
+                    <li>parameter</li>
+                    <li>tension_sup</li>
+                    <li>tension_inf</li>
+                    <li>L0</li>
+                    <li>horizontal_distance</li>
+                    <li>arc_length</li>
+                    <li>T_h</li>
+                </ul>
+        """
+        T_sup, T_inf = self.span_model.tensions_sup_inf()
+        force_output_unit = options.output_units.force
+        T_sup_q_array, T_inf_q_array = (
+            QuantityArray(T_sup, 'N', force_output_unit),
+            QuantityArray(T_inf, 'N', force_output_unit),
+        )
+        T_h_q_array = QuantityArray(
+            self.span_model.T_h(), 'N', force_output_unit
+        )
+        result_dict = {
+            "span_length": arr.decr(
+                self.section_array.data["span_length"].to_numpy()
+            ).tolist(),
+            "elevation": arr.decr(
+                self.section_array.data["elevation_difference"].to_numpy()
+            ).tolist(),
+            "parameter": arr.decr(self.parameter).tolist(),
+            "tension_sup": arr.decr(T_sup_q_array.value()).tolist(),
+            "tension_inf": arr.decr(T_inf_q_array.value()).tolist(),
+            "L0": self.L_ref.tolist(),
+            "horizontal_distance": self.balance_model.a.tolist(),
+            "arc_length": arr.decr(self.span_model.compute_L()).tolist(),
+            "T_h": arr.decr(T_h_q_array.value()).tolist(),
+        }
+        return result_dict
 
     @property
     def support_number(self) -> int:

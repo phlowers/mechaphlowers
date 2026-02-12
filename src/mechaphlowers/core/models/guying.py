@@ -15,6 +15,7 @@ from pint import Quantity
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.units import Q_
+from mechaphlowers.utils import span_to_support_view
 
 logger = logging.getLogger(__name__)
 
@@ -218,7 +219,9 @@ class Guying:
         # ]
 
         if view == 'span':
-            index, side = self.transform_span_view(index, side)
+            logger.debug("Span view is selected for guying calculation.")
+            warnings.warn("Span view is selected for guying calculation.")
+            index, side = span_to_support_view(index, side)
 
         if with_pulley and (index == 0 or index >= span_shape - 1):
             raise ValueError(
@@ -286,41 +289,6 @@ class Guying:
                 ],
                 bundle_number=self.bundle_number,
             )
-
-    def transform_span_view(
-        self,
-        span_index: int,
-        selected_support: Literal['left', 'right'],
-    ) -> tuple[int, Literal['left', 'right']]:
-        """Calculate equivalent support centered view index and side from span centered view.
-
-        Transform span point of view to support point of view: input the span index and which support in the selected span.
-
-        Args:
-            span_index (int): Index of the span (0 to number of supports - 1)
-            selected_support (Literal['left', 'right']): Selected support: left support or right support regarding the span
-
-        Returns:
-            tuple[int, Literal['left', 'right']]: Equivalent support index and side
-        """
-        logger.debug("Span view is selected for guying calculation.")
-        logger.debug(
-            f"Span index: {span_index}, Selected support: {selected_support}"
-        )
-        warnings.warn("Span view is selected for guying calculation.")
-        if selected_support == "right":
-            support_index = span_index + 1
-            support_side: Literal['left', 'right'] = "left"
-        else:
-            support_index = span_index
-            support_side = "right"
-        logger.debug(
-            f"Equivalent support for calculation: index: {support_index}, side: {support_side}"
-        )
-        warnings.warn(
-            f"Equivalent support view for calculation: index: {support_index}, side: {support_side}"
-        )
-        return support_index, support_side
 
     @staticmethod
     def static_calculate_guying_loads(

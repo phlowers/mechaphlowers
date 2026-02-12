@@ -278,7 +278,7 @@ class PlotEngine:
         span_model: ISpan,
         cable_loads: CableLoads,
         section_array: SectionArray,
-        get_displacement: Callable,
+        get_displacement: Callable[[], np.ndarray],
     ) -> None:
         self.balance_engine = balance_engine
         self.spans = span_model

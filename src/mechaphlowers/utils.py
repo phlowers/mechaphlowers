@@ -5,9 +5,10 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
+import warnings
 from functools import wraps
 from time import time
-from typing import Any, Callable, Dict, Protocol, TypeVar, cast
+from typing import Any, Callable, Dict, Literal, Protocol, TypeVar, cast
 
 import numpy as np
 import pandas as pd
@@ -71,6 +72,41 @@ def float_to_array(data: Dict[str, np.ndarray | float | int]) -> Dict:
         if isinstance(value, np.ndarray) and value.size == 1:
             data[key] = np.array([value[0], np.nan])
     return data
+
+
+def span_to_support_view(
+    span_index: int,
+    selected_support: Literal['left', 'right'],
+) -> tuple[int, Literal['left', 'right']]:
+    """Calculate equivalent support centered view index and side from span centered view.
+
+    Transform span point of view to support point of view: input the span index and which support in the selected span.
+
+    Args:
+        span_index (int): Index of the span (0 to number of supports - 1)
+        selected_support (Literal['left', 'right']): Selected support: left support or right support regarding the span
+
+    Returns:
+        tuple[int, Literal['left', 'right']]: Equivalent support index and side
+    """
+    logger.debug(
+        f"Span index: {span_index}, Selected support: {selected_support}"
+    )
+    if selected_support == "right":
+        support_index = span_index + 1
+        support_side: Literal['left', 'right'] = "left"
+    elif selected_support == "left":
+        support_index = span_index
+        support_side = "right"
+    else:
+        raise AttributeError("support_side must be 'left' or 'right'")
+    logger.debug(
+        f"Equivalent support for calculation: index: {support_index}, side: {support_side}"
+    )
+    warnings.warn(
+        f"Equivalent support view for calculation: index: {support_index}, side: {support_side}"
+    )
+    return support_index, support_side
 
 
 def add_stderr_logger(

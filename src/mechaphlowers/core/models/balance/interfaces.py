@@ -84,6 +84,8 @@ class IBalanceModel(IModelForSolver, ABC):
         self.nodes_span_model = copy(self.span_model)
         self.parameter = parameter
         self.cable_array = cable_array
+        self.a: np.ndarray
+        self.b: np.ndarray
 
     @abstractmethod
     def update_L_ref(self) -> np.ndarray:
