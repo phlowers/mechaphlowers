@@ -332,7 +332,7 @@ class BalanceEngine:
                     <li>T_h</li>
                 </ul>
         """
-        T_sup, T_inf = self.balance_model.tensions_sup_inf()
+        T_sup, T_inf = self.span_model.tensions_sup_inf()
         force_output_unit = options.output_units.force
         T_sup_q_array, T_inf_q_array = (
             QuantityArray(T_sup, 'N', force_output_unit),
