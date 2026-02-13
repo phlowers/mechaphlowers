@@ -47,19 +47,19 @@ class GraphicsConfig:
     background_opacity: float = 0.3
     cable_trace_profile: dict = field(
         default_factory=lambda: {
-            "name": "cable",
+            "name": "Cable",
             "color": "dodgerblue",
         }
     )
     support_trace_profile: dict = field(
         default_factory=lambda: {
-            "name": "support",
+            "name": "Support",
             "color": "indigo",
         }
     )
     insulator_trace_profile: dict = field(
         default_factory=lambda: {
-            "name": "insulator",
+            "name": "Insulator",
             "color": "red",
             "size": 5.0,
         }

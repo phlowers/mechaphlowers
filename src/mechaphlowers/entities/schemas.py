@@ -112,3 +112,27 @@ class WeatherArrayInput(pa.DataFrameModel):
         coerce=True, ge=0.0, nullable=True
     )
     wind_pressure: pdt.Series[float] = pa.Field(coerce=True, nullable=True)
+
+
+class ObstacleArrayInput(pa.DataFrameModel):
+    """Schema describing the expected dataframe for instantiating an ObstacleArray.
+
+    A row describes a point of an obstacle. The whole ObstacleArray may contain multiple obstacles.
+
+    Attributes:
+            name (str): Name of the obstacle
+            point_index (int): Index of the point related to the obstacle
+            span_index (int): Number of the span in which the obstacle is located
+            x (float): X coordinate of the obstacle in the support frame, in meters
+            y (float): Y coordinate of the obstacle in the support frame, in meters
+            z (float): Z coordinate of the obstacle in the support frame, in meters
+            object_type (str): Type of obstacle (e.g., "tree", "ground", etc.)
+    """
+
+    name: pdt.Series[str]
+    point_index: pdt.Series[int] = pa.Field(coerce=True)
+    span_index: pdt.Series[int] = pa.Field(coerce=True)
+    x: pdt.Series[float] = pa.Field(coerce=True)
+    y: pdt.Series[float] = pa.Field(coerce=True)
+    z: pdt.Series[float] = pa.Field(coerce=True)
+    object_type: pdt.Series[str]
