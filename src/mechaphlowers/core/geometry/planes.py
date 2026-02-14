@@ -6,9 +6,64 @@
 
 
 import logging
+from typing import List
+
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
+
+def change_local_frame(
+    local_frame_origin: np.ndarray,
+    local_frame_x_axis: np.ndarray,
+    local_point: np.ndarray,
+) -> np.ndarray:
+    """change_local_frame transforms local coordinates defined by an origin and a span direction into absolute coordinates in the global frame.
+    
+    The local frame is defined such that:
+    <ul>
+        <li> The origin is the reference point in the global frame. </li>
+        <li> The x-axis is aligned with the span direction projected onto the XY plane. </li>
+        <li> The y-axis is perpendicular to the x-axis in the XY plane counterclockwise. </li>
+        <li> The z-axis is vertical (same as global Z). </li>
+    </ul>
+
+    Args:
+        local_frame_origin: Starting point of the span in global coordinates (3D).
+        local_frame_x_axis: Ending point of the span in global coordinates (3D).
+        local_point: Local coordinates of the point to transform (3D).
+    Returns:
+        Absolute coordinates of the point in the global frame (3D).
+    """
+    local_point = np.asarray(local_point)
+    if local_point.shape != (3,):
+        raise ValueError("local_point must be a 1D array of shape (3,)")
+
+    local_frame_origin = np.asarray(local_frame_origin)
+    local_frame_x_axis = np.asarray(local_frame_x_axis)
+
+    # Compute span direction in XY plane
+    delta_xy = local_frame_x_axis[:2] - local_frame_origin[:2]
+    delta_norm = np.linalg.norm(delta_xy)
+
+    if delta_norm == 0:
+        raise ValueError("Span direction is zero in XY plane")
+
+    # Construct orthonormal basis for the local frame
+    # axis_x: unit vector along span in XY plane
+    axis_x = delta_xy / delta_norm
+    # axis_y: perpendicular to axis_x in XY plane (rotated 90° counterclockwise)
+    axis_y = np.array([-axis_x[1], axis_x[0]])
+
+    # Transform: absolute = origin + x_local * axis_x + y_local * axis_y + z_local * axis_z
+    abs_xy = (
+        local_frame_origin[:2]
+        + local_point[0] * axis_x
+        + local_point[1] * axis_y
+    )
+    abs_z = local_frame_origin[2] + local_point[2]
+
+    return np.array([abs_xy[0], abs_xy[1], abs_z])
 
 
 def parametric_line_from_2_points(p1, p2):
@@ -37,6 +92,18 @@ def line_function_from_2_points(p1, p2):
         return p1 + t * line_direction
 
     return line_function
+
+
+def compute_plane_normal(key_points: np.ndarray) -> np.ndarray:
+    """Compute plane normal from two key points.
+
+    Args:
+        key_points: Array of shape (2, 3) defining start and end of line.
+
+    Returns:
+        Direction vector from first to second point.
+    """
+    return key_points[1] - key_points[0]
 
 
 def plane_from_line(point, plane_normal):
@@ -72,7 +139,7 @@ def meshgrid_plane(
 
 def intersection_curve_plane(
     plane_normal, point_on_plane, curve_points, fine_tuning=False
-):
+) -> List[np.ndarray]:
     # Find intersection between span1 and the orthogonal plane
     # REFACTORED: First find 2 closest points, then compute intersection
 
@@ -122,7 +189,7 @@ def intersection_curve_plane(
                     intersections.append(intersection_point)
         else:
             raise ValueError(
-                f"Points are on the same side of the plane - no intersection!"
+                "Points are on the same side of the plane - no intersection!"
             )
 
         if intersections:

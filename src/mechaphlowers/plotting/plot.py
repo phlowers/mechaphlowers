@@ -13,6 +13,12 @@ import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
 from mechaphlowers.config import options as cfg
+from mechaphlowers.core.geometry.distances import (
+    DistanceEngine,
+)
+from mechaphlowers.core.geometry.planes import (
+    change_local_frame,
+)
 from mechaphlowers.core.geometry.points import (
     Points,
     SectionPoints,
@@ -128,6 +134,9 @@ def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
             height=800,
             width=1400,
             scene=dict(
+                xaxis_title="X (m)",
+                yaxis_title="Y (m)",
+                zaxis_title="Z (m)",
                 xaxis=dict(
                     backgroundcolor="gainsboro",
                     gridcolor="dimgray",
@@ -261,6 +270,9 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 
     fig.update_layout(
         scene={
+            'xaxis_title': "X (m)",
+            'yaxis_title': "Y (m)",
+            'zaxis_title': "Z (m)",
             'aspectratio': aspect_ratio,
             'aspectmode': aspect_mode,
             'camera': {
@@ -269,7 +281,6 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
             },
         }
     )
-    
 
 
 class PlotEngine:
@@ -285,6 +296,7 @@ class PlotEngine:
         self.spans = span_model
         self.cable_loads = cable_loads
         self.section_array = section_array
+        self.distance_engine = DistanceEngine()
 
         self.section_pts = SectionPoints(
             section_array=self.section_array,
@@ -481,6 +493,107 @@ class PlotEngine:
             insulator_trace(mode=mode),
             view=view,
         )
+
+    def point_relative_to_absolute(
+        self, span_index: int, point_relative: np.ndarray
+    ) -> np.ndarray:
+        """Convert a point from span-local frame to absolute coordinates via frame change.
+
+        Performs a coordinate frame transformation from the span-local reference frame
+        to the absolute global coordinate system.
+
+        Span-local frame definition:
+        - X axis: along the span direction in the XY plane
+        - Y axis: perpendicular to the span direction in the XY plane
+        - Z axis: vertical (global Z)
+
+        Args:
+            span_index: Index of the span to analyze (0 to num_supports-2).
+            point_relative: Relative coordinate [x, y, z] in the span-local frame.
+
+        Returns:
+            Absolute point coordinates in the global frame as array of shape (3,).
+
+        Raises:
+            IndexError: If span_index is out of range.
+            ValueError: If point_relative has invalid shape or span has zero XY extent.
+        """
+
+        point_relative = np.asarray(point_relative)
+        if point_relative.shape != (3,):
+            raise ValueError("point_relative must be a 1D array of shape (3,)")
+
+        ground_supports = self.section_pts.supports_ground_coords
+        if span_index < 0 or span_index >= len(ground_supports) - 1:
+            raise IndexError(
+                f"span_index {span_index} out of range [0, {len(ground_supports) - 2}]"
+            )
+
+        # Perform frame change from span-local to absolute coordinates
+        support_start = ground_supports[span_index]
+        support_end = ground_supports[span_index + 1]
+
+        absolute_point = change_local_frame(
+            support_start, support_end, point_relative
+        )
+
+        return absolute_point
+
+    def point_distance(
+        self,
+        span_index: int,
+        point: np.ndarray,
+        *,
+        fig: go.Figure | None = None,
+        show_figure: bool = False,
+    ) -> Tuple[go.Figure, np.ndarray, float, float, float]:
+        
+
+        # Validate inputs and convert relative coordinates to absolute
+        point = np.asarray(point)
+        if point.shape != (3,):
+            raise ValueError("point must be a 1D array of shape (3,)")
+
+        # Get support points
+        ground_supports = self.section_pts.supports_ground_coords.copy()
+        if span_index < 0 or span_index >= len(ground_supports) - 1:
+            raise IndexError(
+                f"span_index {span_index} out of range [0, {len(ground_supports) - 2}]"
+            )
+        
+        self.distance_engine.add_span_frame(ground_supports[span_index], ground_supports[span_index + 1])
+        self.distance_engine.add_curves(self.section_pts.get_spans(frame="section").coords[span_index])
+        distance_result = self.distance_engine.plane_distance(point, frame="span")
+
+        # Create figure if not provided
+        if fig is None:
+            fig = figure_factory("blank")
+
+        self.distance_engine.plot(
+            distance_result=distance_result, 
+            fig=fig, 
+            show_plane=True, 
+            show_projections=True, 
+            title_addendum=f" - Span {span_index}"
+            )
+
+        # Update layout
+        fig.update_layout(
+            title=f"Point Distance Analysis - Span {span_index}",
+            scene=dict(
+                xaxis_title="X (m)",
+                yaxis_title="Y (m)",
+                zaxis_title="Z (m)",
+                aspectmode="data",
+            ),
+            showlegend=True,
+            legend=dict(x=0.02, y=0.98),
+        )
+
+        if show_figure:
+            fig.show()
+
+        return fig
 
     def __str__(self) -> str:
         return (
