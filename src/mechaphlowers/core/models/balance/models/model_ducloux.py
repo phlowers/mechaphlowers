@@ -564,30 +564,13 @@ class Nodes:
         insulator_weight: np.ndarray,
         crossarm_length: np.ndarray,
         line_angle: np.ndarray,
-        z: np.ndarray,
+        initial_attach_alt: np.ndarray,
         span_length: np.ndarray,
         # load and load_position must of length nb_supports - 1
         load_weight: np.ndarray,
         load_position: np.ndarray,
     ):
         # TODO: docstring of this whole class
-
-        self.insulator_length = insulator_length
-        # insulator_weight: positive weight means downward force
-        self.insulator_weight = -insulator_weight
-        # arm length: positive length means further from observer
-        self.crossarm_length = crossarm_length
-        # line_angle: anti clockwise
-        self.line_angle = line_angle
-        self.init_coordinates(span_length, z)
-        # dx, dy, dz are the distances between the attachment point and the arm, including the chain
-        # format: [[x0, x1, ...], [y0, y1, ...], [z0, z1, ...]]
-        self.dxdydz = np.zeros((3, len(z)), dtype=np.float64)
-        self.load_weight = load_weight
-        self.load_position = load_position
-        self.has_load_on_span = np.logical_and(
-            load_weight != 0, load_position != 0
-        )
 
         nodes_type = [
             "anchor_first"
@@ -597,7 +580,23 @@ class Nodes:
             else "suspension"
             for i in range(len(insulator_weight))
         ]
-        self.masks = Masks(nodes_type, self.insulator_length)
+        self.masks = Masks(nodes_type, insulator_length)
+        self.init_coordinates(initial_attach_alt, insulator_length)
+
+        self.insulator_length = insulator_length
+        # insulator_weight: positive weight means downward force
+        self.insulator_weight = -insulator_weight
+        # arm length: positive length means further from observer
+        self.crossarm_length = crossarm_length
+        # line_angle: anti clockwise
+        self.line_angle = line_angle
+        self.span_length = span_length
+
+        self.load_weight = load_weight
+        self.load_position = load_position
+        self.has_load_on_span = np.logical_and(
+            load_weight != 0, load_position != 0
+        )
 
         self.vector_projection = VectorProjection()
 
@@ -634,11 +633,6 @@ class Nodes:
         return self.z_arm + self.dz
 
     @property
-    def z_arm(self) -> np.ndarray:
-        """This property returns the altitude of the end the arm. Should not be modified during computation."""
-        return self._z0 - self.z_suspension_chain
-
-    @property
     def proj_g(self) -> np.ndarray:
         arm_length = self.crossarm_length
         gamma = self.line_angle
@@ -666,36 +660,65 @@ class Nodes:
 
     @property
     def state_vector(self) -> np.ndarray:
-        # [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
-        dxdy = self.dxdydz[[0, 1], 1:-1]
-        dzdy = self.dxdydz[[2, 1]][:, [0, -1]]
+        """Getter for state_vector, using self.dxdydz
+
+        Format of state_vector : [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
+
+        Format of self.dxdydz: [[dx0, dx1,...], [dy0, dz1,...], [dz0, dz1,...]]
+
+        Returns:
+            np.ndarray: state_vector, used by the solver.
+        """
+
+        # get lines dx and dy, for suspension supports
+        # dxdy = [[dx1, dx2, dx3,...], [dy1, dy2, dy3,...]]
+        dxdy = self.dxdydz[[0, 1]][:, self.masks.is_suspension]
+        # get lines dz and dy, for anchor supports
+        # dzdy = [[dz1, dz2, dz3,...], [dy1, dy2, dy3,...]]
+        dzdy = self.dxdydz[[2, 1]][:, self.masks.is_anchor]
         return np.vstack([dzdy[:, 0], dxdy.T, dzdy[:, 1]]).flatten()
 
     @state_vector.setter
     def state_vector(self, state_vector: np.ndarray):
-        # TODO: refactor with mask
+        """Setter for state_vector.
+
+        Recalculate and update dx, dy, dz.
+
+        Args:
+            state_vector (np.ndarray): Format: [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
+        """
+        # [dz_0, dx_1, dx2, ..., dz_n]
         dzdxdz = state_vector[::2]
         dy = state_vector[1::2]
 
+        is_sus = self.masks.is_suspension
+        is_anchor = self.masks.is_anchor
         self.dy = dy
-        self.dx[1:-1] = dzdxdz[1:-1]
-        self.dz[[0, -1]] = dzdxdz[[0, -1]]
+        # Get dx for suspensions and dz for anchors
+        self.dx[is_sus] = dzdxdz[is_sus]
+        self.dz[is_anchor] = dzdxdz[is_anchor]
         self.compute_dx_dy_dz()
 
-    def init_coordinates(self, span_length: np.ndarray, z: np.ndarray) -> None:
-        # unused code?
-        # self.x_anchor_chain = np.zeros_like(z)
-        # self.x_anchor_chain[0] = self.insulator_length[0]
-        # self.x_anchor_chain[-1] = -self.insulator_length[-1]
-        self.z_suspension_chain = np.zeros_like(z)
-        self.z_suspension_chain[1:-1] = -self.insulator_length[1:-1]
+    def init_coordinates(
+        self, initial_attach_alt: np.ndarray, insulator_length: np.ndarray
+    ) -> None:
+        """Init self.z_arm (altitude of the arm) and self.dxdydz (array of coordinates of the chain).
 
-        # warning: x0 and z0 does not mean the same thing
-        # x0 is the absissa of the arm
-        # z0 is the altitude of the attachement point
-        self.span_length = span_length
-        self._z0 = z
-        self._y = np.zeros_like(z, dtype=np.float64)
+        z_arm is a constant used for getting the z coordinates of the attachement.
+
+        dxdydz is a variable storing the coorinates of the chain.
+
+        Args:
+            initial_attach_alt (np.ndarray): array of the initial altitude of the attachements (data from SectionArray)
+        """
+        z_suspension_chain = np.zeros_like(initial_attach_alt)
+        is_sus = self.masks.is_suspension
+        z_suspension_chain[is_sus] = -insulator_length[is_sus]
+        self.z_arm = initial_attach_alt - z_suspension_chain
+
+        # dx, dy, dz are the distances between the attachment point and the arm, including the chain
+        # format: [[x0, x1, ...], [y0, y1, ...], [z0, z1, ...]]
+        self.dxdydz = np.zeros((3, len(initial_attach_alt)), dtype=np.float64)
 
     def compute_dx_dy_dz(self) -> None:
         """Update dx and dz according to insulator_length and the othre displacement, using Pytagoras.
@@ -763,7 +786,9 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
     insulator_weight = section_array.data.insulator_weight.to_numpy()
     crossarm_length = section_array.data.crossarm_length.to_numpy()
     line_angle = section_array.data.line_angle.to_numpy()
-    z = section_array.data.conductor_attachment_altitude.to_numpy()
+    initial_attach_alt = (
+        section_array.data.conductor_attachment_altitude.to_numpy()
+    )
     span_length = arr.decr(section_array.data.span_length.to_numpy())
     load_weight = arr.decr(section_array.data.load_weight.to_numpy())
     load_position = arr.decr(section_array.data.load_position.to_numpy())
@@ -772,7 +797,7 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         insulator_weight,
         crossarm_length,
         line_angle,
-        z,
+        initial_attach_alt,
         span_length,
         load_weight,
         load_position,
