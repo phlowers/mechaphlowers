@@ -220,7 +220,7 @@ class Guying:
 
         if view == 'span':
             logger.debug("Span view is selected for guying calculation.")
-            warnings.warn("Span view is selected for guying calculation.")
+            # warnings.warn("Span view is selected for guying calculation.")
             index, side = span_to_support_view(index, side)
 
         if with_pulley and (index == 0 or index >= span_shape - 1):

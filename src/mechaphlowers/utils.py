@@ -103,9 +103,9 @@ def span_to_support_view(
     logger.debug(
         f"Equivalent support for calculation: index: {support_index}, side: {support_side}"
     )
-    warnings.warn(
-        f"Equivalent support view for calculation: index: {support_index}, side: {support_side}"
-    )
+    # warnings.warn(
+    #     f"Equivalent support view for calculation: index: {support_index}, side: {support_side}"
+    # )
     return support_index, support_side
 
 
