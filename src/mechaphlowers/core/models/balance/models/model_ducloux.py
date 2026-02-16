@@ -664,7 +664,7 @@ class Nodes:
 
         Format of state_vector : [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
 
-        Format of self.dxdydz: [[dx0, dx1,...], [dy0, dz1,...], [dz0, dz1,...]]
+        Format of self.dxdydz: [[dx0, dx1,...], [dy0, dy1,...], [dz0, dz1,...]]
 
         Returns:
             np.ndarray: state_vector, used by the solver.
@@ -704,12 +704,12 @@ class Nodes:
     ) -> None:
         """Init self.z_arm (altitude of the arm) and self.dxdydz (array of coordinates of the chain).
 
-        z_arm is a constant used for getting the z coordinates of the attachement.
+        z_arm is a constant used for getting the z coordinates of the attachment.
 
-        dxdydz is a variable storing the coorinates of the chain.
+        dxdydz is a variable storing the coordinates of the chain.
 
         Args:
-            initial_attach_alt (np.ndarray): array of the initial altitude of the attachements (data from SectionArray)
+            initial_attach_alt (np.ndarray): array of the initial altitude of the attachments (data from SectionArray)
         """
         z_suspension_chain = np.zeros_like(initial_attach_alt)
         is_sus = self.masks.is_suspension
@@ -721,7 +721,7 @@ class Nodes:
         self.dxdydz = np.zeros((3, len(initial_attach_alt)), dtype=np.float64)
 
     def compute_dx_dy_dz(self) -> None:
-        """Update dx and dz according to insulator_length and the othre displacement, using Pytagoras.
+        """Update dx and dz according to insulator_length and the other displacement, using Pytagoras.
 
         For anchor chains: update dx
 
