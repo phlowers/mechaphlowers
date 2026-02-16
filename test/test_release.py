@@ -74,11 +74,11 @@ def test_run_balance_engine():
                 "load_mass": [500, 1000, 500, np.nan],
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
 
     balance_engine = BalanceEngine(
         cable_array=cable_AM600, section_array=section_array
@@ -106,11 +106,11 @@ def test_run_balance_engine_plot():
                 "load_mass": [500, 1000, 500, np.nan],
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
 
     balance_engine = BalanceEngine(
         cable_array=cable_AM600, section_array=section_array
@@ -177,9 +177,9 @@ def test_parameter_calibration():
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
 
     param_calibration(2000, 60, section_array, cable_AM600, span_index=0)

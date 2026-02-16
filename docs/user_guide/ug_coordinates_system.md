@@ -77,20 +77,20 @@ from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.core.models.cable.span import CatenarySpan
 
 section_array = SectionArray(
-        pd.DataFrame(
-            {
-                "name": np.array(["support 1", "2", "three", "support 4"]),
-                "suspension": np.array([False, True, True, False]),
-                "conductor_attachment_altitude": np.array([30, 40, 60, 70]),
-                "crossarm_length": np.array([40, 20, -30, -50]),
-                "line_angle": np.array([0, -45, 60, -30]),
-                "insulator_length": np.array([0, 5, 82, 0]),
-                "span_length": np.array([500, 460, 520, np.nan]),
-            }
-        )
-    )
-section_array.sagging_parameter = 2000
-section_array.sagging_temperature = 15
+    pd.DataFrame(
+        {
+            "name": np.array(["support 1", "2", "three", "support 4"]),
+            "suspension": np.array([False, True, True, False]),
+            "conductor_attachment_altitude": np.array([30, 40, 60, 70]),
+            "crossarm_length": np.array([40, 20, -30, -50]),
+            "line_angle": np.array([0, -45, 60, -30]),
+            "insulator_length": np.array([0, 5, 82, 0]),
+            "span_length": np.array([500, 460, 520, np.nan]),
+        }
+    ),
+    sagging_parameter = 2000,
+    sagging_temperature = 15
+)
 
 span_model = CatenarySpan(**section_array.to_numpy())
 

@@ -379,7 +379,9 @@ def test_section_array__data_without_sagging_properties(
 
 def test_section_array__data_original(section_array_input_data: dict) -> None:
     df = pd.DataFrame(section_array_input_data)
-    section_array = SectionArray(data=df)
+    section_array = SectionArray(
+        data=df, sagging_parameter=2000, sagging_temperature=15
+    )
 
     exported_data = section_array.data_original
 

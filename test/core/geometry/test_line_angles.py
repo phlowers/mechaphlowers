@@ -49,10 +49,10 @@ def section_array_line_angles():
                 "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
                 "ground_altitude": np.array([0, 0, 0, 0]),
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     section_array.add_units({"line_angle": "deg"})
     return section_array
 
@@ -95,10 +95,10 @@ def test_get_supports_ground_coords_default_alt():
                 "span_length": np.array([500, 460, 520, np.nan]),
                 "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     section_array.add_units({"line_angle": "deg"})
     span_length = section_array.data.span_length.to_numpy()
     line_angle = section_array.data.line_angle.to_numpy()

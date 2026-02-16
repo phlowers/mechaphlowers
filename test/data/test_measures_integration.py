@@ -26,7 +26,9 @@ def test_param_calibr(cable_array_AM600: CableArray):
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
 
     param_0 = param_calibration(
@@ -60,7 +62,9 @@ def test_param_calibr_deg_no_anchor(cable_array_AM600: CableArray):
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     param_0 = param_calibration(
         2000, 60, section_array, cable_array_AM600, span_index=0
@@ -93,7 +97,9 @@ def test_param_calibr_deg_simple_example(cable_array_AM600: CableArray):
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
 
     param_0 = param_calibration(
@@ -127,7 +133,9 @@ def test_param_calibr_deg_elevation_diff(cable_array_AM600: CableArray):
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
 
     param_0 = param_calibration(

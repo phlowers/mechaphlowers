@@ -32,11 +32,11 @@ def section_array_arm() -> SectionArray:
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     return section_array
 
 
@@ -59,12 +59,11 @@ def test_load_span_model(cable_array_AM600: CableArray):
                 "load_mass": [0, 500, 0, np.nan],
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
 
     balance_engine = BalanceEngine(
         cable_array=cable_array_AM600,

@@ -60,7 +60,7 @@ def thermal_engine_3_spans(cable_array_AM600: CableArray) -> ThermalEngine:
     )
     return thermal_engine
 
-
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
     thermal_engine = ThermalEngine()
 
@@ -138,7 +138,7 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
     # expected 2 output rows, got 1 thl issue
     assert thermal_engine.steady_intensity().data.shape[0] == 1
 
-
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_steady_intensity(thermal_engine_3_spans: ThermalEngine):
     thermal_engine = thermal_engine_3_spans
 

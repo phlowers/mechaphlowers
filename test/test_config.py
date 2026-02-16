@@ -134,7 +134,9 @@ def test_input_unit__arrays() -> None:
                 "span_length": [480, np.nan],
                 "insulator_mass": np.array([1000, 1000]),
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
 
     assert cable_array.input_units["diameter"] == "cm"
