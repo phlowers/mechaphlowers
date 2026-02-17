@@ -129,3 +129,5 @@ plt_engine.get_obstacles_points()
 #         ]
 #     )
 ```
+
+--8<-- "docs/user_guide/assets/obstacle_plot_example.html"
