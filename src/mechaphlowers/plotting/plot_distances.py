@@ -96,25 +96,25 @@ class IntersectionStyle:
     text_position: str = "top center"
 
 
-@dataclass
-class ObstaclePlaneConfig:
-    """Complete configuration for obstacle, plane, and intersection visualization."""
+# @dataclass
+# class ObstaclePlaneConfig:
+#     """Complete configuration for obstacle, plane, and intersection visualization."""
 
-    plane_scale: float = 10.0
-    plane_grid_size: int = 10
-    fine_tuning: bool = False
-    obstacle_style: ObstacleStyle = None  # type: ignore[assignment]
-    plane_style: PlaneStyle = None  # type: ignore[assignment]
-    intersection_style: IntersectionStyle = None  # type: ignore[assignment]
+#     plane_scale: float = 10.0
+#     plane_grid_size: int = 10
+#     fine_tuning: bool = False
+#     obstacle_style: ObstacleStyle = None  # type: ignore[assignment]
+#     plane_style: PlaneStyle = None  # type: ignore[assignment]
+#     intersection_style: IntersectionStyle = None  # type: ignore[assignment]
 
-    def __post_init__(self) -> None:
-        """Initialize default style objects if not provided."""
-        if self.obstacle_style is None:
-            self.obstacle_style = ObstacleStyle()
-        if self.plane_style is None:
-            self.plane_style = PlaneStyle()
-        if self.intersection_style is None:
-            self.intersection_style = IntersectionStyle()
+#     def __post_init__(self) -> None:
+#         """Initialize default style objects if not provided."""
+#         if self.obstacle_style is None:
+#             self.obstacle_style = ObstacleStyle()
+#         if self.plane_style is None:
+#             self.plane_style = PlaneStyle()
+#         if self.intersection_style is None:
+#             self.intersection_style = IntersectionStyle()
 
 
 # ============================================================================
@@ -134,12 +134,6 @@ def _validate_span_points(span_points: np.ndarray) -> None:
     """Validate that span_points is an Nx3 array."""
     if span_points.ndim != 2 or span_points.shape[1] != 3:
         raise ValueError("span_points must be an array of shape (N, 3)")
-
-
-def _validate_obstacle(obstacle: np.ndarray) -> None:
-    """Validate that obstacle is a 1D array of shape (3,)."""
-    if obstacle.shape != (3,):
-        raise ValueError("obstacle must be a 1D array of shape (3,)")
 
 
 # ============================================================================
@@ -232,6 +226,20 @@ def _add_obstacle_trace(
         )
     )
 
+def plot_surface(fig, title_addendum, plane_color, x_plane, y_plane, z_plane):
+    fig.add_trace(
+            go.Surface(
+                x=x_plane,
+                y=y_plane,
+                z=z_plane,
+                opacity=0.2,
+                colorscale=[[0, plane_color], [1, plane_color]],
+                name="Distance Plane",
+                showscale=False,
+                legendgroup="plane" + title_addendum,
+                showlegend=True,
+            )
+        )
 
 def _add_plane_surface_trace(
     fig: go.Figure,
@@ -846,17 +854,4 @@ def plot_distance_engine(
 
     return fig
 
-def plot_surface(fig, title_addendum, plane_color, x_plane, y_plane, z_plane):
-    fig.add_trace(
-            go.Surface(
-                x=x_plane,
-                y=y_plane,
-                z=z_plane,
-                opacity=0.2,
-                colorscale=[[0, plane_color], [1, plane_color]],
-                name="Distance Plane",
-                showscale=False,
-                legendgroup="plane" + title_addendum,
-                showlegend=True,
-            )
-        )
+
