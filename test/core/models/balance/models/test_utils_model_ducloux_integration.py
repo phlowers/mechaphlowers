@@ -42,7 +42,7 @@ def test_proj_no_angles():
     T_attachment_right = vector_projection.T_attachments_plane_right()
     T_line_left = vector_projection.T_line_plane_left()
     T_line_right = vector_projection.T_line_plane_right()
-    Fx, Fy, Fz = vector_projection.forces_cable()
+    Fx, Fy, Fz = vector_projection.force_cable()
 
     T_attachment_left_expected = np.array([Th, np.zeros_like(Th), Tv_g])
     T_attachment_right_expected = np.array([-Th, np.zeros_like(Th), Tv_d])

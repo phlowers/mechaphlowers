@@ -136,7 +136,7 @@ class VectorProjection:
         r_z_d = vd
         return np.array([r_s_d, r_t_d, r_z_d])
 
-    def forces_cable(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def force_cable(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Compute forces of the cable on the insulator chain
 
         Does NOT include insulator chain weight
@@ -184,8 +184,8 @@ class VectorProjection:
         Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
         return Fx, Fy, Fz
 
-    def forces_right(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Compute forces at the right side of the support"""
+    def force_cable_right(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Compute cable force on the chain, at the right side of the support"""
         T_line_plane_left = self.T_line_plane_left()
         s_left_span, t_left_span, z_left_span = T_line_plane_left
         s_left_span_rolled, t_left_span_rolled, z_left_span_rolled = np.roll(
@@ -223,8 +223,8 @@ class VectorProjection:
         Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
         return Fx, Fy, Fz
 
-    def forces_left(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Compute forces at the left side of the support"""
+    def force_cable_left(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Compute cable force on the chain, at the left side of the support"""
         s_right_span, t_right_span, z_right_span = self.T_line_plane_right()
 
         gamma = (self.line_angle / 2)[1:]

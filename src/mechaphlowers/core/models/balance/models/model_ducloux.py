@@ -394,7 +394,7 @@ class BalanceModel(IBalanceModel):
         self.update_tensions()
 
     def vhl_under_chain(self) -> VhlStrength:
-        Fx, Fy, Fz = self.nodes.vector_projection.forces_cable()
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
         vhl_result = np.array([-Fz, Fy, Fx])
         return VhlStrength(vhl_result, "N")
 
@@ -408,26 +408,26 @@ class BalanceModel(IBalanceModel):
         Returns:
             VhlStrength: VhlStrength object
         """
-        Fx, Fy, Fz = self.nodes.vector_projection.forces_left()
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable_left()
         vhl_result = np.array([-Fz, Fy, Fx])
         return VhlStrength(vhl_result, "N")
 
     def vhl_under_chain_right(self) -> VhlStrength:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
-        VHL at the left of the support.
+        VHL at the right of the support.
 
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
 
         Returns:
             VhlStrength: VhlStrength object
         """
-        Fx, Fy, Fz = self.nodes.vector_projection.forces_right()
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable_right()
         vhl_result = np.array([-Fz, Fy, Fx])
         return VhlStrength(vhl_result, "N")
 
     def vhl_under_console(self) -> VhlStrength:
-        Fx, Fy, Fz = self.nodes.vector_projection.forces_cable()
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
         vhl_result = np.array(
             [-(Fz + self.nodes.signed_insulator_weight), Fy, Fx]
         )
@@ -717,7 +717,7 @@ class Nodes:
     def compute_moment(self) -> None:
         """Compute moments of two forces: force of the cable, and chain weight."""
         # Force of the cable. Applied at attachement point between cable and chain.
-        Fx_cable, Fy_cable, Fz_cable = self.vector_projection.forces_cable()
+        Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
         force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
         # size : (nb nodes , 3 for 3D)
         lever_cable = np.array([self.dx, self.dy, self.dz]).T
