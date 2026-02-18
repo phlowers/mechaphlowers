@@ -7,7 +7,6 @@
 import numpy as np
 import pandas as pd
 import pytest
-from mechaphlowers.entities.errors import DataWarning
 
 from mechaphlowers.data.initializer.array_importer import (
     ImporterRte,
@@ -18,6 +17,7 @@ from mechaphlowers.entities.arrays import (
     SectionArray,
     WeatherArray,
 )
+from mechaphlowers.entities.errors import DataWarning
 
 
 def test_build_importer():
