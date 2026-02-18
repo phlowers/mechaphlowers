@@ -715,11 +715,15 @@ class Nodes:
         )
 
     def compute_moment(self) -> None:
+        """Compute moments of two forces: force of the cable, and chain weight."""
+        # Force of the cable. Applied at attachement point between cable and chain.
         Fx_cable, Fy_cable, Fz_cable = self.vector_projection.forces_cable()
         force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
+        # size : (nb nodes , 3 for 3D)
         lever_cable = np.array([self.dx, self.dy, self.dz]).T
         M_cable = np.cross(lever_cable, force_cable)
 
+        # Weight of the chain. Applied on center of gravity of the chain
         F_zeros = np.empty(self.signed_insulator_weight.shape)
         F_zeros.fill(0.0)
         force_chain_weight = np.vstack(
@@ -727,16 +731,12 @@ class Nodes:
         ).T
         lever_chain_weight = np.array([self.dx, self.dy, self.dz]).T / 2
         M_chain_weight = np.cross(lever_chain_weight, force_chain_weight)
-        # size : (nb nodes , 3 for 3D)
 
         M = M_cable + M_chain_weight
 
         Mx = M[:, 0]
         My = M[:, 1]
         Mz = M[:, 2]
-        # self.Fx = Fx_cable
-        # self.Fy = Fy_cable
-        # self.Fz = Fz_cable
         self.Mx = Mx
         self.My = My
         self.Mz = Mz
@@ -746,11 +746,9 @@ class Nodes:
             'dx': self.dx,
             'dy': self.dy,
             'dz': self.dz,
-            # 'Fx': self.Fx,
-            # 'Fy': self.Fy,
-            # 'Fz': self.Fz,
             'Mx': self.Mx,
             'My': self.My,
+            'Mz': self.Mz,
         }
         out = pd.DataFrame(data)
 
