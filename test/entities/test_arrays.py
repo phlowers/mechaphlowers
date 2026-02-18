@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,6 +14,7 @@ from pandas.testing import assert_frame_equal
 from mechaphlowers.config import options
 from mechaphlowers.entities.arrays import (
     CableArray,
+    DefaultValueWarning,
     SectionArray,
     WeatherArray,
 )
@@ -196,7 +197,7 @@ def test_compute_elevation_difference() -> None:
             0,
         ]
         * 4,
-        "insulator_length": [0, 4.0, 3.0, 0],
+        "insulator_length": [0.01, 4.0, 3.0, 0.01],
         "span_length": [50, 100, 500, np.nan],
         "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
     }
@@ -363,10 +364,10 @@ def test_section_array__data_without_sagging_properties(
         options.data.sagging_temperature_default
         * np.ones(len(section_array_without_temperature.data)),
     )
-
-    section_array_without_parameter = SectionArray(
-        data=df, sagging_temperature=15
-    )
+    with pytest.warns(DefaultValueWarning):
+        section_array_without_parameter = SectionArray(
+            data=df, sagging_temperature=15
+        )
     np.testing.assert_allclose(
         section_array_without_parameter.data.sagging_parameter,
         section_array_without_parameter.equivalent_span()
@@ -688,7 +689,7 @@ def test_equivalent_span(section_array) -> None:
     np.testing.assert_allclose(section_array.equivalent_span() ** 2, res)
 
 
-def test_correct_insulator_length(section_array) -> None:
+def test_correct_insulator_length(section_array: SectionArray) -> None:
     expected_lengths = np.array([0.01, 4.0, 3.2, 0.01])
 
     np.testing.assert_allclose(
@@ -700,9 +701,9 @@ def test_correct_insulator_length(section_array) -> None:
 
     # test on .data property
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
-    np.testing.assert_allclose(
-        section_array.data.insulator_length, expected_lengths
-    )
+    with pytest.warns(DataWarning):
+        insulator_length = section_array.data.insulator_length
+    np.testing.assert_allclose(insulator_length, expected_lengths)
 
     # nothing to correct
     section_array._data.insulator_length = np.array([0.01, 4.0, 3.2, 0.01])

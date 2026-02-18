@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -56,7 +56,7 @@ def test_param_calibr_deg_no_anchor(cable_array_AM600: CableArray):
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
                 "line_angle": [0, 10, 0, 0],
-                "insulator_length": [0.001, 3, 3, 0.001],
+                "insulator_length": [0.01, 3, 3, 0.01],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": [0, 50, 50, 0],
                 "load_mass": [0, 0, 0, 0],
@@ -91,7 +91,7 @@ def test_param_calibr_deg_simple_example(cable_array_AM600: CableArray):
                 "conductor_attachment_altitude": [50, 50, 50, 50],
                 "crossarm_length": [0, 0, 0, 0],
                 "line_angle": [0, 0, 0, 0],
-                "insulator_length": [0.001, 3, 3, 0.001],
+                "insulator_length": [0.01, 3, 3, 0.01],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": [0, 0, 0, 0],
                 "load_mass": [0, 0, 0, 0],
@@ -127,7 +127,7 @@ def test_param_calibr_deg_elevation_diff(cable_array_AM600: CableArray):
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 0, 0, 0],
                 "line_angle": [0, 0, 0, 0],
-                "insulator_length": [0.001, 3, 3, 0.001],
+                "insulator_length": [0.01, 3, 3, 0.01],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": [100, 50, 50, 100],
                 "load_mass": [0, 0, 0, 0],

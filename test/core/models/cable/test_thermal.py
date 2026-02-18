@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -59,6 +59,7 @@ def thermal_engine_3_spans(cable_array_AM600: CableArray) -> ThermalEngine:
         ),
     )
     return thermal_engine
+
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
@@ -137,6 +138,7 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
     )
     # expected 2 output rows, got 1 thl issue
     assert thermal_engine.steady_intensity().data.shape[0] == 1
+
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_steady_intensity(thermal_engine_3_spans: ThermalEngine):

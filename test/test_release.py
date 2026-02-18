@@ -171,7 +171,7 @@ def test_parameter_calibration():
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
                 "line_angle": [0, 10, 0, 0],
-                "insulator_length": [0.001, 3, 3, 0.001],
+                "insulator_length": [0.01, 3, 3, 0.01],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": [0, 0, 0, 0],
                 "load_mass": [0, 0, 0, 0],

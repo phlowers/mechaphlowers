@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -44,7 +44,7 @@ def section_array_line_angles():
                 "conductor_attachment_altitude": np.array([30, 35, 22, 70]),
                 "crossarm_length": np.array([40, 20, -30, -50]),
                 "line_angle": np.array([0, -45, 60, -30]),
-                "insulator_length": np.array([0, 5, 38, 0]),
+                "insulator_length": np.array([0.01, 5, 38, 0.01]),
                 "span_length": np.array([500, 460, 520, np.nan]),
                 "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
                 "ground_altitude": np.array([0, 0, 0, 0]),
@@ -91,7 +91,7 @@ def test_get_supports_ground_coords_default_alt():
                 "conductor_attachment_altitude": np.array([30, 35, 22, 70]),
                 "crossarm_length": np.array([40, 20, -30, -50]),
                 "line_angle": np.array([0, -45, 60, -30]),
-                "insulator_length": np.array([0, 5, 38, 0]),
+                "insulator_length": np.array([0.01, 5, 38, 0.01]),
                 "span_length": np.array([500, 460, 520, np.nan]),
                 "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             }

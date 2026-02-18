@@ -97,7 +97,7 @@ def default_section_array_one_span() -> SectionArray:
                 "conductor_attachment_altitude": [30, 40],
                 "crossarm_length": [0, 0],
                 "line_angle": [0, 0],
-                "insulator_length": [0, 0],
+                "insulator_length": [0.01, 0.01],
                 "span_length": [480, np.nan],
                 "insulator_mass": np.array([1000, 1000]),
             }
@@ -118,9 +118,33 @@ def default_section_array_three_spans() -> SectionArray:
                 "conductor_attachment_altitude": np.array([2.2, 5, -0.12, 0]),
                 "crossarm_length": np.array([10, 12.1, 10, 10.1]),
                 "line_angle": np.array([0, 360, 90.1, -90.2]),
-                "insulator_length": np.array([0, 4, 3.2, 0]),
+                "insulator_length": np.array([0.01, 4, 3.2, 0.01]),
                 "span_length": np.array([400, 500.2, 500.0, np.nan]),
                 "insulator_mass": np.array([1000.0, 500.0, 500.0, 1000.0]),
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "deg"})
+    return section_array
+
+
+@pytest.fixture
+def section_array_complete() -> SectionArray:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": [0, 10, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [100, 50, 50, 100],
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
             }
         ),
         sagging_parameter=2000,
@@ -200,7 +224,7 @@ def default_data_container_one_span() -> DataContainer:
                 "conductor_attachment_altitude": [30, 40],
                 "crossarm_length": [0, 0],
                 "line_angle": [0, 0],
-                "insulator_length": [0, 0],
+                "insulator_length": [0.01, 0.01],
                 "span_length": [480, np.nan],
                 "sagging_parameter": [2000, 2000],
                 "sagging_temperature": [15, 15],

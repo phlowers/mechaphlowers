@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
-import warnings
 from numbers import Real
 from typing import Literal
 
