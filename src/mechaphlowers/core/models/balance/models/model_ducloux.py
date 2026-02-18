@@ -331,7 +331,6 @@ class BalanceModel(IBalanceModel):
             beta,
             self.nodes.line_angle,
             self.proj_angle,
-            self.nodes.signed_insulator_weight,
         )
 
     def compute_inter(self) -> None:

@@ -26,7 +26,6 @@ def test_proj_no_angles():
     Th = np.array([35316.0, 35316.0, 35316.0])
     Tv_g = np.array([-2974.3816, -1473.2471, -3064.9025])
     Tv_d = np.array([-5831.3273, -3832.06, -3957.3933])
-    insulator_weight = -np.array([1000.0, 500.0, 500.0, 1000.0])
     vector_projection = VectorProjection()
     vector_projection.set_all(
         Th=Th,
@@ -36,7 +35,6 @@ def test_proj_no_angles():
         beta=np.array([0, 0, 0]),
         line_angle=np.array([0, 0, 0, 0]),
         proj_angle=np.array([0, 0, 0]),
-        insulator_weight=insulator_weight,
     )
     T_attachment_left = vector_projection.T_attachments_plane_left()
     T_attachment_right = vector_projection.T_attachments_plane_right()

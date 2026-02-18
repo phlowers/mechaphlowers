@@ -92,12 +92,10 @@ class VectorProjection:
         beta: np.ndarray,
         line_angle: np.ndarray,
         proj_angle: np.ndarray,
-        insulator_weight: np.ndarray,
     ) -> None:
         self.set_tensions(Th, Tv_d, Tv_g)
         self.set_angles(alpha, beta, line_angle)
         self.set_proj_angle(proj_angle)
-        self.insulator_weight = insulator_weight
 
     # properties?
     def T_attachments_plane_left(self) -> np.ndarray:
