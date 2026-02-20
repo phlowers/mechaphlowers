@@ -21,7 +21,6 @@ from mechaphlowers.core.geometry.distances import (
 )
 from mechaphlowers.plotting.plot import PlotEngine
 
-
 pt0 = np.array([0.0, 0.0, 38.69021545])
 pt1 = np.array([597.90765581, -200.92768965, 10.27928764])
 obstacle = np.array([250, 20, 35])
@@ -60,287 +59,23 @@ spans1 = np.array(
 )
 
 
-# @pytest.mark.unit_test
-# def test_plot_planes_with_mechaphlowers_helpers():
-#     """
-#     Test plotting functions: add_key_points_line_and_span and add_obstacle_plane_and_intersection.
-
-#     This test recreates the exact workflow from the jupyter notebook cell to verify
-#     that the plotting helpers work correctly with real data from a section geometry.
-
-#     Args:
-#         pt0: First support point (from conftest fixture)
-#         pt1: Second support point (from conftest fixture)
-#         obstacle: Obstacle point (from conftest fixture)
-#         spans1: Span points between pt0 and pt1 (from conftest fixture)
-#     """
-#     # Setup: create figure and points array
-#     key_points = np.vstack([pt0, pt1])
-#     fig_section_mf = figure_factory("blank")
-
-#     # Test 1: add_axis_points_line_and_span
-#     add_axis_points_line_and_span(
-#         fig_section_mf,
-#         axis_points=key_points,
-#         span_points=spans1,
-#         axis_points_labels=["pt0", "pt1"],
-#     )
-
-#     # Verify figure has traces added
-#     assert (
-#         len(fig_section_mf.data) > 0
-#     ), "Figure should have traces after add_axis_points_line_and_span"
-
-#     # Test 2: add_obstacle_plane_and_intersection
-#     intersections_mf, u_plane_mf, v_plane_mf = (
-#         add_obstacle_plane_and_intersection(
-#             fig_section_mf,
-#             obstacle=obstacle,
-#             key_points=key_points,
-#             span_points=spans1,
-#             plane_scale=150,
-#             plane_grid_size=150,
-#             fine_tuning=True,
-#         )
-#     )
-
-#     # Verify returns
-#     assert intersections_mf is not None, "Intersections should not be None"
-#     assert u_plane_mf is not None, "u_plane should not be None"
-#     assert v_plane_mf is not None, "v_plane should not be None"
-
-#     # Verify intersection points
-#     if len(intersections_mf) > 0:
-#         assert (
-#             intersections_mf.shape[1] == 3
-#         ), "Each intersection point should have 3 coordinates"
-
-#     # Verify plane basis vectors
-#     assert u_plane_mf.shape == (3,), "u_plane should be a 3D vector"
-#     assert v_plane_mf.shape == (3,), "v_plane should be a 3D vector"
-
-#     # Test 3: Update layout and verify
-#     fig_section_mf.update_layout(
-#         title="Section Geometry: Line, Obstacle, Span, and Orthogonal Plane",
-#         scene=dict(
-#             xaxis_title="X (m)",
-#             yaxis_title="Y (m)",
-#             zaxis_title="Z (m)",
-#             aspectmode="data",
-#         ),
-#         width=1000,
-#         height=800,
-#         showlegend=True,
-#         legend=dict(x=0.02, y=0.98),
-#     )
-
-#     # Verify layout was updated
-#     assert (
-#         fig_section_mf.layout.title.text
-#         == "Section Geometry: Line, Obstacle, Span, and Orthogonal Plane"
-#     )
-#     assert fig_section_mf.layout.scene.xaxis.title.text == "X (m)"
-#     assert fig_section_mf.layout.scene.yaxis.title.text == "Y (m)"
-#     assert fig_section_mf.layout.scene.zaxis.title.text == "Z (m)"
-#     assert fig_section_mf.layout.scene.aspectmode == "data"
-#     assert fig_section_mf.layout.width == 1000
-#     assert fig_section_mf.layout.height == 800
-
-#     # Verify figure is displayable (has data)
-#     assert len(fig_section_mf.data) > 0, "Figure should have multiple traces"
-
-
-# @pytest.mark.unit_test
-# def test_point_distance_visualization():
-#     """
-#     Test the complete point_distance workflow with visualization.
-
-#     This test demonstrates the end-to-end workflow of computing and visualizing
-#     the distance from a point to a span, including:
-#     - Line geometry between two supports
-#     - Orthogonal plane
-#     - Intersection points
-#     - Distance vector and projections
-#     """
-#     key_points = np.vstack([pt0, pt1])
-#     fig = figure_factory("blank")
-
-#     # Step 1: Add axis points line and span
-#     add_axis_points_line_and_span(
-#         fig,
-#         axis_points=key_points,
-#         span_points=spans1,
-#         axis_points_labels=["pt0", "pt1"],
-#     )
-
-#     assert len(fig.data) == 3, "Should have 3 traces: axis_points, line, span"
-#     traces_before_plane = len(fig.data)
-
-#     # Step 2: Add obstacle, plane, and intersection
-#     intersections, u_plane, v_plane = add_obstacle_plane_and_intersection(
-#         fig,
-#         obstacle=obstacle,
-#         axis_points=key_points,
-#         span_points=spans1,
-#         plane_scale=150,
-#         plane_grid_size=150,
-#         fine_tuning=True,
-#     )
-
-#     # Should have added obstacle, plane, and intersection traces
-#     assert len(fig.data) > traces_before_plane, "Plane traces should be added"
-#     assert intersections.size > 0, "Intersection points should be found"
-
-#     # Step 3: Compute distance and projections
-#     if len(intersections) > 0:
-#         intersection_point = intersections[0]
-#         line_direction = key_points[1] - key_points[0]
-#         line_direction_normalized = line_direction / np.linalg.norm(
-#             line_direction
-#         )
-
-#         # Compute distance and projections in plane
-#         distance_3d, projection_u, projection_v = points_distance_inside_plane(
-#             intersection_point,
-#             obstacle,
-#             plane_normal=line_direction,
-#             line_direction_normalized=line_direction_normalized,
-#             u_plane=u_plane,
-#             v_plane=v_plane,
-#         )
-
-#         assert distance_3d > 0, "Distance should be positive"
-#         assert isinstance(
-#             projection_u, (float, np.floating)
-#         ), "projection_u should be a float"
-#         assert isinstance(
-#             projection_v, (float, np.floating)
-#         ), "projection_v should be a float"
-
-#         # Step 4: Get projection points
-#         u_projection_point, v_projection_point = get_projection_points(
-#             obstacle, projection_u, projection_v, u_plane, v_plane
-#         )
-
-#         assert u_projection_point.shape == (
-#             3,
-#         ), "u_projection_point should be 3D"
-#         assert v_projection_point.shape == (
-#             3,
-#         ), "v_projection_point should be 3D"
-
-#         # Step 5: Add distance visualization
-#         traces_before_distance = len(fig.data)
-
-#         # Add distance arrow
-#         fig.add_trace(
-#             go.Scatter3d(
-#                 x=[obstacle[0], intersection_point[0]],
-#                 y=[obstacle[1], intersection_point[1]],
-#                 z=[obstacle[2], intersection_point[2]],
-#                 mode="lines",
-#                 line=dict(color="black", width=4),
-#                 name=f"Distance: {distance_3d:.2f} m",
-#                 legendgroup="distance",
-#             )
-#         )
-
-#         # Add distance label
-#         midpoint = (obstacle + intersection_point) / 2
-#         fig.add_trace(
-#             go.Scatter3d(
-#                 x=[midpoint[0]],
-#                 y=[midpoint[1]],
-#                 z=[midpoint[2]],
-#                 mode="text",
-#                 text=[f"{distance_3d:.2f} m"],
-#                 textposition="top center",
-#                 textfont=dict(size=14, color="black"),
-#                 name="Distance Text",
-#                 legendgroup="distance",
-#             )
-#         )
-
-#         # Add projection arrows
-#         fig.add_trace(
-#             go.Scatter3d(
-#                 x=[obstacle[0], u_projection_point[0]],
-#                 y=[obstacle[1], u_projection_point[1]],
-#                 z=[obstacle[2], u_projection_point[2]],
-#                 mode="lines",
-#                 line=dict(color="blue", width=3),
-#                 name=f"U Distance: {abs(projection_u):.2f} m",
-#                 legendgroup="projections",
-#             )
-#         )
-
-#         fig.add_trace(
-#             go.Scatter3d(
-#                 x=[obstacle[0], v_projection_point[0]],
-#                 y=[obstacle[1], v_projection_point[1]],
-#                 z=[obstacle[2], v_projection_point[2]],
-#                 mode="lines",
-#                 line=dict(color="cyan", width=3),
-#                 name=f"V Distance: {abs(projection_v):.2f} m",
-#                 legendgroup="projections",
-#             )
-#         )
-
-#         # Step 6: Verify figure has all traces
-#         assert (
-#             len(fig.data) == traces_before_distance + 4
-#         ), "Should have added 4 distance-related traces"
-
-#         # Step 7: Verify distance computation
-#         # Pythagorean theorem: sqrt(u^2 + v^2) should equal distance_3d
-#         projected_distance = np.sqrt(projection_u**2 + projection_v**2)
-#         assert (
-#             abs(projected_distance - distance_3d) < 1e-6
-#         ), f"Projected distance ({projected_distance}) should equal 3D distance ({distance_3d})"
-
-#     # Step 8: Update layout
-#     fig.update_layout(
-#         title="Point Distance Analysis",
-#         scene=dict(
-#             xaxis_title="X (m)",
-#             yaxis_title="Y (m)",
-#             zaxis_title="Z (m)",
-#             aspectmode="data",
-#         ),
-#         width=1000,
-#         height=800,
-#         showlegend=True,
-#         legend=dict(x=0.02, y=0.98),
-#     )
-
-#     # Verify final figure
-#     assert fig.layout.title.text == "Point Distance Analysis"
-#     assert len(fig.data) > 0, "Figure should have traces"
-#     # fig.show()  # This will display the figure in an interactive environment
-
-
 @pytest.mark.unit_test
 def test_distance_engine():
-    
     de = DistanceEngine()
     de.add_curves(spans1)
     de.add_span_frame(pt0, pt1)
 
     dr = de.plane_distance(obstacle, frame="span")
-    
-    fig = de.plot(distance_result=dr, show_plane=True, show_projections=True)
-    
-    fig.show()
-    
-    assert isinstance(dr, DistanceResult), "DistanceEngine should return a DistanceResult"
-    assert dr.distance_3d > 0, "Distance should be positive"
-    
 
-    
-    
-    
-    
-    
+    fig = de.plot(distance_result=dr, show_plane=True, show_projections=True)
+
+    fig.show()
+
+    assert isinstance(
+        dr, DistanceResult
+    ), "DistanceEngine should return a DistanceResult"
+    assert dr.distance_3d > 0, "Distance should be positive"
+
 
 @pytest.mark.unit_test
 def test_point_distance_method_with_plot_engine(balance_engine_angles):
@@ -380,7 +115,6 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
         point=obstacle_point,
         show_figure=False,  # Don't display during test
     )
-
 
     # Verify returns
     assert fig is not None, "Figure should be returned"

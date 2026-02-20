@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Iterable, NamedTuple
+from typing import TYPE_CHECKING, Iterable, List, NamedTuple
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
 from mechaphlowers.core.geometry.planes import (
     meshgrid_plane,
+)
+from mechaphlowers.plotting.plot_config import (
+    distance_text,
+    line3d_trace,
+    projected_distance_trace,
 )
 
 if TYPE_CHECKING:
@@ -57,64 +62,6 @@ class AxisPointsLineConfig(NamedTuple):
     line_style: LineStyle = LineStyle()
     show_axis_points: bool = True
 
-
-class KeyPointsLineConfig(NamedTuple):
-    """Complete configuration for key points, line, and span visualization."""
-
-    axis_points_style: KeyPointsStyle = KeyPointsStyle()
-    line_style: LineStyle = LineStyle()
-    span_style: SpanStyle = SpanStyle()
-
-
-@dataclass
-class ObstacleStyle:
-    """Styling configuration for obstacle visualization."""
-
-    name: str = "Obstacle"
-    color: str = "red"
-    size: float = 12.0
-    symbol: str = "cross"
-    text_position: str = "top center"
-
-
-@dataclass
-class PlaneStyle:
-    """Styling configuration for plane visualization."""
-
-    name: str = "Orthogonal Plane"
-    colorscale: str = "Greens"
-    opacity: float = 0.2
-
-
-@dataclass
-class IntersectionStyle:
-    """Styling configuration for intersection points visualization."""
-
-    name: str = "Intersection"
-    color: str = "purple"
-    size: float = 4.0
-    text_position: str = "top center"
-
-
-# @dataclass
-# class ObstaclePlaneConfig:
-#     """Complete configuration for obstacle, plane, and intersection visualization."""
-
-#     plane_scale: float = 10.0
-#     plane_grid_size: int = 10
-#     fine_tuning: bool = False
-#     obstacle_style: ObstacleStyle = None  # type: ignore[assignment]
-#     plane_style: PlaneStyle = None  # type: ignore[assignment]
-#     intersection_style: IntersectionStyle = None  # type: ignore[assignment]
-
-#     def __post_init__(self) -> None:
-#         """Initialize default style objects if not provided."""
-#         if self.obstacle_style is None:
-#             self.obstacle_style = ObstacleStyle()
-#         if self.plane_style is None:
-#             self.plane_style = PlaneStyle()
-#         if self.intersection_style is None:
-#             self.intersection_style = IntersectionStyle()
 
 
 # ============================================================================
@@ -202,86 +149,18 @@ def _add_span_trace(
     )
 
 
-def _add_obstacle_trace(
-    fig: go.Figure,
-    obstacle: np.ndarray,
-    style: ObstacleStyle,
-) -> None:
-    """Add obstacle point trace to figure."""
-    fig.add_trace(
-        go.Scatter3d(
-            x=[obstacle[0]],
-            y=[obstacle[1]],
-            z=[obstacle[2]],
-            mode="markers+text",
-            marker=dict(
-                size=style.size,
-                color=style.color,
-                symbol=style.symbol,
-            ),
-            text=[style.name],
-            textposition=style.text_position,
-            name=style.name,
-            legendgroup="obstacle",
-        )
-    )
-
-def plot_surface(fig, title_addendum, plane_color, x_plane, y_plane, z_plane):
-    fig.add_trace(
-            go.Surface(
-                x=x_plane,
-                y=y_plane,
-                z=z_plane,
-                opacity=0.2,
-                colorscale=[[0, plane_color], [1, plane_color]],
-                name="Distance Plane",
-                showscale=False,
-                legendgroup="plane" + title_addendum,
-                showlegend=True,
-            )
-        )
-
-def _add_plane_surface_trace(
-    fig: go.Figure,
-    x_plane: np.ndarray,
-    y_plane: np.ndarray,
-    z_plane: np.ndarray,
-    style: PlaneStyle,
-) -> None:
-    """Add plane surface trace to figure."""
+def add_surface(fig, title_addendum, plane_color, x_plane, y_plane, z_plane):
     fig.add_trace(
         go.Surface(
             x=x_plane,
             y=y_plane,
             z=z_plane,
-            opacity=style.opacity,
-            colorscale=style.colorscale,
-            name=style.name,
+            opacity=0.2,
+            colorscale=[[0, plane_color], [1, plane_color]],
+            name="Distance Plane",
             showscale=False,
-        )
-    )
-
-
-def _add_intersection_trace(
-    fig: go.Figure,
-    intersections: np.ndarray,
-    style: IntersectionStyle,
-) -> None:
-    """Add intersection points trace to figure if intersections exist."""
-    if intersections.size == 0:
-        return
-
-    fig.add_trace(
-        go.Scatter3d(
-            x=intersections[:, 0],
-            y=intersections[:, 1],
-            z=intersections[:, 2],
-            mode="markers+text",
-            marker=dict(size=style.size, color=style.color),
-            text=[style.name] * intersections.shape[0],
-            textposition=style.text_position,
-            name=style.name,
-            legendgroup="intersection",
+            legendgroup="plane" + title_addendum,
+            showlegend=True,
         )
     )
 
@@ -401,216 +280,10 @@ def add_span_points(
     _add_span_trace(fig, span_points, config)
 
 
-# def add_axis_points_line_and_span(
-#     fig: go.Figure,
-#     axis_points: np.ndarray,
-#     span_points: np.ndarray,
-#     *,
-#     axis_points_labels: Iterable[str] | None = None,
-#     axis_points_colors: tuple[str, str] | None = None,
-#     axis_points_size: float | None = None,
-#     line_name: str | None = None,
-#     line_color: str | None = None,
-#     line_width: float | None = None,
-#     line_dash: str | None = None,
-#     span_name: str | None = None,
-#     span_color: str | None = None,
-#     span_marker_size: float | None = None,
-#     config: KeyPointsLineConfig | None = None,
-# ) -> None:
-#     """Add axis points, the line linking them, and the span to a figure.
-
-#     This function adds three traces to the figure:
-#     1. Axis points as markers with text labels
-#     2. A line connecting the axis points
-#     3. Span points as markers below the line
-
-#     .. deprecated::
-#         Use :func:`add_axis_points_line` and :func:`add_span_points` separately
-#         for more flexibility.
-
-#     Args:
-#         fig: Plotly figure to update.
-#         axis_points: Array of shape (2, 3) containing the axis points.
-#         span_points: Array of shape (N, 3) containing span points along the line.
-#         axis_points_labels: Optional labels for axis points. Defaults to ["pt0", "pt1"].
-#         axis_points_colors: Two colors for axis points markers (legacy parameter).
-#         axis_points_size: Marker size for axis points (legacy parameter).
-#         line_name: Trace name for axis points line (legacy parameter).
-#         line_color: Line color for axis points line (legacy parameter).
-#         line_width: Line width for axis points line (legacy parameter).
-#         line_dash: Dash style for axis points line (legacy parameter).
-#         span_name: Trace name for span points (legacy parameter).
-#         span_color: Marker color for span points (legacy parameter).
-#         span_marker_size: Marker size for span points (legacy parameter).
-#         config: Configuration object for styling. Overrides individual parameters.
-
-#     Raises:
-#         ValueError: If axis_points shape is not (2, 3) or span_points is not (N, 3).
-#     """
-#     # Validate inputs
-#     axis_points = np.asarray(axis_points)
-#     span_points = np.asarray(span_points)
-#     _validate_axis_points(axis_points)
-#     _validate_span_points(span_points)
-
-#     # Set defaults
-#     if axis_points_labels is None:
-#         axis_points_labels = ["pt0", "pt1"]
-
-#     # Build configuration from individual parameters if config not provided
-#     if config is None:
-#         kp_style = KeyPointsStyle(
-#             colors=axis_points_colors or ("green", "blue"),
-#             size=axis_points_size if axis_points_size is not None else 10.0,
-#         )
-#         line_style = LineStyle(
-#             name=line_name or "Key points line",
-#             color=line_color or "green",
-#             width=line_width if line_width is not None else 4.0,
-#             dash=line_dash or "dash",
-#         )
-#         span_style = SpanStyle(
-#             name=span_name or "Span",
-#             color=span_color or "orange",
-#             marker_size=span_marker_size
-#             if span_marker_size is not None
-#             else 3.0,
-#         )
-#         config = KeyPointsLineConfig(
-#             axis_points_style=kp_style,
-#             line_style=line_style,
-#             span_style=span_style,
-#         )
-
-#     # Add traces
-#     _add_axis_points_trace(
-#         fig, axis_points, axis_points_labels, config.axis_points_style
-#     )
-#     _add_line_trace(fig, axis_points, config.line_style)
-#     _add_span_trace(fig, span_points, config.span_style)
-
-
-# def add_obstacle_plane_and_intersection(
-#     fig: go.Figure,
-#     obstacle: np.ndarray,
-#     axis_points: np.ndarray,
-#     span_points: np.ndarray,
-#     *,
-#     plane_scale: float | None = None,
-#     plane_grid_size: int | None = None,
-#     fine_tuning: bool | None = None,
-#     obstacle_name: str | None = None,
-#     plane_name: str | None = None,
-#     intersection_name: str | None = None,
-#     obstacle_color: str | None = None,
-#     obstacle_size: float | None = None,
-#     plane_colorscale: str | None = None,
-#     plane_opacity: float | None = None,
-#     intersection_color: str | None = None,
-#     intersection_size: float | None = None,
-#     config: ObstaclePlaneConfig | None = None,
-# ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-#     """Add obstacle, orthogonal plane, and intersection points to a figure.
-
-#     This function adds three components:
-#     1. An obstacle point in 3D space
-#     2. An orthogonal plane perpendicular to the axis_points line through the obstacle
-#     3. Intersection points where the span curve crosses the plane
-
-#     Args:
-#         fig: Plotly figure to update.
-#         obstacle: Point on the plane of shape (3,).
-#         axis_points: Array of shape (2, 3) defining the line for plane normal.
-#         span_points: Array of shape (N, 3) containing span points for intersection.
-#         plane_scale: Extent of the plane mesh (legacy parameter).
-#         plane_grid_size: Grid size for the plane mesh (legacy parameter).
-#         fine_tuning: Use fine tuning when computing intersection (legacy parameter).
-#         obstacle_name: Trace name for obstacle (legacy parameter).
-#         plane_name: Trace name for plane (legacy parameter).
-#         intersection_name: Trace name for intersection points (legacy parameter).
-#         obstacle_color: Marker color for obstacle (legacy parameter).
-#         obstacle_size: Marker size for obstacle (legacy parameter).
-#         plane_colorscale: Plotly colorscale for plane (legacy parameter).
-#         plane_opacity: Plane surface opacity (legacy parameter).
-#         intersection_color: Marker color for intersection points (legacy parameter).
-#         intersection_size: Marker size for intersection points (legacy parameter).
-#         config: Configuration object for plane and styling. Overrides individual parameters.
-
-#     Returns:
-#         Tuple of:
-#             - intersections: Array of intersection points between span and plane
-#             - u_plane: First orthonormal basis vector for the plane
-#             - v_plane: Second orthonormal basis vector for the plane
-
-#     Raises:
-#         ValueError: If input arrays have incorrect shapes.
-#     """
-#     # Validate inputs
-#     obstacle = np.asarray(obstacle)
-#     axis_points = np.asarray(axis_points)
-#     span_points = np.asarray(span_points)
-#     _validate_obstacle(obstacle)
-#     _validate_axis_points(axis_points)
-#     _validate_span_points(span_points)
-
-#     # Build configuration from individual parameters if config not provided
-#     if config is None:
-#         obstacle_style = ObstacleStyle(
-#             name=obstacle_name or "Obstacle",
-#             color=obstacle_color or "red",
-#             size=obstacle_size if obstacle_size is not None else 12.0,
-#         )
-#         plane_style = PlaneStyle(
-#             name=plane_name or "Orthogonal Plane",
-#             colorscale=plane_colorscale or "Greens",
-#             opacity=plane_opacity if plane_opacity is not None else 0.2,
-#         )
-#         intersection_style = IntersectionStyle(
-#             name=intersection_name or "Intersection",
-#             color=intersection_color or "purple",
-#             size=intersection_size if intersection_size is not None else 4.0,
-#         )
-#         config = ObstaclePlaneConfig(
-#             plane_scale=plane_scale if plane_scale is not None else 10.0,
-#             plane_grid_size=plane_grid_size
-#             if plane_grid_size is not None
-#             else 10,
-#             fine_tuning=fine_tuning if fine_tuning is not None else False,
-#             obstacle_style=obstacle_style,
-#             plane_style=plane_style,
-#             intersection_style=intersection_style,
-#         )
-
-#     # Compute plane geometry
-#     plane_normal = compute_plane_normal(axis_points)
-#     u_plane, v_plane, _ = plane_from_line(obstacle, plane_normal)
-#     x_plane, y_plane, z_plane = meshgrid_plane(
-#         u_plane,
-#         v_plane,
-#         obstacle,
-#         scale_plane=config.plane_scale,
-#         grid_size_plane=config.plane_grid_size,
-#     )
-
-#     # Add traces
-#     _add_obstacle_trace(fig, obstacle, config.obstacle_style)
-#     _add_plane_surface_trace(
-#         fig, x_plane, y_plane, z_plane, config.plane_style
-#     )
-
-#     # Compute and add intersections
-#     intersections = intersection_curve_plane(
-#         plane_normal, obstacle, span_points, fine_tuning=config.fine_tuning
-#     )
-#     _add_intersection_trace(fig, intersections, config.intersection_style)
-
-#     return intersections, u_plane, v_plane
-
-
 # ============================================================================
 # High-Level Plotting Functions
 # ============================================================================
+
 
 
 def plot_distance_engine(
@@ -618,11 +291,6 @@ def plot_distance_engine(
     distance_result: DistanceResult | None = None,
     fig: go.Figure | None = None,
     title_addendum: str | None = None,
-    show_axis_points: bool = True,
-    show_curve: bool = True,
-    show_plane: bool = True,
-    show_distance_result: bool = True,
-    show_projections: bool = True,
     plane_scale: float = 10.0,
     plane_grid_size: int = 3,
     axis_labels: Iterable[str] | None = None,
@@ -630,6 +298,12 @@ def plot_distance_engine(
     curve_color: str = "darkblue",
     plane_color: str = "gold",
     projection_color: str = "firebrick",
+    force_layout: bool = True,
+    show_axis_points: bool = True,
+    show_curve: bool = True,
+    show_plane: bool = True,
+    show_distance_result: bool = True,
+    show_projections: bool = True,
 ) -> go.Figure:
     """Plot DistanceEngine components including axis, curve, plane, and distance result.
 
@@ -687,6 +361,8 @@ def plot_distance_engine(
 
     if fig is None:
         fig = go.Figure()
+
+    if fig is None or force_layout:
         fig.update_layout(
             scene=dict(
                 xaxis_title="X (m)",
@@ -694,7 +370,7 @@ def plot_distance_engine(
                 zaxis_title="Z (m)",
                 aspectmode="data",
             ),
-            title="Distance Engine Visualization",
+            title="Distance Analysis Engine Visualization",
         )
 
     # 1. Plot axis line and points
@@ -746,58 +422,35 @@ def plot_distance_engine(
         )
 
         # Add plane surface
-        plot_surface(fig, title_addendum, plane_color, x_plane, y_plane, z_plane)
+        add_surface(
+            fig, title_addendum, plane_color, x_plane, y_plane, z_plane
+        )
 
     # 3. Plot distance result components
     if show_distance_result and distance_result is not None:
         # Add the two key points
-        fig.add_trace(
-            go.Scatter3d(
-                x=[distance_result.point_1[0], distance_result.point_2[0]],
-                y=[distance_result.point_1[1], distance_result.point_2[1]],
-                z=[distance_result.point_1[2], distance_result.point_2[2]],
-                mode="markers+text",
-                marker=dict(
-                    size=10,
-                    color=["darkred", "darkred"],
-                    symbol=["cross", "cross"],
-                ),
-                text=["Obstacle", "Intersection"],
-                textposition="top center",
-                name="Distance Points",
-                legendgroup="distance" + title_addendum,
-            )
+        plot_distance_points(
+            fig=fig,
+            distance_points=np.array(
+                [distance_result.point_1, distance_result.point_2]
+            ),
+            color=["darkred", "darkred"],
+            symbol=["cross", "cross"],
+            text=["Obstacle", "Intersection"],
+            title_addendum=title_addendum,
         )
 
         # Add 3D distance line
-        fig.add_trace(
-            go.Scatter3d(
-                x=[distance_result.point_1[0], distance_result.point_2[0]],
-                y=[distance_result.point_1[1], distance_result.point_2[1]],
-                z=[distance_result.point_1[2], distance_result.point_2[2]],
-                mode="lines",
-                line=dict(color="darkred", width=4, dash="solid"),
-                name=f"Plane Distance: {distance_result.distance_3d:.3f}m",
-                legendgroup="distance" + title_addendum,
-            )
+        plot_3d_line(
+            fig,
+            distance_result.point_1,
+            distance_result.point_2,
+            distance_result.distance_3d,
+            title_addendum,
         )
         # Add distance text label
         midpoint = (distance_result.point_1 + distance_result.point_2) / 2
-        fig.add_trace(
-            go.Scatter3d(
-                x=[midpoint[0]],
-                y=[midpoint[1]],
-                z=[midpoint[2]],
-                mode="text",
-                text=[f"{distance_result.distance_3d:.2f} m"],
-                textposition="top center",
-                textfont=dict(size=14, color="black"),
-                name="Distance Text",
-                legendgroup="distance" + title_addendum,
-                showlegend=False,
-                hoverinfo="skip",
-            )
-        )
+        plot_text(fig, distance_result.distance_3d, title_addendum, midpoint)
 
         # Add projection vectors if requested
         if show_projections:
@@ -806,52 +459,158 @@ def plot_distance_engine(
                 distance_result.point_1
             )
 
-            # U projection line
-            fig.add_trace(
-                go.Scatter3d(
-                    x=[distance_result.point_1[0], u_proj[0]],
-                    y=[distance_result.point_1[1], u_proj[1]],
-                    z=[distance_result.point_1[2], u_proj[2]],
-                    mode="lines+markers",
-                    line=dict(color=projection_color, width=4, dash="dot"),
-                    marker=dict(
-                        symbol="diamond", size=4, color=projection_color
-                    ),
-                    name=f"U Projection: {distance_result.distance_projection_u:.2f}m",
-                    hovertemplate=(
-                        "%{fullData.name}<br>"
-                        "X: %{x:.3f}<br>"
-                        "Y: %{y:.3f}<br>"
-                        "Z: %{z:.3f}<br>"
-                        "<extra></extra>"
-                    ),
-                    legendgroup="projections" + title_addendum,
-                )
+            # U,V projection line
+            plot_projected_distances(
+                fig,
+                distance_result.point_1,
+                distance_result.distance_projection_u,
+                "U Projection",
+                title_addendum,
+                projection_color,
+                u_proj,
             )
-
-            # V projection line
-            fig.add_trace(
-                go.Scatter3d(
-                    x=[distance_result.point_1[0], v_proj[0]],
-                    y=[distance_result.point_1[1], v_proj[1]],
-                    z=[distance_result.point_1[2], v_proj[2]],
-                    mode="lines+markers",
-                    line=dict(color=projection_color, width=4, dash="dot"),
-                    marker=dict(
-                        symbol="diamond", size=4, color=projection_color
-                    ),
-                    name=f"V Projection: {distance_result.distance_projection_v:.2f}m",
-                    hovertemplate=(
-                        "%{fullData.name}<br>"
-                        "X: %{x:.3f}<br>"
-                        "Y: %{y:.3f}<br>"
-                        "Z: %{z:.3f}<br>"
-                        "<extra></extra>"
-                    ),
-                    legendgroup="projections" + title_addendum,
-                )
+            plot_projected_distances(
+                fig,
+                distance_result.point_1,
+                distance_result.distance_projection_v,
+                "V Projection",
+                title_addendum,
+                projection_color,
+                v_proj,
             )
 
     return fig
 
 
+def plot_distance_points(
+    fig, distance_points, color, symbol, text, title_addendum
+):
+    plot_points(
+        fig,
+        distance_points,
+        marker=dict(
+            size=10,
+            color=color,
+            symbol=symbol,
+        ),
+        name="Distance Points",
+        text=text,
+        text_position="top center",
+        legend_group="distance" + title_addendum,
+    )
+
+
+def plot_points(
+    fig,
+    points,
+    text: List[str],
+    name: str,
+    marker: dict | None = None,
+    text_position: str = "top center",
+    legend_group: str | None = None,
+):
+    fig.add_trace(
+        go.Scatter3d(
+            x=points[:, 0],
+            y=points[:, 1],
+            z=points[:, 2],
+            mode="markers+text",
+            marker=marker,
+            text=text,
+            textposition=text_position,
+            name=name,
+            legendgroup=legend_group,
+        )
+    )
+
+
+def plot_3d_line(
+    fig: go.Figure,
+    point_1: tuple,
+    point_2: tuple,
+    distance_float: float,
+    title_addendum: str,
+):
+    fig.add_trace(
+        go.Scatter3d(
+            x=[point_1[0], point_2[0]],
+            y=[point_1[1], point_2[1]],
+            z=[point_1[2], point_2[2]],
+            mode=line3d_trace.scatter_mode,
+            line=line3d_trace.line,
+            name=f"{line3d_trace.name}: {distance_float:.3f}m",
+            legendgroup=line3d_trace.legend_group + " " + title_addendum,
+        )
+    )
+
+
+def plot_text(
+    fig: go.Figure,
+    text: str,
+    title_addendum: str,
+    position,
+) -> None:
+    """Add text label to figure.
+
+    Args:
+    text: DistanceResult containing distance_3d attribute for label text.
+    fig: Plotly figure to add text to.
+    title_addendum: String to append to legend group for uniqueness.
+    position: 3D coordinates for text label placement.
+    trace_config: TraceConfig object for customizing the trace appearance.
+
+    """
+
+    fig.add_trace(
+        go.Scatter3d(
+            x=[position[0]],
+            y=[position[1]],
+            z=[position[2]],
+            mode=distance_text.scatter_mode,
+            text=[distance_text.text_format(text)],
+            textposition=distance_text.text_position,
+            textfont=distance_text.text_font,
+            name=distance_text.name,
+            legendgroup=distance_text.legend_group + title_addendum,
+            showlegend=distance_text.show_legend,
+            hoverinfo=distance_text.hoverinfo,
+        )
+    )
+
+
+def plot_projected_distances(
+    fig: go.Figure,
+    position: tuple,
+    distance: float,
+    name: str,
+    title_addendum: str,
+    projection_color: str,
+    vect_proj: tuple,
+):
+    fig.add_trace(
+        go.Scatter3d(
+            x=[position[0], vect_proj[0]],
+            y=[position[1], vect_proj[1]],
+            z=[position[2], vect_proj[2]],
+            mode=projected_distance_trace.scatter_mode,
+            line=dict(
+                color=projection_color,
+                width=projected_distance_trace.width,
+                dash=projected_distance_trace.dash,
+            ),
+            marker=dict(
+                symbol=projected_distance_trace.marker_symbol,
+                size=projected_distance_trace.size,
+                color=projection_color,
+            ),
+            name=f"{name}: {distance:.2f}m",
+            hovertemplate=(
+                "%{fullData.name}<br>"
+                "X: %{x:.3f}<br>"
+                "Y: %{y:.3f}<br>"
+                "Z: %{z:.3f}<br>"
+                "<extra></extra>"
+            ),
+            legendgroup=projected_distance_trace.legend_group + title_addendum,
+        )
+    )

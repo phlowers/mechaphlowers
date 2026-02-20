@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Dict, Literal, Self, Tuple
+from typing import Callable, Dict, Literal, Tuple
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -27,9 +27,14 @@ from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
+from mechaphlowers.plotting.plot_config import (
+    TraceProfile,
+    cable_trace,
+    insulator_trace,
+    support_trace,
+)
 
 logger = logging.getLogger(__name__)
-
 
 
 def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
@@ -108,7 +113,7 @@ def plot_points_3d(
             x=points[:, 0],
             y=points[:, 1],
             z=points[:, 2],
-            mode='markers+lines',
+            mode=trace_profile.scatter_mode,
             marker=trace_profile.marker,
             line=trace_profile.line,
             opacity=trace_profile.opacity,
@@ -458,8 +463,6 @@ class PlotEngine:
         fig: go.Figure | None = None,
         show_figure: bool = False,
     ) -> Tuple[go.Figure, np.ndarray, float, float, float]:
-        
-
         # Validate inputs and convert relative coordinates to absolute
         point = np.asarray(point)
         if point.shape != (3,):
@@ -471,22 +474,28 @@ class PlotEngine:
             raise IndexError(
                 f"span_index {span_index} out of range [0, {len(ground_supports) - 2}]"
             )
-        
-        self.distance_engine.add_span_frame(ground_supports[span_index], ground_supports[span_index + 1])
-        self.distance_engine.add_curves(self.section_pts.get_spans(frame="section").coords[span_index])
-        distance_result = self.distance_engine.plane_distance(point, frame="span")
+
+        self.distance_engine.add_span_frame(
+            ground_supports[span_index], ground_supports[span_index + 1]
+        )
+        self.distance_engine.add_curves(
+            self.section_pts.get_spans(frame="section").coords[span_index]
+        )
+        distance_result = self.distance_engine.plane_distance(
+            point, frame="span"
+        )
 
         # Create figure if not provided
         if fig is None:
             fig = figure_factory("blank")
 
         self.distance_engine.plot(
-            distance_result=distance_result, 
-            fig=fig, 
-            show_plane=True, 
-            show_projections=True, 
-            title_addendum=f" - Span {span_index}"
-            )
+            distance_result=distance_result,
+            fig=fig,
+            show_plane=True,
+            show_projections=True,
+            title_addendum=f" - Span {span_index}",
+        )
 
         # Update layout
         fig.update_layout(

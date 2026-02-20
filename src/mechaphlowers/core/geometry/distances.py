@@ -6,9 +6,14 @@
 
 
 from typing import Literal
+
 import numpy as np
 
-from mechaphlowers.core.geometry.planes import change_local_frame, intersection_curve_plane, plane_from_line
+from mechaphlowers.core.geometry.planes import (
+    change_local_frame,
+    intersection_curve_plane,
+    plane_from_line,
+)
 
 
 def points_distance_inside_plane(
@@ -59,7 +64,6 @@ class DistanceResult:
         distance_3d,
         distance_projection_u,
         distance_projection_v,
-
     ):
         self.point_1 = point_base
         self.point_2 = point_target
@@ -68,8 +72,7 @@ class DistanceResult:
         self.distance_projection_v = distance_projection_v
         self.u_plane = u_plane
         self.v_plane = v_plane
-        
-        
+
     def __str__(self):
         return (
             f"DistanceResult:\n"
@@ -81,76 +84,86 @@ class DistanceResult:
             f"  U Plane Vector: ({self.u_plane[0]:.4f}, {self.u_plane[1]:.4f}, {self.u_plane[2]:.4f})\n"
             f"  V Plane Vector: ({self.v_plane[0]:.4f}, {self.v_plane[1]:.4f}, {self.v_plane[2]:.4f})\n"
         )
-    
+
     def __repr__(self):
         return "<DistanceResult>\n" + self.__str__()
-    
-    
-    def projection_points(self, origin_point: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        return origin_point + self.distance_projection_u * self.u_plane, origin_point + self.distance_projection_v * self.v_plane
+
+    def projection_points(
+        self, origin_point: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        return (
+            origin_point + self.distance_projection_u * self.u_plane,
+            origin_point + self.distance_projection_v * self.v_plane,
+        )
 
 
 class DistanceEngine:
     def __init__(self):
         pass
-    
+
     def add_curves(self, curve_points):
         self.curve_points = curve_points
-    
+
     def add_span_frame(self, axis_start, axis_end):
         self.axis_start = axis_start.copy()
         self.axis_end = axis_end.copy()
-        
+
         self.axis_start[2] = 0  # Ensure Z=0 for span frame
         self.axis_end[2] = 0
-        
+
         self.line_direction = self.axis_end - self.axis_start
         self.line_direction[2] = 0  # ensure projection onto XY plane
-        self.line_direction_normalized = self.line_direction / np.linalg.norm(self.line_direction)
-    
+        self.line_direction_normalized = self.line_direction / np.linalg.norm(
+            self.line_direction
+        )
+
     @property
     def axis_points(self):
         return np.array([self.axis_start, self.axis_end])
-        
+
     def define_distance_plane(self, point):
-        
         # Define plane normal (vertical)
         self.u_plane, self.v_plane, _ = plane_from_line(
-            point=point,
-            plane_normal=self.line_direction_normalized
+            point=point, plane_normal=self.line_direction_normalized
         )
         return self.u_plane, self.v_plane
-     
-        
-    def plane_distance(self, point_base, frame: Literal["span", "section"]="span"):
-        
+
+    def plane_distance(
+        self, point_base, frame: Literal["span", "section"] = "span"
+    ):
         if frame == "span":
             self.point_base = change_local_frame(
                 local_frame_origin=self.axis_start,
                 local_frame_x_axis=self.axis_end,
-                local_point=point_base
+                local_point=point_base,
             )
         self.define_distance_plane(point=self.point_base)
-        
+
         intersection_point = intersection_curve_plane(
             curve_points=self.curve_points,
             point_on_plane=self.point_base,
             plane_normal=self.line_direction_normalized,
-            fine_tuning=True
+            fine_tuning=True,
         )
-        
+
         if intersection_point is None:
-            raise ValueError("No intersection found between curve and plane - check inputs!")
+            raise ValueError(
+                "No intersection found between curve and plane - check inputs!"
+            )
         if len(intersection_point) > 1:
-            raise ValueError("Multiple intersections found - expected only one! Check curve and plane configuration.")
-        
-        distance_3d, distance_projection_u, distance_projection_v = points_distance_inside_plane(
-            point_base=self.point_base,
-            point_target=intersection_point[0],
-            u_plane=self.u_plane,
-            v_plane=self.v_plane
+            raise ValueError(
+                "Multiple intersections found - expected only one! Check curve and plane configuration."
+            )
+
+        distance_3d, distance_projection_u, distance_projection_v = (
+            points_distance_inside_plane(
+                point_base=self.point_base,
+                point_target=intersection_point[0],
+                u_plane=self.u_plane,
+                v_plane=self.v_plane,
+            )
         )
-        
+
         return DistanceResult(
             point_base=self.point_base,
             point_target=intersection_point[0],
@@ -158,9 +171,10 @@ class DistanceEngine:
             v_plane=self.v_plane,
             distance_3d=distance_3d,
             distance_projection_u=distance_projection_u,
-            distance_projection_v=distance_projection_v
+            distance_projection_v=distance_projection_v,
         )
-        
+
     def plot(self, distance_result: DistanceResult, **kwargs):
         from mechaphlowers.plotting.plot_distances import plot_distance_engine
+
         return plot_distance_engine(self, distance_result, **kwargs)

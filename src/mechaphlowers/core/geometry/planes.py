@@ -19,7 +19,7 @@ def change_local_frame(
     local_point: np.ndarray,
 ) -> np.ndarray:
     """change_local_frame transforms local coordinates defined by an origin and a span direction into absolute coordinates in the global frame.
-    
+
     The local frame is defined such that:
     <ul>
         <li> The origin is the reference point in the global frame. </li>

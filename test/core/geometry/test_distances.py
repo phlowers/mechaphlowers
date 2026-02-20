@@ -14,18 +14,16 @@ from mechaphlowers.core.geometry.distances import (
 
 
 def test_points_distance_inside_plane_returns_distance_and_projections():
-    point_1 = np.array([1.0, 0.0, 0.0])
-    point_2 = np.array([0.0, 0.0, 0.0])
-    plane_normal = np.array([0.0, 0.0, 1.0])
-    line_direction_normalized = np.array([1.0, 0.0, 0.0])
+    point_2 = np.array([1.0, 0.0, 0.0])
+    point_1 = np.array([0.0, 0.0, 0.0])
+    # plane_normal = np.array([0.0, 0.0, 1.0])
+    # line_direction_normalized = np.array([1.0, 0.0, 0.0])
     u_plane = np.array([1.0, 0.0, 0.0])
     v_plane = np.array([0.0, 1.0, 0.0])
 
     distance_3d, projection_u, projection_v = points_distance_inside_plane(
         point_1,
         point_2,
-        plane_normal,
-        line_direction_normalized,
         u_plane,
         v_plane,
     )
@@ -36,10 +34,10 @@ def test_points_distance_inside_plane_returns_distance_and_projections():
 
 
 def test_points_distance_inside_plane_invalid_projection_raises():
-    point_1 = np.array([1.0, 0.0, 0.0])
-    point_2 = np.array([0.0, 0.0, 0.0])
-    plane_normal = np.array([0.0, 0.0, 1.0])
-    line_direction_normalized = np.array([1.0, 0.0, 0.0])
+    point_2 = np.array([1.0, 0.0, 0.0])
+    point_1 = np.array([0.0, 0.0, 0.0])
+    # plane_normal = np.array([0.0, 0.0, 1.0])
+    # line_direction_normalized = np.array([1.0, 0.0, 0.0])
     u_plane = np.array([0.0, 1.0, 0.0])
     v_plane = np.array([0.0, 0.0, 1.0])
 
@@ -47,8 +45,6 @@ def test_points_distance_inside_plane_invalid_projection_raises():
         points_distance_inside_plane(
             point_1,
             point_2,
-            plane_normal,
-            line_direction_normalized,
             u_plane,
             v_plane,
         )
