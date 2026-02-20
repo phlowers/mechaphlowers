@@ -140,7 +140,9 @@ class TraceProfile:
         size: float = cfg.graphics.marker_size,
         width: float = 8.0,
         opacity: float = 1.0,
-        scatter_mode: Literal["markers", "lines", "markers+lines"] = "markers+lines",
+        scatter_mode: Literal[
+            "markers", "lines", "markers+lines"
+        ] = "markers+lines",
     ):
         self.color = color
         self.size = size
@@ -149,6 +151,7 @@ class TraceProfile:
         self.opacity = opacity
         self._mode = "main"
         self._scatter_mode = scatter_mode
+
     @property
     def dimension(self) -> str:
         return self._dimension
@@ -207,7 +210,7 @@ class TraceProfile:
         if not isinstance(value, str):
             raise TypeError("Name must be a string")
         self._name = value
-        
+
     @property
     def scatter_mode(self) -> str:
         if self._dimension == "2d":

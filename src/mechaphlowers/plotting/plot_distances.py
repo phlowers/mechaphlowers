@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Iterable, List, NamedTuple
 
 import numpy as np
@@ -61,7 +60,6 @@ class AxisPointsLineConfig(NamedTuple):
     axis_points_style: KeyPointsStyle = KeyPointsStyle()
     line_style: LineStyle = LineStyle()
     show_axis_points: bool = True
-
 
 
 # ============================================================================
@@ -163,7 +161,7 @@ def add_surface(fig, title_addendum, plane_color, x_plane, y_plane, z_plane):
             showlegend=True,
         )
     )
-    
+
 
 def plot_points(
     fig,
@@ -302,8 +300,7 @@ def add_span_points(
 
     # Add trace
     _add_span_trace(fig, span_points, config)
-    
-    
+
 
 def plot_distance_points(
     fig, distance_points, color, symbol, text, title_addendum
@@ -415,11 +412,9 @@ def plot_projected_distances(
     )
 
 
-
 # ============================================================================
 # High-Level Plotting Functions
 # ============================================================================
-
 
 
 def plot_distance_engine(
@@ -616,4 +611,3 @@ def plot_distance_engine(
             )
 
     return fig
-
