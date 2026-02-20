@@ -21,9 +21,13 @@ class Masks:
     ) -> None:
         self.nodes_type = nodes_type
         self.insulator_length = insulator_length
+        # Python lists are used because string are involved in self.nodes_type, but using numpy could work
         self.is_suspension = [x == "suspension" for x in self.nodes_type]
         self.is_anchor_first = [x == "anchor_first" for x in self.nodes_type]
         self.is_anchor_last = [x == "anchor_last" for x in self.nodes_type]
+        self.is_anchor = [
+            x == "anchor_first" or x == "anchor_last" for x in self.nodes_type
+        ]
 
     def compute_dx_dy_dz(
         self, dx: np.ndarray, dy: np.ndarray, dz: np.ndarray
