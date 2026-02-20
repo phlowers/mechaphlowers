@@ -589,8 +589,8 @@ class Nodes:
         self.init_coordinates(initial_attach_alt, insulator_length)
 
         self.insulator_length = insulator_length
-        # insulator_weight: positive weight means downward force
-        self.insulator_weight = -insulator_weight
+        # insulator_weight is absolute value. Add a negative sign because weight is downwards
+        self.signed_insulator_weight = -insulator_weight
         # arm length: positive length means further from observer
         self.crossarm_length = crossarm_length
         # line_angle: anti clockwise
