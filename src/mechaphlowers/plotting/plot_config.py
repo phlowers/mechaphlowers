@@ -5,11 +5,20 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from dataclasses import dataclass
-from typing import Self
-
-from typing_extensions import Literal
+from typing import Any, Callable, Literal, Self
 
 from mechaphlowers.config import options as cfg
+
+ScatterMode = Literal[
+    "markers",
+    "lines",
+    "markers+lines",
+    "lines+markers",
+    "markers+text",
+    "text",
+]
+TextPosition = Literal["top", "bottom", "left", "right", "top center"]
+DashStyle = Literal["dot", "dash", "longdash", "solid"]
 
 
 @dataclass
@@ -34,28 +43,30 @@ class TraceConfig:
     """
 
     dimension: Literal["2d", "3d"] = "3d"
-    scatter_mode: Literal["markers", "lines", "markers+lines"] = "markers"
+    scatter_mode: ScatterMode = "markers"
     color: str = "blue"
     size: float = cfg.graphics.marker_size
     width: float = 8.0
     name: str = "Test"
     opacity: float = 1.0
-    dash: Literal["dot", "dash", "longdash", "solid"] | None = None
+    dash: DashStyle | None = None
     show_legend: bool = True
     legend_group: str | None = None
     text: str | None = None
-    text_position: Literal["top", "bottom", "left", "right"] | None = None
+    text_position: TextPosition | None = None
     hoverinfo: str = "skip"
-    text_font: dict | None = None
-    marker: dict | None = None
-    line: dict | None = None
+    text_font: dict[str, Any] | None = None
+    marker: dict[str, Any] | None = None
+    line: dict[str, Any] | None = None
     marker_symbol: str | None = None
+    text_format_func: Callable[..., str] | None = None
 
-    def add_text_formatting(self, format_func: callable) -> Self:
+    def add_text_formatting(self, format_func: Callable[..., str]) -> Self:
         self.text_format_func = format_func
+        return self
 
-    def text_format(self, *args, **kwargs) -> str:
-        if hasattr(self, "text_format_func"):
+    def text_format(self, *args: Any, **kwargs: Any) -> str:
+        if self.text_format_func is not None:
             return self.text_format_func(*args, **kwargs)
         return self.text or ""
 
@@ -140,24 +151,23 @@ class TraceProfile:
         size: float = cfg.graphics.marker_size,
         width: float = 8.0,
         opacity: float = 1.0,
-        scatter_mode: Literal[
-            "markers", "lines", "markers+lines"
-        ] = "markers+lines",
+        scatter_mode: ScatterMode = "markers+lines",
     ):
         self.color = color
         self.size = size
         self.width = width
         self.name = name
         self.opacity = opacity
-        self._mode = "main"
+        self._mode: Literal["background", "main"] = "main"
+        self._dimension: Literal["2d", "3d"] = "3d"
         self._scatter_mode = scatter_mode
 
     @property
-    def dimension(self) -> str:
+    def dimension(self) -> Literal["2d", "3d"]:
         return self._dimension
 
     @dimension.setter
-    def dimension(self, value: Literal["2d", "3d"]):
+    def dimension(self, value: Literal["2d", "3d"]) -> None:
         if not isinstance(value, str):
             raise TypeError()
         if value not in ["2d", "3d"]:
@@ -165,11 +175,11 @@ class TraceProfile:
         self._dimension = value
 
     @property
-    def mode(self) -> str:
+    def mode(self) -> Literal["background", "main"]:
         return self._mode
 
     @mode.setter
-    def mode(self, value: Literal["background", "main"]):
+    def mode(self, value: Literal["background", "main"]) -> None:
         if value not in ["background", "main"]:
             raise ValueError("Mode must be either 'background' or 'main'")
         self._mode = value
@@ -179,25 +189,25 @@ class TraceProfile:
             self.opacity = 1.0
 
     @property
-    def dashed(self) -> dict:
+    def dashed(self) -> dict[str, str]:
         if self._mode == "background":
-            return {'dash': 'dot'}
+            return {"dash": "dot"}
         return {}
 
     @property
-    def line(self) -> dict:
+    def line(self) -> dict[str, object]:
         if self._dimension == "2d":
             width = self.size
         else:
             width = self.width
-        return {'color': self.color, 'width': width} | self.dashed
+        return {"color": self.color, "width": width} | self.dashed
 
     @property
-    def marker(self) -> dict:
+    def marker(self) -> dict[str, str | float]:
         if self._dimension == "2d":
-            return {'size': self.size + 1, 'color': self.color}
+            return {"size": self.size + 1, "color": self.color}
         else:
-            return {'size': self.size, 'color': self.color}
+            return {"size": self.size, "color": self.color}
 
     @property
     def name(self) -> str:
@@ -206,13 +216,13 @@ class TraceProfile:
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: str) -> None:
         if not isinstance(value, str):
             raise TypeError("Name must be a string")
         self._name = value
 
     @property
-    def scatter_mode(self) -> str:
+    def scatter_mode(self) -> ScatterMode:
         if self._dimension == "2d":
             return "lines"
         else:

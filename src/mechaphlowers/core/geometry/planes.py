@@ -6,7 +6,7 @@
 
 
 import logging
-from typing import List
+from collections.abc import Callable
 
 import numpy as np
 
@@ -66,7 +66,9 @@ def change_local_frame(
     return np.array([abs_xy[0], abs_xy[1], abs_z])
 
 
-def parametric_line_from_2_points(p1, p2):
+def parametric_line_from_2_points(
+    p1: np.ndarray, p2: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Returns the coefficients of the line defined by two points p1 and p2 in 3D space.
 
     The line is represented in parametric form as:
@@ -81,14 +83,16 @@ def parametric_line_from_2_points(p1, p2):
     return p1, line_direction, line_direction_normalized
 
 
-def line_function_from_2_points(p1, p2):
+def line_function_from_2_points(
+    p1: np.ndarray, p2: np.ndarray
+) -> Callable[[float], np.ndarray]:
     """Returns a function that represents the line defined by two points p1 and p2 in 3D space.
 
     The returned function takes a scalar parameter t and returns the point on the line corresponding to that parameter.
     """
     p1, line_direction, _ = parametric_line_from_2_points(p1, p2)
 
-    def line_function(t):
+    def line_function(t: float) -> np.ndarray:
         return p1 + t * line_direction
 
     return line_function
@@ -106,7 +110,9 @@ def compute_plane_normal(key_points: np.ndarray) -> np.ndarray:
     return key_points[1] - key_points[0]
 
 
-def plane_from_line(point, plane_normal):
+def plane_from_line(
+    point: np.ndarray, plane_normal: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     # First, find two orthogonal vectors in the plane
     if abs(plane_normal[0]) < 1e-6 and abs(plane_normal[1]) < 1e-6:
         u_plane = np.array([1.0, 0.0, 0.0])
@@ -121,8 +127,12 @@ def plane_from_line(point, plane_normal):
 
 
 def meshgrid_plane(
-    u_plane, v_plane, point, scale_plane=150, grid_size_plane=20
-):
+    u_plane: np.ndarray,
+    v_plane: np.ndarray,
+    point: np.ndarray,
+    scale_plane: float = 150,
+    grid_size_plane: int = 20,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     # Create a grid on the plane
 
     s_plane = np.linspace(-scale_plane, scale_plane, grid_size_plane)
@@ -138,8 +148,11 @@ def meshgrid_plane(
 
 
 def intersection_curve_plane(
-    plane_normal, point_on_plane, curve_points, fine_tuning=False
-) -> List[np.ndarray]:
+    plane_normal: np.ndarray,
+    point_on_plane: np.ndarray,
+    curve_points: np.ndarray,
+    fine_tuning: bool = False,
+) -> np.ndarray:
     # Find intersection between span1 and the orthogonal plane
     # REFACTORED: First find 2 closest points, then compute intersection
 
@@ -167,7 +180,7 @@ def intersection_curve_plane(
         np.dot(plane_normal, curve_points[closest_indices[1]]) - plane_d_value
     ) / normal_magnitude
 
-    intersections = []
+    intersections = np.empty((0, 3), dtype=curve_points.dtype)
 
     if fine_tuning:
         # Only check if the segment crosses the plane (opposite signs)
@@ -186,17 +199,14 @@ def intersection_curve_plane(
 
                 if 0 <= t <= 1:
                     intersection_point = p_start + t * segment_dir
-                    intersections.append(intersection_point)
+                    intersections = np.array([intersection_point])
         else:
             raise ValueError(
                 "Points are on the same side of the plane - no intersection!"
             )
 
-        if intersections:
-            intersections = np.array(intersections)
-        else:
+        if intersections.size == 0:
             logger.warning("No intersections found between span and plane!")
-            intersections = np.array([])
     else:
         # Just return the 2 closest points for visualization, without checking if they are on opposite sides
         intersections = curve_points[closest_indices]

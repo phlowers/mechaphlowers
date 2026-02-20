@@ -14,6 +14,7 @@ import plotly.graph_objects as go  # type: ignore[import-untyped]
 
 from mechaphlowers.core.geometry.distances import (
     DistanceEngine,
+    DistanceResult,
 )
 from mechaphlowers.core.geometry.planes import (
     change_local_frame,
@@ -461,8 +462,7 @@ class PlotEngine:
         point: np.ndarray,
         *,
         fig: go.Figure | None = None,
-        show_figure: bool = False,
-    ) -> Tuple[go.Figure, np.ndarray, float, float, float]:
+    ) -> DistanceResult:
         # Validate inputs and convert relative coordinates to absolute
         point = np.asarray(point)
         if point.shape != (3,):
@@ -485,35 +485,30 @@ class PlotEngine:
             point, frame="span"
         )
 
-        # Create figure if not provided
-        if fig is None:
-            fig = figure_factory("blank")
+        if fig is not None:
+            self.distance_engine.plot(
+                distance_result=distance_result,
+                fig=fig,
+                show_plane=True,
+                show_projections=True,
+                title_addendum=f" - Span {span_index}",
+                force_layout=True,
+            )
 
-        self.distance_engine.plot(
-            distance_result=distance_result,
-            fig=fig,
-            show_plane=True,
-            show_projections=True,
-            title_addendum=f" - Span {span_index}",
-        )
+            # Update layout
+            fig.update_layout(
+                title=f"Point Distance Analysis - Span {span_index}",
+                scene=dict(
+                    xaxis_title="X (m)",
+                    yaxis_title="Y (m)",
+                    zaxis_title="Z (m)",
+                    aspectmode="data",
+                ),
+                showlegend=True,
+                legend=dict(x=0.02, y=0.98),
+            )
 
-        # Update layout
-        fig.update_layout(
-            title=f"Point Distance Analysis - Span {span_index}",
-            scene=dict(
-                xaxis_title="X (m)",
-                yaxis_title="Y (m)",
-                zaxis_title="Z (m)",
-                aspectmode="data",
-            ),
-            showlegend=True,
-            legend=dict(x=0.02, y=0.98),
-        )
-
-        if show_figure:
-            fig.show()
-
-        return fig
+        return distance_result
 
     def __str__(self) -> str:
         return (
