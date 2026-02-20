@@ -163,6 +163,30 @@ def add_surface(fig, title_addendum, plane_color, x_plane, y_plane, z_plane):
             showlegend=True,
         )
     )
+    
+
+def plot_points(
+    fig,
+    points,
+    text: List[str],
+    name: str,
+    marker: dict | None = None,
+    text_position: str = "top center",
+    legend_group: str | None = None,
+):
+    fig.add_trace(
+        go.Scatter3d(
+            x=points[:, 0],
+            y=points[:, 1],
+            z=points[:, 2],
+            mode="markers+text",
+            marker=marker,
+            text=text,
+            textposition=text_position,
+            name=name,
+            legendgroup=legend_group,
+        )
+    )
 
 
 # ============================================================================
@@ -278,6 +302,118 @@ def add_span_points(
 
     # Add trace
     _add_span_trace(fig, span_points, config)
+    
+    
+
+def plot_distance_points(
+    fig, distance_points, color, symbol, text, title_addendum
+):
+    plot_points(
+        fig,
+        distance_points,
+        marker=dict(
+            size=10,
+            color=color,
+            symbol=symbol,
+        ),
+        name="Distance Points",
+        text=text,
+        text_position="top center",
+        legend_group="distance" + title_addendum,
+    )
+
+
+def plot_3d_line(
+    fig: go.Figure,
+    point_1: tuple,
+    point_2: tuple,
+    distance_float: float,
+    title_addendum: str,
+):
+    fig.add_trace(
+        go.Scatter3d(
+            x=[point_1[0], point_2[0]],
+            y=[point_1[1], point_2[1]],
+            z=[point_1[2], point_2[2]],
+            mode=line3d_trace.scatter_mode,
+            line=line3d_trace.line,
+            name=f"{line3d_trace.name}: {distance_float:.3f}m",
+            legendgroup=line3d_trace.legend_group + " " + title_addendum,
+        )
+    )
+
+
+def plot_text(
+    fig: go.Figure,
+    text: str,
+    title_addendum: str,
+    position,
+) -> None:
+    """Add text label to figure.
+
+    Args:
+    text: DistanceResult containing distance_3d attribute for label text.
+    fig: Plotly figure to add text to.
+    title_addendum: String to append to legend group for uniqueness.
+    position: 3D coordinates for text label placement.
+    trace_config: TraceConfig object for customizing the trace appearance.
+
+    """
+
+    fig.add_trace(
+        go.Scatter3d(
+            x=[position[0]],
+            y=[position[1]],
+            z=[position[2]],
+            mode=distance_text.scatter_mode,
+            text=[distance_text.text_format(text)],
+            textposition=distance_text.text_position,
+            textfont=distance_text.text_font,
+            name=distance_text.name,
+            legendgroup=distance_text.legend_group + title_addendum,
+            showlegend=distance_text.show_legend,
+            hoverinfo=distance_text.hoverinfo,
+        )
+    )
+
+
+def plot_projected_distances(
+    fig: go.Figure,
+    position: tuple,
+    distance: float,
+    name: str,
+    title_addendum: str,
+    projection_color: str,
+    vect_proj: tuple,
+):
+    fig.add_trace(
+        go.Scatter3d(
+            x=[position[0], vect_proj[0]],
+            y=[position[1], vect_proj[1]],
+            z=[position[2], vect_proj[2]],
+            mode=projected_distance_trace.scatter_mode,
+            line=dict(
+                color=projection_color,
+                width=projected_distance_trace.width,
+                dash=projected_distance_trace.dash,
+            ),
+            marker=dict(
+                symbol=projected_distance_trace.marker_symbol,
+                size=projected_distance_trace.size,
+                color=projection_color,
+            ),
+            name=f"{name}: {distance:.2f}m",
+            hovertemplate=(
+                "%{fullData.name}<br>"
+                "X: %{x:.3f}<br>"
+                "Y: %{y:.3f}<br>"
+                "Z: %{z:.3f}<br>"
+                "<extra></extra>"
+            ),
+            legendgroup=projected_distance_trace.legend_group + title_addendum,
+        )
+    )
+
 
 
 # ============================================================================
@@ -481,136 +617,3 @@ def plot_distance_engine(
 
     return fig
 
-
-def plot_distance_points(
-    fig, distance_points, color, symbol, text, title_addendum
-):
-    plot_points(
-        fig,
-        distance_points,
-        marker=dict(
-            size=10,
-            color=color,
-            symbol=symbol,
-        ),
-        name="Distance Points",
-        text=text,
-        text_position="top center",
-        legend_group="distance" + title_addendum,
-    )
-
-
-def plot_points(
-    fig,
-    points,
-    text: List[str],
-    name: str,
-    marker: dict | None = None,
-    text_position: str = "top center",
-    legend_group: str | None = None,
-):
-    fig.add_trace(
-        go.Scatter3d(
-            x=points[:, 0],
-            y=points[:, 1],
-            z=points[:, 2],
-            mode="markers+text",
-            marker=marker,
-            text=text,
-            textposition=text_position,
-            name=name,
-            legendgroup=legend_group,
-        )
-    )
-
-
-def plot_3d_line(
-    fig: go.Figure,
-    point_1: tuple,
-    point_2: tuple,
-    distance_float: float,
-    title_addendum: str,
-):
-    fig.add_trace(
-        go.Scatter3d(
-            x=[point_1[0], point_2[0]],
-            y=[point_1[1], point_2[1]],
-            z=[point_1[2], point_2[2]],
-            mode=line3d_trace.scatter_mode,
-            line=line3d_trace.line,
-            name=f"{line3d_trace.name}: {distance_float:.3f}m",
-            legendgroup=line3d_trace.legend_group + " " + title_addendum,
-        )
-    )
-
-
-def plot_text(
-    fig: go.Figure,
-    text: str,
-    title_addendum: str,
-    position,
-) -> None:
-    """Add text label to figure.
-
-    Args:
-    text: DistanceResult containing distance_3d attribute for label text.
-    fig: Plotly figure to add text to.
-    title_addendum: String to append to legend group for uniqueness.
-    position: 3D coordinates for text label placement.
-    trace_config: TraceConfig object for customizing the trace appearance.
-
-    """
-
-    fig.add_trace(
-        go.Scatter3d(
-            x=[position[0]],
-            y=[position[1]],
-            z=[position[2]],
-            mode=distance_text.scatter_mode,
-            text=[distance_text.text_format(text)],
-            textposition=distance_text.text_position,
-            textfont=distance_text.text_font,
-            name=distance_text.name,
-            legendgroup=distance_text.legend_group + title_addendum,
-            showlegend=distance_text.show_legend,
-            hoverinfo=distance_text.hoverinfo,
-        )
-    )
-
-
-def plot_projected_distances(
-    fig: go.Figure,
-    position: tuple,
-    distance: float,
-    name: str,
-    title_addendum: str,
-    projection_color: str,
-    vect_proj: tuple,
-):
-    fig.add_trace(
-        go.Scatter3d(
-            x=[position[0], vect_proj[0]],
-            y=[position[1], vect_proj[1]],
-            z=[position[2], vect_proj[2]],
-            mode=projected_distance_trace.scatter_mode,
-            line=dict(
-                color=projection_color,
-                width=projected_distance_trace.width,
-                dash=projected_distance_trace.dash,
-            ),
-            marker=dict(
-                symbol=projected_distance_trace.marker_symbol,
-                size=projected_distance_trace.size,
-                color=projection_color,
-            ),
-            name=f"{name}: {distance:.2f}m",
-            hovertemplate=(
-                "%{fullData.name}<br>"
-                "X: %{x:.3f}<br>"
-                "Y: %{y:.3f}<br>"
-                "Z: %{z:.3f}<br>"
-                "<extra></extra>"
-            ),
-            legendgroup=projected_distance_trace.legend_group + title_addendum,
-        )
-    )
