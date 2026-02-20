@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 
@@ -201,6 +201,52 @@ def reverse_haversine(
     )
 
     return (lat2, lon2)
+
+
+def reverse_haversine_float(
+    lat: float,
+    lon: float,
+    bearing: float,
+    distance: float,
+) -> tuple[float, float]:
+    """
+    Reverse of haversine with floats
+    Values in rad
+    """
+    R = 6378137  # Radius of Earth in meters
+
+    angdist = distance / R
+
+    lat2 = np.arcsin(
+            np.sin(lat) * np.cos(angdist)
+            + np.cos(lat) * np.sin(angdist) * np.cos(bearing)
+        )
+
+    lon2 = lon + np.arctan2(
+            np.sin(bearing) * np.sin(angdist) * np.cos(lat),
+            np.cos(angdist) - np.sin(lat) * np.sin(lat2),
+        )
+    return (lat2, lon2)
+
+
+def reverse_haversine_sequence(
+    start_lat: float,
+    start_lon: float,
+    azimuth: float,
+    line_angles: np.ndarray,
+    span_length: np.ndarray,
+): #-> tuple[np.ndarray, np.ndarray]:
+    lat_array = [start_lat]
+    lon_array = [start_lon]
+    lat = start_lat
+    lon = start_lon
+    # Check line_angle and span_length same length
+    bearings = np.cumsum(line_angles) + azimuth
+    for index in range(len(line_angles)-1):
+        lat, lon = reverse_haversine_float(lat, lon, bearings[index], span_length[index])
+        lat_array.append(lat)
+        lon_array.append(lon)
+    return lat_array, lon_array
 
 
 def haversine(

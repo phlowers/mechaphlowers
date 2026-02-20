@@ -1,8 +1,10 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
+import pandas as pd
+import plotly.graph_objects as go
 
 
 import numpy as np
@@ -15,6 +17,7 @@ from mechaphlowers.data.geography.helpers import (
     gps_to_lambert93,
     lambert93_to_gps,
     reverse_haversine,
+    reverse_haversine_sequence,
     support_distances_to_gps,
 )
 from mechaphlowers.entities.arrays import SectionArray
@@ -379,6 +382,36 @@ def test_support_distances_to_gps():
     np.testing.assert_array_equal(gps_coordinates[1], expected_lons)
 
 
+def test_section_array_to_gps_0():
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["support 1", "2", "three", "support 4", "5"]),
+                "suspension": np.array([False, True, True, True, False]),
+                "conductor_attachment_altitude": np.array([2.2, 5, -0.12, 0, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
+                "line_angle": np.array([90, 90, 90, 90, 90]),
+                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
+                "insulator_mass": np.array([1000.0, 500.0, 500.0, 500.0, 1000.0]),
+            }
+        )
+    )
+    section_array.add_units({"line_angle": "deg"})
+    all_lats, all_lons = reverse_haversine_sequence(
+        start_lat=0.852708, # np.radians(48.8566),
+        start_lon=0.041053, # np.radians(2.3522),
+        azimuth=0,
+        line_angles=section_array.data.line_angle.to_numpy(),
+        span_length=section_array.data.span_length.to_numpy())
+    
+    show_street_map(section_array, np.degrees(all_lats), np.degrees(all_lons))
+
+
+
+def test_gps_to_section_array_0():
+    np.array([])
+
 def test_gps_on_section_array():
     """Test gps_on_section with multiple points along a section."""
 
@@ -388,36 +421,45 @@ def test_gps_on_section_array():
     section_array = SectionArray(
         pd.DataFrame(
             {
-                "name": np.array(["support 1", "2", "three", "support 4"]),
-                "suspension": np.array([False, True, True, False]),
-                "conductor_attachment_altitude": np.array([2.2, 5, -0.12, 0]),
-                "crossarm_length": np.array([10, 12.1, 10, 10.1]),
-                "line_angle": np.array([90, 90, 90, 90]),
-                "insulator_length": np.array([0, 4, 3.2, 0]),
-                "span_length": np.array([500, 500, 500.0, np.nan]),
-                "insulator_mass": np.array([1000.0, 500.0, 500.0, 1000.0]),
+                "name": np.array(["support 1", "2", "three", "support 4", "5"]),
+                "suspension": np.array([False, True, True, True, False]),
+                "conductor_attachment_altitude": np.array([2.2, 5, -0.12, 0, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
+                "line_angle": np.array([90, 90, 90, 90, 90]),
+                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
+                "insulator_mass": np.array([1000.0, 500.0, 500.0, 500.0, 1000.0]),
             }
         )
     )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
     section_array.add_units({"line_angle": "deg"})
+    line_angle = np.array([0, 90, 180, 270, 360])
+    all_lats = [start_lat[0]]
+    all_lons = [start_lon[0]]
+    lat, lon = start_lat, start_lon
+    for index in range(1,len(section_array.data)):
+        lat, lon = reverse_haversine(
+            lat,
+            lon,
+            line_angle[index],
+            section_array.data.span_length.to_numpy()[index-1],
+        )
+        all_lats.append(lat[0])
+        all_lons.append(lon[0])
+
     
-    
-    lat, lon = reverse_haversine(
-        start_lat,
-        start_lon,
-        section_array.data.line_angle,
-        section_array.data.span_length,
-    )
-    
+    all_lats = np.array(all_lats)
+    all_lons = np.array(all_lons)
     # generate map plot with plotly
-    import plotly.graph_objects as go
     
-    # Combine start point with calculated points
-    all_lats = np.concatenate([start_lat, lat])
-    all_lons = np.concatenate([start_lon, lon])
+    show_street_map(section_array, all_lats, all_lons)
     
+
+
+
+def show_street_map(section_array: SectionArray, all_lats: np.ndarray, all_lons: np.ndarray):
     # Create hover text with support information
     hover_text = [f"Start: {section_array.data.name.iloc[0]}"] + [
         f"Support: {name}<br>"
@@ -431,7 +473,7 @@ def test_gps_on_section_array():
             section_array.data.suspension.iloc[1:]
         )
     ]
-    
+
     # Create the map figure
     fig = go.Figure()
     
@@ -453,15 +495,15 @@ def test_gps_on_section_array():
     
     # Update layout with mapbox
     fig.update_layout(
-        mapbox=dict(
-            style='open-street-map',
-            center=dict(lat=center_lat, lon=center_lon),
-            # zoom=10
-        ),
-        title='Section Support Locations',
+        mapbox={
+            "style": "open-street-map",
+            "center": {"lat": center_lat, "lon": center_lon},
+            "zoom": 13,
+        },
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        height=700,
+        width=1000,
         showlegend=True,
-        height=600
     )
     
-    fig.show()
-    
+    fig.show(config={"scrollZoom": True})
