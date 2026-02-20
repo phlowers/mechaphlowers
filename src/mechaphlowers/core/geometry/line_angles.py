@@ -263,7 +263,9 @@ class DisplacementVector:
     """Class to store chain displacement, and change frame of displacement vector into the global frame"""
 
     def __init__(
-        self, get_displacement: Callable, line_angle: np.ndarray
+        self,
+        get_displacement: Callable[[], np.ndarray],
+        line_angle: np.ndarray,
     ) -> None:
         self.get_displacement = get_displacement
         self.line_angle = line_angle
@@ -309,7 +311,7 @@ class CablePlane:
         insulator_length: np.ndarray,
         line_angle: np.ndarray,
         beta: np.ndarray,
-        get_displacement: Callable,
+        get_displacement: Callable[[], np.ndarray],
         get_attachments_coords: Callable,
     ):
         self.get_attachments_coords = get_attachments_coords

@@ -26,7 +26,6 @@ def test_proj_no_angles():
     Th = np.array([35316.0, 35316.0, 35316.0])
     Tv_g = np.array([-2974.3816, -1473.2471, -3064.9025])
     Tv_d = np.array([-5831.3273, -3832.06, -3957.3933])
-    insulator_weight = -np.array([1000.0, 500.0, 500.0, 1000.0])
     vector_projection = VectorProjection()
     vector_projection.set_all(
         Th=Th,
@@ -36,13 +35,12 @@ def test_proj_no_angles():
         beta=np.array([0, 0, 0]),
         line_angle=np.array([0, 0, 0, 0]),
         proj_angle=np.array([0, 0, 0]),
-        insulator_weight=insulator_weight,
     )
     T_attachment_left = vector_projection.T_attachments_plane_left()
     T_attachment_right = vector_projection.T_attachments_plane_right()
     T_line_left = vector_projection.T_line_plane_left()
     T_line_right = vector_projection.T_line_plane_right()
-    Fx, Fy, Fz = vector_projection.forces()
+    Fx, Fy, Fz = vector_projection.force_cable()
 
     T_attachment_left_expected = np.array([Th, np.zeros_like(Th), Tv_g])
     T_attachment_right_expected = np.array([-Th, np.zeros_like(Th), Tv_d])
@@ -56,7 +54,7 @@ def test_proj_no_angles():
 
     Fx_expected = np.array([Th[0], 0, 0, -Th[-1]])
     Fy_expected = np.zeros_like(Fx_expected)
-    Fz_expected = np.array([-3474.3816, -7554.5744, -7146.9625, -4457.3933])
+    Fz_expected = np.array([-2974.3816, -7304.5744, -6896.9625, -3957.3933])
 
     np.testing.assert_equal(Fx, Fx_expected)
     np.testing.assert_equal(Fy, Fy_expected)

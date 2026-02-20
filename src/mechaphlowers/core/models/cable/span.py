@@ -355,6 +355,17 @@ class ISpan(ABC):
             np.ndarray: slope angle at each support in radians.
         """
 
+    def tensions_sup_inf(self) -> tuple[np.ndarray, np.ndarray]:
+        """Cable tensions at attachment points, x_m and x_n.
+
+        The two attachments have different values, the highest value is the one with the higher altitude.
+
+        Returns (T_high, T_low), T_high being the higher tension of the two values.
+        """
+        x_m, x_n = self.x_m, self.x_n
+        Tm_Tn = np.array([self.T(x_m), self.T(x_n)])
+        return (np.max(Tm_Tn, axis=0), np.min(Tm_Tn, axis=0))
+
 
 class CatenarySpan(ISpan):
     """Implementation of a span cable model according to the catenary equation.
