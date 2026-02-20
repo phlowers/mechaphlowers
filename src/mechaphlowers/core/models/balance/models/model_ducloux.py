@@ -331,7 +331,6 @@ class BalanceModel(IBalanceModel):
             beta,
             self.nodes.line_angle,
             self.proj_angle,
-            self.nodes.insulator_weight,
         )
 
     def compute_inter(self) -> None:
@@ -393,38 +392,44 @@ class BalanceModel(IBalanceModel):
         self.update_span()
         self.update_tensions()
 
-    def vhl_under_chain(self, output_unit: str = "daN") -> VhlStrength:
-        V = -(self.nodes.Fz - self.nodes.insulator_weight / 2)
-        vhl_result = np.array([V, self.nodes.Fy, self.nodes.Fx])
+    def vhl_under_chain(self) -> VhlStrength:
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
+        vhl_result = np.array([-Fz, Fy, Fx])
         return VhlStrength(vhl_result, "N")
 
-    def vhl_under_chain_left(self, output_unit: str = "daN") -> VhlStrength:
+    def vhl_under_chain_left(self) -> VhlStrength:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the left of the support.
 
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
-        Default unit is daN"""
-        Fx, Fy, Fz = self.nodes.vector_projection.forces_left()
-        V = -(Fz - self.nodes.insulator_weight / 2)
-        vhl_result = np.array([V, Fy, Fx])
+
+        Returns:
+            VhlStrength: VhlStrength object
+        """
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable_left()
+        vhl_result = np.array([-Fz, Fy, Fx])
         return VhlStrength(vhl_result, "N")
 
-    # TODO: right and left are swapped
-    def vhl_under_chain_right(self, output_unit: str = "daN") -> VhlStrength:
+    def vhl_under_chain_right(self) -> VhlStrength:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
-        VHL at the left of the support.
+        VHL at the right of the support.
 
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
-        Default unit is daN"""
-        Fx, Fy, Fz = self.nodes.vector_projection.forces_right()
-        V = -(Fz - self.nodes.insulator_weight / 2)
-        vhl_result = np.array([V, Fy, Fx])
+
+        Returns:
+            VhlStrength: VhlStrength object
+        """
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable_right()
+        vhl_result = np.array([-Fz, Fy, Fx])
         return VhlStrength(vhl_result, "N")
 
-    def vhl_under_console(self, output_unit: str = "daN") -> VhlStrength:
-        vhl_result = np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
+    def vhl_under_console(self) -> VhlStrength:
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
+        vhl_result = np.array(
+            [-(Fz + self.nodes.signed_insulator_weight), Fy, Fx]
+        )
         return VhlStrength(vhl_result, "N")
 
     @property
@@ -732,21 +737,28 @@ class Nodes:
         )
 
     def compute_moment(self) -> None:
-        Fx, Fy, Fz = self.vector_projection.forces()
-
-        lever_arm = np.array([self.dx, self.dy, self.dz]).T
+        """Compute moments of two forces: force of the cable, and chain weight."""
+        # Force of the cable. Applied at attachement point between cable and chain.
+        Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
+        force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
         # size : (nb nodes , 3 for 3D)
+        lever_cable = np.array([self.dx, self.dy, self.dz]).T
+        M_cable = np.cross(lever_cable, force_cable)
 
-        force_3d = np.vstack((Fx, Fy, Fz)).T
+        # Weight of the chain. Applied on center of gravity of the chain
+        F_zeros = np.empty(self.signed_insulator_weight.shape)
+        F_zeros.fill(0.0)
+        force_chain_weight = np.vstack(
+            (F_zeros, F_zeros, self.signed_insulator_weight)
+        ).T
+        lever_chain_weight = np.array([self.dx, self.dy, self.dz]).T / 2
+        M_chain_weight = np.cross(lever_chain_weight, force_chain_weight)
 
-        M = np.cross(lever_arm, force_3d)
+        M = M_cable + M_chain_weight
+
         Mx = M[:, 0]
         My = M[:, 1]
-        # Mz is supposed to be equal to 0 on each span
         Mz = M[:, 2]
-        self.Fx = Fx
-        self.Fy = Fy
-        self.Fz = Fz
         self.Mx = Mx
         self.My = My
         self.Mz = Mz
@@ -756,11 +768,9 @@ class Nodes:
             'dx': self.dx,
             'dy': self.dy,
             'dz': self.dz,
-            'Fx': self.Fx,
-            'Fy': self.Fy,
-            'Fz': self.Fz,
             'Mx': self.Mx,
             'My': self.My,
+            'Mz': self.Mz,
         }
         out = pd.DataFrame(data)
 

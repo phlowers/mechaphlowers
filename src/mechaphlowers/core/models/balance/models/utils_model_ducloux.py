@@ -96,12 +96,10 @@ class VectorProjection:
         beta: np.ndarray,
         line_angle: np.ndarray,
         proj_angle: np.ndarray,
-        insulator_weight: np.ndarray,
     ) -> None:
         self.set_tensions(Th, Tv_d, Tv_g)
         self.set_angles(alpha, beta, line_angle)
         self.set_proj_angle(proj_angle)
-        self.insulator_weight = insulator_weight
 
     # properties?
     def T_attachments_plane_left(self) -> np.ndarray:
@@ -140,7 +138,14 @@ class VectorProjection:
         r_z_d = vd
         return np.array([r_s_d, r_t_d, r_z_d])
 
-    def forces(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def force_cable(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Compute forces of the cable on the insulator chain
+
+        Does NOT include insulator chain weight
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray, np.ndarray]: Fx, Fy, Fz
+        """
         s_right, t_right, z_right = self.T_line_plane_right()
         T_line_plane_left = self.T_line_plane_left()
         s_left, t_left, z_left = T_line_plane_left
@@ -158,7 +163,7 @@ class VectorProjection:
         Fy_first = t_left[0] * np.cos((self.line_angle / 2)[0]) + s_left[
             0
         ] * np.sin((self.line_angle / 2)[0])
-        Fz_first = z_left[0] + self.insulator_weight[0] / 2  # also add load?
+        Fz_first = z_left[0]
 
         Fx_suspension = (s_right + s_left_rolled) * np.cos(gamma) - (
             -t_right + t_left_rolled
@@ -166,7 +171,7 @@ class VectorProjection:
         Fy_suspension = (t_right + t_left_rolled) * np.cos(gamma) - (
             s_right - s_left_rolled
         ) * np.sin(gamma)
-        Fz_suspension = z_right + z_left_rolled + self.insulator_weight[1:] / 2
+        Fz_suspension = z_right + z_left_rolled
 
         Fx_last = (s_right[-1]) * np.cos(gamma[-1]) - (-t_right[-1]) * np.sin(
             gamma[-1]
@@ -174,15 +179,15 @@ class VectorProjection:
         Fy_last = (t_right[-1]) * np.cos(gamma[-1]) - (s_right[-1]) * np.sin(
             gamma[-1]
         )
-        Fz_last = z_right[-1] + self.insulator_weight[-1] / 2
+        Fz_last = z_right[-1]
 
         Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
         Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
         Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
         return Fx, Fy, Fz
 
-    def forces_right(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Compute forces at the right side of the support"""
+    def force_cable_right(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Compute cable force on the chain, at the right side of the support"""
         T_line_plane_left = self.T_line_plane_left()
         s_left_span, t_left_span, z_left_span = T_line_plane_left
         s_left_span_rolled, t_left_span_rolled, z_left_span_rolled = np.roll(
@@ -201,9 +206,7 @@ class VectorProjection:
         Fy_first = t_left_span[0] * np.cos(
             (self.line_angle / 2)[0]
         ) + s_left_span[0] * np.sin((self.line_angle / 2)[0])
-        Fz_first = (
-            z_left_span[0] + self.insulator_weight[0] / 2
-        )  # also add load?
+        Fz_first = z_left_span[0]
 
         Fx_suspension = (s_left_span_rolled) * np.cos(gamma) - (
             t_left_span_rolled
@@ -211,19 +214,19 @@ class VectorProjection:
         Fy_suspension = (t_left_span_rolled) * np.cos(gamma) - (
             s_left_span_rolled
         ) * np.sin(gamma)
-        Fz_suspension = z_left_span_rolled + self.insulator_weight[1:] / 2
+        Fz_suspension = z_left_span_rolled
 
         Fx_last = 0
         Fy_last = 0
-        Fz_last = self.insulator_weight[-1] / 2
+        Fz_last = 0
 
         Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
         Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
         Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
         return Fx, Fy, Fz
 
-    def forces_left(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Compute forces at the left side of the support"""
+    def force_cable_left(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Compute cable force on the chain, at the left side of the support"""
         s_right_span, t_right_span, z_right_span = self.T_line_plane_right()
 
         gamma = (self.line_angle / 2)[1:]
@@ -234,7 +237,7 @@ class VectorProjection:
 
         Fx_first = 0
         Fy_first = 0
-        Fz_first = self.insulator_weight[0] / 2  # also add load?
+        Fz_first = 0
 
         Fx_suspension = (s_right_span) * np.cos(gamma) - (
             -t_right_span
@@ -242,7 +245,7 @@ class VectorProjection:
         Fy_suspension = (t_right_span) * np.cos(gamma) - (
             s_right_span
         ) * np.sin(gamma)
-        Fz_suspension = z_right_span + self.insulator_weight[1:] / 2
+        Fz_suspension = z_right_span
 
         Fx_last = (s_right_span[-1]) * np.cos(gamma[-1]) - (
             -t_right_span[-1]
@@ -250,7 +253,7 @@ class VectorProjection:
         Fy_last = (t_right_span[-1]) * np.cos(gamma[-1]) - (
             s_right_span[-1]
         ) * np.sin(gamma[-1])
-        Fz_last = z_right_span[-1] + self.insulator_weight[-1] / 2
+        Fz_last = z_right_span[-1]
 
         Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
         Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))

@@ -101,10 +101,10 @@ def default_section_array_one_span() -> SectionArray:
                 "span_length": [480, np.nan],
                 "insulator_mass": np.array([1000, 1000]),
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     return section_array
 
 
@@ -122,10 +122,10 @@ def default_section_array_three_spans() -> SectionArray:
                 "span_length": np.array([400, 500.2, 500.0, np.nan]),
                 "insulator_mass": np.array([1000.0, 500.0, 500.0, 1000.0]),
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     section_array.add_units({"line_angle": "deg"})
     return section_array
 
@@ -206,10 +206,10 @@ def default_data_container_one_span() -> DataContainer:
                 "sagging_temperature": [15, 15],
                 "insulator_mass": np.array([1000, 1000]),
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     section_array.add_units({"line_angle": "deg"})
 
     weather_array = WeatherArray(
@@ -255,11 +255,11 @@ def balance_engine_base_test(cable_array_AM600: CableArray) -> BalanceEngine:
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     return BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
     )
@@ -283,11 +283,11 @@ def balance_engine_angles(cable_array_AM600: CableArray) -> BalanceEngine:
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     return BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
     )
