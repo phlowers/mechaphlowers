@@ -563,7 +563,7 @@ def plot_distance_engine(
         plot_distance_points(
             fig=fig,
             distance_points=np.array(
-                [distance_result.point_1, distance_result.point_2]
+                [distance_result.point_base, distance_result.point_target]
             ),
             color=["darkred", "darkred"],
             symbol=["cross", "cross"],
@@ -574,26 +574,28 @@ def plot_distance_engine(
         # Add 3D distance line
         plot_3d_line(
             fig,
-            distance_result.point_1,
-            distance_result.point_2,
+            distance_result.point_base,
+            distance_result.point_target,
             distance_result.distance_3d,
             title_addendum,
         )
         # Add distance text label
-        midpoint = (distance_result.point_1 + distance_result.point_2) / 2
+        midpoint = (
+            distance_result.point_base + distance_result.point_target
+        ) / 2
         plot_text(fig, distance_result.distance_3d, title_addendum, midpoint)
 
         # Add projection vectors if requested
         if show_projections:
             # Get projection points
             u_proj, v_proj = distance_result.projection_points(
-                distance_result.point_1
+                distance_result.point_base
             )
 
             # U,V projection line
             plot_projected_distances(
                 fig,
-                distance_result.point_1,
+                distance_result.point_base,
                 distance_result.distance_projection_u,
                 "U Projection",
                 title_addendum,
@@ -602,7 +604,7 @@ def plot_distance_engine(
             )
             plot_projected_distances(
                 fig,
-                distance_result.point_1,
+                distance_result.point_base,
                 distance_result.distance_projection_v,
                 "V Projection",
                 title_addendum,

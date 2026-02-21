@@ -485,6 +485,26 @@ class PlotEngine:
         *,
         fig: go.Figure | None = None,
     ) -> DistanceResult:
+        """Point distance analysis: compute the distance from a point to a span and plot the configuration on the provided figure.
+        
+        Args:
+            span_index: Index of the span to analyze (0 to num_supports-2).
+            point: Absolute coordinates of the point to analyze, as array of shape (3,).
+            fig: Optional plotly figure where the configuration will be plotted. If None, no plot is generated.
+            
+        Returns:
+            DistanceResult: Object containing the distance analysis results, including the distance value and coordinates of the closest point on the span.
+            
+        Example:
+            >>> balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
+            >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+            >>> point = np.array([10.0, 5.0, 2.0])  # Absolute coordinates of the point to analyze
+            >>> fig = figure_factory()
+            >>> distance_result = plot_engine.point_distance(span_index=0, point=point)
+            # ...get a distance result object with the distance and closest point coordinates
+            
+            >>> fig.show()
+        """
         # Validate inputs and convert relative coordinates to absolute
         point = np.asarray(point)
         if point.shape != (3,):

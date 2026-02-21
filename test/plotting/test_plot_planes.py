@@ -109,21 +109,18 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
 
     # Test: Call point_distance method for span 0
 
-    plt_engine.point_distance(
+    dr = plt_engine.point_distance(
         fig=fig,
         span_index=0,
         point=obstacle_point,
-        show_figure=False,  # Don't display during test
     )
 
     # Verify returns
-    assert fig is not None, "Figure should be returned"
     assert isinstance(
-        fig, go.Figure
-    ), "Returned figure should be a Plotly Figure"
+        dr, DistanceResult
+    ), "Returned object should be a DistanceResult instance"
 
     # Verify figure has traces
-    assert len(fig.data) > 0, "Figure should contain traces"
 
     # Verify figure layout
     assert "Span 0" in fig.layout.title.text, "Title should contain span index"
@@ -141,9 +138,7 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
             fig=fig,
             span_index=1,
             point=np.array([300.0, -40.0, 40.0]),
-            show_figure=False,
         )
-        assert fig is not None, "Second figure should be returned"
         assert (
             "Span 1" in fig.layout.title.text
         ), "Second title should reference span 1"
@@ -153,7 +148,6 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
         plt_engine.point_distance(
             span_index=999,  # Out of range
             point=obstacle_point,
-            show_figure=False,
         )
 
     # Test error handling: invalid point shape
@@ -161,7 +155,6 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
         plt_engine.point_distance(
             span_index=0,
             point=np.array([250.0, 20.0]),  # Only 2D
-            show_figure=False,
         )
 
     fig.show()  # Display the figure for visual verification (optional)
