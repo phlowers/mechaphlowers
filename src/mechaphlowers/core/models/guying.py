@@ -246,7 +246,7 @@ class Guying:
             vhl_l = vhl_left.L.value('N')[index]
 
         else:
-            raise AttributeError("side must be 'left' or 'right'")
+            raise ValueError("side must be 'left' or 'right'")
 
         slope = self.balance_engine.span_model.slope(side)[index]
         span_tension = self.balance_engine.span_model.T_h()[index]
