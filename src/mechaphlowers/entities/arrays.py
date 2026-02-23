@@ -7,7 +7,6 @@
 import logging
 import warnings
 from abc import ABC
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -474,7 +473,7 @@ class ObstacleArray(ElementArray):
     ) -> np.ndarray:
         return span_length[span_index] - x
 
-    def get_vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_vectors(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         return (
             self.data["x"].to_numpy(),
             self.data["y"].to_numpy(),

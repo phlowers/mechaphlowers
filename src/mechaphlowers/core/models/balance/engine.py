@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Callable, List, Type
+from typing import Callable, Type
 
 import numpy as np
 
@@ -157,8 +157,8 @@ class BalanceEngine:
 
     def add_loads(
         self,
-        load_position_distance: np.ndarray | List,
-        load_mass: np.ndarray | List,
+        load_position_distance: np.ndarray | list,
+        load_mass: np.ndarray | list,
     ) -> None:
         """Adds loads to BalanceEngine.
         Updates load_position and load_mass fields in SectionArray.
@@ -168,8 +168,8 @@ class BalanceEngine:
         Expected input are arrays of size matching the number of supports. Each value refers to a span.
 
         Args:
-            load_position_distance (np.ndarray | List): Poisition of the loads, in meters
-            load_mass (np.ndarray | List): Mass of the loads
+            load_position_distance (np.ndarray | list): Poisition of the loads, in meters
+            load_mass (np.ndarray | list): Mass of the loads
 
         Raises:
             ValueError: if load_position_distance is not in [0, span_length] for at least one span

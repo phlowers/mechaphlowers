@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Callable, Tuple
+from typing import Callable
 
 import numpy as np
 
@@ -108,7 +108,7 @@ def get_edge_arm_coords(
     crossarm_length: np.ndarray,
     line_angle: np.ndarray,
     insulator_length: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Build the supports and arms in the global frame.
 
     Args:
@@ -238,7 +238,7 @@ def get_supports_coords(
     insulator_length: np.ndarray,
     displacement_vector: np.ndarray,
     ground_altitude: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Helper to get all the coordinates of the supports packed in a tuple."""
     supports_ground_coords = get_supports_ground_coords(
         span_length, line_angle, ground_altitude

@@ -176,7 +176,7 @@ def reverse_haversine(
         distance (np.ndarray): Distance in meters
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: Tuple containing the latitude and longitude of the result
+        tuple[np.ndarray, np.ndarray]: tuple containing the latitude and longitude of the result
     """
     R = 6378137  # Radius of Earth in meters
 
@@ -299,7 +299,7 @@ def distances_to_gps(
         y_meters (np.ndarray): Distance from south to north in meters (positive = north, negative = south)
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: Tuple containing the latitude and longitude of point B
+        tuple[np.ndarray, np.ndarray]: tuple containing the latitude and longitude of point B
     """
     # Convert distances to degrees
     # 1 degree of latitude is approximately 111,111 meters
@@ -332,7 +332,7 @@ def support_distances_to_gps(
         first_support_lon (np.float64): Longitude of the first support base
 
     Returns:
-        tuple[np.typing.NDArray[np.float64], np.typing.NDArray[np.float64]]: Tuple containing the latitude and longitude of the support bases
+        tuple[np.typing.NDArray[np.float64], np.typing.NDArray[np.float64]]: tuple containing the latitude and longitude of the support bases
     """
     # Calculate GPS coordinates for additional support bases
     additional_lats, additional_lons = distances_to_gps(

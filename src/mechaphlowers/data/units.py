@@ -5,8 +5,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-from typing import List
-
 import numpy as np
 import pint
 from pint import Quantity, UnitRegistry
@@ -32,7 +30,7 @@ Q_ = unit.Quantity
 __all__ = ["unit", "Q_", "Quantity"]
 
 
-def convert_weight_to_mass(weight: np.ndarray | List) -> np.ndarray:
+def convert_weight_to_mass(weight: np.ndarray | list) -> np.ndarray:
     """Convert weight in N to mass in kg
 
     Args:
