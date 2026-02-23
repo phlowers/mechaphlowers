@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from copy import copy
-from typing import Tuple, Type
+from typing import Type
 
 import numpy as np
 import pandas as pd
@@ -211,12 +211,12 @@ class BalanceModel(IBalanceModel):
 
     def compute_Th_and_extremum(
         self,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Run FindParamSolver to compute parameter, and then compute Th, x_m and x_n.
         Used only in change_state case.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Th, x_m, x_n, parameter
+            tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Th, x_m, x_n, parameter
         """
         # First run approx_parameter to have a closer first value of the parameter. This uses the parabola model.
         parameter_parabola = approx_parameter(
