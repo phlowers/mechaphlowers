@@ -4,9 +4,11 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Tuple, Union
+from typing import Union
 
 import numpy as np
+
+RADIUS_EARTH = 6378137  # Radius of Earth in meters
 
 
 def gps_to_lambert93(
@@ -178,11 +180,10 @@ def reverse_haversine(
     Returns:
         tuple[np.ndarray, np.ndarray]: Tuple containing the latitude and longitude of the result
     """
-    R = 6378137  # Radius of Earth in meters
 
     lat1 = np.radians(lat)
     lon1 = np.radians(lon)
-    angdist = distance / R
+    angdist = distance / RADIUS_EARTH
     theta = np.radians(bearing)
 
     lat2 = np.degrees(
@@ -213,19 +214,18 @@ def reverse_haversine_float(
     Reverse of haversine with floats
     Values in rad
     """
-    R = 6378137  # Radius of Earth in meters
 
-    angdist = distance / R
+    angdist = distance / RADIUS_EARTH
 
     lat2 = np.arcsin(
-            np.sin(lat) * np.cos(angdist)
-            + np.cos(lat) * np.sin(angdist) * np.cos(bearing)
-        )
+        np.sin(lat) * np.cos(angdist)
+        + np.cos(lat) * np.sin(angdist) * np.cos(bearing)
+    )
 
     lon2 = lon + np.arctan2(
-            np.sin(bearing) * np.sin(angdist) * np.cos(lat),
-            np.cos(angdist) - np.sin(lat) * np.sin(lat2),
-        )
+        np.sin(bearing) * np.sin(angdist) * np.cos(lat),
+        np.cos(angdist) - np.sin(lat) * np.sin(lat2),
+    )
     return (lat2, lon2)
 
 
@@ -235,18 +235,20 @@ def reverse_haversine_sequence(
     azimuth: float,
     line_angles: np.ndarray,
     span_length: np.ndarray,
-): #-> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     lat_array = [start_lat]
     lon_array = [start_lon]
     lat = start_lat
     lon = start_lon
     # Check line_angle and span_length same length
     bearings = np.cumsum(line_angles) + azimuth
-    for index in range(len(line_angles)-1):
-        lat, lon = reverse_haversine_float(lat, lon, bearings[index], span_length[index])
+    for index in range(len(line_angles) - 1):
+        lat, lon = reverse_haversine_float(
+            lat, lon, bearings[index], span_length[index]
+        )
         lat_array.append(lat)
         lon_array.append(lon)
-    return lat_array, lon_array
+    return np.array(lat_array), np.array(lon_array)
 
 
 def haversine(
@@ -278,8 +280,7 @@ def haversine(
         + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
     )
     c = 2 * np.arcsin(np.sqrt(a))
-    r = 6371000  # Radius of earth in meters
-    return c * r
+    return c * RADIUS_EARTH
 
 
 def gps_to_bearing(
@@ -311,6 +312,28 @@ def gps_to_bearing(
     bearing = np.degrees(bearing)
     bearing = (bearing + 360) % 360
     return bearing
+
+
+def get_dist_and_angles_from_gps(
+    latitudes: np.ndarray, longitudes: np.ndarray
+):
+    lats_rolled = np.roll(latitudes, -1)
+    lons_rolled = np.roll(longitudes, -1)
+    distances = haversine(
+        latitudes[:-1], longitudes[:-1], lats_rolled[:-1], lons_rolled[:-1]
+    )
+    distances = np.append(distances, np.nan)
+
+    # first and last angles are not computed
+    angles = gps_to_bearing(
+        latitudes[:-1], longitudes[:-1], lats_rolled[:-1], lons_rolled[:-1]
+    )
+    # convert bearing to angles relative between supports
+    angles = np.diff(angles)
+    angles = np.insert(angles, 0, 0)
+    angles = np.append(angles, 0)
+
+    return distances, angles
 
 
 def bearing_to_direction(
