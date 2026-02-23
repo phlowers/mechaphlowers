@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,7 +8,7 @@ from typing import Union
 
 import numpy as np
 
-RADIUS_EARTH = 6378137  # Radius of Earth in meters
+RADIUS_EARTH = 6371000  # Radius of Earth in meters
 
 
 def gps_to_lambert93(
@@ -211,8 +211,13 @@ def reverse_haversine_float(
     distance: float,
 ) -> tuple[float, float]:
     """
-    Reverse of haversine with floats
-    Values in rad
+    Reverse of haversine with floats.
+
+    Get starting latitude and longitude
+
+    Returns next coordinantes in lat/lon according to bearing and distance.
+
+    Angle values in rad.
     """
 
     angdist = distance / RADIUS_EARTH
@@ -236,18 +241,31 @@ def reverse_haversine_sequence(
     line_angles: np.ndarray,
     span_length: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
+    """Gets arrays of line angle and span length, and starting point data.
+
+    Builds iteratively all the gps points using the input arrays.
+
+    Args:
+        start_lat (float): latitude of the first point
+        start_lon (float): longitude of the first point
+        azimuth (float): azimuth of the first span
+        line_angles (np.ndarray): line angle array (data from SectionArray), in radians
+        span_length (np.ndarray): span length array (data from SectionArray)
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: (lat, lon) two arrays of angles in radians
+    """
     lat_array = [start_lat]
     lon_array = [start_lon]
-    lat = start_lat
-    lon = start_lon
-    # Check line_angle and span_length same length
+    current_lat = start_lat
+    current_lon = start_lon
     bearings = np.cumsum(line_angles) + azimuth
     for index in range(len(line_angles) - 1):
-        lat, lon = reverse_haversine_float(
-            lat, lon, bearings[index], span_length[index]
+        current_lat, current_lon = reverse_haversine_float(
+            current_lat, current_lon, bearings[index], span_length[index]
         )
-        lat_array.append(lat)
-        lon_array.append(lon)
+        lat_array.append(current_lat)
+        lon_array.append(current_lon)
     return np.array(lat_array), np.array(lon_array)
 
 

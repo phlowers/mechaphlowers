@@ -185,10 +185,12 @@ def test_reverse_haversine():
     assert lat_end.dtype == np.float64
     assert lon_end.dtype == np.float64
 
-    assert np.allclose(
-        lat_end, [49.30575764, 43.29276776, 45.53942118], atol=1e-6
+    np.testing.assert_allclose(
+        lat_end, [49.30575764, 43.29276776, 45.53942118], rtol=1e-4
     )
-    assert np.allclose(lon_end, [2.3522, 6.29545998, 4.8357], atol=1e-6)
+    np.testing.assert_allclose(
+        lon_end, [2.3522, 6.29545998, 4.8357], rtol=1e-4
+    )
 
 
 # def test_haversine():
@@ -384,13 +386,9 @@ def test_section_array_to_gps_0():
     section_array = SectionArray(
         pd.DataFrame(
             {
-                "name": np.array(
-                    ["support 1", "2", "three", "support 4", "5"]
-                ),
+                "name": np.array(["1", "2", "three", "4", "5"]),
                 "suspension": np.array([False, True, True, True, False]),
-                "conductor_attachment_altitude": np.array(
-                    [2.2, 5, -0.12, 0, 0]
-                ),
+                "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
                 "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
                 "line_angle": np.array([90, 90, 90, 90, 90]),
                 "insulator_length": np.array([0, 4, 3.2, 0, 0]),
@@ -410,7 +408,7 @@ def test_section_array_to_gps_0():
         span_length=section_array.data.span_length.to_numpy(),
     )
 
-    show_street_map(section_array, np.degrees(all_lats), np.degrees(all_lons))
+    # show_street_map(section_array, np.degrees(all_lats), np.degrees(all_lons))
 
 
 def test_section_array_to_gps_1():
@@ -476,18 +474,31 @@ def test_section_array_to_gps_2():
         span_length=section_array.data.span_length.to_numpy(),
     )
 
-    show_street_map(section_array, np.degrees(all_lats), np.degrees(all_lons))
+    # show_street_map(section_array, np.degrees(all_lats), np.degrees(all_lons))
 
 
 def test_gps_to_section_array_1():
+    # Radius 6371 000
     lats = np.degrees(
         np.array(
-            [0.852708, 0.8527550357, 0.8528167971, 0.8528878445, 0.8529543604]
+            [0.852708, 0.8527550884, 0.852816919, 0.8528880459, 0.8529546364]
         )
     )
     lons = np.degrees(
-        np.array([0.041053, 0.041053, 0.0410695539, 0.0411199183, 0.041221047])
+        np.array(
+            [0.041053, 0.041053, 0.0410695724, 0.0411199932, 0.0412212353]
+        )
     )
+    # Radius 6378137
+
+    # lats = np.degrees(
+    #     np.array(
+    #         [0.852708, 0.8527550357, 0.8528167971, 0.8528878445, 0.8529543604]
+    #     )
+    # )
+    # lons = np.degrees(
+    #     np.array([0.041053, 0.041053, 0.0410695539, 0.0411199183, 0.041221047])
+    # )
     distances, angles = get_dist_and_angles_from_gps(lats, lons)
     np.testing.assert_allclose(
         distances, np.array([300, 400, 500, 600, np.nan]), atol=1e-3

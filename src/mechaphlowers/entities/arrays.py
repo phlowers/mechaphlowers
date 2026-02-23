@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -15,6 +15,7 @@ from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Self, Type
 
 from mechaphlowers.config import options
+from mechaphlowers.data.geography.helpers import reverse_haversine_sequence
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.errors import DataWarning
 from mechaphlowers.entities.schemas import (
@@ -226,6 +227,20 @@ class SectionArray(ElementArray):
                 )
                 warnings.warn(warning_string)
                 logger.warning(warning_string)
+
+    def compute_gps_coordinates(
+        self,
+        start_latitude: float,
+        start_longitude: float,
+        start_azimuth: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        return reverse_haversine_sequence(
+            start_latitude,
+            start_longitude,
+            start_azimuth,
+            self.data["line_angle"].to_numpy(),
+            self.data["span_length"].to_numpy(),
+        )
 
     def __copy__(self) -> Self:
         copy_obj = super().__copy__()
