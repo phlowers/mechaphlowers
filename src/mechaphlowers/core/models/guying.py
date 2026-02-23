@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import logging
+import warnings
 from numbers import Real
 from typing import Literal
 
@@ -14,6 +15,7 @@ from pint import Quantity
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.units import Q_
+from mechaphlowers.entities.errors import ViewChoiceWarning
 from mechaphlowers.utils import span_to_support_view
 
 logger = logging.getLogger(__name__)
@@ -219,7 +221,10 @@ class Guying:
 
         if view == 'span':
             logger.debug("Span view is selected for guying calculation.")
-            # warnings.warn("Span view is selected for guying calculation.")
+            warnings.warn(
+                "Span view is selected for guying calculation.",
+                ViewChoiceWarning,
+            )
             index, side = span_to_support_view(index, side)
 
         if with_pulley and (index == 0 or index >= span_shape - 1):
