@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import List
+
 import numpy as np
 import pandas as pd
 
@@ -118,7 +120,7 @@ class SupportShape:
         )
 
     @staticmethod
-    def from_dataframe(df: pd.DataFrame) -> list[SupportShape]:
+    def from_dataframe(df: pd.DataFrame) -> List[SupportShape]:
         """from_dataframe allows to generate a list of SupportShape object from a dataframe
 
         Args:
@@ -128,7 +130,7 @@ class SupportShape:
             IndexError: if the dataframe has no index
 
         Returns:
-            list[SupportShape]: list of SupportShape objects
+            List[SupportShape]: List of SupportShape objects
         """
 
         name = df.index.unique().tolist()

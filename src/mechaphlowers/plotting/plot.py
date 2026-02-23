@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Literal, Self
+from typing import Callable, Dict, Literal, Self, Tuple
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -353,7 +353,7 @@ class PlotEngine:
         """
         return self.section_pts.obstacles_dict()
 
-    def get_loads_coords(self, project=False, frame_index=0) -> dict:
+    def get_loads_coords(self, project=False, frame_index=0) -> Dict:
         """Get a dictionary of coordinates of the loads.
 
         If there are two loads in spans $0$ and $2$, the format is the following:
@@ -367,7 +367,7 @@ class PlotEngine:
             frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
 
         Returns:
-            dict: dictionary that stores the coordinates. Key is span index. Value is a np.array of coordinates.
+            Dict: dictionary that stores the coordinates. Key is span index. Value is a np.array of coordinates.
         """
         spans_points, _, _ = self.get_points_for_plot(project, frame_index)
         loads_spans_idx, loads_points_idx = self.spans.loads_indices
@@ -382,7 +382,7 @@ class PlotEngine:
 
     def get_points_for_plot(
         self, project=False, frame_index=0
-    ) -> tuple[Points, Points, Points]:
+    ) -> Tuple[Points, Points, Points]:
         """Get Points objects for span, supports and insulators.
         Can be used for plotting 2D or 3D graphs.
 
@@ -391,7 +391,7 @@ class PlotEngine:
             frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
 
         Returns:
-            tuple[Points, Points, Points]: Points for spans, supports and insulators respectively.
+            Tuple[Points, Points, Points]: Points for spans, supports and insulators respectively.
 
         Raises:
             ValueError: frame_index is out of range

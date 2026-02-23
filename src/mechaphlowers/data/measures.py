@@ -12,6 +12,7 @@ This module provides functions to compute various measures on sections and spans
 
 import logging
 from abc import ABC, abstractmethod
+from typing import Dict
 
 import numpy as np
 
@@ -150,7 +151,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         )
         return output_data
 
-    def input_conversion(self, data: dict) -> dict:
+    def input_conversion(self, data: Dict) -> Dict:
         """Convert inputs to the required format."""
         for key, value in data.items():
             data[key] = Q_(value, self.angle_unit).to("rad").magnitude

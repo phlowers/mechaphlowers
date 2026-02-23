@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Callable, Self
+from typing import Callable, Dict, List, Self, Tuple
 
 import numpy as np
 from typing_extensions import Literal  # type: ignore[attr-defined]
@@ -97,11 +97,11 @@ class Points:
         self.coords = coords
 
     @property
-    def vectors(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Convert the coordinates to vectors. Returns the x, y, z coordinates as separate 2D arrays.
 
         Returns:
-            tuple[np.ndarray, np.ndarray, np.ndarray]: Three 2D arrays representing the x, y, and z coordinates.
+            Tuple[np.ndarray, np.ndarray, np.ndarray]: Three 2D arrays representing the x, y, and z coordinates.
 
         Examples:
             >>> x, y, z = points.vectors
@@ -209,13 +209,13 @@ class SparsePoints:
 
     def __init__(
         self,
-        object_name: list,
+        object_name: List,
         point_index: np.ndarray,
         span_index: np.ndarray,
         x: np.ndarray,
         y: np.ndarray,
         z: np.ndarray,
-        object_type: list,
+        object_type: List,
     ) -> None:
         self.object_name = object_name
         self.point_index = point_index
@@ -248,7 +248,7 @@ class SparsePoints:
         self.y = y
         self.z = z
 
-    def get_vectors(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return self.x, self.y, self.z
 
     def points(self, stack=False) -> np.ndarray:
@@ -398,7 +398,7 @@ class SectionPoints:
         Beta is the angle du to the load on the cable"""
         return self.cable_loads.load_angle
 
-    def span_in_cable_frame(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def span_in_cable_frame(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the cable frame."""
         # Rotate the cable with an angle to represent the wind
         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
@@ -413,7 +413,7 @@ class SectionPoints:
 
     def span_in_localsection_frame(
         self,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the localsection frame."""
         x_span, y_span, z_span = self.span_in_cable_frame()
         x_span, y_span, z_span = cable_to_localsection_frame(
@@ -423,7 +423,7 @@ class SectionPoints:
 
     def span_in_section_frame(
         self,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get spans as vectors in the section frame."""
         # TODO: warning here : double call to set_cable_coordinates
         x_span, y_span, z_span = self.span_in_localsection_frame()
@@ -482,7 +482,7 @@ class SectionPoints:
         )
         return Points.from_coords(insulator_layers)
 
-    def obstacles_dict(self) -> dict:
+    def obstacles_dict(self) -> Dict:
         if hasattr(self, "obstacles_array"):
             self.compute_obstacle_coords()
             return self.obstacles_points.dict_coords()
@@ -491,7 +491,7 @@ class SectionPoints:
 
     def get_points_for_plot(
         self, project=False, frame_index=0
-    ) -> tuple[Points, Points, Points]:
+    ) -> Tuple[Points, Points, Points]:
         """Get Points objects for span, supports and insulators.
         Can be used for plotting 2D or 3D graphs.
 
@@ -500,7 +500,7 @@ class SectionPoints:
             frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
 
         Returns:
-            tuple[Points, Points, Points]: Points for spans, supports and insulators respectively.
+            Tuple[Points, Points, Points]: Points for spans, supports and insulators respectively.
 
         Raises:
             ValueError: frame_index is out of range
@@ -529,7 +529,7 @@ class SectionPoints:
         supports_points: Points,
         insulators_points: Points,
         frame_index: int,
-    ) -> tuple[Points, Points, Points]:
+    ) -> Tuple[Points, Points, Points]:
         """Project spans, supports and insulators points into a support frame.
 
         Args:
@@ -539,7 +539,7 @@ class SectionPoints:
             frame_index (int): Index of the frame the projection is made.
 
         Returns:
-            tuple[Points, Points, Points]: Points for spans, supports and insulators respectively,
+            Tuple[Points, Points, Points]: Points for spans, supports and insulators respectively,
             projected into the frame of support number `frame_index`.
         """
         angle_to_project = np.cumsum(self.line_angle)[frame_index]

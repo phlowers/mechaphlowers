@@ -8,6 +8,7 @@
 from abc import ABC, abstractmethod
 from os import PathLike
 from pathlib import Path
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -131,6 +132,6 @@ class ImporterRte(Importer):
 
 def import_data_from_proto(
     filename: str | PathLike,
-) -> tuple[SectionArray, CableArray, WeatherArray]:
+) -> Tuple[SectionArray, CableArray, WeatherArray]:
     importer = ImporterRte(filename)
     return importer.section_array, importer.cable_array, importer.weather_array

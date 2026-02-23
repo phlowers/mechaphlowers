@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from typing import List, Tuple
+
 import numpy as np
 
 
@@ -15,7 +17,7 @@ class Masks:
 
     # TODO: wriste docstring
     def __init__(
-        self, nodes_type: list[str], insulator_length: np.ndarray
+        self, nodes_type: List[str], insulator_length: np.ndarray
     ) -> None:
         self.nodes_type = nodes_type
         self.insulator_length = insulator_length
@@ -29,7 +31,7 @@ class Masks:
 
     def compute_dx_dy_dz(
         self, dx: np.ndarray, dy: np.ndarray, dz: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         L_chain = self.insulator_length
         is_suspension = self.is_suspension
         is_anchor_first = self.is_anchor_first
@@ -136,13 +138,13 @@ class VectorProjection:
         r_z_d = vd
         return np.array([r_s_d, r_t_d, r_z_d])
 
-    def force_cable(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def force_cable(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Compute forces of the cable on the insulator chain
 
         Does NOT include insulator chain weight
 
         Returns:
-            tuple[np.ndarray, np.ndarray, np.ndarray]: Fx, Fy, Fz
+            Tuple[np.ndarray, np.ndarray, np.ndarray]: Fx, Fy, Fz
         """
         s_right, t_right, z_right = self.T_line_plane_right()
         T_line_plane_left = self.T_line_plane_left()
@@ -184,7 +186,7 @@ class VectorProjection:
         Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
         return Fx, Fy, Fz
 
-    def force_cable_right(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def force_cable_right(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Compute cable force on the chain, at the right side of the support"""
         T_line_plane_left = self.T_line_plane_left()
         s_left_span, t_left_span, z_left_span = T_line_plane_left
@@ -223,7 +225,7 @@ class VectorProjection:
         Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
         return Fx, Fy, Fz
 
-    def force_cable_left(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def force_cable_left(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Compute cable force on the chain, at the left side of the support"""
         s_right_span, t_right_span, z_right_span = self.T_line_plane_right()
 

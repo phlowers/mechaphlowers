@@ -4,6 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from typing import Tuple
 
 import numpy as np
 
@@ -42,7 +43,7 @@ class QuantityArray:
         """Return the unit symbol of the quantity array as a string"""
         return f"{self.quantity.u:P~}"
 
-    def to_tuple(self) -> tuple[Quantity, str]:
+    def to_tuple(self) -> Tuple[Quantity, str]:
         """Helper providing the quantity array as a tuple of (magnitude, unit symbol)"""
         return (self.quantity.m, self.symbol)
 
@@ -76,7 +77,7 @@ class VhlStrength:
         )
 
     @property
-    def vhl(self) -> tuple[QuantityArray, QuantityArray, QuantityArray]:
+    def vhl(self) -> Tuple[QuantityArray, QuantityArray, QuantityArray]:
         """Return the V, H, L components as a tuple of 3 QuantityArrays"""
         return (self.V, self.H, self.L)
 

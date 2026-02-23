@@ -4,6 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -34,14 +35,14 @@ class SectionArrayInput(pa.DataFrameModel):
     insulator_length: pdt.Series[float] = pa.Field(coerce=True)
     span_length: pdt.Series[float] = pa.Field(nullable=True, coerce=True)
     insulator_mass: pdt.Series[float] = pa.Field(coerce=True)
-    load_mass: pdt.Series[float] | None = pa.Field(
+    load_mass: Optional[pdt.Series[float]] = pa.Field(
         nullable=True,
         coerce=True,
     )
-    load_position: pdt.Series[float] | None = pa.Field(
+    load_position: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    ground_altitude: pdt.Series[float] | None = pa.Field(
+    ground_altitude: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
 

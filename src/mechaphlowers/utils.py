@@ -8,7 +8,7 @@ import logging
 import warnings
 from functools import wraps
 from time import time
-from typing import Any, Callable, Literal, Protocol, TypeVar, cast
+from typing import Any, Callable, Dict, Literal, Protocol, TypeVar, cast
 
 import numpy as np
 import pandas as pd
@@ -64,7 +64,7 @@ class CachedAccessor:
         return accessor_obj
 
 
-def float_to_array(data: dict[str, np.ndarray | float | int]) -> dict:
+def float_to_array(data: Dict[str, np.ndarray | float | int]) -> Dict:
     """Convert inputs to the required format."""
     for key, value in data.items():
         if isinstance(value, (int, float)):
@@ -255,7 +255,7 @@ T = TypeVar("T", bound=Callable[..., Any])
 class CachedCallable(Protocol):
     def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
 
-    _cache: dict[bytes, Any]
+    _cache: Dict[bytes, Any]
 
     def cache_clear(self) -> None: ...
 
