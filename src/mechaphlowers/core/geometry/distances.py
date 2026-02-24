@@ -18,13 +18,16 @@ from mechaphlowers.plotting.plot_distances import plot_distance_engine
 
 
 def points_distance_inside_plane(
-    point_base: np.ndarray, point_target: np.ndarray, u_plane: np.ndarray, v_plane: np.ndarray
+    point_base: np.ndarray,
+    point_target: np.ndarray,
+    u_plane: np.ndarray,
+    v_plane: np.ndarray,
 ) -> tuple[float, float, float]:
     """Compute the distance between two points in 3D inside a plane.
-    
+
     The plane is defined by its basis vectors u_plane and v_plane, which are orthogonal and normalized.
     The function compute 3D distance between the two points, as well as the projections of this distance onto the plane basis vectors.
-    
+
     Args:
         point_base: The first point in 3D space (numpy array of shape (3,)).
         point_target: The second point in 3D space (numpy array of shape (3,)).
@@ -34,7 +37,7 @@ def points_distance_inside_plane(
     Returns:
         A tuple containing the 3D distance and the projections onto the plane basis vectors (distance_3d, distance_projection_u, distance_projection_v).
     """
-    
+
     # Calculate difference vector
     diff_vector = point_target - point_base
     print(
@@ -63,17 +66,21 @@ def points_distance_inside_plane(
 
 
 def get_projection_points(
-    origin_point: np.ndarray, projection_u: float, projection_v: float, u_plane: np.ndarray, v_plane: np.ndarray
+    origin_point: np.ndarray,
+    projection_u: float,
+    projection_v: float,
+    u_plane: np.ndarray,
+    v_plane: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Calculate the projection points on the plane basis vectors from an origin point and the projections.
-    
+
     Args:
         origin_point: The original point in 3D space from which projections are calculated (numpy array of shape (3,)).
         projection_u: The scalar projection distance along the u_plane basis vector.
         projection_v: The scalar projection distance along the v_plane basis vector.
         u_plane: The first basis vector of the plane (numpy array of shape (3,)).
         v_plane: The second basis vector of the plane (numpy array of shape (3,))
-    
+
     Returns:
         A tuple containing the projection points on the plane basis vectors (u_projection_point, v_projection_point).
     """
@@ -126,11 +133,10 @@ class DistanceResult:
 
 
 class DistanceEngine:
-    
     """DistanceEngine distance computation between a point and a curve in 3D space.
-    
+
     It uses a defined plane for the distance calculation. The plane is defined by a span frame, which is determined by two points (start and end of the span). The engine allows to add curves and span frames, and then compute the distance from a given point to the curve along the plane defined by the span frame. The result is returned as a DistanceResult object containing the distance information and projection details.
-    
+
     Example:
         >>> de = DistanceEngine()
         >>> de.add_curves(curve_points)
@@ -139,26 +145,26 @@ class DistanceEngine:
         >>> fig = de.plot(distance_result)
         >>> fig.show()
     """
-    
+
     def __init__(self):
         pass
 
     def add_curves(self, curve_points: np.ndarray):
         """add curves to the engine, which will be used for distance calculations. The curves are defined by their points in 3D space.
-        
+
         Args:
             curve_points: A numpy array of shape (N, 3) representing the points of
         """
         self.curve_points = curve_points
 
     def add_span_frame(self, x_axis_start: np.ndarray, x_axis_end: np.ndarray):
-        """Add a span frame to the engine, which will be used for distance calculations. 
-        
+        """Add a span frame to the engine, which will be used for distance calculations.
+
         The span frame is defined by its X axis start and end points in 3D space.
         This frame will be used to define the plane for distance calculations, with the normal vector of the plane being vertical (Z direction) and the other two basis vectors defined in the XY plane along the span direction and perpendicular to it.
-        
+
         Warning - Z is always oriented upwards, which is important for the distance calculations.
-        
+
         Args:
             x_axis_start: A numpy array of shape (3,) representing the start point of the span frame.
             x_axis_end: A numpy array of shape (3,) representing the end point of the span frame.
@@ -180,12 +186,14 @@ class DistanceEngine:
         """Return the axis points as a numpy array of shape (2, 3) containing the start and end points of the span frame."""
         return np.array([self.axis_start, self.axis_end])
 
-    def define_distance_plane(self, point: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def define_distance_plane(
+        self, point: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Define the distance plane based on a given point.
-        
+
         Args:
             point: A numpy array of shape (3,) representing the point from which the distance plane
-            
+
         Returns:
             A tuple containing the basis vectors of the plane (u_plane, v_plane).
         """
@@ -196,7 +204,9 @@ class DistanceEngine:
         return self.u_plane, self.v_plane
 
     def plane_distance(
-        self, point_base: np.ndarray, frame: Literal["span", "section"] = "span"
+        self,
+        point_base: np.ndarray,
+        frame: Literal["span", "section"] = "span",
     ) -> DistanceResult:
         if frame == "span":
             self.point_base = change_local_frame(
@@ -241,16 +251,28 @@ class DistanceEngine:
             distance_projection_v=distance_projection_v,
         )
 
-    def plot(self, distance_result: DistanceResult, show_plane=True, show_projections= True,**kwargs):
+    def plot(
+        self,
+        distance_result: DistanceResult,
+        show_plane: bool = True,
+        show_projections: bool = True,
+        **kwargs,
+    ):
         """Helper method to plot the distance result using the plot_distance_engine function from the plotting module.
-        
+
         Args:
             distance_result: The DistanceResult object containing the distance information.
             show_plane: Boolean flag to indicate whether to show the distance plane.
-            show_projection: Boolean flag to indicate whether to show the distance projection.
+            show_projections: Boolean flag to indicate whether to show the distance projection.
             **kwargs: Additional keyword arguments to pass to the plotting function.
-            
+
         Returns:
             A plotly figure object containing the distance visualization.
         """
-        return plot_distance_engine(self, distance_result, show_plane=show_plane, show_projections=show_projections, **kwargs)
+        return plot_distance_engine(
+            self,
+            distance_result,
+            show_plane=show_plane,
+            show_projections=show_projections,
+            **kwargs,
+        )

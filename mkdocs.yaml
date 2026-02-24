@@ -70,6 +70,7 @@ nav:
                   - Rotation: docstring/core/geometry/rotation.md
                   - Coordinate systems: docstring/core/geometry/points.md
                   - Line angles: docstring/core/geometry/line_angles.md
+                  - Distance: docstring/core/geometry/distance.md
               - Models:
                   - Balance:
                     - Engine: docstring/core/models/balance/engine.md
@@ -93,6 +94,7 @@ nav:
               - Measures: docstring/data/measures.md
           - Configuration: docstring/config.md
           - Plotting:
+              - Distance: docstring/plotting/distance.md
               - Plot: docstring/plotting/plot.md
               - Geography:
                   - Create elevation profile: docstring/plotting/geography/plot_elevation_profile.md

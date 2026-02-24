@@ -466,7 +466,7 @@ def plot_distance_engine(
         AttributeError: If distance_engine is missing required attributes.
         ValueError: If show_distance_result is True but distance_result is None.
 
-    Example:
+    Examples:
         >>> engine = DistanceEngine()
         >>> engine.add_span_frame(axis_start, axis_end)
         >>> engine.add_curves(curve_points)
