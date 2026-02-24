@@ -203,4 +203,4 @@ def test_perf_numpy_cache_decorator() -> None:
 
 def test_view_error() -> None:
     with pytest.raises(ValueError):
-        span_to_support_view(1, "xxx")
+        span_to_support_view(1, "xxx")  # type: ignore[arg-type]
