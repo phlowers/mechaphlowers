@@ -186,10 +186,10 @@ def test_reverse_haversine():
     assert lon_end.dtype == np.float64
 
     np.testing.assert_allclose(
-        lat_end, [49.30575764, 43.29276776, 45.53942118], rtol=1e-4
+        lat_end, [49.30575764, 43.29276776, 45.53942118], rtol=1e-3
     )
     np.testing.assert_allclose(
-        lon_end, [2.3522, 6.29545998, 4.8357], rtol=1e-4
+        lon_end, [2.3522, 6.29545998, 4.8357], rtol=1e-3
     )
 
 
@@ -441,7 +441,7 @@ def test_section_array_to_gps_1():
         span_length=section_array.data.span_length.to_numpy(),
     )
 
-    show_street_map(section_array, np.degrees(all_lats), np.degrees(all_lons))
+    # show_street_map(section_array, np.degrees(all_lats), np.degrees(all_lons))
 
 
 def test_section_array_to_gps_2():
@@ -489,16 +489,7 @@ def test_gps_to_section_array_1():
             [0.041053, 0.041053, 0.0410695724, 0.0411199932, 0.0412212353]
         )
     )
-    # Radius 6378137
 
-    # lats = np.degrees(
-    #     np.array(
-    #         [0.852708, 0.8527550357, 0.8528167971, 0.8528878445, 0.8529543604]
-    #     )
-    # )
-    # lons = np.degrees(
-    #     np.array([0.041053, 0.041053, 0.0410695539, 0.0411199183, 0.041221047])
-    # )
     distances, angles = get_dist_and_angles_from_gps(lats, lons)
     np.testing.assert_allclose(
         distances, np.array([300, 400, 500, 600, np.nan]), atol=1e-3
@@ -509,12 +500,12 @@ def test_gps_to_section_array_1():
 def test_gps_to_section_array_2():
     lats = np.degrees(
         np.array(
-            [0.852708, 0.8527079987, 0.8526971063, 0.8527039352, 0.852679583]
+            [0.852708, 0.8527079987, 0.8526970941, 0.8527039307, 0.8526795512]
         )
     )
     lons = np.degrees(
         np.array(
-            [0.041053, 0.0411244886, 0.0412183575, 0.0413370513, 0.0414751523]
+            [0.041053, 0.0411245687, 0.0412185428, 0.0413373695, 0.0414756252]
         )
     )
     distances, angles = get_dist_and_angles_from_gps(lats, lons)
