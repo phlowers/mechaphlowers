@@ -13,7 +13,7 @@ class Masks:
     Current types: "suspension", "anchor_first", "anchor_last"
     """
 
-    # TODO: wriste docstring
+    # TODO: write docstring
     def __init__(
         self, nodes_type: list[str], insulator_length: np.ndarray
     ) -> None:
