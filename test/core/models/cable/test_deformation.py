@@ -68,7 +68,7 @@ def test_deformation_values__default_data(
         **data_container.__dict__,
         tension_mean=tension_mean,
         cable_length=cable_length,
-        max_stress=0
+        max_stress=np.array([0, 0]),
     )
 
     eps_mecha = deformation_model.epsilon_mecha()
