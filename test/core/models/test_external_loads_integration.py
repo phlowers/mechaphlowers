@@ -40,7 +40,7 @@ def test_convert_gust_wind_no_angle():
         gust=gust_wind,
         voltage=voltage,
     )
-    # Same results than previous test despite changing angle because results are rounded
+    # Same results as previous test despite changing angle because results are rounded
     np.testing.assert_equal(wind_converter.speed_average, np.array([9, 5.4]))
     np.testing.assert_equal(
         wind_converter.pressure_rounded, np.array([110, 40])
