@@ -17,7 +17,7 @@ from typing_extensions import Self, Type
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.errors import DataWarning
-from mechaphlowers.entities.geography import get_gps_coordinates
+from mechaphlowers.entities.geography import get_gps_from_arrays
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     SectionArrayInput,
@@ -238,7 +238,7 @@ class SectionArray(ElementArray):
         line_angle_geo_degrees = (
             -Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
         )
-        return get_gps_coordinates(
+        return get_gps_from_arrays(
             start_latitude,
             start_longitude,
             start_azimuth,

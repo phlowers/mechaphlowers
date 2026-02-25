@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.geography import (
     get_dist_and_angles_from_gps,
-    get_gps_coordinates,
+    get_gps_from_arrays,
 )
 
 
@@ -33,7 +33,7 @@ def test_section_array_to_gps_0():
         )
     )
     section_array.add_units({"line_angle": "deg"})
-    all_lats, all_lons = get_gps_coordinates(
+    all_lats, all_lons = get_gps_from_arrays(
         start_lat=48.8566,
         start_lon=2.3522,
         azimuth=0,
@@ -68,7 +68,7 @@ def test_section_array_to_gps_1():
         )
     )
     section_array.add_units({"line_angle": "deg"})
-    all_lats, all_lons = get_gps_coordinates(
+    all_lats, all_lons = get_gps_from_arrays(
         start_lat=48.8566,
         start_lon=2.3522,
         azimuth=0,
@@ -103,7 +103,7 @@ def test_section_array_to_gps_2():
         )
     )
     section_array.add_units({"line_angle": "deg"})
-    all_lats, all_lons = get_gps_coordinates(
+    all_lats, all_lons = get_gps_from_arrays(
         start_lat=48.8566,  # in rads: 0.852708
         start_lon=2.3522,  # in rads: 0.041053
         azimuth=np.pi / 2,
@@ -155,6 +155,26 @@ def test_gps_to_section_array_2():
         angles, np.array([0, 10, -15, 20, 0]), atol=1e-3
     )
 
+
+def test_round_trip():
+    # --- Forward: section geometry → GPS ---
+    # Put 0 at first and last support, because inverse operation can't manage them
+	line_angles = np.array([0.0, 10.0, -15.0, 20.0, 0])
+	span_lengths = np.array([300.0, 400.0, 500.0, 600.0, np.nan])
+
+	lats, lons = get_gps_from_arrays(
+		start_lat=48.8566,
+		start_lon=2.3522,
+		azimuth=90.0,        # first span heads East
+		line_angles_degrees=line_angles,
+		span_length=span_lengths,
+	)
+
+	# --- Inverse: GPS → section geometry ---
+	recovered_distances, recovered_angles = get_dist_and_angles_from_gps(lats, lons)
+
+	np.testing.assert_allclose(recovered_distances, span_lengths, atol=1e-3)
+	np.testing.assert_allclose(recovered_angles, line_angles, atol=1e-3)
 
 def show_street_map(
     section_array: SectionArray, all_lats: np.ndarray, all_lons: np.ndarray

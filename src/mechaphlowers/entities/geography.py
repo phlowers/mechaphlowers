@@ -88,7 +88,7 @@ def get_dist_and_angles_from_gps(
     return distances, np.degrees(angles)
 
 
-def get_gps_coordinates(
+def get_gps_from_arrays(
     start_lat: float,
     start_lon: float,
     azimuth: float,

@@ -1,7 +1,7 @@
 site_name: mechaphlowers
 site_url: http://mechaphlowers.readthedocs.com
 repo_url: https://github.com/phlowers/mechaphlowers
-copyright: Copyright &copy; 2024 RTE France. Unless otherwise indicated, content is licensed under CC-BY-4.0.
+copyright: Copyright &copy; 2026 RTE France. Unless otherwise indicated, content is licensed under CC-BY-4.0.
 
 theme:
   name: "material"
@@ -50,7 +50,7 @@ nav:
       - Measures : user_guide/ug_measures.md
       - Parameter calibration : user_guide/ug_parameter_calibration.md
       - Configuration: user_guide/ug_configuration.md
-      - Plotting: user_guide/ug_maps.md
+      - Geography: user_guide/ug_maps.md
       - Thermal engine: user_guide/ug_thermal_engine.md
       - Specific errors used: user_guide/ug_mph_errors.md
   - Developer guide:
