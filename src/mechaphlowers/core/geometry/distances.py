@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 
@@ -251,13 +251,14 @@ class DistanceEngine:
             distance_projection_v=distance_projection_v,
         )
 
+    # this method is a viewer for user and is intended to be moved after refactor of the plotting module
     def plot(
         self,
         distance_result: DistanceResult,
         show_plane: bool = True,
         show_projections: bool = True,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ): # no typing for return here to avoid import plotly
         """Helper method to plot the distance result using the plot_distance_engine function from the plotting module.
 
         Args:
