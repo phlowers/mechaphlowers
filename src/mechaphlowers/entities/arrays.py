@@ -15,9 +15,9 @@ from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Self, Type
 
 from mechaphlowers.config import options
-from mechaphlowers.data.geography.helpers import reverse_haversine_sequence
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.errors import DataWarning
+from mechaphlowers.entities.geography import get_gps_coordinates
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     SectionArrayInput,
@@ -234,11 +234,15 @@ class SectionArray(ElementArray):
         start_longitude: float,
         start_azimuth: float,
     ) -> tuple[np.ndarray, np.ndarray]:
-        return reverse_haversine_sequence(
+        # TODO: degrees here
+        line_angle_geo_degrees = (
+            -Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        return get_gps_coordinates(
             start_latitude,
             start_longitude,
             start_azimuth,
-            self.data["line_angle"].to_numpy(),
+            line_angle_geo_degrees,
             self.data["span_length"].to_numpy(),
         )
 

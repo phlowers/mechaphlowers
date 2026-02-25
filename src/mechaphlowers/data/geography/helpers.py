@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Union
+from typing import Literal, Union
 
 import numpy as np
 
@@ -234,61 +234,27 @@ def reverse_haversine_float(
     return (lat2, lon2)
 
 
-def reverse_haversine_sequence(
-    start_lat: float,
-    start_lon: float,
-    azimuth: float,
-    line_angles: np.ndarray,
-    span_length: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Gets arrays of line angle and span length, and starting point data.
-
-    Builds iteratively all the gps points using the input arrays.
-
-    Args:
-        start_lat (float): latitude of the first point
-        start_lon (float): longitude of the first point
-        azimuth (float): azimuth of the first span
-        line_angles (np.ndarray): line angle array (data from SectionArray), in radians
-        span_length (np.ndarray): span length array (data from SectionArray)
-
-    Returns:
-        tuple[np.ndarray, np.ndarray]: (lat, lon) two arrays of angles in radians
-    """
-    lat_array = [start_lat]
-    lon_array = [start_lon]
-    current_lat = start_lat
-    current_lon = start_lon
-    bearings = np.cumsum(line_angles) + azimuth
-    for index in range(len(line_angles) - 1):
-        current_lat, current_lon = reverse_haversine_float(
-            current_lat, current_lon, bearings[index], span_length[index]
-        )
-        lat_array.append(current_lat)
-        lon_array.append(current_lon)
-    return np.array(lat_array), np.array(lon_array)
-
-
 def haversine(
     lat1: np.ndarray,
     lon1: np.ndarray,
     lat2: np.ndarray,
     lon2: np.ndarray,
+    unit: Literal["rad", "deg"] = "rad",
 ) -> np.ndarray:
     """
     Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
+    on the earth
     Args:
-        lat1 (np.ndarray): Latitude of point A in decimal degrees
-        lon1 (np.ndarray): Longitude of point A in decimal degrees
-        lat2 (np.ndarray): Latitude of point B in decimal degrees
-        lon2 (np.ndarray): Longitude of point B in decimal degrees
+        lat1 (np.ndarray): Latitude of point A in radians
+        lon1 (np.ndarray): Longitude of point A in radians
+        lat2 (np.ndarray): Latitude of point B in radians
+        lon2 (np.ndarray): Longitude of point B in radians
 
     Returns:
         np.ndarray: Distance in meters
     """
-    # Convert decimal degrees to radians
-    lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
+    if unit == "deg":
+        lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
 
     # Haversine formula
     dlon = lon2 - lon1
@@ -306,52 +272,32 @@ def gps_to_bearing(
     lon1: np.ndarray,
     lat2: np.ndarray,
     lon2: np.ndarray,
+    unit: Literal["rad", "deg"] = "rad",
 ) -> np.ndarray:
     """
     Calculate the bearing between two points
     Returns bearing in degrees from north (0-360)
     Args:
-        lat1 (np.ndarray): Latitude of point A in decimal degrees
-        lon1 (np.ndarray): Longitude of point A in decimal degrees
-        lat2 (np.ndarray): Latitude of point B in decimal degrees
-        lon2 (np.ndarray): Longitude of point B in decimal degrees
+        lat1 (np.ndarray): Latitude of point A in radians
+        lon1 (np.ndarray): Longitude of point A in radians
+        lat2 (np.ndarray): Latitude of point B in radians
+        lon2 (np.ndarray): Longitude of point B in radians
 
     Returns:
         np.ndarray: Bearing angle in degrees from north (0-360)
     """
-    lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
-
+    if unit == "deg":
+        lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
     dlon = lon2 - lon1
     y = np.sin(dlon) * np.cos(lat2)
     x = np.cos(lat1) * np.sin(lat2) - np.sin(lat1) * np.cos(lat2) * np.cos(
         dlon
     )
     bearing = np.arctan2(y, x)
-    bearing = np.degrees(bearing)
-    bearing = (bearing + 360) % 360
+    bearing = bearing % (2 * np.pi)
+    if unit == "deg":
+        bearing = np.degrees(bearing)
     return bearing
-
-
-def get_dist_and_angles_from_gps(
-    latitudes: np.ndarray, longitudes: np.ndarray
-):
-    lats_rolled = np.roll(latitudes, -1)
-    lons_rolled = np.roll(longitudes, -1)
-    distances = haversine(
-        latitudes[:-1], longitudes[:-1], lats_rolled[:-1], lons_rolled[:-1]
-    )
-    distances = np.append(distances, np.nan)
-
-    # first and last angles are not computed
-    angles = gps_to_bearing(
-        latitudes[:-1], longitudes[:-1], lats_rolled[:-1], lons_rolled[:-1]
-    )
-    # convert bearing to angles relative between supports
-    angles = np.diff(angles)
-    angles = np.insert(angles, 0, 0)
-    angles = np.append(angles, 0)
-
-    return distances, angles
 
 
 def bearing_to_direction(
