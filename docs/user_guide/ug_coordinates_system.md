@@ -84,8 +84,9 @@ section_array = SectionArray(
             "conductor_attachment_altitude": np.array([30, 40, 60, 70]),
             "crossarm_length": np.array([40, 20, -30, -50]),
             "line_angle": np.array([0, -45, 60, -30]),
-            "insulator_length": np.array([0, 5, 82, 0]),
+            "insulator_length": np.array([0.01, 5, 82, 0.01]),
             "span_length": np.array([500, 460, 520, np.nan]),
+            "insulator_mass": [100.0, 50.0, 50.0, 100.0],
         }
     ),
     sagging_parameter = 2000,
