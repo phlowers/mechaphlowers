@@ -258,7 +258,7 @@ class DistanceEngine:
         show_plane: bool = True,
         show_projections: bool = True,
         **kwargs: Any,
-    ): # no typing for return here to avoid import plotly
+    ):  # no typing for return here to avoid import plotly
         """Helper method to plot the distance result using the plot_distance_engine function from the plotting module.
 
         Args:

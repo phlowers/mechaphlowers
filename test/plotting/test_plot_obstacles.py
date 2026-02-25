@@ -11,6 +11,7 @@ import plotly.graph_objects as go  # type: ignore[import-untyped]
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import ObstacleArray
 from mechaphlowers.plotting.plot import PlotEngine
+from test.conftest import show_figures
 
 
 def test_plot_obstacles(balance_engine_angles: BalanceEngine):
@@ -52,7 +53,10 @@ def test_plot_obstacles(balance_engine_angles: BalanceEngine):
     assert list(obstacle_dict.keys()) == ['obs_0', 'obs_1', 'obs_2']
 
     plt_engine.preview_line3d(fig)
-    # fig.show()
+
+    if show_figures:
+        fig.show()
+
     points_result = plt_engine.get_obstacles_points()
     expected_result = np.array(
         [

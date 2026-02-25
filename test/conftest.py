@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+import os
 import sys
 from pathlib import Path
 from typing import Callable
@@ -32,6 +33,20 @@ from mechaphlowers.entities.data_container import (
     DataContainer,
     factory_data_container,
 )
+
+
+
+def get_show_figures():
+    """Fixture to control whether plotly figures are shown during tests."""
+    env_var = "SHOW_FIGURES"
+    show = env_var in os.environ and os.environ[env_var].lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    return show
+
+show_figures = get_show_figures()
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

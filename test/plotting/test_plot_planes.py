@@ -20,6 +20,7 @@ from mechaphlowers.core.geometry.distances import (
     DistanceResult,
 )
 from mechaphlowers.plotting.plot import PlotEngine
+from test.conftest import show_figures
 
 pt0 = np.array([0.0, 0.0, 38.69021545])
 pt1 = np.array([597.90765581, -200.92768965, 10.27928764])
@@ -68,8 +69,8 @@ def test_distance_engine():
     dr = de.plane_distance(obstacle, frame="span")
 
     fig = de.plot(distance_result=dr, show_plane=True, show_projections=True)
-
-    fig.show()
+    if show_figures:
+        fig.show()
 
     assert isinstance(
         dr, DistanceResult
@@ -156,5 +157,5 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
             span_index=0,
             point=np.array([250.0, 20.0]),  # Only 2D
         )
-
-    fig.show()  # Display the figure for visual verification (optional)
+    if show_figures:
+        fig.show()  # Display the figure for visual verification (optional)
