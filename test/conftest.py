@@ -35,7 +35,6 @@ from mechaphlowers.entities.data_container import (
 )
 
 
-
 def get_show_figures():
     """Fixture to control whether plotly figures are shown during tests."""
     env_var = "SHOW_FIGURES"
@@ -45,6 +44,7 @@ def get_show_figures():
         "yes",
     )
     return show
+
 
 show_figures = get_show_figures()
 
