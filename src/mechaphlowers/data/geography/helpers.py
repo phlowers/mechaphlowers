@@ -11,6 +11,7 @@ import numpy as np
 # Mean radius of Earth in meters
 RADIUS_EARTH = 6371000
 
+
 def gps_to_lambert93(
     latitude: Union[np.float64, np.ndarray],
     longitude: Union[np.float64, np.ndarray],
