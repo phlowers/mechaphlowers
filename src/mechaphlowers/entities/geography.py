@@ -57,7 +57,7 @@ def geo_info_from_gps(lats: np.ndarray, lons: np.ndarray) -> SupportGeoInfo:
 
 
 def get_dist_and_angles_from_gps(
-    latitudes: np.ndarray, longitudes: np.ndarray
+    latitudes_deg: np.ndarray, longitudes_deg: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
     """Compute distances and angles between supports using latitudes and longitudes.
 
@@ -68,11 +68,11 @@ def get_dist_and_angles_from_gps(
     Returns:
         tuple[np.ndarray, np.ndarray]: tuple (distance, angles) in meters and decimal degrees
     """
-    lats_rolled_rad = np.radians(latitudes[1:])
-    lons_rolled_rad = np.radians(longitudes[1:])
+    lats_rolled_rad = np.radians(latitudes_deg[1:])
+    lons_rolled_rad = np.radians(longitudes_deg[1:])
 
-    lats_rad = np.radians(latitudes[:-1])
-    lons_rad = np.radians(longitudes[:-1])
+    lats_rad = np.radians(latitudes_deg[:-1])
+    lons_rad = np.radians(longitudes_deg[:-1])
     distances = haversine(lats_rad, lons_rad, lats_rolled_rad, lons_rolled_rad)
     distances = np.append(distances, np.nan)
 
@@ -88,9 +88,9 @@ def get_dist_and_angles_from_gps(
 
 
 def get_gps_from_arrays(
-    start_lat: float,
-    start_lon: float,
-    azimuth: float,
+    start_lat_deg: float,
+    start_lon_deg: float,
+    azimuth_deg: float,
     line_angles_degrees: np.ndarray,
     span_length: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -106,9 +106,9 @@ def get_gps_from_arrays(
     - first and last value are only relevant for support orientation, and not considered for this computation
 
     Args:
-        start_lat (float): latitude of the first point
-        start_lon (float): longitude of the first point
-        azimuth (float): azimuth of the first span in geometrical degrees
+        start_lat_deg (float): latitude of the first point
+        start_lon_deg (float): longitude of the first point
+        azimuth_deg (float): azimuth of the first span in geometrical degrees
         line_angles_degrees (np.ndarray): line angle array (data from SectionArray), in geometrical degrees
         span_length (np.ndarray): span length array (data from SectionArray)
 
@@ -116,14 +116,14 @@ def get_gps_from_arrays(
         tuple[np.ndarray, np.ndarray]: (lat, lon) two arrays of angles in degrees
     """
     # TODO: fix docstring -> geometric degrees?
-    current_lat_rad = np.radians(start_lat)
-    current_lon_rad = np.radians(start_lon)
+    current_lat_rad = np.radians(start_lat_deg)
+    current_lon_rad = np.radians(start_lon_deg)
     lat_array_rad = [current_lat_rad]
     lon_array_rad = [current_lon_rad]
     # first value of line_angles is set to 0 to avoid unexpected behaviour.
     # now azimuth is truly the orientation of the first span
     line_angles_degrees[0] = 0.0
-    bearings_deg = np.cumsum(line_angles_degrees) + azimuth
+    bearings_deg = np.cumsum(line_angles_degrees) + azimuth_deg
     bearings_rad = np.radians(bearings_deg)
     # Deliberate choice to not take into account the last angle: refers to the angle with the next section
     for index in range(len(line_angles_degrees) - 1):

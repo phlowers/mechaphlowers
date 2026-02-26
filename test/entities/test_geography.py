@@ -34,9 +34,9 @@ def test_section_array_to_gps_0():
     )
     section_array.add_units({"line_angle": "deg"})
     all_lats, all_lons = get_gps_from_arrays(
-        start_lat=48.8566,
-        start_lon=2.3522,
-        azimuth=0,
+        start_lat_deg=48.8566,
+        start_lon_deg=2.3522,
+        azimuth_deg=0,
         line_angles_degrees=-np.degrees(
             section_array.data.line_angle.to_numpy()
         ),
@@ -69,9 +69,9 @@ def test_section_array_to_gps_1():
     )
     section_array.add_units({"line_angle": "deg"})
     all_lats, all_lons = get_gps_from_arrays(
-        start_lat=48.8566,
-        start_lon=2.3522,
-        azimuth=0,
+        start_lat_deg=48.8566,
+        start_lon_deg=2.3522,
+        azimuth_deg=0,
         line_angles_degrees=-np.degrees(
             section_array.data.line_angle.to_numpy()
         ),
@@ -104,9 +104,9 @@ def test_section_array_to_gps_2():
     )
     section_array.add_units({"line_angle": "deg"})
     all_lats, all_lons = get_gps_from_arrays(
-        start_lat=48.8566,  # in rads: 0.852708
-        start_lon=2.3522,  # in rads: 0.041053
-        azimuth=90,
+        start_lat_deg=48.8566,  # in rads: 0.852708
+        start_lon_deg=2.3522,  # in rads: 0.041053
+        azimuth_deg=90,
         line_angles_degrees=-np.degrees(
             section_array.data.line_angle.to_numpy()
         ),
@@ -163,9 +163,9 @@ def test_round_trip():
     span_lengths = np.array([300.0, 400.0, 500.0, 600.0, np.nan])
 
     lats, lons = get_gps_from_arrays(
-        start_lat=48.8566,
-        start_lon=2.3522,
-        azimuth=90.0,  # first span heads East
+        start_lat_deg=48.8566,
+        start_lon_deg=2.3522,
+        azimuth_deg=90.0,  # first span heads East
         line_angles_degrees=line_angles,
         span_length=span_lengths,
     )
