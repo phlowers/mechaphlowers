@@ -66,7 +66,7 @@ def get_dist_and_angles_from_gps(
         longitudes (np.ndarray): array of longitudes in decimal degrees
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: tuple (distance, angles) in meters and geometrical degrees
+        tuple[np.ndarray, np.ndarray]: tuple (distance, angles) in meters and decimal degrees
     """
     lats_rolled_rad = np.radians(latitudes[1:])
     lons_rolled_rad = np.radians(longitudes[1:])
@@ -77,15 +77,14 @@ def get_dist_and_angles_from_gps(
     distances = np.append(distances, np.nan)
 
     # first and last angles are not computed
-    angles = gps_to_bearing(
+    bearings_rad = gps_to_bearing(
         lats_rad, lons_rad, lats_rolled_rad, lons_rolled_rad
     )
     # convert bearing to angles relative between supports
-    angles = np.diff(angles)
-    angles = np.insert(angles, 0, 0)
-    angles = np.append(angles, 0)
+    angles_rad = np.diff(bearings_rad)
+    angles_rad = np.concatenate(([0], angles_rad, [0]))
 
-    return distances, np.degrees(angles)
+    return distances, np.degrees(angles_rad)
 
 
 def get_gps_from_arrays(
@@ -101,6 +100,11 @@ def get_gps_from_arrays(
 
     Input and output are in degrees. This function converts in radians in order to use reverse_haversine_float()
 
+    span_length and line_angles_degrees come from SectionArray. Their data is based on support view.
+    Therefore:
+    - last value of span_length is np.nan
+    - first and last value are only relevant for support orientation, and not considered for this computation
+
     Args:
         start_lat (float): latitude of the first point
         start_lon (float): longitude of the first point
@@ -111,16 +115,25 @@ def get_gps_from_arrays(
     Returns:
         tuple[np.ndarray, np.ndarray]: (lat, lon) two arrays of angles in degrees
     """
-    current_lat = np.radians(start_lat)
-    current_lon = np.radians(start_lon)
-    lat_array = [current_lat]
-    lon_array = [current_lon]
+    # TODO: fix docstring -> geometric degrees?
+    current_lat_rad = np.radians(start_lat)
+    current_lon_rad = np.radians(start_lon)
+    lat_array_rad = [current_lat_rad]
+    lon_array_rad = [current_lon_rad]
+    # first value of line_angles is set to 0 to avoid unexpected behaviour.
+    # now azimuth is truly the orientation of the first span
+    line_angles_degrees[0] = 0.0
     bearings_deg = np.cumsum(line_angles_degrees) + azimuth
     bearings_rad = np.radians(bearings_deg)
+    # Deliberate choice to not take into account the last angle: refers to the angle with the next section
     for index in range(len(line_angles_degrees) - 1):
-        current_lat, current_lon = reverse_haversine_float(
-            current_lat, current_lon, bearings_rad[index], span_length[index]
+        # Build the current point using the previous one, length and angle
+        current_lat_rad, current_lon_rad = reverse_haversine_float(
+            current_lat_rad,
+            current_lon_rad,
+            bearings_rad[index],
+            span_length[index],
         )
-        lat_array.append(current_lat)
-        lon_array.append(current_lon)
-    return np.degrees(lat_array), np.degrees(lon_array)
+        lat_array_rad.append(current_lat_rad)
+        lon_array_rad.append(current_lon_rad)
+    return np.degrees(lat_array_rad), np.degrees(lon_array_rad)

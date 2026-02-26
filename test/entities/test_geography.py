@@ -106,7 +106,7 @@ def test_section_array_to_gps_2():
     all_lats, all_lons = get_gps_from_arrays(
         start_lat=48.8566,  # in rads: 0.852708
         start_lon=2.3522,  # in rads: 0.041053
-        azimuth=np.pi / 2,
+        azimuth=90,
         line_angles_degrees=-np.degrees(
             section_array.data.line_angle.to_numpy()
         ),
