@@ -49,6 +49,8 @@ class IDeformation(ABC):
 
         if max_stress is None:
             self.max_stress = np.full(self.cable_length.shape, 0)
+        else:
+            self.max_stress = max_stress
 
     @abstractmethod
     def L_ref(self) -> np.ndarray:

@@ -31,6 +31,23 @@ def test_convert_gust_wind():
 
 
 @pytest.mark.integration
+def test_convert_gust_wind_no_angle():
+    gust_wind = np.array([50, 30])
+    tower_height = np.array([20, 50])
+    voltage = 90
+    wind_converter = WindSpeedPressureConverter(
+        tower_height,
+        gust=gust_wind,
+        voltage=voltage,
+    )
+    # Same results as previous test despite changing angle because results are rounded
+    np.testing.assert_equal(wind_converter.speed_average, np.array([9, 5.4]))
+    np.testing.assert_equal(
+        wind_converter.pressure_rounded, np.array([110, 40])
+    )
+
+
+@pytest.mark.integration
 def test_convert_average_wind():
     speed_average_wind_open_country = np.array([7, 10])
     wind_angle_cable_degrees = np.array([90, 70])

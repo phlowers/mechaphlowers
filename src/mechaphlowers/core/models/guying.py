@@ -174,9 +174,8 @@ class Guying:
             GuyingResults: Results containing guying_tension, vertical_force, angle
 
         Raises:
-            ValueError: If with_pulley is True and index is not a suspension support.
+            ValueError: If with_pulley is True and index is not a suspension support or if side is not 'left' or 'right'.
             TypeError: If input types are incorrect.
-            AttributeError: If side is not 'left' or 'right'.
 
         Examples:
             >>> from mechaphlowers.core.models.balance.engine import BalanceEngine
@@ -246,7 +245,7 @@ class Guying:
             vhl_l = vhl_left.L.value('N')[index]
 
         else:
-            raise AttributeError("side must be 'left' or 'right'")
+            raise ValueError("side must be 'left' or 'right'")
 
         slope = self.balance_engine.span_model.slope(side)[index]
         span_tension = self.balance_engine.span_model.T_h()[index]
