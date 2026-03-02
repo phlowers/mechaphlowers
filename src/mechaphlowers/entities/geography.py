@@ -57,7 +57,8 @@ def geo_info_from_gps(lats: np.ndarray, lons: np.ndarray) -> SupportGeoInfo:
 
 
 def get_dist_and_angles_from_gps(
-    latitudes_deg: np.ndarray, longitudes_deg: np.ndarray
+    latitudes_deg: np.ndarray,
+    longitudes_deg: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Compute distances and angles between supports using latitudes and longitudes.
 
@@ -66,8 +67,9 @@ def get_dist_and_angles_from_gps(
         longitudes (np.ndarray): array of longitudes in decimal degrees
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: tuple (distance, angles) in meters and decimal degrees
+        tuple[np.ndarray, np.ndarray]: tuple (distance, angles) distance is in meters and angles is anti-clockwise
     """
+    # TODO: unit as argument
     lats_rolled_rad = np.radians(latitudes_deg[1:])
     lons_rolled_rad = np.radians(longitudes_deg[1:])
 
@@ -84,7 +86,8 @@ def get_dist_and_angles_from_gps(
     angles_rad = np.diff(bearings_rad)
     angles_rad = np.concatenate(([0], angles_rad, [0]))
 
-    return distances, np.degrees(angles_rad)
+    geo_angles_deg = np.degrees(angles_rad)
+    return distances, geo_angles_deg
 
 
 def get_gps_from_arrays(
@@ -108,14 +111,13 @@ def get_gps_from_arrays(
     Args:
         start_lat_deg (float): latitude of the first point
         start_lon_deg (float): longitude of the first point
-        azimuth_deg (float): azimuth of the first span in geometrical degrees
-        line_angles_degrees (np.ndarray): line angle array (data from SectionArray), in geometrical degrees
+        azimuth_deg (float): azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+        line_angles_degrees (np.ndarray): line angle array (data from SectionArray), in degrees, anti-clockwise
         span_length (np.ndarray): span length array (data from SectionArray)
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: (lat, lon) two arrays of angles in degrees
+        tuple[np.ndarray, np.ndarray]: (lat, lon) two arrays of GPS coordinates. Angles in degrees
     """
-    # TODO: fix docstring -> geometric degrees?
     current_lat_rad = np.radians(start_lat_deg)
     current_lon_rad = np.radians(start_lon_deg)
     lat_array_rad = [current_lat_rad]

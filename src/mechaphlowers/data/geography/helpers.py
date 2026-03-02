@@ -206,33 +206,36 @@ def reverse_haversine(
 
 
 def reverse_haversine_float(
-    lat: float,
-    lon: float,
+    lat_rad: float,
+    lon_rad: float,
     bearing: float,
     distance: float,
 ) -> tuple[float, float]:
-    """
-    Reverse of haversine with floats.
-
-    Get starting latitude and longitude in radians
+    """Reverse of haversine with floats.
 
     Returns next coordinates in lat/lon according to bearing and distance.
 
-    Angle values in rad.
+    Args:
+        lat (float): starting latitude in radians
+        lon (float): starting longitude in radians
+        bearing (float): bearing angle: orientation of the line in radians, anticlockwise, towards north = 0
+        distance (float): distance with the next point
+
+    Returns:
+        tuple[float, float]: (lat2, lon2): GPS coordinates of next point
     """
-    # TODO: fix bearing sense
     angdist = distance / RADIUS_EARTH
 
-    lat2 = np.arcsin(
-        np.sin(lat) * np.cos(angdist)
-        + np.cos(lat) * np.sin(angdist) * np.cos(bearing)
+    lat_rad_2 = np.arcsin(
+        np.sin(lat_rad) * np.cos(angdist)
+        + np.cos(lat_rad) * np.sin(angdist) * np.cos(bearing)
     )
 
-    lon2 = lon + np.arctan2(
-        np.sin(bearing) * np.sin(angdist) * np.cos(lat),
-        np.cos(angdist) - np.sin(lat) * np.sin(lat2),
+    lon_rad_2 = lon_rad + np.arctan2(
+        -np.sin(bearing) * np.sin(angdist) * np.cos(lat_rad),
+        np.cos(angdist) - np.sin(lat_rad) * np.sin(lat_rad_2),
     )
-    return (lat2, lon2)
+    return (lat_rad_2, lon_rad_2)
 
 
 def haversine(
@@ -287,9 +290,8 @@ def gps_to_bearing(
         unit (Literal["rad", "deg"]): Select the unit to use for both inputs and output. Defaults to "rad"
 
     Returns:
-        np.ndarray: Bearing angle in degrees from north (in radians by default)
+        np.ndarray: Bearing angle in degrees from north, anti clockwise (in radians by default)
     """
-    # TODO: fix sense of bearing output (maybe ok?)
     if unit == "deg":
         lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
     dlon = lon2 - lon1
@@ -297,8 +299,9 @@ def gps_to_bearing(
     x = np.cos(lat1) * np.sin(lat2) - np.sin(lat1) * np.cos(lat2) * np.cos(
         dlon
     )
-    bearing = np.arctan2(y, x)
-    bearing = bearing % (2 * np.pi)
+    # This formula needs to be reversed to get a anti clockwise angle
+    bearing = -np.arctan2(y, x)
+
     if unit == "deg":
         bearing = np.degrees(bearing)
     return bearing

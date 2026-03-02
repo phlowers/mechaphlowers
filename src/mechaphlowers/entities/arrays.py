@@ -234,9 +234,9 @@ class SectionArray(ElementArray):
         start_longitude: float,
         start_azimuth: float,
     ) -> tuple[np.ndarray, np.ndarray]:
-        # TODO: degrees here
+        # TODO: docstring
         line_angle_geo_degrees = (
-            -Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
         )
         return get_gps_from_arrays(
             start_latitude,

@@ -37,7 +37,7 @@ def test_section_array_to_gps_0():
         start_lat_deg=48.8566,
         start_lon_deg=2.3522,
         azimuth_deg=0,
-        line_angles_degrees=-np.degrees(
+        line_angles_degrees=np.degrees(
             section_array.data.line_angle.to_numpy()
         ),
         span_length=section_array.data.span_length.to_numpy(),
@@ -72,13 +72,13 @@ def test_section_array_to_gps_1():
         start_lat_deg=48.8566,
         start_lon_deg=2.3522,
         azimuth_deg=0,
-        line_angles_degrees=-np.degrees(
+        line_angles_degrees=np.degrees(
             section_array.data.line_angle.to_numpy()
         ),
         span_length=section_array.data.span_length.to_numpy(),
     )
 
-    # show_street_map(section_array, all_lats, all_lons)
+    show_street_map(section_array, all_lats, all_lons)
 
 
 def test_section_array_to_gps_2():
@@ -107,27 +107,21 @@ def test_section_array_to_gps_2():
         start_lat_deg=48.8566,  # in rads: 0.852708
         start_lon_deg=2.3522,  # in rads: 0.041053
         azimuth_deg=90,
-        line_angles_degrees=-np.degrees(
+        line_angles_degrees=np.degrees(
             section_array.data.line_angle.to_numpy()
         ),
         span_length=section_array.data.span_length.to_numpy(),
     )
 
-    # show_street_map(section_array, all_lats, all_lons)
+    show_street_map(section_array, all_lats, all_lons)
 
 
 def test_gps_to_section_array_1():
-    # Radius 6371 000
-    lats = np.degrees(
-        np.array(
-            [0.852708, 0.8527550884, 0.852816919, 0.8528880459, 0.8529546364]
-        )
+    lats = np.array(
+        [48.8566, 48.85929796, 48.8628406, 48.86691587, 48.87073122]
     )
-    lons = np.degrees(
-        np.array(
-            [0.041053, 0.041053, 0.0410695724, 0.0411199932, 0.0412212353]
-        )
-    )
+
+    lons = np.array([2.3522, 2.3522, 2.35125047, 2.34836157, 2.34256082])
 
     distances, angles = get_dist_and_angles_from_gps(lats, lons)
     np.testing.assert_allclose(
@@ -137,15 +131,11 @@ def test_gps_to_section_array_1():
 
 
 def test_gps_to_section_array_2():
-    lats = np.degrees(
-        np.array(
-            [0.852708, 0.8527079987, 0.8526970941, 0.8527039307, 0.8526795512]
-        )
+    lats = np.array(
+        [48.8566, 48.8565999273, 48.8559751397, 48.8563668445, 48.8549700038]
     )
-    lons = np.degrees(
-        np.array(
-            [0.041053, 0.0411245687, 0.0412185428, 0.0413373695, 0.0414756252]
-        )
+    lons = np.array(
+        [2.3522, 2.3480994121, 2.3427150917, 2.3359068169, 2.3279853474]
     )
     distances, angles = get_dist_and_angles_from_gps(lats, lons)
     np.testing.assert_allclose(
@@ -159,13 +149,13 @@ def test_gps_to_section_array_2():
 def test_round_trip():
     # --- Forward: section geometry → GPS ---
     # Put 0 at first and last support, because inverse operation can't manage them
-    line_angles = np.array([0.0, 10.0, -15.0, 20.0, 0])
+    line_angles = np.array([0.0, 10.0, -15.0, 20.0, 0])  # anticlockwise
     span_lengths = np.array([300.0, 400.0, 500.0, 600.0, np.nan])
 
     lats, lons = get_gps_from_arrays(
         start_lat_deg=48.8566,
         start_lon_deg=2.3522,
-        azimuth_deg=90.0,  # first span heads East
+        azimuth_deg=90.0,  # first span heads West
         line_angles_degrees=line_angles,
         span_length=span_lengths,
     )
