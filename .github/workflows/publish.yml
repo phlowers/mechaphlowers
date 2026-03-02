@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0 # Disable shallow clones to improve sonarcloud analysis
 
       - name: ⚙️ Install uv and Set up Python
-        uses: astral-sh/setup-uv@v7.2.1
+        uses: astral-sh/setup-uv@v7.3.1
         with:
           # Install a specific version of uv.
           version: "0.9.28"
@@ -110,7 +110,7 @@ jobs:
           fetch-depth: 0 # Disable shallow clones to improve sonarcloud analysis
 
       - name: ⚙️ Install uv and Set up Python
-        uses: astral-sh/setup-uv@v7.2.1
+        uses: astral-sh/setup-uv@v7.3.1
         with:
           # Install a specific version of uv.
           version: "0.9.28"
