@@ -8,6 +8,8 @@ from typing import Literal, Union
 
 import numpy as np
 
+from mechaphlowers.utils import convert_angle_signed_to_unsigned
+
 # Mean radius of Earth in meters
 RADIUS_EARTH = 6371000
 
@@ -302,6 +304,7 @@ def gps_to_bearing(
     # This formula needs to be reversed to get a anti clockwise angle
     bearing = -np.arctan2(y, x)
 
+    bearing = convert_angle_signed_to_unsigned(bearing)  # Normalize to [0, 2π)
     if unit == "deg":
         bearing = np.degrees(bearing)
     return bearing

@@ -234,7 +234,16 @@ class SectionArray(ElementArray):
         start_longitude: float,
         start_azimuth: float,
     ) -> tuple[np.ndarray, np.ndarray]:
-        # TODO: docstring
+        """Compute GPS coordinates for the cable array.
+
+        Args:
+            start_latitude (float): Latitude of the first support in degrees.
+            start_longitude (float): Longitude of the first support in degrees.
+            start_azimuth (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: Two arrays of GPS coordinates (latitude, longitude) in degrees.
+        """
         line_angle_geo_degrees = (
             Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
         )

@@ -7,6 +7,7 @@
 from typing import TypedDict
 
 import numpy as np
+from typing_extensions import Literal
 
 from mechaphlowers.data.geography.helpers import (
     bearing_to_direction,
@@ -15,6 +16,8 @@ from mechaphlowers.data.geography.helpers import (
     haversine,
     reverse_haversine_float,
 )
+from mechaphlowers.data.units import Q_
+from mechaphlowers.utils import convert_angle_unsigned_to_signed
 
 
 class SupportGeoInfo(TypedDict):
@@ -43,7 +46,7 @@ def geo_info_from_gps(lats: np.ndarray, lons: np.ndarray) -> SupportGeoInfo:
     bearings = gps_to_bearing(
         lats[:-1], lons[:-1], lats[1:], lons[1:], unit="deg"
     )
-    directions = bearing_to_direction(bearings)
+    directions = bearing_to_direction(-bearings)
 
     return SupportGeoInfo(
         latitude=lats,
@@ -59,17 +62,27 @@ def geo_info_from_gps(lats: np.ndarray, lons: np.ndarray) -> SupportGeoInfo:
 def get_dist_and_angles_from_gps(
     latitudes_deg: np.ndarray,
     longitudes_deg: np.ndarray,
+    unit_output_angles: Literal["rad", "deg", "grad"] = "deg",
 ) -> tuple[np.ndarray, np.ndarray]:
     """Compute distances and angles between supports using latitudes and longitudes.
 
     Args:
-        latitudes (np.ndarray): array of latitudes in decimal degrees
-        longitudes (np.ndarray): array of longitudes in decimal degrees
+        latitudes_deg (np.ndarray): array of latitudes in decimal degrees
+        longitudes_deg (np.ndarray): array of longitudes in decimal degrees
+        unit_output_angles (Literal["rad", "deg", "grad"], optional): unit of the output angles. Defaults to "deg".
+
+    Raises:
+        ValueError: If latitudes and longitudes arrays have different lengths, or unit_output_angles is not valid.
 
     Returns:
         tuple[np.ndarray, np.ndarray]: tuple (distance, angles) distance is in meters and angles is anti-clockwise
     """
-    # TODO: unit as argument
+    if len(latitudes_deg) != len(longitudes_deg):
+        raise ValueError("latitudes and longitudes must have the same length")
+    if unit_output_angles not in ["rad", "deg", "grad"]:
+        raise ValueError(
+            "unit_output_angles must be one of 'rad', 'deg', 'grad'"
+        )
     lats_rolled_rad = np.radians(latitudes_deg[1:])
     lons_rolled_rad = np.radians(longitudes_deg[1:])
 
@@ -84,10 +97,13 @@ def get_dist_and_angles_from_gps(
     )
     # convert bearing to angles relative between supports
     angles_rad = np.diff(bearings_rad)
+    angles_rad = convert_angle_unsigned_to_signed(angles_rad)
     angles_rad = np.concatenate(([0], angles_rad, [0]))
 
-    geo_angles_deg = np.degrees(angles_rad)
-    return distances, geo_angles_deg
+    angles_correct_unit = (
+        Q_(angles_rad, "rad").to(unit_output_angles).magnitude
+    )
+    return distances, angles_correct_unit
 
 
 def get_gps_from_arrays(
