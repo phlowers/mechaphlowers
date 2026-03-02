@@ -474,6 +474,10 @@ class SectionPoints:
         )
         return Points.from_coords(supports_layers)
 
+    def get_sea_level_supports(self) -> Points:
+        """Get the supports in the section frame."""
+        return Points.from_coords(self.supports_ground_coords)
+
     def get_insulators(self) -> Points:
         """Get the insulators in the section frame."""
         insulator_layers = get_insulator_layer(

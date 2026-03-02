@@ -7,12 +7,18 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Dict, Literal, Self, Tuple
+from typing import Callable, Dict, Literal, Tuple
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
-from mechaphlowers.config import options as cfg
+from mechaphlowers.core.geometry.distances import (
+    DistanceEngine,
+    DistanceResult,
+)
+from mechaphlowers.core.geometry.planes import (
+    change_local_frame,
+)
 from mechaphlowers.core.geometry.points import (
     Points,
     SectionPoints,
@@ -22,97 +28,14 @@ from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import ObstacleArray, SectionArray
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
+from mechaphlowers.plotting.plot_config import (
+    TraceProfile,
+    cable_trace,
+    insulator_trace,
+    support_trace,
+)
 
 logger = logging.getLogger(__name__)
-
-
-class TraceProfile:
-    """TraceProfile is a configuration class to handle a trace parameter.
-    It is designed to be used with some plotly specific figures and getters are specialized to return the right format for plotly.
-    """
-
-    def __init__(
-        self,
-        name: str = "Test",
-        color: str = "blue",
-        size: float = cfg.graphics.marker_size,
-        width: float = 8.0,
-        opacity: float = 1.0,
-    ):
-        self.color = color
-        self.size = size
-        self.width = width
-        self.name = name
-        self.opacity = opacity
-        self._mode = "main"
-
-    @property
-    def dimension(self) -> str:
-        return self._dimension
-
-    @dimension.setter
-    def dimension(self, value: Literal["2d", "3d"]):
-        if not isinstance(value, str):
-            raise TypeError()
-        if value not in ["2d", "3d"]:
-            raise ValueError("Dimension must be either '2d' or '3d'")
-        self._dimension = value
-
-    @property
-    def mode(self) -> str:
-        return self._mode
-
-    @mode.setter
-    def mode(self, value):
-        if value not in ["background", "main"]:
-            raise ValueError("Mode must be either 'background' or 'main'")
-        self._mode = value
-        if value == "background":
-            self.opacity = cfg.graphics.background_opacity
-        elif value == "main":
-            self.opacity = 1.0
-
-    @property
-    def dashed(self) -> dict:
-        if self._mode == "background":
-            return {'dash': 'dot'}
-        return {}
-
-    @property
-    def line(self) -> dict:
-        if self._dimension == "2d":
-            width = self.size
-        else:
-            width = self.width
-        return {'color': self.color, 'width': width} | self.dashed
-
-    @property
-    def marker(self) -> dict:
-        if self._dimension == "2d":
-            return {'size': self.size + 1, 'color': self.color}
-        else:
-            return {'size': self.size, 'color': self.color}
-
-    @property
-    def name(self) -> str:
-        if self._mode == "background":
-            return f"{self._name} baseline"
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        if not isinstance(value, str):
-            raise TypeError("Name must be a string")
-        self._name = value
-
-    def __call__(self, mode) -> Self:
-        self.mode = mode
-        return self
-
-
-cable_trace = TraceProfile(**cfg.graphics.cable_trace_profile)
-insulator_trace = TraceProfile(**cfg.graphics.insulator_trace_profile)
-support_trace = TraceProfile(**cfg.graphics.support_trace_profile)
 
 
 def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
@@ -128,6 +51,9 @@ def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
             height=800,
             width=1400,
             scene=dict(
+                xaxis_title="X (m)",
+                yaxis_title="Y (m)",
+                zaxis_title="Z (m)",
                 xaxis=dict(
                     backgroundcolor="gainsboro",
                     gridcolor="dimgray",
@@ -188,7 +114,7 @@ def plot_points_3d(
             x=points[:, 0],
             y=points[:, 1],
             z=points[:, 2],
-            mode='markers+lines',
+            mode=trace_profile.scatter_mode,
             marker=trace_profile.marker,
             line=trace_profile.line,
             opacity=trace_profile.opacity,
@@ -261,6 +187,9 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
 
     fig.update_layout(
         scene={
+            'xaxis_title': "X (m)",
+            'yaxis_title': "Y (m)",
+            'zaxis_title': "Z (m)",
             'aspectratio': aspect_ratio,
             'aspectmode': aspect_mode,
             'camera': {
@@ -284,6 +213,7 @@ class PlotEngine:
         self.spans = span_model
         self.cable_loads = cable_loads
         self.section_array = section_array
+        self.distance_engine = DistanceEngine()
 
         self.section_pts = SectionPoints(
             section_array=self.section_array,
@@ -502,6 +432,127 @@ class PlotEngine:
             insulator_trace(mode=mode),
             view=view,
         )
+
+    def point_relative_to_absolute(
+        self, span_index: int, point_relative: np.ndarray
+    ) -> np.ndarray:
+        """Convert a point from span-local frame to absolute coordinates via frame change.
+
+        Performs a coordinate frame transformation from the span-local reference frame
+        to the absolute global coordinate system.
+
+        Span-local frame definition:
+        - X axis: along the span direction in the XY plane
+        - Y axis: perpendicular to the span direction in the XY plane
+        - Z axis: vertical (global Z)
+
+        Args:
+            span_index: Index of the span to analyze (0 to num_supports-2).
+            point_relative: Relative coordinate [x, y, z] in the span-local frame.
+
+        Returns:
+            Absolute point coordinates in the global frame as array of shape (3,).
+
+        Raises:
+            IndexError: If span_index is out of range.
+            ValueError: If point_relative has invalid shape or span has zero XY extent.
+        """
+
+        point_relative = np.asarray(point_relative)
+        if point_relative.shape != (3,):
+            raise ValueError("point_relative must be a 1D array of shape (3,)")
+
+        ground_supports = self.section_pts.supports_ground_coords
+        if span_index < 0 or span_index >= len(ground_supports) - 1:
+            raise IndexError(
+                f"span_index {span_index} out of range [0, {len(ground_supports) - 2}]"
+            )
+
+        # Perform frame change from span-local to absolute coordinates
+        support_start = ground_supports[span_index]
+        support_end = ground_supports[span_index + 1]
+
+        absolute_point = change_local_frame(
+            support_start, support_end, point_relative
+        )
+
+        return absolute_point
+
+    def point_distance(
+        self,
+        span_index: int,
+        point: np.ndarray,
+        *,
+        fig: go.Figure | None = None,
+    ) -> DistanceResult:
+        """Point distance analysis: compute the distance from a point to a span and plot the configuration on the provided figure.
+
+        Args:
+            span_index: Index of the span to analyze (0 to num_supports-2).
+            point: Absolute coordinates of the point to analyze, as array of shape (3,).
+            fig: Optional plotly figure where the configuration will be plotted. If None, no plot is generated.
+
+        Returns:
+            DistanceResult: Object containing the distance analysis results, including the distance value and coordinates of the closest point on the span.
+
+        Example:
+            >>> balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
+            >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+            >>> point = np.array(
+            ...     [10.0, 5.0, 2.0]
+            ... )  # Absolute coordinates of the point to analyze
+            >>> fig = figure_factory()
+            >>> distance_result = plot_engine.point_distance(span_index=0, point=point)
+            # ...get a distance result object with the distance and closest point coordinates
+
+            >>> fig.show()
+        """
+        # Validate inputs and convert relative coordinates to absolute
+        point = np.asarray(point)
+        if point.shape != (3,):
+            raise ValueError("point must be a 1D array of shape (3,)")
+
+        # Get support points
+        ground_supports = self.section_pts.supports_ground_coords.copy()
+        if span_index < 0 or span_index >= len(ground_supports) - 1:
+            raise IndexError(
+                f"span_index {span_index} out of range [0, {len(ground_supports) - 2}]"
+            )
+
+        self.distance_engine.add_span_frame(
+            ground_supports[span_index], ground_supports[span_index + 1]
+        )
+        self.distance_engine.add_curves(
+            self.section_pts.get_spans(frame="section").coords[span_index]
+        )
+        distance_result = self.distance_engine.plane_distance(
+            point, frame="span"
+        )
+
+        if fig is not None:
+            self.distance_engine.plot(
+                distance_result=distance_result,
+                fig=fig,
+                show_plane=True,
+                show_projections=True,
+                title_addendum=f" - Span {span_index}",
+                force_layout=True,
+            )
+
+            # Update layout
+            fig.update_layout(
+                title=f"Point Distance Analysis - Span {span_index}",
+                scene=dict(
+                    xaxis_title="X (m)",
+                    yaxis_title="Y (m)",
+                    zaxis_title="Z (m)",
+                    aspectmode="data",
+                ),
+                showlegend=True,
+                legend=dict(x=0.02, y=0.98),
+            )
+
+        return distance_result
 
     def __str__(self) -> str:
         return (
