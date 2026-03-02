@@ -163,12 +163,12 @@ class BalanceEngine:
         """Adds loads to BalanceEngine.
         Updates load_position and load_mass fields in SectionArray.
 
-        Input for postition is a distance, and will be converted into ratio to match SectionArray.
+        Input for position is a distance, and will be converted into ratio to match SectionArray.
 
         Expected input are arrays of size matching the number of supports. Each value refers to a span.
 
         Args:
-            load_position_distance (np.ndarray | list): Poisition of the loads, in meters
+            load_position_distance (np.ndarray | list): Position of the loads, in meters
             load_mass (np.ndarray | list): Mass of the loads
 
         Raises:

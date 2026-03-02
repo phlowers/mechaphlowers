@@ -234,7 +234,7 @@ def translate_cable_to_support(
         insulator_length (np.ndarray): insulator length
 
     Returns:
-        tuple[np.ndarray]: translated x_span, y_span and z_span
+        tuple[np.ndarray, np.ndarray, np.ndarray]: translated x_span, y_span and z_span
     """
 
     supports_ground_coords = get_supports_ground_coords(
@@ -280,7 +280,7 @@ def translate_cable_to_support_from_attachments(
         attachment_coords (np.ndarray): coordinates of the attachement of the cable
 
     Returns:
-        tuple[np.ndarray]: translated x_span, y_span and z_span
+        tuple[np.ndarray, np.ndarray, np.ndarray]: translated x_span, y_span and z_span
     """
 
     z_span += -z_span[0, :] + attachment_coords[:-1, 2]
