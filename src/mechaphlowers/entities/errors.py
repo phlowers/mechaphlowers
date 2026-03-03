@@ -52,3 +52,7 @@ class DataWarning(UserWarning):
 
 class BalanceEngineWarning(UserWarning):
     """Base class for balance-related warnings."""
+
+
+class ViewChoiceWarning(UserWarning):
+    """Base class for choice of view (ex: choice of support or span view)."""

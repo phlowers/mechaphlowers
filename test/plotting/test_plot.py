@@ -55,7 +55,9 @@ def balance_engine_local_initialized() -> BalanceEngine:
         "load_position": [0, 0, 0, 0],
     }
 
-    section_array = SectionArray(data=pd.DataFrame(data))
+    section_array = SectionArray(
+        data=pd.DataFrame(data), sagging_parameter=2000, sagging_temperature=15
+    )
     section_array.sagging_parameter = 500
     section_array.sagging_temperature = 15
     cable_array_AM600: CableArray = sample_cable_catalog.get_as_object(
@@ -285,7 +287,11 @@ def test_plot_2d(balance_engine_angles: BalanceEngine):
 
 
 def test_plot_more_spans(cable_array_AM600: CableArray):
-    section_array = SectionArray(pd.DataFrame(section_factory_sample_data(10)))
+    section_array = SectionArray(
+        pd.DataFrame(section_factory_sample_data(10)),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
     section_array.sagging_parameter = 2000
     section_array.sagging_temperature = 15
     balance_engine = BalanceEngine(

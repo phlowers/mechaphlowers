@@ -100,11 +100,11 @@ def section_array_angles() -> SectionArray:
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     return section_array
 
 
