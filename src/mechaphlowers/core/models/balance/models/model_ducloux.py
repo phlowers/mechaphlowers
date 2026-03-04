@@ -392,9 +392,12 @@ class BalanceModel(IBalanceModel):
         self.update_span()
         self.update_tensions()
 
+    # For the following vhl methods, the Fz component is reversed:
+    # the z axis is reversed (downwards) for users wanting vhl results
     def vhl_under_chain(self) -> VhlStrength:
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
-        vhl_result = np.array([-Fz, Fy, Fx])
+        reversed_Fz = -(Fz + self.nodes.signed_counterweight)
+        vhl_result = np.array([reversed_Fz, Fy, Fx])
         return VhlStrength(vhl_result, "N")
 
     def vhl_under_chain_left(self) -> VhlStrength:
@@ -408,7 +411,8 @@ class BalanceModel(IBalanceModel):
             VhlStrength: VhlStrength object
         """
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable_left()
-        vhl_result = np.array([-Fz, Fy, Fx])
+        reversed_Fz = -(Fz + self.nodes.signed_counterweight)
+        vhl_result = np.array([reversed_Fz, Fy, Fx])
         return VhlStrength(vhl_result, "N")
 
     def vhl_under_chain_right(self) -> VhlStrength:
@@ -422,13 +426,15 @@ class BalanceModel(IBalanceModel):
             VhlStrength: VhlStrength object
         """
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable_right()
-        vhl_result = np.array([-Fz, Fy, Fx])
+        reversed_Fz = -(Fz + self.nodes.signed_counterweight)
+        vhl_result = np.array([reversed_Fz, Fy, Fx])
         return VhlStrength(vhl_result, "N")
 
     def vhl_under_console(self) -> VhlStrength:
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
+        reversed_Fz = -(Fz + self.nodes.signed_insulator_weight + self.nodes.signed_counterweight)
         vhl_result = np.array(
-            [-(Fz + self.nodes.signed_insulator_weight), Fy, Fx]
+            [reversed_Fz, Fy, Fx]
         )
         return VhlStrength(vhl_result, "N")
 
@@ -603,7 +609,7 @@ class Nodes:
         self.has_load_on_span = np.logical_and(
             load_weight != 0, load_position != 0
         )
-        self.counterweight = counterweight
+        self.signed_counterweight = -counterweight
         self.vector_projection = VectorProjection()
 
     @property
@@ -745,7 +751,7 @@ class Nodes:
         Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
         force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
         force_counterweight = np.vstack(
-            (F_zeros, F_zeros, self.counterweight)
+            (F_zeros, F_zeros, self.signed_counterweight)
         ).T
         # size : (nb nodes , 3 for 3D)
 

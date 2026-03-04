@@ -441,7 +441,7 @@ class Guying:
         force_v = (
             vhl_v
             + insulator_weight
-            + counterweight
+            + counterweight # needed here, or redundant?
             + guying_tension * np.sin(guying_angle_rad)
             + cable_length * cable_linear_weight * bundle_number
         )
