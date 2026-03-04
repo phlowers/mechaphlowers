@@ -174,14 +174,12 @@ class SectionArray(ElementArray):
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
         data_output = super().data
-        data_output["insulator_weight"] = (
-            Q_(data_output["insulator_mass"].to_numpy(), "kg").to("N").m
-        )
-        if "load_mass" in data_output:
-            data_output["load_weight"] = (
-                Q_(data_output["load_mass"].to_numpy(), "kg").to("N").m
-            )
-
+        mass_weight_conversion = {
+            "insulator_mass": "insulator_weight",
+            "load_mass": "load_weight",
+            "counterweight_mass": "counterweight",
+        }
+        self.convert_mass_to_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
 
         if self.sagging_parameter is None or self.sagging_temperature is None:
@@ -198,6 +196,15 @@ class SectionArray(ElementArray):
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
             )
+
+    def convert_mass_to_weight(
+        self, df_output: pd.DataFrame, columns_to_convert: dict[str, str]
+    ) -> None:
+        for column_mass, column_weight in columns_to_convert.items():
+            if column_mass in self._data:
+                df_output[column_weight] = (
+                    Q_(df_output[column_mass].to_numpy(), "kg").to("N").m
+                )
 
     def equivalent_span(self) -> float:
         """equivalent_span

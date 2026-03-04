@@ -37,6 +37,7 @@ def section_array_angles() -> SectionArray:
                 ),
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
+                "counterweight_mass": [0, 0, 0, 0],
             }
         )
     )
@@ -89,6 +90,7 @@ def section_array_no_altitude_change() -> SectionArray:
                 ),
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
+                "counterweight_mass": [0, 0, 0, 0],
             }
         )
     )
@@ -866,3 +868,125 @@ def test_balance_engine__large_angles(balance_engine_base_test) -> None:
     # fig.show()
 
     assert True
+
+
+# TODO:
+@pytest.mark.integration
+# results generated with proto v4 in order to take into account counterweight, so precision is low
+def test_no_altitude_change_counterweight(
+    section_array_no_altitude_change: SectionArray,
+    cable_array_AM600: CableArray,
+):
+    section_array_no_altitude_change._data.counterweight_mass = [
+        10000,
+        10000,
+        10000,
+        10000,
+    ]
+    be_no_altitude_change = BalanceEngine(
+        cable_array_AM600, section_array_no_altitude_change
+    )
+    be_no_altitude_change.solve_adjustment()
+    be_no_altitude_change.solve_change_state()
+
+    expected_dx = np.array(
+        [
+            2.97187340066645,
+            2.64189410427871e-11,
+            1.79935767328916e-11,
+            -2.981118867567,
+        ]
+    )
+    expected_dy = np.array([0, 0, 0, 0])
+    expected_dz = np.array([-0.4098395910734, -3.0, -3.0, -0.336051033975601])
+
+    expected_L_ref = np.array(
+        [497.647471727149, 299.883603547399, 397.144221942162]
+    )
+
+    np.testing.assert_allclose(
+        be_no_altitude_change.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        be_no_altitude_change.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        be_no_altitude_change.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        be_no_altitude_change.balance_model.L_ref,
+        expected_L_ref,
+        atol=1e-4,
+    )
+
+
+@pytest.mark.integration
+# results generated with proto v4
+def test_angles_counterweight(
+    section_array_angles: SectionArray, cable_array_AM600: CableArray
+):
+    section_array_angles._data.counterweight_mass = [
+        10000,
+        10000,
+        10000,
+        10000,
+    ]
+    balance_engine_angles_arm = BalanceEngine(
+        cable_array_AM600, section_array_angles
+    )
+    balance_engine_angles_arm.solve_adjustment()
+    balance_engine_angles_arm.solve_change_state()
+    expected_dx = np.array(
+        [
+            2.98519820570843,
+            0.0203329438008079,
+            0.0259050035856634,
+            -2.97622800585608,
+        ]
+    )
+    expected_dy = np.array(
+        [
+            0.0651438662085866,
+            0.92496568246559,
+            1.18432536063032,
+            -0.0655978926646298,
+        ]
+    )
+    expected_dz = np.array(
+        [
+            -0.290427184214129,
+            -2.85377382734816,
+            -2.75621159763852,
+            -0.371165426239995,
+        ]
+    )
+    expected_L_ref = np.array(
+        [497.329093771962, 299.849533788068, 397.243869443178]
+    )
+
+    np.testing.assert_allclose(
+        balance_engine_angles_arm.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        balance_engine_angles_arm.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        balance_engine_angles_arm.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        balance_engine_angles_arm.balance_model.L_ref,
+        expected_L_ref,
+        atol=1e-4,
+    )

@@ -574,6 +574,7 @@ class Nodes:
         # load and load_position must of length nb_supports - 1
         load_weight: np.ndarray,
         load_position: np.ndarray,
+        counterweight: np.ndarray,
     ):
         # TODO: docstring of this whole class
 
@@ -602,7 +603,7 @@ class Nodes:
         self.has_load_on_span = np.logical_and(
             load_weight != 0, load_position != 0
         )
-
+        self.counterweight = counterweight
         self.vector_projection = VectorProjection()
 
     @property
@@ -738,16 +739,22 @@ class Nodes:
 
     def compute_moment(self) -> None:
         """Compute moments of two forces: force of the cable, and chain weight."""
+        F_zeros = np.empty(self.signed_insulator_weight.shape)
+        F_zeros.fill(0.0)
         # Force of the cable. Applied at attachement point between cable and chain.
         Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
         force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
+        force_counterweight = np.vstack(
+            (F_zeros, F_zeros, self.counterweight)
+        ).T
         # size : (nb nodes , 3 for 3D)
+
         lever_cable = np.array([self.dx, self.dy, self.dz]).T
-        M_cable = np.cross(lever_cable, force_cable)
+        M_cable = np.cross(lever_cable, force_cable + force_counterweight)
+
+        # add counterweight here (full length chain)
 
         # Weight of the chain. Applied on center of gravity of the chain
-        F_zeros = np.empty(self.signed_insulator_weight.shape)
-        F_zeros.fill(0.0)
         force_chain_weight = np.vstack(
             (F_zeros, F_zeros, self.signed_insulator_weight)
         ).T
@@ -800,8 +807,23 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         section_array.data.conductor_attachment_altitude.to_numpy()
     )
     span_length = arr.decr(section_array.data.span_length.to_numpy())
-    load_weight = arr.decr(section_array.data.load_weight.to_numpy())
-    load_position = arr.decr(section_array.data.load_position.to_numpy())
+
+    load_weight = (
+        arr.decr(section_array.data.load_weight.to_numpy())
+        if "load_weight" in section_array.data
+        else np.zeros(span_length.shape)
+    )
+    load_position = (
+        arr.decr(section_array.data.load_position.to_numpy())
+        if "load_position" in section_array.data
+        else np.zeros(span_length.shape)
+    )
+    counterweight = (
+        section_array.data.counterweight.to_numpy()
+        if "counterweight" in section_array.data
+        else np.zeros(insulator_length.shape)
+    )
+
     return Nodes(
         insulator_length,
         insulator_weight,
@@ -811,6 +833,7 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         span_length,
         load_weight,
         load_position,
+        counterweight,
     )
 
 
