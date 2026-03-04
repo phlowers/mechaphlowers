@@ -413,7 +413,7 @@ def test_warning_on_insulator_length_correction(
 def test_section_array__data_with_counterweight(
     section_array_input_data: dict,
 ) -> None:
-    section_array_input_data["counterweight_mass"] = [0, 1000, 2000, 3000]
+    section_array_input_data["counterweight_mass"] = [0, 1000, 2000, 0]
     df = pd.DataFrame(section_array_input_data)
     section_array = SectionArray(
         data=df, sagging_parameter=2_000, sagging_temperature=15
@@ -421,9 +421,9 @@ def test_section_array__data_with_counterweight(
 
     assert_equal(
         section_array.data.counterweight_mass.to_numpy(),
-        np.array([0, 1000, 2000, 3000]),
+        np.array([0, 1000, 2000, 0]),
     )
     assert_equal(
         section_array.data.counterweight.to_numpy(),
-        np.array([0, 9810.0, 19620.0, 29430.0]),
+        np.array([0, 9810.0, 19620.0, 0]),
     )

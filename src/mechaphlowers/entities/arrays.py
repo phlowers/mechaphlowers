@@ -15,7 +15,7 @@ from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Literal, Self, Type
 
 from mechaphlowers.config import options
-from mechaphlowers.data.units import Q_
+from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.errors import DataWarning
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
@@ -179,7 +179,7 @@ class SectionArray(ElementArray):
             "load_mass": "load_weight",
             "counterweight_mass": "counterweight",
         }
-        self.convert_mass_to_weight(data_output, mass_weight_conversion)
+        self.create_column_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
 
         if self.sagging_parameter is None or self.sagging_temperature is None:
@@ -197,13 +197,13 @@ class SectionArray(ElementArray):
                 sagging_temperature=self.sagging_temperature,
             )
 
-    def convert_mass_to_weight(
+    def create_column_weight(
         self, df_output: pd.DataFrame, columns_to_convert: dict[str, str]
     ) -> None:
         for column_mass, column_weight in columns_to_convert.items():
             if column_mass in self._data:
-                df_output[column_weight] = (
-                    Q_(df_output[column_mass].to_numpy(), "kg").to("N").m
+                df_output[column_weight] = convert_mass_to_weight(
+                    df_output[column_mass].to_numpy()
                 )
 
     def equivalent_span(self) -> float:
@@ -332,8 +332,8 @@ class CableArray(ElementArray):
     def data(self) -> pd.DataFrame:
         data_output = super().data
         # add new column using linear_mass data: linear_weight
-        data_output["linear_weight"] = (
-            Q_(data_output["linear_mass"].to_numpy(), "kg").to("N").m
+        data_output["linear_weight"] = convert_mass_to_weight(
+            data_output["linear_mass"].to_numpy()
         )
         return data_output
 

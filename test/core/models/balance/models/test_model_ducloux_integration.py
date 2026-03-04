@@ -874,18 +874,37 @@ def test_balance_engine__large_angles(balance_engine_base_test) -> None:
 @pytest.mark.integration
 # results generated with proto v4 in order to take into account counterweight, so precision is low
 def test_no_altitude_change_counterweight(
-    section_array_no_altitude_change: SectionArray,
     cable_array_AM600: CableArray,
 ):
-    section_array_no_altitude_change._data.counterweight_mass = [
-        10000,
-        10000,
-        10000,
-        10000,
-    ]
-    be_no_altitude_change = BalanceEngine(
-        cable_array_AM600, section_array_no_altitude_change
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [0.01, 3, 3, 0.01],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+                "counterweight_mass": convert_weight_to_mass(
+                    [
+                        0,
+                        10000,
+                        10000,
+                        0,
+                    ]
+                ),
+            }
+        )
     )
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    be_no_altitude_change = BalanceEngine(cable_array_AM600, section_array)
     be_no_altitude_change.solve_adjustment()
     be_no_altitude_change.solve_change_state()
 
@@ -928,20 +947,38 @@ def test_no_altitude_change_counterweight(
 
 @pytest.mark.integration
 # results generated with proto v4
-def test_angles_counterweight(
-    section_array_angles: SectionArray, cable_array_AM600: CableArray
-):
-    section_array_angles._data.counterweight_mass = [
-        10000,
-        10000,
-        10000,
-        10000,
-    ]
-    balance_engine_angles_arm = BalanceEngine(
-        cable_array_AM600, section_array_angles
+def test_angles_counterweight(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": [0, 10, 0, 0],
+                "insulator_length": [0.01, 3, 3, 0.01],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+                "counterweight_mass": convert_weight_to_mass(
+                    [
+                        0,
+                        10000,
+                        10000,
+                        0,
+                    ]
+                ),
+            }
+        )
     )
-    balance_engine_angles_arm.solve_adjustment()
-    balance_engine_angles_arm.solve_change_state()
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    balance_engine = BalanceEngine(cable_array_AM600, section_array)
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state()
     expected_dx = np.array(
         [
             2.98519820570843,
@@ -971,22 +1008,22 @@ def test_angles_counterweight(
     )
 
     np.testing.assert_allclose(
-        balance_engine_angles_arm.balance_model.nodes.dx,
+        balance_engine.balance_model.nodes.dx,
         expected_dx,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        balance_engine_angles_arm.balance_model.nodes.dy,
+        balance_engine.balance_model.nodes.dy,
         expected_dy,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        balance_engine_angles_arm.balance_model.nodes.dz,
+        balance_engine.balance_model.nodes.dz,
         expected_dz,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        balance_engine_angles_arm.balance_model.L_ref,
+        balance_engine.balance_model.L_ref,
         expected_L_ref,
         atol=1e-4,
     )
