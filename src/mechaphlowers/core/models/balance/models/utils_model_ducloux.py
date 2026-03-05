@@ -36,7 +36,7 @@ class Masks:
         is_anchor_last = self.is_anchor_last
         new_dx = dx.copy()
         new_dz = dz.copy()
-        # TODO: catch if there is a a negative sqrt here
+        # TODO: catch if there is a negative sqrt here
         # should display "suspicion de retournement de chaine"
 
         # case: suspension chains

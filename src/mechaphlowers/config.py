@@ -78,7 +78,7 @@ class SolverConfig:
         default_factory=lambda: {
             "perturb": 0.0001,
             "stop_condition": 1e-2,
-            "relax_ratio": 0.95,  # was previously at 0.8, but 0.95 allow to reach more extreme cases
+            "relax_ratio": 0.95,  # was previously at 0.8, but 0.95 allows to reach more extreme cases
             "relax_power": 3,
             "max_iter": 100,
         }
