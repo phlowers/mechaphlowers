@@ -36,6 +36,9 @@ class Masks:
         is_anchor_last = self.is_anchor_last
         new_dx = dx.copy()
         new_dz = dz.copy()
+        # TODO: catch if there is a a negative sqrt here
+        # should display "suspicion de retournement de chaine"
+
         # case: suspension chains
         suspension_shift = -(
             (
@@ -45,6 +48,7 @@ class Masks:
             )
             ** 0.5
         )
+
         new_dz[is_suspension] = suspension_shift
 
         # case: first anchor chain
@@ -55,7 +59,7 @@ class Masks:
         ) ** 0.5
         new_dx[is_anchor_first] = anchor_shift_first
 
-        # case: first anchor last
+        # case: last anchor chain
         anchor_shift_last = (
             L_chain[is_anchor_last] ** 2
             - dz[is_anchor_last] ** 2
