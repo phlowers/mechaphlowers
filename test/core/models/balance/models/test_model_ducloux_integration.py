@@ -867,6 +867,7 @@ def test_balance_engine__large_angles(balance_engine_base_test) -> None:
 
     assert True
 
+
 @pytest.mark.integration
 def test_engine_extreme_wind_case(cable_array_AM600: CableArray):
     section_array = SectionArray(
