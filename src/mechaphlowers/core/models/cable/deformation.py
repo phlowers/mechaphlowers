@@ -189,7 +189,7 @@ class DeformationRte(IDeformation):
         if np.inf in real_smallest_root:
             raise ConvergenceError(
                 "No solution found for at least one span",
-                level="deformation_model",
+                origin="deformation_model",
             )
         return real_smallest_root
 
