@@ -50,7 +50,7 @@ class Masks:
             < 0
         ).any():
             raise SuspectedChainReversal(
-                "Suspected chain reversal", level="balance_solver"
+                "Suspected chain reversal", origin="balance_solver"
             )
 
         # case: suspension chains

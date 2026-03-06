@@ -206,7 +206,9 @@ def parameter_solver(
         full_output=True,
     )
     if not solver_result.converged.all():
-        raise ConvergenceError("Solver did not converge", level="papoto_model")
+        raise ConvergenceError(
+            "Solver did not converge", origin="papoto_model"
+        )
     return solver_result.root
 
 

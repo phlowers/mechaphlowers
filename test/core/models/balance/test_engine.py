@@ -293,7 +293,7 @@ def test_load_span__check_node_span_changes(cable_array_AM600: CableArray):
 
 def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
     def fail(_: object):
-        raise ConvergenceError("did not converge", level="adjustment")
+        raise ConvergenceError("did not converge", origin="adjustment")
 
     # Mock the solver to raise
     monkeypatch.setattr(balance_engine_simple.solver_adjustment, "solve", fail)
@@ -305,9 +305,10 @@ def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
 def test_adjustment_convergence_error_origin(
     monkeypatch, balance_engine_simple
 ):
-    def fail_generator(level: str):
+    # weird test: sets origin to "adjustment" but get replaced by "solve_adjustment" anyway in engine.py
+    def fail_generator(origin: str):
         def fail(_: object):
-            raise ConvergenceError("did not converge", level=level)
+            raise ConvergenceError("did not converge", origin=origin)
 
         return fail
 
@@ -320,7 +321,7 @@ def test_adjustment_convergence_error_origin(
     with pytest.raises(ConvergenceError) as excinfo:
         balance_engine_simple.solve_adjustment()
 
-    assert excinfo.value.level == "adjustment"
+    assert excinfo.value.origin == "solve_adjustment"
     assert getattr(excinfo.value, "origin", None) == "solve_adjustment"
 
     monkeypatch.setattr(
@@ -334,7 +335,7 @@ def test_adjustment_convergence_error_origin(
     with pytest.raises(ConvergenceError) as excinfo:
         balance_engine_simple.solve_change_state()
 
-    assert excinfo.value.level == "change_state"
+    assert excinfo.value.origin == "solve_change_state"
     assert getattr(excinfo.value, "origin", None) == "solve_change_state"
 
 
