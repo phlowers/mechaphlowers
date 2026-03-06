@@ -923,6 +923,14 @@ def test_no_altitude_change_counterweight(
         [497.647471727149, 299.883603547399, 397.144221942162]
     )
 
+    expected_vhl_under_chain = np.array(
+        [
+            [5.34538576e02, 7.60729616e02, 6.72246587e02, 4.45064517e02],
+            [2.47336911e02, 3.72285443e02, 3.22182818e02, 2.01698053e02],
+            [3.91179542e03, -4.89819371e00, -5.35288081e-01, -3.90633052e03],
+        ]
+    )
+
     np.testing.assert_allclose(
         be_no_altitude_change.balance_model.nodes.dx,
         expected_dx,
@@ -943,6 +951,11 @@ def test_no_altitude_change_counterweight(
         expected_L_ref,
         atol=1e-4,
     )
+    np.testing.assert_allclose(
+        be_no_altitude_change.balance_model.vhl_under_chain().vhl_matrix.value(),
+        expected_vhl_under_chain,
+        atol=1e-4,
+    )
 
 
 @pytest.mark.integration
@@ -955,7 +968,7 @@ def test_angles_counterweight(cable_array_AM600: CableArray):
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
                 "crossarm_length": [0, 10, -10, 0],
-                "line_angle": [0, 10, 0, 0],
+                "line_angle": [0, 20, 30, 0],
                 "insulator_length": [0.01, 3, 3, 0.01],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": convert_weight_to_mass(
