@@ -38,6 +38,10 @@ class SolverError(Exception):
         super().__init__(f"{prefix} {message} | {details}")
 
 
+class SuspectedChainReversal(SolverError):
+    """Raised in solver when chain is suspected to be reversed (above horizontal position)"""
+
+
 class ConvergenceError(SolverError):
     """Raised when solver fails to converge."""
 
