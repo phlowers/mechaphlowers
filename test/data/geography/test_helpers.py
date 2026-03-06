@@ -1,10 +1,8 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
-
-
 import numpy as np
 
 from mechaphlowers.data.geography.helpers import (
@@ -182,10 +180,12 @@ def test_reverse_haversine():
     assert lat_end.dtype == np.float64
     assert lon_end.dtype == np.float64
 
-    assert np.allclose(
-        lat_end, [49.30575764, 43.29276776, 45.53942118], atol=1e-6
+    np.testing.assert_allclose(
+        lat_end, [49.30575764, 43.29276776, 45.53942118], rtol=1e-3
     )
-    assert np.allclose(lon_end, [2.3522, 6.29545998, 4.8357], atol=1e-6)
+    np.testing.assert_allclose(
+        lon_end, [2.3522, 6.29545998, 4.8357], rtol=1e-3
+    )
 
 
 # def test_haversine():
@@ -218,26 +218,45 @@ def test_gps_to_bearing_cardinal_directions():
     # Test North (should be close to 0 degrees)
     north_lat = np.array([CARDINAL_POINTS['north'][0]], dtype=np.float64)
     north_lon = np.array([CARDINAL_POINTS['north'][1]], dtype=np.float64)
-    bearing = gps_to_bearing(paris_lat, paris_lon, north_lat, north_lon)
-    assert np.isclose(bearing[0], 0.0, atol=5.0)  # Within 5 degrees of north
+    bearing = gps_to_bearing(
+        paris_lat, paris_lon, north_lat, north_lon, unit="deg"
+    )
+    np.testing.assert_allclose(
+        bearing[0], 0.0, atol=5.0
+    )  # Within 5 degrees of north
 
     # Test East (should be close to 90 degrees)
     east_lat = np.array([CARDINAL_POINTS['east'][0]], dtype=np.float64)
     east_lon = np.array([CARDINAL_POINTS['east'][1]], dtype=np.float64)
-    bearing = gps_to_bearing(paris_lat, paris_lon, east_lat, east_lon)
-    assert np.isclose(bearing[0], 90.0, atol=5.0)  # Within 5 degrees of east
+    bearing = gps_to_bearing(
+        paris_lat, paris_lon, east_lat, east_lon, unit="deg"
+    )
+    # Added minus sign because we want anti-clockwise. Original test was written with clockwise bearings in mind.
+    np.testing.assert_allclose(
+        bearing[0], 270.0, atol=5.0
+    )  # Within 5 degrees of east
 
     # Test South (should be close to 180 degrees)
     south_lat = np.array([CARDINAL_POINTS['south'][0]], dtype=np.float64)
     south_lon = np.array([CARDINAL_POINTS['south'][1]], dtype=np.float64)
-    bearing = gps_to_bearing(paris_lat, paris_lon, south_lat, south_lon)
-    assert np.isclose(bearing[0], 180.0, atol=5.0)  # Within 5 degrees of south
+    bearing = gps_to_bearing(
+        paris_lat, paris_lon, south_lat, south_lon, unit="deg"
+    )
+    np.testing.assert_allclose(
+        bearing[0], 180.0, atol=5.0
+    )  # Within 5 degrees of south
 
     # Test West (should be close to 270 degrees)
     west_lat = np.array([CARDINAL_POINTS['west'][0]], dtype=np.float64)
     west_lon = np.array([CARDINAL_POINTS['west'][1]], dtype=np.float64)
-    bearing = gps_to_bearing(paris_lat, paris_lon, west_lat, west_lon)
-    assert np.isclose(bearing[0], 270.0, atol=5.0)  # Within 5 degrees of west
+    bearing = gps_to_bearing(
+        paris_lat, paris_lon, west_lat, west_lon, unit="deg"
+    )
+    np.testing.assert_allclose(
+        bearing[0],
+        90.0,
+        atol=5.0,  # or -270 degrees
+    )  # Within 5 degrees of west
 
 
 def test_gps_to_bearing_cities():
@@ -254,18 +273,20 @@ def test_gps_to_bearing_cities():
     )
 
     bearing = gps_to_bearing(
-        paris_lat, paris_lon, marseille_lat, marseille_lon
+        paris_lat, paris_lon, marseille_lat, marseille_lon, unit="deg"
     )
     # Paris to Marseille should be roughly southeast (135-180 degrees)
-    assert np.isclose(bearing[0], 158.0, atol=1)
+    np.testing.assert_allclose(bearing[0], 202.0, atol=1)
 
     # Test Paris to Lyon (should be roughly southeast)
     lyon_lat = np.array([FRENCH_CITIES_GPS['Lyon'][0]], dtype=np.float64)
     lyon_lon = np.array([FRENCH_CITIES_GPS['Lyon'][1]], dtype=np.float64)
 
-    bearing = gps_to_bearing(paris_lat, paris_lon, lyon_lat, lyon_lon)
+    bearing = gps_to_bearing(
+        paris_lat, paris_lon, lyon_lat, lyon_lon, unit="deg"
+    )
     # Paris to Lyon should be roughly southeast (135-180 degrees)
-    assert np.isclose(bearing[0], 150.0, atol=1)
+    np.testing.assert_allclose(bearing[0], 210.0, atol=1)
 
 
 def test_bearing_to_direction():

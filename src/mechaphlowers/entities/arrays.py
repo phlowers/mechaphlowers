@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -17,6 +17,7 @@ from typing_extensions import Literal, Self, Type
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.errors import DataWarning
+from mechaphlowers.entities.geography import get_gps_from_arrays
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     ObstacleArrayInput,
@@ -235,6 +236,33 @@ class SectionArray(ElementArray):
                 )
                 warnings.warn(warning_string)
                 logger.warning(warning_string)
+
+    def compute_gps_coordinates(
+        self,
+        start_latitude: float,
+        start_longitude: float,
+        start_azimuth: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute GPS coordinates for the cable array.
+
+        Args:
+            start_latitude (float): Latitude of the first support in degrees.
+            start_longitude (float): Longitude of the first support in degrees.
+            start_azimuth (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: Two arrays of GPS coordinates (latitude, longitude) in degrees.
+        """
+        line_angle_geo_degrees = (
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        return get_gps_from_arrays(
+            start_latitude,
+            start_longitude,
+            start_azimuth,
+            line_angle_geo_degrees,
+            self.data["span_length"].to_numpy(),
+        )
 
     def __copy__(self) -> Self:
         copy_obj = super().__copy__()
