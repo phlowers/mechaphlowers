@@ -404,3 +404,38 @@ def test_get_data_spans_with_loads(balance_engine_simple: BalanceEngine):
     data_spans = balance_engine_simple.get_data_spans()
     for value in data_spans.values():
         assert len(value) == 3
+
+
+def test_engine_wind_sense(balance_engine_simple: BalanceEngine):
+    balance_engine_simple.solve_adjustment()
+
+    # Test with wind_sense "clockwise"
+    balance_engine_simple.solve_change_state(
+        wind_pressure=200,
+        wind_sense="clockwise",
+    )
+    displacement_clockwise = (
+        balance_engine_simple.balance_model.chain_displacement()
+    )
+
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.wind_pressure,
+        np.array([-200.0, -200.0, -200.0, -200.0]),
+    )
+
+    # Test with wind_sense "anticlockwise"
+    balance_engine_simple.solve_change_state(
+        wind_pressure=-200,
+        wind_sense="anticlockwise",
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.wind_pressure,
+        np.array([-200.0, -200.0, -200.0, -200.0]),
+    )
+    displacement_anticlockwise = (
+        balance_engine_simple.balance_model.chain_displacement()
+    )
+
+    np.testing.assert_array_equal(
+        displacement_clockwise, displacement_anticlockwise
+    )

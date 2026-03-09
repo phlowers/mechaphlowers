@@ -146,6 +146,9 @@ class SectionArray(ElementArray):
             self.sagging_temperature = sagging_temperature
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
+        self._angles_sense: Literal["clockwise", "anticlockwise"] = (
+            "anticlockwise"
+        )
         logger.debug("Section Array initialized.")
 
     def compute_elevation_difference(self) -> np.ndarray:
@@ -172,6 +175,26 @@ class SectionArray(ElementArray):
         )
 
     @property
+    def angles_sense(self) -> Literal["clockwise", "anticlockwise"]:
+        """Affects line_angle, crossarm_length sign
+
+        If "anticlockwise", line_angle is anticlockwise and crossarm_length is away from user (left).
+        If "clockwise", line_angle is clockwise and crossarm_length is towards user (right).
+
+        Defaults to "anticlockwise"."""
+        return self._angles_sense
+
+    @angles_sense.setter
+    def angles_sense(
+        self, value: Literal["clockwise", "anticlockwise"]
+    ) -> None:
+        if value not in ["clockwise", "anticlockwise"]:
+            raise ValueError(
+                f"angles_sense should be 'clockwise' or 'anticlockwise', received {value}"
+            )
+        self._angles_sense = value
+
+    @property
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
         data_output = super().data
@@ -184,7 +207,7 @@ class SectionArray(ElementArray):
             )
 
         self.validate_ground_altitude(data_output)
-
+        data_output = self._adjust_angle_sense(data_output)
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
@@ -199,6 +222,13 @@ class SectionArray(ElementArray):
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
             )
+
+    def _adjust_angle_sense(self, data_output: pd.DataFrame) -> pd.DataFrame:
+        if self.angles_sense == "clockwise":
+            # use data_output instead of self._data to keep eventual unit conversion
+            data_output["line_angle"] = -data_output["line_angle"]
+            data_output["crossarm_length"] = -data_output["crossarm_length"]
+        return data_output
 
     def equivalent_span(self) -> float:
         """equivalent_span
