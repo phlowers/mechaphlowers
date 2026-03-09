@@ -975,3 +975,35 @@ def test_warning_on_insulator_length_correction(
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
     with pytest.warns(DataWarning):
         section_array.data
+
+
+def test_section_array_angle_sense() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [3, 4, 5, -6],
+                "line_angle": [10, 15, -20, 25],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [100, 50, 50, 100],
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "deg"})
+    section_array.angles_sense = "clockwise"
+    expected_line_angle = -np.radians([10, 15, -20, 25])
+    np.testing.assert_allclose(
+        section_array.data.line_angle, expected_line_angle
+    )
+
+    expected_crossarm_length = -np.array([3, 4, 5, -6])
+    np.testing.assert_allclose(
+        section_array.data.crossarm_length, expected_crossarm_length
+    )

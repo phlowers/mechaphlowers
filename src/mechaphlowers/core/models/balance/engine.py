@@ -12,6 +12,7 @@ import warnings
 from typing import Callable, Type
 
 import numpy as np
+from typing_extensions import Literal
 
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.interfaces import IBalanceModel
@@ -232,6 +233,7 @@ class BalanceEngine:
         wind_pressure: np.ndarray | float | None = None,
         ice_thickness: np.ndarray | float | None = None,
         new_temperature: np.ndarray | float | None = None,
+        wind_sense: Literal["clockwise", "anticlockwise"] = "anticlockwise",
     ) -> None:
         """Solve the chain positions, for a case of change of state.
         Updates weather conditions and/or sagging temperature if provided.
@@ -241,6 +243,7 @@ class BalanceEngine:
             wind_pressure (np.ndarray | float | None): Wind pressure in Pa. Default to None
             ice_thickness (np.ndarray | float | None): Ice thickness in m. Default to None
             new_temperature (np.ndarray | float | None): New temperature in °C. Default to None
+            wind_sense (Literal["clockwise", "anticlockwise"]): Direction of the wind: if "clockwise": towards user (right), if "anticlockwise": away from user (left). Default to "anticlockwise".
 
         After running this method, many attributes are updated.
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
@@ -252,7 +255,7 @@ class BalanceEngine:
         """
         logger.debug("Starting change state.")
         logger.debug(
-            f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}"
+            f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}\nwind_sense {str(wind_sense)}"
         )
 
         span_shape = self.section_array.data.span_length.shape
@@ -274,9 +277,16 @@ class BalanceEngine:
 
             return input_value
 
-        self.balance_model.cable_loads.wind_pressure = validate_input(
-            wind_pressure, "wind_pressure"
-        )
+        if wind_sense not in ["clockwise", "anticlockwise"]:
+            raise ValueError(
+                f"wind_sense should be 'clockwise' or 'anticlockwise', received {wind_sense}"
+            )
+        validated_wind = validate_input(wind_pressure, "wind_pressure")
+        if wind_sense == "clockwise":
+            validated_wind = -validated_wind
+
+        self.balance_model.cable_loads.wind_pressure = validated_wind
+
         # TODO: convert ice thickness from cm to m? Right now, user has to input in m
         self.balance_model.cable_loads.ice_thickness = validate_input(
             ice_thickness, "ice_thickness"
