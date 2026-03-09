@@ -207,7 +207,7 @@ class SectionArray(ElementArray):
             )
 
         self.validate_ground_altitude(data_output)
-        self._adjust_angle_sense(data_output)
+        data_output = self._adjust_angle_sense(data_output)
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
@@ -223,7 +223,7 @@ class SectionArray(ElementArray):
                 sagging_temperature=self.sagging_temperature,
             )
 
-    def _adjust_angle_sense(self, data_output) -> None:
+    def _adjust_angle_sense(self, data_output: pd.DataFrame) -> pd.DataFrame:
         if self.angles_sense == "clockwise":
             # use data_output instead of self._data to keep eventual unit conversion
             data_output["line_angle"] = -data_output["line_angle"]
