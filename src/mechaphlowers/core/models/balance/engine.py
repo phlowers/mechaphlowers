@@ -261,19 +261,17 @@ class BalanceEngine:
         span_shape = self.section_array.data.span_length.shape
 
         def validate_input(input_value, name: str):
-            if input_value is not None and not isinstance(
-                input_value, (int, float, np.ndarray)
-            ):
-                raise TypeError(f"{name} has incorrect type")
             if input_value is None:
-                input_value = self.default_value[name]
-            if isinstance(input_value, (int, float)):
+                input_value = np.full(span_shape, self.default_value[name])
+            elif isinstance(input_value, (int, float)):
                 input_value = np.full(span_shape, input_value)
-            if isinstance(input_value, np.ndarray):
+            elif isinstance(input_value, np.ndarray):
                 if input_value.shape != span_shape:
                     raise ValueError(
                         f"{name} has incorrect shape: {span_shape} is expected, received {input_value.shape}"
                     )
+            else:
+                raise TypeError(f"{name} has incorrect type")
 
             return input_value
 
