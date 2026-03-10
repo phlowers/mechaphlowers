@@ -29,6 +29,14 @@ $$
 | $T_{max}$ | Maximum mechanical tension applied (N) |
 | $k_s$ | Safety coefficient (dimensionless, catalog column `safety_coefficient`) |
 
+When the [`high_safety`][mechaphlowers.entities.arrays.CableArray.high_safety] flag is enabled, an additional security factor of 1.5 is applied to $k_s$:
+
+$$
+k_{s,\text{eff}} = k_s \times 1.5
+$$
+
+The effective value is exposed by the read-only [`safety_coefficient`][mechaphlowers.entities.arrays.CableArray.safety_coefficient] property and is used automatically by [`utilization_rate`][mechaphlowers.entities.arrays.CableArray.utilization_rate].
+
 !!! Warning "Model assumptions"
 
     - The RRTS model assumes that all strands in a given layer have the same RTS. Heterogeneous layers must be pre-processed (e.g., split or averaged) before loading data.
@@ -46,6 +54,11 @@ The following columns must be present in the cable catalog CSV for RRTS support:
 | `rts_cable` | N | RTS of the intact cable |
 | `rts_layer_1` … `rts_layer_8` | N | Unit RTS per strand per layer (`0` = unused) |
 | `safety_coefficient` | — | Safety coefficient $k_s$ |
+| `nb_strand_layer_1` … `nb_strand_layer_8` | — | Number of strands per layer (`0` = unused) |
+
+!!! note "Coverage check"
+    The ratio $\frac{RTS_{cable}}{\sum_{i} rts_{layer,i} \times nb_{strand,i}} \times 100$ indicates how well the
+    strand-level model explains the cable RTS. An acceptable value is between 75% and 100%.
 
 !!! warning "Layer-level assumption"
     The model assumes all strands in a given layer are identical (same RTS). Layers with heterogeneous strands must be split or averaged externally before loading data.
@@ -59,6 +72,7 @@ from mechaphlowers.data.catalog import sample_cable_catalog
 cable = sample_cable_catalog.get_as_object(["ASTER600"])
 
 # Declare cut strands per layer — here 1 strand cut in layer 3
+# Maximum allowed per layer: int(nb_strand_layer_i / 2)
 cable.cut_strands = np.array([0, 0, 1, 0, 0, 0, 0, 0])
 
 # RRTS for the whole section (scalar — applies uniformly to all spans)
@@ -69,6 +83,12 @@ print(cable.rrts)
 tensions = np.array([50000.0, 75000.0, 90000.0])  # N, one value per span
 print(cable.utilization_rate(tensions))
 # [16.93766938 25.40650407 30.48780488]
+
+# Activate the high safety mode — safety_coefficient is multiplied by 1.5
+cable.high_safety = True
+print(cable.safety_coefficient)     # catalog value × 1.5
+print(cable.utilization_rate(tensions))
+# tighter limits — values are divided by 1.5 compared to the default
 ```
 
 See the [API reference](../docstring/entities/arrays.md) for full `CableArray` documentation.

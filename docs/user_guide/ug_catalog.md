@@ -64,12 +64,13 @@ Columns and their input units (before SI conversion):
 | `rts_cable` | N | Rated Tensile Strength of the intact cable |
 | `rts_layer_1`…`rts_layer_8` | N | Unit RTS per strand per layer (`0` = unused layer) |
 | `safety_coefficient` | — | Safety coefficient for utilization rate (default 1.5) |
+| `nb_strand_layer_1`…`nb_strand_layer_8` | — | Number of strands per layer (`0` = unused layer) |
 
 !!! note "Stress-strain model"
     For linear cables (`is_polynomial = False`), only `a1` and `b1` are non-zero (conductor and heart Young's modulus). Polynomial cables use all five coefficients `a0`…`a4` / `b0`…`b4`.
 
 !!! note "RRTS columns"
-    `rts_cable`, `rts_layer_*` and `safety_coefficient` are optional. They are only required for [RRTS and utilization rate calculations](ug_rrts.md).
+    `rts_cable`, `rts_layer_*`, `safety_coefficient` and `nb_strand_layer_*` are optional. They are only required for [RRTS and utilization rate calculations](ug_rrts.md).
 
 
 ## Loading your data in the catalogs

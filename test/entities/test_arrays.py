@@ -1111,3 +1111,31 @@ def test_utilization_rate(cable_array_with_rts: CableArray) -> None:
     result = cable_array_with_rts.utilization_rate(tension_sup_N)
     assert isinstance(result, np.ndarray)
     assert result == pytest.approx(expected_rates)
+
+
+@pytest.mark.unit_test
+def test_safety_coefficient_default(cable_array_with_rts: CableArray) -> None:
+    """safety_coefficient returns the catalog value when high_safety is False."""
+    assert cable_array_with_rts.safety_coefficient == pytest.approx(_SAFETY_COEF)
+
+
+@pytest.mark.unit_test
+def test_safety_coefficient_high_safety(cable_array_with_rts: CableArray) -> None:
+    """safety_coefficient returns catalog value × 1.5 when high_safety is True."""
+    cable_array_with_rts.high_safety = True
+    assert cable_array_with_rts.safety_coefficient == pytest.approx(
+        _SAFETY_COEF * 1.5
+    )
+
+
+@pytest.mark.unit_test
+def test_utilization_rate_high_safety(cable_array_with_rts: CableArray) -> None:
+    """utilization_rate uses the scaled safety_coefficient when high_safety is True."""
+    cable_array_with_rts.cut_strands = [0] * 8
+    cable_array_with_rts.high_safety = True
+    rrts_N = float(_RTS_CABLE_N)
+    tension_sup_N = np.array([90_000.0])
+    effective_coef = _SAFETY_COEF * 1.5
+    expected = tension_sup_N / (rrts_N * effective_coef) * 100
+    result = cable_array_with_rts.utilization_rate(tension_sup_N)
+    assert result == pytest.approx(expected)

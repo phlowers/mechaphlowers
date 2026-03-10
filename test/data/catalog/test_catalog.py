@@ -416,6 +416,14 @@ def test_catalog_cable_array_units_aster(cable_array_AM600) -> None:
             "rts_layer_7": [0.0],
             "rts_layer_8": [0.0],
             "safety_coefficient": [1.5],
+            "nb_strand_layer_1": [1],
+            "nb_strand_layer_2": [6],
+            "nb_strand_layer_3": [12],
+            "nb_strand_layer_4": [18],
+            "nb_strand_layer_5": [24],
+            "nb_strand_layer_6": [0],
+            "nb_strand_layer_7": [0],
+            "nb_strand_layer_8": [0],
         }
     )
     assert_frame_equal(
@@ -467,6 +475,14 @@ def test_catalog_cable_array_units_narcisse(cable_array_NARCISSE600G) -> None:
             "rts_layer_7": [0.0],
             "rts_layer_8": [0.0],
             "safety_coefficient": [1.5],
+            "nb_strand_layer_1": [1],
+            "nb_strand_layer_2": [6],
+            "nb_strand_layer_3": [12],
+            "nb_strand_layer_4": [12],
+            "nb_strand_layer_5": [16],
+            "nb_strand_layer_6": [0],
+            "nb_strand_layer_7": [0],
+            "nb_strand_layer_8": [0],
         }
     )
     assert_frame_equal(
@@ -518,6 +534,14 @@ def test_catalog_correct_array(cable_array_AM600) -> None:
                 "rts_layer_7": [0],
                 "rts_layer_8": [0],
                 "safety_coefficient": [1.5],
+                "nb_strand_layer_1": [1],
+                "nb_strand_layer_2": [6],
+                "nb_strand_layer_3": [12],
+                "nb_strand_layer_4": [18],
+                "nb_strand_layer_5": [24],
+                "nb_strand_layer_6": [0],
+                "nb_strand_layer_7": [0],
+                "nb_strand_layer_8": [0],
             }
         )
     )

@@ -314,6 +314,17 @@ class CableArray(ElementArray):
 
     Args:
         data: Input data as a DataFrame matching [`CableArrayInput`][mechaphlowers.entities.schemas.CableArrayInput].
+
+    Notes:
+        Set [`high_security_current`][mechaphlowers.entities.arrays.CableArray.high_security_current]
+        to `True` to apply an additional safety margin on electrical current.
+        In this mode, currents are multiplied by `1.5` through
+        [`apply_current_security`][mechaphlowers.entities.arrays.CableArray.apply_current_security].
+
+        Set [`high_safety`][mechaphlowers.entities.arrays.CableArray.high_safety]
+        to `True` to apply an additional security factor on the safety coefficient.
+        In this mode, the effective [`safety_coefficient`][mechaphlowers.entities.arrays.CableArray.safety_coefficient]
+        is multiplied by `1.5`, which tightens the utilization rate limit.
     """
 
     array_input_type: Type[pa.DataFrameModel] = CableArrayInput
@@ -327,6 +338,18 @@ class CableArray(ElementArray):
         "rts_layer_7",
         "rts_layer_8",
     ]
+    _NB_STRAND_LAYERS: list[str] = [
+        "nb_strand_layer_1",
+        "nb_strand_layer_2",
+        "nb_strand_layer_3",
+        "nb_strand_layer_4",
+        "nb_strand_layer_5",
+        "nb_strand_layer_6",
+        "nb_strand_layer_7",
+        "nb_strand_layer_8",
+    ]
+    _CURRENT_SECURITY_FACTOR: float = 1.5
+    _SAFETY_SECURITY_FACTOR: float = 1.5
 
     target_units: dict[str, str] = {
         "section": "m^2",
@@ -407,6 +430,73 @@ class CableArray(ElementArray):
             options.input_units.cable_array.copy()
         )
         self._cut_strands: np.ndarray = np.zeros(8, dtype=int)
+        self._high_security_current: bool = False
+        self._high_safety: bool = False
+
+    @property
+    def high_security_current(self) -> bool:
+        """Enable or disable the additional current safety mechanism.
+
+        When enabled, current values are multiplied by `1.5` through
+        [`apply_current_security`][mechaphlowers.entities.arrays.CableArray.apply_current_security].
+        """
+        return self._high_security_current
+
+    @high_security_current.setter
+    def high_security_current(self, value: bool) -> None:
+        if not isinstance(value, bool):
+            raise TypeError(
+                "high_security_current must be a boolean."
+            )
+        self._high_security_current = value
+
+    @property
+    def high_safety(self) -> bool:
+        """Enable or disable the additional safety coefficient security mechanism.
+
+        When enabled, the effective
+        [`safety_coefficient`][mechaphlowers.entities.arrays.CableArray.safety_coefficient]
+        is multiplied by `1.5`, which tightens the utilization rate limit computed by
+        [`utilization_rate`][mechaphlowers.entities.arrays.CableArray.utilization_rate].
+        """
+        return self._high_safety
+
+    @high_safety.setter
+    def high_safety(self, value: bool) -> None:
+        if not isinstance(value, bool):
+            raise TypeError("high_safety must be a boolean.")
+        self._high_safety = value
+
+    @property
+    def safety_coefficient(self) -> float:
+        """Effective safety coefficient used in the utilization rate.
+
+        Returns the catalog ``safety_coefficient`` value. If
+        [`high_safety`][mechaphlowers.entities.arrays.CableArray.high_safety] is
+        ``True``, the value is multiplied by ``1.5``.
+        """
+        base = float(self.data["safety_coefficient"].iloc[0])
+        if self._high_safety:
+            return base * self._SAFETY_SECURITY_FACTOR
+        return base
+
+    def apply_current_security(
+        self, intensity: np.ndarray | list[float] | float
+    ) -> np.ndarray:
+        """Apply the configured safety factor to current intensity.
+
+        Args:
+            intensity: Current values (A) as scalar or array-like.
+
+        Returns:
+            A numpy array containing the effective current values. If
+            `high_security_current` is `True`, the values are multiplied by
+            `1.5`; otherwise values are returned unchanged.
+        """
+        intensity_arr = np.asarray(intensity, dtype=float)
+        if self._high_security_current:
+            return intensity_arr * self._CURRENT_SECURITY_FACTOR
+        return intensity_arr
 
     @property
     def data(self) -> pd.DataFrame:
@@ -451,6 +541,63 @@ class CableArray(ElementArray):
             ]
         )
 
+    def _rts_layers_array(self) -> np.ndarray:
+        """Per-layer RTS values as an 8-element float array.
+
+        Missing or NaN columns produce ``nan`` entries.
+        """
+        return (
+            self.data.reindex(columns=self._RTS_LAYERS).iloc[0].to_numpy(dtype=float)
+        )
+
+    @property
+    def nb_strand_per_layer(self) -> np.ndarray:
+        """Number of strands per layer, as an 8-element integer array.
+
+        Index 0 = layer 1, …, index 7 = layer 8.
+        Returns zeros for layers whose column is absent or NaN in the catalog.
+
+        This value is used to enforce that
+        [`cut_strands`][mechaphlowers.entities.arrays.CableArray.cut_strands]
+        cannot exceed ``int(nb_strand_per_layer[i] / 2)`` for each layer.
+        """
+        arr = (
+            self.data.reindex(columns=self._NB_STRAND_LAYERS)
+            .iloc[0]
+            .to_numpy(dtype=float)
+        )
+        return np.nan_to_num(arr, nan=0.0).astype(int)
+
+    def rts_coverage(self) -> float:
+        """Ratio of cable RTS to the sum of strand-level RTS contributions.
+
+        .. math::
+
+            \\text{rts\\_coverage} = \\frac{RTS_{cable}}{\\sum_{i} rts_{layer,i} \\times nb_{strand,i}}
+
+        An acceptable value is between 0.75 and 1.0 (75%–100%). Values outside
+        this range indicate that the strand-level model poorly explains the
+        cable RTS.
+
+        Returns:
+            float: ``rts_cable / sum(rts_layer_i * nb_strand_layer_i)``.
+
+        Raises:
+            ValueError: if ``nb_strand_layer_*`` or ``rts_layer_*`` columns are
+                absent from the catalog, or if the denominator is zero.
+        """
+        rts_layers = np.nan_to_num(self._rts_layers_array(), nan=0.0)
+        nb_strands = self.nb_strand_per_layer.astype(float)
+        denominator = float(rts_layers @ nb_strands)
+        if denominator == 0.0:
+            raise ValueError(
+                "rts_coverage denominator is zero: "
+                "all rts_layer_i * nb_strand_layer_i products are zero. "
+                "Ensure rts_layer_* and nb_strand_layer_* columns are set in the catalog."
+            )
+        rts_cable = float(self.data["rts_cable"].iloc[0])
+        return rts_cable / denominator
+
     @property
     def cut_strands(self) -> np.ndarray:
         """Number of cut strands per layer, as an 8-element integer array.
@@ -470,6 +617,8 @@ class CableArray(ElementArray):
 
         Raises:
             ValueError: if more than 8 elements are provided.
+            ValueError: if ``cut_strands[i] > int(nb_strand_layer_i / 2)`` for
+                any layer where strand count data is available in the catalog.
         """
         cut_strands_arr = np.asarray(cut_strands, dtype=int)
         if len(cut_strands_arr) > 8:
@@ -478,6 +627,20 @@ class CableArray(ElementArray):
             )
         padded = np.zeros(8, dtype=int)
         padded[: len(cut_strands_arr)] = cut_strands_arr
+
+        nb_strands = self.nb_strand_per_layer
+        max_allowed = nb_strands // 2
+        violation_mask = (nb_strands > 0) & (padded > max_allowed)
+        if violation_mask.any():
+            details = "; ".join(
+                f"layer {i + 1}: cut_strands={padded[i]} > int({nb_strands[i]} / 2)={max_allowed[i]}"
+                for i in np.where(violation_mask)[0]
+            )
+            raise ValueError(
+                "cut_strands exceeds allowed maximum (half the strand count per layer): "
+                + details
+            )
+
         self._cut_strands = padded
 
     @property
@@ -494,19 +657,10 @@ class CableArray(ElementArray):
             ValueError: if cut_strands[i] > 0 but the corresponding rts layer
                 column is missing or NaN in the catalog data.
         """
-        cable_data = self.data
-        rts_cable = float(cable_data["rts_cable"].iloc[0])
+        rts_cable = float(self.data["rts_cable"].iloc[0])
 
         # Build RTS-per-layer vector (NaN where column is absent or NaN)
-        rts_layers = np.array(
-            [
-                float(cable_data[col].iloc[0])
-                if col in cable_data.columns
-                and not pd.isna(cable_data[col].iloc[0])
-                else np.nan
-                for col in self._RTS_LAYERS
-            ]
-        )
+        rts_layers = self._rts_layers_array()
 
         # Validate: no cut strands allowed on missing/NaN layers
         invalid_mask = (self._cut_strands > 0) & np.isnan(rts_layers)
@@ -518,7 +672,7 @@ class CableArray(ElementArray):
             raise ValueError(details)
 
         rts_layers = np.nan_to_num(rts_layers, nan=0.0)
-        return rts_cable - float(np.dot(self._cut_strands, rts_layers))
+        return rts_cable - float(self._cut_strands @ rts_layers)
 
     def utilization_rate(self, tension_sup_N: np.ndarray) -> np.ndarray:
         """Utilization rate as a percentage of RTS, one value per span.
@@ -532,8 +686,7 @@ class CableArray(ElementArray):
         Returns:
             Array of utilization rates in % of RTS, same length as tension_sup_N.
         """
-        safety_coef = float(self.data["safety_coefficient"].iloc[0])
-        return np.asarray(tension_sup_N) / (self.rrts * safety_coef) * 100
+        return np.asarray(tension_sup_N) / (self.rrts * self.safety_coefficient) * 100
 
 
 class WeatherArray(ElementArray):
