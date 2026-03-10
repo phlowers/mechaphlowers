@@ -150,6 +150,15 @@ class InputUnitsConfig:
             "electric_resistance_20": "ohm.m**-1",
             "linear_resistance_temperature_coef": "K**-1",
             "radial_thermal_conductivity": "W.m**-1.K**-1",
+            "rts_cable": "daN",
+            "rts_layer_1": "daN",
+            "rts_layer_2": "daN",
+            "rts_layer_3": "daN",
+            "rts_layer_4": "daN",
+            "rts_layer_5": "daN",
+            "rts_layer_6": "daN",
+            "rts_layer_7": "daN",
+            "rts_layer_8": "daN",
         }
     )
     section_array: dict[str, str] = field(

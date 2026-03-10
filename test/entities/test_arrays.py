@@ -1007,3 +1007,101 @@ def test_section_array_angle_sense() -> None:
     np.testing.assert_allclose(
         section_array.data.crossarm_length, expected_crossarm_length
     )
+
+
+# ---------------------------------------------------------------------------
+# RRTS / utilization_rate tests
+# ---------------------------------------------------------------------------
+
+_RTS_CABLE_DAN = 18000  # daN  → 180 000 N
+_RTS_L1_DAN = 2500  # daN  →  25 000 N
+_RTS_L2_DAN = 5000  # daN  →  50 000 N
+_SAFETY_COEF = 1.5
+
+
+@pytest.fixture
+def cable_array_with_rts_input_data(cable_array_input_data: dict) -> dict:
+    data = cable_array_input_data.copy()
+    data.update(
+        {
+            "rts_cable": [_RTS_CABLE_DAN],
+            "rts_layer_1": [_RTS_L1_DAN],
+            "rts_layer_2": [_RTS_L2_DAN],
+            "rts_layer_3": [7500],
+            "rts_layer_4": [3000],
+            "rts_layer_5": [0],
+            "rts_layer_6": [0],
+            "rts_layer_7": [0],
+            "rts_layer_8": [0],
+            "safety_coefficient": [_SAFETY_COEF],
+        }
+    )
+    return data
+
+
+@pytest.fixture
+def cable_array_with_rts(cable_array_with_rts_input_data: dict) -> CableArray:
+    return CableArray(pd.DataFrame(cable_array_with_rts_input_data))
+
+
+@pytest.mark.unit_test
+def test_rrts_no_damage(cable_array_with_rts: CableArray) -> None:
+    """With no cut strands, RRTS equals rts_cable converted to N."""
+    cable_array_with_rts.set_cut_strands([0] * 8)
+    expected_rrts_N = _RTS_CABLE_DAN * 10.0  # daN → N
+    assert cable_array_with_rts.rrts == pytest.approx(expected_rrts_N)
+
+
+@pytest.mark.unit_test
+def test_rrts_with_damage(cable_array_with_rts: CableArray) -> None:
+    """RRTS is reduced by cut strands in layers 1 and 2."""
+    # 2 strands cut in layer 1, 1 strand cut in layer 2
+    cable_array_with_rts.set_cut_strands([2, 1, 0, 0, 0, 0, 0, 0])
+    expected_rrts_N = (
+        _RTS_CABLE_DAN * 10.0 - 2 * _RTS_L1_DAN * 10.0 - 1 * _RTS_L2_DAN * 10.0
+    )
+    assert cable_array_with_rts.rrts == pytest.approx(expected_rrts_N)
+
+
+@pytest.mark.unit_test
+def test_rrts_raises_if_not_set(cable_array_with_rts: CableArray) -> None:
+    """Accessing rrts without set_cut_strands raises ValueError."""
+    with pytest.raises(ValueError, match="set_cut_strands"):
+        _ = cable_array_with_rts.rrts
+
+
+@pytest.mark.unit_test
+def test_set_cut_strands_too_many_elements(
+    cable_array_with_rts: CableArray,
+) -> None:
+    """set_cut_strands with more than 8 elements raises ValueError."""
+    with pytest.raises(ValueError, match="8"):
+        cable_array_with_rts.set_cut_strands([0] * 9)
+
+
+@pytest.mark.unit_test
+def test_rrts_raises_if_rts_layer_missing(
+    cable_array_with_rts_input_data: dict,
+) -> None:
+    """rrts raises ValueError when a cut layer has NaN RTS in catalog data."""
+    # Set rts_layer_3 to None (will become NaN after schema coercion)
+    data = cable_array_with_rts_input_data.copy()
+    data["rts_layer_3"] = [None]
+    ca = CableArray(pd.DataFrame(data))
+    # Cut 1 strand in layer 3 (index 2 → rts_layer_3)
+    ca.set_cut_strands([0, 0, 1, 0, 0, 0, 0, 0])
+    with pytest.raises(ValueError, match="rts_layer_3"):
+        _ = ca.rrts
+
+
+@pytest.mark.unit_test
+def test_utilization_rate(cable_array_with_rts: CableArray) -> None:
+    """Utilization rate = tension_sup_N / (rrts * safety_coefficient) * 100."""
+    cable_array_with_rts.set_cut_strands([0] * 8)
+    rrts_N = _RTS_CABLE_DAN * 10.0  # 180 000 N
+    tension_sup_N = 90_000.0  # N
+
+    expected_rate = tension_sup_N / (rrts_N * _SAFETY_COEF) * 100
+    assert cable_array_with_rts.utilization_rate(
+        tension_sup_N
+    ) == pytest.approx(expected_rate)

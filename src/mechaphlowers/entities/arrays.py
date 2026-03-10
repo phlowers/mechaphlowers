@@ -76,6 +76,8 @@ class ElementArray(ABC):
         """Returns a copy of self._data that converts values into SI units"""
         data_SI = self._data.copy()
         for column, input_unit in self.input_units.items():
+            if column not in data_SI.columns:
+                continue
             data_SI[column] = (
                 Q_(self._data[column].to_numpy(), input_unit)
                 .to(self.target_units[column])
@@ -309,6 +311,17 @@ class CableArray(ElementArray):
     """
 
     array_input_type: Type[pa.DataFrameModel] = CableArrayInput
+    _RTS_LAYERS: list[str] = [
+        "rts_layer_1",
+        "rts_layer_2",
+        "rts_layer_3",
+        "rts_layer_4",
+        "rts_layer_5",
+        "rts_layer_6",
+        "rts_layer_7",
+        "rts_layer_8",
+    ]
+
     target_units: dict[str, str] = {
         "section": "m^2",
         "diameter": "m",
@@ -332,6 +345,15 @@ class CableArray(ElementArray):
         "electric_resistance_20": "ohm.m**-1",
         "linear_resistance_temperature_coef": "K**-1",
         "radial_thermal_conductivity": "W.m**-1.K**-1",
+        "rts_cable": "N",
+        "rts_layer_1": "N",
+        "rts_layer_2": "N",
+        "rts_layer_3": "N",
+        "rts_layer_4": "N",
+        "rts_layer_5": "N",
+        "rts_layer_6": "N",
+        "rts_layer_7": "N",
+        "rts_layer_8": "N",
     }
     mecha_attributes = [
         "section",
@@ -421,6 +443,76 @@ class CableArray(ElementArray):
                 self.data.b4.iloc[0],
             ]
         )
+
+    def set_cut_strands(self, cut_strands: list[int] | np.ndarray) -> None:
+        """Set the number of cut strands per layer.
+
+        Args:
+            cut_strands: Sequence of up to 8 integers where index 0 = layer 1,
+                index 1 = layer 2, …, index 7 = layer 8.
+
+        Raises:
+            ValueError: if more than 8 elements are provided.
+        """
+        cut_strands_arr = np.asarray(cut_strands, dtype=int)
+        if len(cut_strands_arr) > 8:
+            raise ValueError(
+                f"cut_strands must have at most 8 elements, got {len(cut_strands_arr)}."
+            )
+        padded = np.zeros(8, dtype=int)
+        padded[: len(cut_strands_arr)] = cut_strands_arr
+        self._cut_strands = padded
+
+    @property
+    def rrts(self) -> float:
+        """Residual Rated Tensile Strength (RRTS) in N.
+
+        RRTS = rts_cable - sum(cut_strands[i] * rts_l{i+1} for i in 0..7)
+
+        Raises:
+            ValueError: if set_cut_strands() has not been called.
+            ValueError: if cut_strands[i] > 0 but the corresponding rts layer
+                column is missing or NaN in the catalog data.
+        """
+        if not hasattr(self, "_cut_strands"):
+            raise ValueError(
+                "cut_strands not set. Call set_cut_strands() before accessing rrts."
+            )
+        cable_data = self.data
+        rts_cable = float(cable_data["rts_cable"].iloc[0])
+        deduction = 0.0
+        for i, layer_col in enumerate(self._RTS_LAYERS):
+            n_cut = int(self._cut_strands[i])
+            if n_cut == 0:
+                continue
+            if layer_col not in cable_data.columns or pd.isna(
+                cable_data[layer_col].iloc[0]
+            ):
+                raise ValueError(
+                    f"cut_strands[{i}] = {n_cut} but '{layer_col}' is missing "
+                    "or NaN in the cable data."
+                )
+            deduction += n_cut * float(cable_data[layer_col].iloc[0])
+        return rts_cable - deduction
+
+    def utilization_rate(self, tension_sup_N: float) -> float:
+        """Utilization rate as a percentage of RTS.
+
+        rate (%) = tension_sup_N / (RRTS * safety_coefficient) * 100
+
+        Args:
+            tension_sup_N: Maximum cable tension in N (e.g. tension_sup from
+                BalanceEngine.get_data_spans(), converted from daN to N).
+
+        Returns:
+            Utilization rate in % of RTS.
+
+        Raises:
+            ValueError: if set_cut_strands() has not been called (propagated
+                from rrts).
+        """
+        safety_coef = float(self.data["safety_coefficient"].iloc[0])
+        return tension_sup_N / (self.rrts * safety_coef) * 100
 
 
 class WeatherArray(ElementArray):

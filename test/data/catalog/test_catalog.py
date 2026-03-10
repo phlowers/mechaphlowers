@@ -406,6 +406,16 @@ def test_catalog_cable_array_units_aster(cable_array_AM600) -> None:
             "is_polynomial": [False],
             "radial_thermal_conductivity": [1.0],
             "has_magnetic_heart": [False],
+            "rts_cable": [180000.0],
+            "rts_layer_1": [25000.0],
+            "rts_layer_2": [50000.0],
+            "rts_layer_3": [75000.0],
+            "rts_layer_4": [30000.0],
+            "rts_layer_5": [0.0],
+            "rts_layer_6": [0.0],
+            "rts_layer_7": [0.0],
+            "rts_layer_8": [0.0],
+            "safety_coefficient": [1.5],
         }
     )
     assert_frame_equal(
@@ -446,6 +456,16 @@ def test_catalog_cable_array_units_narcisse(cable_array_NARCISSE600G) -> None:
             "is_polynomial": [True],
             "radial_thermal_conductivity": [1.0],
             "has_magnetic_heart": [False],
+            "rts_cable": [180000.0],
+            "rts_layer_1": [26000.0],
+            "rts_layer_2": [52000.0],
+            "rts_layer_3": [78000.0],
+            "rts_layer_4": [24000.0],
+            "rts_layer_5": [0.0],
+            "rts_layer_6": [0.0],
+            "rts_layer_7": [0.0],
+            "rts_layer_8": [0.0],
+            "safety_coefficient": [1.5],
         }
     )
     assert_frame_equal(
@@ -486,6 +506,16 @@ def test_catalog_correct_array(cable_array_AM600) -> None:
                 "is_polynomial": [False],
                 "radial_thermal_conductivity": [1.0],
                 "has_magnetic_heart": [False],
+                "rts_cable": [18000],
+                "rts_layer_1": [2500],
+                "rts_layer_2": [5000],
+                "rts_layer_3": [7500],
+                "rts_layer_4": [3000],
+                "rts_layer_5": [0],
+                "rts_layer_6": [0],
+                "rts_layer_7": [0],
+                "rts_layer_8": [0],
+                "safety_coefficient": [1.5],
             }
         )
     )
