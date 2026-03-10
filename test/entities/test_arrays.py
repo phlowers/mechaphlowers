@@ -1013,9 +1013,9 @@ def test_section_array_angle_sense() -> None:
 # RRTS / utilization_rate tests
 # ---------------------------------------------------------------------------
 
-_RTS_CABLE_DAN = 18000  # daN  → 180 000 N
-_RTS_L1_DAN = 2500  # daN  →  25 000 N
-_RTS_L2_DAN = 5000  # daN  →  50 000 N
+_RTS_CABLE_N = 18000  # N (arbitrary test value)
+_RTS_L1_N = 2500  # N (arbitrary test value)
+_RTS_L2_N = 5000  # N (arbitrary test value)
 _SAFETY_COEF = 1.5
 
 
@@ -1024,9 +1024,9 @@ def cable_array_with_rts_input_data(cable_array_input_data: dict) -> dict:
     data = cable_array_input_data.copy()
     data.update(
         {
-            "rts_cable": [_RTS_CABLE_DAN],
-            "rts_layer_1": [_RTS_L1_DAN],
-            "rts_layer_2": [_RTS_L2_DAN],
+            "rts_cable": [_RTS_CABLE_N],
+            "rts_layer_1": [_RTS_L1_N],
+            "rts_layer_2": [_RTS_L2_N],
             "rts_layer_3": [7500],
             "rts_layer_4": [3000],
             "rts_layer_5": [0],
@@ -1048,7 +1048,7 @@ def cable_array_with_rts(cable_array_with_rts_input_data: dict) -> CableArray:
 def test_rrts_no_damage(cable_array_with_rts: CableArray) -> None:
     """With no cut strands, RRTS equals rts_cable converted to N."""
     cable_array_with_rts.set_cut_strands([0] * 8)
-    expected_rrts_N = _RTS_CABLE_DAN * 10.0  # daN → N
+    expected_rrts_N = float(_RTS_CABLE_N)
     assert cable_array_with_rts.rrts == pytest.approx(expected_rrts_N)
 
 
@@ -1057,9 +1057,7 @@ def test_rrts_with_damage(cable_array_with_rts: CableArray) -> None:
     """RRTS is reduced by cut strands in layers 1 and 2."""
     # 2 strands cut in layer 1, 1 strand cut in layer 2
     cable_array_with_rts.set_cut_strands([2, 1, 0, 0, 0, 0, 0, 0])
-    expected_rrts_N = (
-        _RTS_CABLE_DAN * 10.0 - 2 * _RTS_L1_DAN * 10.0 - 1 * _RTS_L2_DAN * 10.0
-    )
+    expected_rrts_N = float(_RTS_CABLE_N - 2 * _RTS_L1_N - 1 * _RTS_L2_N)
     assert cable_array_with_rts.rrts == pytest.approx(expected_rrts_N)
 
 
@@ -1098,7 +1096,7 @@ def test_rrts_raises_if_rts_layer_missing(
 def test_utilization_rate(cable_array_with_rts: CableArray) -> None:
     """Utilization rate = tension_sup_N / (rrts * safety_coefficient) * 100."""
     cable_array_with_rts.set_cut_strands([0] * 8)
-    rrts_N = _RTS_CABLE_DAN * 10.0  # 180 000 N
+    rrts_N = float(_RTS_CABLE_N)
     tension_sup_N = 90_000.0  # N
 
     expected_rate = tension_sup_N / (rrts_N * _SAFETY_COEF) * 100
