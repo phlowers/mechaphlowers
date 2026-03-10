@@ -1047,7 +1047,7 @@ def cable_array_with_rts(cable_array_with_rts_input_data: dict) -> CableArray:
 @pytest.mark.unit_test
 def test_rrts_no_damage(cable_array_with_rts: CableArray) -> None:
     """With no cut strands, RRTS equals rts_cable converted to N."""
-    cable_array_with_rts.set_cut_strands([0] * 8)
+    cable_array_with_rts.cut_strands = [0] * 8
     expected_rrts_N = float(_RTS_CABLE_N)
     assert cable_array_with_rts.rrts == pytest.approx(expected_rrts_N)
 
@@ -1056,25 +1056,33 @@ def test_rrts_no_damage(cable_array_with_rts: CableArray) -> None:
 def test_rrts_with_damage(cable_array_with_rts: CableArray) -> None:
     """RRTS is reduced by cut strands in layers 1 and 2."""
     # 2 strands cut in layer 1, 1 strand cut in layer 2
-    cable_array_with_rts.set_cut_strands([2, 1, 0, 0, 0, 0, 0, 0])
+    cable_array_with_rts.cut_strands = [2, 1, 0, 0, 0, 0, 0, 0]
     expected_rrts_N = float(_RTS_CABLE_N - 2 * _RTS_L1_N - 1 * _RTS_L2_N)
     assert cable_array_with_rts.rrts == pytest.approx(expected_rrts_N)
 
 
 @pytest.mark.unit_test
-def test_rrts_raises_if_not_set(cable_array_with_rts: CableArray) -> None:
-    """Accessing rrts without set_cut_strands raises ValueError."""
-    with pytest.raises(ValueError, match="set_cut_strands"):
-        _ = cable_array_with_rts.rrts
+def test_rrts_default_no_cut_strands(cable_array_with_rts: CableArray) -> None:
+    """rrts defaults to rts_cable when no cut strands are set."""
+    expected_rrts_N = float(_RTS_CABLE_N)
+    assert cable_array_with_rts.rrts == pytest.approx(expected_rrts_N)
 
 
 @pytest.mark.unit_test
-def test_set_cut_strands_too_many_elements(
+def test_cut_strands_getter(cable_array_with_rts: CableArray) -> None:
+    """cut_strands getter returns the padded array previously set."""
+    cable_array_with_rts.cut_strands = [2, 1]
+    expected = np.array([2, 1, 0, 0, 0, 0, 0, 0])
+    np.testing.assert_array_equal(cable_array_with_rts.cut_strands, expected)
+
+
+@pytest.mark.unit_test
+def test_cut_strands_too_many_elements(
     cable_array_with_rts: CableArray,
 ) -> None:
-    """set_cut_strands with more than 8 elements raises ValueError."""
+    """cut_strands setter with more than 8 elements raises ValueError."""
     with pytest.raises(ValueError, match="8"):
-        cable_array_with_rts.set_cut_strands([0] * 9)
+        cable_array_with_rts.cut_strands = [0] * 9
 
 
 @pytest.mark.unit_test
@@ -1087,19 +1095,19 @@ def test_rrts_raises_if_rts_layer_missing(
     data["rts_layer_3"] = [None]
     ca = CableArray(pd.DataFrame(data))
     # Cut 1 strand in layer 3 (index 2 → rts_layer_3)
-    ca.set_cut_strands([0, 0, 1, 0, 0, 0, 0, 0])
+    ca.cut_strands = [0, 0, 1, 0, 0, 0, 0, 0]
     with pytest.raises(ValueError, match="rts_layer_3"):
         _ = ca.rrts
 
 
 @pytest.mark.unit_test
 def test_utilization_rate(cable_array_with_rts: CableArray) -> None:
-    """Utilization rate = tension_sup_N / (rrts * safety_coefficient) * 100."""
-    cable_array_with_rts.set_cut_strands([0] * 8)
+    """Utilization rate returns one value per span."""
+    cable_array_with_rts.cut_strands = [0] * 8
     rrts_N = float(_RTS_CABLE_N)
-    tension_sup_N = 90_000.0  # N
+    tension_sup_N = np.array([90_000.0, 45_000.0, 120_000.0])  # N, one per span
 
-    expected_rate = tension_sup_N / (rrts_N * _SAFETY_COEF) * 100
-    assert cable_array_with_rts.utilization_rate(
-        tension_sup_N
-    ) == pytest.approx(expected_rate)
+    expected_rates = tension_sup_N / (rrts_N * _SAFETY_COEF) * 100
+    result = cable_array_with_rts.utilization_rate(tension_sup_N)
+    assert isinstance(result, np.ndarray)
+    assert result == pytest.approx(expected_rates)

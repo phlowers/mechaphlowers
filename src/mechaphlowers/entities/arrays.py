@@ -76,6 +76,7 @@ class ElementArray(ABC):
         """Returns a copy of self._data that converts values into SI units"""
         data_SI = self._data.copy()
         for column, input_unit in self.input_units.items():
+            # input_units lists every column that might need conversion, but columns can be optional. If a column is missing, we just skip it.
             if column not in data_SI.columns:
                 continue
             data_SI[column] = (
@@ -400,6 +401,7 @@ class CableArray(ElementArray):
         self.input_units: dict[str, str] = (
             options.input_units.cable_array.copy()
         )
+        self._cut_strands: np.ndarray = np.zeros(8, dtype=int)
 
     @property
     def data(self) -> pd.DataFrame:
@@ -444,7 +446,17 @@ class CableArray(ElementArray):
             ]
         )
 
-    def set_cut_strands(self, cut_strands: list[int] | np.ndarray) -> None:
+    @property
+    def cut_strands(self) -> np.ndarray:
+        """Number of cut strands per layer, as an 8-element integer array.
+
+        Index 0 = layer 1, …, index 7 = layer 8.
+        Defaults to all zeros until explicitly set.
+        """
+        return self._cut_strands
+
+    @cut_strands.setter
+    def cut_strands(self, cut_strands: list[int] | np.ndarray) -> None:
         """Set the number of cut strands per layer.
 
         Args:
@@ -462,57 +474,60 @@ class CableArray(ElementArray):
         padded = np.zeros(8, dtype=int)
         padded[: len(cut_strands_arr)] = cut_strands_arr
         self._cut_strands = padded
+        
+    
 
     @property
     def rrts(self) -> float:
         """Residual Rated Tensile Strength (RRTS) in N.
 
-        RRTS = rts_cable - sum(cut_strands[i] * rts_l{i+1} for i in 0..7)
+        RRTS = rts_cable - sum(cut_strands[i] * rts_layer{i+1} for i in 0..7)
+
+        Defaults to rts_cable when no cut strands have been set (all zeros).
+        
+        Warning: rrts is designed to act globally for the section. If one strand is cut on a span, the whole section gets the same reduced RRTS, even if the cut strand is not on this span.  
 
         Raises:
-            ValueError: if set_cut_strands() has not been called.
             ValueError: if cut_strands[i] > 0 but the corresponding rts layer
                 column is missing or NaN in the catalog data.
         """
-        if not hasattr(self, "_cut_strands"):
-            raise ValueError(
-                "cut_strands not set. Call set_cut_strands() before accessing rrts."
-            )
         cable_data = self.data
         rts_cable = float(cable_data["rts_cable"].iloc[0])
-        deduction = 0.0
-        for i, layer_col in enumerate(self._RTS_LAYERS):
-            n_cut = int(self._cut_strands[i])
-            if n_cut == 0:
-                continue
-            if layer_col not in cable_data.columns or pd.isna(
-                cable_data[layer_col].iloc[0]
-            ):
-                raise ValueError(
-                    f"cut_strands[{i}] = {n_cut} but '{layer_col}' is missing "
-                    "or NaN in the cable data."
-                )
-            deduction += n_cut * float(cable_data[layer_col].iloc[0])
-        return rts_cable - deduction
 
-    def utilization_rate(self, tension_sup_N: float) -> float:
-        """Utilization rate as a percentage of RTS.
+        # Build RTS-per-layer vector (NaN where column is absent or NaN)
+        rts_layers = np.array([
+            float(cable_data[col].iloc[0])
+            if col in cable_data.columns and not pd.isna(cable_data[col].iloc[0])
+            else np.nan
+            for col in self._RTS_LAYERS
+        ])
+
+        # Validate: no cut strands allowed on missing/NaN layers
+        invalid_mask = (self._cut_strands > 0) & np.isnan(rts_layers)
+        if invalid_mask.any():
+            details = "; ".join(
+                f"cut_strands[{i}] = {self._cut_strands[i]} but '{self._RTS_LAYERS[i]}' is missing or NaN"
+                for i in np.where(invalid_mask)[0]
+            )
+            raise ValueError(details)
+
+        rts_layers = np.nan_to_num(rts_layers, nan=0.0)
+        return rts_cable - float(np.dot(self._cut_strands, rts_layers))
+
+    def utilization_rate(self, tension_sup_N: np.ndarray) -> np.ndarray:
+        """Utilization rate as a percentage of RTS, one value per span.
 
         rate (%) = tension_sup_N / (RRTS * safety_coefficient) * 100
 
         Args:
-            tension_sup_N: Maximum cable tension in N (e.g. tension_sup from
-                BalanceEngine.get_data_spans(), converted from daN to N).
+            tension_sup_N: Cable tensions in N, one value per span (e.g.
+                tension_sup from BalanceEngine.get_data_spans()).
 
         Returns:
-            Utilization rate in % of RTS.
-
-        Raises:
-            ValueError: if set_cut_strands() has not been called (propagated
-                from rrts).
+            Array of utilization rates in % of RTS, same length as tension_sup_N.
         """
         safety_coef = float(self.data["safety_coefficient"].iloc[0])
-        return tension_sup_N / (self.rrts * safety_coef) * 100
+        return np.asarray(tension_sup_N) / (self.rrts * safety_coef) * 100
 
 
 class WeatherArray(ElementArray):
