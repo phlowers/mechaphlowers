@@ -307,8 +307,13 @@ class SectionArray(ElementArray):
 class CableArray(ElementArray):
     """Physical description of a cable.
 
+    Holds catalog data for one cable type and provides RRTS (Residual Rated
+    Tensile Strength) calculations via [`rrts`][mechaphlowers.entities.arrays.CableArray.rrts]
+    and [`utilization_rate`][mechaphlowers.entities.arrays.CableArray.utilization_rate].
+    Use [`cut_strands`][mechaphlowers.entities.arrays.CableArray.cut_strands] to declare the number of damaged strands per layer.
+
     Args:
-            data: Input data
+        data: Input data as a DataFrame matching [`CableArrayInput`][mechaphlowers.entities.schemas.CableArrayInput].
     """
 
     array_input_type: Type[pa.DataFrameModel] = CableArrayInput
@@ -474,8 +479,6 @@ class CableArray(ElementArray):
         padded = np.zeros(8, dtype=int)
         padded[: len(cut_strands_arr)] = cut_strands_arr
         self._cut_strands = padded
-        
-    
 
     @property
     def rrts(self) -> float:
@@ -484,8 +487,8 @@ class CableArray(ElementArray):
         RRTS = rts_cable - sum(cut_strands[i] * rts_layer{i+1} for i in 0..7)
 
         Defaults to rts_cable when no cut strands have been set (all zeros).
-        
-        Warning: rrts is designed to act globally for the section. If one strand is cut on a span, the whole section gets the same reduced RRTS, even if the cut strand is not on this span.  
+
+        Warning: rrts is designed to act globally for the section. If one strand is cut on a span, the whole section gets the same reduced RRTS, even if the cut strand is not on this span.
 
         Raises:
             ValueError: if cut_strands[i] > 0 but the corresponding rts layer
@@ -495,12 +498,15 @@ class CableArray(ElementArray):
         rts_cable = float(cable_data["rts_cable"].iloc[0])
 
         # Build RTS-per-layer vector (NaN where column is absent or NaN)
-        rts_layers = np.array([
-            float(cable_data[col].iloc[0])
-            if col in cable_data.columns and not pd.isna(cable_data[col].iloc[0])
-            else np.nan
-            for col in self._RTS_LAYERS
-        ])
+        rts_layers = np.array(
+            [
+                float(cable_data[col].iloc[0])
+                if col in cable_data.columns
+                and not pd.isna(cable_data[col].iloc[0])
+                else np.nan
+                for col in self._RTS_LAYERS
+            ]
+        )
 
         # Validate: no cut strands allowed on missing/NaN layers
         invalid_mask = (self._cut_strands > 0) & np.isnan(rts_layers)

@@ -1,0 +1,74 @@
+# Residual Rated Tensile Strength (RRTS)
+
+## Context
+
+When strands are cut — due to damage, corrosion, or mechanical incidents — the rated tensile strength (RTS) of a cable is reduced. RRTS quantifies the remaining capacity after accounting for those cuts.
+
+Strand cuts are declared **per layer**. Each layer has a unit RTS per strand (`rts_layer_i`), so the total strength loss is the sum of individual strand contributions across all affected layers.
+
+## Scientific formulas
+
+The RRTS of a damaged cable:
+
+$$
+RRTS = RTS_{cable} - \sum_{i=1}^{N_{layers}} n_{cut,i} \cdot rts_{layer,i}
+$$
+
+The utilization rate $\tau$ (as a percentage) relative to the safety-adjusted RRTS:
+
+$$
+\tau\,(\%) = \frac{T_{max}}{RRTS \cdot k_s} \times 100
+$$
+
+| Symbol | Description |
+|--------|-------------|
+| $RTS_{cable}$ | Rated Tensile Strength of the intact cable (N) |
+| $n_{cut,i}$ | Number of cut strands in layer $i$ |
+| $rts_{layer,i}$ | Unit RTS per strand in layer $i$ (N); `0` for unused layers |
+| $N_{layers}$ | Number of layers (up to 8) |
+| $T_{max}$ | Maximum mechanical tension applied (N) |
+| $k_s$ | Safety coefficient (dimensionless, catalog column `safety_coefficient`) |
+
+!!! Warning "Model assumptions"
+
+    - The RRTS model assumes that all strands in a given layer have the same RTS. Heterogeneous layers must be pre-processed (e.g., split or averaged) before loading data.
+    
+    - The utilization rate calculation assumes that the maximum tension $T_{max}$ is applied uniformly across the cable section, which may not reflect localized stress concentrations in real-world scenarios.
+
+    - The first layer is the external layer and the last layer is also called central layer.
+
+## Catalog parameters
+
+The following columns must be present in the cable catalog CSV for RRTS support:
+
+| Column | Unit | Description |
+|--------|------|-------------|
+| `rts_cable` | N | RTS of the intact cable |
+| `rts_layer_1` … `rts_layer_8` | N | Unit RTS per strand per layer (`0` = unused) |
+| `safety_coefficient` | — | Safety coefficient $k_s$ |
+
+!!! warning "Layer-level assumption"
+    The model assumes all strands in a given layer are identical (same RTS). Layers with heterogeneous strands must be split or averaged externally before loading data.
+
+## Usage
+
+```python
+import numpy as np
+from mechaphlowers.data.catalog import sample_cable_catalog
+
+cable = sample_cable_catalog.get_as_object(["ASTER600"])
+
+# Declare cut strands per layer — here 1 strand cut in layer 3
+cable.cut_strands = np.array([0, 0, 1, 0, 0, 0, 0, 0])
+
+# RRTS for the whole section (scalar — applies uniformly to all spans)
+print(cable.rrts)
+# 196800.0
+
+# Utilization rate (%) for each span, given the maximum tension per span
+tensions = np.array([50000.0, 75000.0, 90000.0])  # N, one value per span
+print(cable.utilization_rate(tensions))
+# [16.93766938 25.40650407 30.48780488]
+```
+
+See the [API reference](../docstring/entities/arrays.md) for full `CableArray` documentation.
