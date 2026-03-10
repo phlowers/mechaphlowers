@@ -502,7 +502,7 @@ class PlotEngine:
             ...     [10.0, 5.0, 2.0]
             ... )  # Absolute coordinates of the point to analyze
             >>> fig = figure_factory()
-            >>> distance_result = plot_engine.point_distance(span_index=0, point=point)
+            >>> distance_result = plt_engine.point_distance(span_index=0, point=point)
             # ...get a distance result object with the distance and closest point coordinates
 
             >>> fig.show()

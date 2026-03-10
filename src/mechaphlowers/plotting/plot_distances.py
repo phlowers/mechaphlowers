@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 class KeyPointsStyle(NamedTuple):
     """Styling configuration for key points visualization."""
 
-    colors: str = "darkviolet"
+    color: str = "darkviolet"
     size: float = 8.0
     text_position: str = "top center"
 
@@ -99,7 +99,7 @@ def _add_axis_points_trace(
             y=axis_points[:, 1],
             z=axis_points[:, 2],
             mode="markers+text",
-            marker=dict(size=style.size, color=list(style.colors)),
+            marker=dict(size=style.size, color=list(style.color)),
             text=list(labels),
             textposition=style.text_position,
             name="Span X axis",
@@ -239,7 +239,7 @@ def add_axis_points_line(
     # Build configuration from individual parameters if config not provided
     if config is None:
         kp_style = KeyPointsStyle(
-            colors=axis_points_colors or ("green", "blue"),
+            color=axis_points_colors or ("green", "blue"),
             size=axis_points_size if axis_points_size is not None else 10.0,
         )
         line_style = LineStyle(
@@ -353,7 +353,6 @@ def plot_text(
     fig: Plotly figure to add text to.
     title_addendum: String to append to legend group for uniqueness.
     position: 3D coordinates for text label placement.
-    trace_config: TraceConfig object for customizing the trace appearance.
 
     """
 
@@ -493,7 +492,7 @@ def plot_distance_engine(
     if fig is None:
         fig = go.Figure()
 
-    if fig is None or force_layout:
+    if force_layout:
         fig.update_layout(
             scene=dict(
                 xaxis_title="X (m)",

@@ -153,7 +153,7 @@ class DistanceEngine:
         """add curves to the engine, which will be used for distance calculations. The curves are defined by their points in 3D space.
 
         Args:
-            curve_points: A numpy array of shape (N, 3) representing the points of
+            curve_points: A numpy array of shape (N, 3) representing the points of one or more curves in 3D space, concatenated along the first dimension.
         """
         self.curve_points = curve_points
 
@@ -192,7 +192,7 @@ class DistanceEngine:
         """Define the distance plane based on a given point.
 
         Args:
-            point: A numpy array of shape (3,) representing the point from which the distance plane
+            point: A numpy array of shape (3,) representing the point from which the distance plane belongs. This point will be used as the origin of the plane, and the plane will be defined with a normal vector vertical to the span frame (Z direction) and two basis vectors in the XY plane.
 
         Returns:
             A tuple containing the basis vectors of the plane (u_plane, v_plane).
@@ -209,10 +209,18 @@ class DistanceEngine:
         frame: Literal["span", "section"] = "span",
     ) -> DistanceResult:
         if frame == "span":
+            # Transform the base point from the span frame to the local frame defined by the axis.
             self.point_base = change_local_frame(
                 local_frame_origin=self.axis_start,
                 local_frame_x_axis=self.axis_end,
                 local_point=point_base,
+            )
+        elif frame == "section":
+            # In section frame, the provided point is already expressed in the correct coordinates.
+            self.point_base = point_base
+        else:
+            raise ValueError(
+                f"Unsupported frame '{frame}'. Expected 'span' or 'section'."
             )
         self.define_distance_plane(point=self.point_base)
 

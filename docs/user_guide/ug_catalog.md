@@ -54,7 +54,7 @@ balance_engine = mph.BalanceEngine(section_array=section_array, cable_array=cabl
 
 ### Loading your data in the catalogs
 
-You can add new catalogs in `.csv` format to the a user folder.
+You can add new catalogs in `.csv` format to a user folder.
 
 To configure how Mechaphlowers will read them, you need to provide a corresponding `.yaml` file that references the CSV catalog, also placed in the same folder.
 
@@ -122,7 +122,7 @@ columns_units:
 
 ### Augmenting your catalog
 
-For developers who wants to directly instanciate objects from custom catalogs, there are two ways: 
+For developers who wants to directly instantiate objects from custom catalogs, there are two ways: 
 - use the existing catalogs and add your own data. You will take advantage of the existing object facilities with the `get_as_object()` method. For example support catalog will provide a list of `SupportShape` objects.
 - Implement in a pull request your own object to handle a new type of data.
 
