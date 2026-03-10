@@ -432,10 +432,12 @@ class BalanceModel(IBalanceModel):
 
     def vhl_under_console(self) -> VhlStrength:
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
-        reversed_Fz = -(Fz + self.nodes.signed_insulator_weight + self.nodes.signed_counterweight)
-        vhl_result = np.array(
-            [reversed_Fz, Fy, Fx]
+        reversed_Fz = -(
+            Fz
+            + self.nodes.signed_insulator_weight
+            + self.nodes.signed_counterweight
         )
+        vhl_result = np.array([reversed_Fz, Fy, Fx])
         return VhlStrength(vhl_result, "N")
 
     @property

@@ -901,8 +901,8 @@ def test_no_altitude_change_counterweight(
                 ),
             }
         ),
-        sagging_parameter = 2000,
-        sagging_temperature = 15,
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
 
@@ -926,9 +926,19 @@ def test_no_altitude_change_counterweight(
 
     expected_vhl_under_chain = np.array(
         [
-            [4426.00509259864,  17077.18892747477, 16188.67277143141, 3537.48893656082],
+            [
+                4426.00509259864,
+                17077.18892747477,
+                16188.67277143141,
+                3537.48893656082,
+            ],
             [0, 0, 0, 0],
-            [35316.115870981, -0.386227932634938, 0.197464875454898, -35315.9271079238],
+            [
+                35316.115870981,
+                -0.386227932634938,
+                0.197464875454898,
+                -35315.9271079238,
+            ],
         ]
     )
 
@@ -987,8 +997,8 @@ def test_angles_counterweight(cable_array_AM600: CableArray):
                 ),
             }
         ),
-        sagging_parameter = 2000,
-        sagging_temperature = 15,
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
 
@@ -1000,14 +1010,16 @@ def test_angles_counterweight(cable_array_AM600: CableArray):
     expected_dx = np.array(
         [
             0.01,
-            2.50480753544961E-02,
-            4.81982621253004E-02,
+            2.50480753544961e-02,
+            4.81982621253004e-02,
             -0.01,
         ]
     )
     expected_dy = np.array([0, 1.25880394520106, 2.2269993160844, 0])
-    # minus 3 here because proto v4 stores displacement relatively to the position [0,0, -L] 
-    expected_dz = np.array([0, 0.276989676577172 - 3, 0.990484890903352 -3, 0])
+    # minus 3 here because proto v4 stores displacement relatively to the position [0,0, -L]
+    expected_dz = np.array(
+        [0, 0.276989676577172 - 3, 0.990484890903352 - 3, 0]
+    )
 
     expected_L_ref = np.array(
         [499.415657345651, 300.729929727204, 401.991607493655]
@@ -1015,9 +1027,24 @@ def test_angles_counterweight(cable_array_AM600: CableArray):
 
     expected_vhl_under_chain = np.array(
         [
-            [2971.02435232232,  17257.40313455535, 17119.90740813478, 3907.54805180944],
-            [788.259742993468, 8093.4515419997, 19249.9553187584, -665.25113770311],
-            [35307.1946728045, 161.256201145954, 416.411091650267, -35309.7294947654],
+            [
+                2971.02435232232,
+                17257.40313455535,
+                17119.90740813478,
+                3907.54805180944,
+            ],
+            [
+                788.259742993468,
+                8093.4515419997,
+                19249.9553187584,
+                -665.25113770311,
+            ],
+            [
+                35307.1946728045,
+                161.256201145954,
+                416.411091650267,
+                -35309.7294947654,
+            ],
         ]
     )
 

@@ -445,12 +445,12 @@ def test_guying_counterweight(cable_array_AM600: CableArray):
                 ),
             }
         ),
-        sagging_parameter = 2000,
-        sagging_temperature = 15,
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
     balance_engine = BalanceEngine(cable_array_AM600, section_array)
-    
+
     balance_engine.solve_adjustment()
     balance_engine.solve_change_state(
         new_temperature=15,
@@ -458,42 +458,44 @@ def test_guying_counterweight(cable_array_AM600: CableArray):
     )
     guying = Guying(balance_engine)
 
-    # guying_results = guying.compute(
-    #     index=support_index,
-    #     side=side,
-    #     with_pulley=False,
-    #     altitude=0,
-    #     horizontal_distance=50,
-    # )
+    guying_results_left = guying.compute(
+        index=1,
+        side="left",
+        with_pulley=False,
+        altitude=0,
+        horizontal_distance=50,
+    )
 
-    # # imposing custom tolerances for the test because of small differences with prototypes setup
-    # guying_results.atol_map = {
-    #     "guying_tension": (15.0, "daN"),
-    #     "vertical_force": (15.0, "daN"),
-    #     "longitudinal_force": (15.0, "daN"),
-    #     "guying_angle_degrees": (0.1, "degree"),
-    # }
+    # imposing custom tolerances for the test because of small differences with prototypes setup
+    guying_results_left.atol_map = {
+        "guying_tension": (15.0, "daN"),
+        "vertical_force": (15.0, "daN"),
+        "longitudinal_force": (15.0, "daN"),
+        "guying_angle_degrees": (0.1, "degree"),
+    }
 
-    # assert guying_results == GuyingResults(**expected_guying_left)
+    expected_guying_left = {}
+    assert guying_results_left == GuyingResults(**expected_guying_left)
 
-    # guying_pulley_results = guying.compute(
-    #     index=support_index,
-    #     side=side,
-    #     with_pulley=True,
-    #     altitude=0,
-    #     horizontal_distance=50,
-    # )
+    guying_results_right = guying.compute(
+        index=1,
+        side="right",
+        with_pulley=False,
+        altitude=0,
+        horizontal_distance=50,
+    )
 
-    # # imposing custom tolerances for the test because of small differences with prototypes setup
-    # guying_pulley_results.atol_map = {
-    #     "guying_tension": (15.0, "daN"),
-    #     "vertical_force": (15.0, "daN"),
-    #     "longitudinal_force": (15.0, "daN"),
-    #     "guying_angle_degrees": (0.1, "degree"),
-    # }
+    # imposing custom tolerances for the test because of small differences with prototypes setup
+    guying_results_right.atol_map = {
+        "guying_tension": (15.0, "daN"),
+        "vertical_force": (15.0, "daN"),
+        "longitudinal_force": (15.0, "daN"),
+        "guying_angle_degrees": (0.1, "degree"),
+    }
 
-    # # for v1, v2 in zip(guying_pulley_results().values, GuyingResults(**expected_guying_pulley_left)().values):
-    # #     print(v1, v2)
-    # assert guying_pulley_results == GuyingResults(
-    #     **expected_guying_pulley_left
-    # )
+    expected_guying_right = {}
+    assert guying_results_right == GuyingResults(**expected_guying_right)
+
+
+
+
