@@ -262,7 +262,7 @@ def test_guying_invalid_support_index(guying_basic_setup: Guying):
             horizontal_distance=50,
         )
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(ValueError):
         # guying_side not in the authorized list
         guying.compute(
             index=0,

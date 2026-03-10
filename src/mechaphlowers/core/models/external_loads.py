@@ -142,7 +142,7 @@ class WindSpeedPressureConverter:
         self.gust = gust
         self._speed_average_open_country = speed_average_open_country
         if angle_cable_degrees is None:
-            angle_cable_degrees = np.full_like(90, speed_average_open_country)
+            angle_cable_degrees = np.full(speed_average_open_country.shape, 90)
         self.angle_cable_degrees = angle_cable_degrees
         self.voltage = voltage
         self.category_surface_roughness = category_surface_roughness
