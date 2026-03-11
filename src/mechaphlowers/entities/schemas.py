@@ -99,58 +99,58 @@ class CableArrayInput(pa.DataFrameModel):
     is_polynomial: pdt.Series[bool]
     radial_thermal_conductivity: pdt.Series[float] = pa.Field(coerce=True)
     has_magnetic_heart: pdt.Series[bool]
-    rts_cable: Optional[pdt.Series[int]] = pa.Field(
+    rts_cable: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    rts_layer_1: Optional[pdt.Series[int]] = pa.Field(
+    rts_layer_1: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    rts_layer_2: Optional[pdt.Series[int]] = pa.Field(
+    rts_layer_2: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    rts_layer_3: Optional[pdt.Series[int]] = pa.Field(
+    rts_layer_3: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    rts_layer_4: Optional[pdt.Series[int]] = pa.Field(
+    rts_layer_4: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    rts_layer_5: Optional[pdt.Series[int]] = pa.Field(
+    rts_layer_5: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    rts_layer_6: Optional[pdt.Series[int]] = pa.Field(
+    rts_layer_6: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    rts_layer_7: Optional[pdt.Series[int]] = pa.Field(
+    rts_layer_7: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    rts_layer_8: Optional[pdt.Series[int]] = pa.Field(
+    rts_layer_8: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
     safety_coefficient: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    nb_strand_layer_1: Optional[pdt.Series[int]] = pa.Field(
+    nb_strand_layer_1: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    nb_strand_layer_2: Optional[pdt.Series[int]] = pa.Field(
+    nb_strand_layer_2: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    nb_strand_layer_3: Optional[pdt.Series[int]] = pa.Field(
+    nb_strand_layer_3: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    nb_strand_layer_4: Optional[pdt.Series[int]] = pa.Field(
+    nb_strand_layer_4: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    nb_strand_layer_5: Optional[pdt.Series[int]] = pa.Field(
+    nb_strand_layer_5: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    nb_strand_layer_6: Optional[pdt.Series[int]] = pa.Field(
+    nb_strand_layer_6: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    nb_strand_layer_7: Optional[pdt.Series[int]] = pa.Field(
+    nb_strand_layer_7: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
-    nb_strand_layer_8: Optional[pdt.Series[int]] = pa.Field(
+    nb_strand_layer_8: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
 

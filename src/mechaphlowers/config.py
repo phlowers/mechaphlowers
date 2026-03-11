@@ -35,6 +35,7 @@ class DataConfig:
     """configuration for data loading and saving"""
 
     sagging_temperature_default: float = 15.0
+    safety_security_factor: float = 1.5
 
 
 @dataclass

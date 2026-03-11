@@ -348,8 +348,6 @@ class CableArray(ElementArray):
         "nb_strand_layer_7",
         "nb_strand_layer_8",
     ]
-    _CURRENT_SECURITY_FACTOR: float = 1.5
-    _SAFETY_SECURITY_FACTOR: float = 1.5
 
     target_units: dict[str, str] = {
         "section": "m^2",
@@ -430,23 +428,7 @@ class CableArray(ElementArray):
             options.input_units.cable_array.copy()
         )
         self._cut_strands: np.ndarray = np.zeros(8, dtype=int)
-        self._high_security_current: bool = False
         self._high_safety: bool = False
-
-    @property
-    def high_security_current(self) -> bool:
-        """Enable or disable the additional current safety mechanism.
-
-        When enabled, current values are multiplied by `1.5` through
-        [`apply_current_security`][mechaphlowers.entities.arrays.CableArray.apply_current_security].
-        """
-        return self._high_security_current
-
-    @high_security_current.setter
-    def high_security_current(self, value: bool) -> None:
-        if not isinstance(value, bool):
-            raise TypeError("high_security_current must be a boolean.")
-        self._high_security_current = value
 
     @property
     def high_safety(self) -> bool:
@@ -475,26 +457,8 @@ class CableArray(ElementArray):
         """
         base = float(self.data["safety_coefficient"].iloc[0])
         if self._high_safety:
-            return base * self._SAFETY_SECURITY_FACTOR
+            return base * options.data.safety_security_factor
         return base
-
-    def apply_current_security(
-        self, intensity: np.ndarray | list[float] | float
-    ) -> np.ndarray:
-        """Apply the configured safety factor to current intensity.
-
-        Args:
-            intensity: Current values (A) as scalar or array-like.
-
-        Returns:
-            A numpy array containing the effective current values. If
-            `high_security_current` is `True`, the values are multiplied by
-            `1.5`; otherwise values are returned unchanged.
-        """
-        intensity_arr = np.asarray(intensity, dtype=float)
-        if self._high_security_current:
-            return intensity_arr * self._CURRENT_SECURITY_FACTOR
-        return intensity_arr
 
     @property
     def data(self) -> pd.DataFrame:
