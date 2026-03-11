@@ -675,7 +675,8 @@ class CableArray(ElementArray):
         """
         return (
             np.asarray(tension_sup_N)
-            / (self.rrts * self.safety_coefficient)
+            / self.rrts
+            * self.safety_coefficient
             * 100
         )
 
