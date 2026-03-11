@@ -16,7 +16,7 @@ from typing_extensions import Literal, Self, Type
 
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_
-from mechaphlowers.entities.errors import DataWarning
+from mechaphlowers.entities.errors import DataWarning, RtsDataNotAvailable
 from mechaphlowers.entities.geography import get_gps_from_arrays
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
@@ -451,11 +451,16 @@ class CableArray(ElementArray):
     def safety_coefficient(self) -> float:
         """Effective safety coefficient used in the utilization rate.
 
-        Returns the catalog ``safety_coefficient`` value. If
-        [`high_safety`][mechaphlowers.entities.arrays.CableArray.high_safety] is
-        ``True``, the value is multiplied by ``1.5``.
+        Returns the catalog ``safety_coefficient`` value, or
+        ``options.data.safety_coefficient_default`` when the column is absent
+        or NaN. If [`high_safety`][mechaphlowers.entities.arrays.CableArray.high_safety]
+        is ``True``, the value is multiplied by ``options.data.safety_security_factor``.
         """
-        base = float(self.data["safety_coefficient"].iloc[0])
+        col = self.data.get("safety_coefficient")
+        if col is None or pd.isna(col.iloc[0]):
+            base = options.data.safety_coefficient_default
+        else:
+            base = float(col.iloc[0])
         if self._high_safety:
             return base * options.data.safety_security_factor
         return base
@@ -547,8 +552,11 @@ class CableArray(ElementArray):
             float: ``rts_cable / sum(rts_layer_i * nb_strand_layer_i)``.
 
         Raises:
-            ValueError: if ``nb_strand_layer_*`` or ``rts_layer_*`` columns are
-                absent from the catalog, or if the denominator is zero.
+            ValueError: if the denominator is zero, i.e. if all
+                ``rts_layer_i * nb_strand_layer_i`` products are zero (for
+                example because the corresponding catalog columns are missing
+                or set to zero).
+            RtsDataNotAvailable: if ``rts_cable`` is missing or NaN.
         """
         rts_layers = np.nan_to_num(self._rts_layers_array(), nan=0.0)
         nb_strands = self.nb_strand_per_layer.astype(float)
@@ -559,7 +567,12 @@ class CableArray(ElementArray):
                 "all rts_layer_i * nb_strand_layer_i products are zero. "
                 "Ensure rts_layer_* and nb_strand_layer_* columns are set in the catalog."
             )
-        rts_cable = float(self.data["rts_cable"].iloc[0])
+        rts_cable_col = self.data.get("rts_cable")
+        if rts_cable_col is None or pd.isna(rts_cable_col.iloc[0]):
+            raise RtsDataNotAvailable(
+                "Cannot compute rts_coverage: 'rts_cable' is missing or NaN."
+            )
+        rts_cable = float(rts_cable_col.iloc[0])
         return rts_cable / denominator
 
     @property
@@ -584,7 +597,12 @@ class CableArray(ElementArray):
             ValueError: if ``cut_strands[i] > int(nb_strand_layer_i / 2)`` for
                 any layer where strand count data is available in the catalog.
         """
-        cut_strands_arr = np.asarray(cut_strands, dtype=int)
+        cut_strands_arr = np.asarray(cut_strands)
+        if (cut_strands_arr < 0).any():
+            raise ValueError(
+                f"cut_strands values must be non-negative, got: {cut_strands_arr.tolist()}."
+            )
+        cut_strands_arr = cut_strands_arr.astype(int)
         if len(cut_strands_arr) > 8:
             raise ValueError(
                 f"cut_strands must have at most 8 elements, got {len(cut_strands_arr)}."
@@ -621,7 +639,12 @@ class CableArray(ElementArray):
             ValueError: if cut_strands[i] > 0 but the corresponding rts layer
                 column is missing or NaN in the catalog data.
         """
-        rts_cable = float(self.data["rts_cable"].iloc[0])
+        rts_cable_col = self.data.get("rts_cable")
+        if rts_cable_col is None or pd.isna(rts_cable_col.iloc[0]):
+            raise RtsDataNotAvailable(
+                "Cannot compute RRTS: 'rts_cable' is missing or NaN in the cable catalog."
+            )
+        rts_cable = float(rts_cable_col.iloc[0])
 
         # Build RTS-per-layer vector (NaN where column is absent or NaN)
         rts_layers = self._rts_layers_array()
@@ -633,7 +656,7 @@ class CableArray(ElementArray):
                 f"cut_strands[{i}] = {self._cut_strands[i]} but '{self._RTS_LAYERS[i]}' is missing or NaN"
                 for i in np.where(invalid_mask)[0]
             )
-            raise ValueError(details)
+            raise RtsDataNotAvailable(details)
 
         rts_layers = np.nan_to_num(rts_layers, nan=0.0)
         return rts_cable - float(self._cut_strands @ rts_layers)
