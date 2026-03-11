@@ -445,9 +445,7 @@ class CableArray(ElementArray):
     @high_security_current.setter
     def high_security_current(self, value: bool) -> None:
         if not isinstance(value, bool):
-            raise TypeError(
-                "high_security_current must be a boolean."
-            )
+            raise TypeError("high_security_current must be a boolean.")
         self._high_security_current = value
 
     @property
@@ -547,7 +545,9 @@ class CableArray(ElementArray):
         Missing or NaN columns produce ``nan`` entries.
         """
         return (
-            self.data.reindex(columns=self._RTS_LAYERS).iloc[0].to_numpy(dtype=float)
+            self.data.reindex(columns=self._RTS_LAYERS)
+            .iloc[0]
+            .to_numpy(dtype=float)
         )
 
     @property
@@ -686,7 +686,11 @@ class CableArray(ElementArray):
         Returns:
             Array of utilization rates in % of RTS, same length as tension_sup_N.
         """
-        return np.asarray(tension_sup_N) / (self.rrts * self.safety_coefficient) * 100
+        return (
+            np.asarray(tension_sup_N)
+            / (self.rrts * self.safety_coefficient)
+            * 100
+        )
 
 
 class WeatherArray(ElementArray):
