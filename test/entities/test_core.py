@@ -17,7 +17,7 @@ def test_vhl_strength():
     arr = np.array(
         [[1000, 2000, 3000], [4000, 5000, 6000], [7000, 8000, 9000]]
     )
-    vhl = VhlResult(arr, input_unit="N")
+    vhl = VhlResult(arr, input_unit="N", change_frame=False)
 
     V, H, L = vhl.vhl
     np.testing.assert_array_equal(V.value(), np.array([1000, 2000, 3000]) / 10)
@@ -32,7 +32,7 @@ def test_vhl_strength():
 @patch('mechaphlowers.config.options.output_units.force', 'daN')
 def test_vhl_strength_str_repr():
     arr = np.array([[1000, 2000], [3000, 4000], [5000, 6000]])
-    vhl = VhlResult(arr, input_unit="N")
+    vhl = VhlResult(arr, input_unit="N", change_frame=False)
     vhl_str = str(vhl)
     expected_str = (
         "V: [100. 200.] daN\nH: [300. 400.] daN\nL: [500. 600.] daN\n"

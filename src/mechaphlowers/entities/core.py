@@ -58,13 +58,19 @@ class VhlResult:
     """Class representing the VHL forces"""
 
     output_unit = options.output_units.force
+    # Dans VhlResult argument dans le init pour inverser le repère
 
-    def __init__(self, vhl: np.ndarray, input_unit="N") -> None:
+    def __init__(
+        self, vhl: np.ndarray, input_unit="N", change_frame: bool = True
+    ) -> None:
         """
         Args:
             vhl (np.ndarray): 2D array representing VHL forces (expected format: [[V0, V1, ...], [H0, H1, ...], [L0, L1, ...]]),
             input_unit (str, optional): unit of the input vhl array. Defaults to "N".
+            change_frame (bool): If set to True, change frame to frame where z axis is downwards. In that case, y axis is also reversed. Defaults to True
         """
+        if change_frame:
+            vhl = np.array([-vhl[0], -vhl[1], vhl[2]])
         self._vhl_section = vhl
         self.input_unit = input_unit
 

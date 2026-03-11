@@ -396,12 +396,10 @@ class BalanceModel(IBalanceModel):
     # the z axis is reversed (downwards) for users wanting vhl results
     # the y axis is also reversed: toward oneself (right of the line)
 
-    # Dans VhlResult argument dans le init pour inverser le repère
     def vhl_under_chain(self) -> VhlResult:
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
-        reversed_Fz = -(Fz + self.nodes.signed_counterweight)
-        vhl_result = np.array([reversed_Fz, -Fy, Fx])
-        return VhlResult(vhl_result, "N")
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
 
     def vhl_under_chain_left(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
@@ -414,9 +412,8 @@ class BalanceModel(IBalanceModel):
             VhlResult: VhlResult object
         """
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable_left()
-        reversed_Fz = -(Fz + self.nodes.signed_counterweight)
-        vhl_result = np.array([reversed_Fz, -Fy, Fx])
-        return VhlResult(vhl_result, "N")
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
 
     def vhl_under_chain_right(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
@@ -429,19 +426,18 @@ class BalanceModel(IBalanceModel):
             VhlResult: VhlResult object
         """
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable_right()
-        reversed_Fz = -(Fz + self.nodes.signed_counterweight)
-        vhl_result = np.array([reversed_Fz, -Fy, Fx])
-        return VhlResult(vhl_result, "N")
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
 
     def vhl_under_console(self) -> VhlResult:
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
-        reversed_Fz = -(
+        Fz_with_weights = (
             Fz
             + self.nodes.signed_insulator_weight
             + self.nodes.signed_counterweight
         )
-        vhl_result = np.array([reversed_Fz, -Fy, Fx])
-        return VhlResult(vhl_result, "N")
+        vhl_result = np.array([Fz_with_weights, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
 
     @property
     def has_loads(self) -> bool:
