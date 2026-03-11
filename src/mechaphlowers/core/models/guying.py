@@ -15,7 +15,7 @@ from pint import Quantity
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.units import Q_
-from mechaphlowers.utils import span_to_support_view
+from mechaphlowers.utils import span_to_support_view_guying
 
 logger = logging.getLogger(__name__)
 
@@ -215,7 +215,7 @@ class Guying:
         if view == 'span':
             logger.debug("Span view is selected for guying calculation.")
             warnings.warn("Span view is selected for guying calculation.")
-            index, side = span_to_support_view(index, side)
+            index, side = span_to_support_view_guying(index, side)
 
         if with_pulley and (index == 0 or index >= span_shape - 1):
             raise ValueError(

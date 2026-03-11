@@ -428,6 +428,7 @@ def test_section_array__data_with_counterweight(
         np.array([0, 9810.0, 19620.0, 0]),
     )
 
+
 def test_section_array_to_gps():
     section_array = SectionArray(
         pd.DataFrame(
@@ -452,7 +453,6 @@ def test_section_array_to_gps():
     )
     assert latitude.shape == (5,)
     assert longitude.shape == (5,)
-
 
 
 def test_section_array_angle_sense() -> None:
