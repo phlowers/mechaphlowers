@@ -7,6 +7,8 @@
 
 import numpy as np
 
+from mechaphlowers.entities.errors import SuspectedChainReversal
+
 
 class Masks:
     """
@@ -34,8 +36,23 @@ class Masks:
         is_suspension = self.is_suspension
         is_anchor_first = self.is_anchor_first
         is_anchor_last = self.is_anchor_last
+        is_anchor = self.is_anchor
         new_dx = dx.copy()
         new_dz = dz.copy()
+
+        if (
+            L_chain[is_suspension] ** 2
+            - dx[is_suspension] ** 2
+            - dy[is_suspension] ** 2
+            < 0
+        ).any() or (
+            L_chain[is_anchor] ** 2 - dz[is_anchor] ** 2 - dy[is_anchor] ** 2
+            < 0
+        ).any():
+            raise SuspectedChainReversal(
+                "Suspected chain reversal", origin="balance_solver"
+            )
+
         # case: suspension chains
         suspension_shift = -(
             (
@@ -45,6 +62,7 @@ class Masks:
             )
             ** 0.5
         )
+
         new_dz[is_suspension] = suspension_shift
 
         # case: first anchor chain
@@ -55,7 +73,7 @@ class Masks:
         ) ** 0.5
         new_dx[is_anchor_first] = anchor_shift_first
 
-        # case: first anchor last
+        # case: last anchor chain
         anchor_shift_last = (
             L_chain[is_anchor_last] ** 2
             - dz[is_anchor_last] ** 2

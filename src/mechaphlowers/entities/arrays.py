@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -17,6 +17,7 @@ from typing_extensions import Literal, Self, Type
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.errors import DataWarning
+from mechaphlowers.entities.geography import get_gps_from_arrays
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     ObstacleArrayInput,
@@ -145,6 +146,9 @@ class SectionArray(ElementArray):
             self.sagging_temperature = sagging_temperature
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
+        self._angles_sense: Literal["clockwise", "anticlockwise"] = (
+            "anticlockwise"
+        )
         logger.debug("Section Array initialized.")
 
     def compute_elevation_difference(self) -> np.ndarray:
@@ -171,6 +175,26 @@ class SectionArray(ElementArray):
         )
 
     @property
+    def angles_sense(self) -> Literal["clockwise", "anticlockwise"]:
+        """Affects line_angle, crossarm_length sign
+
+        If "anticlockwise", line_angle is anticlockwise and crossarm_length is away from user (left).
+        If "clockwise", line_angle is clockwise and crossarm_length is towards user (right).
+
+        Defaults to "anticlockwise"."""
+        return self._angles_sense
+
+    @angles_sense.setter
+    def angles_sense(
+        self, value: Literal["clockwise", "anticlockwise"]
+    ) -> None:
+        if value not in ["clockwise", "anticlockwise"]:
+            raise ValueError(
+                f"angles_sense should be 'clockwise' or 'anticlockwise', received {value}"
+            )
+        self._angles_sense = value
+
+    @property
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
         data_output = super().data
@@ -181,7 +205,7 @@ class SectionArray(ElementArray):
         }
         self.create_column_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
-
+        data_output = self._adjust_angle_sense(data_output)
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
@@ -205,6 +229,13 @@ class SectionArray(ElementArray):
                 df_output[column_weight] = convert_mass_to_weight(
                     df_output[column_mass].to_numpy()
                 )
+
+    def _adjust_angle_sense(self, data_output: pd.DataFrame) -> pd.DataFrame:
+        if self.angles_sense == "clockwise":
+            # use data_output instead of self._data to keep eventual unit conversion
+            data_output["line_angle"] = -data_output["line_angle"]
+            data_output["crossarm_length"] = -data_output["crossarm_length"]
+        return data_output
 
     def equivalent_span(self) -> float:
         """equivalent_span
@@ -242,6 +273,33 @@ class SectionArray(ElementArray):
                 )
                 warnings.warn(warning_string)
                 logger.warning(warning_string)
+
+    def compute_gps_coordinates(
+        self,
+        start_latitude: float,
+        start_longitude: float,
+        start_azimuth: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute GPS coordinates for the cable array.
+
+        Args:
+            start_latitude (float): Latitude of the first support in degrees.
+            start_longitude (float): Longitude of the first support in degrees.
+            start_azimuth (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: Two arrays of GPS coordinates (latitude, longitude) in degrees.
+        """
+        line_angle_geo_degrees = (
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        return get_gps_from_arrays(
+            start_latitude,
+            start_longitude,
+            start_azimuth,
+            line_angle_geo_degrees,
+            self.data["span_length"].to_numpy(),
+        )
 
     def __copy__(self) -> Self:
         copy_obj = super().__copy__()

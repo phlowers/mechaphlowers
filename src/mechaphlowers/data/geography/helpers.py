@@ -1,12 +1,17 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Union
+from typing import Literal, Union
 
 import numpy as np
+
+from mechaphlowers.utils import convert_angle_signed_to_unsigned
+
+# Mean radius of Earth in meters
+RADIUS_EARTH = 6371000
 
 
 def gps_to_lambert93(
@@ -178,11 +183,10 @@ def reverse_haversine(
     Returns:
         tuple[np.ndarray, np.ndarray]: tuple containing the latitude and longitude of the result
     """
-    R = 6378137  # Radius of Earth in meters
 
     lat1 = np.radians(lat)
     lon1 = np.radians(lon)
-    angdist = distance / R
+    angdist = distance / RADIUS_EARTH
     theta = np.radians(bearing)
 
     lat2 = np.degrees(
@@ -203,37 +207,71 @@ def reverse_haversine(
     return (lat2, lon2)
 
 
+def reverse_haversine_float(
+    lat_rad: float,
+    lon_rad: float,
+    bearing: float,
+    distance: float,
+) -> tuple[float, float]:
+    """Reverse of haversine with floats.
+
+    Returns next coordinates in lat/lon according to bearing and distance.
+
+    Args:
+        lat (float): starting latitude in radians
+        lon (float): starting longitude in radians
+        bearing (float): bearing angle: orientation of the line in radians, anticlockwise, towards north = 0
+        distance (float): distance with the next point
+
+    Returns:
+        tuple[float, float]: (lat2, lon2): GPS coordinates of next point
+    """
+    angdist = distance / RADIUS_EARTH
+
+    lat_rad_2 = np.arcsin(
+        np.sin(lat_rad) * np.cos(angdist)
+        + np.cos(lat_rad) * np.sin(angdist) * np.cos(bearing)
+    )
+
+    lon_rad_2 = lon_rad + np.arctan2(
+        -np.sin(bearing) * np.sin(angdist) * np.cos(lat_rad),
+        np.cos(angdist) - np.sin(lat_rad) * np.sin(lat_rad_2),
+    )
+    return (lat_rad_2, lon_rad_2)
+
+
 def haversine(
     lat1: np.ndarray,
     lon1: np.ndarray,
     lat2: np.ndarray,
     lon2: np.ndarray,
+    unit: Literal["rad", "deg"] = "rad",
 ) -> np.ndarray:
     """
     Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
+    on the earth
     Args:
-        lat1 (np.ndarray): Latitude of point A in decimal degrees
-        lon1 (np.ndarray): Longitude of point A in decimal degrees
-        lat2 (np.ndarray): Latitude of point B in decimal degrees
-        lon2 (np.ndarray): Longitude of point B in decimal degrees
+        lat1 (np.ndarray): Latitude of point A (in radians by default)
+        lon1 (np.ndarray): Longitude of point A (in radians by default)
+        lat2 (np.ndarray): Latitude of point B (in radians by default)
+        lon2 (np.ndarray): Longitude of point B (in radians by default)
+        unit (Literal["rad", "deg"]): Select the unit to use for angle inputs. Defaults to "rad"
 
     Returns:
         np.ndarray: Distance in meters
     """
-    # Convert decimal degrees to radians
-    lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
+    if unit == "deg":
+        lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
 
     # Haversine formula
     dlon = lon2 - lon1
     dlat = lat2 - lat1
-    a = (
+    hav = (
         np.sin(dlat / 2) ** 2
         + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
     )
-    c = 2 * np.arcsin(np.sqrt(a))
-    r = 6371000  # Radius of earth in meters
-    return c * r
+    c = 2 * np.arcsin(np.sqrt(hav))
+    return c * RADIUS_EARTH
 
 
 def gps_to_bearing(
@@ -241,29 +279,34 @@ def gps_to_bearing(
     lon1: np.ndarray,
     lat2: np.ndarray,
     lon2: np.ndarray,
+    unit: Literal["rad", "deg"] = "rad",
 ) -> np.ndarray:
     """
     Calculate the bearing between two points
-    Returns bearing in degrees from north (0-360)
+    Returns bearing in degrees from north
     Args:
-        lat1 (np.ndarray): Latitude of point A in decimal degrees
-        lon1 (np.ndarray): Longitude of point A in decimal degrees
-        lat2 (np.ndarray): Latitude of point B in decimal degrees
-        lon2 (np.ndarray): Longitude of point B in decimal degrees
+        lat1 (np.ndarray): Latitude of point A (in radians by default)
+        lon1 (np.ndarray): Longitude of point A (in radians by default)
+        lat2 (np.ndarray): Latitude of point B (in radians by default)
+        lon2 (np.ndarray): Longitude of point B (in radians by default)
+        unit (Literal["rad", "deg"]): Select the unit to use for both inputs and output. Defaults to "rad"
 
     Returns:
-        np.ndarray: Bearing angle in degrees from north (0-360)
+        np.ndarray: Bearing angle in degrees from north, anti clockwise (in radians by default)
     """
-    lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
-
+    if unit == "deg":
+        lat1, lon1, lat2, lon2 = np.radians([lat1, lon1, lat2, lon2])
     dlon = lon2 - lon1
     y = np.sin(dlon) * np.cos(lat2)
     x = np.cos(lat1) * np.sin(lat2) - np.sin(lat1) * np.cos(lat2) * np.cos(
         dlon
     )
-    bearing = np.arctan2(y, x)
-    bearing = np.degrees(bearing)
-    bearing = (bearing + 360) % 360
+    # This formula needs to be reversed to get a anti clockwise angle
+    bearing = -np.arctan2(y, x)
+
+    bearing = convert_angle_signed_to_unsigned(bearing)  # Normalize to [0, 2π)
+    if unit == "deg":
+        bearing = np.degrees(bearing)
     return bearing
 
 

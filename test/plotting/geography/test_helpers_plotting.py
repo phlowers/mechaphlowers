@@ -81,15 +81,7 @@ class TestGeoInfoFromGps:
         # Verify bearing_to_next
         np.testing.assert_allclose(
             result["bearing_to_next"],
-            np.array(
-                [
-                    158.26942811,
-                    351.41470965,
-                    229.35897765,
-                    39.12509019,
-                    261.22934784,
-                ]
-            ),
+            np.array([201.730572, 8.58529, 130.641022, 320.87491, 98.770652]),
             atol=1e-6,
         )
 

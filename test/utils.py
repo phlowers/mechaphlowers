@@ -8,6 +8,11 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
+import plotly.graph_objects as go
+
+from mechaphlowers.entities.arrays import SectionArray
+
 
 def generate_html_from_json(json_path: Path):
     """Generate HTML report from JSON benchmark results with improved formatting."""
@@ -105,3 +110,64 @@ def generate_html_from_json(json_path: Path):
     with open(report_path, "w") as f:
         f.write(html)
     print(f"✓ HTML report saved to {report_path}")
+
+
+def show_street_map(
+    section_array: SectionArray, all_lats: np.ndarray, all_lons: np.ndarray
+):
+    """Displays a street map with points with their GPS coordinates, using Plotly.
+
+    Args:
+        section_array (SectionArray): The section array containing support data.
+        all_lats (np.ndarray): Array of latitudes for the supports.
+        all_lons (np.ndarray): Array of longitudes for the supports.
+    """
+    # Create hover text with support information
+    hover_text = [f"Start: {section_array.data.name.iloc[0]}"] + [
+        f"Support: {name}<br>"
+        f"Span: {span:.1f}m<br>"
+        f"Altitude: {alt:.2f}m<br>"
+        f"Suspension: {susp}"
+        for name, span, alt, susp in zip(
+            section_array.data.name.iloc[1:],
+            section_array.data.span_length.iloc[:-1],
+            section_array.data.conductor_attachment_altitude.iloc[1:],
+            section_array.data.suspension.iloc[1:],
+        )
+    ]
+
+    # Create the map figure
+    fig = go.Figure()
+
+    # Add line connecting the supports
+    fig.add_trace(
+        go.Scattermapbox(
+            lat=all_lats,
+            lon=all_lons,
+            mode='lines+markers',
+            marker=dict(size=10, color='red'),
+            line=dict(width=2, color='blue'),
+            text=hover_text,
+            hoverinfo='text',
+            name='Section supports',
+        )
+    )
+
+    # Calculate center point for map
+    center_lat = np.mean(all_lats)
+    center_lon = np.mean(all_lons)
+
+    # Update layout with mapbox
+    fig.update_layout(
+        mapbox={
+            "style": "open-street-map",
+            "center": {"lat": center_lat, "lon": center_lon},
+            "zoom": 13,
+        },
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        height=700,
+        width=1000,
+        showlegend=True,
+    )
+
+    fig.show(config={"scrollZoom": True})
