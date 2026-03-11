@@ -1033,7 +1033,7 @@ def test_angles_counterweight(cable_array_AM600: CableArray):
                 17119.90740813478,
                 3907.54805180944,
             ],
-            [
+            [  # reversed H values compared to proto
                 788.259742993468,
                 8093.4515419997,
                 19249.9553187584,

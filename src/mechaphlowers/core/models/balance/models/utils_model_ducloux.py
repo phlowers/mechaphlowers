@@ -211,7 +211,7 @@ class VectorProjection:
             t_left_span_rolled
         ) * np.sin(gamma)
         Fy_suspension = (t_left_span_rolled) * np.cos(gamma) - (
-            s_left_span_rolled
+            -s_left_span_rolled
         ) * np.sin(gamma)
         Fz_suspension = z_left_span_rolled
 

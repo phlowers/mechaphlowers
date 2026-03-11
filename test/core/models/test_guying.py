@@ -458,44 +458,56 @@ def test_guying_counterweight(cable_array_AM600: CableArray):
     )
     guying = Guying(balance_engine)
 
-    guying_results_left = guying.compute(
+    guying_results_no_pulley = guying.compute(
         index=1,
         side="left",
         with_pulley=False,
         altitude=0,
         horizontal_distance=50,
+        # view="span"
     )
 
     # imposing custom tolerances for the test because of small differences with prototypes setup
-    guying_results_left.atol_map = {
+    guying_results_no_pulley.atol_map = {
         "guying_tension": (15.0, "daN"),
         "vertical_force": (15.0, "daN"),
         "longitudinal_force": (15.0, "daN"),
         "guying_angle_degrees": (0.1, "degree"),
     }
 
-    expected_guying_left = {}
-    assert guying_results_left == GuyingResults(**expected_guying_left)
+    expected_guying_no_pulley = {
+        "guying_tension": Q_(5009.0, "daN"),
+        "vertical_force": Q_(4867.0, "daN"),
+        "longitudinal_force": Q_(0, "daN"),
+        "guying_angle_degrees": Q_(45.2, "degrees"),
+    }
 
-    guying_results_right = guying.compute(
+    assert guying_results_no_pulley == GuyingResults(
+        **expected_guying_no_pulley
+    )
+
+    guying_results_pulley = guying.compute(
         index=1,
-        side="right",
-        with_pulley=False,
+        side="left",
+        with_pulley=True,
         altitude=0,
         horizontal_distance=50,
+        # view="span"
     )
 
     # imposing custom tolerances for the test because of small differences with prototypes setup
-    guying_results_right.atol_map = {
+    guying_results_pulley.atol_map = {
         "guying_tension": (15.0, "daN"),
         "vertical_force": (15.0, "daN"),
         "longitudinal_force": (15.0, "daN"),
         "guying_angle_degrees": (0.1, "degree"),
     }
 
-    expected_guying_right = {}
-    assert guying_results_right == GuyingResults(**expected_guying_right)
+    expected_guying_pulley = {
+        "guying_tension": Q_(3534.0, "daN"),
+        "vertical_force": Q_(3821.0, "daN"),
+        "longitudinal_force": Q_(1039.0, "daN"),
+        "guying_angle_degrees": Q_(45.2, "degrees"),
+    }
 
-
-
-
+    assert guying_results_pulley == GuyingResults(**expected_guying_pulley)
