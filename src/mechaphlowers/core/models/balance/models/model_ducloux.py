@@ -38,7 +38,7 @@ from mechaphlowers.core.models.cable.deformation import (
 from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.core import VhlStrength
+from mechaphlowers.entities.core import VhlResult
 from mechaphlowers.numeric import cubic
 from mechaphlowers.utils import arr
 
@@ -392,15 +392,18 @@ class BalanceModel(IBalanceModel):
         self.update_span()
         self.update_tensions()
 
-    # For the following vhl methods, the Fz component is reversed:
+    # For the following vhl methods, the Fz and Fy components are reversed:
     # the z axis is reversed (downwards) for users wanting vhl results
-    def vhl_under_chain(self) -> VhlStrength:
+    # the y axis is also reversed: toward oneself (right of the line)
+
+    # Dans VhlResult argument dans le init pour inverser le repère
+    def vhl_under_chain(self) -> VhlResult:
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
         reversed_Fz = -(Fz + self.nodes.signed_counterweight)
-        vhl_result = np.array([reversed_Fz, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
+        vhl_result = np.array([reversed_Fz, -Fy, Fx])
+        return VhlResult(vhl_result, "N")
 
-    def vhl_under_chain_left(self) -> VhlStrength:
+    def vhl_under_chain_left(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the left of the support.
@@ -408,14 +411,14 @@ class BalanceModel(IBalanceModel):
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
 
         Returns:
-            VhlStrength: VhlStrength object
+            VhlResult: VhlResult object
         """
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable_left()
         reversed_Fz = -(Fz + self.nodes.signed_counterweight)
-        vhl_result = np.array([reversed_Fz, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
+        vhl_result = np.array([reversed_Fz, -Fy, Fx])
+        return VhlResult(vhl_result, "N")
 
-    def vhl_under_chain_right(self) -> VhlStrength:
+    def vhl_under_chain_right(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the right of the support.
@@ -423,22 +426,22 @@ class BalanceModel(IBalanceModel):
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
 
         Returns:
-            VhlStrength: VhlStrength object
+            VhlResult: VhlResult object
         """
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable_right()
         reversed_Fz = -(Fz + self.nodes.signed_counterweight)
-        vhl_result = np.array([reversed_Fz, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
+        vhl_result = np.array([reversed_Fz, -Fy, Fx])
+        return VhlResult(vhl_result, "N")
 
-    def vhl_under_console(self) -> VhlStrength:
+    def vhl_under_console(self) -> VhlResult:
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
         reversed_Fz = -(
             Fz
             + self.nodes.signed_insulator_weight
             + self.nodes.signed_counterweight
         )
-        vhl_result = np.array([reversed_Fz, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
+        vhl_result = np.array([reversed_Fz, -Fy, Fx])
+        return VhlResult(vhl_result, "N")
 
     @property
     def has_loads(self) -> bool:

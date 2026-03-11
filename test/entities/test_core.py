@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import numpy as np
 
-from mechaphlowers.core.models.balance.interfaces import VhlStrength
+from mechaphlowers.core.models.balance.interfaces import VhlResult
 from mechaphlowers.entities.core import QuantityArray
 
 
@@ -17,7 +17,7 @@ def test_vhl_strength():
     arr = np.array(
         [[1000, 2000, 3000], [4000, 5000, 6000], [7000, 8000, 9000]]
     )
-    vhl = VhlStrength(arr, input_unit="N")
+    vhl = VhlResult(arr, input_unit="N")
 
     V, H, L = vhl.vhl
     np.testing.assert_array_equal(V.value(), np.array([1000, 2000, 3000]) / 10)
@@ -32,14 +32,14 @@ def test_vhl_strength():
 @patch('mechaphlowers.config.options.output_units.force', 'daN')
 def test_vhl_strength_str_repr():
     arr = np.array([[1000, 2000], [3000, 4000], [5000, 6000]])
-    vhl = VhlStrength(arr, input_unit="N")
+    vhl = VhlResult(arr, input_unit="N")
     vhl_str = str(vhl)
     expected_str = (
         "V: [100. 200.] daN\nH: [300. 400.] daN\nL: [500. 600.] daN\n"
     )
     assert vhl_str == expected_str
     vhl_repr = repr(vhl)
-    expected_repr = f"VhlStrength\n{expected_str}"
+    expected_repr = f"VhlResult\n{expected_str}"
     assert vhl_repr == expected_repr
 
 

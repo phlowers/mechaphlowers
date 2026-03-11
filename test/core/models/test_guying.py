@@ -75,6 +75,26 @@ section_array_complete = SectionArray(
 )
 section_array_complete.add_units({"line_angle": "grad"})
 
+section_array_big_angles = SectionArray(
+    pd.DataFrame(
+        {
+            "name": ["1", "2", "3", "4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [30, 50, 60, 65],
+            "crossarm_length": [0, 10, -10, 0],
+            "line_angle": [0, 20, 30, 0],
+            "insulator_length": [0.01, 3, 3, 0.01],
+            "span_length": [500, 300, 400, np.nan],
+            "insulator_mass": convert_weight_to_mass([1000, 500, 500, 1000]),
+            "load_mass": [0, 0, 0, 0],
+            "load_position": [0, 0, 0, 0],
+        }
+    ),
+    sagging_parameter=2000,
+    sagging_temperature=15,
+)
+section_array_big_angles.add_units({"line_angle": "grad"})
+
 
 expected_guying_left_flat = {
     "guying_tension": Q_(4119.0, "daN"),
@@ -133,6 +153,20 @@ expected_guying_pulley_right_complete = {
     "guying_angle_degrees": Q_(50.2, "degrees"),
 }
 
+expected_guying_left_angles = {
+    "guying_tension": Q_(5622.0, "daN"),
+    "vertical_force": Q_(4892.0, "daN"),
+    "longitudinal_force": Q_(0.0, "daN"),
+    "guying_angle_degrees": Q_(51.1, "degrees"),
+}
+
+expected_guying_pulley_left_angles = {
+    "guying_tension": Q_(3547.0, "daN"),
+    "vertical_force": Q_(3278.0, "daN"),
+    "longitudinal_force": Q_(1303.0, "daN"),
+    "guying_angle_degrees": Q_(51.1, "degrees"),
+}
+
 section_array_inputs = [
     (
         section_array_flat,
@@ -162,9 +196,17 @@ section_array_inputs = [
         expected_guying_right_complete,
         expected_guying_pulley_right_complete,
     ),
+    (
+        section_array_big_angles,
+        2,
+        "left",
+        expected_guying_left_angles,
+        expected_guying_pulley_left_angles,
+    ),
 ]
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "section_array, support_index, side, expected_guying_left, expected_guying_pulley_left",
     section_array_inputs,
@@ -173,6 +215,7 @@ section_array_inputs = [
         "span_change_section_array_left",
         "complete_section_array_left",
         "complete_section_array_right",
+        "angles_section_array_left",
     ],
 )
 def test_guying_integration(
@@ -419,6 +462,7 @@ def test_span_view_warnings(guying_basic_setup: Guying, caplog):
         )
 
 
+@pytest.mark.integration
 def test_guying_counterweight(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(

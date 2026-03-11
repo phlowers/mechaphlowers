@@ -329,6 +329,7 @@ def test_adjust_with_angles(
 
 
 @pytest.mark.integration
+# Also test vhl, contrary to the other tests
 def test_wind_no_altitude_change(
     section_array_no_altitude_change: SectionArray,
     cable_array_AM600: CableArray,
@@ -367,7 +368,7 @@ def test_wind_no_altitude_change(
     expected_vhl_under_console = np.array(
         [
             [5.34538576e02, 7.60729616e02, 6.72246587e02, 4.45064517e02],
-            [2.47336911e02, 3.72285443e02, 3.22182818e02, 2.01698053e02],
+            [-2.47336911e02, -3.72285443e02, -3.22182818e02, -2.01698053e02],
             [3.91179542e03, -4.89819371e00, -5.35288081e-01, -3.90633052e03],
         ]
     )
@@ -381,10 +382,10 @@ def test_wind_no_altitude_change(
                 345.064517160492,
             ],
             [
-                247.336910630502,
-                372.285442725628,
-                322.182818012918,
-                201.698053053279,
+                -247.336910630502,
+                -372.285442725628,
+                -322.182818012918,
+                -201.698053053279,
             ],
             [
                 3911.79537992953,
@@ -1033,11 +1034,11 @@ def test_angles_counterweight(cable_array_AM600: CableArray):
                 17119.90740813478,
                 3907.54805180944,
             ],
-            [  # reversed H values compared to proto
-                788.259742993468,
-                8093.4515419997,
-                19249.9553187584,
-                -665.25113770311,
+            [
+                -788.259742993468,
+                -8093.4515419997,
+                -19249.9553187584,
+                665.25113770311,
             ],
             [
                 35307.1946728045,

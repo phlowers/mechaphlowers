@@ -54,7 +54,7 @@ class QuantityArray:
         return f"{class_name}({self.quantity.m}, {self.symbol})"
 
 
-class VhlStrength:
+class VhlResult:
     """Class representing the VHL forces"""
 
     output_unit = options.output_units.force
