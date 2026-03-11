@@ -97,7 +97,7 @@ def span_to_support_view_guying(
     elif selected_support == "left":
         support_index = span_index
     else:
-        raise ValueError("support_side must be 'left' or 'right'")
+        raise ValueError("selected_support must be 'left' or 'right'")
     logger.debug(
         f"Equivalent support for calculation: index: {support_index}, side: {selected_support}"
     )

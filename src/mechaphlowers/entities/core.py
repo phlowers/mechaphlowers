@@ -58,7 +58,6 @@ class VhlResult:
     """Class representing the VHL forces"""
 
     output_unit = options.output_units.force
-    # Dans VhlResult argument dans le init pour inverser le repère
 
     def __init__(
         self, vhl: np.ndarray, input_unit="N", change_frame: bool = True

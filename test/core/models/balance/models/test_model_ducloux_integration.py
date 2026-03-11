@@ -933,7 +933,6 @@ def test_engine_chain_reversal(cable_array_AM600: CableArray):
         balance_engine_angles.solve_change_state(wind_pressure=5000)
 
 
-# TODO:
 @pytest.mark.integration
 # results generated with proto v4 in order to take into account counterweight, so precision is low
 def test_no_altitude_change_counterweight(
