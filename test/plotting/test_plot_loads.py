@@ -19,6 +19,7 @@ from mechaphlowers.entities.arrays import (
 from mechaphlowers.plotting.plot import (
     PlotEngine,
 )
+from test.conftest import show_figures
 from test.tools.plot_tools import assert_cable_linked_to_attachment
 
 
@@ -94,7 +95,8 @@ def test_plot_loads(balance_engine_with_loads: BalanceEngine):
 
     plt_engine.preview_line3d(fig)
 
-    # fig.show()
+    if show_figures:
+        fig.show()
 
     span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
@@ -134,7 +136,8 @@ def test_plot_add_loads_later(balance_engine_no_loads: BalanceEngine):
 
     plt_engine.preview_line3d(fig)
 
-    # fig.show()
+    if show_figures:
+        fig.show()
 
     span_points, _, insulators_points = (
         plt_engine.section_pts.get_points_for_plot()
@@ -183,7 +186,8 @@ def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
 
     plt_engine.preview_line3d(fig)
 
-    # fig.show()
+    if show_figures:
+        fig.show()
 
     span_points, _, insulators_points = (
         plt_engine.section_pts.get_points_for_plot()
@@ -206,9 +210,11 @@ def test_get_loads_coords(balance_engine_with_loads: BalanceEngine):
     coords_loads = plt_engine.get_loads_coords()
     assert len(coords_loads) == 2
     assert list(coords_loads.keys()) == [0, 2]
-    # fig = go.Figure()
-    # plt_engine.preview_line3d(fig)
-    # fig.show()
+
+    if show_figures:
+        fig = go.Figure()
+        plt_engine.preview_line3d(fig)
+        fig.show()
 
 
 def test_get_loads_coords_4_spans(cable_array_AM600: CableArray):
@@ -247,9 +253,11 @@ def test_get_loads_coords_4_spans(cable_array_AM600: CableArray):
     coords_loads = plt_engine.get_loads_coords()
     assert len(coords_loads) == 2
     assert list(coords_loads.keys()) == [0, 1]
-    # fig = go.Figure()
-    # plt_engine.preview_line3d(fig)
-    # fig.show()
+
+    if show_figures:
+        fig = go.Figure()
+        plt_engine.preview_line3d(fig)
+        fig.show()
 
 
 def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
@@ -286,7 +294,8 @@ def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
 
     plt_engine.preview_line3d(fig)
 
-    # fig.show()
+    if show_figures:
+        fig.show()
 
     span_points, _, insulators_points = (
         plt_engine.section_pts.get_points_for_plot()

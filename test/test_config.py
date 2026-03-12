@@ -11,6 +11,7 @@ import plotly.graph_objects as go  # type: ignore[import-untyped]
 from mechaphlowers.config import options
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.plotting.plot import PlotEngine
+from test.conftest import show_figures
 
 
 def test_config_on_plot(balance_engine_base_test) -> None:
@@ -29,7 +30,8 @@ def test_config_on_plot(balance_engine_base_test) -> None:
     assert fig._data[0].get('x').shape[0] == (  # type: ignore[attr-defined]
         options.graphics.resolution + 1
     ) * (balance_engine_base_test.section_array.data.shape[0] - 1)
-    # fig.show() # deactivate for auto unit testing
+    if show_figures:
+        fig.show()  # deactivate for auto unit testing
     # restore original settings
     options.graphics.resolution = original_res
     options.graphics.cable_trace_profile = original_trace_profile
