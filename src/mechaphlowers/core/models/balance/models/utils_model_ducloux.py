@@ -86,6 +86,11 @@ class Masks:
 
 class VectorProjection:
     # TODO: understand this and write docstring + eventually refactor this
+
+    def __init__(self, line_angle: np.ndarray, bundle_number: int):
+        self.line_angle = line_angle
+        self.bundle_number = bundle_number
+
     def set_tensions(
         self, Th: np.ndarray, Tv_d: np.ndarray, Tv_g: np.ndarray
     ) -> None:
@@ -157,7 +162,9 @@ class VectorProjection:
     def force_cable(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Compute forces of the cable on the insulator chain
 
-        Does NOT include insulator chain weight
+        Does NOT include insulator chain weight.
+
+        Takes into account bundle number?
 
         Returns:
             tuple[np.ndarray, np.ndarray, np.ndarray]: Fx, Fy, Fz
@@ -198,9 +205,18 @@ class VectorProjection:
         )
         Fz_last = z_right[-1]
 
-        Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
-        Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
-        Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
+        Fx = (
+            np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
+            * self.bundle_number
+        )
+        Fy = (
+            np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
+            * self.bundle_number
+        )
+        Fz = (
+            np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
+            * self.bundle_number
+        )
         return Fx, Fy, Fz
 
     def force_cable_right(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

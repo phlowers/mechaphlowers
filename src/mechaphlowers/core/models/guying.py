@@ -148,7 +148,7 @@ class Guying:
             balance_engine (BalanceEngine): balance engine instance
         """
         self.balance_engine = balance_engine
-        self.bundle_number = 1.0  # TODO: link later with balance_engine.section_array.data.bundle_number
+        self.bundle_number = balance_engine.section_array.bundle_number
 
     def compute(
         self,
@@ -292,7 +292,7 @@ class Guying:
         guying_horizontal_distance: float,
         insulator_weight: float,  # chain weight
         cable_linear_weight: float,  # linear weight of conductor
-        bundle_number: float,  # bundle coefficient
+        bundle_number: int,  # bundle coefficient
     ) -> GuyingResults:
         """
         Calculate guying system loads and forces (direct guying without pulley).
@@ -372,7 +372,8 @@ class Guying:
         guying_horizontal_distance: float,
         insulator_weight: float,  # chain weight (pds_chaine)
         cable_linear_weight: float,  # linear weight of conductor (pds_lin)
-        bundle_number: float,  # bundle coefficient (faisceau)
+        # TODO: float or int?
+        bundle_number: int,  # bundle coefficient (faisceau)
         span_tension: float,  # span horizontal tension (th)
         span_slope: float,  # span slope in radians (pente_g)
     ) -> GuyingResults:

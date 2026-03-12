@@ -129,6 +129,7 @@ class SectionArray(ElementArray):
         data: pd.DataFrame,
         sagging_parameter: float | None = None,
         sagging_temperature: float | None = None,
+        bundle_number: int = 1,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
 
@@ -144,6 +145,11 @@ class SectionArray(ElementArray):
             self.sagging_temperature = options.data.sagging_temperature_default
         else:
             self.sagging_temperature = sagging_temperature
+        if bundle_number < 1:
+            raise ValueError(
+                f"bundle_number should be a positive integer. Recieved: {bundle_number}"
+            )
+        self.bundle_number = bundle_number
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
         self._angles_sense: Literal["clockwise", "anticlockwise"] = (
@@ -219,6 +225,7 @@ class SectionArray(ElementArray):
                 elevation_difference=self.compute_elevation_difference(),
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
+                # bundle_number=self.bundle_number,
             )
 
     def create_column_weight(

@@ -485,3 +485,23 @@ def test_section_array_angle_sense() -> None:
     np.testing.assert_allclose(
         section_array.data.crossarm_length, expected_crossarm_length
     )
+
+
+def test_create_section_bundle_number(
+    section_array_input_data: dict,
+) -> None:
+    section_array = SectionArray(
+        pd.DataFrame(section_array_input_data),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+        bundle_number=2,
+    )
+    assert section_array.bundle_number == 2
+
+    with pytest.raises(ValueError):
+        section_array = SectionArray(
+            pd.DataFrame(section_array_input_data),
+            sagging_parameter=2_000,
+            sagging_temperature=15,
+            bundle_number=0,
+        )

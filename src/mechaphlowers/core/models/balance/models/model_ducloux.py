@@ -111,6 +111,7 @@ class BalanceModel(IBalanceModel):
             self.k_load[self.nodes.has_load_on_span],
             self.sagging_temperature[self.nodes.has_load_on_span],
             self.parameter[self.nodes.has_load_on_span],
+            self.nodes.bundle_number,
         )
         self.find_param_model = FindParamModel(
             self.span_model, self.deformation_model
@@ -582,6 +583,7 @@ class Nodes:
         load_weight: np.ndarray,
         load_position: np.ndarray,
         counterweight: np.ndarray,
+        bundle_number: int,  # np.ndarray?
     ):
         # TODO: docstring of this whole class
 
@@ -611,7 +613,10 @@ class Nodes:
             load_weight != 0, load_position != 0
         )
         self.signed_counterweight = -counterweight
-        self.vector_projection = VectorProjection()
+        self.bundle_number = bundle_number
+        self.vector_projection = VectorProjection(
+            self.line_angle, self.bundle_number
+        )
 
     @property
     def dx(self) -> np.ndarray:
@@ -830,6 +835,13 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         if "counterweight" in section_array.data
         else np.zeros(insulator_length.shape)
     )
+    # bundle_number = (
+    #     section_array.data.bundle_number.to_numpy()
+    #     if "bundle_number" in section_array.data
+    #     else np.zeros(insulator_length.shape)
+    # )
+
+    bundle_number = section_array.bundle_number
 
     return Nodes(
         insulator_length,
@@ -841,6 +853,7 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         load_weight,
         load_position,
         counterweight,
+        bundle_number,
     )
 
 
@@ -861,6 +874,7 @@ class LoadModel(IModelForSolver):
         k_load: np.ndarray,
         temperature: np.ndarray,
         parameter: np.ndarray,
+        bundle_number: int,
         find_param_solver_type: Type[
             IFindParamSolver
         ] = FindParamSolverForLoop,
@@ -880,6 +894,7 @@ class LoadModel(IModelForSolver):
         self.load_weight = load_weight
         self.load_position = load_position
         self.find_param_solver_type = find_param_solver_type
+        self.bundle_number = bundle_number
         # TODO: Need a way to choose Span model
 
         # init objects with placeholder values, but they will be updated when needed
@@ -994,7 +1009,12 @@ class LoadModel(IModelForSolver):
         Tv_g_loc = self.span_model_right.T_v(x_m_right)
 
         Th_diff = Th_left - Th_right
-        Tv_diff = Tv_d_loc + Tv_g_loc - self.load_weight * self.k_load
+        # TODO: check if divide by bundle number here?
+        Tv_diff = (
+            Tv_d_loc
+            + Tv_g_loc
+            - self.k_load * self.load_weight / self.bundle_number
+        )
 
         return np.array([Th_diff, Tv_diff]).flatten('F')
 
