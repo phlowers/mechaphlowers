@@ -40,9 +40,6 @@ def points_distance_inside_plane(
 
     # Calculate difference vector
     diff_vector = point_target - point_base
-    print(
-        f"\nDifference vector: ({diff_vector[0]:.4f}, {diff_vector[1]:.4f}, {diff_vector[2]:.4f})"
-    )
 
     # Calculate 3D distance
     distance_3d = np.linalg.norm(diff_vector)
@@ -103,10 +100,20 @@ class DistanceResult:
         self.point_base = point_base
         self.point_target = point_target
         self.distance_3d = distance_3d
-        self.distance_projection_u = distance_projection_u
-        self.distance_projection_v = distance_projection_v
+        self.signed_distance_projection_u = distance_projection_u
+        self.signed_distance_projection_v = distance_projection_v
         self.u_plane = u_plane
         self.v_plane = v_plane
+
+    @property
+    def distance_projection_u(self) -> float:
+        """Return the signed distance projection along the u_plane basis vector."""
+        return abs(self.signed_distance_projection_u)
+
+    @property
+    def distance_projection_v(self) -> float:
+        """Return the signed distance projection along the v_plane basis vector."""
+        return abs(self.signed_distance_projection_v)
 
     def __str__(self):
         return (
@@ -114,8 +121,8 @@ class DistanceResult:
             f"  Point Base: ({self.point_base[0]:.4f}, {self.point_base[1]:.4f}, {self.point_base[2]:.4f})\n"
             f"  Point Target: ({self.point_target[0]:.4f}, {self.point_target[1]:.4f}, {self.point_target[2]:.4f})\n"
             f"  Distance 3D: {self.distance_3d:.6f} m\n"
-            f"  Distance Projection U: {self.distance_projection_u:.6f} m\n"
-            f"  Distance Projection V: {self.distance_projection_v:.6f} m\n"
+            f"  Distance Projection U: {self.signed_distance_projection_u:.6f} m\n"
+            f"  Distance Projection V: {self.signed_distance_projection_v:.6f} m\n"
             f"  U Plane Vector: ({self.u_plane[0]:.4f}, {self.u_plane[1]:.4f}, {self.u_plane[2]:.4f})\n"
             f"  V Plane Vector: ({self.v_plane[0]:.4f}, {self.v_plane[1]:.4f}, {self.v_plane[2]:.4f})\n"
         )
@@ -126,9 +133,12 @@ class DistanceResult:
     def projection_points(
         self, origin_point: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray]:
-        return (
-            origin_point + self.distance_projection_u * self.u_plane,
-            origin_point + self.distance_projection_v * self.v_plane,
+        return get_projection_points(
+            origin_point=origin_point,
+            projection_u=self.signed_distance_projection_u,
+            projection_v=self.signed_distance_projection_v,
+            u_plane=self.u_plane,
+            v_plane=self.v_plane,
         )
 
 

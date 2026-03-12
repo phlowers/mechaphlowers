@@ -595,7 +595,7 @@ def plot_distance_engine(
             plot_projected_distances(
                 fig,
                 distance_result.point_base,
-                distance_result.distance_projection_u,
+                distance_result.signed_distance_projection_u,
                 "U Projection",
                 title_addendum,
                 projection_color,
@@ -604,7 +604,7 @@ def plot_distance_engine(
             plot_projected_distances(
                 fig,
                 distance_result.point_base,
-                distance_result.distance_projection_v,
+                distance_result.signed_distance_projection_v,
                 "V Projection",
                 title_addendum,
                 projection_color,
