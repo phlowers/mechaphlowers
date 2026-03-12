@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Dict, Literal, Tuple
+from typing import Callable, Literal
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
