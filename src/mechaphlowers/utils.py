@@ -74,7 +74,7 @@ def float_to_array(data: dict[str, np.ndarray | float | int]) -> dict:
     return data
 
 
-def span_to_support_view(
+def span_to_support_view_guying(
     span_index: int,
     selected_support: Literal['left', 'right'],
 ) -> tuple[int, Literal['left', 'right']]:
@@ -94,19 +94,17 @@ def span_to_support_view(
     )
     if selected_support == "right":
         support_index = span_index + 1
-        support_side: Literal['left', 'right'] = "left"
     elif selected_support == "left":
         support_index = span_index
-        support_side = "right"
     else:
-        raise ValueError("support_side must be 'left' or 'right'")
+        raise ValueError("selected_support must be 'left' or 'right'")
     logger.debug(
-        f"Equivalent support for calculation: index: {support_index}, side: {support_side}"
+        f"Equivalent support for calculation: index: {support_index}, side: {selected_support}"
     )
     warnings.warn(
-        f"Equivalent support view for calculation: index: {support_index}, side: {support_side}"
+        f"Equivalent support view for calculation: index: {support_index}, side: {selected_support}"
     )
-    return support_index, support_side
+    return support_index, selected_support
 
 
 def add_stderr_logger(

@@ -15,7 +15,7 @@ from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Literal, Self, Type
 
 from mechaphlowers.config import options
-from mechaphlowers.data.units import Q_
+from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.errors import DataWarning
 from mechaphlowers.entities.geography import get_gps_from_arrays
 from mechaphlowers.entities.schemas import (
@@ -129,6 +129,7 @@ class SectionArray(ElementArray):
         data: pd.DataFrame,
         sagging_parameter: float | None = None,
         sagging_temperature: float | None = None,
+        bundle_number: int = 1,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
 
@@ -144,6 +145,11 @@ class SectionArray(ElementArray):
             self.sagging_temperature = options.data.sagging_temperature_default
         else:
             self.sagging_temperature = sagging_temperature
+        if bundle_number < 1:
+            raise ValueError(
+                f"bundle_number should be a positive integer. Recieved: {bundle_number}"
+            )
+        self.bundle_number = bundle_number
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
         self._angles_sense: Literal["clockwise", "anticlockwise"] = (
@@ -198,14 +204,12 @@ class SectionArray(ElementArray):
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
         data_output = super().data
-        data_output["insulator_weight"] = (
-            Q_(data_output["insulator_mass"].to_numpy(), "kg").to("N").m
-        )
-        if "load_mass" in data_output:
-            data_output["load_weight"] = (
-                Q_(data_output["load_mass"].to_numpy(), "kg").to("N").m
-            )
-
+        mass_weight_conversion = {
+            "insulator_mass": "insulator_weight",
+            "load_mass": "load_weight",
+            "counterweight_mass": "counterweight",
+        }
+        self.create_column_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
         data_output = self._adjust_angle_sense(data_output)
         if self.sagging_parameter is None or self.sagging_temperature is None:
@@ -221,7 +225,17 @@ class SectionArray(ElementArray):
                 elevation_difference=self.compute_elevation_difference(),
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
+                # bundle_number=self.bundle_number,
             )
+
+    def create_column_weight(
+        self, df_output: pd.DataFrame, columns_to_convert: dict[str, str]
+    ) -> None:
+        for column_mass, column_weight in columns_to_convert.items():
+            if column_mass in self._data:
+                df_output[column_weight] = convert_mass_to_weight(
+                    df_output[column_mass].to_numpy()
+                )
 
     def _adjust_angle_sense(self, data_output: pd.DataFrame) -> pd.DataFrame:
         if self.angles_sense == "clockwise":
@@ -383,8 +397,8 @@ class CableArray(ElementArray):
     def data(self) -> pd.DataFrame:
         data_output = super().data
         # add new column using linear_mass data: linear_weight
-        data_output["linear_weight"] = (
-            Q_(data_output["linear_mass"].to_numpy(), "kg").to("N").m
+        data_output["linear_weight"] = convert_mass_to_weight(
+            data_output["linear_mass"].to_numpy()
         )
         return data_output
 
