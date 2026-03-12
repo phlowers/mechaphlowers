@@ -8,7 +8,7 @@ import logging
 import warnings
 from functools import wraps
 from time import time
-from typing import Any, Callable, Dict, Literal, Protocol, TypeVar, cast
+from typing import Any, Callable, Literal, Protocol, TypeVar, cast
 
 import numpy as np
 import pandas as pd
@@ -64,7 +64,7 @@ class CachedAccessor:
         return accessor_obj
 
 
-def float_to_array(data: Dict[str, np.ndarray | float | int]) -> Dict:
+def float_to_array(data: dict[str, np.ndarray | float | int]) -> dict:
     """Convert inputs to the required format."""
     for key, value in data.items():
         if isinstance(value, (int, float)):
@@ -99,7 +99,7 @@ def span_to_support_view(
         support_index = span_index
         support_side = "right"
     else:
-        raise AttributeError("support_side must be 'left' or 'right'")
+        raise ValueError("support_side must be 'left' or 'right'")
     logger.debug(
         f"Equivalent support for calculation: index: {support_index}, side: {support_side}"
     )
@@ -255,7 +255,7 @@ T = TypeVar("T", bound=Callable[..., Any])
 class CachedCallable(Protocol):
     def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
 
-    _cache: Dict[bytes, Any]
+    _cache: dict[bytes, Any]
 
     def cache_clear(self) -> None: ...
 
@@ -305,3 +305,27 @@ def numpy_cache(f: Callable[..., Any]):
     _wrapped_any.cache_clear = cache_clear
     _wrapped_any._cache = cache
     return cast(CachedCallable, _wrapped_any)
+
+
+def convert_angle_signed_to_unsigned(angle: np.ndarray) -> np.ndarray:
+    """Convert angles from signed format (-pi to pi) to unsigned format (0 to 2*pi).
+
+    Args:
+        angle (np.ndarray): Array of angles in signed format.
+
+    Returns:
+        np.ndarray: Array of angles in unsigned format.
+    """
+    return (angle + 2 * np.pi) % (2 * np.pi)
+
+
+def convert_angle_unsigned_to_signed(angle: np.ndarray) -> np.ndarray:
+    """Convert angles from unsigned format (0 to 2*pi) to signed format (-pi to pi).
+
+    Args:
+        angle (np.ndarray): Array of angles in unsigned format.
+
+    Returns:
+        np.ndarray: Array of angles in signed format.
+    """
+    return (angle + np.pi) % (2 * np.pi) - np.pi

@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
-from typing import Literal, Self, Tuple, Type
+from typing import Literal, Self, Type
 
 import numpy as np
 
@@ -38,7 +38,7 @@ class ISpan(ABC):
                 <li> 2: semi-span to the right of a point load </li>
             </ul>
 
-        loads_indices (Tuple[np.ndarray, np.ndarray]): Tuple containing:
+        loads_indices (tuple[np.ndarray, np.ndarray]): tuple containing:
             <ul>
                 <li>Array of span indices where loads are located</li>
                 <li>Array of point indices within those spans where loads occur</li>
@@ -112,7 +112,7 @@ class ISpan(ABC):
         # Example: [0,2], [6,12] means that point number 6 in the span number 0 is a load,
         # as well as point number 12 in span number 2
         # This tuple is used to retrieve load coords after plotting.
-        self.loads_indices: Tuple[np.ndarray, np.ndarray] = (
+        self.loads_indices: tuple[np.ndarray, np.ndarray] = (
             np.array([], dtype=np.int64),
             np.array([], dtype=np.int64),
         )
@@ -289,11 +289,11 @@ class ISpan(ABC):
         """Total length of the cable."""
 
     @abstractmethod
-    def get_coords(self, resolution: int) -> Tuple[np.ndarray, np.ndarray]:
+    def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
         """Get x and z coordinates for catenary generation in cable frame
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: x and z coordinates of the cable
+            tuple[np.ndarray, np.ndarray]: x and z coordinates of the cable
         """
 
     @abstractmethod
@@ -441,7 +441,7 @@ class CatenarySpan(ISpan):
             [np.interp(xq[i], x[i], y[i]) for i in range(x.shape[0])]
         )
 
-    def get_coords(self, resolution: int) -> Tuple[np.ndarray, np.ndarray]:
+    def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
         """Get x and z coordinates for catenary generation in cable frame.
 
         This method handles different span types in case of virtual nodes and produces an output of the same size than the real number of spans.
@@ -452,7 +452,7 @@ class CatenarySpan(ISpan):
             resolution (int): Number of points to generate between supports.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: x and z coordinates of the cable
+            tuple[np.ndarray, np.ndarray]: x and z coordinates of the cable
         """
 
         start_points = self.compute_x_m()
