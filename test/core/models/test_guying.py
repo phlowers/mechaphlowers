@@ -12,7 +12,7 @@ import pytest
 
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.guying import Guying, GuyingResults
-from mechaphlowers.data.units import Q_
+from mechaphlowers.data.units import Q_, convert_weight_to_mass
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 section_array_flat = SectionArray(
@@ -27,7 +27,7 @@ section_array_flat = SectionArray(
             "span_length": [400, 400, 400, np.nan],
             "insulator_mass": [0, 100, 100, 0],
             "load_mass": [0, 0, 0, np.nan],
-            "load_position": [0.2, 0.4, 0.6, np.nan],
+            "load_position": [0, 0, 0, np.nan],
         }
     ),
     sagging_parameter=2000,
@@ -47,7 +47,7 @@ section_array_span_change = SectionArray(
             "span_length": [500, 300, 400, np.nan],
             "insulator_mass": [0, 100, 100, 0],
             "load_mass": [0, 0, 0, np.nan],
-            "load_position": [0.2, 0.4, 0.6, np.nan],
+            "load_position": [0, 0, 0, np.nan],
         }
     ),
     sagging_parameter=2000,
@@ -67,13 +67,33 @@ section_array_complete = SectionArray(
             "span_length": [500, 300, 400, np.nan],
             "insulator_mass": [100, 50, 500, 0],
             "load_mass": [0, 0, 0, np.nan],
-            "load_position": [0.2, 0.4, 0.6, np.nan],
+            "load_position": [0, 0, 0, np.nan],
         }
     ),
     sagging_parameter=2000,
     sagging_temperature=15,
 )
 section_array_complete.add_units({"line_angle": "grad"})
+
+section_array_big_angles = SectionArray(
+    pd.DataFrame(
+        {
+            "name": ["1", "2", "3", "4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [30, 50, 60, 65],
+            "crossarm_length": [0, 10, -10, 0],
+            "line_angle": [0, 20, 30, 0],
+            "insulator_length": [0.01, 3, 3, 0.01],
+            "span_length": [500, 300, 400, np.nan],
+            "insulator_mass": convert_weight_to_mass([1000, 500, 500, 1000]),
+            "load_mass": [0, 0, 0, 0],
+            "load_position": [0, 0, 0, 0],
+        }
+    ),
+    sagging_parameter=2000,
+    sagging_temperature=15,
+)
+section_array_big_angles.add_units({"line_angle": "grad"})
 
 
 expected_guying_left_flat = {
@@ -133,6 +153,20 @@ expected_guying_pulley_right_complete = {
     "guying_angle_degrees": Q_(50.2, "degrees"),
 }
 
+expected_guying_left_angles = {
+    "guying_tension": Q_(5622.0, "daN"),
+    "vertical_force": Q_(4892.0, "daN"),
+    "longitudinal_force": Q_(0.0, "daN"),
+    "guying_angle_degrees": Q_(51.1, "degrees"),
+}
+
+expected_guying_pulley_left_angles = {
+    "guying_tension": Q_(3547.0, "daN"),
+    "vertical_force": Q_(3278.0, "daN"),
+    "longitudinal_force": Q_(1303.0, "daN"),
+    "guying_angle_degrees": Q_(51.1, "degrees"),
+}
+
 section_array_inputs = [
     (
         section_array_flat,
@@ -162,9 +196,17 @@ section_array_inputs = [
         expected_guying_right_complete,
         expected_guying_pulley_right_complete,
     ),
+    (
+        section_array_big_angles,
+        2,
+        "left",
+        expected_guying_left_angles,
+        expected_guying_pulley_left_angles,
+    ),
 ]
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "section_array, support_index, side, expected_guying_left, expected_guying_pulley_left",
     section_array_inputs,
@@ -173,6 +215,7 @@ section_array_inputs = [
         "span_change_section_array_left",
         "complete_section_array_left",
         "complete_section_array_right",
+        "angles_section_array_left",
     ],
 )
 def test_guying_integration(
@@ -417,3 +460,98 @@ def test_span_view_warnings(guying_basic_setup: Guying, caplog):
             horizontal_distance=50,
             view='span',
         )
+
+
+@pytest.mark.integration
+def test_guying_counterweight(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": [0, 20, 30, 0],
+                "insulator_length": [0.01, 3, 3, 0.01],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+                "counterweight_mass": convert_weight_to_mass(
+                    [
+                        0,
+                        10000,
+                        10000,
+                        0,
+                    ]
+                ),
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "grad"})
+    balance_engine = BalanceEngine(cable_array_AM600, section_array)
+
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state(
+        new_temperature=15,
+        wind_pressure=0,
+    )
+    guying = Guying(balance_engine)
+
+    guying_results_no_pulley = guying.compute(
+        index=1,
+        side="left",
+        with_pulley=False,
+        altitude=0,
+        horizontal_distance=50,
+        # view="span"
+    )
+
+    # imposing custom tolerances for the test because of small differences with prototypes setup
+    guying_results_no_pulley.atol_map = {
+        "guying_tension": (15.0, "daN"),
+        "vertical_force": (15.0, "daN"),
+        "longitudinal_force": (15.0, "daN"),
+        "guying_angle_degrees": (0.1, "degree"),
+    }
+
+    expected_guying_no_pulley = {
+        "guying_tension": Q_(5009.0, "daN"),
+        "vertical_force": Q_(4867.0, "daN"),
+        "longitudinal_force": Q_(0, "daN"),
+        "guying_angle_degrees": Q_(45.2, "degrees"),
+    }
+
+    assert guying_results_no_pulley == GuyingResults(
+        **expected_guying_no_pulley
+    )
+
+    guying_results_pulley = guying.compute(
+        index=1,
+        side="left",
+        with_pulley=True,
+        altitude=0,
+        horizontal_distance=50,
+        # view="span"
+    )
+
+    # imposing custom tolerances for the test because of small differences with prototypes setup
+    guying_results_pulley.atol_map = {
+        "guying_tension": (15.0, "daN"),
+        "vertical_force": (15.0, "daN"),
+        "longitudinal_force": (15.0, "daN"),
+        "guying_angle_degrees": (0.1, "degree"),
+    }
+
+    expected_guying_pulley = {
+        "guying_tension": Q_(3534.0, "daN"),
+        "vertical_force": Q_(3821.0, "daN"),
+        "longitudinal_force": Q_(1039.0, "daN"),
+        "guying_angle_degrees": Q_(45.2, "degrees"),
+    }
+
+    assert guying_results_pulley == GuyingResults(**expected_guying_pulley)

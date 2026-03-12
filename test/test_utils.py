@@ -19,7 +19,7 @@ from mechaphlowers.utils import (
     hash_numpy_xxhash,
     numpy_cache,
     ppnp,
-    span_to_support_view,
+    span_to_support_view_guying,
 )
 
 # FILE: src/mechaphlowers/test_utils.py
@@ -203,4 +203,15 @@ def test_perf_numpy_cache_decorator() -> None:
 
 def test_view_error() -> None:
     with pytest.raises(ValueError):
-        span_to_support_view(1, "xxx")  # type: ignore[arg-type]
+        span_to_support_view_guying(1, "xxx")  # type: ignore[arg-type]
+
+
+def test_change_view_guying() -> None:
+    # span 1 and left support means guying system is on support 1, at its left
+    assert span_to_support_view_guying(
+        span_index=1, selected_support="left"
+    ) == (1, "left")
+    # span 1 and right support means guying system is on support 2, at its right
+    assert span_to_support_view_guying(
+        span_index=1, selected_support="right"
+    ) == (2, "right")
