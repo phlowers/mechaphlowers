@@ -29,6 +29,7 @@ from mechaphlowers.plotting.plot import (
     plot_points_2d,
     plot_support_shape,
 )
+from test.conftest import show_figures
 from test.tools.plot_tools import assert_cable_linked_to_attachment
 
 
@@ -78,7 +79,9 @@ def test_plot_line3d__all_line(
         balance_engine_local_initialized
     )
     plt_engine.preview_line3d(fig)
-    # fig.show()  # deactivate for auto unit testing
+
+    if show_figures:
+        fig.show()  # deactivate for auto unit testing
     assert (
         len(
             [
@@ -102,7 +105,9 @@ def test_plot_line3d__view_option(
         balance_engine_local_initialized
     )
     plt_engine.preview_line3d(fig, view="analysis")
-    # fig.show()
+
+    if show_figures:
+        fig.show()
     assert (
         len(
             [
@@ -143,7 +148,9 @@ def test_plot_line3d__with_beta(
     )
     fig = go.Figure()
     plt_engine.preview_line3d(fig)
-    # fig.show() # deactivate for auto unit testing
+
+    if show_figures:
+        fig.show()  # deactivate for auto unit testing
     assert (
         len(
             [
@@ -179,7 +186,9 @@ def test_plot_support_shape():
         set_number=np.array([22, 28, 37, 44, 45, 46, 47, 55]),
     )
     plot_support_shape(fig, pyl_shape)
-    # fig.show()
+
+    if show_figures:
+        fig.show()
     assert True
 
 
@@ -210,7 +219,8 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
         == 2
     )
 
-    # fig.show()  # deactivate for auto unit testing
+    if show_figures:
+        fig.show()  # deactivate for auto unit testing
 
     span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
@@ -239,7 +249,8 @@ def test_plot_ice(balance_engine_base_test: BalanceEngine):
 
     plt_engine.preview_line3d(fig)
 
-    # fig.show()  # deactivate for auto unit testing
+    if show_figures:
+        fig.show()  # deactivate for auto unit testing
     assert (
         len(
             [
@@ -326,7 +337,9 @@ def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
     plt_engine.preview_line3d(fig)
     span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
-    # fig.show()  # deactivate for auto unit testing
+
+    if show_figures:
+        fig.show()  # deactivate for auto unit testing
 
 
 def test_plot_3d__styles(balance_engine_angles: BalanceEngine):
@@ -346,7 +359,9 @@ def test_plot_3d__styles(balance_engine_angles: BalanceEngine):
     plt_engine.preview_line3d(fig)
     span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
-    # fig.show()  # deactivate for auto unit testing
+
+    if show_figures:
+        fig.show()  # deactivate for auto unit testing
 
 
 def test_plot_point_2d_wrong_view():
