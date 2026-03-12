@@ -5,7 +5,13 @@ import math
 import numpy as np
 
 
-def multi_cubic(a0, b0, c0, d0, all_roots=True):
+def multi_cubic(
+    a0: np.ndarray,
+    b0: np.ndarray,
+    c0: np.ndarray,
+    d0: np.ndarray,
+    all_roots: bool = True,
+) -> np.ndarray:
     '''Analytical closed-form solver for multiple cubic equations
     (3rd order polynomial), based on `numpy` functions.
 
@@ -48,7 +54,7 @@ def multi_cubic(a0, b0, c0, d0, all_roots=True):
     m2 = (~m1) & (h <= 0)  # roots are real and distinct
     m3 = (~m1) & (~m2)  # one real root and two complex
 
-    def cubic_root(x):
+    def cubic_root(x: np.ndarray) -> np.ndarray:
         '''Compute cubic root of a number while maintaining its sign'''
         root = np.zeros_like(x)
         positive = x >= 0
@@ -57,7 +63,9 @@ def multi_cubic(a0, b0, c0, d0, all_roots=True):
         root[negative] = -((-x[negative]) ** third)
         return root
 
-    def roots_all_real_equal(c):
+    def roots_all_real_equal(
+        c: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray] | np.ndarray:
         '''Compute cubic roots if all roots are real and equal'''
         r1 = -cubic_root(c)
         if all_roots:
@@ -65,7 +73,9 @@ def multi_cubic(a0, b0, c0, d0, all_roots=True):
         else:
             return r1
 
-    def roots_all_real_distinct(a13, f, g, h):
+    def roots_all_real_distinct(
+        a13: np.ndarray, f: np.ndarray, g: np.ndarray, h: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray] | np.ndarray:
         '''Compute cubic roots if all roots are real and distinct'''
         j = np.sqrt(-f)
         k = np.arccos(-0.5 * g / (j * j * j))
@@ -79,7 +89,9 @@ def multi_cubic(a0, b0, c0, d0, all_roots=True):
         else:
             return r1
 
-    def roots_one_real(a13, g, h):
+    def roots_one_real(
+        a13: np.ndarray, g: np.ndarray, h: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray] | np.ndarray:
         '''Compute cubic roots if one root is real and other two are complex'''
         sqrt_h = np.sqrt(h)
         S = cubic_root(-0.5 * g + sqrt_h)
@@ -101,7 +113,7 @@ def multi_cubic(a0, b0, c0, d0, all_roots=True):
         roots[:, m2] = roots_all_real_distinct(a13[m2], f[m2], g[m2], h[m2])
         roots[:, m3] = roots_one_real(a13[m3], g[m3], h[m3])
     else:
-        roots = np.zeros(len(a))  # .astype(complex)
+        roots = np.zeros(len(a))  # type: ignore[assignment]
         roots[m1] = roots_all_real_equal(c[m1])
         roots[m2] = roots_all_real_distinct(a13[m2], f[m2], g[m2], h[m2])
         roots[m3] = roots_one_real(a13[m3], g[m3], h[m3])
@@ -109,7 +121,9 @@ def multi_cubic(a0, b0, c0, d0, all_roots=True):
     return roots
 
 
-def cubic_roots(p, only_max_real=True):
+def cubic_roots(
+    p: np.ndarray | list | tuple, only_max_real: bool = True
+) -> np.ndarray:
     '''
     A caller function for a fast cubic root solver (3rd order polynomial).
 
