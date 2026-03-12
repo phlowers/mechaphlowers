@@ -561,7 +561,7 @@ class CableArray(ElementArray):
         rts_layers = np.nan_to_num(self._rts_layers_array(), nan=0.0)
         nb_strands = self.nb_strand_per_layer.astype(float)
         denominator = float(rts_layers @ nb_strands)
-        if denominator == 0.0:
+        if abs(denominator) < 1e-7:
             raise ValueError(
                 "rts_coverage denominator is zero: "
                 "all rts_layer_i * nb_strand_layer_i products are zero. "
@@ -616,7 +616,7 @@ class CableArray(ElementArray):
         if violation_mask.any():
             details = "; ".join(
                 f"layer {i + 1}: cut_strands={padded[i]} > int({nb_strands[i]} / 2)={max_allowed[i]}"
-                for i in np.where(violation_mask)[0]
+                for i in np.nonzero(violation_mask)[0]
             )
             raise ValueError(
                 "cut_strands exceeds allowed maximum (half the strand count per layer): "
@@ -654,7 +654,7 @@ class CableArray(ElementArray):
         if invalid_mask.any():
             details = "; ".join(
                 f"cut_strands[{i}] = {self._cut_strands[i]} but '{self._RTS_LAYERS[i]}' is missing or NaN"
-                for i in np.where(invalid_mask)[0]
+                for i in np.nonzero(invalid_mask)[0]
             )
             raise RtsDataNotAvailable(details)
 
