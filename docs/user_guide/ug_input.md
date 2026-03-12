@@ -36,6 +36,12 @@ In mechaphlowers a line section is described by the following data:
     Autofill rule: **ground_altitude = conductor_attachment_altitude - options_paramater**.  
     options_parameter is globally defined in options.ground.default_support_length and can be modified by user.
 
+
+!!! Angle orientation convention
+
+    The angles input in the section 
+
+
 Input data should be organized in a table (for example a pandas dataframe), where each row describes one support with its following span, except the last row which only describes the last support (since it doesn't have a "following" span). Hence the last span length is expected to be "not a number", typically `numpy.nan`.
 
 For example, a line section could be described by the following table:
@@ -157,11 +163,18 @@ balance_engine_angles.cable_loads.load_angle
 
 The following example shows how to add a wind load on the cable.
 
-!!! important
+!!! Parameters unit
 
 	The ice_thickness and wind_pressure are in meters and Pascal respectively.
 	The format of those vectors is span oriented: their size is the same than the section but the last value is not used 
 	That's why we put `np.nan` at the end.
+
+
+!!! Wind direction convention
+
+    Another attention point is that the wind load can be negative, which means that the wind is blowing in the opposite direction of the line. The sign convention is parameterized by wind_sense ("clockwise" or "anticlockwise").  
+    If "clockwise": towards user (right), if "anticlockwise": away from user (left). Default to "anticlockwise".
+
 
 Then you can display the effect of this load with:
 

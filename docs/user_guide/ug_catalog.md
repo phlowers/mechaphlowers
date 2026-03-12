@@ -1,11 +1,18 @@
 # Data catalog
 
-## Catalogs available
+## How to use the catalogs
+
+### Catalogs available
 
 Mechaphlowers comes with a few catalogs that you can use to instantiate entities.  
 You can find the following catalogs with sample data inside:
+
 - `sample_cable_catalog`
 - `sample_support_catalog`
+- `section_factory_sample_data`
+
+
+### Get a support as an object
 
 ```python
 from mechaphlowers.data.catalog import sample_support_catalog
@@ -21,11 +28,33 @@ sample_support_catalog.get_as_object(["support_1", "support_5"])
 
 ```
 
+### Build a balance engine from scratch
 
+```python
+# Get section factory data as a dataframe
+from mechaphlowers.data.catalog import section_factory_sample_data
 
-## Loading your data in the catalogs
+data = section_factory_sample_data(size_section = 5, seed = 42)
 
-You can add new catalogs in `.csv` format to the a user folder.
+# Get cable array object from the cable catalog
+from mechaphlowers.data.catalog import sample_cable_catalog
+
+cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
+
+# Build a balance engine with the section array and the cable array
+import mechaphlowers as mph
+import pandas as pd
+
+section_array = mph.SectionArray(pd.DataFrame(data))
+balance_engine = mph.BalanceEngine(section_array=section_array, cable_array=cable_array)
+# ... do some computations with balance_engine
+```
+
+## Custom catalogs
+
+### Loading your data in the catalogs
+
+You can add new catalogs in `.csv` format to a user folder.
 
 To configure how Mechaphlowers will read them, you need to provide a corresponding `.yaml` file that references the CSV catalog, also placed in the same folder.
 
@@ -45,7 +74,7 @@ my_catalog = build_catalog_from_yaml("new_catalog_config_file.yaml", user_filepa
 ```
 
 
-## yaml file format
+### yaml file format
 
 Here is an example of yaml file:
 
@@ -91,13 +120,13 @@ columns_units:
 !!! warning "Booleans"
     To avoid issues when empty value in boolean columns, booleans columns are not type checked.
 
-## Augmenting your catalog
+### Augmenting your catalog
 
-For developers who wants to directly instanciate objects from custom catalogs, there are two ways: 
+For developers who wants to directly instantiate objects from custom catalogs, there are two ways: 
 - use the existing catalogs and add your own data. You will take advantage of the existing object facilities with the `get_as_object()` method. For example support catalog will provide a list of `SupportShape` objects.
 - Implement in a pull request your own object to handle a new type of data.
 
-## Unit conversion
+### Unit conversion
 
 You can specify the unit of the data in the csv. This way, they will be automatically converted into SI units for computations.
 

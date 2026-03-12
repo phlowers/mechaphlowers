@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from copy import copy
-from typing import Tuple, Type
+from typing import Type
 
 import numpy as np
 import pandas as pd
@@ -210,9 +210,20 @@ class BalanceModel(IBalanceModel):
     def adjustment(self, value: bool) -> None:
         self._adjustment = value
 
-    def dxdydz(self) -> np.ndarray:
-        """Get the displacement vector of the nodes."""
+    def chain_displacement(self) -> np.ndarray:
+        """Get the displacement vector of the chains.
+
+        Format: [[x0, y0, z0], [x1, y1, z1],...]
+        """
         return self.nodes.dxdydz.T
+
+    @property
+    def attachment_altitude_after_solve(self) -> np.ndarray:
+        """Attachment altitude after considering chain displacement.
+
+        Format: [z0, z1, z2,...]
+        """
+        return self.nodes.z
 
     @property
     def k_load(self) -> np.ndarray:
@@ -275,12 +286,12 @@ class BalanceModel(IBalanceModel):
 
     def compute_Th_and_extremum(
         self,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Run FindParamSolver to compute parameter, and then compute Th, x_m and x_n.
         Used only in change_state case.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Th, x_m, x_n, parameter
+            tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Th, x_m, x_n, parameter
         """
         # First run approx_parameter to have a closer first value of the parameter. This uses the parabola model.
         parameter_parabola = approx_parameter(
@@ -395,7 +406,6 @@ class BalanceModel(IBalanceModel):
             beta,
             self.nodes.line_angle,
             self.proj_angle,
-            self.nodes.insulator_weight,
         )
 
     def compute_inter(self) -> None:
@@ -457,13 +467,44 @@ class BalanceModel(IBalanceModel):
         self.update_span()
         self.update_tensions()
 
-    def vhl_under_chain(self, output_unit: str = "daN") -> VhlStrength:
-        V = -(self.nodes.Fz - self.nodes.insulator_weight / 2)
-        vhl_result = np.array([V, self.nodes.Fy, self.nodes.Fx])
+    def vhl_under_chain(self) -> VhlStrength:
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
+        vhl_result = np.array([-Fz, Fy, Fx])
         return VhlStrength(vhl_result, "N")
 
-    def vhl_under_console(self, output_unit: str = "daN") -> VhlStrength:
-        vhl_result = np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
+    def vhl_under_chain_left(self) -> VhlStrength:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+
+        VHL at the left of the support.
+
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+
+        Returns:
+            VhlStrength: VhlStrength object
+        """
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable_left()
+        vhl_result = np.array([-Fz, Fy, Fx])
+        return VhlStrength(vhl_result, "N")
+
+    def vhl_under_chain_right(self) -> VhlStrength:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+
+        VHL at the right of the support.
+
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+
+        Returns:
+            VhlStrength: VhlStrength object
+        """
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable_right()
+        vhl_result = np.array([-Fz, Fy, Fx])
+        return VhlStrength(vhl_result, "N")
+
+    def vhl_under_console(self) -> VhlStrength:
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
+        vhl_result = np.array(
+            [-(Fz + self.nodes.signed_insulator_weight), Fy, Fx]
+        )
         return VhlStrength(vhl_result, "N")
 
     @property
@@ -603,29 +644,13 @@ class Nodes:
         insulator_weight: np.ndarray,
         crossarm_length: np.ndarray,
         line_angle: np.ndarray,
-        z: np.ndarray,
+        initial_attach_alt: np.ndarray,
         span_length: np.ndarray,
         # load and load_position must of length nb_supports - 1
         load_weight: np.ndarray,
         load_position: np.ndarray,
     ):
         # TODO: docstring of this whole class
-
-        self.insulator_length = insulator_length
-        # insulator_weight: positive weight means downward force
-        self.insulator_weight = -insulator_weight
-        # arm length: positive length means further from observer
-        self.crossarm_length = crossarm_length
-        # line_angle: anti clockwise
-        self.line_angle = line_angle
-        self.init_coordinates(span_length, z)
-        # dx, dy, dz are the distances between the attachment point and the arm, including the chain
-        self.dxdydz = np.zeros((3, len(z)), dtype=np.float64)
-        self.load_weight = load_weight
-        self.load_position = load_position
-        self.has_load_on_span = np.logical_and(
-            load_weight != 0, load_position != 0
-        )
 
         nodes_type = [
             "anchor_first"
@@ -635,7 +660,23 @@ class Nodes:
             else "suspension"
             for i in range(len(insulator_weight))
         ]
-        self.masks = Masks(nodes_type, self.insulator_length)
+        self.masks = Masks(nodes_type, insulator_length)
+        self.init_coordinates(initial_attach_alt, insulator_length)
+
+        self.insulator_length = insulator_length
+        # insulator_weight is absolute value. Add a negative sign because weight is downwards
+        self.signed_insulator_weight = -insulator_weight
+        # arm length: positive length means further from observer
+        self.crossarm_length = crossarm_length
+        # line_angle: anti clockwise
+        self.line_angle = line_angle
+        self.span_length = span_length
+
+        self.load_weight = load_weight
+        self.load_position = load_position
+        self.has_load_on_span = np.logical_and(
+            load_weight != 0, load_position != 0
+        )
 
         self.vector_projection = VectorProjection()
 
@@ -672,11 +713,6 @@ class Nodes:
         return self.z_arm + self.dz
 
     @property
-    def z_arm(self) -> np.ndarray:
-        """This property returns the altitude of the end the arm. Should not be modified during computation."""
-        return self._z0 - self.z_suspension_chain
-
-    @property
     def proj_g(self) -> np.ndarray:
         arm_length = self.crossarm_length
         gamma = self.line_angle
@@ -704,39 +740,68 @@ class Nodes:
 
     @property
     def state_vector(self) -> np.ndarray:
-        # [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
-        dxdy = self.dxdydz[[0, 1], 1:-1]
-        dzdy = self.dxdydz[[2, 1]][:, [0, -1]]
+        """Getter for state_vector, using self.dxdydz
+
+        Format of state_vector : [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
+
+        Format of self.dxdydz: [[dx0, dx1,...], [dy0, dy1,...], [dz0, dz1,...]]
+
+        Returns:
+            np.ndarray: state_vector, used by the solver.
+        """
+
+        # get lines dx and dy, for suspension supports
+        # dxdy = [[dx1, dx2, dx3,...], [dy1, dy2, dy3,...]]
+        dxdy = self.dxdydz[[0, 1]][:, self.masks.is_suspension]
+        # get lines dz and dy, for anchor supports
+        # dzdy = [[dz1, dz2, dz3,...], [dy1, dy2, dy3,...]]
+        dzdy = self.dxdydz[[2, 1]][:, self.masks.is_anchor]
         return np.vstack([dzdy[:, 0], dxdy.T, dzdy[:, 1]]).flatten()
 
     @state_vector.setter
     def state_vector(self, state_vector: np.ndarray):
-        # TODO: refactor with mask
+        """Setter for state_vector.
+
+        Recalculate and update dx, dy, dz.
+
+        Args:
+            state_vector (np.ndarray): Format: [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
+        """
+        # [dz_0, dx_1, dx2, ..., dz_n]
         dzdxdz = state_vector[::2]
         dy = state_vector[1::2]
 
+        is_sus = self.masks.is_suspension
+        is_anchor = self.masks.is_anchor
         self.dy = dy
-        self.dx[1:-1] = dzdxdz[1:-1]
-        self.dz[[0, -1]] = dzdxdz[[0, -1]]
+        # Get dx for suspensions and dz for anchors
+        self.dx[is_sus] = dzdxdz[is_sus]
+        self.dz[is_anchor] = dzdxdz[is_anchor]
         self.compute_dx_dy_dz()
 
-    def init_coordinates(self, span_length: np.ndarray, z: np.ndarray) -> None:
-        # unused code?
-        # self.x_anchor_chain = np.zeros_like(z)
-        # self.x_anchor_chain[0] = self.insulator_length[0]
-        # self.x_anchor_chain[-1] = -self.insulator_length[-1]
-        self.z_suspension_chain = np.zeros_like(z)
-        self.z_suspension_chain[1:-1] = -self.insulator_length[1:-1]
+    def init_coordinates(
+        self, initial_attach_alt: np.ndarray, insulator_length: np.ndarray
+    ) -> None:
+        """Init self.z_arm (altitude of the arm) and self.dxdydz (array of coordinates of the chain).
 
-        # warning: x0 and z0 does not mean the same thing
-        # x0 is the absissa of the arm
-        # z0 is the altitude of the attachement point
-        self.span_length = span_length
-        self._z0 = z
-        self._y = np.zeros_like(z, dtype=np.float64)
+        z_arm is a constant used for getting the z coordinates of the attachment.
+
+        dxdydz is a variable storing the coordinates of the chain.
+
+        Args:
+            initial_attach_alt (np.ndarray): array of the initial altitude of the attachments (data from SectionArray)
+        """
+        z_suspension_chain = np.zeros_like(initial_attach_alt)
+        is_sus = self.masks.is_suspension
+        z_suspension_chain[is_sus] = -insulator_length[is_sus]
+        self.z_arm = initial_attach_alt - z_suspension_chain
+
+        # dx, dy, dz are the distances between the attachment point and the arm, including the chain
+        # format: [[x0, x1, ...], [y0, y1, ...], [z0, z1, ...]]
+        self.dxdydz = np.zeros((3, len(initial_attach_alt)), dtype=np.float64)
 
     def compute_dx_dy_dz(self) -> None:
-        """Update dx and dz according to insulator_length and the othre displacement, using Pytagoras.
+        """Update dx and dz according to insulator_length and the other displacement, using Pytagoras.
 
         For anchor chains: update dx
 
@@ -747,21 +812,28 @@ class Nodes:
         )
 
     def compute_moment(self) -> None:
-        Fx, Fy, Fz = self.vector_projection.forces()
-
-        lever_arm = np.array([self.dx, self.dy, self.dz]).T
+        """Compute moments of two forces: force of the cable, and chain weight."""
+        # Force of the cable. Applied at attachement point between cable and chain.
+        Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
+        force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
         # size : (nb nodes , 3 for 3D)
+        lever_cable = np.array([self.dx, self.dy, self.dz]).T
+        M_cable = np.cross(lever_cable, force_cable)
 
-        force_3d = np.vstack((Fx, Fy, Fz)).T
+        # Weight of the chain. Applied on center of gravity of the chain
+        F_zeros = np.empty(self.signed_insulator_weight.shape)
+        F_zeros.fill(0.0)
+        force_chain_weight = np.vstack(
+            (F_zeros, F_zeros, self.signed_insulator_weight)
+        ).T
+        lever_chain_weight = np.array([self.dx, self.dy, self.dz]).T / 2
+        M_chain_weight = np.cross(lever_chain_weight, force_chain_weight)
 
-        M = np.cross(lever_arm, force_3d)
+        M = M_cable + M_chain_weight
+
         Mx = M[:, 0]
         My = M[:, 1]
-        # Mz is supposed to be equal to 0 on each span
         Mz = M[:, 2]
-        self.Fx = Fx
-        self.Fy = Fy
-        self.Fz = Fz
         self.Mx = Mx
         self.My = My
         self.Mz = Mz
@@ -771,11 +843,9 @@ class Nodes:
             'dx': self.dx,
             'dy': self.dy,
             'dz': self.dz,
-            'Fx': self.Fx,
-            'Fy': self.Fy,
-            'Fz': self.Fz,
             'Mx': self.Mx,
             'My': self.My,
+            'Mz': self.Mz,
         }
         out = pd.DataFrame(data)
 
@@ -801,7 +871,9 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
     insulator_weight = section_array.data.insulator_weight.to_numpy()
     crossarm_length = section_array.data.crossarm_length.to_numpy()
     line_angle = section_array.data.line_angle.to_numpy()
-    z = section_array.data.conductor_attachment_altitude.to_numpy()
+    initial_attach_alt = (
+        section_array.data.conductor_attachment_altitude.to_numpy()
+    )
     span_length = arr.decr(section_array.data.span_length.to_numpy())
     load_weight = arr.decr(section_array.data.load_weight.to_numpy())
     load_position = arr.decr(section_array.data.load_position.to_numpy())
@@ -810,7 +882,7 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         insulator_weight,
         crossarm_length,
         line_angle,
-        z,
+        initial_attach_alt,
         span_length,
         load_weight,
         load_position,

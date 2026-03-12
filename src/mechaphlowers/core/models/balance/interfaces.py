@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -84,6 +84,8 @@ class IBalanceModel(IModelForSolver, ABC):
         self.nodes_span_model = copy(self.span_model)
         self.parameter = parameter
         self.cable_array = cable_array
+        self.a: np.ndarray
+        self.b: np.ndarray
 
     @abstractmethod
     def update_L_ref(self) -> np.ndarray:
@@ -102,13 +104,41 @@ class IBalanceModel(IModelForSolver, ABC):
         pass
 
     @abstractmethod
-    def dxdydz(self) -> np.ndarray:
+    def chain_displacement(self) -> np.ndarray:
         """Get the displacement vector of the nodes."""
         pass
+
+    @property
+    @abstractmethod
+    def attachment_altitude_after_solve(self) -> np.ndarray:
+        """Attachment altitude after considering chain displacement.
+
+        Format: [z0, z1, z2,...]
+        """
 
     @abstractmethod
     def vhl_under_chain(self) -> VhlStrength:
         """Get the VHL efforts under chain: without considering insulator_weight.
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
+        pass
+
+    @abstractmethod
+    def vhl_under_chain_left(self) -> VhlStrength:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+
+        VHL at the left of the support.
+
+        Format: [[V0, H0, L0], [V1, H1, L1], ...]
+        Default unit is daN"""
+        pass
+
+    @abstractmethod
+    def vhl_under_chain_right(self) -> VhlStrength:
+        """Get the VHL efforts under chain: without considering insulator_weight.
+
+        VHL at the right of the support.
+
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
         Default unit is daN"""
         pass

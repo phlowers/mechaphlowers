@@ -1,7 +1,7 @@
 site_name: mechaphlowers
 site_url: http://mechaphlowers.readthedocs.com
 repo_url: https://github.com/phlowers/mechaphlowers
-copyright: Copyright &copy; 2024 RTE France. Unless otherwise indicated, content is licensed under CC-BY-4.0.
+copyright: Copyright &copy; 2026 RTE France. Unless otherwise indicated, content is licensed under CC-BY-4.0.
 
 theme:
   name: "material"
@@ -41,6 +41,8 @@ nav:
   - User Guide:
       - Introduction: user_guide/ug_general_concepts.md
       - Input data: user_guide/ug_input.md
+      - Obstacles data: user_guide/ug_obstacles.md
+      - Distances: user_guide/ug_distances.md
       - Coordinates system: user_guide/ug_coordinates_system.md
       - Cable modeling: user_guide/ug_cable_model.md
       - Sag-tension calculation: user_guide/ug_sag_tension_calc.md
@@ -48,9 +50,10 @@ nav:
       - Wind speed conversion: user_guide/ug_wind_speed_conversion.md
       - Data catalog : user_guide/ug_catalog.md
       - Measures : user_guide/ug_measures.md
+      - Guying: user_guide/ug_guying.md
       - Parameter calibration : user_guide/ug_parameter_calibration.md
       - Configuration: user_guide/ug_configuration.md
-      - Plotting: user_guide/ug_maps.md
+      - Geography: user_guide/ug_maps.md
       - Thermal engine: user_guide/ug_thermal_engine.md
       - Specific errors used: user_guide/ug_mph_errors.md
   - Developer guide:
@@ -67,6 +70,7 @@ nav:
                   - Rotation: docstring/core/geometry/rotation.md
                   - Coordinate systems: docstring/core/geometry/points.md
                   - Line angles: docstring/core/geometry/line_angles.md
+                  - Distance: docstring/core/geometry/distance.md
               - Models:
                   - Balance:
                     - Engine: docstring/core/models/balance/engine.md
@@ -81,6 +85,7 @@ nav:
                       - Span: docstring/core/models/cable/span.md
                       - Deformation: docstring/core/models/cable/deformation.md
                       - Thermal Engine: docstring/core/models/cable/thermal_engine.md
+                      - Guying: docstring/core/models/guying.md
                   - External loads: docstring/core/models/external_loads.md
               - Papoto: docstring/core/papoto/papoto_model.md
           - Data:
@@ -89,12 +94,14 @@ nav:
               - Measures: docstring/data/measures.md
           - Configuration: docstring/config.md
           - Plotting:
+              - Distance: docstring/plotting/distance.md
               - Plot: docstring/plotting/plot.md
               - Geography:
                   - Create elevation profile: docstring/plotting/geography/plot_elevation_profile.md
                   - Create line map: docstring/plotting/geography/plot_line_map.md
       - Logging: developer_guide/logging.md
       - Benchmarks: developer_guide/benchmark_mode.md
+      - Tests: developer_guide/tests.md
       - Building: developer_guide/publish.md
       - Guidelines: developer_guide/guidelines.md
       - Documentation: developer_guide/documentation.md

@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from abc import ABC, abstractmethod
-from typing import Self, Tuple, Type
+from typing import Literal, Self, Type
 
 import numpy as np
 
@@ -38,7 +38,7 @@ class ISpan(ABC):
                 <li> 2: semi-span to the right of a point load </li>
             </ul>
 
-        loads_indices (Tuple[np.ndarray, np.ndarray]): Tuple containing:
+        loads_indices (tuple[np.ndarray, np.ndarray]): tuple containing:
             <ul>
                 <li>Array of span indices where loads are located</li>
                 <li>Array of point indices within those spans where loads occur</li>
@@ -112,7 +112,7 @@ class ISpan(ABC):
         # Example: [0,2], [6,12] means that point number 6 in the span number 0 is a load,
         # as well as point number 12 in span number 2
         # This tuple is used to retrieve load coords after plotting.
-        self.loads_indices: Tuple[np.ndarray, np.ndarray] = (
+        self.loads_indices: tuple[np.ndarray, np.ndarray] = (
             np.array([], dtype=np.int64),
             np.array([], dtype=np.int64),
         )
@@ -289,11 +289,11 @@ class ISpan(ABC):
         """Total length of the cable."""
 
     @abstractmethod
-    def get_coords(self, resolution: int) -> Tuple[np.ndarray, np.ndarray]:
+    def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
         """Get x and z coordinates for catenary generation in cable frame
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: x and z coordinates of the cable
+            tuple[np.ndarray, np.ndarray]: x and z coordinates of the cable
         """
 
     @abstractmethod
@@ -346,6 +346,25 @@ class ISpan(ABC):
     @abstractmethod
     def T_mean(self) -> np.ndarray:
         """Mean tension along the whole cable."""
+
+    @abstractmethod
+    def slope(self, side: Literal['left', 'right']) -> np.ndarray:
+        """Slope angle at the supports in radians.
+
+        Returns:
+            np.ndarray: slope angle at each support in radians.
+        """
+
+    def tensions_sup_inf(self) -> tuple[np.ndarray, np.ndarray]:
+        """Cable tensions at attachment points, x_m and x_n.
+
+        The two attachments have different values, the highest value is the one with the higher altitude.
+
+        Returns (T_high, T_low), T_high being the higher tension of the two values.
+        """
+        x_m, x_n = self.x_m, self.x_n
+        Tm_Tn = np.array([self.T(x_m), self.T(x_n)])
+        return (np.max(Tm_Tn, axis=0), np.min(Tm_Tn, axis=0))
 
 
 class CatenarySpan(ISpan):
@@ -422,7 +441,7 @@ class CatenarySpan(ISpan):
             [np.interp(xq[i], x[i], y[i]) for i in range(x.shape[0])]
         )
 
-    def get_coords(self, resolution: int) -> Tuple[np.ndarray, np.ndarray]:
+    def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
         """Get x and z coordinates for catenary generation in cable frame.
 
         This method handles different span types in case of virtual nodes and produces an output of the same size than the real number of spans.
@@ -433,7 +452,7 @@ class CatenarySpan(ISpan):
             resolution (int): Number of points to generate between supports.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: x and z coordinates of the cable
+            tuple[np.ndarray, np.ndarray]: x and z coordinates of the cable
         """
 
         start_points = self.compute_x_m()
@@ -576,6 +595,20 @@ class CatenarySpan(ISpan):
             / self._L
             / 2
         )
+
+    def slope(self, side: Literal['left', 'right']) -> np.ndarray:
+        """Slope angle at the supports in radians.
+
+        Note that the left side corresponds to the slope for support_index 0 to N-1 and the right side corresponds to the slope for support_index 1 to N.
+
+        Args:
+            side (Literal['left', 'right']): side regarding the span, in order to select the correct support to compute the slope.
+        Returns:
+            np.ndarray: slope angle at each support in radians.
+        """
+        # values are signed: T_h is negative, T_v can be either positive of negative depending on side
+        x_extremum = self._x_m if side == 'left' else self._x_n
+        return self.T_v(x_extremum) / self.T_h()
 
 
 def span_model_builder(

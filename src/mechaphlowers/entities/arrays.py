@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -12,19 +12,25 @@ import numpy as np
 import pandas as pd
 import pandera as pa
 from numpy.polynomial import Polynomial as Poly
-from typing_extensions import Self, Type
+from typing_extensions import Literal, Self, Type
 
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.errors import DataWarning
+from mechaphlowers.entities.geography import get_gps_from_arrays
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
+    ObstacleArrayInput,
     SectionArrayInput,
     WeatherArrayInput,
 )
 from mechaphlowers.utils import df_to_dict
 
 logger = logging.getLogger(__name__)
+
+
+class DefaultValueWarning(Warning):
+    """Warning for default values being used when not provided by user."""
 
 
 class ElementArray(ABC):
@@ -127,6 +133,10 @@ class SectionArray(ElementArray):
         super().__init__(data)  # type: ignore[arg-type]
 
         if sagging_parameter is None:
+            warnings.warn(
+                "sagging_parameter not provided. It will be set to 5 times the equivalent span.",
+                DefaultValueWarning,
+            )
             self.sagging_parameter = self.equivalent_span() * 5
         else:
             self.sagging_parameter = sagging_parameter
@@ -136,6 +146,9 @@ class SectionArray(ElementArray):
             self.sagging_temperature = sagging_temperature
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
+        self._angles_sense: Literal["clockwise", "anticlockwise"] = (
+            "anticlockwise"
+        )
         logger.debug("Section Array initialized.")
 
     def compute_elevation_difference(self) -> np.ndarray:
@@ -162,6 +175,26 @@ class SectionArray(ElementArray):
         )
 
     @property
+    def angles_sense(self) -> Literal["clockwise", "anticlockwise"]:
+        """Affects line_angle, crossarm_length sign
+
+        If "anticlockwise", line_angle is anticlockwise and crossarm_length is away from user (left).
+        If "clockwise", line_angle is clockwise and crossarm_length is towards user (right).
+
+        Defaults to "anticlockwise"."""
+        return self._angles_sense
+
+    @angles_sense.setter
+    def angles_sense(
+        self, value: Literal["clockwise", "anticlockwise"]
+    ) -> None:
+        if value not in ["clockwise", "anticlockwise"]:
+            raise ValueError(
+                f"angles_sense should be 'clockwise' or 'anticlockwise', received {value}"
+            )
+        self._angles_sense = value
+
+    @property
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
         data_output = super().data
@@ -174,7 +207,7 @@ class SectionArray(ElementArray):
             )
 
         self.validate_ground_altitude(data_output)
-
+        data_output = self._adjust_angle_sense(data_output)
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
@@ -189,6 +222,13 @@ class SectionArray(ElementArray):
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
             )
+
+    def _adjust_angle_sense(self, data_output: pd.DataFrame) -> pd.DataFrame:
+        if self.angles_sense == "clockwise":
+            # use data_output instead of self._data to keep eventual unit conversion
+            data_output["line_angle"] = -data_output["line_angle"]
+            data_output["crossarm_length"] = -data_output["crossarm_length"]
+        return data_output
 
     def equivalent_span(self) -> float:
         """equivalent_span
@@ -226,6 +266,33 @@ class SectionArray(ElementArray):
                 )
                 warnings.warn(warning_string)
                 logger.warning(warning_string)
+
+    def compute_gps_coordinates(
+        self,
+        start_latitude: float,
+        start_longitude: float,
+        start_azimuth: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute GPS coordinates for the cable array.
+
+        Args:
+            start_latitude (float): Latitude of the first support in degrees.
+            start_longitude (float): Longitude of the first support in degrees.
+            start_azimuth (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: Two arrays of GPS coordinates (latitude, longitude) in degrees.
+        """
+        line_angle_geo_degrees = (
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        return get_gps_from_arrays(
+            start_latitude,
+            start_longitude,
+            start_azimuth,
+            line_angle_geo_degrees,
+            self.data["span_length"].to_numpy(),
+        )
 
     def __copy__(self) -> Self:
         copy_obj = super().__copy__()
@@ -376,3 +443,104 @@ class WeatherArray(ElementArray):
         self.input_units: dict[str, str] = {
             "ice_thickness": "cm",
         }
+
+
+class ObstacleArray(ElementArray):
+    """Obstacles-related data, such as obstacle altitude and distance from the line.
+
+    They are typically used to compute clearance-related checks.
+    """
+
+    array_input_type: Type[pa.DataFrameModel] = ObstacleArrayInput
+    target_units: dict[str, str] = {
+        "x": "m",
+        "y": "m",
+        "z": "m",
+    }
+
+    def __init__(
+        self,
+        data: pd.DataFrame,
+    ) -> None:
+        super().__init__(data)
+        # Check if points from the same obstacle have the same indices
+        points_has_same_indices = data.duplicated(
+            subset=['name', 'point_index']
+        ).any()
+        if points_has_same_indices:
+            raise ValueError(
+                "An obstacle have two points with the same point_index"
+            )
+        # Check if each group of 'name' has only one unique 'span_index'
+        obstacle_has_same_span_index = (
+            data.groupby('name')['span_index'].nunique().eq(1).all()
+        )
+        if not obstacle_has_same_span_index:
+            raise ValueError(
+                "All points from the same obstacle should have the same span_index"
+            )
+
+    def add_obstacle(
+        self,
+        name: str,
+        span_index: int,
+        coords: np.ndarray,
+        object_type: str = "ground",
+        support_reference: Literal['left', 'right'] = 'left',
+        span_length: np.ndarray | None = None,
+    ):
+        """
+        Method used for adding an obstacle to ObstacleArray
+
+        coords format: [[x0, y0, z0], [x1, y1, z1],...]
+
+        If support_reference == "left", span_length is required
+        """
+
+        if len(coords.shape) != 2 or coords.shape[1] != 3:
+            raise TypeError(
+                "coords have incorrect dimension: it should be (n x 3)"
+            )
+        nb_points = coords.shape[0]
+
+        x = coords[:, 0]
+
+        if support_reference == 'right':
+            if span_length is None:
+                raise TypeError(
+                    "If support_reference is set to 'right', span_length is required"
+                )
+            x = self.reverse_x_coord(x, span_length, span_index)
+
+        new_obstacle = pd.DataFrame(
+            {
+                "name": [name] * nb_points,
+                "point_index": np.arange(nb_points),
+                "span_index": [span_index] * nb_points,
+                "x": x,
+                "y": coords[:, 1],
+                "z": coords[:, 2],
+                "object_type": [object_type] * nb_points,
+            }
+        )
+        self._data = pd.concat([self._data, new_obstacle], ignore_index=True)
+        logger.debug(f"Obstacle {name} added")
+
+    def reverse_x_coord(
+        self, x: np.ndarray, span_length: np.ndarray, span_index
+    ) -> np.ndarray:
+        return span_length[span_index] - x
+
+    def get_vectors(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        return (
+            self.data["x"].to_numpy(),
+            self.data["y"].to_numpy(),
+            self.data["z"].to_numpy(),
+        )
+
+    @property
+    def data(self) -> pd.DataFrame:
+        data_output = super().data
+        # Sort points by obstacle and index order
+        data_output.sort_values(by=["name", "point_index"], inplace=True)
+        return data_output

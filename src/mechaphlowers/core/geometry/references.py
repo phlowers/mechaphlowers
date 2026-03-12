@@ -4,8 +4,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Tuple
-
 import numpy as np
 
 from mechaphlowers.core.geometry.line_angles import (
@@ -22,7 +20,7 @@ Collections of technical functions to transform coordinates from the different f
 
 def cable_to_localsection_frame(
     x: np.ndarray, y: np.ndarray, z: np.ndarray, azimuth_angle: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """cable_to_localsection_frame is a function that rotates the cable coordinates from the cable frame to the localsection frame
     The localsection frame is the the section frame with origin at the left support of the cable, but with the same axes than the section frame.
 
@@ -84,7 +82,7 @@ def cable_to_beta_plane(
     beta: np.ndarray,
     a_chain: np.ndarray,
     b_chain: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """cable_to_beta_plane is a function that allows to rotate from cable 2D plan to span 3D frame with an angle beta
 
 
@@ -117,7 +115,7 @@ def cable_to_beta_plane(
 
 def project_coords(
     x1: np.ndarray, y1: np.ndarray, azimuth_angle: np.float64
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     # formula specifically if frame 1 is rotated from frame 0 with angle azimuth_angle
     x0 = np.cos(azimuth_angle) * x1 + np.sin(azimuth_angle) * y1
     y0 = -np.sin(azimuth_angle) * x1 + np.cos(azimuth_angle) * y1
@@ -128,7 +126,7 @@ def project_coords(
 
 # def cable_to_localsection_frame(
 #     x: np.ndarray, y: np.ndarray, z: np.ndarray, alpha: np.ndarray
-# ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+# ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 #     """cable_to_localsection_frame is a function that rotates the cable coordinates from the cable frame to the localsection frame
 #     The localsection frame is the the section frame with origin at the left support of the cable, but with the same axes than the section frame.
 
@@ -168,7 +166,7 @@ def project_coords(
 #     x: np.ndarray,
 #     z: np.ndarray,
 #     beta: np.ndarray,
-# ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+# ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 #     """cable_to_beta_plane is a function that allows to rotate from cable 2D plan to span 3D frame with an angle beta
 
 
@@ -223,7 +221,7 @@ def translate_cable_to_support(
     line_angle: np.ndarray,
     displacement_vector: np.ndarray,
     ground_altitude: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Translate cable using altitude and span length
 
     Args:
@@ -236,7 +234,7 @@ def translate_cable_to_support(
         insulator_length (np.ndarray): insulator length
 
     Returns:
-        Tuple[np.ndarray]: translated x_span, y_span and z_span
+        tuple[np.ndarray, np.ndarray, np.ndarray]: translated x_span, y_span and z_span
     """
 
     supports_ground_coords = get_supports_ground_coords(
@@ -272,7 +270,7 @@ def translate_cable_to_support_from_attachments(
     y_span: np.ndarray,
     z_span: np.ndarray,
     attachment_coords: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Translate cable using altitude and span length
 
     Args:
@@ -282,7 +280,7 @@ def translate_cable_to_support_from_attachments(
         attachment_coords (np.ndarray): coordinates of the attachement of the cable
 
     Returns:
-        Tuple[np.ndarray]: translated x_span, y_span and z_span
+        tuple[np.ndarray, np.ndarray, np.ndarray]: translated x_span, y_span and z_span
     """
 
     z_span += -z_span[0, :] + attachment_coords[:-1, 2]
@@ -290,3 +288,20 @@ def translate_cable_to_support_from_attachments(
     x_span += -x_span[0, :] + attachment_coords[:-1, 0]
 
     return x_span, y_span, z_span
+
+
+def translate_to_absolute_frame(
+    x: np.ndarray,
+    y: np.ndarray,
+    z: np.ndarray,
+    translation_vector: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """From local frame to absolute frame
+    x/y/z are already rotated
+    Used for obstacles
+    """
+
+    x = x + translation_vector[:, 0]
+    y = y + translation_vector[:, 1]
+
+    return x, y, z

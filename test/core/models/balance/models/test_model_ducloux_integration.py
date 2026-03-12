@@ -18,6 +18,7 @@ from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.units import convert_weight_to_mass
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.errors import SuspectedChainReversal
 
 
 @fixture
@@ -364,9 +365,9 @@ def test_wind_no_altitude_change(
 
     expected_vhl_under_console = np.array(
         [
-            [-4.84538576e02, -7.35729616e02, -6.47246587e02, -3.95064517e02],
+            [5.34538576e02, 7.60729616e02, 6.72246587e02, 4.45064517e02],
             [2.47336911e02, 3.72285443e02, 3.22182818e02, 2.01698053e02],
-            [3.91179538e03, -4.89819286e00, -5.35289351e-01, -3.90633048e03],
+            [3.91179542e03, -4.89819371e00, -5.35288081e-01, -3.90633052e03],
         ]
     )
 
@@ -409,12 +410,12 @@ def test_wind_no_altitude_change(
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        be_no_altitude_change.balance_model.vhl_under_chain().vhl_matrix.value,
+        be_no_altitude_change.balance_model.vhl_under_chain().vhl_matrix.value(),
         expected_vhl_under_chain,
         atol=1e-4,
     )
     np.testing.assert_allclose(
-        be_no_altitude_change.balance_model.vhl_under_console().vhl_matrix.value,
+        be_no_altitude_change.balance_model.vhl_under_console().vhl_matrix.value(),
         expected_vhl_under_console,
         atol=1e-4,
     )
@@ -866,3 +867,64 @@ def test_balance_engine__large_angles(balance_engine_base_test) -> None:
     # fig.show()
 
     assert True
+
+
+@pytest.mark.integration
+def test_engine_extreme_wind_case(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4", "5", "6"],
+                "suspension": [False, True, True, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65, 60, 50],
+                "crossarm_length": [0, 10, -10, 0, 0, 0],
+                "line_angle": [0, 0, 10, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3, 3, 3],
+                "span_length": [500, 300, 400, 300, 500, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 500.0, 500.0, 1000.0],
+                "load_mass": [0, 0, 0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0, 0, 0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "grad"})
+    balance_engine_angles = BalanceEngine(
+        cable_array=cable_array_AM600, section_array=section_array
+    )
+
+    balance_engine_angles.solve_adjustment()
+    balance_engine_angles.solve_change_state(
+        wind_pressure=2000
+    )  # test no error
+
+
+@pytest.mark.integration
+def test_engine_chain_reversal(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4", "5", "6"],
+                "suspension": [False, True, True, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65, 60, 50],
+                "crossarm_length": [0, 10, -10, 0, 0, 0],
+                "line_angle": [0, 0, 10, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3, 3, 3],
+                "span_length": [500, 300, 400, 300, 500, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 500.0, 500.0, 1000.0],
+                "load_mass": [0, 0, 0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0, 0, 0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "grad"})
+    balance_engine_angles = BalanceEngine(
+        cable_array=cable_array_AM600, section_array=section_array
+    )
+
+    balance_engine_angles.solve_adjustment()
+    with pytest.raises(SuspectedChainReversal):
+        balance_engine_angles.solve_change_state(wind_pressure=5000)

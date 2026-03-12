@@ -47,19 +47,19 @@ class GraphicsConfig:
     background_opacity: float = 0.3
     cable_trace_profile: dict = field(
         default_factory=lambda: {
-            "name": "cable",
+            "name": "Cable",
             "color": "dodgerblue",
         }
     )
     support_trace_profile: dict = field(
         default_factory=lambda: {
-            "name": "support",
+            "name": "Support",
             "color": "indigo",
         }
     )
     insulator_trace_profile: dict = field(
         default_factory=lambda: {
-            "name": "insulator",
+            "name": "Insulator",
             "color": "red",
             "size": 5.0,
         }
@@ -78,7 +78,7 @@ class SolverConfig:
         default_factory=lambda: {
             "perturb": 0.0001,
             "stop_condition": 1e-2,
-            "relax_ratio": 0.8,
+            "relax_ratio": 0.95,  # was previously at 0.8, but 0.95 allows to reach more extreme cases
             "relax_power": 3,
             "max_iter": 100,
         }

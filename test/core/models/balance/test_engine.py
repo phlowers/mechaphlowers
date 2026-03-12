@@ -35,10 +35,10 @@ def balance_engine_simple(cable_array_AM600: CableArray) -> BalanceEngine:
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     section_array.add_units({"line_angle": "grad"})
     return BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
@@ -293,7 +293,7 @@ def test_load_span__check_node_span_changes(cable_array_AM600: CableArray):
 
 def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
     def fail(_: object):
-        raise ConvergenceError("did not converge", level="adjustment")
+        raise ConvergenceError("did not converge", origin="adjustment")
 
     # Mock the solver to raise
     monkeypatch.setattr(balance_engine_simple.solver_adjustment, "solve", fail)
@@ -305,9 +305,10 @@ def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
 def test_adjustment_convergence_error_origin(
     monkeypatch, balance_engine_simple
 ):
-    def fail_generator(level: str):
+    # weird test: sets origin to "adjustment" but get replaced by "solve_adjustment" anyway in engine.py
+    def fail_generator(origin: str):
         def fail(_: object):
-            raise ConvergenceError("did not converge", level=level)
+            raise ConvergenceError("did not converge", origin=origin)
 
         return fail
 
@@ -320,7 +321,7 @@ def test_adjustment_convergence_error_origin(
     with pytest.raises(ConvergenceError) as excinfo:
         balance_engine_simple.solve_adjustment()
 
-    assert excinfo.value.level == "adjustment"
+    assert excinfo.value.origin == "solve_adjustment"
     assert getattr(excinfo.value, "origin", None) == "solve_adjustment"
 
     monkeypatch.setattr(
@@ -334,7 +335,7 @@ def test_adjustment_convergence_error_origin(
     with pytest.raises(ConvergenceError) as excinfo:
         balance_engine_simple.solve_change_state()
 
-    assert excinfo.value.level == "change_state"
+    assert excinfo.value.origin == "solve_change_state"
     assert getattr(excinfo.value, "origin", None) == "solve_change_state"
 
 
@@ -372,3 +373,69 @@ def test_add_loads_wrong_values(balance_engine_simple: BalanceEngine):
         balance_engine_simple.add_loads(
             np.array([0, 1000, 0, np.nan]), load_mass
         )
+
+
+def test_get_data_spans(balance_engine_simple: BalanceEngine):
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state()
+    data_spans = balance_engine_simple.get_data_spans()
+    assert {
+        'span_length',
+        'elevation',
+        'parameter',
+        'tension_sup',
+        'tension_inf',
+        'L0',
+        'horizontal_distance',
+        'arc_length',
+        'T_h',
+    } <= data_spans.keys()
+    for value in data_spans.values():
+        assert len(value) == 3
+
+
+def test_get_data_spans_with_loads(balance_engine_simple: BalanceEngine):
+    balance_engine_simple.add_loads(
+        load_position_distance=[150, 200, 0, np.nan],
+        load_mass=[200, 500, 0, np.nan],
+    )
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state()
+    data_spans = balance_engine_simple.get_data_spans()
+    for value in data_spans.values():
+        assert len(value) == 3
+
+
+def test_engine_wind_sense(balance_engine_simple: BalanceEngine):
+    balance_engine_simple.solve_adjustment()
+
+    # Test with wind_sense "clockwise"
+    balance_engine_simple.solve_change_state(
+        wind_pressure=200,
+        wind_sense="clockwise",
+    )
+    displacement_clockwise = (
+        balance_engine_simple.balance_model.chain_displacement()
+    )
+
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.wind_pressure,
+        np.array([-200.0, -200.0, -200.0, -200.0]),
+    )
+
+    # Test with wind_sense "anticlockwise"
+    balance_engine_simple.solve_change_state(
+        wind_pressure=-200,
+        wind_sense="anticlockwise",
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.wind_pressure,
+        np.array([-200.0, -200.0, -200.0, -200.0]),
+    )
+    displacement_anticlockwise = (
+        balance_engine_simple.balance_model.chain_displacement()
+    )
+
+    np.testing.assert_array_equal(
+        displacement_clockwise, displacement_anticlockwise
+    )

@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,6 +14,7 @@ from pandas.testing import assert_frame_equal
 from mechaphlowers.config import options
 from mechaphlowers.entities.arrays import (
     CableArray,
+    ObstacleArray,
     SectionArray,
     WeatherArray,
 )
@@ -399,6 +400,32 @@ def test_section_array__data_original(section_array_input_data: dict) -> None:
     assert_frame_equal(exported_data, expected_data, atol=1e-07)
 
 
+def test_section_array_to_gps():
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["1", "2", "three", "4", "5"]),
+                "suspension": np.array([False, True, True, True, False]),
+                "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
+                "line_angle": np.array([90, 90, 90, 90, 90]),
+                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
+                "insulator_mass": np.array(
+                    [1000.0, 500.0, 500.0, 500.0, 1000.0]
+                ),
+            }
+        )
+    )
+    latitude, longitude = section_array.compute_gps_coordinates(
+        start_latitude=48.8566,
+        start_longitude=2.3522,
+        start_azimuth=45,
+    )
+    assert latitude.shape == (5,)
+    assert longitude.shape == (5,)
+
+
 def test_create_cable_array__with_floats(
     cable_array_input_data: dict,
 ) -> None:
@@ -686,7 +713,234 @@ def test_equivalent_span(section_array) -> None:
     np.testing.assert_allclose(section_array.equivalent_span() ** 2, res)
 
 
-def test_correct_insulator_length(section_array) -> None:
+def test_create_obstacle_array() -> None:
+    input_data = {
+        "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
+        "point_index": [0, 1, 0, 1, 2, 0],
+        "span_index": [0, 0, 1, 1, 1, 1],
+        "x": [
+            100.0,
+            200.0,
+            100.0,
+            200.0,
+            300.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
+        "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+        ],
+    }
+    ObstacleArray(pd.DataFrame(input_data))
+
+
+def test_sort_obstacle_array() -> None:
+    input_data = {
+        "name": ["obs_0", "obs_1", "obs_0", "obs_2", "obs_1", "obs_1"],
+        "point_index": [0, 1, 1, 0, 2, 0],
+        "span_index": [0, 1, 0, 1, 1, 1],
+        "x": [
+            100.0,
+            200.0,
+            100.0,
+            200.0,
+            300.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
+        "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+        ],
+    }
+    obs_array = ObstacleArray(pd.DataFrame(input_data))
+    assert obs_array.data["name"].to_list() == [
+        'obs_0',
+        'obs_0',
+        'obs_1',
+        'obs_1',
+        'obs_1',
+        'obs_2',
+    ]
+    assert obs_array.data["point_index"].to_list() == [0, 1, 0, 1, 2, 0]
+
+
+def test_obstacle_array_duplicate_point() -> None:
+    input_data = {
+        "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
+        "point_index": [0, 1, 0, 1, 1, 0],
+        "span_index": [0, 0, 1, 1, 1, 1],
+        "x": [
+            100.0,
+            200.0,
+            100.0,
+            200.0,
+            300.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
+        "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+        ],
+    }
+    with pytest.raises(ValueError):
+        # should return error because two points of the same obstacle have the same index
+        ObstacleArray(pd.DataFrame(input_data))
+
+
+def test_obstacle_array_different_span() -> None:
+    input_data = {
+        "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
+        "point_index": [0, 1, 0, 1, 2, 0],
+        "span_index": [0, 0, 1, 0, 1, 1],
+        "x": [
+            100.0,
+            200.0,
+            100.0,
+            200.0,
+            300.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
+        "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+        ],
+    }
+    with pytest.raises(ValueError):
+        # should return error because two points of the same obstacle have different span_index
+        ObstacleArray(pd.DataFrame(input_data))
+
+
+def test_add_obstacle() -> None:
+    input_data = {
+        "name": ["obs_0", "obs_0"],
+        "point_index": [0, 1],
+        "span_index": [0, 0],
+        "x": [
+            100.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0],
+        "z": [0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+        ],
+    }
+    obstacle_array = ObstacleArray(pd.DataFrame(input_data))
+    obstacle_array.add_obstacle(
+        name="obs_1",
+        span_index=1,
+        coords=np.array([[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]),
+        support_reference='left',
+    )
+    obstacle_array.add_obstacle(
+        name="obs_2",
+        span_index=1,
+        coords=np.array([[35, 0, 0], [100, 0, 10]]),
+        support_reference='right',
+        span_length=np.array([500, 400, 450, np.nan]),
+    )
+
+    expected_df = pd.DataFrame(
+        {
+            "name": [
+                "obs_0",
+                "obs_0",
+                "obs_1",
+                "obs_1",
+                "obs_1",
+                "obs_1",
+                "obs_2",
+                "obs_2",
+            ],
+            "point_index": [0, 1, 0, 1, 2, 3, 0, 1],
+            "span_index": [0, 0, 1, 1, 1, 1, 1, 1],
+            "x": [100.0, 200.0, 50.0, 100.0, 150.0, 200.0, 365.0, 300.0],
+            "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0],
+            "z": [0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0],
+            "object_type": [
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+            ],
+        }
+    )
+
+    assert_frame_equal(obstacle_array.data, expected_df, check_like=True)
+
+
+def test_add_obstacle_bad_arguments() -> None:
+    input_data = {
+        "name": ["obs_0", "obs_0"],
+        "point_index": [0, 1],
+        "span_index": [0, 0],
+        "x": [
+            100.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0],
+        "z": [0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+        ],
+    }
+    obstacle_array = ObstacleArray(pd.DataFrame(input_data))
+    # coords bad shape
+    with pytest.raises(TypeError):
+        obstacle_array.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array([50, 0, 0]),
+            support_reference='left',
+        )
+    with pytest.raises(TypeError):
+        obstacle_array.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array([[50, 0], [60, 0]]),
+            support_reference='left',
+        )
+    # span_length missing
+    with pytest.raises(TypeError):
+        obstacle_array.add_obstacle(
+            name="obs_2",
+            span_index=1,
+            coords=np.array([[35, 0, 0], [100, 0, 10]]),
+            support_reference='right',
+        )
+
+
+def test_correct_insulator_length(section_array: SectionArray) -> None:
     expected_lengths = np.array([0.01, 4.0, 3.2, 0.01])
 
     np.testing.assert_allclose(
@@ -710,7 +964,9 @@ def test_correct_insulator_length(section_array) -> None:
     )
 
 
-def test_warning_on_insulator_length_correction(section_array) -> None:
+def test_warning_on_insulator_length_correction(
+    section_array: SectionArray,
+) -> None:
     # Force invalid lengths and ensure they are corrected with a warning
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
     with pytest.warns(DataWarning):
@@ -719,3 +975,35 @@ def test_warning_on_insulator_length_correction(section_array) -> None:
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
     with pytest.warns(DataWarning):
         section_array.data
+
+
+def test_section_array_angle_sense() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [3, 4, 5, -6],
+                "line_angle": [10, 15, -20, 25],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [100, 50, 50, 100],
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "deg"})
+    section_array.angles_sense = "clockwise"
+    expected_line_angle = -np.radians([10, 15, -20, 25])
+    np.testing.assert_allclose(
+        section_array.data.line_angle, expected_line_angle
+    )
+
+    expected_crossarm_length = -np.array([3, 4, 5, -6])
+    np.testing.assert_allclose(
+        section_array.data.crossarm_length, expected_crossarm_length
+    )

@@ -96,7 +96,7 @@ class BalanceSolver:
             if counter == self.max_iter - 1:
                 raise ConvergenceError(
                     "max iteration reached",
-                    level="balance_solver",
+                    origin="balance_solver",
                     details=f"{norm_d_param=}",
                 )
 

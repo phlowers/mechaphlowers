@@ -9,6 +9,7 @@ import logging
 from time import sleep, time
 
 import numpy as np
+import pytest
 from xxhash import xxh3_64
 
 from mechaphlowers.config import options
@@ -18,6 +19,7 @@ from mechaphlowers.utils import (
     hash_numpy_xxhash,
     numpy_cache,
     ppnp,
+    span_to_support_view,
 )
 
 # FILE: src/mechaphlowers/test_utils.py
@@ -197,3 +199,8 @@ def test_perf_numpy_cache_decorator() -> None:
     compute_sum.cache_clear()
     compute_sum._cache
     assert len(compute_sum._cache) == 0
+
+
+def test_view_error() -> None:
+    with pytest.raises(ValueError):
+        span_to_support_view(1, "xxx")  # type: ignore[arg-type]
