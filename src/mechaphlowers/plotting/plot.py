@@ -510,7 +510,7 @@ class PlotEngine(Observer):
 
         Example:
             >>> balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
-            >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+            >>> plt_engine = PlotEngine(balance_engine)
             >>> point = np.array(
             ...     [10.0, 5.0, 2.0]
             ... )  # Absolute coordinates of the point to analyze

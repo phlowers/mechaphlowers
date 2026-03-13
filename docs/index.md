@@ -69,7 +69,7 @@ cable_array_AM600 = sample_cable_catalog.get_as_object(["ASTER600"])
 
 # Create balance engine and plot engine
 engine = mph.BalanceEngine(cable_array=cable_array_AM600, section_array=section_array)
-plt = mph.PlotEngine.builder_from_balance_engine(engine)
+plt = mph.PlotEngine(engine)
 
 # initialize plotly figure
 fig = mph.plotting.figure_factory(context="std")

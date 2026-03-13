@@ -167,10 +167,10 @@ class BalanceEngine(Notifier):
         self.get_displacement: Callable[[], np.ndarray] = (
             self.balance_model.chain_displacement
         )
-        
+
         self.notify()
         self.initialized = True
-        
+
         logger.debug("Balance engine initialized.")
 
     def add_loads(
@@ -214,15 +214,10 @@ class BalanceEngine(Notifier):
         self.section_array._data["load_mass"] = load_mass
 
         self.reset(full=False)
-        # self.balance_model.reset(
-        #     cable_array=self.cable_array,
-        #     span_model=self.span_model,
-        #     deformation_model=self.deformation_model,
-        #     cable_loads=self.cable_loads,
-        #     full=False
-        # )
-
-        debug_loads = "Loads have been added. If you are using a PlotEngine object, you should reset it, using PlotEngine.generate_reset()"
+        debug_loads = (
+            "Loads have been added. PlotEngine will be notified automatically "
+            "via the observer pattern; no manual reset is required."
+        )
         logger.debug(debug_loads)
 
     @check_time
