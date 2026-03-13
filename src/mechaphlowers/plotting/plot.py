@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import copy
 import logging
 from typing import Callable, Literal
 
@@ -156,16 +157,92 @@ def plot_points_2d(
     )
 
 
-def plot_support_shape(fig: go.Figure, support_shape: SupportShape):
+def _group_labels_by_position(
+    points: np.ndarray,
+    set_numbers: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Group set-number labels by position, joining coincident points with ", ".
+
+    Args:
+        points: (n, 3) array of point coordinates
+        set_numbers: (n,) or (n, 1) array of set number labels
+
+    Returns:
+        tuple of (grouped_points (m, 3), grouped_labels (m,)) where m <= n
+    """
+    flat_numbers = np.ravel(set_numbers)
+    seen: dict[tuple, int] = {}
+    grouped_coords: list[np.ndarray] = []
+    grouped_labels: list[str] = []
+    for pt, sn in zip(points, flat_numbers):
+        key = tuple(pt)
+        if key in seen:
+            idx = seen[key]
+            grouped_labels[idx] = f"{grouped_labels[idx]}, {sn}"
+        else:
+            seen[key] = len(grouped_coords)
+            grouped_coords.append(pt)
+            grouped_labels.append(str(sn))
+    return np.array(grouped_coords), np.array(grouped_labels)
+
+
+def _apply_name_config(
+    trace: TraceProfile,
+    mode: Literal["main", "background"],
+    name: str | None = None,
+    addendum: str = "",
+) -> TraceProfile:
+    """Build a configured copy of a TraceProfile without mutating the original.
+
+    Args:
+        trace: Source TraceProfile to copy.
+        mode: Rendering mode ("main" or "background").
+        name: Full name override. Takes precedence over addendum.
+        addendum: String to append to the existing trace name.
+
+    Returns:
+        A new TraceProfile instance with mode and name applied.
+    """
+    t = copy.copy(trace)
+    original_name = t._name
+    t.mode = mode
+    if name is not None:
+        t.name = name
+    elif addendum:
+        t.name = f"{original_name} {addendum}"
+    return t
+
+
+def plot_support_shape(
+    fig: go.Figure,
+    support_shape: SupportShape,
+    structure_name: str | None = None,
+    points_name: str | None = None,
+) -> None:
     """plot_support_shape enables to plot the support shape on a plotly figure
 
     Args:
         fig (go.Figure): plotly figure
         support_shape (SupportShape): SupportShape object to plot
+        structure_name (str | None, optional): Legend label for the structure trace.
+            Defaults to the support shape name.
+        points_name (str | None, optional): Legend label for the attachment points trace.
+            Defaults to "Attachment points".
     """
-    plot_points_3d(fig, support_shape.support_points)
+    _structure_name = (
+        structure_name if structure_name is not None else support_shape.name
+    )
+    _points_name = (
+        points_name if points_name is not None else "Attachment points"
+    )
+    grouped_points, grouped_labels = _group_labels_by_position(
+        support_shape.labels_points, support_shape.set_number
+    )
+    plot_points_3d(
+        fig, support_shape.support_points, TraceProfile(name=_structure_name)
+    )
     plot_text_3d(
-        fig, points=support_shape.labels_points, text=support_shape.set_number
+        fig, points=grouped_points, text=grouped_labels, name=_points_name
     )
 
 
@@ -333,12 +410,27 @@ class PlotEngine:
         fig: go.Figure,
         view: Literal["full", "analysis"] = "full",
         mode: Literal["main", "background"] = "main",
+        name_addendum: str = "",
+        cable_name: str | None = None,
+        cable_name_addendum: str = "",
+        support_name: str | None = None,
+        support_name_addendum: str = "",
+        insulator_name: str | None = None,
+        insulator_name_addendum: str = "",
     ) -> None:
         """Plot 3D of power lines sections
 
         Args:
             fig (go.Figure): plotly figure where new traces has to be added
             view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+            mode (Literal['main', 'background'], optional): Rendering mode. Defaults to "main".
+            name_addendum (str, optional): String appended to all trace names. Defaults to "".
+            cable_name (str | None, optional): Full override for the cable trace legend label.
+            cable_name_addendum (str, optional): Addendum for the cable trace name (overrides name_addendum).
+            support_name (str | None, optional): Full override for the support trace legend label.
+            support_name_addendum (str, optional): Addendum for the support trace name (overrides name_addendum).
+            insulator_name (str | None, optional): Full override for the insulator trace legend label.
+            insulator_name_addendum (str, optional): Addendum for the insulator trace name (overrides name_addendum).
 
         Raises:
             ValueError: view is not an expected value
@@ -360,11 +452,24 @@ class PlotEngine:
 
         span, supports, insulators = self.get_points_for_plot(project=False)
 
-        plot_points_3d(fig, span.points(True), cable_trace(mode=mode))
-        plot_points_3d(fig, supports.points(True), support_trace(mode=mode))
-        plot_points_3d(
-            fig, insulators.points(True), insulator_trace(mode=mode)
+        _cable = _apply_name_config(
+            cable_trace, mode, cable_name, cable_name_addendum or name_addendum
         )
+        _support = _apply_name_config(
+            support_trace,
+            mode,
+            support_name,
+            support_name_addendum or name_addendum,
+        )
+        _insulator = _apply_name_config(
+            insulator_trace,
+            mode,
+            insulator_name,
+            insulator_name_addendum or name_addendum,
+        )
+        plot_points_3d(fig, span.points(True), _cable)
+        plot_points_3d(fig, supports.points(True), _support)
+        plot_points_3d(fig, insulators.points(True), _insulator)
 
         if hasattr(self.section_pts, "obstacles_array"):
             obstacles = self.section_pts.compute_obstacle_coords()
@@ -380,12 +485,28 @@ class PlotEngine:
         view: Literal["profile", "line"] = "profile",
         frame_index: int = 0,
         mode: Literal["main", "background"] = "main",
+        name_addendum: str = "",
+        cable_name: str | None = None,
+        cable_name_addendum: str = "",
+        support_name: str | None = None,
+        support_name_addendum: str = "",
+        insulator_name: str | None = None,
+        insulator_name_addendum: str = "",
     ) -> None:
         """Plot 2D of power lines sections
 
         Args:
             fig (go.Figure): plotly figure where new traces has to be added
-            view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+            view (Literal['profile', 'line'], optional): profile or line view. Defaults to "profile".
+            frame_index (int, optional): Index of the frame for projection. Defaults to 0.
+            mode (Literal['main', 'background'], optional): Rendering mode. Defaults to "main".
+            name_addendum (str, optional): String appended to all trace names. Defaults to "".
+            cable_name (str | None, optional): Full override for the cable trace legend label.
+            cable_name_addendum (str, optional): Addendum for the cable trace name (overrides name_addendum).
+            support_name (str | None, optional): Full override for the support trace legend label.
+            support_name_addendum (str, optional): Addendum for the support trace name (overrides name_addendum).
+            insulator_name (str | None, optional): Full override for the insulator trace legend label.
+            insulator_name_addendum (str, optional): Addendum for the insulator trace name (overrides name_addendum).
 
         Raises:
             ValueError: view value is invalid
@@ -414,24 +535,24 @@ class PlotEngine:
             project=True, frame_index=frame_index
         )
 
-        plot_points_2d(
-            fig,
-            span.points(True),
-            cable_trace(mode=mode),
-            view=view,
+        _cable = _apply_name_config(
+            cable_trace, mode, cable_name, cable_name_addendum or name_addendum
         )
-        plot_points_2d(
-            fig,
-            supports.points(True),
-            support_trace(mode=mode),
-            view=view,
+        _support = _apply_name_config(
+            support_trace,
+            mode,
+            support_name,
+            support_name_addendum or name_addendum,
         )
-        plot_points_2d(
-            fig,
-            insulators.points(True),
-            insulator_trace(mode=mode),
-            view=view,
+        _insulator = _apply_name_config(
+            insulator_trace,
+            mode,
+            insulator_name,
+            insulator_name_addendum or name_addendum,
         )
+        plot_points_2d(fig, span.points(True), _cable, view=view)
+        plot_points_2d(fig, supports.points(True), _support, view=view)
+        plot_points_2d(fig, insulators.points(True), _insulator, view=view)
 
     def point_relative_to_absolute(
         self, span_index: int, point_relative: np.ndarray
