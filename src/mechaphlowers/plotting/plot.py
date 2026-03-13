@@ -105,6 +105,7 @@ def plot_points_3d(
     fig: go.Figure,
     points: np.ndarray,
     trace_profile: TraceProfile | None = None,
+    hovertext: list[str] | None = None,
 ) -> None:
     if trace_profile is None:
         trace_profile = TraceProfile()
@@ -120,6 +121,13 @@ def plot_points_3d(
             line=trace_profile.line,
             opacity=trace_profile.opacity,
             name=trace_profile.name,
+            customdata=hovertext,
+            hovertemplate=(
+                f"x: %{{x}}<br>y: %{{y}}<br>z: %{{z}}<br>%{{customdata}}"
+                f"<extra>{trace_profile.name}</extra>"
+                if hovertext is not None
+                else None
+            ),
         ),
     )
 
@@ -129,6 +137,7 @@ def plot_points_2d(
     points: np.ndarray,
     trace_profile: TraceProfile | None = None,
     view: Literal["profile", "line"] = "profile",
+    hovertext: list[str] | None = None,
 ) -> None:
     if trace_profile is None:
         trace_profile = TraceProfile()
@@ -153,6 +162,13 @@ def plot_points_2d(
             line=trace_profile.line,
             opacity=trace_profile.opacity,
             name=trace_profile.name,
+            customdata=hovertext,  # type: ignore[arg-type]
+            hovertemplate=(
+                f"x: %{{x}}<br>y: %{{y}}<br>%{{customdata}}"
+                f"<extra>{trace_profile.name}</extra>"
+                if hovertext is not None
+                else None
+            ),
         )
     )
 
@@ -184,6 +200,32 @@ def _group_labels_by_position(
             grouped_coords.append(pt)
             grouped_labels.append(str(sn))
     return np.array(grouped_coords), np.array(grouped_labels)
+
+
+def _build_hover_text(
+    points: Points, labels: list[str], label_prefix: str = ""
+) -> list[str]:
+    """Build a flat list of hover labels matching the stacked-points layout.
+
+    When ``points.points(stack=True)`` is called, each layer receives an extra
+    NaN row as a separator.  This function produces a parallel list in which
+    each real point in layer *i* maps to ``labels[i]``, and the NaN separator
+    maps to an empty string.
+
+    Args:
+        points: Points object with ``coords`` shape ``(n_layers, n_pts, 3)``.
+        labels: One label per layer; ``len(labels)`` must equal ``n_layers``.
+        label_prefix: Optional prefix prepended to every label (e.g. ``"span: "``).
+
+    Returns:
+        Flat list of length ``n_layers * (n_pts + 1)``.
+    """
+    n_pts = points.coords.shape[1]
+    result: list[str] = []
+    for label in labels:
+        result.extend([f"{label_prefix}{label}"] * n_pts)
+        result.append("")
+    return result
 
 
 def _apply_name_config(
@@ -306,6 +348,20 @@ class PlotEngine:
     @property
     def beta(self) -> np.ndarray:
         return self.cable_loads.load_angle
+
+    @property
+    def support_names(self) -> list[str]:
+        """Names of the supports as defined in the section array."""
+        return list(self.section_array.data_original["name"])
+
+    @property
+    def span_names(self) -> list[str]:
+        """Names of the spans, each being the concatenation of the two adjacent support names.
+
+        For supports ``["A", "B", "C"]`` this returns ``["A-B", "B-C"]``.
+        """
+        names = self.support_names
+        return [f"{names[i]}-{names[i + 1]}" for i in range(len(names) - 1)]
 
     @staticmethod
     def builder_from_balance_engine(
@@ -467,9 +523,28 @@ class PlotEngine:
             insulator_name,
             insulator_name_addendum or name_addendum,
         )
-        plot_points_3d(fig, span.points(True), _cable)
-        plot_points_3d(fig, supports.points(True), _support)
-        plot_points_3d(fig, insulators.points(True), _insulator)
+        plot_points_3d(
+            fig,
+            span.points(True),
+            _cable,
+            hovertext=_build_hover_text(span, self.span_names, "span: "),
+        )
+        plot_points_3d(
+            fig,
+            supports.points(True),
+            _support,
+            hovertext=_build_hover_text(
+                supports, self.support_names, "support: "
+            ),
+        )
+        plot_points_3d(
+            fig,
+            insulators.points(True),
+            _insulator,
+            hovertext=_build_hover_text(
+                insulators, self.support_names, "support: "
+            ),
+        )
 
         if hasattr(self.section_pts, "obstacles_array"):
             obstacles = self.section_pts.compute_obstacle_coords()
@@ -550,9 +625,31 @@ class PlotEngine:
             insulator_name,
             insulator_name_addendum or name_addendum,
         )
-        plot_points_2d(fig, span.points(True), _cable, view=view)
-        plot_points_2d(fig, supports.points(True), _support, view=view)
-        plot_points_2d(fig, insulators.points(True), _insulator, view=view)
+        plot_points_2d(
+            fig,
+            span.points(True),
+            _cable,
+            view=view,
+            hovertext=_build_hover_text(span, self.span_names, "span: "),
+        )
+        plot_points_2d(
+            fig,
+            supports.points(True),
+            _support,
+            view=view,
+            hovertext=_build_hover_text(
+                supports, self.support_names, "support: "
+            ),
+        )
+        plot_points_2d(
+            fig,
+            insulators.points(True),
+            _insulator,
+            view=view,
+            hovertext=_build_hover_text(
+                insulators, self.support_names, "support: "
+            ),
+        )
 
     def point_relative_to_absolute(
         self, span_index: int, point_relative: np.ndarray

@@ -237,7 +237,7 @@ def test_preview_line3d__name_addendum(
     )
     fig = go.Figure()
     plt_engine.preview_line3d(fig, name_addendum="[wind]")
-    names = [trace.name for trace in fig.data]
+    names = [trace.name for trace in fig.data]  # type: ignore[attr-defined]
     assert "Cable [wind]" in names
     assert "Support [wind]" in names
     assert "Insulator [wind]" in names
@@ -256,7 +256,7 @@ def test_preview_line3d__per_trace_name_override(
         cable_name="My Cable",
         support_name_addendum="[2]",
     )
-    names = [trace.name for trace in fig.data]
+    names = [trace.name for trace in fig.data]  # type: ignore[attr-defined]
     # cable_name is a full override, ignores addendum
     assert "My Cable" in names
     # support_name_addendum overrides global name_addendum
@@ -273,10 +273,70 @@ def test_preview_line2d__name_addendum(
     )
     fig = go.Figure()
     plt_engine.preview_line2d(fig, name_addendum="[wind]")
-    names = [trace.name for trace in fig.data]
+    names = [trace.name for trace in fig.data]  # type: ignore[attr-defined]
     assert "Cable [wind]" in names
     assert "Support [wind]" in names
     assert "Insulator [wind]" in names
+
+
+def test_plot_engine__support_names(
+    balance_engine_local_initialized: BalanceEngine,
+) -> None:
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_local_initialized
+    )
+    assert plt_engine.support_names == ["1", "2", "three", "support 4"]
+
+
+def test_plot_engine__span_names(
+    balance_engine_local_initialized: BalanceEngine,
+) -> None:
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_local_initialized
+    )
+    assert plt_engine.span_names == ["1-2", "2-three", "three-support 4"]
+
+
+def test_preview_line3d__hover_text(
+    balance_engine_local_initialized: BalanceEngine,
+) -> None:
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_local_initialized
+    )
+    fig = go.Figure()
+    plt_engine.preview_line3d(fig)
+
+    cable_data = next(t for t in fig.data if t.name == "Cable")  # type: ignore[attr-defined]
+    assert cable_data.customdata is not None  # type: ignore[attr-defined]
+    assert "span: 1-2" in list(cable_data.customdata)  # type: ignore[attr-defined]
+    assert "span: 2-three" in list(cable_data.customdata)  # type: ignore[attr-defined]
+
+    support_data = next(t for t in fig.data if t.name == "Support")  # type: ignore[attr-defined]
+    assert support_data.customdata is not None  # type: ignore[attr-defined]
+    assert "support: 1" in list(support_data.customdata)  # type: ignore[attr-defined]
+    assert "support: support 4" in list(support_data.customdata)  # type: ignore[attr-defined]
+
+    insulator_data = next(t for t in fig.data if t.name == "Insulator")  # type: ignore[attr-defined]
+    assert insulator_data.customdata is not None  # type: ignore[attr-defined]
+    assert "support: 2" in list(insulator_data.customdata)  # type: ignore[attr-defined]
+
+
+def test_preview_line2d__hover_text(
+    balance_engine_local_initialized: BalanceEngine,
+) -> None:
+    plt_engine = PlotEngine.builder_from_balance_engine(
+        balance_engine_local_initialized
+    )
+    fig = go.Figure()
+    plt_engine.preview_line2d(fig)
+
+    cable_data = next(t for t in fig.data if t.name == "Cable")  # type: ignore[attr-defined]
+    assert cable_data.customdata is not None  # type: ignore[attr-defined]
+    assert "span: 1-2" in list(cable_data.customdata)  # type: ignore[attr-defined]
+
+    support_data = next(t for t in fig.data if t.name == "Support")  # type: ignore[attr-defined]
+    assert support_data.customdata is not None  # type: ignore[attr-defined]
+    assert "support: 1" in list(support_data.customdata)  # type: ignore[attr-defined]
 
 
 def test_reactive_plot(balance_engine_base_test: BalanceEngine):
@@ -425,8 +485,8 @@ def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
     span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
-    # if show_figures:
-    fig.show()  # deactivate for auto unit testing
+    if show_figures:
+        fig.show()  # deactivate for auto unit testing
 
 
 def test_plot_3d__styles(balance_engine_angles: BalanceEngine):
