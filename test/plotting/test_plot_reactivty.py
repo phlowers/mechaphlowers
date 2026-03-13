@@ -4,15 +4,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from unittest.mock import patch
+
 import numpy as np
-import pytest
-from unittest.mock import MagicMock
 
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.reactivity import Notifier, Observer
 from mechaphlowers.plotting.plot import PlotEngine
-
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -109,76 +108,79 @@ class TestNotificationTriggers:
         self, balance_engine_base_test: BalanceEngine
     ):
         plot_engine = PlotEngine(balance_engine_base_test)
-        plot_engine.reset = MagicMock(wraps=plot_engine.reset)
+        with patch.object(
+            plot_engine, "reset", wraps=plot_engine.reset
+        ) as mock_reset:
+            balance_engine_base_test.notify()
 
-        balance_engine_base_test.notify()
-
-        plot_engine.reset.assert_called_once_with(
-            balance_engine=balance_engine_base_test
-        )
+            mock_reset.assert_called_once_with(
+                balance_engine=balance_engine_base_test
+            )
 
     def test_add_loads_triggers_plot_engine_reset(
         self, balance_engine_base_test: BalanceEngine
     ):
         plt_engine = PlotEngine(balance_engine_base_test)
-        plt_engine.reset = MagicMock(wraps=plt_engine.reset)
+        with patch.object(
+            plt_engine, "reset", wraps=plt_engine.reset
+        ) as mock_reset:
+            balance_engine_base_test.add_loads(
+                load_position_distance=np.array([0, 0, 0, np.nan]),
+                load_mass=np.array([0, 0, 0, np.nan]),
+            )
 
-        balance_engine_base_test.add_loads(
-            load_position_distance=np.array([0, 0, 0, np.nan]),
-            load_mass=np.array([0, 0, 0, np.nan]),
-        )
-
-        plt_engine.reset.assert_called_once_with(
-            balance_engine=balance_engine_base_test
-        )
+            mock_reset.assert_called_once_with(
+                balance_engine=balance_engine_base_test
+            )
 
     def test_reset_full_false_triggers_plot_engine_reset(
         self, balance_engine_base_test: BalanceEngine
     ):
         plt_engine = PlotEngine(balance_engine_base_test)
-        plt_engine.reset = MagicMock(wraps=plt_engine.reset)
+        with patch.object(
+            plt_engine, "reset", wraps=plt_engine.reset
+        ) as mock_reset:
+            balance_engine_base_test.reset(full=False)
 
-        balance_engine_base_test.reset(full=False)
-
-        plt_engine.reset.assert_called_once_with(
-            balance_engine=balance_engine_base_test
-        )
+            mock_reset.assert_called_once_with(
+                balance_engine=balance_engine_base_test
+            )
 
     def test_multiple_observers_all_notified_on_add_loads(
         self, balance_engine_base_test: BalanceEngine
     ):
         pe1 = PlotEngine(balance_engine_base_test)
         pe2 = PlotEngine(balance_engine_base_test)
-        pe1.reset = MagicMock(wraps=pe1.reset)
-        pe2.reset = MagicMock(wraps=pe2.reset)
+        with (
+            patch.object(pe1, "reset", wraps=pe1.reset) as mock1,
+            patch.object(pe2, "reset", wraps=pe2.reset) as mock2,
+        ):
+            balance_engine_base_test.add_loads(
+                load_position_distance=np.array([0, 0, 0, np.nan]),
+                load_mass=np.array([0, 0, 0, np.nan]),
+            )
 
-        balance_engine_base_test.add_loads(
-            load_position_distance=np.array([0, 0, 0, np.nan]),
-            load_mass=np.array([0, 0, 0, np.nan]),
-        )
-
-        pe1.reset.assert_called_once_with(
-            balance_engine=balance_engine_base_test
-        )
-        pe2.reset.assert_called_once_with(
-            balance_engine=balance_engine_base_test
-        )
+            mock1.assert_called_once_with(
+                balance_engine=balance_engine_base_test
+            )
+            mock2.assert_called_once_with(
+                balance_engine=balance_engine_base_test
+            )
 
     def test_section_pts_reset_called_through_full_observer_chain(
         self, balance_engine_base_test: BalanceEngine
     ):
         """section_pts.reset() is the terminal step of the observer chain."""
         plt_engine = PlotEngine(balance_engine_base_test)
-        plt_engine.section_pts.reset = MagicMock(
-            wraps=plt_engine.section_pts.reset
-        )
+        with patch.object(
+            plt_engine.section_pts, "reset", wraps=plt_engine.section_pts.reset
+        ) as mock_reset:
+            balance_engine_base_test.add_loads(
+                load_position_distance=np.array([0, 0, 0, np.nan]),
+                load_mass=np.array([0, 0, 0, np.nan]),
+            )
 
-        balance_engine_base_test.add_loads(
-            load_position_distance=np.array([0, 0, 0, np.nan]),
-            load_mass=np.array([0, 0, 0, np.nan]),
-        )
-
-        plt_engine.section_pts.reset.assert_called_once()
+            mock_reset.assert_called_once()
 
 
 # ── Section 4: Solve methods must NOT trigger notification ────────────────────
@@ -189,22 +191,24 @@ class TestSolveMethodsDoNotNotify:
         self, balance_engine_base_test: BalanceEngine
     ):
         plt_engine = PlotEngine(balance_engine_base_test)
-        plt_engine.reset = MagicMock(wraps=plt_engine.reset)
+        with patch.object(
+            plt_engine, "reset", wraps=plt_engine.reset
+        ) as mock_reset:
+            balance_engine_base_test.solve_adjustment()
 
-        balance_engine_base_test.solve_adjustment()
-
-        plt_engine.reset.assert_not_called()
+            mock_reset.assert_not_called()
 
     def test_solve_change_state_does_not_notify_observers(
         self, balance_engine_base_test: BalanceEngine
     ):
         plt_engine = PlotEngine(balance_engine_base_test)
         balance_engine_base_test.solve_adjustment()
-        plt_engine.reset = MagicMock(wraps=plt_engine.reset)
+        with patch.object(
+            plt_engine, "reset", wraps=plt_engine.reset
+        ) as mock_reset:
+            balance_engine_base_test.solve_change_state(new_temperature=50)
 
-        balance_engine_base_test.solve_change_state(new_temperature=50)
-
-        plt_engine.reset.assert_not_called()
+            mock_reset.assert_not_called()
 
 
 # ── Section 5: Reference integrity after partial reset ───────────────────────
@@ -275,16 +279,13 @@ class TestFullResetBehavior:
         """PlotEngine.reset() calls initialize_engine() when balance_engine.initialized
         is False, ensuring references are re-established to fresh model objects."""
         plt_engine = PlotEngine(balance_engine_base_test)
-        plt_engine.initialize_engine = MagicMock(
-            wraps=plt_engine.initialize_engine
-        )
+        with patch.object(
+            plt_engine, "initialize_engine", wraps=plt_engine.initialize_engine
+        ) as mock_init:
+            balance_engine_base_test.initialized = False
+            plt_engine.reset(balance_engine=balance_engine_base_test)
 
-        balance_engine_base_test.initialized = False
-        plt_engine.reset(balance_engine=balance_engine_base_test)
-
-        plt_engine.initialize_engine.assert_called_once_with(
-            balance_engine_base_test
-        )
+            mock_init.assert_called_once_with(balance_engine_base_test)
 
 
 # ── Section 7: Observer selectivity ──────────────────────────────────────────
@@ -297,12 +298,13 @@ class TestObserverSelectivity:
         """PlotEngine.update() is a no-op when the notifier is not a BalanceEngine,
         making it safe to compose with other Notifier subclasses."""
         plt_engine = PlotEngine(balance_engine_base_test)
-        plt_engine.reset = MagicMock(wraps=plt_engine.reset)
+        with patch.object(
+            plt_engine, "reset", wraps=plt_engine.reset
+        ) as mock_reset:
+            other_notifier = Notifier()
+            plt_engine.update(other_notifier)
 
-        other_notifier = Notifier()
-        plt_engine.update(other_notifier)
-
-        plt_engine.reset.assert_not_called()
+            mock_reset.assert_not_called()
 
     def test_update_with_wrong_notifier_type_does_not_raise(
         self, balance_engine_base_test: BalanceEngine
