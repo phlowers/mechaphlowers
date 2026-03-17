@@ -223,19 +223,18 @@ balance = mph.BalanceEngine(section_array=section_array, cable_array=cable_array
 # 3. Build plot engine
 pe = PlotEngine.builder_from_balance_engine(balance_engine=balance)
 
-# 4. Plot 3D with custom aspect ratio
+# 4. Compute data-driven aspect ratio with altitude exaggeration
+span, supports, insulators = pe.get_points_for_plot()
+aspect = compute_aspect_ratio(span, supports, insulators, z_scale=5.0)
+
+# 5. Plot 3D with custom aspect ratio
 fig = go.Figure()
 pe.preview_line3d(fig, aspect_ratio=aspect)
+set_layout(fig, aspect_ratio=aspect)
 fig.show()
 
-# 5. Plot 2D profile view
+# 6. Plot 2D profile view
 fig_2d = go.Figure()
 pe.preview_line2d(fig_2d, view="profile", frame_index=0)
 fig_2d.show()
-
-# 6. Compute data-driven aspect ratio with altitude exaggeration
-span, supports, insulators = pe.get_points_for_plot()
-aspect = compute_aspect_ratio(span, supports, insulators, z_scale=5.0)
-set_layout(fig, aspect_ratio=aspect)
-fig.show()
 ```
