@@ -178,7 +178,7 @@ def set_layout(
 
     Args:
         fig (go.Figure): plotly figure where layout has to be updated
-        auto (bool, optional): Automatic layout based on data (scale respect). False means manual with an aspectratio of x=1, y=.05, z=.5. Only used when aspect_ratio is None. Defaults to True.
+        auto (bool, optional): Automatic layout based on data (scale respect). False means manual with an aspectratio of x=1, y=.5, z=.5. Only used when aspect_ratio is None. Defaults to True.
         aspect_ratio (dict[str, float] | None, optional): Custom aspect ratio dictionary with keys 'x', 'y', 'z'. When provided, forces aspectmode to 'manual' and uses these values. When None, behavior is controlled by the auto parameter. Defaults to None.
 
     Examples:

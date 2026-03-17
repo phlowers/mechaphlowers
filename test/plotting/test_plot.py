@@ -477,7 +477,7 @@ def test_compute_aspect_ratio__scale_factors(
     )
 
     # For x and z axes with large scaling, check that they become maximum
-    # (y axis is skipped because test data has zero y-range)
+    # (y axis is not considered because small y-range)
     if axis_letter in ("x", "z"):
         other_axes = [k for k in ("x", "y", "z") if k != axis_letter]
         assert aspect_scaled[axis_letter] >= max(

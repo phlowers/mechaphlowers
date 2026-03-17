@@ -197,7 +197,7 @@ import plotly.graph_objects as go
 
 import mechaphlowers as mph
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
-from mechaphlowers.plotting.plot import PlotEngine
+from mechaphlowers.plotting.plot import PlotEngine, set_layout
 from mechaphlowers.plotting import compute_aspect_ratio
 
 # 1. Define section data
