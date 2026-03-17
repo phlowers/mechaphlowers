@@ -92,6 +92,11 @@ def compute_aspect_ratio(
 
     all_points = np.vstack(all_points_list)
 
+    if all_points.size == 0:
+        raise ValueError(
+            "At least one Points object must contain at least one point to compute aspect ratio"
+        )
+
     # Extract x, y, z coordinates
     xs = all_points[:, 0]
     ys = all_points[:, 1]
