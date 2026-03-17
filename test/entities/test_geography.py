@@ -9,7 +9,9 @@ import pandas as pd
 import pytest
 
 from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.errors import GpsNoDataAvailable
 from mechaphlowers.entities.geography import (
+    GeoLocator,
     get_dist_and_angles_from_gps,
     get_gps_from_arrays,
 )
@@ -281,3 +283,89 @@ def test_round_trip():
 
     np.testing.assert_allclose(recovered_distances, span_lengths, atol=1e-3)
     np.testing.assert_allclose(recovered_angles, line_angles, atol=1e-3)
+
+
+# --- GeoLocator tests ---
+
+_LINE_ANGLES_DEG = np.array([0.0, 10.0, 15.0, 20.0, 0.0])
+_SPAN_LENGTHS = np.array([300.0, 400.0, 500.0, 600.0, np.nan])
+_START_LAT = 48.8566
+_START_LON = 2.3522
+_START_AZIMUTH = 0.0
+
+
+def test_geolocator_gps_no_data_available():
+    geolocator = GeoLocator()
+    with pytest.raises(GpsNoDataAvailable):
+        geolocator.get_gps(_LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy())
+
+
+def test_geolocator_set_starting_gps():
+    geolocator = GeoLocator()
+    geolocator.set_starting_gps(_START_LAT, _START_LON, _START_AZIMUTH)
+
+    lats, lons = geolocator.get_gps(
+        _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
+    )
+
+    expected_lats, expected_lons = get_gps_from_arrays(
+        _START_LAT,
+        _START_LON,
+        _START_AZIMUTH,
+        _LINE_ANGLES_DEG.copy(),
+        _SPAN_LENGTHS.copy(),
+    )
+    np.testing.assert_allclose(lats, expected_lats, atol=1e-8)
+    np.testing.assert_allclose(lons, expected_lons, atol=1e-8)
+
+
+def test_geolocator_set_starting_lambert93():
+    from mechaphlowers.data.geography.helpers import (
+        gps_to_lambert93,
+        lambert93_to_gps,
+    )
+
+    easting, northing = gps_to_lambert93(_START_LAT, _START_LON)
+    lat_back, lon_back = lambert93_to_gps(easting, northing)
+
+    geolocator = GeoLocator()
+    geolocator.set_starting_lambert93(
+        float(easting), float(northing), _START_AZIMUTH
+    )
+
+    lats, lons = geolocator.get_gps(
+        _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
+    )
+
+    expected_lats, expected_lons = get_gps_from_arrays(
+        float(lat_back),
+        float(lon_back),
+        _START_AZIMUTH,
+        _LINE_ANGLES_DEG.copy(),
+        _SPAN_LENGTHS.copy(),
+    )
+    np.testing.assert_allclose(lats, expected_lats, atol=1e-6)
+    np.testing.assert_allclose(lons, expected_lons, atol=1e-6)
+
+
+def test_geolocator_get_lambert93():
+    from mechaphlowers.data.geography.helpers import gps_to_lambert93
+
+    geolocator = GeoLocator()
+    geolocator.set_starting_gps(_START_LAT, _START_LON, _START_AZIMUTH)
+
+    easting, northing = geolocator.get_lambert93(
+        _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
+    )
+
+    lats, lons = get_gps_from_arrays(
+        _START_LAT,
+        _START_LON,
+        _START_AZIMUTH,
+        _LINE_ANGLES_DEG.copy(),
+        _SPAN_LENGTHS.copy(),
+    )
+    expected_easting, expected_northing = gps_to_lambert93(lats, lons)
+
+    np.testing.assert_allclose(easting, expected_easting, atol=1e-3)
+    np.testing.assert_allclose(northing, expected_northing, atol=1e-3)

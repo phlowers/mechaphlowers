@@ -417,11 +417,12 @@ def test_section_array_to_gps():
             }
         )
     )
-    latitude, longitude = section_array.compute_gps_coordinates(
-        start_latitude=48.8566,
-        start_longitude=2.3522,
-        start_azimuth=45,
+    section_array.set_starting_gps(
+        latitude_0=48.8566,
+        longitude_0=2.3522,
+        azimuth_0=45,
     )
+    latitude, longitude = section_array.get_gps()
     assert latitude.shape == (5,)
     assert longitude.shape == (5,)
 
