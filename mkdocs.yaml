@@ -63,6 +63,7 @@ nav:
               - Schemas: docstring/entities/schemas.md
               - Data container: docstring/entities/data_container.md
               - Support Shapes: docstring/entities/shapes.md
+              - Geography: docstring/entities/geography.md
               - Errors: docstring/entities/errors.md
           - Core:
               - Geometry:
