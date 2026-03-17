@@ -12,6 +12,9 @@ import numpy as np
 
 from mechaphlowers.core.geometry.points import Points
 
+# Minimum normalized aspect ratio value to avoid zero-sized axes in Plotly
+_ASPECT_EPSILON: float = 1e-4
+
 
 def compute_aspect_ratio(
     *points_objects: Points,
@@ -112,8 +115,13 @@ def compute_aspect_ratio(
             "Data has zero spatial extent; cannot compute aspect ratio"
         )
 
-    aspect_x = (x_range / max_range) * x_scale
-    aspect_y = (y_range / max_range) * y_scale
-    aspect_z = (z_range / max_range) * z_scale
+    # Compute normalized ranges and clamp zero-extent axes to a small epsilon
+    norm_x = x_range / max_range if x_range > 0 else _ASPECT_EPSILON
+    norm_y = y_range / max_range if y_range > 0 else _ASPECT_EPSILON
+    norm_z = z_range / max_range if z_range > 0 else _ASPECT_EPSILON
+
+    aspect_x = norm_x * x_scale
+    aspect_y = norm_y * y_scale
+    aspect_z = norm_z * z_scale
 
     return {"x": float(aspect_x), "y": float(aspect_y), "z": float(aspect_z)}
