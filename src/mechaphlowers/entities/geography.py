@@ -204,7 +204,7 @@ class GeoLocator:
             northing (float): Lambert 93 northing coordinate in meters.
             azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
         """
-        lat, lon = lambert93_to_gps(easting, northing)
+        lat, lon = lambert93_to_gps(np.float64(easting), np.float64(northing))
         self.set_starting_gps(float(lat), float(lon), azimuth_0)
 
     def _check_gps_available(self) -> None:
