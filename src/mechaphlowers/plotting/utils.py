@@ -102,7 +102,7 @@ def compute_aspect_ratio(
     # Handle edge case where all values in an axis are NaN
     if np.isnan(x_range) or np.isnan(y_range) or np.isnan(z_range):
         raise ValueError(
-            "All points contain NaN values; cannot compute aspect ratio"
+            "Cannot compute aspect ratio because at least one axis has only NaN values"
         )
 
     # Normalize by the maximum range
