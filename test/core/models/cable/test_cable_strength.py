@@ -4,42 +4,45 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-"""Test module for RRTS entity with real usecases"""
+"""Tests for the AdditiveLayerRts / ITensileStrength model in cable_strength.py."""
 
 import numpy as np
 import pandas as pd
 import pytest
 
 from mechaphlowers.config import options
+from mechaphlowers.core.models.cable.cable_strength import AdditiveLayerRts
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.entities.arrays import CableArray
 from mechaphlowers.entities.errors import RtsDataNotAvailable
 
+# ---------------------------------------------------------------------------
+# Integration tests  (rely on the sample catalog and the balance engine fixture
+# from conftest.py)
+# ---------------------------------------------------------------------------
+
 
 @pytest.mark.integration_test
 def test_rrts() -> None:
-    """Test RRTS entity with real usecases"""
+    """With no cut strands, RRTS equals rts_cable from the catalog."""
     cable: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
-
     assert cable.rrts == 200000
 
 
 @pytest.mark.integration_test
 def test_coverage_rrts() -> None:
-    """Test coverage of RRTS entity with real usecases"""
+    """rts_coverage is close to 1.02 for ASTER600."""
     cable: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
-
     cable_rrts = cable.rts_coverage()
     assert abs(cable_rrts - 1.02) < 0.01
 
 
 @pytest.mark.integration_test
 def test_cut_strands(balance_engine_base_test):
-    """Test cut_strands method of RRTS entity with real usecases"""
+    """cut_strands reduces RRTS and changes utilization rate accordingly."""
     cable: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
 
     nb_strands = cable.nb_strand_per_layer
-
     assert nb_strands.shape == (8,)
 
     cable.cut_strands = np.array([5, 3, 2, 0, 0, 0, 0, 0])
@@ -59,7 +62,7 @@ def test_cut_strands(balance_engine_base_test):
 
 @pytest.mark.integration_test
 def test_high_safety_rrts():
-    """Test high_safety_rrts method of RRTS entity with real usecases"""
+    """high_safety multiplies the safety coefficient by 1.5."""
     cable: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
     options.data.safety_coefficient = 1.5
     options.data.safety_security_factor = 1.5
@@ -72,7 +75,7 @@ def test_high_safety_rrts():
 
 @pytest.mark.integration_test
 def test_utilization_rate(balance_engine_base_test) -> None:
-    """Test utilization_rate method of RRTS entity with real usecases"""
+    """utilization_rate returns expected percentages for ASTER600."""
     cable = sample_cable_catalog.get_as_object(["ASTER600"])
     balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(0, 0, 15)
@@ -94,7 +97,7 @@ def test_utilization_rate(balance_engine_base_test) -> None:
 
 
 # ---------------------------------------------------------------------------
-# RRTS / unit tests
+# Fixtures shared by unit tests
 # ---------------------------------------------------------------------------
 
 _RTS_CABLE_N = 18000  # N (arbitrary test value)
@@ -156,121 +159,128 @@ def cable_array_with_rts_input_data(cable_array_input_data: dict) -> dict:
 
 
 @pytest.fixture
-def cable_array_with_rts(cable_array_with_rts_input_data: dict) -> CableArray:
-    return CableArray(pd.DataFrame(cable_array_with_rts_input_data))
+def rts_strength_fixture(
+    cable_array_with_rts_input_data: dict,
+) -> AdditiveLayerRts:
+    """AdditiveLayerRts built directly from a unit-converted CableArray snapshot."""
+    cable_data = CableArray(pd.DataFrame(cable_array_with_rts_input_data)).data
+    return AdditiveLayerRts(cable_data)
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — targeting AdditiveLayerRts directly
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.unit_test
-def test_rrts_no_damage(cable_array_with_rts: CableArray) -> None:
-    """With no cut strands, RRTS equals rts_cable converted to N."""
-    cable_array_with_rts.cut_strands = np.zeros(8, dtype=int)
-    expected_rrts_N = float(_RTS_CABLE_N)
-    assert cable_array_with_rts.rrts == pytest.approx(expected_rrts_N)
+def test_rrts_no_damage(rts_strength_fixture: AdditiveLayerRts) -> None:
+    """With no cut strands, RRTS equals rts_cable."""
+    rts_strength_fixture.cut_strands = np.zeros(8, dtype=int)
+    assert rts_strength_fixture.rrts == pytest.approx(float(_RTS_CABLE_N))
 
 
 @pytest.mark.unit_test
-def test_rrts_with_damage(cable_array_with_rts: CableArray) -> None:
+def test_rrts_with_damage(rts_strength_fixture: AdditiveLayerRts) -> None:
     """RRTS is reduced by cut strands in layers 1 and 2."""
-    # 2 strands cut in layer 1, 1 strand cut in layer 2
-    cable_array_with_rts.cut_strands = np.array([2, 1, 0, 0, 0, 0, 0, 0])
-    expected_rrts_N = float(_RTS_CABLE_N - 2 * _RTS_L1_N - 1 * _RTS_L2_N)
-    assert cable_array_with_rts.rrts == pytest.approx(expected_rrts_N)
+    rts_strength_fixture.cut_strands = np.array([2, 1, 0, 0, 0, 0, 0, 0])
+    expected = float(_RTS_CABLE_N - 2 * _RTS_L1_N - 1 * _RTS_L2_N)
+    assert rts_strength_fixture.rrts == pytest.approx(expected)
 
 
 @pytest.mark.unit_test
-def test_rrts_default_no_cut_strands(cable_array_with_rts: CableArray) -> None:
+def test_rrts_default_no_cut_strands(
+    rts_strength_fixture: AdditiveLayerRts,
+) -> None:
     """rrts defaults to rts_cable when no cut strands are set."""
-    expected_rrts_N = float(_RTS_CABLE_N)
-    assert cable_array_with_rts.rrts == pytest.approx(expected_rrts_N)
+    assert rts_strength_fixture.rrts == pytest.approx(float(_RTS_CABLE_N))
 
 
 @pytest.mark.unit_test
-def test_cut_strands_getter(cable_array_with_rts: CableArray) -> None:
+def test_cut_strands_getter(rts_strength_fixture: AdditiveLayerRts) -> None:
     """cut_strands getter returns the padded array previously set."""
-    cable_array_with_rts.cut_strands = np.array([2, 1])
+    rts_strength_fixture.cut_strands = np.array([2, 1])
     expected = np.array([2, 1, 0, 0, 0, 0, 0, 0])
-    np.testing.assert_array_equal(cable_array_with_rts.cut_strands, expected)
+    np.testing.assert_array_equal(rts_strength_fixture.cut_strands, expected)
 
 
 @pytest.mark.unit_test
 def test_cut_strands_too_many_elements(
-    cable_array_with_rts: CableArray,
+    rts_strength_fixture: AdditiveLayerRts,
 ) -> None:
     """cut_strands setter with more than 8 elements raises ValueError."""
     with pytest.raises(ValueError, match="8"):
-        cable_array_with_rts.cut_strands = np.zeros(9, dtype=int)
+        rts_strength_fixture.cut_strands = np.zeros(9, dtype=int)
 
 
 @pytest.mark.unit_test
 def test_rrts_raises_if_rts_layer_missing(
     cable_array_with_rts_input_data: dict,
 ) -> None:
-    """rrts raises ValueError when a cut layer has NaN RTS in catalog data."""
-    # Set rts_layer_3 to None (will become NaN after schema coercion)
+    """rrts raises RtsDataNotAvailable when a cut layer has NaN RTS."""
     data = cable_array_with_rts_input_data.copy()
     data["rts_layer_3"] = [None]
-    ca = CableArray(pd.DataFrame(data))
-    # Cut 1 strand in layer 3 (index 2 → rts_layer_3)
-    ca.cut_strands = np.array([0, 0, 1, 0, 0, 0, 0, 0])
-    with pytest.raises(ValueError, match="rts_layer_3"):
-        _ = ca.rrts
+    cable_data = CableArray(pd.DataFrame(data)).data
+    strength = AdditiveLayerRts(cable_data)
+    strength.cut_strands = np.array([0, 0, 1, 0, 0, 0, 0, 0])
+    with pytest.raises(RtsDataNotAvailable, match="rts_layer_3"):
+        _ = strength.rrts
 
 
 @pytest.mark.unit_test
-def test_safety_coefficient_default(cable_array_with_rts: CableArray) -> None:
+def test_safety_coefficient_default(
+    rts_strength_fixture: AdditiveLayerRts,
+) -> None:
     """safety_coefficient returns the catalog value when high_safety is False."""
-    assert cable_array_with_rts.safety_coefficient == pytest.approx(
+    assert rts_strength_fixture.safety_coefficient == pytest.approx(
         _SAFETY_COEF
     )
 
 
 @pytest.mark.unit_test
 def test_safety_coefficient_high_safety(
-    cable_array_with_rts: CableArray,
+    rts_strength_fixture: AdditiveLayerRts,
 ) -> None:
     """safety_coefficient returns catalog value × 1.5 when high_safety is True."""
-    cable_array_with_rts.high_safety = True
-    assert cable_array_with_rts.safety_coefficient == pytest.approx(
+    rts_strength_fixture.high_safety = True
+    assert rts_strength_fixture.safety_coefficient == pytest.approx(
         _SAFETY_COEF * 1.5
     )
 
 
-# ---------------------------------------------------------------------------
-# New tests covering lines 442, 447, 461, 565, 572, 602, 617, 621
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.unit_test
-def test_high_safety_getter_default(cable_array_with_rts: CableArray) -> None:
-    """high_safety getter (line 442) returns False by default."""
-    assert cable_array_with_rts.high_safety is False
+def test_high_safety_getter_default(
+    rts_strength_fixture: AdditiveLayerRts,
+) -> None:
+    """high_safety getter returns False by default."""
+    assert rts_strength_fixture.high_safety is False
 
 
 @pytest.mark.unit_test
 def test_high_safety_getter_after_set(
-    cable_array_with_rts: CableArray,
+    rts_strength_fixture: AdditiveLayerRts,
 ) -> None:
-    """high_safety getter (line 442) reflects the value after being set."""
-    cable_array_with_rts.high_safety = True
-    assert cable_array_with_rts.high_safety is True
+    """high_safety getter reflects the value after being set."""
+    rts_strength_fixture.high_safety = True
+    assert rts_strength_fixture.high_safety is True
 
 
 @pytest.mark.unit_test
 def test_high_safety_setter_non_bool_raises(
-    cable_array_with_rts: CableArray,
+    rts_strength_fixture: AdditiveLayerRts,
 ) -> None:
-    """high_safety setter (line 447) raises TypeError when a non-bool is passed."""
+    """high_safety setter raises TypeError when a non-bool is passed."""
     with pytest.raises(TypeError, match="boolean"):
-        cable_array_with_rts.high_safety = 1  # type: ignore[assignment]
+        rts_strength_fixture.high_safety = 1  # type: ignore[assignment]
 
 
 @pytest.mark.unit_test
 def test_safety_coefficient_missing_column(
     cable_array_input_data: dict,
 ) -> None:
-    """safety_coefficient (line 461) falls back to default when column is absent."""
-    ca = CableArray(pd.DataFrame(cable_array_input_data))
-    assert ca.safety_coefficient == pytest.approx(
+    """safety_coefficient falls back to default when column is absent."""
+    cable_data = CableArray(pd.DataFrame(cable_array_input_data)).data
+    strength = AdditiveLayerRts(cable_data)
+    assert strength.safety_coefficient == pytest.approx(
         options.data.safety_coefficient_default
     )
 
@@ -279,11 +289,12 @@ def test_safety_coefficient_missing_column(
 def test_safety_coefficient_nan_value(
     cable_array_input_data: dict,
 ) -> None:
-    """safety_coefficient (line 461) falls back to default when value is NaN."""
+    """safety_coefficient falls back to default when value is NaN."""
     data = cable_array_input_data.copy()
     data["safety_coefficient"] = [None]
-    ca = CableArray(pd.DataFrame(data))
-    assert ca.safety_coefficient == pytest.approx(
+    cable_data = CableArray(pd.DataFrame(data)).data
+    strength = AdditiveLayerRts(cable_data)
+    assert strength.safety_coefficient == pytest.approx(
         options.data.safety_coefficient_default
     )
 
@@ -292,21 +303,21 @@ def test_safety_coefficient_nan_value(
 def test_rts_coverage_zero_denominator(
     cable_array_with_rts_input_data: dict,
 ) -> None:
-    """rts_coverage (line 565) raises ValueError when denominator is zero."""
+    """rts_coverage raises ValueError when denominator is zero."""
     # nb_strand_* columns absent → all zeros → denominator = 0
-    ca = CableArray(pd.DataFrame(cable_array_with_rts_input_data))
+    cable_data = CableArray(pd.DataFrame(cable_array_with_rts_input_data)).data
+    strength = AdditiveLayerRts(cable_data)
     with pytest.raises(ValueError, match="denominator is zero"):
-        ca.rts_coverage()
+        strength.rts_coverage()
 
 
 @pytest.mark.unit_test
 def test_rts_coverage_no_rts_cable(
     cable_array_with_rts_input_data: dict,
 ) -> None:
-    """rts_coverage (line 572) raises RtsDataNotAvailable when rts_cable is NaN."""
+    """rts_coverage raises RtsDataNotAvailable when rts_cable is NaN."""
     data = cable_array_with_rts_input_data.copy()
     data["rts_cable"] = [None]
-    # Provide nb_strand_* so denominator is non-zero
     data.update(
         {
             "nb_strand_layer_1": [10],
@@ -319,23 +330,26 @@ def test_rts_coverage_no_rts_cable(
             "nb_strand_layer_8": [0],
         }
     )
-    ca = CableArray(pd.DataFrame(data))
+    cable_data = CableArray(pd.DataFrame(data)).data
+    strength = AdditiveLayerRts(cable_data)
     with pytest.raises(RtsDataNotAvailable, match="rts_cable"):
-        ca.rts_coverage()
+        strength.rts_coverage()
 
 
 @pytest.mark.unit_test
-def test_cut_strands_negative_raises(cable_array_with_rts: CableArray) -> None:
-    """cut_strands setter (line 602) raises ValueError for negative values."""
+def test_cut_strands_negative_raises(
+    rts_strength_fixture: AdditiveLayerRts,
+) -> None:
+    """cut_strands setter raises ValueError for negative values."""
     with pytest.raises(ValueError, match="non-negative"):
-        cable_array_with_rts.cut_strands = np.array([-1, 0, 0, 0, 0, 0, 0, 0])
+        rts_strength_fixture.cut_strands = np.array([-1, 0, 0, 0, 0, 0, 0, 0])
 
 
 @pytest.mark.unit_test
 def test_cut_strands_exceeds_max_raises(
     cable_array_with_rts_input_data: dict,
 ) -> None:
-    """cut_strands setter (lines 617/621) raises ValueError when cut > max allowed."""
+    """cut_strands setter raises ValueError when cut > max allowed."""
     data = cable_array_with_rts_input_data.copy()
     data.update(
         {
@@ -349,7 +363,8 @@ def test_cut_strands_exceeds_max_raises(
             "nb_strand_layer_8": [0],
         }
     )
-    ca = CableArray(pd.DataFrame(data))
+    cable_data = CableArray(pd.DataFrame(data)).data
+    strength = AdditiveLayerRts(cable_data)
     # max allowed for layer 1 = int(10/2) = 5; passing 6 should raise
     with pytest.raises(ValueError, match="exceeds allowed maximum"):
-        ca.cut_strands = np.array([6, 0, 0, 0, 0, 0, 0, 0])
+        strength.cut_strands = np.array([6, 0, 0, 0, 0, 0, 0, 0])

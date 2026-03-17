@@ -91,4 +91,30 @@ print(cable.utilization_rate(tensions))
 # tighter limits — values are divided by 1.5 compared to the default
 ```
 
-See the [API reference](../docstring/entities/arrays.md) for full `CableArray` documentation.
+## Architecture
+
+Under the hood, `CableArray` delegates all RRTS-related computations to a
+[`ITensileStrength`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength]
+implementation. The default implementation is
+[`AdditiveLayerRts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts],
+which computes strand-level losses additively per layer. A custom model can be
+injected via the `tensile_strength` argument of `CableArray`.
+
+!!! note "Custom tensile strength models"
+    You can implement your own tensile strength model by subclassing
+    [`ITensileStrength`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength].
+    This interface defines the contract for `cut_strands`, `high_safety`,
+    `safety_coefficient`, `nb_strand_per_layer`, `rts_coverage`, `rrts`, and
+    `utilization_rate`. Once implemented, pass an instance to `CableArray`:
+
+    ```python
+    cable = CableArray(data, tensile_strength=MyCustomModel(data))
+    ```
+
+    This is useful when the default additive per-layer model does not match
+    your cable technology (e.g. composite cables, non-uniform strand
+    contributions, or proprietary strength models).
+
+See the [CableArray API reference](../docstring/entities/arrays.md) and the
+[Cable Strength API reference](../docstring/core/models/cable/cable_strength.md)
+for full documentation.
