@@ -1137,7 +1137,6 @@ def test_angles_counterweight(cable_array_AM600: CableArray):
     )
 
 
-# TODO: results with proto
 @pytest.mark.integration
 # results generated with proto v4
 def test_angles_bundle_number(cable_array_AM600: CableArray):
@@ -1172,40 +1171,38 @@ def test_angles_bundle_number(cable_array_AM600: CableArray):
     expected_dx = np.array(
         [
             0.01,
-            2.50480753544961e-02,
-            4.81982621253004e-02,
+            4.32245153296619e-02,
+            6.44096406971964e-02,
             -0.01,
         ]
     )
-    expected_dy = np.array([0, 1.25880394520106, 2.2269993160844, 0])
-    # minus 3 here because proto v4 stores displacement relatively to the position [0,0, -L]
-    expected_dz = np.array(
-        [0, 0.276989676577172 - 3, 0.990484890903352 - 3, 0]
-    )
 
-    expected_L_ref = np.array(
-        [499.415657345651, 300.729929727204, 401.991607493655]
-    )
+    # reversed axis so sign change
+    expected_dy = -np.array([0, -2.2058305197297, -2.80369583556378, 0])
+    # minus 3 here because proto v4 stores displacement relatively to the position [0,0, -L]
+    expected_dz = np.array([0, 0.967158796289408 - 3, 1.93457001176634 - 3, 0])
+
+    expected_L_ref = np.array([499.335, 300.478, 401.822])
 
     expected_vhl_under_chain = np.array(
         [
             [
-                2971.02435232232,
-                17257.40313455535,
-                17119.90740813478,
-                3907.54805180944,
+                8762.49,
+                21818.83,
+                21690.95,
+                11468.72,
             ],
             [
-                -788.259742993468,
-                -8093.4515419997,
-                -19249.9553187584,
-                665.25113770311,
+                -2564.78,
+                -23946.87,
+                -57738.04,
+                1849.64,
             ],
             [
-                35307.1946728045,
-                161.256201145954,
-                416.411091650267,
-                -35309.7294947654,
+                105916.94,
+                469.38,
+                1326.28,
+                -105931.83,
             ],
         ]
     )

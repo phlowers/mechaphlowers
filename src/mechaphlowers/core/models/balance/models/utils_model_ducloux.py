@@ -149,7 +149,8 @@ class VectorProjection:
         r_s_g = lg * np.cos(proj_angle) - hg * np.sin(proj_angle)
         r_t_g = lg * np.sin(proj_angle) + hg * np.cos(proj_angle)
         r_z_g = vg
-        return np.array([r_s_g, r_t_g, r_z_g])
+        # multipliying by bundle number: multiple cables means forces are multiplied too
+        return np.array([r_s_g, r_t_g, r_z_g]) * self.bundle_number
 
     def T_line_plane_right(self) -> np.ndarray:
         ld, hd, vd = self.T_attachments_plane_right()
@@ -157,7 +158,8 @@ class VectorProjection:
         r_s_d = ld * np.cos(proj_angle) - hd * np.sin(proj_angle)
         r_t_d = ld * np.sin(proj_angle) + hd * np.cos(proj_angle)
         r_z_d = vd
-        return np.array([r_s_d, r_t_d, r_z_d])
+        # multipliying by bundle number: multiple cables means forces are multiplied too
+        return np.array([r_s_d, r_t_d, r_z_d]) * self.bundle_number
 
     def force_cable(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Compute forces of the cable on the insulator chain
@@ -169,7 +171,6 @@ class VectorProjection:
         Returns:
             tuple[np.ndarray, np.ndarray, np.ndarray]: Fx, Fy, Fz
         """
-        # TODO: multiply here by bundle number?
         s_right, t_right, z_right = self.T_line_plane_right()
         T_line_plane_left = self.T_line_plane_left()
         s_left, t_left, z_left = T_line_plane_left
@@ -205,18 +206,9 @@ class VectorProjection:
         )
         Fz_last = z_right[-1]
 
-        Fx = (
-            np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
-            * self.bundle_number
-        )
-        Fy = (
-            np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
-            * self.bundle_number
-        )
-        Fz = (
-            np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
-            * self.bundle_number
-        )
+        Fx = np.concat(([Fx_first], Fx_suspension[:-1], [Fx_last]))
+        Fy = np.concat(([Fy_first], Fy_suspension[:-1], [Fy_last]))
+        Fz = np.concat(([Fz_first], Fz_suspension[:-1], [Fz_last]))
         return Fx, Fy, Fz
 
     def force_cable_right(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

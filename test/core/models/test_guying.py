@@ -558,7 +558,6 @@ def test_guying_counterweight(cable_array_AM600: CableArray):
 
 
 # TODO: refacto to use main test
-# TODO: make this test with correct results form proto
 @pytest.mark.integration
 def test_guying_bundle_number(cable_array_AM600: CableArray):
     section_array = SectionArray(
@@ -610,10 +609,10 @@ def test_guying_bundle_number(cable_array_AM600: CableArray):
     }
 
     expected_guying_no_pulley = {
-        "guying_tension": Q_(5009.0, "daN"),
-        "vertical_force": Q_(4867.0, "daN"),
+        "guying_tension": Q_(15129.0, "daN"),
+        "vertical_force": Q_(11637.0, "daN"),
         "longitudinal_force": Q_(0, "daN"),
-        "guying_angle_degrees": Q_(45.2, "degrees"),
+        "guying_angle_degrees": Q_(45.5, "degrees"),
     }
 
     assert guying_results_no_pulley == GuyingResults(
@@ -638,10 +637,10 @@ def test_guying_bundle_number(cable_array_AM600: CableArray):
     }
 
     expected_guying_pulley = {
-        "guying_tension": Q_(3534.0, "daN"),
-        "vertical_force": Q_(3821.0, "daN"),
-        "longitudinal_force": Q_(1039.0, "daN"),
-        "guying_angle_degrees": Q_(45.2, "degrees"),
+        "guying_tension": Q_(10603.0, "daN"),
+        "vertical_force": Q_(8406.0, "daN"),
+        "longitudinal_force": Q_(3170.0, "daN"),
+        "guying_angle_degrees": Q_(45.5, "degrees"),
     }
 
     assert guying_results_pulley == GuyingResults(**expected_guying_pulley)
