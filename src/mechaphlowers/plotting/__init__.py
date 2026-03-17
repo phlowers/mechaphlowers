@@ -10,5 +10,11 @@ from mechaphlowers.plotting.plot import (
     figure_factory,
     plot_support_shape,
 )
+from mechaphlowers.plotting.utils import compute_aspect_ratio
 
-__all__ = ["PlotEngine", "figure_factory", "plot_support_shape"]
+__all__ = [
+    "PlotEngine",
+    "figure_factory",
+    "plot_support_shape",
+    "compute_aspect_ratio",
+]
