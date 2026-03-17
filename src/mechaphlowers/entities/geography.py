@@ -217,7 +217,7 @@ class GeoLocator:
     def _check_gps_available(self) -> None:
         if self._latitude_0 is None:
             raise GpsNoDataAvailable(
-                "GPS data is not available. Call set_starting_gps() first."
+                "GPS data is not available. Call set_starting_gps() or set_starting_lambert93() first."
             )
 
     def get_gps(

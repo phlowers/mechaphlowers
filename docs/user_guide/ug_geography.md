@@ -79,7 +79,7 @@ new_section = SectionArray(...)  # no set_starting_gps called
 try:
     new_section.get_gps()
 except GpsNoDataAvailable as e:
-    print(e)  # GPS data is not available. Call set_starting_gps() first.
+    print(e)  # GPS data is not available. Call set_starting_gps() or set_starting_lambert93() first.
 ```
 
 See [Error Classes](../docstring/entities/errors.md) for details.
