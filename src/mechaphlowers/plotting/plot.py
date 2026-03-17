@@ -198,7 +198,35 @@ def set_layout(
     if aspect_ratio is not None:
         # Custom aspect ratio provided: always use manual mode
         aspect_mode: str = "manual"
-        final_aspect_ratio: dict[str, float] = aspect_ratio
+
+        # Validate custom aspect ratio: must be a dict with keys 'x', 'y', 'z'
+        if not isinstance(aspect_ratio, dict):
+            raise ValueError(
+                "aspect_ratio must be a dict with keys 'x', 'y', 'z' and positive float values."
+            )
+
+        required_keys = ("x", "y", "z")
+        validated_aspect_ratio: dict[str, float] = {}
+        for key in required_keys:
+            if key not in aspect_ratio:
+                raise ValueError(
+                    f"aspect_ratio is missing required key {key!r}. "
+                    "Expected keys are 'x', 'y', and 'z'."
+                )
+            value = aspect_ratio[key]
+            try:
+                value_float = float(value)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"aspect_ratio[{key!r}] must be a float-convertible number, got {value!r}."
+                ) from exc
+            if value_float <= 0:
+                raise ValueError(
+                    f"aspect_ratio[{key!r}] must be a positive float, got {value_float!r}."
+                )
+            validated_aspect_ratio[key] = value_float
+
+        final_aspect_ratio = validated_aspect_ratio
         zoom: float = 5
     else:
         # Use auto parameter to determine behavior
