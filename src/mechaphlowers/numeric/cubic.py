@@ -107,13 +107,14 @@ def multi_cubic(
             return r1
 
     # Compute roots
+    roots: np.ndarray
     if all_roots:
         roots = np.zeros((3, len(a))).astype(complex)
         roots[:, m1] = roots_all_real_equal(c[m1])
         roots[:, m2] = roots_all_real_distinct(a13[m2], f[m2], g[m2], h[m2])
         roots[:, m3] = roots_one_real(a13[m3], g[m3], h[m3])
     else:
-        roots = np.zeros(len(a))  # type: ignore[assignment]
+        roots = np.zeros(len(a))
         roots[m1] = roots_all_real_equal(c[m1])
         roots[m2] = roots_all_real_distinct(a13[m2], f[m2], g[m2], h[m2])
         roots[m3] = roots_one_real(a13[m3], g[m3], h[m3])

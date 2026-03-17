@@ -82,9 +82,6 @@ def plot_text_3d(
     fig: go.Figure,
     points: np.ndarray,
     text: list[str] | np.ndarray,
-    color: str | None = None,
-    width: int | float = 3,
-    size: int | float | None = None,
     name: str = "Points",
 ) -> None:
     fig.add_trace(
