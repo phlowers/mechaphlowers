@@ -427,6 +427,79 @@ def test_section_array_to_gps():
     assert longitude.shape == (5,)
 
 
+def test_section_array_copy_preserves_geolocator():
+    from copy import copy
+
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["1", "2", "three", "4", "5"]),
+                "suspension": np.array([False, True, True, True, False]),
+                "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
+                "line_angle": np.array([90, 90, 90, 90, 90]),
+                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
+                "insulator_mass": np.array(
+                    [1000.0, 500.0, 500.0, 500.0, 1000.0]
+                ),
+            }
+        )
+    )
+    section_array.set_starting_gps(
+        latitude_0=48.8566,
+        longitude_0=2.3522,
+        azimuth_0=45,
+    )
+
+    section_copy = copy(section_array)
+    lat_orig, lon_orig = section_array.get_gps()
+    lat_copy, lon_copy = section_copy.get_gps()
+
+    np.testing.assert_allclose(lat_copy, lat_orig, atol=1e-8)
+    np.testing.assert_allclose(lon_copy, lon_orig, atol=1e-8)
+
+
+def test_section_array_copy_geolocator_is_independent():
+    from copy import copy
+
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["1", "2", "three", "4", "5"]),
+                "suspension": np.array([False, True, True, True, False]),
+                "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
+                "line_angle": np.array([90, 90, 90, 90, 90]),
+                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
+                "insulator_mass": np.array(
+                    [1000.0, 500.0, 500.0, 500.0, 1000.0]
+                ),
+            }
+        )
+    )
+    section_array.set_starting_gps(
+        latitude_0=48.8566,
+        longitude_0=2.3522,
+        azimuth_0=45,
+    )
+
+    section_copy = copy(section_array)
+    # Mutate the copy's geolocator
+    section_copy.set_starting_gps(
+        latitude_0=49.0,
+        longitude_0=3.0,
+        azimuth_0=90,
+    )
+
+    lat_orig, lon_orig = section_array.get_gps()
+    lat_copy, lon_copy = section_copy.get_gps()
+
+    assert not np.allclose(lat_orig, lat_copy)
+    assert not np.allclose(lon_orig, lon_copy)
+
+
 def test_create_cable_array__with_floats(
     cable_array_input_data: dict,
 ) -> None:

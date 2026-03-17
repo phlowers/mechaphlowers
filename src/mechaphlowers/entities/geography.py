@@ -207,6 +207,13 @@ class GeoLocator:
         lat, lon = lambert93_to_gps(np.float64(easting), np.float64(northing))
         self.set_starting_gps(float(lat), float(lon), azimuth_0)
 
+    def __copy__(self) -> "GeoLocator":
+        new = GeoLocator()
+        new._latitude_0 = self._latitude_0
+        new._longitude_0 = self._longitude_0
+        new._azimuth_0 = self._azimuth_0
+        return new
+
     def _check_gps_available(self) -> None:
         if self._latitude_0 is None:
             raise GpsNoDataAvailable(

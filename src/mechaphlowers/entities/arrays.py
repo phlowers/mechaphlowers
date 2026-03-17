@@ -7,6 +7,7 @@
 import logging
 import warnings
 from abc import ABC
+from copy import copy
 
 import numpy as np
 import pandas as pd
@@ -332,9 +333,7 @@ class SectionArray(ElementArray):
         copy_obj = super().__copy__()
         copy_obj.sagging_parameter = self.sagging_parameter
         copy_obj.sagging_temperature = self.sagging_temperature
-        copy_obj.geolocator._latitude_0 = self.geolocator._latitude_0
-        copy_obj.geolocator._longitude_0 = self.geolocator._longitude_0
-        copy_obj.geolocator._azimuth_0 = self.geolocator._azimuth_0
+        copy_obj.geolocator = copy(self.geolocator)
         return copy_obj
 
 
