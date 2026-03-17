@@ -237,7 +237,7 @@ class PlotEngine(Observer):
         self.initialize_engine(balance_engine)
         self.reset(balance_engine=balance_engine)
 
-    def initialize_engine(self, balance_engine):
+    def initialize_engine(self, balance_engine: BalanceEngine):
         self.spans = balance_engine.balance_model.nodes_span_model
         self.cable_loads = balance_engine.cable_loads
         self.section_array = balance_engine.section_array

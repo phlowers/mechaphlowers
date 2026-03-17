@@ -269,9 +269,9 @@ def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
         np.nan,
     ]
 
-    # # Reset objects to factor in modifications
+    # Reset objects to factor in modifications
     balance_engine_no_loads.reset(full=False)
-    # plt_engine.reset(balance_engine=balance_engine_no_loads)
+
 
     balance_engine_no_loads.solve_adjustment()
     balance_engine_no_loads.solve_change_state(
