@@ -306,7 +306,7 @@ class Guying:
             guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
             insulator_weight (float): Chain/insulator weight (N)
             cable_linear_weight (float): Linear weight of conductor (N/m)
-            bundle_number (float): Bundle coefficient (dimensionless)
+            bundle_number (int): Bundle coefficient (dimensionless)
 
         Returns:
             GuyingResults: Results containing guying_tension, vertical_force, longitudinal_force, and guying_angle_degrees
@@ -372,7 +372,6 @@ class Guying:
         guying_horizontal_distance: float,
         insulator_weight: float,  # chain weight (pds_chaine)
         cable_linear_weight: float,  # linear weight of conductor (pds_lin)
-        # TODO: float or int?
         bundle_number: int,  # bundle coefficient (faisceau)
         span_tension: float,  # span horizontal tension (th)
         span_slope: float,  # span slope in radians (pente_g)
@@ -391,7 +390,7 @@ class Guying:
             guying_horizontal_distance (float): Horizontal distance to guying attachment point (m)
             insulator_weight (float): Chain/insulator weight (N)
             cable_linear_weight (float): Linear weight of conductor (N/m)
-            bundle_number (float): Bundle coefficient (dimensionless)
+            bundle_number (int): Bundle coefficient (dimensionless)
             span_tension (float): Horizontal tension in span (N)
             span_slope (float): Span slope angle (radians)
 

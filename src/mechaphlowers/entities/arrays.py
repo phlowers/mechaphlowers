@@ -122,6 +122,7 @@ class SectionArray(ElementArray):
         "span_length": "m",
         "insulator_mass": "kg",
         "load_mass": "kg",
+        "counterweight_mass": "kg",
     }
 
     def __init__(
@@ -147,7 +148,7 @@ class SectionArray(ElementArray):
             self.sagging_temperature = sagging_temperature
         if bundle_number < 1:
             raise ValueError(
-                f"bundle_number should be a positive integer. Recieved: {bundle_number}"
+                f"bundle_number should be a positive integer. Received: {bundle_number}"
             )
         self.bundle_number = bundle_number
         self.input_units = options.input_units.section_array.copy()

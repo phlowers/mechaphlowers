@@ -149,7 +149,7 @@ class VectorProjection:
         r_s_g = lg * np.cos(proj_angle) - hg * np.sin(proj_angle)
         r_t_g = lg * np.sin(proj_angle) + hg * np.cos(proj_angle)
         r_z_g = vg
-        # multipliying by bundle number: multiple cables means forces are multiplied too
+        # multiplying by bundle number: multiple cables means forces are multiplied too
         return np.array([r_s_g, r_t_g, r_z_g]) * self.bundle_number
 
     def T_line_plane_right(self) -> np.ndarray:
@@ -158,7 +158,7 @@ class VectorProjection:
         r_s_d = ld * np.cos(proj_angle) - hd * np.sin(proj_angle)
         r_t_d = ld * np.sin(proj_angle) + hd * np.cos(proj_angle)
         r_z_d = vd
-        # multipliying by bundle number: multiple cables means forces are multiplied too
+        # multiplying by bundle number: multiple cables means forces are multiplied too
         return np.array([r_s_d, r_t_d, r_z_d]) * self.bundle_number
 
     def force_cable(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -166,7 +166,7 @@ class VectorProjection:
 
         Does NOT include insulator chain weight.
 
-        Takes into account bundle number?
+        Takes into account bundle number via T_line_plane_left()/T_line_plane_right()
 
         Returns:
             tuple[np.ndarray, np.ndarray, np.ndarray]: Fx, Fy, Fz
