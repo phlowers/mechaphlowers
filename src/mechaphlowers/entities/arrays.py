@@ -312,21 +312,19 @@ class CableArray(ElementArray):
     """Physical description of a cable.
 
     Holds catalog data for one cable type and provides RRTS (Residual Rated
-    Tensile Strength) calculations via :attr:`rrts` and :meth:`utilization_rate`.
-    Use :attr:`cut_strands` to declare the number of damaged strands per layer.
+    Tensile Strength) calculations via [`rrts`][mechaphlowers.entities.arrays.CableArray.rrts] and [`utilization_rate`][mechaphlowers.entities.arrays.CableArray.utilization_rate].
+    Use [`cut_strands`][mechaphlowers.entities.arrays.CableArray.cut_strands] to declare the number of damaged strands per layer.
 
     The tensile strength model is handled by
     [`AdditiveLayerRts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts]
-    by default, but any :class:`ITensileStrength
-    <mechaphlowers.core.models.cable.cable_strength.ITensileStrength>` implementation
+    by default, but any [`ITensileStrength`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength] implementation
     can be injected via the ``tensile_strength`` constructor argument.
 
     Args:
         data: Input data as a DataFrame matching
             [`CableArrayInput`][mechaphlowers.entities.schemas.CableArrayInput].
         tensile_strength: Optional tensile strength model. Defaults to
-            :class:`AdditiveLayerRts
-            <mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts>`.
+            [`AdditiveLayerRts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts].
     """
 
     array_input_type: Type[pa.DataFrameModel] = CableArrayInput

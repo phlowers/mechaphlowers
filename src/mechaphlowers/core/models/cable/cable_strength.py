@@ -71,34 +71,32 @@ class AdditiveLayerRts(ITensileStrength):
 
     Computes RRTS as:
 
-    .. math::
-
-        RRTS = RTS_{cable} - \\sum_{i} cut\\_strands_i \\times rts\\_layer_i
+    $$RRTS = RTS_{cable} - \\sum_{i} cut\\_strands_i \\times rts\\_layer_i$$
 
     Args:
         cable_data: Unit-converted cable data snapshot (e.g. from
             ``CableArray.data``, validated against
-            :class:`~mechaphlowers.entities.schemas.CableArrayInput`).
+            [`CableArrayInput`][mechaphlowers.entities.schemas.CableArrayInput]).
             The class reads the following columns — all values must already be
             expressed in SI units (N for forces) as delivered by
-            :class:`~mechaphlowers.entities.arrays.CableArray`:
+            [`CableArray`][mechaphlowers.entities.arrays.CableArray]:
 
             - ``rts_cable`` *(int, optional/nullable)*: Rated Tensile Strength
-              of the whole cable in N. Required by :attr:`rrts` and
-              :meth:`rts_coverage`; raises
-              :class:`~mechaphlowers.entities.errors.RtsDataNotAvailable` when
+              of the whole cable in N. Required by [`rrts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.rrts] and
+              [`rts_coverage`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.rts_coverage]; raises
+              [`RtsDataNotAvailable`][mechaphlowers.entities.errors.RtsDataNotAvailable] when
               absent or NaN.
             - ``rts_layer_1`` … ``rts_layer_8`` *(int, optional/nullable)*:
               RTS contribution of a single strand in each layer, in N.
-              Used by :attr:`rrts` (when the corresponding
-              :attr:`cut_strands` entry is non-zero) and by
-              :meth:`rts_coverage`. Missing or NaN values are treated as 0
-              in :meth:`rts_coverage` but raise
-              :class:`~mechaphlowers.entities.errors.RtsDataNotAvailable` in
-              :attr:`rrts` if the layer has cut strands.
+              Used by [`rrts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.rrts] (when the corresponding
+              [`cut_strands`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.cut_strands] entry is non-zero) and by
+              [`rts_coverage`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.rts_coverage]. Missing or NaN values are treated as 0
+              in [`rts_coverage`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.rts_coverage] but raise
+              [`RtsDataNotAvailable`][mechaphlowers.entities.errors.RtsDataNotAvailable] in
+              [`rrts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.rrts] if the layer has cut strands.
             - ``nb_strand_layer_1`` … ``nb_strand_layer_8`` *(int,
               optional/nullable)*: Number of strands in each layer.
-              Used by :attr:`nb_strand_per_layer`, :meth:`rts_coverage`, and
+              Used by [`nb_strand_per_layer`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.nb_strand_per_layer], [`rts_coverage`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.rts_coverage], and
               to enforce the ``cut_strands`` upper bound. Missing or NaN
               values are treated as 0.
             - ``safety_coefficient`` *(float, optional/nullable)*: Cable-
@@ -141,8 +139,8 @@ class AdditiveLayerRts(ITensileStrength):
         """Enable or disable the additional safety coefficient security mechanism.
 
         When enabled, the effective
-        :attr:`safety_coefficient` is multiplied by ``1.5``, which tightens
-        the utilization rate limit computed by :meth:`utilization_rate`.
+        [`safety_coefficient`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.safety_coefficient] is multiplied by ``1.5``, which tightens
+        the utilization rate limit computed by [`utilization_rate`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.utilization_rate].
         """
         return self._high_safety
 
@@ -162,7 +160,7 @@ class AdditiveLayerRts(ITensileStrength):
 
         Returns the catalog ``safety_coefficient`` value, or
         ``options.data.safety_coefficient_default`` when the column is absent
-        or NaN. If :attr:`high_safety` is ``True``, the value is multiplied by
+        or NaN. If [`high_safety`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.high_safety] is ``True``, the value is multiplied by
         ``options.data.safety_security_factor``.
         """
         col = self._cable_data.get("safety_coefficient")
@@ -200,7 +198,7 @@ class AdditiveLayerRts(ITensileStrength):
         Index 0 = layer 1, …, index 7 = layer 8.
         Returns zeros for layers whose column is absent or NaN in the catalog.
 
-        This value is used to enforce that :attr:`cut_strands` cannot exceed
+        This value is used to enforce that [`cut_strands`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.cut_strands] cannot exceed
         ``int(nb_strand_per_layer[i] / 2)`` for each layer.
         """
         arr = (
@@ -217,9 +215,7 @@ class AdditiveLayerRts(ITensileStrength):
     def rts_coverage(self) -> float:
         """Ratio of cable RTS to the sum of strand-level RTS contributions.
 
-        .. math::
-
-            \\text{rts\\_coverage} = \\frac{RTS_{cable}}{\\sum_{i} rts_{layer,i} \\times nb_{strand,i}}
+        $$\\text{rts_coverage} = \\frac{RTS_{cable}}{\\sum_{i} rts_{layer,i} \\times nb_{strand,i}}$$
 
         An acceptable value is between 0.75 and 1.0 (75%–100%). Values outside
         this range indicate that the strand-level model poorly explains the
