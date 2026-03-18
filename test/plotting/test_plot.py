@@ -56,10 +56,8 @@ def balance_engine_local_initialized() -> BalanceEngine:
     }
 
     section_array = SectionArray(
-        data=pd.DataFrame(data), sagging_parameter=2000, sagging_temperature=15
+        data=pd.DataFrame(data), sagging_parameter=500, sagging_temperature=15
     )
-    section_array.sagging_parameter = 500
-    section_array.sagging_temperature = 15
     cable_array_AM600: CableArray = sample_cable_catalog.get_as_object(
         ["ASTER600"]
     )  # type: ignore[assignment]
@@ -292,8 +290,6 @@ def test_plot_more_spans(cable_array_AM600: CableArray):
         sagging_parameter=2000,
         sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     balance_engine = BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
     )

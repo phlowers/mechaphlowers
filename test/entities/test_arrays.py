@@ -929,6 +929,7 @@ def test_correct_insulator_length(section_array: SectionArray) -> None:
 
     # test on .data property
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
+    # warning expected in the test
     with pytest.warns(DataWarning):
         insulator_length = section_array.data.insulator_length
     np.testing.assert_allclose(insulator_length, expected_lengths)
