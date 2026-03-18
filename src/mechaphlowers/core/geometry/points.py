@@ -362,9 +362,6 @@ class SectionPoints:
         self.insulator_length = insulator_length
         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
 
-    # def init_span(self, span_model: ISpan) -> None:
-    #     """change the span model and update the cable coordinates."""
-
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
         self.x_cable, self.z_cable = self.span_model.get_coords(resolution)

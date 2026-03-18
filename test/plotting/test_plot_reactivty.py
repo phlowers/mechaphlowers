@@ -222,7 +222,7 @@ class TestReferenceIntegrity:
         so updates to nodes_span_model are immediately visible in the plot engine."""
         plt_engine = PlotEngine(balance_engine_base_test)
         assert (
-            plt_engine.spans
+            plt_engine.span_model
             is balance_engine_base_test.balance_model.nodes_span_model
         )
 
@@ -232,16 +232,16 @@ class TestReferenceIntegrity:
         """reset(full=False) uses mirror() so nodes_span_model keeps the same
         Python identity — PlotEngine.spans does NOT become a dangling reference."""
         plt_engine = PlotEngine(balance_engine_base_test)
-        original_id = id(plt_engine.spans)
+        original_id = id(plt_engine.span_model)
 
         balance_engine_base_test.add_loads(
             load_position_distance=np.array([0, 0, 0, np.nan]),
             load_mass=np.array([0, 0, 0, np.nan]),
         )
 
-        assert id(plt_engine.spans) == original_id
+        assert id(plt_engine.span_model) == original_id
         assert (
-            plt_engine.spans
+            plt_engine.span_model
             is balance_engine_base_test.balance_model.nodes_span_model
         )
 
@@ -249,11 +249,11 @@ class TestReferenceIntegrity:
         self, balance_engine_base_test: BalanceEngine
     ):
         plt_engine = PlotEngine(balance_engine_base_test)
-        original_id = id(plt_engine.spans)
+        original_id = id(plt_engine.span_model)
 
         balance_engine_base_test.reset(full=False)
 
-        assert id(plt_engine.spans) == original_id
+        assert id(plt_engine.span_model) == original_id
 
 
 # ── Section 6: reset(full=True) breaks the observer link ─────────────────────
@@ -330,7 +330,9 @@ class TestCoordCoherence:
             load_mass=np.array([0, 0, 0, np.nan]),
         )
 
-        x_expected, _ = plt_engine.spans.get_coords(cfg.graphics.resolution)
+        x_expected, _ = plt_engine.span_model.get_coords(
+            cfg.graphics.resolution
+        )
         np.testing.assert_array_equal(
             plt_engine.section_pts.x_cable, x_expected
         )
@@ -368,7 +370,9 @@ class TestCoordCoherence:
         )
 
         # x_cable is now consistent with the (post-solve) span model.
-        x_expected, _ = plt_engine.spans.get_coords(cfg.graphics.resolution)
+        x_expected, _ = plt_engine.span_model.get_coords(
+            cfg.graphics.resolution
+        )
         np.testing.assert_array_equal(
             plt_engine.section_pts.x_cable, x_expected
         )

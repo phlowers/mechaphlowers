@@ -238,12 +238,12 @@ class PlotEngine(Observer):
         self.reset(balance_engine=balance_engine)
 
     def initialize_engine(self, balance_engine: BalanceEngine):
-        self.spans = balance_engine.balance_model.nodes_span_model
+        self.span_model = balance_engine.balance_model.nodes_span_model
         self.cable_loads = balance_engine.cable_loads
         self.section_array = balance_engine.section_array
         self.section_pts = SectionPoints(
             section_array=self.section_array,
-            span_model=self.spans,
+            span_model=self.span_model,
             cable_loads=self.cable_loads,
             get_displacement=balance_engine.get_displacement,
         )
@@ -313,7 +313,7 @@ class PlotEngine(Observer):
             dict: dictionary that stores the coordinates. Key is span index. Value is a np.array of coordinates.
         """
         spans_points, _, _ = self.get_points_for_plot(project, frame_index)
-        loads_spans_idx, loads_points_idx = self.spans.loads_indices
+        loads_spans_idx, loads_points_idx = self.span_model.loads_indices
         result_dict = {}
         for index_in_small_array, span_index in enumerate(loads_spans_idx):
             # point_index is the index of the load point in spans_points.coords
@@ -570,7 +570,7 @@ class PlotEngine(Observer):
     def __str__(self) -> str:
         return (
             f"number of supports: {self.section_array.data.span_length.shape[0]}\n"
-            f"parameter: {self.spans.sagging_parameter}\n"
+            f"parameter: {self.span_model.sagging_parameter}\n"
             f"wind: {self.cable_loads.wind_pressure}\n"
             f"ice: {self.cable_loads.ice_thickness}\n"
             f"beta: {self.beta}\n"

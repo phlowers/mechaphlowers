@@ -127,7 +127,7 @@ def test_plot_add_loads_later(balance_engine_no_loads: BalanceEngine):
     balance_engine_no_loads.solve_change_state(
         new_temperature=15, wind_pressure=560
     )
-    assert plt_engine.spans.span_length.size == 6
+    assert plt_engine.span_model.span_length.size == 6
     fig = go.Figure()
 
     plt_engine.preview_line3d(fig)
@@ -149,7 +149,7 @@ def test_plot_reset(balance_engine_no_loads: BalanceEngine):
 
     # Checks that id are still the same
     assert id(balance_engine_no_loads.balance_model.nodes_span_model) == id(
-        plt_engine.spans
+        plt_engine.span_model
     )
     assert id(balance_engine_no_loads.cable_loads) == id(
         plt_engine.cable_loads
@@ -172,7 +172,7 @@ def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
     balance_engine_no_loads.solve_change_state(
         new_temperature=15, wind_pressure=560
     )
-    assert plt_engine.spans.span_length.size == 6
+    assert plt_engine.span_model.span_length.size == 6
 
     fig = go.Figure()
 
@@ -272,12 +272,11 @@ def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
     # Reset objects to factor in modifications
     balance_engine_no_loads.reset(full=False)
 
-
     balance_engine_no_loads.solve_adjustment()
     balance_engine_no_loads.solve_change_state(
         new_temperature=15, wind_pressure=560
     )
-    assert plt_engine.spans.span_length.size == 6
+    assert plt_engine.span_model.span_length.size == 6
     fig = go.Figure()
 
     plt_engine.preview_line3d(fig)
