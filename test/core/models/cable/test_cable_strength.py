@@ -61,7 +61,7 @@ def test_cut_strands(balance_engine_base_test):
 
 
 @pytest.mark.integration_test
-def test_high_safety_rrts():
+def test_high_safety_rrts() -> None:
     """high_safety multiplies the safety coefficient by 1.5."""
     cable: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
     options.data.safety_coefficient = 1.5
