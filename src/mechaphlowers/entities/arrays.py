@@ -477,6 +477,10 @@ class CableArray(ElementArray):
         [`ITensileStrength.utilization_rate`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.utilization_rate].
         """
         return self._tensile_strength.utilization_rate(tension_sup_N)
+    
+    # ------------------------------------------------------------------
+    # End Delegation
+    # ------------------------------------------------------------------
 
     @property
     def data(self) -> pd.DataFrame:
