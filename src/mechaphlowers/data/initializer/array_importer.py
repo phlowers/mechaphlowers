@@ -94,15 +94,15 @@ class ImporterRte(Importer):
         renamed_df["crossarm_length"] = -renamed_df["crossarm_length"]
         renamed_df["line_angle"] = -renamed_df["line_angle"]
 
-        section_array = SectionArray(renamed_df)
+        section_array = SectionArray(
+            renamed_df,
+            sagging_parameter=self.data_numeric_values["sagging_parameter"],
+            sagging_temperature=self.data_numeric_values[
+                "sagging_temperature"
+            ],
+        )
         # convert line_angle from grad to degrees
         section_array.add_units({"line_angle": "grad"})
-        section_array.sagging_parameter = self.data_numeric_values[
-            "sagging_parameter"
-        ]
-        section_array.sagging_temperature = self.data_numeric_values[
-            "sagging_temperature"
-        ]
         return section_array
 
     @property

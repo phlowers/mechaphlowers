@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -15,6 +15,7 @@ import pandas as pd
 from xxhash import xxh3_64
 
 from mechaphlowers.config import options
+from mechaphlowers.entities.errors import ViewChoiceWarning
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,8 @@ def span_to_support_view(
         f"Equivalent support for calculation: index: {support_index}, side: {support_side}"
     )
     warnings.warn(
-        f"Equivalent support view for calculation: index: {support_index}, side: {support_side}"
+        f"Equivalent support view for calculation: index: {support_index}, side: {support_side}",
+        ViewChoiceWarning,
     )
     return support_index, support_side
 
