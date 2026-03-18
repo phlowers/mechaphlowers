@@ -80,12 +80,9 @@ def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
 def plot_text_3d(
     fig: go.Figure,
     points: np.ndarray,
-    text: np.ndarray,
-    color=None,
-    width=3,
-    size=None,
-    name="Points",
-):
+    text: list[str] | np.ndarray,
+    name: str = "Points",
+) -> None:
     fig.add_trace(
         go.Scatter3d(
             x=points[:, 0],
@@ -155,7 +152,7 @@ def plot_points_2d(
     )
 
 
-def plot_support_shape(fig: go.Figure, support_shape: SupportShape):
+def plot_support_shape(fig: go.Figure, support_shape: SupportShape) -> None:
     """plot_support_shape enables to plot the support shape on a plotly figure
 
     Args:
@@ -265,7 +262,7 @@ class PlotEngine(Observer):
         if isinstance(notifier, BalanceEngine):
             self.reset(balance_engine=notifier)
 
-    def add_obstacles(self, obstacles_array: ObstacleArray):
+    def add_obstacles(self, obstacles_array: ObstacleArray) -> None:
         self.obstacles_array = obstacles_array
         self.section_pts.add_obstacles(obstacles_array)
 
