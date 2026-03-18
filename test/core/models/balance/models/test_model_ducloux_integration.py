@@ -330,7 +330,7 @@ def test_adjust_with_angles(
 
 
 @pytest.mark.integration
-# Also test vhl, contrary to the other tests
+# Note: this test is the only one in this file testing vhl values
 def test_wind_no_altitude_change(
     section_array_no_altitude_change: SectionArray,
     cable_array_AM600: CableArray,

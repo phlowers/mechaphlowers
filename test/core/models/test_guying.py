@@ -75,6 +75,8 @@ section_array_complete = SectionArray(
 )
 section_array_complete.add_units({"line_angle": "grad"})
 
+# case with two angles at consecutive supports, 
+# to catch any computation mistake in VectorProjection
 section_array_big_angles = SectionArray(
     pd.DataFrame(
         {
