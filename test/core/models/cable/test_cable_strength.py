@@ -38,7 +38,7 @@ def test_coverage_rrts() -> None:
 
 
 @pytest.mark.integration_test
-def test_cut_strands(balance_engine_base_test):
+def test_cut_strands(balance_engine_base_test) -> None:
     """cut_strands reduces RRTS and changes utilization rate accordingly."""
     cable: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
 
