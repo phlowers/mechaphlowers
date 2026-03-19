@@ -52,6 +52,7 @@ nav:
       - Measures : user_guide/ug_measures.md
       - Guying: user_guide/ug_guying.md
       - Parameter calibration : user_guide/ug_parameter_calibration.md
+      - RRTS: user_guide/ug_rrts.md
       - Configuration: user_guide/ug_configuration.md
       - Geography: user_guide/ug_maps.md
       - Thermal engine: user_guide/ug_thermal_engine.md
@@ -85,6 +86,7 @@ nav:
                       - Span: docstring/core/models/cable/span.md
                       - Deformation: docstring/core/models/cable/deformation.md
                       - Thermal Engine: docstring/core/models/cable/thermal_engine.md
+                      - Cable Strength: docstring/core/models/cable/cable_strength.md
                       - Guying: docstring/core/models/guying.md
                   - External loads: docstring/core/models/external_loads.md
               - Papoto: docstring/core/papoto/papoto_model.md

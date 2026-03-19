@@ -20,6 +20,34 @@ columns:
   - stress_strain_b2: float
   - stress_strain_b3: float
   - stress_strain_b4: float
+  - diameter_heart: float
+  - section_conductor: float
+  - section_heart: float
+  - solar_absorption: float
+  - emissivity: float
+  - electric_resistance_20: float
+  - linear_resistance_temperature_coef: float
+  - is_polynomial: bool
+  - radial_thermal_conductivity: float
+  - has_magnetic_heart: bool
+  - rts_cable: float
+  - rts_layer_1: float
+  - rts_layer_2: float
+  - rts_layer_3: float
+  - rts_layer_4: float
+  - rts_layer_5: float
+  - rts_layer_6: float
+  - rts_layer_7: float
+  - rts_layer_8: float
+  - safety_coefficient: float
+  - nb_strand_layer_1: float
+  - nb_strand_layer_2: float
+  - nb_strand_layer_3: float
+  - nb_strand_layer_4: float
+  - nb_strand_layer_5: float
+  - nb_strand_layer_6: float
+  - nb_strand_layer_7: float
+  - nb_strand_layer_8: float
 
 columns_renaming:
   - stress_strain_a0: a0
@@ -53,3 +81,12 @@ columns_units:
   - section_conductor: mm^2
   - section_heart: mm^2
   - electric_resistance_20: ohm/km
+  - rts_cable: N
+  - rts_layer_1: N
+  - rts_layer_2: N
+  - rts_layer_3: N
+  - rts_layer_4: N
+  - rts_layer_5: N
+  - rts_layer_6: N
+  - rts_layer_7: N
+  - rts_layer_8: N
