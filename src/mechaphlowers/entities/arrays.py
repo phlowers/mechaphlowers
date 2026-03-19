@@ -226,7 +226,7 @@ class SectionArray(ElementArray):
                 elevation_difference=self.compute_elevation_difference(),
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
-                # bundle_number=self.bundle_number,
+                bundle_number=self.bundle_number,
             )
 
     def create_column_weight(

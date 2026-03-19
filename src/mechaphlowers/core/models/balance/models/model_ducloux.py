@@ -835,11 +835,6 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         if "counterweight" in section_array.data
         else np.zeros(insulator_length.shape)
     )
-    # bundle_number = (
-    #     section_array.data.bundle_number.to_numpy()
-    #     if "bundle_number" in section_array.data
-    #     else np.zeros(insulator_length.shape)
-    # )
 
     bundle_number = section_array.bundle_number
 
