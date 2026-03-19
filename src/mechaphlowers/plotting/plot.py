@@ -284,14 +284,14 @@ class PlotEngine(Observer):
     def get_obstacles_points(self) -> np.ndarray:
         return self.section_pts.compute_obstacle_coords().points(True)
 
-    def obstacles_dict(self) -> dict:
+    def obstacles_dict(self, project=False, frame_index=0) -> dict:
         """Returns a dictionary storing object coordinates.
 
         Key is object name, value is coordinates of object.
 
         Format: {'obs_0': [[x0, y0, z0], [x1, y1, z1], ...]}
         """
-        return self.section_pts.obstacles_dict()
+        return self.section_pts.obstacles_dict(project, frame_index)
 
     def get_loads_coords(self, project=False, frame_index=0) -> dict:
         """Get a dictionary of coordinates of the loads.
@@ -442,6 +442,16 @@ class PlotEngine(Observer):
             insulator_trace(mode=mode),
             view=view,
         )
+
+        if hasattr(self.section_pts, "obstacles_array"):
+            obstacles_dict = self.obstacles_dict(project=True, frame_index=frame_index)
+            for obstacle_name, obstacle_coords in obstacles_dict.items():
+                plot_points_2d(
+                    fig,
+                    np.array(obstacle_coords),
+                    TraceProfile(name=obstacle_name),
+                    view=view,
+                )
 
     def point_relative_to_absolute(
         self, span_index: int, point_relative: np.ndarray

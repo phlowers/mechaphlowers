@@ -49,6 +49,7 @@ def test_plot_obstacles(balance_engine_angles: BalanceEngine):
     plt_engine.add_obstacles(obs_array)
     fig = go.Figure()
     obstacle_dict = plt_engine.obstacles_dict()
+    obstacle_dict = plt_engine.obstacles_dict(project=True, frame_index=1)
 
     assert list(obstacle_dict.keys()) == ['obs_0', 'obs_1', 'obs_2']
 
@@ -71,4 +72,56 @@ def test_plot_obstacles(balance_engine_angles: BalanceEngine):
             [694.40897882, 11.5331262, 0.0],
         ]
     )
+    np.testing.assert_allclose(points_result, expected_result)
+
+
+def test_plot_obstacles_2d(balance_engine_angles: BalanceEngine):
+    plt_engine = PlotEngine(balance_engine_angles)
+    balance_engine_angles.solve_adjustment()
+    balance_engine_angles.solve_change_state(new_temperature=15)
+
+    obs_array = ObstacleArray(
+        pd.DataFrame(
+            {
+                "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
+                "point_index": [0, 1, 0, 1, 2, 0],
+                "span_index": [0, 0, 1, 1, 1, 1],
+                "x": [
+                    100.0,
+                    200.0,
+                    100.0,
+                    200.0,
+                    300.0,
+                    200.0,
+                ],
+                "y": [0.0, 10.0, 0.0, 10.0, 10.0, -20.0],
+                "z": [0.0, 0.0, 0.0, 0.0, 50.0, 0.0],
+                "object_type": [
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                ],
+            }
+        )
+    )
+    plt_engine.add_obstacles(obs_array)
+    obstacle_dict = plt_engine.obstacles_dict(project=True, frame_index=1)
+
+    assert list(obstacle_dict.keys()) == ['obs_0', 'obs_1', 'obs_2']
+
+    fig_line = go.Figure()
+    plt_engine.preview_line2d(fig_line, "line", 1)
+
+    fig_profile = go.Figure()
+    plt_engine.preview_line2d(fig_profile, "profile", 1)
+
+
+    if show_figures:
+        fig_line.show()
+        fig_profile.show()
+    points_result = plt_engine.get_obstacles_points()
+    expected_result = np.array([])
     np.testing.assert_allclose(points_result, expected_result)
