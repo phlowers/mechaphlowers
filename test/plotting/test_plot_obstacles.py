@@ -15,7 +15,7 @@ from test.conftest import show_figures
 
 
 def test_plot_obstacles(balance_engine_angles: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    plt_engine = PlotEngine(balance_engine_angles)
     balance_engine_angles.solve_adjustment()
     balance_engine_angles.solve_change_state(new_temperature=15)
 

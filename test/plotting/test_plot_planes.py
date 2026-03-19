@@ -91,7 +91,7 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
         balance_engine_angles: Balance engine fixture with angle configuration.
     """
     # Setup: Create PlotEngine from balance engine
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    plt_engine = PlotEngine(balance_engine_angles)
     balance_engine_angles.solve_adjustment()
     balance_engine_angles.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
