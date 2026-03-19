@@ -160,3 +160,23 @@ class IBalanceModel(IModelForSolver, ABC):
     def update_nodes_span_model(self) -> None:
         """Update the span model of the nodes if loads are applied."""
         pass
+
+    @abstractmethod
+    def reset(
+        self,
+        cable_array: CableArray,
+        span_model: ISpan,
+        deformation_model: IDeformation,
+        cable_loads: CableLoads,
+        full: bool = False,
+    ) -> None:
+        """Reset the model references, optionally performing a full re-initialization.
+
+        Args:
+            cable_array (CableArray): cable data
+            span_model (ISpan): span model
+            deformation_model (IDeformation): deformation model
+            cable_loads (CableLoads): cable loads
+            full (bool): if True, re-initialize all attributes; otherwise only update model references.
+        """
+        pass

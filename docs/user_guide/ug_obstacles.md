@@ -88,7 +88,7 @@ You can plot obstacles using PlotEngine:
 ```python
 import plotly.graph_objects as go
 
-plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+plt_engine = PlotEngine(balance_engine)
 
 plt_engine.add_obstacles(obs_array)
 fig = go.Figure()
