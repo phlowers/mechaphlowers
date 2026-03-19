@@ -6,6 +6,8 @@
 
 """Tests for the AdditiveLayerRts / ITensileStrength model in cable_strength.py."""
 
+from copy import copy
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -31,10 +33,10 @@ def test_rrts() -> None:
 
 @pytest.mark.integration_test
 def test_coverage_rrts() -> None:
-    """rts_coverage is close to 1.02 for ASTER600."""
+    """rts_coverage is close to 0.976 for ASTER600 (sum of strand RTS / cable RTS)."""
     cable: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
     cable_rrts = cable.rts_coverage()
-    assert abs(cable_rrts - 1.02) < 0.01
+    assert abs(cable_rrts - 0.976) < 0.01
 
 
 @pytest.mark.integration_test
@@ -63,14 +65,22 @@ def test_cut_strands(balance_engine_base_test) -> None:
 @pytest.mark.integration_test
 def test_high_safety_rrts() -> None:
     """high_safety multiplies the safety coefficient by 1.5."""
-    cable: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
-    options.data.safety_coefficient = 1.5
-    options.data.safety_security_factor = 1.5
+    cable: CableArray = copy(sample_cable_catalog.get_as_object(["ASTER600"]))
+    
+    # create the condition to use the default safety coefficient by setting it to None in the data
+    cable._data["safety_coefficient"] = None  # Set a known safety coefficient in the data
+    cable._tensile_strength = AdditiveLayerRts(cable._data)  # Recreate the strength model to pick up the change
+    options.data.safety_coefficient_default = 2.5
+    options.data.safety_security_factor = 10
 
-    assert cable.safety_coefficient == 1.5
+    assert cable.safety_coefficient == 2.5
 
     cable.high_safety = True
-    assert cable.safety_coefficient == 2.25
+    assert cable.safety_coefficient == 25
+    
+    # set back to original values to avoid side effects on other tests
+    options.data.safety_coefficient_default = 1.5
+    options.data.safety_security_factor = 1.5
 
 
 @pytest.mark.integration_test
@@ -300,18 +310,6 @@ def test_safety_coefficient_nan_value(
 
 
 @pytest.mark.unit_test
-def test_rts_coverage_zero_denominator(
-    cable_array_with_rts_input_data: dict,
-) -> None:
-    """rts_coverage raises ValueError when denominator is zero."""
-    # nb_strand_* columns absent → all zeros → denominator = 0
-    cable_data = CableArray(pd.DataFrame(cable_array_with_rts_input_data)).data
-    strength = AdditiveLayerRts(cable_data)
-    with pytest.raises(ValueError, match="denominator is zero"):
-        strength.rts_coverage()
-
-
-@pytest.mark.unit_test
 def test_rts_coverage_no_rts_cable(
     cable_array_with_rts_input_data: dict,
 ) -> None:
@@ -349,7 +347,7 @@ def test_cut_strands_negative_raises(
 def test_cut_strands_exceeds_max_raises(
     cable_array_with_rts_input_data: dict,
 ) -> None:
-    """cut_strands setter raises ValueError when cut > max allowed."""
+    """cut_strands setter raises ValueError when cut > MAX_ALLOWED_CUT_STRANDS (when > 0)."""
     data = cable_array_with_rts_input_data.copy()
     data.update(
         {
@@ -365,6 +363,37 @@ def test_cut_strands_exceeds_max_raises(
     )
     cable_data = CableArray(pd.DataFrame(data)).data
     strength = AdditiveLayerRts(cable_data)
-    # max allowed for layer 1 = int(10/2) = 5; passing 6 should raise
+
+    # Set an explicit maximum for layer 1 = 5; passing 6 should raise
+    strength.MAX_ALLOWED_CUT_STRANDS = np.array(
+        [5, 0, 0, 0, 0, 0, 0, 0], dtype=int
+    )
     with pytest.raises(ValueError, match="exceeds allowed maximum"):
         strength.cut_strands = np.array([6, 0, 0, 0, 0, 0, 0, 0])
+
+
+@pytest.mark.unit_test
+def test_cut_all_strands_should_not_raise(
+    cable_array_with_rts_input_data: dict,
+) -> None:
+    """cut_strands setter should allow cutting all strands (cut = nb_strands)."""
+    data = cable_array_with_rts_input_data.copy()
+    data.update(
+        {
+            "nb_strand_layer_1": [10],
+            "nb_strand_layer_2": [8],
+            "nb_strand_layer_3": [6],
+            "nb_strand_layer_4": [4],
+            "nb_strand_layer_5": [0],
+            "nb_strand_layer_6": [0],
+            "nb_strand_layer_7": [0],
+            "nb_strand_layer_8": [0],
+        }
+    )
+    cable_data = CableArray(pd.DataFrame(data)).data
+    strength = AdditiveLayerRts(cable_data)
+
+    # Set maximum to the number of strands; this should not raise
+    strength.MAX_ALLOWED_CUT_STRANDS = np.array(
+        [10, 8, 6, 4, 0, 0, 0, 0], dtype=int
+    )

@@ -57,8 +57,7 @@ The following columns must be present in the cable catalog CSV for RRTS support:
 | `nb_strand_layer_1` … `nb_strand_layer_8` | — | Number of strands per layer (`0` = unused) |
 
 !!! note "Coverage check"
-    The ratio $\frac{RTS_{cable}}{\sum_{i} rts_{layer,i} \times nb_{strand,i}} \times 100$ indicates how well the
-    strand-level model explains the cable RTS. An acceptable value is between 75% and 100%.
+    The ratio $\frac{\sum_{i} rts_{layer,i} \times nb_{strand,i}}{RTS_{cable}}$ is a check for data consistency. Values significantly different than 1 may indicate missing strength contributions or strand data.
 
 !!! warning "Layer-level assumption"
     The model assumes all strands in a given layer are identical (same RTS). Layers with heterogeneous strands must be split or averaged externally before loading data.

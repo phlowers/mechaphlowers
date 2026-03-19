@@ -124,6 +124,7 @@ class AdditiveLayerRts(ITensileStrength):
         "nb_strand_layer_7",
         "nb_strand_layer_8",
     ]
+    MAX_ALLOWED_CUT_STRANDS = np.array([0, 0, 0, 0, 0, 0, 0, 0], dtype=int)
 
     def __init__(self, cable_data: pd.DataFrame) -> None:
         self._cable_data: pd.DataFrame = cable_data
@@ -198,8 +199,9 @@ class AdditiveLayerRts(ITensileStrength):
         Index 0 = layer 1, …, index 7 = layer 8.
         Returns zeros for layers whose column is absent or NaN in the catalog.
 
-        This value is used to enforce that [`cut_strands`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts.cut_strands] cannot exceed
-        ``int(nb_strand_per_layer[i] / 2)`` for each layer.
+        This value is informational. Cut strand enforcement is controlled by
+        ``MAX_ALLOWED_CUT_STRANDS``: when ``MAX_ALLOWED_CUT_STRANDS[i] > 0``,
+        ``cut_strands[i]`` cannot exceed that value.
         """
         arr = (
             self._cable_data.reindex(columns=self._NB_STRAND_LAYERS)
@@ -215,36 +217,26 @@ class AdditiveLayerRts(ITensileStrength):
     def rts_coverage(self) -> float:
         """Ratio of cable RTS to the sum of strand-level RTS contributions.
 
-        $$\\text{rts_coverage} = \\frac{RTS_{cable}}{\\sum_{i} rts_{layer,i} \\times nb_{strand,i}}$$
+        $$\\text{rts_coverage} = \\frac{\\sum_{i} rts_{layer,i} \\times nb_{strand,i}}{rts_{cable}}$$
 
-        An acceptable value is between 0.75 and 1.0 (75%–100%). Values outside
-        this range indicate that the strand-level model poorly explains the
-        cable RTS.
+        This method is a checker for catalog data consistency: the output should ideally be close to 1.0 for a well-documented cable, but may be lower if the catalog is missing some strand-level RTS data (NaN values are treated as 0). A very low value may indicate that the cable-level RTS is not properly documented by the catalog.
 
         Returns:
-            float: ``rts_cable / sum(rts_layer_i * nb_strand_layer_i)``.
+            float: ``sum(rts_layer_i * nb_strand_layer_i) / rts_cable``.
 
         Raises:
-            ValueError: if the denominator is zero, i.e. if all
-                ``rts_layer_i * nb_strand_layer_i`` products are zero.
             RtsDataNotAvailable: if ``rts_cable`` is missing or NaN.
         """
         rts_layers = np.nan_to_num(self._rts_layers_array(), nan=0.0)
         nb_strands = self.nb_strand_per_layer.astype(float)
-        denominator = float(rts_layers @ nb_strands)
-        if abs(denominator) < 1e-7:
-            raise ValueError(
-                "rts_coverage denominator is zero: "
-                "all rts_layer_i * nb_strand_layer_i products are zero. "
-                "Ensure rts_layer_* and nb_strand_layer_* columns are set in the catalog."
-            )
+        rts_layer_sum = float(rts_layers @ nb_strands)
         rts_cable_col = self._cable_data.get("rts_cable")
         if rts_cable_col is None or pd.isna(rts_cable_col.iloc[0]):
             raise RtsDataNotAvailable(
                 "Cannot compute rts_coverage: 'rts_cable' is missing or NaN."
             )
         rts_cable = float(rts_cable_col.iloc[0])
-        return rts_cable / denominator
+        return rts_layer_sum / rts_cable
 
     # ------------------------------------------------------------------
     # cut_strands
@@ -270,7 +262,7 @@ class AdditiveLayerRts(ITensileStrength):
         Raises:
             ValueError: if any value is negative.
             ValueError: if more than 8 elements are provided.
-            ValueError: if ``cut_strands[i] > int(nb_strand_layer_i / 2)`` for
+            ValueError: if ``cut_strands[i] > self.max_allowed`` for
                 any layer where strand count data is available in the catalog.
         """
         cut_strands_arr = np.asarray(cut_strands)
@@ -286,18 +278,15 @@ class AdditiveLayerRts(ITensileStrength):
         padded = np.zeros(8, dtype=int)
         padded[: len(cut_strands_arr)] = cut_strands_arr
 
-        nb_strands = self.nb_strand_per_layer
-        max_allowed = nb_strands // 2
-        violation_mask = (nb_strands > 0) & (padded > max_allowed)
+        max_allowed = self.MAX_ALLOWED_CUT_STRANDS
+        # 0 means no restriction for that layer; only enforce when > 0
+        violation_mask = (max_allowed > 0) & (padded > max_allowed)
         if violation_mask.any():
             details = "; ".join(
-                f"layer {i + 1}: cut_strands={padded[i]} > int({nb_strands[i]} / 2)={max_allowed[i]}"
+                f"layer {i + 1}: cut_strands={padded[i]} > max_allowed={max_allowed[i]}"
                 for i in np.nonzero(violation_mask)[0]
             )
-            raise ValueError(
-                "cut_strands exceeds allowed maximum (half the strand count per layer): "
-                + details
-            )
+            raise ValueError("cut_strands exceeds allowed maximum: " + details)
 
         self._cut_strands = padded
 
