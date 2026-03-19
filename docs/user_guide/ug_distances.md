@@ -64,7 +64,7 @@ This more complete object gives access to `point_distance` method to compute dis
 from mechaphlowers.plotting.plot import PlotEngine
 
 balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
-plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+plt_engine = PlotEngine(balance_engine)
 point = np.array([10.0, 5.0, 2.0])  # Absolute coordinates of the point to analyze
 fig = figure_factory()
 distance_result = plt_engine.point_distance(span_index=0, point=point)
