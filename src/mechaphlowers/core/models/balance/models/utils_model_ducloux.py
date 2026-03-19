@@ -171,6 +171,7 @@ class VectorProjection:
         Returns:
             tuple[np.ndarray, np.ndarray, np.ndarray]: Fx, Fy, Fz
         """
+        # TODO: multiply here by bundle number?
         s_right, t_right, z_right = self.T_line_plane_right()
         T_line_plane_left = self.T_line_plane_left()
         s_left, t_left, z_left = T_line_plane_left
