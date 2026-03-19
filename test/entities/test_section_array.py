@@ -205,6 +205,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15] * 4,
+            "bundle_number": [1] * 4,
         },
     )
 
@@ -256,6 +257,7 @@ def test_section_array__data_with_optional() -> None:
             "load_mass": [500, 1000, 500, np.nan],
             "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
             "load_position": [0.2, 0.4, 0.6, np.nan],
+            "bundle_number": [1] * 4,
         },
     )
 
@@ -308,6 +310,7 @@ def test_section_array__wrong_ground_altitude() -> None:
             "load_mass": [500, 1000, 500, np.nan],
             "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
             "load_position": [0.2, 0.4, 0.6, np.nan],
+            "bundle_number": [1] * 4,
         },
     )
 
@@ -485,3 +488,23 @@ def test_section_array_angle_sense() -> None:
     np.testing.assert_allclose(
         section_array.data.crossarm_length, expected_crossarm_length
     )
+
+
+def test_create_section_bundle_number(
+    section_array_input_data: dict,
+) -> None:
+    section_array = SectionArray(
+        pd.DataFrame(section_array_input_data),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+        bundle_number=2,
+    )
+    assert section_array.bundle_number == 2
+
+    with pytest.raises(ValueError):
+        section_array = SectionArray(
+            pd.DataFrame(section_array_input_data),
+            sagging_parameter=2_000,
+            sagging_temperature=15,
+            bundle_number=0,
+        )
