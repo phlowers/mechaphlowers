@@ -29,10 +29,12 @@ It is possible to use a pulley on suspension supports (neither the first nor the
 
 !!! Warning
 
-    In the chart below you can see the impact of the **view** parameter.  
-    Be careful to the point of view you choose when setting guying parameters. Indeed left guying side with span centered view is equivalent to right guying side  with support centered view
+    In the charts below you can see the impact of the **view** parameter.  
+    Be careful to the point of view you choose when setting guying parameters.
+    Indeed support index and span index is not the same if guying side is right
 
-    ![Guying warning](./assets/guying_warning.drawio.png "Guying warning image")
+    ![Guying warning](./assets/guying_warning_left.drawio.png "Guying warning image left")
+    ![Guying warning](./assets/guying_warning_right.drawio.png "Guying warning image right")
 
 
 
