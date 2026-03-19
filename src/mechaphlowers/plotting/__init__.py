@@ -5,10 +5,16 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.plotting.plot import (
     PlotEngine,
     figure_factory,
     plot_support_shape,
 )
 
-__all__ = ["PlotEngine", "figure_factory", "plot_support_shape"]
+__all__ = [
+    "PlotEngine",
+    "PositionEngine",
+    "figure_factory",
+    "plot_support_shape",
+]
