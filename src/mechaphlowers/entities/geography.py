@@ -14,9 +14,11 @@ from mechaphlowers.data.geography.helpers import (
     gps_to_bearing,
     gps_to_lambert93,
     haversine,
+    lambert93_to_gps,
     reverse_haversine_float,
 )
 from mechaphlowers.data.units import Q_
+from mechaphlowers.entities.errors import GpsNoDataAvailable
 from mechaphlowers.utils import convert_angle_unsigned_to_signed
 
 
@@ -155,3 +157,105 @@ def get_gps_from_arrays(
         lat_array_rad.append(current_lat_rad)
         lon_array_rad.append(current_lon_rad)
     return np.degrees(lat_array_rad), np.degrees(lon_array_rad)
+
+
+class GeoLocator:
+    """Stores a starting GPS point and azimuth, then computes pylon GPS/Lambert93 coordinates on demand.
+
+    The starting point must be set via set_starting_gps() or set_starting_lambert93() before
+    calling get_gps() or get_lambert93(). No computed arrays are cached; every call to
+    get_gps() / get_lambert93() recomputes from the stored starting point and the provided arrays.
+    """
+
+    def __init__(self) -> None:
+        self._latitude_0: float | None = None
+        self._longitude_0: float | None = None
+        self._azimuth_0: float | None = None
+
+    def set_starting_gps(
+        self,
+        latitude_0: float,
+        longitude_0: float,
+        azimuth_0: float,
+    ) -> None:
+        """Set the starting GPS point and azimuth for the section.
+
+        Args:
+            latitude_0 (float): Latitude of the first support in decimal degrees.
+            longitude_0 (float): Longitude of the first support in decimal degrees.
+            azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+        """
+        self._latitude_0 = latitude_0
+        self._longitude_0 = longitude_0
+        self._azimuth_0 = azimuth_0
+
+    def set_starting_lambert93(
+        self,
+        easting: float,
+        northing: float,
+        azimuth_0: float,
+    ) -> None:
+        """Set the starting point from Lambert 93 coordinates and azimuth.
+
+        Converts the Lambert 93 easting/northing to GPS (WGS84) then stores the result.
+
+        Args:
+            easting (float): Lambert 93 easting coordinate in meters.
+            northing (float): Lambert 93 northing coordinate in meters.
+            azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+        """
+        lat, lon = lambert93_to_gps(np.float64(easting), np.float64(northing))
+        self.set_starting_gps(float(lat), float(lon), azimuth_0)
+
+    def __copy__(self) -> "GeoLocator":
+        new = GeoLocator()
+        new._latitude_0 = self._latitude_0
+        new._longitude_0 = self._longitude_0
+        new._azimuth_0 = self._azimuth_0
+        return new
+
+    def _check_gps_available(self) -> None:
+        if self._latitude_0 is None:
+            raise GpsNoDataAvailable(
+                "GPS data is not available. Call set_starting_gps() first."
+            )
+
+    def get_gps(
+        self,
+        line_angles_degrees: np.ndarray,
+        span_length: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute GPS coordinates for all pylons.
+
+        Args:
+            line_angles_degrees (np.ndarray): Line angle array in degrees, anti-clockwise.
+            span_length (np.ndarray): Span length array in meters (last value is NaN).
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: (latitudes, longitudes) in decimal degrees.
+        """
+        self._check_gps_available()
+        return get_gps_from_arrays(
+            self._latitude_0,  # type: ignore[arg-type]
+            self._longitude_0,  # type: ignore[arg-type]
+            self._azimuth_0,  # type: ignore[arg-type]
+            line_angles_degrees,
+            span_length,
+        )
+
+    def get_lambert93(
+        self,
+        line_angles_degrees: np.ndarray,
+        span_length: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute Lambert 93 coordinates for all pylons.
+
+        Args:
+            line_angles_degrees (np.ndarray): Line angle array in degrees, anti-clockwise.
+            span_length (np.ndarray): Span length array in meters (last value is NaN).
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: (easting, northing) in Lambert 93 meters.
+        """
+        lats, lons = self.get_gps(line_angles_degrees, span_length)
+        return gps_to_lambert93(lats, lons)
