@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from copy import copy
+
 import numpy as np
 import pandas as pd
 import pandera as pa
@@ -439,7 +441,7 @@ def test_section_array_set_starting_lambert93():
                 "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
                 "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
                 "line_angle": np.array([90, 90, 90, 90, 90]),
-                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "insulator_length": np.array([0.1, 4, 3.2, 1, 0.1]),
                 "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
                 "insulator_mass": np.array(
                     [1000.0, 500.0, 500.0, 500.0, 1000.0]
@@ -504,8 +506,6 @@ def test_section_array_get_lambert93():
 
 
 def test_section_array_copy_preserves_geolocator():
-    from copy import copy
-
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -537,8 +537,6 @@ def test_section_array_copy_preserves_geolocator():
 
 
 def test_section_array_copy_geolocator_is_independent():
-    from copy import copy
-
     section_array = SectionArray(
         pd.DataFrame(
             {

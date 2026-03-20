@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import TypedDict
+from typing import Self, TypedDict
 
 import numpy as np
 from typing_extensions import Literal
@@ -207,8 +207,8 @@ class GeoLocator:
         lat, lon = lambert93_to_gps(np.float64(easting), np.float64(northing))
         self.set_starting_gps(float(lat), float(lon), azimuth_0)
 
-    def __copy__(self) -> "GeoLocator":
-        new = GeoLocator()
+    def __copy__(self) -> Self:
+        new = type(self)()
         new._latitude_0 = self._latitude_0
         new._longitude_0 = self._longitude_0
         new._azimuth_0 = self._azimuth_0
@@ -217,7 +217,7 @@ class GeoLocator:
     def _check_gps_available(self) -> None:
         if self._latitude_0 is None:
             raise GpsNoDataAvailable(
-                "GPS data is not available. Call set_starting_gps() first."
+                "Location data is not available. Call set_starting_gps() or set_starting_lambert93() first."
             )
 
     def get_gps(
@@ -235,11 +235,12 @@ class GeoLocator:
             tuple[np.ndarray, np.ndarray]: (latitudes, longitudes) in decimal degrees.
         """
         self._check_gps_available()
+        line_angle_copy = line_angles_degrees.copy()
         return get_gps_from_arrays(
             self._latitude_0,  # type: ignore[arg-type]
             self._longitude_0,  # type: ignore[arg-type]
             self._azimuth_0,  # type: ignore[arg-type]
-            line_angles_degrees,
+            line_angle_copy,
             span_length,
         )
 
