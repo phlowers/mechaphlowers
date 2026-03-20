@@ -551,6 +551,9 @@ def test_preview_line3d__custom_aspect_ratio(
     # Create figure with custom aspect ratio
     fig = go.Figure()
     plt_engine.preview_line3d(fig, aspect_ratio=custom_aspect)
+    
+    if show_figures:
+        fig.show()
 
     # Check that the layout has the custom aspect ratio
     assert fig.layout.scene.aspectmode == "manual"

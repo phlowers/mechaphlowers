@@ -147,7 +147,7 @@ class DistanceEngine:
 
     It uses a defined plane for the distance calculation. The plane is defined by a span frame, which is determined by two points (start and end of the span). The engine allows to add curves and span frames, and then compute the distance from a given point to the curve along the plane defined by the span frame. The result is returned as a DistanceResult object containing the distance information and projection details.
 
-    Example:
+    Examples:
         >>> de = DistanceEngine()
         >>> de.add_curves(curve_points)
         >>> de.add_span_frame(span_start, span_end)

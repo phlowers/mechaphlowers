@@ -29,6 +29,7 @@ def compute_aspect_ratio(
     that respect the actual data ranges while allowing custom scaling per axis.
 
     The algorithm:
+
     1. Concatenates all points from all Points objects into a single array
     2. Computes min/max for each axis (x, y, z)
     3. Calculates the range (max - min) for each axis

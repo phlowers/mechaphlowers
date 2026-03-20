@@ -169,6 +169,47 @@ def plot_support_shape(fig: go.Figure, support_shape: SupportShape):
     )
 
 
+def _validate_aspect_ratio(aspect_ratio: dict[str, float]) -> dict[str, float]:
+    """Validate and normalise a custom aspect ratio dict.
+
+    Args:
+        aspect_ratio: Dictionary that must contain keys 'x', 'y', 'z' with positive float values.
+
+    Returns:
+        Validated dictionary with float values.
+
+    Raises:
+        ValueError: If the dict is missing a required key, a value is not float-convertible,
+            or a value is not strictly positive.
+    """
+    if not isinstance(aspect_ratio, dict):
+        raise ValueError(
+            "aspect_ratio must be a dict with keys 'x', 'y', 'z' and positive float values."
+        )
+
+    required_keys = ("x", "y", "z")
+    validated: dict[str, float] = {}
+    for key in required_keys:
+        if key not in aspect_ratio:
+            raise ValueError(
+                f"aspect_ratio is missing required key {key!r}. "
+                "Expected keys are 'x', 'y', and 'z'."
+            )
+        value = aspect_ratio[key]
+        try:
+            value_float = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"aspect_ratio[{key!r}] must be a float-convertible number, got {value!r}."
+            ) from exc
+        if value_float <= 0:
+            raise ValueError(
+                f"aspect_ratio[{key!r}] must be a positive float, got {value_float!r}."
+            )
+        validated[key] = value_float
+    return validated
+
+
 def set_layout(
     fig: go.Figure,
     auto: bool = True,
@@ -191,45 +232,13 @@ def set_layout(
         >>> set_layout(fig, aspect_ratio=custom_aspect)
     """
 
-    # Check input
     auto = bool(auto)
 
-    # Determine aspect mode and ratio
     if aspect_ratio is not None:
-        # Custom aspect ratio provided: always use manual mode
         aspect_mode: str = "manual"
-
-        # Validate custom aspect ratio: must be a dict with keys 'x', 'y', 'z'
-        if not isinstance(aspect_ratio, dict):
-            raise ValueError(
-                "aspect_ratio must be a dict with keys 'x', 'y', 'z' and positive float values."
-            )
-
-        required_keys = ("x", "y", "z")
-        validated_aspect_ratio: dict[str, float] = {}
-        for key in required_keys:
-            if key not in aspect_ratio:
-                raise ValueError(
-                    f"aspect_ratio is missing required key {key!r}. "
-                    "Expected keys are 'x', 'y', and 'z'."
-                )
-            value = aspect_ratio[key]
-            try:
-                value_float = float(value)
-            except (TypeError, ValueError) as exc:
-                raise ValueError(
-                    f"aspect_ratio[{key!r}] must be a float-convertible number, got {value!r}."
-                ) from exc
-            if value_float <= 0:
-                raise ValueError(
-                    f"aspect_ratio[{key!r}] must be a positive float, got {value_float!r}."
-                )
-            validated_aspect_ratio[key] = value_float
-
-        final_aspect_ratio = validated_aspect_ratio
+        final_aspect_ratio = _validate_aspect_ratio(aspect_ratio)
         zoom: float = 5
     else:
-        # Use auto parameter to determine behavior
         aspect_mode = "data" if auto else "manual"
         final_aspect_ratio = {'x': 1, 'y': 0.5, 'z': 0.5}
         zoom = 1 if auto else 5
@@ -548,16 +557,14 @@ class PlotEngine:
         Returns:
             DistanceResult: Object containing the distance analysis results, including the distance value and coordinates of the closest point on the span.
 
-        Example:
+        Examples:
+
             >>> balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
             >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
-            >>> point = np.array(
-            ...     [10.0, 5.0, 2.0]
-            ... )  # Absolute coordinates of the point to analyze
+            >>> point = np.array([10.0, 5.0, 2.0])  # Absolute coordinates of the point to analyze
             >>> fig = figure_factory()
             >>> distance_result = plt_engine.point_distance(span_index=0, point=point)
             # ...get a distance result object with the distance and closest point coordinates
-
             >>> fig.show()
         """
         # Validate inputs and convert relative coordinates to absolute
