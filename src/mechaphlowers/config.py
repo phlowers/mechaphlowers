@@ -147,7 +147,7 @@ class InputUnitsConfig:
             "diameter_heart": "mm",
             "section_conductor": "mm^2",
             "section_heart": "mm^2",
-            "electric_resistance_20": "ohm.m**-1",
+            "electric_resistance_20": "ohm.km**-1",
             "linear_resistance_temperature_coef": "K**-1",
             "radial_thermal_conductivity": "W.m**-1.K**-1",
         }
