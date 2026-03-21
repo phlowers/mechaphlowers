@@ -524,50 +524,73 @@ class BalanceModel(IBalanceModel):
 
     def merge_loads_to_span_model(self):
         """Fetch load_model and give it to nodes_span_model, splitting spans into two, if they contains a load."""
-        bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
+        if not hasattr(self, "_merge_normal_idx"):
+            self._precompute_merge_indices()
 
-        new_span_model = copy(self.span_model)
+        normal_idx = self._merge_normal_idx
+        left_idx = self._merge_left_idx
+        right_idx = self._merge_right_idx
+        not_load_mask = self._merge_not_load_mask
 
-        def insert_array(arr, arr_insert_left, arr_insert_right, mask):
-            arr_new = copy(arr)
-            arr_new[mask] = arr_insert_right
-            insert_mask = np.nonzero(mask)[0]
-            return np.insert(arr_new, insert_mask, arr_insert_left)
+        def build_merged(original, left_values, right_values):
+            result = np.empty(self._merge_n_total, dtype=original.dtype)
+            result[normal_idx] = original[not_load_mask]
+            result[left_idx] = left_values
+            result[right_idx] = right_values
+            return result
 
-        sagging_parameter = insert_array(
-            new_span_model.sagging_parameter,
+        self.nodes_span_model.sagging_parameter = build_merged(
+            self.span_model.sagging_parameter,
             self.load_model.span_model_left.sagging_parameter,
             self.load_model.span_model_right.sagging_parameter,
-            bool_mask,
         )
-        span_length = insert_array(
-            new_span_model.span_length,
+        self.nodes_span_model.span_length = build_merged(
+            self.span_model.span_length,
             self.load_model.span_model_left.span_length,
             self.load_model.span_model_right.span_length,
-            bool_mask,
         )
-        elevation_difference = insert_array(
-            new_span_model.elevation_difference,
+        self.nodes_span_model.elevation_difference = build_merged(
+            self.span_model.elevation_difference,
             self.load_model.span_model_left.elevation_difference,
             self.load_model.span_model_right.elevation_difference,
-            bool_mask,
         )
-        np_array = np.arange(len(self.span_model.span_length))
-        span_index = np.insert(
-            np_array, np.nonzero(bool_mask)[0], np_array[bool_mask]
-        )
-        span_type = insert_array(
-            np.full_like(self.span_model.span_length, 0),
-            np.full_like(self.load_model.span_model_left.span_length, 1),
-            np.full_like(self.load_model.span_model_right.span_length, 2),
-            bool_mask,
-        )
+        self.nodes_span_model.span_index = self._merge_span_index
+        self.nodes_span_model.span_type = self._merge_span_type
 
-        self.nodes_span_model.span_length = span_length
-        self.nodes_span_model.elevation_difference = elevation_difference
-        self.nodes_span_model.sagging_parameter = sagging_parameter
-        self.nodes_span_model.span_index = span_index
-        self.nodes_span_model.span_type = span_type
+    def _precompute_merge_indices(self):
+        """Pre-compute index maps for merge_loads_to_span_model.
+
+        Called once, then reused on every subsequent merge call.
+        Replaces the repeated np.insert + copy allocations with
+        direct index assignment into pre-sized arrays.
+        """
+        bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
+        not_load_mask = ~bool_mask
+        self._merge_not_load_mask = not_load_mask
+
+        n_original = len(bool_mask)
+        n_total = n_original + np.count_nonzero(bool_mask)
+        self._merge_n_total = n_total
+
+        # Each original position maps to 1 slot (normal) or
+        # 2 slots (left + right) in the expanded array.
+        expanded_pos = np.cumsum(np.where(bool_mask, 2, 1)) - 1
+        self._merge_right_idx = expanded_pos[bool_mask]
+        self._merge_left_idx = self._merge_right_idx - 1
+        self._merge_normal_idx = expanded_pos[not_load_mask]
+
+        # span_index and span_type are constant across calls
+        np_arange = np.arange(n_original)
+        span_index = np.empty(n_total, dtype=np_arange.dtype)
+        span_index[self._merge_normal_idx] = np_arange[not_load_mask]
+        span_index[self._merge_left_idx] = np_arange[bool_mask]
+        span_index[self._merge_right_idx] = np_arange[bool_mask]
+        self._merge_span_index = span_index
+
+        span_type = np.zeros(n_total, dtype=np.float64)
+        span_type[self._merge_left_idx] = 1
+        span_type[self._merge_right_idx] = 2
+        self._merge_span_type = span_type
 
     def dict_to_store(self) -> dict:
         return {
