@@ -948,36 +948,35 @@ class LoadModel(IModelForSolver):
         self.load_weight = load_weight
         self.load_position = load_position
         self.find_param_solver_type = find_param_solver_type
-        # TODO: Need a way to choose Span model
+        self._n_loads = len(load_weight)
 
-        # init objects with placeholder values, but they will be updated when needed
+        # Individual span models for objective_function and external access
         self.span_model_left = CatenarySpan(
             a, b, parameter, k_load, self.linear_weight
         )
         self.span_model_right = CatenarySpan(
             a, b, parameter, k_load, self.linear_weight
         )
-        self.deformation_model_left = deformation_model_builder(
+
+        # Combined span model (2N elements: [left..., right...])
+        # for batched approx_parameter + find_parameter
+        a2 = np.concatenate([a, a])
+        b2 = np.concatenate([b, b])
+        p2 = np.concatenate([parameter, parameter])
+        k2 = np.concatenate([k_load, k_load])
+        t2 = np.concatenate([temperature, temperature])
+
+        self._span_combined = CatenarySpan(a2, b2, p2, k2, self.linear_weight)
+        self._deformation_combined = deformation_model_builder(
             self.cable_array,
-            self.span_model_left,
-            temperature,
+            self._span_combined,
+            t2,
         )
-        self.deformation_model_right = deformation_model_builder(
-            self.cable_array,
-            self.span_model_right,
-            temperature,
+        self._find_param_model = FindParamModel(
+            self._span_combined, self._deformation_combined
         )
-        self.find_param_model_left = FindParamModel(
-            self.span_model_left, self.deformation_model_left
-        )
-        self.find_param_model_right = FindParamModel(
-            self.span_model_right, self.deformation_model_right
-        )
-        self.find_param_solver_left = self.find_param_solver_type(
-            self.find_param_model_left
-        )
-        self.find_param_solver_right = self.find_param_solver_type(
-            self.find_param_model_right
+        self._find_param_solver = self.find_param_solver_type(
+            self._find_param_model
         )
 
     def set_all(
@@ -1018,8 +1017,10 @@ class LoadModel(IModelForSolver):
         self.span_model_left.load_coefficient = self.k_load
         self.span_model_right.load_coefficient = self.k_load
 
-        self.deformation_model_left.current_temperature = self.temperature
-        self.deformation_model_right.current_temperature = self.temperature
+        k2 = np.concatenate([self.k_load, self.k_load])
+        t2 = np.concatenate([self.temperature, self.temperature])
+        self._span_combined.load_coefficient = k2
+        self._deformation_combined.current_temperature = t2
 
     def update_lengths_span_models(self) -> None:
         self.span_model_left.span_length = self.x_i
@@ -1069,48 +1070,41 @@ class LoadModel(IModelForSolver):
     def update(self) -> None:
         """Update attributes on both span models: `span length`, `elevation difference`, `L_ref` and `parameter`"""
         self.update_lengths_span_models()
-        # update parameter left
+        n = self._n_loads
         L_ref_left = self.load_position * self.L_ref
-        a_left = self.x_i
-        b_left = self.z_i
-        parameter_left = approx_parameter(
-            a_left,
-            b_left,
-            L_ref_left,
-            self.k_load,
-            self.cable_section,
-            self.linear_weight,
-            self.young_modulus,
-            self.dilatation_coefficient,
-            self.temperature,
-        )
-        self.find_param_model_left.set_attributes(
-            initial_parameter=parameter_left,
-            L_ref=L_ref_left,
-        )
-
-        parameter_left = self.find_param_solver_left.find_parameter()
-        self.span_model_left.set_parameter(parameter_left)
-
-        # update parameter right
         L_ref_right = self.L_ref - L_ref_left
-        a_right = self.a_prime - self.x_i
-        b_right = self.b_prime - self.z_i
-        parameter_right = approx_parameter(
-            a_right,
-            b_right,
-            L_ref_right,
-            self.k_load,
+
+        # Concatenate left + right arrays for a single batched call
+        a_both = np.concatenate([self.x_i, self.a_prime - self.x_i])
+        b_both = np.concatenate([self.z_i, self.b_prime - self.z_i])
+        L_ref_both = np.concatenate([L_ref_left, L_ref_right])
+        k_both = np.concatenate([self.k_load, self.k_load])
+        t_both = np.concatenate([self.temperature, self.temperature])
+
+        # Update combined span model geometry
+        self._span_combined.span_length = a_both
+        self._span_combined.elevation_difference = b_both
+
+        # Single approx_parameter call (2N elements)
+        param_both = approx_parameter(
+            a_both,
+            b_both,
+            L_ref_both,
+            k_both,
             self.cable_section,
             self.linear_weight,
             self.young_modulus,
             self.dilatation_coefficient,
-            self.temperature,
-        )
-        self.find_param_model_right.set_attributes(
-            initial_parameter=parameter_right,
-            L_ref=L_ref_right,
+            t_both,
         )
 
-        parameter_right = self.find_param_solver_right.find_parameter()
-        self.span_model_right.set_parameter(parameter_right)
+        # Single find_parameter call (2N elements)
+        self._find_param_model.set_attributes(
+            initial_parameter=param_both,
+            L_ref=L_ref_both,
+        )
+        param_both = self._find_param_solver.find_parameter()
+
+        # Split results and update individual span models
+        self.span_model_left.set_parameter(param_both[:n])
+        self.span_model_right.set_parameter(param_both[n:])
