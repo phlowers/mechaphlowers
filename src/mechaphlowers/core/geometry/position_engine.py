@@ -62,9 +62,6 @@ class PositionEngine(Observer, Notifier):
     def initialize_engine(self, balance_engine: BalanceEngine) -> None:
         """Initialise internal references from *balance_engine*."""
         # Import here to avoid a circular import at module level.
-        from mechaphlowers.core.models.balance.engine import (
-            BalanceEngine as _BE,
-        )
 
         self.span_model = balance_engine.balance_model.nodes_span_model
         self.cable_loads = balance_engine.cable_loads

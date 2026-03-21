@@ -19,7 +19,6 @@ from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.reactivity import Notifier, Observer
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
