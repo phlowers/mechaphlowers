@@ -66,10 +66,14 @@ def test_cut_strands(balance_engine_base_test) -> None:
 def test_high_safety_rrts() -> None:
     """high_safety multiplies the safety coefficient by 1.5."""
     cable: CableArray = copy(sample_cable_catalog.get_as_object(["ASTER600"]))
-    
+
     # create the condition to use the default safety coefficient by setting it to None in the data
-    cable._data["safety_coefficient"] = None  # Set a known safety coefficient in the data
-    cable._tensile_strength = AdditiveLayerRts(cable._data)  # Recreate the strength model to pick up the change
+    cable._data["safety_coefficient"] = (
+        None  # Set a known safety coefficient in the data
+    )
+    cable._tensile_strength = AdditiveLayerRts(
+        cable._data
+    )  # Recreate the strength model to pick up the change
     options.data.safety_coefficient_default = 2.5
     options.data.safety_security_factor = 10
 
@@ -77,7 +81,7 @@ def test_high_safety_rrts() -> None:
 
     cable.high_safety = True
     assert cable.safety_coefficient == 25
-    
+
     # set back to original values to avoid side effects on other tests
     options.data.safety_coefficient_default = 1.5
     options.data.safety_security_factor = 1.5
