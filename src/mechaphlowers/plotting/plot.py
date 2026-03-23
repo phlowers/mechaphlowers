@@ -514,7 +514,7 @@ class PlotEngine(Observer):
         to the absolute global coordinate system.
 
         Span-local frame definition:
-        
+
         - X axis: along the span direction in the XY plane
         - Y axis: perpendicular to the span direction in the XY plane
         - Z axis: vertical (global Z)
@@ -572,7 +572,9 @@ class PlotEngine(Observer):
 
             >>> balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
             >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
-            >>> point = np.array([10.0, 5.0, 2.0])  # Absolute coordinates of the point to analyze
+            >>> point = np.array(
+            ...     [10.0, 5.0, 2.0]
+            ... )  # Absolute coordinates of the point to analyze
             >>> fig = figure_factory()
             >>> distance_result = plt_engine.point_distance(span_index=0, point=point)
             # ...get a distance result object with the distance and closest point coordinates

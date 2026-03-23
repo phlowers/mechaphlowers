@@ -407,9 +407,7 @@ def test_compute_aspect_ratio__values_in_range(
     balance_engine_local_initialized: BalanceEngine,
 ) -> None:
     """Test that the maximum aspect ratio value equals the scale factor (default 1.0)."""
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_initialized
-    )
+    plt_engine = PlotEngine(balance_engine_local_initialized)
     span, supports, insulators = plt_engine.get_points_for_plot()
 
     aspect = compute_aspect_ratio(span, supports, insulators)
@@ -438,9 +436,7 @@ def test_compute_aspect_ratio__scale_factors(
     scale_value: float,
 ) -> None:
     """Test that scale multipliers are applied correctly for all axes."""
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_initialized
-    )
+    plt_engine = PlotEngine(balance_engine_local_initialized)
     span, supports, insulators = plt_engine.get_points_for_plot()
 
     # Get base aspect (no scaling)
@@ -471,9 +467,7 @@ def test_compute_aspect_ratio__all_scales(
     balance_engine_local_initialized: BalanceEngine,
 ) -> None:
     """Test that all three scale factors are applied correctly."""
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_initialized
-    )
+    plt_engine = PlotEngine(balance_engine_local_initialized)
     span, supports, insulators = plt_engine.get_points_for_plot()
 
     # Get base aspect ratio
@@ -504,9 +498,7 @@ def test_compute_aspect_ratio__error_on_invalid_scale(
     balance_engine_local_initialized: BalanceEngine,
 ) -> None:
     """Test that ValueError is raised for non-positive scale factors."""
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_initialized
-    )
+    plt_engine = PlotEngine(balance_engine_local_initialized)
     span, supports, insulators = plt_engine.get_points_for_plot()
 
     with pytest.raises(ValueError, match="Scale factors must be positive"):
@@ -520,9 +512,7 @@ def test_preview_line3d__custom_aspect_ratio(
     balance_engine_local_initialized: BalanceEngine,
 ) -> None:
     """Test that preview_line3d accepts and applies custom aspect ratio."""
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_initialized
-    )
+    plt_engine = PlotEngine(balance_engine_local_initialized)
 
     # Compute custom aspect ratio
     span, supports, insulators = plt_engine.get_points_for_plot()
@@ -533,7 +523,7 @@ def test_preview_line3d__custom_aspect_ratio(
     # Create figure with custom aspect ratio
     fig = go.Figure()
     plt_engine.preview_line3d(fig, aspect_ratio=custom_aspect)
-    
+
     if show_figures:
         fig.show()
 
