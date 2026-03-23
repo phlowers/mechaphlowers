@@ -412,8 +412,7 @@ class BalanceModel(IBalanceModel):
         # TODO: understand this and write docstring
         # warning: counting from right to left
         proj_d_i = self.nodes.proj_d
-        proj_g_ip1 = np.roll(self.nodes.proj_g, -1, axis=1)
-        proj_diff = (proj_g_ip1 - proj_d_i)[:, :-1]
+        proj_diff = self.nodes.proj_g[:, 1:] - proj_d_i[:, :-1]
         # x: initial input to calculate span_length
         self.inter1: np.ndarray = self.nodes.span_length + proj_diff[0]
         self.inter2: np.ndarray = proj_diff[1]
@@ -428,8 +427,7 @@ class BalanceModel(IBalanceModel):
         self.compute_inter()
 
         self.a = (self.inter1**2 + self.inter2**2) ** 0.5
-        b = np.roll(z, -1) - z
-        self.b = b[:-1]
+        self.b = z[1:] - z[:-1]
         # TODO: fix array lengths?
         self.span_model.set_lengths(
             arr.incr(self.a_prime), arr.incr(self.b_prime)
@@ -444,7 +442,10 @@ class BalanceModel(IBalanceModel):
         # Need to run update() before this method if necessary
         self.nodes.compute_moment()
 
-        out = np.array([self.nodes.Mx, self.nodes.My]).flatten('F')
+        n = len(self.nodes.Mx)
+        out = np.empty(2 * n)
+        out[0::2] = self.nodes.Mx
+        out[1::2] = self.nodes.My
         return out
 
     @property
@@ -1034,7 +1035,11 @@ class LoadModel(IModelForSolver):
         Returns:
             np.ndarray: state vector. Format is `[x_i0, z_i0, x_i1, z_i1,...]`
         """
-        return np.array([self.x_i, self.z_i]).flatten('F')
+        n = len(self.x_i)
+        out = np.empty(2 * n)
+        out[0::2] = self.x_i
+        out[1::2] = self.z_i
+        return out
 
     @state_vector.setter
     def state_vector(self, value: np.ndarray) -> None:
@@ -1065,7 +1070,11 @@ class LoadModel(IModelForSolver):
         Th_diff = Th_left - Th_right
         Tv_diff = Tv_d_loc + Tv_g_loc - self.load_weight * self.k_load
 
-        return np.array([Th_diff, Tv_diff]).flatten('F')
+        n = len(Th_diff)
+        out = np.empty(2 * n)
+        out[0::2] = Th_diff
+        out[1::2] = Tv_diff
+        return out
 
     def update(self) -> None:
         """Update attributes on both span models: `span length`, `elevation difference`, `L_ref` and `parameter`"""
