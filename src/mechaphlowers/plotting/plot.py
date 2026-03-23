@@ -504,6 +504,7 @@ class PlotEngine:
         to the absolute global coordinate system.
 
         Span-local frame definition:
+        
         - X axis: along the span direction in the XY plane
         - Y axis: perpendicular to the span direction in the XY plane
         - Z axis: vertical (global Z)
