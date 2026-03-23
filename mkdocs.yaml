@@ -53,7 +53,7 @@ nav:
       - Guying: user_guide/ug_guying.md
       - Parameter calibration : user_guide/ug_parameter_calibration.md
       - Configuration: user_guide/ug_configuration.md
-      - Geography: user_guide/ug_maps.md
+      - Geography: user_guide/ug_geography.md
       - Thermal engine: user_guide/ug_thermal_engine.md
       - Specific errors used: user_guide/ug_mph_errors.md
   - Developer guide:

@@ -107,4 +107,6 @@ conf/default.json
 # data
 input_data
 
+# LLM cache
 .notes
+.llm_cache
