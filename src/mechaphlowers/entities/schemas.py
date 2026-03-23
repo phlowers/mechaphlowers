@@ -44,6 +44,12 @@ class SectionArrayInput(pa.DataFrameModel):
     ground_altitude: pdt.Series[float] | None = pa.Field(
         nullable=True, coerce=True
     )
+    counterweight_mass: pdt.Series[float] | None = pa.Field(
+        nullable=True, coerce=True
+    )
+    bundle_number: pdt.Series[int] | None = pa.Field(
+        nullable=True, coerce=True
+    )
 
     @pa.dataframe_check(
         description="""Each row in the dataframe contains information about a support

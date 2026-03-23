@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Literal
+from typing import Literal
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
@@ -24,9 +24,8 @@ from mechaphlowers.core.geometry.points import (
     SectionPoints,
 )
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.core.models.cable.span import ISpan
-from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.entities.arrays import ObstacleArray, SectionArray
+from mechaphlowers.entities.arrays import ObstacleArray
+from mechaphlowers.entities.reactivity import Notifier, Observer
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
 from mechaphlowers.plotting.plot_config import (
     TraceProfile,
@@ -81,12 +80,9 @@ def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
 def plot_text_3d(
     fig: go.Figure,
     points: np.ndarray,
-    text: np.ndarray,
-    color=None,
-    width=3,
-    size=None,
-    name="Points",
-):
+    text: list[str] | np.ndarray,
+    name: str = "Points",
+) -> None:
     fig.add_trace(
         go.Scatter3d(
             x=points[:, 0],
@@ -156,7 +152,7 @@ def plot_points_2d(
     )
 
 
-def plot_support_shape(fig: go.Figure, support_shape: SupportShape):
+def plot_support_shape(fig: go.Figure, support_shape: SupportShape) -> None:
     """plot_support_shape enables to plot the support shape on a plotly figure
 
     Args:
@@ -258,65 +254,79 @@ def set_layout(
     )
 
 
-class PlotEngine:
+class PlotEngine(Observer):
+    """PlotEngine object
+
+    Engine to handle plotting of power line sections from a BalanceEngine object.
+
+    Args:
+        balance_engine (BalanceEngine): BalanceEngine object to link to the PlotEngine
+
+    Example:
+        >>> from mechaphlowers.core.models.balance.engine import BalanceEngine
+        >>> from mechaphlowers.plotting.plot import PlotEngine
+        >>> import plotly.graph_objects as go
+        >>> # Initialize balance engine and plot engine
+        >>> balance_engine = BalanceEngine(...)
+        >>> plt_engine = PlotEngine(balance_engine)
+        >>> # Create and display 3D plot
+        >>> fig = go.Figure()
+        >>> plt_engine.preview_line3d(fig, view="full")
+        >>> fig.show()
+        >>> # Create and display 2D profile plot
+        >>> fig = go.Figure()
+        >>> plt_engine.preview_line2d(fig, view="profile")
+        >>> fig.show()
+        >>> # When balance engine is modified, plot engine updates automatically
+        >>> balance_engine.add_loads(wind_pressure=50, ice_thickness=10)
+        >>> # PlotEngine receives update notification via observer pattern
+    """
+
     def __init__(
         self,
         balance_engine: BalanceEngine,
-        span_model: ISpan,
-        cable_loads: CableLoads,
-        section_array: SectionArray,
-        get_displacement: Callable[[], np.ndarray],
     ) -> None:
-        self.balance_engine = balance_engine
-        self.spans = span_model
-        self.cable_loads = cable_loads
-        self.section_array = section_array
-        self.distance_engine = DistanceEngine()
+        balance_engine.bind_to(self)
 
+        self.distance_engine = DistanceEngine()
+        self.initialize_engine(balance_engine)
+        self.reset(balance_engine=balance_engine)
+
+    def initialize_engine(self, balance_engine: BalanceEngine):
+        self.span_model = balance_engine.balance_model.nodes_span_model
+        self.cable_loads = balance_engine.cable_loads
+        self.section_array = balance_engine.section_array
         self.section_pts = SectionPoints(
             section_array=self.section_array,
-            span_model=span_model,
-            cable_loads=cable_loads,
-            get_displacement=get_displacement,
+            span_model=self.span_model,
+            cable_loads=self.cable_loads,
+            get_displacement=balance_engine.get_displacement,
         )
 
-    def add_obstacles(self, obstacles_array: ObstacleArray):
+    def reset(self, balance_engine: BalanceEngine) -> None:
+        """Reset the plot engine with a new balance engine if needed (e.g. after re-initialization of the balance engine)."""
+
+        if not isinstance(balance_engine, BalanceEngine):
+            raise TypeError(
+                "balance_engine must be an instance of BalanceEngine"
+            )
+        if balance_engine.initialized is False:
+            self.initialize_engine(balance_engine)
+        self.section_pts.reset()
+
+    def update(self, notifier: Notifier) -> None:
+        logger.debug("Plot engine notified from balance engine.")
+        # BalanceEngine notifies observers; refresh plot state when possible.
+        if isinstance(notifier, BalanceEngine):
+            self.reset(balance_engine=notifier)
+
+    def add_obstacles(self, obstacles_array: ObstacleArray) -> None:
         self.obstacles_array = obstacles_array
         self.section_pts.add_obstacles(obstacles_array)
 
     @property
     def beta(self) -> np.ndarray:
         return self.cable_loads.load_angle
-
-    @staticmethod
-    def builder_from_balance_engine(
-        balance_engine: BalanceEngine,
-    ) -> PlotEngine:
-        logger.debug("Plot engine initialized from balance engine.")
-
-        return PlotEngine(
-            balance_engine,
-            balance_engine.balance_model.nodes_span_model,
-            balance_engine.cable_loads,
-            balance_engine.section_array,
-            balance_engine.get_displacement,
-        )
-
-    def generate_reset(self) -> PlotEngine:
-        """Create and returns a PlotEngine object using stored BalanceEngine object.
-        This method does not modify the current PlotEngine instance.
-
-        Method used if BalanceEngine attributes have changed.
-
-        Examples:
-            >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
-            >>> balance_engine.add_loads(...)  # modification on balance engine
-            >>> plt_engine = plt_engine.generate_reset()
-
-        Returns:
-            PlotEngine: object with reset attributes
-        """
-        return self.builder_from_balance_engine(self.balance_engine)
 
     def get_spans_points(
         self, frame: Literal["section", "localsection", "cable"]
@@ -358,7 +368,7 @@ class PlotEngine:
             dict: dictionary that stores the coordinates. Key is span index. Value is a np.array of coordinates.
         """
         spans_points, _, _ = self.get_points_for_plot(project, frame_index)
-        loads_spans_idx, loads_points_idx = self.spans.loads_indices
+        loads_spans_idx, loads_points_idx = self.span_model.loads_indices
         result_dict = {}
         for index_in_small_array, span_index in enumerate(loads_spans_idx):
             # point_index is the index of the load point in spans_points.coords
@@ -618,7 +628,7 @@ class PlotEngine:
     def __str__(self) -> str:
         return (
             f"number of supports: {self.section_array.data.span_length.shape[0]}\n"
-            f"parameter: {self.spans.sagging_parameter}\n"
+            f"parameter: {self.span_model.sagging_parameter}\n"
             f"wind: {self.cable_loads.wind_pressure}\n"
             f"ice: {self.cable_loads.ice_thickness}\n"
             f"beta: {self.beta}\n"

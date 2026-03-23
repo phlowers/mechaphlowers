@@ -38,7 +38,7 @@ from mechaphlowers.core.models.cable.deformation import (
 from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.core import VhlStrength
+from mechaphlowers.entities.core import VhlResult
 from mechaphlowers.numeric import cubic
 from mechaphlowers.utils import arr
 
@@ -66,8 +66,111 @@ class BalanceModel(IBalanceModel):
     ) -> None:
         # tempertaure and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
-        self.parameter = parameter
-        self.nodes = nodes_builder(section_array)
+        self.parameter_init = parameter
+        self.section_array = section_array
+        self.find_param_solver_type = find_param_solver_type
+
+        self.reset(
+            cable_array, span_model, deformation_model, cable_loads, full=True
+        )
+
+    def reset(
+        self,
+        cable_array: CableArray,
+        span_model: ISpan,
+        deformation_model: IDeformation,
+        cable_loads: CableLoads,
+        full: bool = False,
+    ) -> None:
+        """set or reset the model.
+
+        For full=True, all attributes are re-initialized, including cable data and nodes.
+        Else, only models references are updated. It is useful for loads update for examples.
+
+        Args:
+            cable_array (CableArray): cable data
+            span_model (ISpan): span model
+            deformation_model (IDeformation): deformation model
+            cable_loads (CableLoads): cable loads
+            full (bool, optional): whether to re-initialize all attributes or only models references. Defaults to False.
+        """
+
+        # declaration of attributes
+        self.a: np.ndarray
+        self.b: np.ndarray
+        self.Th: np.ndarray
+        self.Tv_d: np.ndarray
+        self.Tv_g: np.ndarray
+
+        self._adjustment: bool = True
+
+        # if full is True:
+        self.parameter = self.parameter_init
+        self.initialize_cable(cable_array)
+
+        self.nodes = nodes_builder(self.section_array)
+
+        self.initialize_models_references(
+            span_model, deformation_model, cable_loads, full=full
+        )
+
+        # TODO: during adjustment computation, perhaps set cable_temperature = 0
+        # temperature here is tuning temperature / only in the real span part
+        # there is another temperature : change state
+
+        self.initialize_loadmodel()
+        self.initialize_solvers()
+        self.initialize_state()
+
+    def initialize_state(self):
+        """Initialize the state of the model. Mainly used as a preprocess before a computation."""
+        self.update()
+        self.nodes.compute_dx_dy_dz()
+        self.nodes.vector_projection.set_tensions(
+            self.Th, self.Tv_d, self.Tv_g
+        )
+        self.nodes.compute_moment()
+
+    def initialize_models_references(
+        self,
+        span_model: ISpan,
+        deformation_model: IDeformation,
+        cable_loads: CableLoads,
+        full: bool = False,
+    ):
+        """Initialize or reset models references. Special behavior for nodes_span_model if full is False to avoid breaking references.
+
+        Args:
+            span_model (ISpan): span model
+            deformation_model (IDeformation): deformation model
+            cable_loads (CableLoads): cable loads
+            full (bool, optional): whether to re-initialize all attributes or only models references. Defaults to False.
+        """
+        self.span_model = span_model
+        if full is True:
+            self.nodes_span_model = copy(self.span_model)
+        else:
+            self.nodes_span_model.mirror(self.span_model)
+        self.deformation_model = deformation_model
+        self.cable_loads = cable_loads
+
+    def initialize_loadmodel(self):
+        """Initialize LoadModel object used in change_state case with loads."""
+        self.load_model = LoadModel(
+            self.cable_array,
+            self.nodes.load_weight[self.nodes.has_load_on_span],
+            self.nodes.load_position[self.nodes.has_load_on_span],
+            arr.decr(self.span_model.span_length)[self.nodes.has_load_on_span],
+            arr.decr(self.span_model.elevation_difference)[
+                self.nodes.has_load_on_span
+            ],
+            self.k_load[self.nodes.has_load_on_span],
+            self.sagging_temperature[self.nodes.has_load_on_span],
+            self.parameter[self.nodes.has_load_on_span],
+        )
+
+    def initialize_cable(self, cable_array):
+        """Configure cable data from cable_array by copying attributes to local. Mainly used during full reset."""
         self.cable_array = cable_array
         # TODO: temporary solution to manage cable data, must find a better way to do this
         self.cable_section = np.float64(self.cable_array.data.section.iloc[0])
@@ -84,47 +187,19 @@ class BalanceModel(IBalanceModel):
         self.temperature_reference = np.float64(
             self.cable_array.data.temperature_reference.iloc[0]
         )
-        self.span_model = span_model
-        self.nodes_span_model = copy(self.span_model)
-        self.deformation_model = deformation_model
-        self.cable_loads = cable_loads
 
-        self.a: np.ndarray
-        self.b: np.ndarray
-        self.Th: np.ndarray
-        self.Tv_d: np.ndarray
-        self.Tv_g: np.ndarray
+    def initialize_solvers(self):
+        """initialize_solvers initializes the solvers used in the model."""
 
-        self._adjustment: bool = True
-        # TODO: during adjustment computation, perhaps set cable_temperature = 0
-        # temperature here is tuning temperature / only in the real span part
-        # there is another temperature : change state
-
-        self.load_model = LoadModel(
-            self.cable_array,
-            self.nodes.load_weight[self.nodes.has_load_on_span],
-            self.nodes.load_position[self.nodes.has_load_on_span],
-            arr.decr(self.span_model.span_length)[self.nodes.has_load_on_span],
-            arr.decr(self.span_model.elevation_difference)[
-                self.nodes.has_load_on_span
-            ],
-            self.k_load[self.nodes.has_load_on_span],
-            self.sagging_temperature[self.nodes.has_load_on_span],
-            self.parameter[self.nodes.has_load_on_span],
-        )
         self.find_param_model = FindParamModel(
             self.span_model, self.deformation_model
         )
-        self.find_param_solver = find_param_solver_type(self.find_param_model)
+        self.find_param_solver = self.find_param_solver_type(
+            self.find_param_model
+        )
         self.load_solver = BalanceSolver(
             **options.solver.balance_solver_load_params
         )
-        self.update()
-        self.nodes.compute_dx_dy_dz()
-        self.nodes.vector_projection.set_tensions(
-            self.Th, self.Tv_d, self.Tv_g
-        )
-        self.nodes.compute_moment()
 
     @property
     def adjustment(self) -> bool:
@@ -392,12 +467,16 @@ class BalanceModel(IBalanceModel):
         self.update_span()
         self.update_tensions()
 
-    def vhl_under_chain(self) -> VhlStrength:
-        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
-        vhl_result = np.array([-Fz, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
+    # For the following vhl methods, the Fz and Fy components are reversed:
+    # the z axis is reversed (downwards) for users wanting vhl results
+    # the y axis is also reversed: toward oneself (right of the line)
 
-    def vhl_under_chain_left(self) -> VhlStrength:
+    def vhl_under_chain(self) -> VhlResult:
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
+
+    def vhl_under_chain_left(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the left of the support.
@@ -405,13 +484,13 @@ class BalanceModel(IBalanceModel):
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
 
         Returns:
-            VhlStrength: VhlStrength object
+            VhlResult: VhlResult object
         """
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable_left()
-        vhl_result = np.array([-Fz, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
 
-    def vhl_under_chain_right(self) -> VhlStrength:
+    def vhl_under_chain_right(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the right of the support.
@@ -419,18 +498,21 @@ class BalanceModel(IBalanceModel):
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
 
         Returns:
-            VhlStrength: VhlStrength object
+            VhlResult: VhlResult object
         """
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable_right()
-        vhl_result = np.array([-Fz, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
 
-    def vhl_under_console(self) -> VhlStrength:
+    def vhl_under_console(self) -> VhlResult:
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
-        vhl_result = np.array(
-            [-(Fz + self.nodes.signed_insulator_weight), Fy, Fx]
+        Fz_with_weights = (
+            Fz
+            + self.nodes.signed_insulator_weight
+            + self.nodes.signed_counterweight
         )
-        return VhlStrength(vhl_result, "N")
+        vhl_result = np.array([Fz_with_weights, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
 
     @property
     def has_loads(self) -> bool:
@@ -574,6 +656,7 @@ class Nodes:
         # load and load_position must of length nb_supports - 1
         load_weight: np.ndarray,
         load_position: np.ndarray,
+        counterweight: np.ndarray,
     ):
         # TODO: docstring of this whole class
 
@@ -602,7 +685,7 @@ class Nodes:
         self.has_load_on_span = np.logical_and(
             load_weight != 0, load_position != 0
         )
-
+        self.signed_counterweight = -counterweight
         self.vector_projection = VectorProjection()
 
     @property
@@ -738,16 +821,22 @@ class Nodes:
 
     def compute_moment(self) -> None:
         """Compute moments of two forces: force of the cable, and chain weight."""
+        F_zeros = np.empty(self.signed_insulator_weight.shape)
+        F_zeros.fill(0.0)
         # Force of the cable. Applied at attachement point between cable and chain.
         Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
         force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
+        force_counterweight = np.vstack(
+            (F_zeros, F_zeros, self.signed_counterweight)
+        ).T
         # size : (nb nodes , 3 for 3D)
+
         lever_cable = np.array([self.dx, self.dy, self.dz]).T
-        M_cable = np.cross(lever_cable, force_cable)
+        M_cable = np.cross(lever_cable, force_cable + force_counterweight)
+
+        # add counterweight here (full length chain)
 
         # Weight of the chain. Applied on center of gravity of the chain
-        F_zeros = np.empty(self.signed_insulator_weight.shape)
-        F_zeros.fill(0.0)
         force_chain_weight = np.vstack(
             (F_zeros, F_zeros, self.signed_insulator_weight)
         ).T
@@ -800,8 +889,23 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         section_array.data.conductor_attachment_altitude.to_numpy()
     )
     span_length = arr.decr(section_array.data.span_length.to_numpy())
-    load_weight = arr.decr(section_array.data.load_weight.to_numpy())
-    load_position = arr.decr(section_array.data.load_position.to_numpy())
+
+    load_weight = (
+        arr.decr(section_array.data.load_weight.to_numpy())
+        if "load_weight" in section_array.data
+        else np.zeros(span_length.shape)
+    )
+    load_position = (
+        arr.decr(section_array.data.load_position.to_numpy())
+        if "load_position" in section_array.data
+        else np.zeros(span_length.shape)
+    )
+    counterweight = (
+        section_array.data.counterweight.to_numpy()
+        if "counterweight" in section_array.data
+        else np.zeros(insulator_length.shape)
+    )
+
     return Nodes(
         insulator_length,
         insulator_weight,
@@ -811,6 +915,7 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         span_length,
         load_weight,
         load_position,
+        counterweight,
     )
 
 

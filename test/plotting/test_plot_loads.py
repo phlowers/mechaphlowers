@@ -82,9 +82,7 @@ def balance_engine_with_loads(cable_array_AM600: CableArray) -> BalanceEngine:
 
 
 def test_plot_loads(balance_engine_with_loads: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_with_loads
-    )
+    plt_engine = PlotEngine(balance_engine_with_loads)
 
     balance_engine_with_loads.solve_adjustment()
     balance_engine_with_loads.solve_change_state(
@@ -103,9 +101,7 @@ def test_plot_loads(balance_engine_with_loads: BalanceEngine):
 
 
 def test_plot_add_loads_later(balance_engine_no_loads: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_no_loads
-    )
+    plt_engine = PlotEngine(balance_engine_no_loads)
 
     balance_engine_no_loads.solve_adjustment()
 
@@ -124,14 +120,14 @@ def test_plot_add_loads_later(balance_engine_no_loads: BalanceEngine):
     ]
 
     # Reset objects to factor in modifications
-    balance_engine_no_loads.reset()
-    plt_engine = plt_engine.generate_reset()
+    balance_engine_no_loads.reset(full=False)
+    plt_engine.reset(balance_engine=balance_engine_no_loads)
 
     balance_engine_no_loads.solve_adjustment()
     balance_engine_no_loads.solve_change_state(
         new_temperature=15, wind_pressure=560
     )
-    assert plt_engine.spans.span_length.size == 6
+    assert plt_engine.span_model.span_length.size == 6
     fig = go.Figure()
 
     plt_engine.preview_line3d(fig)
@@ -146,16 +142,14 @@ def test_plot_add_loads_later(balance_engine_no_loads: BalanceEngine):
 
 
 def test_plot_reset(balance_engine_no_loads: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_no_loads
-    )
+    plt_engine = PlotEngine(balance_engine_no_loads)
 
-    balance_engine_no_loads.reset()
-    plt_engine = plt_engine.generate_reset()
+    balance_engine_no_loads.reset(full=False)
+    plt_engine.reset(balance_engine=balance_engine_no_loads)
 
     # Checks that id are still the same
     assert id(balance_engine_no_loads.balance_model.nodes_span_model) == id(
-        plt_engine.spans
+        plt_engine.span_model
     )
     assert id(balance_engine_no_loads.cable_loads) == id(
         plt_engine.cable_loads
@@ -163,9 +157,7 @@ def test_plot_reset(balance_engine_no_loads: BalanceEngine):
 
 
 def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_no_loads
-    )
+    plt_engine = PlotEngine(balance_engine_no_loads)
 
     # Modify loads positions and mass
     balance_engine_no_loads.add_loads(
@@ -174,13 +166,13 @@ def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
     )
 
     # Reset objects to factor in modifications
-    plt_engine = plt_engine.generate_reset()
+    plt_engine.reset(balance_engine=balance_engine_no_loads)
 
     balance_engine_no_loads.solve_adjustment()
     balance_engine_no_loads.solve_change_state(
         new_temperature=15, wind_pressure=560
     )
-    assert plt_engine.spans.span_length.size == 6
+    assert plt_engine.span_model.span_length.size == 6
 
     fig = go.Figure()
 
@@ -196,9 +188,7 @@ def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
 
 
 def test_get_loads_coords(balance_engine_with_loads: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_with_loads
-    )
+    plt_engine = PlotEngine(balance_engine_with_loads)
     coords_loads_before_solve = plt_engine.get_loads_coords()
     assert coords_loads_before_solve == {}
 
@@ -243,7 +233,7 @@ def test_get_loads_coords_4_spans(cable_array_AM600: CableArray):
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+    plt_engine = PlotEngine(balance_engine)
     coords_loads_before_solve = plt_engine.get_loads_coords()
     assert coords_loads_before_solve == {}
 
@@ -261,9 +251,7 @@ def test_get_loads_coords_4_spans(cable_array_AM600: CableArray):
 
 
 def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_no_loads
-    )
+    plt_engine = PlotEngine(balance_engine_no_loads)
 
     balance_engine_no_loads.solve_adjustment()
 
@@ -282,14 +270,13 @@ def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
     ]
 
     # Reset objects to factor in modifications
-    balance_engine_no_loads.reset()
-    plt_engine = plt_engine.generate_reset()
+    balance_engine_no_loads.reset(full=False)
 
     balance_engine_no_loads.solve_adjustment()
     balance_engine_no_loads.solve_change_state(
         new_temperature=15, wind_pressure=560
     )
-    assert plt_engine.spans.span_length.size == 6
+    assert plt_engine.span_model.span_length.size == 6
     fig = go.Figure()
 
     plt_engine.preview_line3d(fig)

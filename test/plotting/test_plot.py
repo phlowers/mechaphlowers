@@ -76,9 +76,7 @@ def test_plot_line3d__all_line(
     balance_engine_local_initialized: BalanceEngine,
 ) -> None:
     fig = go.Figure()
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_initialized
-    )
+    plt_engine = PlotEngine(balance_engine_local_initialized)
     plt_engine.preview_line3d(fig)
 
     if show_figures:
@@ -102,9 +100,7 @@ def test_plot_line3d__view_option(
     balance_engine_local_initialized: BalanceEngine,
 ) -> None:
     fig = go.Figure()
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_initialized
-    )
+    plt_engine = PlotEngine(balance_engine_local_initialized)
     plt_engine.preview_line3d(fig, view="analysis")
 
     if show_figures:
@@ -126,9 +122,7 @@ def test_plot_line3d__wrong_view_option(
     balance_engine_local_initialized: BalanceEngine,
 ) -> None:
     fig = go.Figure()
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_initialized
-    )
+    plt_engine = PlotEngine(balance_engine_local_initialized)
     plt_engine.preview_line3d(fig)
     with pytest.raises(ValueError):
         plt_engine.preview_line3d(fig, view="wrong_parameter")  # type: ignore[arg-type]
@@ -144,9 +138,7 @@ def test_plot_line3d__with_beta(
         wind_pressure=np.array([240.12, 0.0, 600.0, np.nan]),
     )
 
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_local_initialized
-    )
+    plt_engine = PlotEngine(balance_engine_local_initialized)
     fig = go.Figure()
     plt_engine.preview_line3d(fig)
 
@@ -194,9 +186,7 @@ def test_plot_support_shape():
 
 
 def test_reactive_plot(balance_engine_base_test: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_base_test
-    )
+    plt_engine = PlotEngine(balance_engine_base_test)
     balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
@@ -228,14 +218,10 @@ def test_reactive_plot(balance_engine_base_test: BalanceEngine):
 
 
 def test_plot_ice(balance_engine_base_test: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_base_test
-    )
+    plt_engine = PlotEngine(balance_engine_base_test)
     balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(new_temperature=15)
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_base_test
-    )
+    plt_engine = PlotEngine(balance_engine_base_test)
     fig = go.Figure()
     plt_engine.preview_line3d(fig)
     # balance_engine_base_test.solve_adjustment()
@@ -244,9 +230,7 @@ def test_plot_ice(balance_engine_base_test: BalanceEngine):
         # new_temperature=90 * np.array([1, 1, 1]),
     )
 
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_base_test
-    )
+    plt_engine = PlotEngine(balance_engine_base_test)
 
     plt_engine.preview_line3d(fig)
 
@@ -267,7 +251,7 @@ def test_plot_ice(balance_engine_base_test: BalanceEngine):
 
 
 def test_plot_2d(balance_engine_angles: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    plt_engine = PlotEngine(balance_engine_angles)
     balance_engine_angles.solve_adjustment()
     balance_engine_angles.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
@@ -303,7 +287,7 @@ def test_plot_more_spans(cable_array_AM600: CableArray):
     balance_engine = BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
     )
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+    plt_engine = PlotEngine(balance_engine)
     balance_engine.solve_adjustment()
     balance_engine.solve_change_state(new_temperature=15)
     balance_engine.solve_change_state(
@@ -322,7 +306,7 @@ def test_plot_more_spans(cable_array_AM600: CableArray):
 
 
 def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    plt_engine = PlotEngine(balance_engine_angles)
     balance_engine_angles.solve_adjustment()
     balance_engine_angles.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
@@ -344,7 +328,7 @@ def test_plot_3d_sandbox(balance_engine_angles: BalanceEngine):
 
 
 def test_plot_3d__styles(balance_engine_angles: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    plt_engine = PlotEngine(balance_engine_angles)
     balance_engine_angles.solve_adjustment()
     balance_engine_angles.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
@@ -373,7 +357,7 @@ def test_plot_point_2d_wrong_view():
 
 
 def test_preview_2d_wrong_view(balance_engine_angles: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    plt_engine = PlotEngine(balance_engine_angles)
     balance_engine_angles.solve_adjustment()
     balance_engine_angles.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])
@@ -407,9 +391,7 @@ def test_trace_profile():
 
 
 def test_plot_repr(balance_engine_base_test: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(
-        balance_engine_base_test
-    )
+    plt_engine = PlotEngine(balance_engine_base_test)
     plt_engine.__repr__()
     balance_engine_base_test.solve_adjustment()
     balance_engine_base_test.solve_change_state(
