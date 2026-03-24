@@ -98,6 +98,12 @@ class BalanceEngine(Notifier):
         self.balance_model_type = balance_model_type
         self.span_model_type = span_model_type
         self.deformation_model_type = deformation_model_type
+        self._shifting_distance_support = np.zeros_like(
+            self.section_array.data.conductor_attachment_altitude.to_numpy()
+        )
+        self._lengthening_distance_span = np.zeros(
+            len(self.section_array.data.conductor_attachment_altitude) - 1
+        )
 
         self.reset(full=True)
 
@@ -220,6 +226,88 @@ class BalanceEngine(Notifier):
         )
         logger.debug(debug_loads)
 
+
+    @property
+    def shift_support(self) -> np.ndarray:
+        """Shifting distance, in meters."""
+        return self._shifting_distance_support
+    
+    @property
+    def lengthening_span(self) -> np.ndarray:
+        """Lengthening distance, in meters."""
+        return self._lengthening_distance_span
+        
+
+    def add_cable_shifting(self, shift_support: np.ndarray | list | None = None, lengthen_span: np.ndarray | list | None = None) -> None:
+        """Adds cable shifting to BalanceEngine.
+        Updates shifting_distance and shortening_distance fields.
+
+        Expected input are arrays of size matching the number of supports.
+
+        Args:
+            shifting_distance (np.ndarray | list): Shifting distance, in meters. First and last values must be 0 (support based).
+            shortening_distance (np.ndarray | list): Shortening distance, in meters. Last value is nan (span based).
+
+        Raises:
+            ValueError: if input arrays don't have correct size.
+        """
+        # Convert to numpy arrays
+        shift_support = np.array(shift_support, dtype=np.float64) if shift_support is not None else np.zeros(self.support_number)
+        lengthen_span = np.array(lengthen_span, dtype=np.float64) if lengthen_span is not None else np.zeros(self.support_number - 1)
+        
+        # Check size matches number of supports
+        expected_size = self.support_number
+        if shift_support.size != expected_size:
+            raise ValueError(
+                f"shifting_distance has incorrect size: {expected_size} is expected, received {shift_support.size}"
+            )
+        expected_span_size = self.support_number - 1
+        if lengthen_span.size != expected_span_size:
+            raise ValueError(
+                f"shortening_distance has incorrect size: {expected_span_size} is expected, received {lengthen_span.size}"
+            )
+        
+        # Enforce constraints: shifting_distance first and last are 0
+        if shift_support[0] != 0.0 or shift_support[-1] != 0.0:
+            logger.warning(
+                "shifting_distance first and last values must be 0 (support based). "
+                "Enforcing this constraint."
+            )
+            warnings.warn(
+                "shifting_distance first and last values have been set to 0",
+                BalanceEngineWarning
+            )
+        shift_support[0] = 0.0
+        shift_support[-1] = 0.0
+        
+        # Store in private attributes
+        self._shifting_distance_support = shift_support
+        self._lengthening_distance_span = lengthen_span
+        
+        # Reset and notify observers
+        self.reset(full=False)
+        debug_msg = (
+            "Cable shifting has been added. PlotEngine will be notified automatically "
+            "via the observer pattern; no manual reset is required."
+        )
+        logger.debug(debug_msg)
+
+
+    def shift_span_length(self) -> np.ndarray:
+        """Transform shifhting distance which is support based into L_ref shift which is span based.
+
+        Returns:
+            np.ndarray: Shifted span length, in meters.
+        """
+        return self._shifting_distance_support[:-1]-self._shifting_distance_support[1:]
+
+    def shift_lengthen_cable(self) -> None:
+        """Shift the cable length according to the shifting and lengthening distances."""
+        shifted_length = -self.shift_span_length() - self._lengthening_distance_span
+        self.L_ref = self.initial_L_ref + shifted_length
+        self.balance_model.L_ref = self.L_ref
+
+
     @check_time
     def solve_adjustment(self) -> None:
         """Solve the chain positions in the adjustment case, updating L_ref in the balance model.
@@ -243,9 +331,11 @@ class BalanceEngine(Notifier):
             e.origin = "solve_adjustment"
             raise e
 
-        self.L_ref = self.balance_model.update_L_ref()
+        self.initial_L_ref = self.L_ref = self.balance_model.update_L_ref()
 
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")
+
+
 
     @check_time
     def solve_change_state(
@@ -317,12 +407,20 @@ class BalanceEngine(Notifier):
         # check if adjustment has been done before
         try:
             _ = self.L_ref
+            logger.debug(f"Adjustment has been done before, L_ref before shifting: {str(self.L_ref)}")
         except AttributeError:
             logger.warning(self._warning_no_L_ref)
             warnings.warn(self._warning_no_L_ref, BalanceEngineWarning)
             self.solve_adjustment()
 
         self.balance_model.adjustment = False
+
+        logger.debug(f"Shifting distance: {str(self.shift_support)}")
+        logger.debug(f"Lengthening distance: {str(self.lengthening_span)}")
+        logger.debug("Taking into account cable shifting and lengthening.")
+        self.shift_lengthen_cable()
+        logger.debug(f"L_ref after shifting: {str(self.L_ref)}")
+
         self.span_model.load_coefficient = (
             self.balance_model.cable_loads.load_coefficient
         )
