@@ -365,7 +365,7 @@ class ISpan(ABC):
         x_m, x_n = self.x_m, self.x_n
         Tm_Tn = np.array([self.T(x_m), self.T(x_n)])
         return (np.max(Tm_Tn, axis=0), np.min(Tm_Tn, axis=0))
-    
+
     @abstractmethod
     def sag(self) -> np.ndarray:
         """Sag of the cable span (s1 formula).
@@ -376,7 +376,7 @@ class ISpan(ABC):
         Returns:
             np.ndarray: sag value for each span.
         """
-    
+
     @abstractmethod
     def sag_s2(self) -> np.ndarray:
         """Sag of the cable span, computed with the s2 formula.
@@ -386,7 +386,6 @@ class ISpan(ABC):
         Returns:
             np.ndarray: sag s2 value for each span.
         """
-
 
 
 class CatenarySpan(ISpan):
@@ -649,7 +648,6 @@ class CatenarySpan(ISpan):
         # x0: abscissa corresponding to the inclined chord reference
         x0 = p * np.arcsinh(b / a)
         return (x0g + x0) / a * b + p * (np.cosh(x0g / p) - np.cosh(x0 / p))
-
 
     def sag_s2(self) -> np.ndarray:
         """Sag of the cable span, computed with the s2 formula.

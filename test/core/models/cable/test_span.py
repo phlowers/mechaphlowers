@@ -4,18 +4,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-import pandas as pd
 
 import numpy as np
 import pytest
 
-from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
 )
-from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.data_container import DataContainer
-
 
 
 def test_catenary_span_model__no_error_lengths() -> None:
@@ -327,29 +323,36 @@ def test_copy_attributes_full() -> None:
 
 @pytest.mark.integration
 def test_sag() -> None:
-    
     span = CatenarySpan(
-                    span_length=np.array([497.30361916, 297.90642086, 400.23314761,  np.nan]), 
-                    elevation_difference=np.array([20.70485389,  9.38674557,  -4.90829475, np.nan]),
-                    sagging_parameter=np.array([1199.99999844, 1199.99999793, 1199.99999826,   np.nan]), 
+        span_length=np.array(
+            [497.30361916, 297.90642086, 400.23314761, np.nan]
+        ),
+        elevation_difference=np.array(
+            [20.70485389, 9.38674557, -4.90829475, np.nan]
+        ),
+        sagging_parameter=np.array(
+            [1199.99999844, 1199.99999793, 1199.99999826, np.nan]
+        ),
     )
 
-    np.testing.assert_allclose(span.sag(), np.array([25.88,  9.26, 16.73, np.nan]), atol=1e-2)
+    np.testing.assert_allclose(
+        span.sag(), np.array([25.88, 9.26, 16.73, np.nan]), atol=1e-2
+    )
 
-    np.testing.assert_allclose(span.sag_s2(), np.array([16.55,  5.16 , 14.36,         np.nan]), atol=1e-2)
+    np.testing.assert_allclose(
+        span.sag_s2(), np.array([16.55, 5.16, 14.36, np.nan]), atol=1e-2
+    )
 
     # We want to test the case where the lowest point is at the same level as one of the two attachment points, which means that the sag s2 should be equal to 0. This is the case when the elevation difference is equal to 0 and the sagging parameter is large enough compared to the span length. In this case, we can consider that the cable is almost straight and that the lowest point is at the same level as the attachment points.
-    mountain_span = CatenarySpan(span_length=np.array([500.0, np.nan]), 
-                    elevation_difference=np.array([200.70485389, np.nan]),
-                    sagging_parameter=np.array([2200,   np.nan]), 
+    mountain_span = CatenarySpan(
+        span_length=np.array([500.0, np.nan]),
+        elevation_difference=np.array([200.70485389, np.nan]),
+        sagging_parameter=np.array([2200, np.nan]),
     )
 
-    np.testing.assert_allclose(mountain_span.sag_s2(), np.array([0.0,         np.nan]), atol=1e-2)
-
-
-
-
-
+    np.testing.assert_allclose(
+        mountain_span.sag_s2(), np.array([0.0, np.nan]), atol=1e-2
+    )
 
     # section_array = SectionArray(
     #     pd.DataFrame(
@@ -377,4 +380,3 @@ def test_sag() -> None:
     # balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
 
     # balance_engine.span_model.sag()
-
