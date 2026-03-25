@@ -16,7 +16,10 @@ from mechaphlowers.core.models.balance.engine import (
     BalanceEngine,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.errors import BalanceEngineWarning, ConvergenceError
+from mechaphlowers.entities.errors import (
+    BalanceEngineWarning,
+    ConvergenceError,
+)
 
 
 @fixture
@@ -43,8 +46,6 @@ def balance_engine_simple(cable_array_AM600: CableArray) -> BalanceEngine:
     return BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
     )
-
-
 
 
 @fixture
@@ -447,7 +448,6 @@ def test_engine_wind_sense(balance_engine_simple: BalanceEngine):
 
 @pytest.mark.integration
 def test_shifting_and_lengthening_cable(cable_array_AM600: CableArray):
-    
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -474,63 +474,103 @@ def test_shifting_and_lengthening_cable(cable_array_AM600: CableArray):
     balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
 
     assert balance_engine.L_ref.shape == (3,)
-    np.testing.assert_allclose(balance_engine.span_model.T_h(), np.array([2119.0, 2119.0, 2119.0, np.nan])*10, atol=10)
-    np.testing.assert_allclose(balance_engine.L_ref, np.array([500.8, 298.5, 401.7]), atol=0.1)
+    np.testing.assert_allclose(
+        balance_engine.span_model.T_h(),
+        np.array([2119.0, 2119.0, 2119.0, np.nan]) * 10,
+        atol=10,
+    )
+    np.testing.assert_allclose(
+        balance_engine.L_ref, np.array([500.8, 298.5, 401.7]), atol=0.1
+    )
 
-
-    balance_engine.add_cable_shifting(shift_support=np.array([0,1,0,0]))
+    balance_engine.add_cable_shifting(shift_support=np.array([0, 1, 0, 0]))
     balance_engine.shift_lengthen_cable()
 
     assert balance_engine.L_ref.shape == (3,)
-    np.testing.assert_allclose(balance_engine.L_ref, np.array([501.8, 297.5, 401.7]), atol=0.1)
-    
-    balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)    
-    np.testing.assert_allclose(balance_engine.span_model.T_h(), np.array([2026.0, 2315.0, 2246.0, np.nan])*10, atol=10)
+    np.testing.assert_allclose(
+        balance_engine.L_ref, np.array([501.8, 297.5, 401.7]), atol=0.1
+    )
 
-    balance_engine.add_cable_shifting(lengthen_span=np.array([0,2,0]), shift_support=np.array([2,0,0,0]))
+    balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
+    np.testing.assert_allclose(
+        balance_engine.span_model.T_h(),
+        np.array([2026.0, 2315.0, 2246.0, np.nan]) * 10,
+        atol=10,
+    )
+
+    balance_engine.add_cable_shifting(
+        lengthen_span=np.array([0, 2, 0]), shift_support=np.array([2, 0, 0, 0])
+    )
     balance_engine.shift_lengthen_cable()
 
-    np.testing.assert_allclose(balance_engine.L_ref, np.array([500.8, 296.5, 401.7]), atol=0.1)
-    
-    balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)    
+    np.testing.assert_allclose(
+        balance_engine.L_ref, np.array([500.8, 296.5, 401.7]), atol=0.1
+    )
+
+    balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
     # np.testing.assert_allclose(balance_engine.span_model.T_h(), np.array([2411.0, 2846.0, 2614.0, np.nan])*10, atol=1)
 
-
-    balance_engine.add_cable_shifting(lengthen_span=np.array([1.5,0,0]), shift_support=np.array([0,1,.5,0]))
+    balance_engine.add_cable_shifting(
+        lengthen_span=np.array([1.5, 0, 0]),
+        shift_support=np.array([0, 1, 0.5, 0]),
+    )
     balance_engine.shift_lengthen_cable()
 
-    np.testing.assert_allclose(balance_engine.L_ref, np.array([500.338, 298.042, 401.254]), atol=0.1)
-    
+    np.testing.assert_allclose(
+        balance_engine.L_ref, np.array([500.338, 298.042, 401.254]), atol=0.1
+    )
+
     balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
     # np.testing.assert_allclose(balance_engine.span_model.T_h(), np.array([2353.0, 2459.0, 2454.0, np.nan])*10, atol=1)
     # np.testing.assert_allclose(balance_engine.parameter, np.array([1333.0, 1392.0, 1390.0, np.nan]), atol=1)
 
 
-def test_add_cable_shifting_default_values(balance_engine_simple: BalanceEngine):
+def test_add_cable_shifting_default_values(
+    balance_engine_simple: BalanceEngine,
+):
     balance_engine_simple.add_cable_shifting()
 
     expected_support = np.zeros(balance_engine_simple.support_number)
-    np.testing.assert_array_equal(balance_engine_simple.shift_support, expected_support)
+    np.testing.assert_array_equal(
+        balance_engine_simple.shift_support, expected_support
+    )
     expected_span = np.zeros(balance_engine_simple.support_number - 1)
-    np.testing.assert_array_equal(balance_engine_simple.lengthening_span, expected_span)
+    np.testing.assert_array_equal(
+        balance_engine_simple.lengthening_span, expected_span
+    )
 
 
-def test_add_cable_shifting_wrong_size_shifting(balance_engine_simple: BalanceEngine):
-    with pytest.raises(ValueError, match="shifting_distance has incorrect size"):
+def test_add_cable_shifting_wrong_size_shifting(
+    balance_engine_simple: BalanceEngine,
+):
+    with pytest.raises(
+        ValueError, match="shifting_distance has incorrect size"
+    ):
         balance_engine_simple.add_cable_shifting(
             shift_support=np.array([0.0, 1.0, 0.0])  # 3 elements, 4 expected
         )
 
 
-def test_add_cable_shifting_wrong_size_lengthening(balance_engine_simple: BalanceEngine):
-    with pytest.raises(ValueError, match="shortening_distance has incorrect size"):
+def test_add_cable_shifting_wrong_size_lengthening(
+    balance_engine_simple: BalanceEngine,
+):
+    with pytest.raises(
+        ValueError, match="shortening_distance has incorrect size"
+    ):
         balance_engine_simple.add_cable_shifting(
-            lengthen_span=np.array([0.0, 1.0, 0.0, 0.0])  # 4 elements, 3 expected
+            lengthen_span=np.array(
+                [0.0, 1.0, 0.0, 0.0]
+            )  # 4 elements, 3 expected
         )
 
 
-def test_add_cable_shifting_enforces_shifting_boundaries(balance_engine_simple: BalanceEngine):
-    with pytest.warns(BalanceEngineWarning, match="shifting_distance first and last values have been set to 0"):
+def test_add_cable_shifting_enforces_shifting_boundaries(
+    balance_engine_simple: BalanceEngine,
+):
+    with pytest.warns(
+        BalanceEngineWarning,
+        match="shifting_distance first and last values have been set to 0",
+    ):
         balance_engine_simple.add_cable_shifting(
             shift_support=np.array([5.0, 1.0, 2.0, 3.0])
         )
@@ -547,6 +587,7 @@ def test_add_cable_shifting_no_warning_when_boundaries_are_compliant(
     balance_engine_simple: BalanceEngine,
 ):
     import warnings as _warnings
+
     with _warnings.catch_warnings():
         _warnings.simplefilter("error", BalanceEngineWarning)
         balance_engine_simple.add_cable_shifting(
@@ -555,9 +596,9 @@ def test_add_cable_shifting_no_warning_when_boundaries_are_compliant(
         )
 
 
-
-
-def test_add_cable_shifting_stores_values(balance_engine_simple: BalanceEngine):
+def test_add_cable_shifting_stores_values(
+    balance_engine_simple: BalanceEngine,
+):
     shifting = np.array([0.0, 1.5, 2.0, 0.0])
     lengthening = np.array([0.0, 0.5, 1.0])
 
@@ -566,5 +607,9 @@ def test_add_cable_shifting_stores_values(balance_engine_simple: BalanceEngine):
         lengthen_span=lengthening,
     )
 
-    np.testing.assert_array_equal(balance_engine_simple.shift_support, shifting)
-    np.testing.assert_array_equal(balance_engine_simple.lengthening_span, lengthening)
+    np.testing.assert_array_equal(
+        balance_engine_simple.shift_support, shifting
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.lengthening_span, lengthening
+    )
