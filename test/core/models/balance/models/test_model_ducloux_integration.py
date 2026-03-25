@@ -38,6 +38,7 @@ def section_array_angles() -> SectionArray:
                 ),
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
+                "counterweight_mass": [0, 0, 0, 0],
             }
         )
     )
@@ -90,6 +91,7 @@ def section_array_no_altitude_change() -> SectionArray:
                 ),
                 "load_mass": [0, 0, 0, 0],
                 "load_position": [0, 0, 0, 0],
+                "counterweight_mass": [0, 0, 0, 0],
             }
         )
     )
@@ -328,6 +330,7 @@ def test_adjust_with_angles(
 
 
 @pytest.mark.integration
+# Note: this test is the only one in this file testing vhl values
 def test_wind_no_altitude_change(
     section_array_no_altitude_change: SectionArray,
     cable_array_AM600: CableArray,
@@ -366,7 +369,7 @@ def test_wind_no_altitude_change(
     expected_vhl_under_console = np.array(
         [
             [5.34538576e02, 7.60729616e02, 6.72246587e02, 4.45064517e02],
-            [2.47336911e02, 3.72285443e02, 3.22182818e02, 2.01698053e02],
+            [-2.47336911e02, -3.72285443e02, -3.22182818e02, -2.01698053e02],
             [3.91179542e03, -4.89819371e00, -5.35288081e-01, -3.90633052e03],
         ]
     )
@@ -380,10 +383,10 @@ def test_wind_no_altitude_change(
                 345.064517160492,
             ],
             [
-                247.336910630502,
-                372.285442725628,
-                322.182818012918,
-                201.698053053279,
+                -247.336910630502,
+                -372.285442725628,
+                -322.182818012918,
+                -201.698053053279,
             ],
             [
                 3911.79537992953,
@@ -928,3 +931,304 @@ def test_engine_chain_reversal(cable_array_AM600: CableArray):
     balance_engine_angles.solve_adjustment()
     with pytest.raises(SuspectedChainReversal):
         balance_engine_angles.solve_change_state(wind_pressure=5000)
+
+
+@pytest.mark.integration
+# results generated with proto v4 in order to take into account counterweight, so precision is low
+def test_no_altitude_change_counterweight(
+    cable_array_AM600: CableArray,
+):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [0.01, 3, 3, 0.01],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+                "counterweight_mass": convert_weight_to_mass(
+                    [
+                        0,
+                        10000,
+                        10000,
+                        0,
+                    ]
+                ),
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "grad"})
+
+    balance_engine = BalanceEngine(cable_array_AM600, section_array)
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state()
+    expected_dx = np.array(
+        [
+            0.01,
+            0,
+            0,
+            -0.01,
+        ]
+    )
+    expected_dy = np.array([0, 0, 0, 0])
+    expected_dz = np.array([0, -3.0, -3.0, 0])
+
+    expected_L_ref = np.array(
+        [500.62813045232, 299.883502160226, 400.125890858086]
+    )
+
+    expected_vhl_under_chain = np.array(
+        [
+            [
+                4426.00509259864,
+                17077.18892747477,
+                16188.67277143141,
+                3537.48893656082,
+            ],
+            [0, 0, 0, 0],
+            [
+                35316.115870981,
+                -0.386227932634938,
+                0.197464875454898,
+                -35315.9271079238,
+            ],
+        ]
+    )
+
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-2,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-2,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-2,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.vhl_under_chain().vhl_matrix.value("N"),
+        expected_vhl_under_chain,
+        atol=1,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.L_ref,
+        expected_L_ref,
+        atol=1e-3,
+    )
+
+
+@pytest.mark.integration
+# results generated with proto v4
+def test_angles_counterweight(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": [0, 20, 30, 0],
+                "insulator_length": [0.01, 3, 3, 0.01],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+                "counterweight_mass": convert_weight_to_mass(
+                    [
+                        0,
+                        10000,
+                        10000,
+                        0,
+                    ]
+                ),
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "grad"})
+
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    balance_engine = BalanceEngine(cable_array_AM600, section_array)
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state()
+    expected_dx = np.array(
+        [
+            0.01,
+            2.50480753544961e-02,
+            4.81982621253004e-02,
+            -0.01,
+        ]
+    )
+    expected_dy = np.array([0, 1.25880394520106, 2.2269993160844, 0])
+    # minus 3 here because proto v4 stores displacement relatively to the position [0,0, -L]
+    expected_dz = np.array(
+        [0, 0.276989676577172 - 3, 0.990484890903352 - 3, 0]
+    )
+
+    expected_L_ref = np.array(
+        [499.415657345651, 300.729929727204, 401.991607493655]
+    )
+
+    expected_vhl_under_chain = np.array(
+        [
+            [
+                2971.02435232232,
+                17257.40313455535,
+                17119.90740813478,
+                3907.54805180944,
+            ],
+            [
+                -788.259742993468,
+                -8093.4515419997,
+                -19249.9553187584,
+                665.25113770311,
+            ],
+            [
+                35307.1946728045,
+                161.256201145954,
+                416.411091650267,
+                -35309.7294947654,
+            ],
+        ]
+    )
+
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-2,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-2,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-2,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.vhl_under_chain().vhl_matrix.value("N"),
+        expected_vhl_under_chain,
+        atol=1,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.L_ref,
+        expected_L_ref,
+        atol=1e-3,
+    )
+
+
+@pytest.mark.integration
+# results generated with proto v4
+def test_angles_bundle_number(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": [0, 20, 30, 0],
+                "insulator_length": [0.01, 3, 3, 0.01],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": convert_weight_to_mass(
+                    [1000, 500, 500, 1000]
+                ),
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+        bundle_number=3,
+    )
+    section_array.add_units({"line_angle": "grad"})
+
+    section_array.sagging_parameter = 2000
+    section_array.sagging_temperature = 15
+    balance_engine = BalanceEngine(cable_array_AM600, section_array)
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state()
+    expected_dx = np.array(
+        [
+            0.01,
+            4.32245153296619e-02,
+            6.44096406971964e-02,
+            -0.01,
+        ]
+    )
+
+    # reversed axis so sign change
+    expected_dy = -np.array([0, -2.2058305197297, -2.80369583556378, 0])
+    # minus 3 here because proto v4 stores displacement relatively to the position [0,0, -L]
+    expected_dz = np.array([0, 0.967158796289408 - 3, 1.93457001176634 - 3, 0])
+
+    expected_L_ref = np.array([499.335, 300.478, 401.822])
+
+    expected_vhl_under_chain = np.array(
+        [
+            [
+                8762.49,
+                21818.83,
+                21690.95,
+                11468.72,
+            ],
+            [
+                -2564.78,
+                -23946.87,
+                -57738.04,
+                1849.64,
+            ],
+            [
+                105916.94,
+                469.38,
+                1326.28,
+                -105931.83,
+            ],
+        ]
+    )
+
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dx,
+        expected_dx,
+        atol=1e-2,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dy,
+        expected_dy,
+        atol=1e-2,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dz,
+        expected_dz,
+        atol=1e-2,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.vhl_under_chain().vhl_matrix.value("N"),
+        expected_vhl_under_chain,
+        atol=1,
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.L_ref,
+        expected_L_ref,
+        atol=1e-3,
+    )
