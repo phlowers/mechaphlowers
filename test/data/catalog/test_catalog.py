@@ -481,7 +481,7 @@ def test_catalog_correct_array(cable_array_AM600) -> None:
                 "section_heart": [0.0],
                 "solar_absorption": [0.9],
                 "emissivity": [0.8],
-                "electric_resistance_20": [0.0000554],
+                "electric_resistance_20": [0.0554],
                 "linear_resistance_temperature_coef": [0.0036],
                 "is_polynomial": [False],
                 "radial_thermal_conductivity": [1.0],
