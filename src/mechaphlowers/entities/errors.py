@@ -25,7 +25,7 @@ class SolverError(Exception):
             level (str, optional): error level. Defaults to "ERROR".
             details (str, optional): error details. Defaults to "".
 
-        Example:
+        Examples:
 
             >>> error = SolverError(
             ...     "An error occurred", level="CRITICAL", details="Matrix is singular"

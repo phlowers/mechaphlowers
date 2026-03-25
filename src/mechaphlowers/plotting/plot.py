@@ -165,28 +165,86 @@ def plot_support_shape(fig: go.Figure, support_shape: SupportShape) -> None:
     )
 
 
-def set_layout(fig: go.Figure, auto: bool = True) -> None:
+def _validate_aspect_ratio(aspect_ratio: dict[str, float]) -> dict[str, float]:
+    """Validate and normalise a custom aspect ratio dict.
+
+    Args:
+        aspect_ratio: Dictionary that must contain keys 'x', 'y', 'z' with positive float values.
+
+    Returns:
+        Validated dictionary with float values.
+
+    Raises:
+        ValueError: If the dict is missing a required key, a value is not float-convertible,
+            or a value is not strictly positive.
+    """
+    if not isinstance(aspect_ratio, dict):
+        raise ValueError(
+            "aspect_ratio must be a dict with keys 'x', 'y', 'z' and positive float values."
+        )
+
+    required_keys = ("x", "y", "z")
+    validated: dict[str, float] = {}
+    for key in required_keys:
+        if key not in aspect_ratio:
+            raise ValueError(
+                f"aspect_ratio is missing required key {key!r}. "
+                "Expected keys are 'x', 'y', and 'z'."
+            )
+        value = aspect_ratio[key]
+        try:
+            value_float = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"aspect_ratio[{key!r}] must be a float-convertible number, got {value!r}."
+            ) from exc
+        if value_float <= 0:
+            raise ValueError(
+                f"aspect_ratio[{key!r}] must be a positive float, got {value_float!r}."
+            )
+        validated[key] = value_float
+    return validated
+
+
+def set_layout(
+    fig: go.Figure,
+    auto: bool = True,
+    aspect_ratio: dict[str, float] | None = None,
+) -> None:
     """set_layout
 
     Args:
         fig (go.Figure): plotly figure where layout has to be updated
-        auto (bool, optional): Automatic layout based on data (scale respect). False means manual with an aspectradio of x=1, y=.05, z=.5. Defaults to True.
+        auto (bool, optional): Automatic layout based on data (scale respect). False means manual with an aspectratio of x=1, y=.5, z=.5. Only used when aspect_ratio is None. Defaults to True.
+        aspect_ratio (dict[str, float] | None, optional): Custom aspect ratio dictionary with keys 'x', 'y', 'z'. When provided, forces aspectmode to 'manual' and uses these values. When None, behavior is controlled by the auto parameter. Defaults to None.
+
+    Examples:
+        >>> fig = go.Figure()
+        >>> # Use default automatic layout
+        >>> set_layout(fig, auto=True)
+        >>>
+        >>> # Use custom aspect ratio (e.g., from compute_aspect_ratio)
+        >>> custom_aspect = {'x': 0.5, 'y': 0.3, 'z': 10.0}
+        >>> set_layout(fig, aspect_ratio=custom_aspect)
     """
 
-    # Check input
     auto = bool(auto)
-    aspect_mode: str = "data" if auto else "manual"
-    zoom: float = (
-        1 if auto else 5
-    )  # perhaps this approx of the zoom will not be adequate for all cases
-    aspect_ratio = {'x': 1, 'y': 0.5, 'z': 0.5}
+
+    if aspect_ratio is not None:
+        aspect_mode: str = "manual"
+        final_aspect_ratio = _validate_aspect_ratio(aspect_ratio)
+        zoom: float = 5
+    else:
+        aspect_mode = "data" if auto else "manual"
+        final_aspect_ratio = {'x': 1, 'y': 0.5, 'z': 0.5}
+        zoom = 1 if auto else 5
 
     fig.update_layout(
         scene={
             'xaxis_title': "X (m)",
             'yaxis_title': "Y (m)",
             'zaxis_title': "Z (m)",
-            'aspectratio': aspect_ratio,
+            'aspectratio': final_aspect_ratio,
             'aspectmode': aspect_mode,
             'camera': {
                 'up': {'x': 0, 'y': 0, 'z': 1},
@@ -343,12 +401,16 @@ class PlotEngine(Observer):
         fig: go.Figure,
         view: Literal["full", "analysis"] = "full",
         mode: Literal["main", "background"] = "main",
+        aspect_ratio: dict[str, float] | None = None,
     ) -> None:
         """Plot 3D of power lines sections
 
         Args:
             fig (go.Figure): plotly figure where new traces has to be added
             view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+            mode (Literal['main', 'background'], optional): Style mode for the traces. Defaults to "main".
+            aspect_ratio (dict[str, float] | None, optional): Custom aspect ratio dictionary with keys 'x', 'y', 'z'.
+                When provided, overrides the layout aspect ratio. Can be computed using compute_aspect_ratio(). Defaults to None.
 
         Raises:
             ValueError: view is not an expected value
@@ -382,7 +444,7 @@ class PlotEngine(Observer):
                 fig, obstacles.points(True), TraceProfile(name="Obstacles")
             )
 
-        set_layout(fig, auto=_auto)
+        set_layout(fig, auto=_auto, aspect_ratio=aspect_ratio)
 
     def preview_line2d(
         self,
@@ -452,6 +514,7 @@ class PlotEngine(Observer):
         to the absolute global coordinate system.
 
         Span-local frame definition:
+
         - X axis: along the span direction in the XY plane
         - Y axis: perpendicular to the span direction in the XY plane
         - Z axis: vertical (global Z)
@@ -505,16 +568,16 @@ class PlotEngine(Observer):
         Returns:
             DistanceResult: Object containing the distance analysis results, including the distance value and coordinates of the closest point on the span.
 
-        Example:
+        Examples:
+
             >>> balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
-            >>> plt_engine = PlotEngine(balance_engine)
+            >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
             >>> point = np.array(
             ...     [10.0, 5.0, 2.0]
             ... )  # Absolute coordinates of the point to analyze
             >>> fig = figure_factory()
             >>> distance_result = plt_engine.point_distance(span_index=0, point=point)
             # ...get a distance result object with the distance and closest point coordinates
-
             >>> fig.show()
         """
         # Validate inputs and convert relative coordinates to absolute
