@@ -63,3 +63,7 @@ class DataWarning(UserWarning):
 
 class BalanceEngineWarning(UserWarning):
     """Base class for balance-related warnings."""
+
+
+class RtsDataNotAvailable(ValueError):
+    """Raised when RTS catalog data (rts_cable, rts_layer_*) is missing or NaN."""
