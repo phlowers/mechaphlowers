@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Callable, Self
+from typing import Callable, Self, TypeVar
 
 import numpy as np
 from typing_extensions import Literal  # type: ignore[attr-defined]
@@ -302,6 +302,9 @@ class SparsePoints:
         return dict_coords
 
 
+_PointsT = TypeVar("_PointsT", Points, SparsePoints)
+
+
 class SectionPoints:
     def __init__(
         self,
@@ -565,10 +568,10 @@ class SectionPoints:
 
     def project_to_selected_frame(
         self,
-        points: Points | SparsePoints,
+        points: _PointsT,
         translation_vector: np.ndarray,
         frame_index: int,
-    ) -> Points | SparsePoints:
+    ) -> _PointsT:
         """Project points object into a support frame.
 
         Used for 2D plots that need to be projected in a specific frame.
@@ -591,10 +594,10 @@ class SectionPoints:
     # convert to function? self unused
     def change_frame(
         self,
-        points: Points | SparsePoints,
+        points: _PointsT,
         translation_vector: np.ndarray,
         angle_to_project: np.float64,
-    ) -> Points | SparsePoints:
+    ) -> _PointsT:
         """Change the frame of the given Points by applying a translation and a rotation.
 
         Args:
