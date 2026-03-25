@@ -4,12 +4,19 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from copy import copy
+
 import numpy as np
 import pandas as pd
 import pytest
 
+from mechaphlowers.data.geography.helpers import (
+    gps_to_lambert93,
+)
 from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.errors import GpsNoDataAvailable
 from mechaphlowers.entities.geography import (
+    GeoLocator,
     get_dist_and_angles_from_gps,
     get_gps_from_arrays,
 )
@@ -281,3 +288,134 @@ def test_round_trip():
 
     np.testing.assert_allclose(recovered_distances, span_lengths, atol=1e-3)
     np.testing.assert_allclose(recovered_angles, line_angles, atol=1e-3)
+
+
+# --- GeoLocator tests ---
+
+_LINE_ANGLES_DEG = np.array([0.0, 10.0, 15.0, 20.0, 0.0])
+_SPAN_LENGTHS = np.array([300.0, 400.0, 500.0, 600.0, np.nan])
+_START_LAT = 48.8566
+_START_LON = 2.3522
+_START_AZIMUTH = 0.0
+_EXPECTED_LATS = np.array(
+    [48.8566, 48.85929796, 48.8628406, 48.86691587, 48.87073122]
+)
+_EXPECTED_LONS = np.array([2.3522, 2.3522, 2.35125047, 2.34836157, 2.34256082])
+_EXPECTED_EASTING = np.array(
+    [
+        652469.02270914,
+        652471.48385573,
+        652405.05557107,
+        652196.85828404,
+        651774.86710069,
+    ]
+)
+_EXPECTED_NORTHING = np.array(
+    [
+        6862035.25942008,
+        6862335.24992367,
+        6862729.73314491,
+        6863184.61650681,
+        6863612.38205321,
+    ]
+)
+
+
+def test_geolocator_gps_no_data_available():
+    geolocator = GeoLocator()
+    with pytest.raises(GpsNoDataAvailable):
+        geolocator.get_gps(_LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy())
+
+
+def test_geolocator_set_starting_gps():
+    geolocator = GeoLocator()
+    geolocator.set_starting_gps(_START_LAT, _START_LON, _START_AZIMUTH)
+
+    lats, lons = geolocator.get_gps(
+        _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
+    )
+
+    expected_lats, expected_lons = get_gps_from_arrays(
+        _START_LAT,
+        _START_LON,
+        _START_AZIMUTH,
+        _LINE_ANGLES_DEG.copy(),
+        _SPAN_LENGTHS.copy(),
+    )
+    np.testing.assert_allclose(lats, expected_lats, atol=1e-8)
+    np.testing.assert_allclose(lons, expected_lons, atol=1e-8)
+
+
+def test_geolocator_set_starting_lambert93():
+    easting, northing = gps_to_lambert93(_START_LAT, _START_LON)
+
+    geolocator = GeoLocator()
+    geolocator.set_starting_lambert93(
+        float(easting), float(northing), _START_AZIMUTH
+    )
+
+    lats, lons = geolocator.get_gps(
+        _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
+    )
+
+    np.testing.assert_allclose(lats, _EXPECTED_LATS, atol=1e-6)
+    np.testing.assert_allclose(lons, _EXPECTED_LONS, atol=1e-6)
+
+
+def test_geolocator_get_lambert93():
+    geolocator = GeoLocator()
+    geolocator.set_starting_gps(_START_LAT, _START_LON, _START_AZIMUTH)
+
+    easting, northing = geolocator.get_lambert93(
+        _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
+    )
+
+    np.testing.assert_allclose(easting, _EXPECTED_EASTING, atol=1e-3)
+    np.testing.assert_allclose(northing, _EXPECTED_NORTHING, atol=1e-3)
+
+
+def test_geolocator_copy_preserves_starting_point():
+    geolocator = GeoLocator()
+    geolocator.set_starting_gps(_START_LAT, _START_LON, _START_AZIMUTH)
+
+    geolocator_copy = copy(geolocator)
+
+    lats_orig, lons_orig = geolocator.get_gps(
+        _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
+    )
+    lats_copy, lons_copy = geolocator_copy.get_gps(
+        _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
+    )
+
+    np.testing.assert_allclose(lats_copy, lats_orig, atol=1e-8)
+    np.testing.assert_allclose(lons_copy, lons_orig, atol=1e-8)
+
+
+def test_geolocator_copy_is_independent():
+    geolocator = GeoLocator()
+    geolocator.set_starting_gps(_START_LAT, _START_LON, _START_AZIMUTH)
+
+    geolocator_copy = copy(geolocator)
+    # Mutate the copy's starting point
+    geolocator_copy.set_starting_gps(
+        _START_LAT + 1.0, _START_LON + 1.0, _START_AZIMUTH + 10.0
+    )
+
+    # Original must be unchanged
+    lats_orig, lons_orig = geolocator.get_gps(
+        _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
+    )
+    lats_copy, lons_copy = geolocator_copy.get_gps(
+        _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
+    )
+
+    assert not np.allclose(lats_orig, lats_copy)
+    assert not np.allclose(lons_orig, lons_copy)
+
+
+def test_geolocator_copy_without_starting_point_raises():
+    geolocator = GeoLocator()
+    geolocator_copy = copy(geolocator)
+
+    with pytest.raises(GpsNoDataAvailable):
+        geolocator_copy.get_gps(_LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy())
