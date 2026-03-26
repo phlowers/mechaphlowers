@@ -22,6 +22,7 @@ In mechaphlowers a line section is described by the following data:
     - the insulator length
     - the insulator mass
     - an optional field ground altitude
+    - an optional counterweight
 - for each span:
     - the span length, denoted later as $a$.
 
@@ -74,6 +75,7 @@ You may use the following code to define this data and load it so that it can be
         "line_angle": [0, 11, 0],
         "insulator_length": [0, 4, 0],
         "span_length": [500, 800, np.nan],
+        "counterweight_mass": [0, 0, 0],
     })
     section_array = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
     print(section_array)

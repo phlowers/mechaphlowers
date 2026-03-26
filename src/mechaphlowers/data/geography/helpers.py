@@ -218,8 +218,8 @@ def reverse_haversine_float(
     Returns next coordinates in lat/lon according to bearing and distance.
 
     Args:
-        lat (float): starting latitude in radians
-        lon (float): starting longitude in radians
+        lat_rad (float): starting latitude in radians
+        lon_rad (float): starting longitude in radians
         bearing (float): bearing angle: orientation of the line in radians, anticlockwise, towards north = 0
         distance (float): distance with the next point
 
