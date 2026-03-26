@@ -7,7 +7,7 @@
 import logging
 import warnings
 from abc import ABC
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 from warnings import warn
 
 import numpy as np
@@ -97,9 +97,8 @@ class ElementArray(ABC):
 
     @property
     def data_original(self) -> pd.DataFrame:
-        """Original dataframe with the exact same data as input
-        (except for sagging_parameter and sagging_temperature which are added if not provided in input)
-        original units and no (other) columns added
+        """Original dataframe with the exact same data as input:
+        original units and no columns added
         """
         return self._data
 
@@ -164,7 +163,7 @@ class SectionArray(ElementArray):
             )
             sagging_parameter = self.default_sagging_parameter()
         if sagging_parameter is not None:
-            self.sagging_parameter = sagging_parameter
+            self.set_sagging_parameter(sagging_parameter)
 
         if (
             sagging_temperature is not None
@@ -178,9 +177,11 @@ class SectionArray(ElementArray):
             sagging_temperature is None
             and "sagging_temperature" not in data.columns
         ):
-            self.sagging_temperature = options.data.sagging_temperature_default
+            self.set_sagging_temperature(
+                options.data.sagging_temperature_default
+            )
         elif sagging_temperature is not None:
-            self.sagging_temperature = sagging_temperature
+            self.set_sagging_temperature(sagging_temperature)
         if bundle_number < 1:
             raise ValueError(
                 f"bundle_number should be a positive integer. Received: {bundle_number}"
@@ -245,7 +246,7 @@ class SectionArray(ElementArray):
 
     @sagging_parameter.setter
     def sagging_parameter(
-        self, value: float | npt.NDArray[np.floating] | int | np.integer
+        self, value: float | int | npt.NDArray[np.floating]
     ) -> None:
         warn(
             "This is deprecated, use set_sagging_parameter instead.",
@@ -255,9 +256,21 @@ class SectionArray(ElementArray):
         self.set_sagging_parameter(value)
 
     def set_sagging_parameter(
-        self, value: float | npt.NDArray[np.floating] | int | np.integer
+        self, value: float | int | npt.NDArray[np.floating]
     ) -> None:
-        if not isinstance(value, np.ndarray):
+        if isinstance(value, Iterable):
+            value_array = np.asarray(value, dtype=np.float64)
+            if value_array.shape[0] != self._data.shape[0]:
+                raise ValueError(
+                    f"Length of sagging_parameter array should be the same as the number of rows"
+                    f" in data ({self._data.shape[0]}), received {value_array.shape[0]}"
+                )
+            if not np.isnan(value_array[-1]):
+                raise ValueError(
+                    "Last value of sagging_parameter must be nan since it doesn't correspond to a span"
+                )
+            value = value_array
+        else:
             value = np.repeat(np.float64(value), self._data.shape[0])
             value[-1] = (
                 np.nan
@@ -270,7 +283,7 @@ class SectionArray(ElementArray):
 
     @sagging_temperature.setter
     def sagging_temperature(
-        self, value: float | npt.NDArray[np.floating] | int | np.integer
+        self, value: float | int | npt.NDArray[np.floating]
     ) -> None:
         warn(
             "This is deprecated, use set_sagging_temperature instead.",
@@ -280,9 +293,21 @@ class SectionArray(ElementArray):
         self.set_sagging_temperature(value)
 
     def set_sagging_temperature(
-        self, value: float | npt.NDArray[np.floating] | int | np.integer
+        self, value: float | int | npt.NDArray[np.floating]
     ) -> None:
-        if not isinstance(value, np.ndarray):
+        if isinstance(value, Iterable):
+            value_array = np.asarray(value, dtype=np.float64)
+            if value_array.shape[0] != self._data.shape[0]:
+                raise ValueError(
+                    f"Length of sagging_temperature array should be the same as the number of rows"
+                    f" in data ({self._data.shape[0]}), received {value_array.shape[0]}"
+                )
+            if not np.isnan(value_array[-1]):
+                raise ValueError(
+                    "Last value of sagging_temperature must be nan since it doesn't correspond to a span"
+                )
+            value = value_array
+        else:
             value = np.repeat(np.float64(value), self._data.shape[0])
             value[-1] = (
                 np.nan
@@ -301,15 +326,18 @@ class SectionArray(ElementArray):
         self.create_column_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
         data_output = self._adjust_angle_sense(data_output)
-        if self.sagging_parameter is None or self.sagging_temperature is None:
-            raise AttributeError(
-                "Cannot return data: sagging_parameter and sagging_temperature are needed"
-            )
-        else:
-            return data_output.assign(
-                elevation_difference=self.compute_elevation_difference(),
-                bundle_number=self.bundle_number,
-            )
+        return data_output.assign(
+            elevation_difference=self.compute_elevation_difference(),
+            bundle_number=self.bundle_number,
+        )
+
+    @property
+    def data_original(self) -> pd.DataFrame:
+        """Original dataframe with the exact same data as input
+        (except for sagging_parameter and sagging_temperature which are added if not provided in input)
+        original units and no (other) columns added
+        """
+        return super().data_original
 
     def create_column_weight(
         self, df_output: pd.DataFrame, columns_to_convert: dict[str, str]
@@ -390,12 +418,6 @@ class SectionArray(ElementArray):
             line_angle_geo_degrees,
             self.data["span_length"].to_numpy(),
         )
-
-    def __copy__(self) -> Self:
-        copy_obj = super().__copy__()
-        copy_obj.sagging_parameter = self.sagging_parameter
-        copy_obj.sagging_temperature = self.sagging_temperature
-        return copy_obj
 
 
 class CableArray(ElementArray):

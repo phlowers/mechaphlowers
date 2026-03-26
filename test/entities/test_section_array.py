@@ -108,7 +108,24 @@ def test_create_section_array__span_length_for_last_support(
         SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
-# TODO
+def test_create_section_array__sagging_parameter_for_last_support(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["sagging_parameter"][-1] = 500
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pa.errors.SchemaErrors):
+        SectionArray(input_df)
+
+
+def test_create_section_array__sagging_temperature_for_last_support(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["sagging_temperature"][-1] = 500
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pa.errors.SchemaErrors):
+        SectionArray(input_df)
 
 
 @pytest.mark.parametrize(
@@ -387,6 +404,9 @@ def test_section_array__data_without_sagging_properties(
     )
 
 
+@pytest.mark.filterwarnings(
+    "ignore::mechaphlowers.entities.arrays.DefaultValueWarning"
+)
 def test_section_array__set_sagging_properties(
     section_array_input_data_without_sagging_properties: dict,
 ) -> None:

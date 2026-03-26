@@ -217,8 +217,8 @@ def default_data_container_one_span() -> DataContainer:
                 "line_angle": [0, 0],
                 "insulator_length": [0, 0],
                 "span_length": [480, np.nan],
-                "sagging_parameter": [2000, 2000],
-                "sagging_temperature": [15, 15],
+                "sagging_parameter": [2000, np.nan],
+                "sagging_temperature": [15, np.nan],
                 "insulator_mass": np.array([1000, 1000]),
             }
         ),
