@@ -104,7 +104,7 @@ engine.solve_change_state(
 
 # Results
 print(engine.parameter)      # updated sagging parameter
-print(engine.L_ref)          # reference length (unchanged by change of state)
+print(engine.L_ref)          # reference length (unchanged by change of state but changed with manipulations)
 ```
 
 **Wind sense convention:**
@@ -233,7 +233,7 @@ engine.reset(full=False)  # partial reset — e.g. after updating loads
 ```
 
 !!! warning
-    After `reset(full=True)`, `engine.L_ref` and `engine.initial_L_ref` are cleared. You must call `solve_adjustment()` again before `solve_change_state()`.
+    `reset(full=True)` rebuilds the internal models but does **not** clear `engine.L_ref` or `engine.initial_L_ref`. If you need a fresh adjustment (for example after changing geometry, loads, or cable data), you must call `solve_adjustment()` again before `solve_change_state()`.
 
 ---
 
