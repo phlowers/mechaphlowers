@@ -384,7 +384,7 @@ class BalanceEngine(Notifier):
             "arc_length": arr.decr(self.span_model.compute_L()).tolist(),
             "T_h": arr.decr(T_h_q_array.value()).tolist(),
             "sag": arr.decr(self.span_model.sag()).tolist(),
-            "sag_s2": arr.decr(self.span_model.sag_s2()).tolist()
+            "sag_s2": arr.decr(self.span_model.sag_s2()).tolist(),
         }
         return result_dict
 
