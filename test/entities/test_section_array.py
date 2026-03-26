@@ -407,7 +407,7 @@ def test_section_array__data_without_sagging_properties(
 @pytest.mark.filterwarnings(
     "ignore::mechaphlowers.entities.arrays.DefaultValueWarning"
 )
-def test_section_array__set_sagging_properties(
+def test_section_array__sagging_property_setters(
     section_array_input_data_without_sagging_properties: dict,
 ) -> None:
     df = pd.DataFrame(section_array_input_data_without_sagging_properties)
@@ -423,6 +423,62 @@ def test_section_array__set_sagging_properties(
     np.testing.assert_allclose(
         section_array.data.sagging_temperature, np.array([20, 20, 20, np.nan])
     )
+
+
+def test_section_array__set_sagging_parameter__array(
+    section_array_input_data: dict,
+) -> None:
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(data=df)
+
+    sagging_parameter = np.array([3000, 3000, 3000, np.nan])
+    section_array.set_sagging_parameter(sagging_parameter)
+
+    np.testing.assert_allclose(
+        section_array.sagging_parameter,
+        np.array([3000, 3000, 3000, np.nan]),
+    )
+
+
+def test_section_array__set_sagging_parameter__wrong_array(
+    section_array_input_data: dict,
+) -> None:
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(data=df)
+
+    sagging_parameter = np.array(
+        [3000, 3000, 3000, 3000]
+    )  # last value should be nan
+
+    with pytest.raises(pa.errors.SchemaError):
+        section_array.set_sagging_parameter(sagging_parameter)
+
+
+def test_section_array__set_sagging_temperature__array(
+    section_array_input_data: dict,
+) -> None:
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(data=df)
+
+    sagging_temperature = np.array([20, 20, 20, np.nan])
+    section_array.set_sagging_temperature(sagging_temperature)
+
+    np.testing.assert_allclose(
+        section_array.sagging_temperature, np.array([20, 20, 20, np.nan])
+    )
+
+
+def test_section_array__set_sagging_temperature__wrong_array(
+    section_array_input_data: dict,
+) -> None:
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(data=df)
+
+    sagging_temperature = np.array(
+        [20, 20, 20, 20]
+    )  # last value should be nan
+    with pytest.raises(pa.errors.SchemaError):
+        section_array.set_sagging_temperature(sagging_temperature)
 
 
 def test_section_array__sagging_properties_in_input(

@@ -259,23 +259,14 @@ class SectionArray(ElementArray):
         self, value: float | int | npt.NDArray[np.floating]
     ) -> None:
         if isinstance(value, Iterable):
-            value_array = np.asarray(value, dtype=np.float64)
-            if value_array.shape[0] != self._data.shape[0]:
-                raise ValueError(
-                    f"Length of sagging_parameter array should be the same as the number of rows"
-                    f" in data ({self._data.shape[0]}), received {value_array.shape[0]}"
-                )
-            if not np.isnan(value_array[-1]):
-                raise ValueError(
-                    "Last value of sagging_parameter must be nan since it doesn't correspond to a span"
-                )
-            value = value_array
+            value = np.asarray(value, dtype=np.float64)
         else:
             value = np.repeat(np.float64(value), self._data.shape[0])
             value[-1] = (
                 np.nan
             )  # last value should be nan since it doesn't correspond to a span
         self._data["sagging_parameter"] = value
+        SectionArrayInput.validate(self._data)
 
     @property
     def sagging_temperature(self):
@@ -296,23 +287,14 @@ class SectionArray(ElementArray):
         self, value: float | int | npt.NDArray[np.floating]
     ) -> None:
         if isinstance(value, Iterable):
-            value_array = np.asarray(value, dtype=np.float64)
-            if value_array.shape[0] != self._data.shape[0]:
-                raise ValueError(
-                    f"Length of sagging_temperature array should be the same as the number of rows"
-                    f" in data ({self._data.shape[0]}), received {value_array.shape[0]}"
-                )
-            if not np.isnan(value_array[-1]):
-                raise ValueError(
-                    "Last value of sagging_temperature must be nan since it doesn't correspond to a span"
-                )
-            value = value_array
+            value = np.asarray(value, dtype=np.float64)
         else:
             value = np.repeat(np.float64(value), self._data.shape[0])
             value[-1] = (
                 np.nan
             )  # last value should be nan since it doesn't correspond to a span
         self._data["sagging_temperature"] = value
+        SectionArrayInput.validate(self._data)
 
     @property
     def data(self) -> pd.DataFrame:
