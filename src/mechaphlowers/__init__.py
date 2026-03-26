@@ -10,6 +10,7 @@ from importlib.metadata import version
 import pandas as pd
 
 from mechaphlowers.config import options
+from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.cable.thermal import ThermalEngine
 from mechaphlowers.core.models.guying import Guying
@@ -20,7 +21,6 @@ from mechaphlowers.data.measures import (
 from mechaphlowers.data.units import Q_ as units
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.shapes import SupportShape
-from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.plotting.plot import PlotEngine
 
 logger = logging.getLogger(__name__)

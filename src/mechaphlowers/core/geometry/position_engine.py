@@ -21,7 +21,6 @@ from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import ObstacleArray
 from mechaphlowers.entities.reactivity import Notifier, Observer
 
-
 logger = logging.getLogger(__name__)
 
 

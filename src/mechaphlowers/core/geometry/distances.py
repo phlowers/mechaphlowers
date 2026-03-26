@@ -265,5 +265,3 @@ class DistanceEngine:
             distance_projection_u=distance_projection_u,
             distance_projection_v=distance_projection_v,
         )
-
-

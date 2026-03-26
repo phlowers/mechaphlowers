@@ -69,7 +69,9 @@ def test_distance_engine():
 
     dr = de.plane_distance(obstacle, frame="span")
 
-    fig = plot_distance_engine(de, distance_result=dr, show_plane=True, show_projections=True)
+    fig = plot_distance_engine(
+        de, distance_result=dr, show_plane=True, show_projections=True
+    )
     if show_figures:
         fig.show()
 
