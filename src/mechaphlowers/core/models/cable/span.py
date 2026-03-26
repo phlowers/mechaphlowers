@@ -658,7 +658,8 @@ class CatenarySpan(ISpan):
             np.ndarray: sag s2 value for each span.
         """
 
-        mask = (self._x_m >= 0) | (self._x_n <= 0)
+        self.compute_values()
+        mask = (self.x_m >= 0) | (self.x_n <= 0)
 
         z_left = self.z_one_point(self._x_m)
         z_right = self.z_one_point(self._x_n)
