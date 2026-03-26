@@ -235,10 +235,10 @@ class GeoLocator:
             tuple[np.ndarray, np.ndarray]: (latitudes, longitudes) in decimal degrees.
         """
         self._check_gps_available()
-        
+
         # Make a defensive copy so that downstream functions cannot mutate the caller's array.
         line_angles_copy = line_angles_degrees.copy()
-        
+
         return get_gps_from_arrays(
             self._latitude_0,  # type: ignore[arg-type]
             self._longitude_0,  # type: ignore[arg-type]
