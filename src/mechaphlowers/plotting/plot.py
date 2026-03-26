@@ -25,6 +25,7 @@ from mechaphlowers.plotting.plot_config import (
     insulator_trace,
     support_trace,
 )
+from mechaphlowers.plotting.plot_distances import plot_distance_engine
 
 logger = logging.getLogger(__name__)
 
@@ -538,7 +539,8 @@ class PlotEngine(Observer):
         )
 
         if fig is not None:
-            self.position_engine.distance_engine.plot(
+            plot_distance_engine(
+                self.position_engine.distance_engine,
                 distance_result=distance_result,
                 fig=fig,
                 show_plane=True,

@@ -20,7 +20,8 @@ from mechaphlowers.data.measures import (
 from mechaphlowers.data.units import Q_ as units
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.shapes import SupportShape
-from mechaphlowers.plotting import PlotEngine, PositionEngine
+from mechaphlowers.core.geometry.position_engine import PositionEngine
+from mechaphlowers.plotting.plot import PlotEngine
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())

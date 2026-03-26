@@ -73,6 +73,7 @@ nav:
                   - Coordinate systems: docstring/core/geometry/points.md
                   - Line angles: docstring/core/geometry/line_angles.md
                   - Distance: docstring/core/geometry/distance.md
+                  - Position Engine: docstring/core/geometry/position_engine.md
               - Models:
                   - Balance:
                     - Engine: docstring/core/models/balance/engine.md
