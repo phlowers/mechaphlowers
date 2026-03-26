@@ -354,6 +354,7 @@ def test_sag() -> None:
         mountain_span.sag_s2(), np.array([0.0, np.nan]), atol=1e-2
     )
 
+    # Generating usecase for above test
     # section_array = SectionArray(
     #     pd.DataFrame(
     #         {
