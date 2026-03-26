@@ -49,6 +49,12 @@ class SectionArrayInput(pa.DataFrameModel):
     counterweight_mass: pdt.Series[float] | None = pa.Field(
         nullable=True, coerce=True
     )
+    sagging_parameter: pdt.Series[float] | None = pa.Field(
+        nullable=True, coerce=True
+    )
+    sagging_temperature: pdt.Series[float] | None = pa.Field(
+        nullable=True, coerce=True
+    )
 
     @pa.dataframe_check(
         description="""Each row in the dataframe contains information about a support
@@ -58,6 +64,8 @@ class SectionArrayInput(pa.DataFrameModel):
     )
     def no_span_length_for_last_row(cls, df: pd.DataFrame) -> bool:
         return df.tail(1)["span_length"].isin([0, np.nan]).all()
+
+    # TODO: no span propoerties for last row
 
 
 class CableArrayInput(pa.DataFrameModel):

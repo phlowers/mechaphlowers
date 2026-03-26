@@ -221,7 +221,7 @@ class BalanceEngine(Notifier):
         logger.debug(debug_loads)
 
     @check_time
-    def solve_adjustment(self) -> None:
+    def solve_adjustment(self) -> None:  # TODO
         """Solve the chain positions in the adjustment case, updating L_ref in the balance model.
         In this case, there is no weather, no loads, and temperature is the sagging temperature.
 

@@ -222,8 +222,6 @@ def default_data_container_one_span() -> DataContainer:
                 "insulator_mass": np.array([1000, 1000]),
             }
         ),
-        sagging_parameter=2000,
-        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "deg"})
 

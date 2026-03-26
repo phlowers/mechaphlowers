@@ -19,7 +19,7 @@ from mechaphlowers.entities.errors import DataWarning
 
 
 @pytest.fixture
-def section_array_input_data() -> dict[str, list]:
+def section_array_input_data_without_sagging_properties() -> dict[str, list]:
     return {
         "name": ["support 1", "2", "three", "support 4"],
         "suspension": [False, True, True, False],
@@ -33,22 +33,38 @@ def section_array_input_data() -> dict[str, list]:
 
 
 @pytest.fixture
-def section_array(section_array_input_data: dict[str, list]) -> SectionArray:
+def section_array_input_data() -> dict[str, list]:
+    return {
+        "name": ["support 1", "2", "three", "support 4"],
+        "suspension": [False, True, True, False],
+        "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
+        "crossarm_length": [10, 12.1, 10, 10.1],
+        "line_angle": [0, 360, 90.1, -90.2],
+        "insulator_length": [0.01, 4, 3.2, 0.01],
+        "span_length": [1, 500.2, 500.05, np.nan],
+        "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+        "sagging_parameter": [2000, 2000, 2000, np.nan],
+        "sagging_temperature": [15, 15, 15, np.nan],
+    }
+
+
+@pytest.fixture
+def section_array(
+    section_array_input_data: dict[str, list],
+) -> SectionArray:
     df = pd.DataFrame(section_array_input_data)
     section_array = SectionArray(
-        data=df, sagging_parameter=2_000, sagging_temperature=15
+        data=df,
     )
     section_array.add_units({"line_angle": "deg"})
     return section_array
 
 
 def test_create_section_array__with_floats(
-    section_array_input_data: dict,
+    section_array_input_data: dict[str, list],
 ) -> None:
     input_df = pd.DataFrame(section_array_input_data)
-    section_array = SectionArray(
-        input_df, sagging_parameter=2_000, sagging_temperature=15
-    )
+    section_array = SectionArray(input_df)
     repr_section_array = section_array.__repr__()
     assert repr_section_array.startswith("SectionArray")
     assert_frame_equal(
@@ -67,11 +83,11 @@ def test_create_section_array__only_ints() -> None:
             "insulator_length": [0.01, 4, 3, 0.01],
             "span_length": [1, 500, 500, np.nan],
             "insulator_mass": np.array([1000.0, 500.0, 500.0, 1000.0]),
+            "sagging_parameter": [3000, 3000, 3000, np.nan],
+            "sagging_temperature": [20, 20, 20, np.nan],
         }
     )
-    section_array = SectionArray(
-        input_df, sagging_parameter=2_000, sagging_temperature=15
-    )
+    section_array = SectionArray(input_df)
 
     assert_frame_equal(
         input_df, section_array._data, check_dtype=False, atol=1e-07
@@ -79,13 +95,20 @@ def test_create_section_array__only_ints() -> None:
 
 
 def test_create_section_array__span_length_for_last_support(
-    section_array_input_data: dict,
+    section_array_input_data_without_sagging_properties: dict,
 ) -> None:
-    section_array_input_data["span_length"][-1] = 300
-    input_df = pd.DataFrame(section_array_input_data)
+    section_array_input_data_without_sagging_properties["span_length"][-1] = (
+        300
+    )
+    input_df = pd.DataFrame(
+        section_array_input_data_without_sagging_properties
+    )
 
     with pytest.raises(pa.errors.SchemaErrors):
         SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
+
+
+# TODO
 
 
 @pytest.mark.parametrize(
@@ -102,21 +125,27 @@ def test_create_section_array__span_length_for_last_support(
     ],
 )
 def test_create_section_array__missing_column(
-    section_array_input_data: dict, column: str
+    section_array_input_data_without_sagging_properties: dict, column: str
 ) -> None:
-    del section_array_input_data[column]
-    input_df = pd.DataFrame(section_array_input_data)
+    del section_array_input_data_without_sagging_properties[column]
+    input_df = pd.DataFrame(
+        section_array_input_data_without_sagging_properties
+    )
 
     with pytest.raises(pa.errors.SchemaErrors):
         SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
 
 
 def test_create_section_array__extra_column(
-    section_array_input_data: dict,
+    section_array_input_data_without_sagging_properties: dict,
 ) -> None:
-    section_array_input_data["extra column"] = [0] * 4
+    section_array_input_data_without_sagging_properties["extra column"] = [
+        0
+    ] * 4
 
-    input_df = pd.DataFrame(section_array_input_data)
+    input_df = pd.DataFrame(
+        section_array_input_data_without_sagging_properties
+    )
 
     section_array = SectionArray(
         input_df, sagging_parameter=2_000, sagging_temperature=15
@@ -139,10 +168,14 @@ def test_create_section_array__extra_column(
     ],
 )
 def test_create_section_array__wrong_type(
-    section_array_input_data: dict, column: str, value
+    section_array_input_data_without_sagging_properties: dict,
+    column: str,
+    value,
 ) -> None:
-    section_array_input_data[column] = value
-    input_df = pd.DataFrame(section_array_input_data)
+    section_array_input_data_without_sagging_properties[column] = value
+    input_df = pd.DataFrame(
+        section_array_input_data_without_sagging_properties
+    )
 
     with pytest.raises(pa.errors.SchemaErrors):
         SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
@@ -180,8 +213,10 @@ def test_compute_elevation_difference() -> None:
     )
 
 
-def test_section_array__data(section_array_input_data: dict) -> None:
-    df = pd.DataFrame(section_array_input_data)
+def test_section_array__data(
+    section_array_input_data_without_sagging_properties: dict,
+) -> None:
+    df = pd.DataFrame(section_array_input_data_without_sagging_properties)
     section_array = SectionArray(
         data=df, sagging_parameter=2_000, sagging_temperature=15
     )
@@ -200,11 +235,11 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
+            "sagging_temperature": [15.0, 15.0, 15.0, np.nan],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
             "ground_altitude": [-27.8, -25.0, -30.12, -30.0],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
-            "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
-            "sagging_temperature": [15] * 4,
             "bundle_number": [1] * 4,
         },
     )
@@ -249,11 +284,11 @@ def test_section_array__data_with_optional() -> None:
             "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
+            "sagging_temperature": [15.0, 15.0, 15.0, np.nan],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "ground_altitude": [0.0, 3.0, -1, 0],
-            "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
-            "sagging_temperature": [15] * 4,
             "load_mass": [500, 1000, 500, np.nan],
             "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
             "load_position": [0.2, 0.4, 0.6, np.nan],
@@ -302,11 +337,11 @@ def test_section_array__wrong_ground_altitude() -> None:
             "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
+            "sagging_temperature": [15.0, 15.0, 15.0, np.nan],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "ground_altitude": [0.0, -25.0, -1.0, -30.0],
-            "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
-            "sagging_temperature": [15] * 4,
             "load_mass": [500, 1000, 500, np.nan],
             "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
             "load_position": [0.2, 0.4, 0.6, np.nan],
@@ -320,38 +355,111 @@ def test_section_array__wrong_ground_altitude() -> None:
 
 
 def test_section_array__data_without_sagging_properties(
-    section_array_input_data: dict,
+    section_array_input_data_without_sagging_properties: dict,
 ) -> None:
-    df = pd.DataFrame(section_array_input_data)
+    df = pd.DataFrame(section_array_input_data_without_sagging_properties)
 
     section_array_without_temperature = SectionArray(
         data=df, sagging_parameter=2_000
     )
+    expected_sagging_temperature = (
+        options.data.sagging_temperature_default
+        * np.ones(len(section_array_without_temperature.data))
+    )
+    expected_sagging_temperature[-1] = np.nan
     np.testing.assert_allclose(
         section_array_without_temperature.data.sagging_temperature,
-        options.data.sagging_temperature_default
-        * np.ones(len(section_array_without_temperature.data)),
+        expected_sagging_temperature,
     )
 
     section_array_without_parameter = SectionArray(
         data=df, sagging_temperature=15
     )
-    np.testing.assert_allclose(
-        section_array_without_parameter.data.sagging_parameter,
+    expected_sagging_parameter = (
         section_array_without_parameter.equivalent_span()
         * 5
-        * np.array(
-            [1] * (len(section_array_without_temperature.data) - 1) + [np.nan]
-        ),
+        * np.ones(len(section_array_without_parameter.data))
+    )
+    expected_sagging_parameter[-1] = np.nan
+    np.testing.assert_allclose(
+        section_array_without_parameter.data.sagging_parameter,
+        expected_sagging_parameter,
     )
 
 
-def test_section_array__data_original(section_array_input_data: dict) -> None:
-    df = pd.DataFrame(section_array_input_data)
+def test_section_array__set_sagging_properties(
+    section_array_input_data_without_sagging_properties: dict,
+) -> None:
+    df = pd.DataFrame(section_array_input_data_without_sagging_properties)
+    section_array = SectionArray(data=df)
+
+    section_array.sagging_parameter = 3000.0
+    np.testing.assert_allclose(
+        section_array.data.sagging_parameter,
+        np.array([3000, 3000, 3000, np.nan]),
+    )
+
+    section_array.sagging_temperature = 20
+    np.testing.assert_allclose(
+        section_array.data.sagging_temperature, np.array([20, 20, 20, np.nan])
+    )
+
+
+def test_section_array__sagging_properties_in_input(
+    section_array_input_data_without_sagging_properties: dict,
+) -> None:
+    section_array_input_data_without_sagging_properties.update(
+        {
+            "sagging_parameter": [3000, 3000, 3000, np.nan],
+            "sagging_temperature": [20, 20, 20, np.nan],
+        }
+    )
+    df = pd.DataFrame(section_array_input_data_without_sagging_properties)
+    section_array = SectionArray(df)
+
+    np.testing.assert_allclose(
+        section_array.data.sagging_parameter,
+        np.array([3000, 3000, 3000, np.nan]),
+    )
+    np.testing.assert_allclose(
+        section_array.data.sagging_temperature,
+        np.array([20, 20, 20, np.nan]),
+    )
+
+
+def test_section_array__sagging_properties_in_input_and_init_parameters(
+    section_array_input_data_without_sagging_properties: dict,
+) -> None:
+    section_array_input_data_without_sagging_properties.update(
+        {
+            "sagging_parameter": [3000, 3000, 3000, np.nan],
+            "sagging_temperature": [20, 20, 20, np.nan],
+        }
+    )
+    df = pd.DataFrame(section_array_input_data_without_sagging_properties)
+
+    with pytest.raises(ValueError):
+        SectionArray(
+            df,
+            sagging_parameter=2000,
+        )
+
+    with pytest.raises(ValueError):
+        SectionArray(
+            df,
+            sagging_temperature=15,
+        )
+
+
+def test_section_array__data_original(
+    section_array_input_data_without_sagging_properties: dict,
+) -> None:
+    df = pd.DataFrame(section_array_input_data_without_sagging_properties)
     section_array = SectionArray(data=df)
 
     exported_data = section_array.data_original
 
+    expected_sagging_parameter_value = section_array.equivalent_span() * 5
     expected_data = pd.DataFrame(
         {
             "name": ["support 1", "2", "three", "support 4"],
@@ -362,6 +470,13 @@ def test_section_array__data_original(section_array_input_data: dict) -> None:
             "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            "sagging_parameter": [
+                expected_sagging_parameter_value,
+                expected_sagging_parameter_value,
+                expected_sagging_parameter_value,
+                np.nan,
+            ],
+            "sagging_temperature": [15.0, 15.0, 15.0, np.nan],
         },
     )
 
@@ -414,10 +529,12 @@ def test_warning_on_insulator_length_correction(
 
 
 def test_section_array__data_with_counterweight(
-    section_array_input_data: dict,
+    section_array_input_data_without_sagging_properties: dict,
 ) -> None:
-    section_array_input_data["counterweight_mass"] = [0, 1000, 2000, 0]
-    df = pd.DataFrame(section_array_input_data)
+    section_array_input_data_without_sagging_properties[
+        "counterweight_mass"
+    ] = [0, 1000, 2000, 0]
+    df = pd.DataFrame(section_array_input_data_without_sagging_properties)
     section_array = SectionArray(
         data=df, sagging_parameter=2_000, sagging_temperature=15
     )
@@ -495,16 +612,12 @@ def test_create_section_bundle_number(
 ) -> None:
     section_array = SectionArray(
         pd.DataFrame(section_array_input_data),
-        sagging_parameter=2_000,
-        sagging_temperature=15,
         bundle_number=2,
     )
     assert section_array.bundle_number == 2
 
     with pytest.raises(ValueError):
-        section_array = SectionArray(
+        SectionArray(
             pd.DataFrame(section_array_input_data),
-            sagging_parameter=2_000,
-            sagging_temperature=15,
             bundle_number=0,
         )
