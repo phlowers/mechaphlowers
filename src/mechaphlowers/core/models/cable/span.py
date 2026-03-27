@@ -644,8 +644,7 @@ class CatenarySpan(ISpan):
         b = self.elevation_difference
         p = self.sagging_parameter
         # x0g: horizontal distance from left support to the lowest point of the cable
-        self.compute_x_m()
-        x0g = self.x_m
+        x0g = -self.compute_x_m()
         # x0: abscissa corresponding to the inclined chord reference
         x0 = p * np.arcsinh(b / a)
         return (x0g + x0) / a * b + p * (np.cosh(x0g / p) - np.cosh(x0 / p))
