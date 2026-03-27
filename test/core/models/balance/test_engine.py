@@ -561,9 +561,7 @@ def test_add_cable_shifting_default_values(
 def test_add_cable_shifting_wrong_size_shifting(
     balance_engine_simple: BalanceEngine,
 ):
-    with pytest.raises(
-        ValueError, match="shifting_distance has incorrect size"
-    ):
+    with pytest.raises(ValueError, match="shift_support has incorrect size"):
         balance_engine_simple.add_cable_shifting(
             shift_support=np.array([0.0, 1.0, 0.0])  # 3 elements, 4 expected
         )
@@ -572,9 +570,7 @@ def test_add_cable_shifting_wrong_size_shifting(
 def test_add_cable_shifting_wrong_size_shortening(
     balance_engine_simple: BalanceEngine,
 ):
-    with pytest.raises(
-        ValueError, match="shortening_distance has incorrect size"
-    ):
+    with pytest.raises(ValueError, match="shorten_span has incorrect size"):
         balance_engine_simple.add_cable_shifting(
             shorten_span=np.array(
                 [0.0, 1.0, 0.0, 0.0]
@@ -587,7 +583,7 @@ def test_add_cable_shifting_enforces_shifting_boundaries(
 ):
     with pytest.warns(
         BalanceEngineWarning,
-        match="shifting_distance first and last values have been set to 0",
+        match="shift_support first and last values have been set to 0",
     ):
         balance_engine_simple.add_cable_shifting(
             shift_support=np.array([5.0, 1.0, 2.0, 3.0])
