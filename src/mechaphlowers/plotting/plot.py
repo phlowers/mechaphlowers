@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -367,9 +367,14 @@ class PlotEngine(Observer):
         """Delegate to :meth:`PositionEngine.get_obstacles_points`."""
         return self.position_engine.get_obstacles_points()
 
-    def obstacles_dict(self) -> dict:
-        """Delegate to :meth:`PositionEngine.obstacles_dict`."""
-        return self.position_engine.obstacles_dict()
+    def obstacles_dict(self, project=False, frame_index=0) -> dict:
+        """Returns a dictionary storing object coordinates.
+
+        Key is object name, value is coordinates of object.
+
+        Format: {'obs_0': [[x0, y0, z0], [x1, y1, z1], ...]}
+        """
+        return self.position_engine.obstacles_dict(project, frame_index)
 
     def get_loads_coords(
         self, project: bool = False, frame_index: int = 0
@@ -491,6 +496,18 @@ class PlotEngine(Observer):
             insulator_trace(mode=mode),
             view=view,
         )
+
+        if hasattr(self.section_pts, "obstacles_array"):
+            obstacles_dict = self.obstacles_dict(
+                project=True, frame_index=frame_index
+            )
+            for obstacle_name, obstacle_coords in obstacles_dict.items():
+                plot_points_2d(
+                    fig,
+                    np.array(obstacle_coords),
+                    TraceProfile(name=obstacle_name),
+                    view=view,
+                )
 
     def point_relative_to_absolute(
         self, span_index: int, point_relative: np.ndarray

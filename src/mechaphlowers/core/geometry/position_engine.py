@@ -136,12 +136,12 @@ class PositionEngine(Observer, Notifier):
         """Return obstacle coordinates transformed to the section frame."""
         return self.section_pts.compute_obstacle_coords().points(True)
 
-    def obstacles_dict(self) -> dict:
+    def obstacles_dict(self, project=False, frame_index=0) -> dict:
         """Return obstacle coordinates keyed by obstacle name.
 
         Format: ``{'obs_0': [[x0, y0, z0], [x1, y1, z1], ...]}``.
         """
-        return self.section_pts.obstacles_dict()
+        return self.section_pts.obstacles_dict(project, frame_index)
 
     def get_loads_coords(
         self, project: bool = False, frame_index: int = 0

@@ -1,10 +1,10 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Callable, Self
+from typing import Callable, Self, TypeVar
 
 import numpy as np
 from typing_extensions import Literal  # type: ignore[attr-defined]
@@ -243,12 +243,23 @@ class SparsePoints:
     def coords(self) -> np.ndarray:
         return np.array([self.x, self.y, self.z]).T
 
+    # TODO: test this
+    @coords.setter
+    def coords(self, new_coords: np.ndarray) -> None:
+        self.x = new_coords[:, 0]
+        self.y = new_coords[:, 1]
+        self.z = new_coords[:, 2]
+
     def update_vectors(self, x, y, z) -> None:
         self.x = x
         self.y = y
         self.z = z
 
-    def get_vectors(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    @property
+    def vectors(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        # Warning: not same format than Points.vectors,
+        # here ([x0, x1, x2,...], [y0, y1, y2,...], [z0, z1, z2,...])
+        # instead of array([[x0_span0, x0_span1, x0_span2], [x1_span0, x1_span1, x1_span2], ...])
         return self.x, self.y, self.z
 
     def points(self, stack=False) -> np.ndarray:
@@ -289,6 +300,9 @@ class SparsePoints:
             object_name = self.object_name[split_indices[i]]
             dict_coords[object_name] = array_coords[i]
         return dict_coords
+
+
+_PointsT = TypeVar("_PointsT", Points, SparsePoints)
 
 
 class SectionPoints:
@@ -372,7 +386,7 @@ class SectionPoints:
             obstacles_array
         )
 
-    def compute_obstacle_coords(self):
+    def compute_obstacle_coords(self) -> SparsePoints:
         x, y, z = self.obstacles_array.get_vectors()
         azimuth_line = np.cumsum(self.line_angle)
         span_index = self.obstacles_array.data["span_index"].to_numpy()
@@ -492,12 +506,26 @@ class SectionPoints:
         )
         return Points.from_coords(insulator_layers)
 
-    def obstacles_dict(self) -> dict:
+    def obstacles_dict(self, project=False, frame_index=0) -> dict:
         if hasattr(self, "obstacles_array"):
             self.compute_obstacle_coords()
-            return self.obstacles_points.dict_coords()
+            supports_points = self.get_supports()
+            obstacles_points = self.obstacles_points
+            if project:
+                self._validate_frame_index(frame_index)
+                translation_vector = -supports_points.coords[frame_index, 0]
+                obstacles_points = self.project_to_selected_frame(
+                    obstacles_points, translation_vector, frame_index
+                )
+            return obstacles_points.dict_coords()
         else:
             return {}
+
+    def _validate_frame_index(self, frame_index: int) -> None:
+        if frame_index >= len(self.line_angle) or frame_index < 0:
+            raise ValueError(
+                f"frame_index out of range. Expected value between 0 and {len(self.line_angle)}, received {frame_index}"
+            )
 
     def get_points_for_plot(
         self, project=False, frame_index=0
@@ -515,65 +543,61 @@ class SectionPoints:
         Raises:
             ValueError: frame_index is out of range
         """
-        spans_points = self.get_spans("section")
-        supports_points = self.get_supports()
-        insulators_points = self.get_insulators()
+        spans_points: Points = self.get_spans("section")
+        supports_points: Points = self.get_supports()
+        insulators_points: Points = self.get_insulators()
         if project:
-            if frame_index > spans_points.coords.shape[0]:
-                raise ValueError(
-                    f"frame_index out of range. Expected value between 0 and {spans_points.coords.shape[0]}, received {frame_index}"
-                )
-            spans_points, supports_points, insulators_points = (
-                self.project_to_selected_frame(
-                    spans_points,
-                    supports_points,
-                    insulators_points,
-                    frame_index,
-                )
+            self._validate_frame_index(frame_index)
+            translation_vector = -supports_points.coords[frame_index, 0]
+            spans_points = self.project_to_selected_frame(
+                spans_points,
+                translation_vector,
+                frame_index,
+            )
+            supports_points = self.project_to_selected_frame(
+                supports_points,
+                translation_vector,
+                frame_index,
+            )
+            insulators_points = self.project_to_selected_frame(
+                insulators_points,
+                translation_vector,
+                frame_index,
             )
         return spans_points, supports_points, insulators_points
 
     def project_to_selected_frame(
         self,
-        spans_points: Points,
-        supports_points: Points,
-        insulators_points: Points,
+        points: _PointsT,
+        translation_vector: np.ndarray,
         frame_index: int,
-    ) -> tuple[Points, Points, Points]:
-        """Project spans, supports and insulators points into a support frame.
+    ) -> _PointsT:
+        """Project points object into a support frame.
+
+        Used for 2D plots that need to be projected in a specific frame.
 
         Args:
-            spans_points (Points): spans Points object
-            supports_points (Points): supports Points object
-            insulators_points (Points): insulators Points object
+            points (Points):  Points object
             frame_index (int): Index of the frame the projection is made.
 
         Returns:
-            tuple[Points, Points, Points]: Points for spans, supports and insulators respectively,
+            Points: points object projected in local frame
             projected into the frame of support number `frame_index`.
         """
         angle_to_project = np.cumsum(self.line_angle)[frame_index]
-        translation_vector = -supports_points.coords[frame_index, 0]
 
-        new_span = self.change_frame(
-            spans_points, translation_vector, angle_to_project
+        new_points = self.change_frame(
+            points, translation_vector, angle_to_project
         )
-        new_supports = self.change_frame(
-            supports_points, translation_vector, angle_to_project
-        )
-        new_insulators = self.change_frame(
-            insulators_points, translation_vector, angle_to_project
-        )
-
-        return new_span, new_supports, new_insulators
+        return new_points
 
     # convert to function? self unused
     def change_frame(
         self,
-        points: Points,
+        points: _PointsT,
         translation_vector: np.ndarray,
         angle_to_project: np.float64,
-    ) -> Points:
+    ) -> _PointsT:
         """Change the frame of the given Points by applying a translation and a rotation.
 
         Args:
@@ -588,4 +612,5 @@ class SectionPoints:
         x, y, z = points.vectors
         x, y = project_coords(x, y, angle_to_project)
         # invert y axis to get more natural view
-        return Points.from_vectors(x, -y, z)
+        points.coords = np.array([x, -y, z]).T - translation_vector
+        return points
