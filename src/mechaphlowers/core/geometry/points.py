@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -522,7 +522,7 @@ class SectionPoints:
             return {}
 
     def _validate_frame_index(self, frame_index: int) -> None:
-        if frame_index > len(self.line_angle) or frame_index < 0:
+        if frame_index >= len(self.line_angle) or frame_index < 0:
             raise ValueError(
                 f"frame_index out of range. Expected value between 0 and {len(self.line_angle)}, received {frame_index}"
             )
