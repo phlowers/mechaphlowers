@@ -474,7 +474,9 @@ def test_shifting_and_shortening_cable(cable_array_AM600: CableArray):
     # Base case: no shifting, no shortening
 
     with pytest.warns(BalanceEngineWarning):
-        balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
+        balance_engine.solve_change_state(
+            wind_pressure=0.0, new_temperature=15.0
+        )
 
     assert balance_engine.L_ref.shape == (3,)
     np.testing.assert_allclose(
@@ -498,13 +500,12 @@ def test_shifting_and_shortening_cable(cable_array_AM600: CableArray):
     balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
     np.testing.assert_allclose(
         balance_engine.span_model.T_h(),
-        np.array([2026.0, 2315.0, 2246.0, np.nan]) * 10.,
+        np.array([2026.0, 2315.0, 2246.0, np.nan]) * 10.0,
         atol=10,
     )
 
     # shorten span 2 by 2m
-    balance_engine.add_cable_shifting(
-        shorten_span=np.array([0, 2, 0]))
+    balance_engine.add_cable_shifting(shorten_span=np.array([0, 2, 0]))
     balance_engine.shift_shorten_cable()
 
     np.testing.assert_allclose(
@@ -512,7 +513,11 @@ def test_shifting_and_shortening_cable(cable_array_AM600: CableArray):
     )
 
     balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
-    np.testing.assert_allclose(balance_engine.span_model.T_h(), np.array([2411.0, 2846.0, 2614.0, np.nan])*10., atol=10)
+    np.testing.assert_allclose(
+        balance_engine.span_model.T_h(),
+        np.array([2411.0, 2846.0, 2614.0, np.nan]) * 10.0,
+        atol=10,
+    )
 
     # Shift support 2 by 1.5m and shorten span 1 by 1.5m
     balance_engine.add_cable_shifting(
@@ -526,8 +531,16 @@ def test_shifting_and_shortening_cable(cable_array_AM600: CableArray):
     )
 
     balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
-    np.testing.assert_allclose(balance_engine.span_model.T_h(), np.array([2353.0, 2459.0, 2454.0, np.nan])*10., atol=10)
-    np.testing.assert_allclose(balance_engine.parameter, np.array([1333.0, 1392.0, 1390.0, np.nan]), atol=1)
+    np.testing.assert_allclose(
+        balance_engine.span_model.T_h(),
+        np.array([2353.0, 2459.0, 2454.0, np.nan]) * 10.0,
+        atol=10,
+    )
+    np.testing.assert_allclose(
+        balance_engine.parameter,
+        np.array([1333.0, 1392.0, 1390.0, np.nan]),
+        atol=1,
+    )
 
 
 def test_add_cable_shifting_default_values(
