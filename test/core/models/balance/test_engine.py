@@ -389,6 +389,8 @@ def test_get_data_spans(balance_engine_simple: BalanceEngine):
         'horizontal_distance',
         'arc_length',
         'T_h',
+        'sag',
+        'sag_s2',
     } <= data_spans.keys()
     for value in data_spans.values():
         assert len(value) == 3
