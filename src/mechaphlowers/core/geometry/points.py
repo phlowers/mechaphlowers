@@ -510,19 +510,22 @@ class SectionPoints:
         if hasattr(self, "obstacles_array"):
             self.compute_obstacle_coords()
             supports_points = self.get_supports()
-            translation_vector = -supports_points.coords[frame_index, 0]
             obstacles_points = self.obstacles_points
             if project:
-                if frame_index > supports_points.coords.shape[0]:
-                    raise ValueError(
-                        f"frame_index out of range. Expected value between 0 and {supports_points.coords.shape[0]}, received {frame_index}"
-                    )
+                self._validate_frame_index(frame_index)
+                translation_vector = -supports_points.coords[frame_index, 0]
                 obstacles_points = self.project_to_selected_frame(
                     obstacles_points, translation_vector, frame_index
                 )
             return obstacles_points.dict_coords()
         else:
             return {}
+
+    def _validate_frame_index(self, frame_index: int) -> None:
+        if frame_index > len(self.line_angle) or frame_index < 0:
+            raise ValueError(
+                f"frame_index out of range. Expected value between 0 and {len(self.line_angle)}, received {frame_index}"
+            )
 
     def get_points_for_plot(
         self, project=False, frame_index=0
@@ -544,10 +547,7 @@ class SectionPoints:
         supports_points: Points = self.get_supports()
         insulators_points: Points = self.get_insulators()
         if project:
-            if frame_index > spans_points.coords.shape[0]:
-                raise ValueError(
-                    f"frame_index out of range. Expected value between 0 and {spans_points.coords.shape[0]}, received {frame_index}"
-                )
+            self._validate_frame_index(frame_index)
             translation_vector = -supports_points.coords[frame_index, 0]
             spans_points = self.project_to_selected_frame(
                 spans_points,
