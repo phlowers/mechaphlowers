@@ -382,7 +382,6 @@ class PlotEngine(Observer):
         """Delegate to :meth:`PositionEngine.get_loads_coords`."""
         return self.position_engine.get_loads_coords(project, frame_index)
 
-
     def get_points_for_plot(
         self, project: bool = False, frame_index: int = 0
     ) -> tuple[Points, Points, Points]:
