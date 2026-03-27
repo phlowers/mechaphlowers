@@ -343,7 +343,9 @@ def test_sag() -> None:
         span.sag_s2(), np.array([16.55, 5.16, 14.36, np.nan]), atol=1e-2
     )
 
-    # We want to test the case where the lowest point is at the same level as one of the two attachment points, which means that the sag s2 should be equal to 0. This is the case when the elevation difference is equal to 0 and the sagging parameter is large enough compared to the span length. In this case, we can consider that the cable is almost straight and that the lowest point is at the same level as the attachment points.
+    # We want to test the case where the lowest point is at the same level as one 
+    # of the two attachment points, which means that the sag s2 should be equal to 0. 
+    
     mountain_span = CatenarySpan(
         span_length=np.array([500.0, np.nan]),
         elevation_difference=np.array([200.70485389, np.nan]),
