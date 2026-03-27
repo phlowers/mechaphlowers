@@ -81,7 +81,7 @@ class IBalanceModel(IModelForSolver, ABC):
         self.deformation_model = deformation_model
         self.cable_loads = cable_loads
         self.span_model = span_model
-        self.nodes_span_model = copy(self.span_model)
+        self.nodes_span_model: ISpan = copy(self.span_model)
         self.parameter = parameter
         self.cable_array = cable_array
         self.a: np.ndarray
