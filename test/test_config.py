@@ -64,9 +64,18 @@ def test_change_values_input_unit__one_value() -> None:
         "diameter_heart": "mm",
         "section_conductor": "mm^2",
         "section_heart": "mm^2",
-        "electric_resistance_20": "ohm.m**-1",
+        "electric_resistance_20": "ohm.km**-1",
         "linear_resistance_temperature_coef": "K**-1",
         "radial_thermal_conductivity": "W.m**-1.K**-1",
+        "rts_cable": "N",
+        "rts_layer_1": "N",
+        "rts_layer_2": "N",
+        "rts_layer_3": "N",
+        "rts_layer_4": "N",
+        "rts_layer_5": "N",
+        "rts_layer_6": "N",
+        "rts_layer_7": "N",
+        "rts_layer_8": "N",
     }
 
     expected_dict_section = {
