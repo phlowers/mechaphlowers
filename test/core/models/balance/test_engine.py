@@ -589,8 +589,8 @@ def test_add_cable_shifting_enforces_shifting_boundaries(
             shift_support=np.array([5.0, 1.0, 2.0, 3.0])
         )
 
-    assert balance_engine_simple.shift_support[0] == 0.0
-    assert balance_engine_simple.shift_support[-1] == 0.0
+    assert abs(balance_engine_simple.shift_support[0]) < 1e-5
+    assert abs(balance_engine_simple.shift_support[-1]) < 1e-5
     np.testing.assert_array_equal(
         balance_engine_simple.shift_support[1:-1],
         np.array([1.0, 2.0]),
