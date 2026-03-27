@@ -408,6 +408,17 @@ class CatenarySpan(ISpan):
         a = self.span_length
         return a + self.compute_x_m()
 
+    def compute_values(self):
+        """Override to avoid double computation of compute_x_m.
+
+        compute_x_n calls compute_x_m internally, so we reuse the cached _x_m.
+        compute_L is inlined using sinh intermediates.
+        """
+        self._x_m = self.compute_x_m()
+        self._x_n = self.span_length + self._x_m
+        p = self.sagging_parameter
+        self._L = p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
+
     def x(self, resolution: int = 10) -> np.ndarray:
         """x_coordinate for catenary generation in cable frame
 
