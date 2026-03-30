@@ -491,7 +491,6 @@ def test_shifting_and_shortening_cable(cable_array_AM600: CableArray):
 
     # Shift support 2 by 1m
     balance_engine.add_cable_shifting(shift_support=np.array([0, 1, 0, 0]))
-    balance_engine.shift_shorten_cable()
 
     assert balance_engine.L_ref.shape == (3,)
     np.testing.assert_allclose(
@@ -507,7 +506,6 @@ def test_shifting_and_shortening_cable(cable_array_AM600: CableArray):
 
     # shorten span 2 by 2m
     balance_engine.add_cable_shifting(shorten_span=np.array([0, 2, 0]))
-    balance_engine.shift_shorten_cable()
 
     np.testing.assert_allclose(
         balance_engine.L_ref, np.array([500.8, 296.5, 401.7]), atol=0.1
@@ -525,7 +523,6 @@ def test_shifting_and_shortening_cable(cable_array_AM600: CableArray):
         shorten_span=np.array([1.5, 0, 0]),
         shift_support=np.array([0, 1, 0.5, 0]),
     )
-    balance_engine.shift_shorten_cable()
 
     np.testing.assert_allclose(
         balance_engine.L_ref, np.array([500.338, 298.042, 401.254]), atol=0.1
