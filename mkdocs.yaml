@@ -46,6 +46,7 @@ nav:
       - Coordinates system: user_guide/ug_coordinates_system.md
       - Cable modeling: user_guide/ug_cable_model.md
       - Sag-tension calculation: user_guide/ug_sag_tension_calc.md
+      - Balance Engine: user_guide/ug_balance_engine.md
       - Deformation: user_guide/ug_deformation.md
       - Wind speed conversion: user_guide/ug_wind_speed_conversion.md
       - Data catalog : user_guide/ug_catalog.md
