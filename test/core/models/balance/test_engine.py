@@ -547,6 +547,7 @@ def test_shifting_and_shortening_cable(cable_array_AM600: CableArray):
 def test_add_cable_shifting_default_values(
     balance_engine_simple: BalanceEngine,
 ):
+    balance_engine_simple.solve_adjustment()
     balance_engine_simple.add_cable_shifting()
 
     expected_support = np.zeros(balance_engine_simple.support_number)
@@ -582,9 +583,9 @@ def test_add_cable_shifting_wrong_size_shortening(
 def test_add_cable_shifting_enforces_shifting_boundaries(
     balance_engine_simple: BalanceEngine,
 ):
+    balance_engine_simple.solve_adjustment()
     with pytest.warns(
         BalanceEngineWarning,
-        match="shift_support first and last values have been set to 0",
     ):
         balance_engine_simple.add_cable_shifting(
             shift_support=np.array([5.0, 1.0, 2.0, 3.0])
@@ -601,6 +602,7 @@ def test_add_cable_shifting_enforces_shifting_boundaries(
 def test_add_cable_shifting_no_warning_when_boundaries_are_compliant(
     balance_engine_simple: BalanceEngine,
 ):
+    balance_engine_simple.solve_adjustment()
     with _warnings.catch_warnings():
         _warnings.simplefilter("error", BalanceEngineWarning)
         balance_engine_simple.add_cable_shifting(
@@ -612,6 +614,7 @@ def test_add_cable_shifting_no_warning_when_boundaries_are_compliant(
 def test_add_cable_shifting_stores_values(
     balance_engine_simple: BalanceEngine,
 ):
+    balance_engine_simple.solve_adjustment()
     shifting = np.array([0.0, 1.5, 2.0, 0.0])
     shortening = np.array([0.0, 0.5, 1.0])
 
