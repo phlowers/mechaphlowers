@@ -224,13 +224,10 @@ def test_poly_deformation__no_solutions(
 def test_deformation__data_container(
     default_data_container_one_span: DataContainer,
 ) -> None:
-    data_one_span = default_data_container_one_span.__dict__
-    data_one_span["parameter"] = (
-        default_data_container_one_span.sagging_parameter
+    span_model = CatenarySpan(
+        **default_data_container_one_span.__dict__,
+        parameter=default_data_container_one_span.sagging_parameter,
     )
-    del data_one_span["sagging_parameter"]
-
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
     tension_mean = span_model.T_mean()
     cable_length = span_model.compute_L()
 

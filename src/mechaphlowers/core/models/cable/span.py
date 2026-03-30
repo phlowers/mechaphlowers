@@ -616,7 +616,7 @@ def span_model_builder(
     cable_array: CableArray,
     span_model_type: Type[ISpan],
 ) -> ISpan:
-    """Builds a Span object, using data from ScetionArray and CableArray
+    """Builds a Span object, using data from SectionArray and CableArray
 
     Args:
         section_array (SectionArray): input data (span_length, elevation_difference, parameter)
