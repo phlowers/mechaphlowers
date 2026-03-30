@@ -16,20 +16,11 @@ A `BalanceEngine` requires a `CableArray` and a `SectionArray` as inputs. Both m
 ```python
 import numpy as np
 import pandas as pd
-from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.data.catalog import sample_cable_catalog
+from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 
-cable_array = CableArray(
-    pd.DataFrame({
-        "name": ["AM600"],
-        "section": [600],
-        "diameter": [0.03246],
-        "linear_weight": [17.66],
-        "young_modulus": [59000],
-        "dilatation_coefficient": [23e-6],
-        "resistance": [0.05],
-    })
-)
+cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
 
 section_array = SectionArray(
     pd.DataFrame({

@@ -245,6 +245,8 @@ class BalanceEngine(Notifier):
         Updates internal shifting and span-length modification fields.
 
         Expected input are arrays whose sizes match the number of supports.
+        Warning: shift shorten the left span and lengthen the right span.
+        So if you want to shorten the right span, you should input a negative value.
 
         Args:
             shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
@@ -257,6 +259,18 @@ class BalanceEngine(Notifier):
 
         Raises:
             ValueError: if input arrays don't have correct size.
+
+        Examples:
+            >>> balance_engine.add_cable_shifting(
+            ...     shorten_span=np.array([1.5, 0, 0]),
+            ...     shift_support=np.array([0, 1, 0.5, 0]),
+            ... )
+            >>> balance_engine.shift_shorten_cable()
+            >>> balance_engine.L_ref
+            # Output: array of shifted span lengths, in meters.
+            >>> balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
+            >>> balance_engine.parameter
+            # Output: array of sagging parameters, updated after shifting and shortening the cable.
         """
         # Convert to numpy arrays
         shift_support = (
@@ -289,7 +303,7 @@ class BalanceEngine(Notifier):
                 "Enforcing this constraint."
             )
             warnings.warn(
-                "shift_support first and last values have been set to 0",
+                "First and last values of shift_support have been reset to 0",
                 BalanceEngineWarning,
             )
         shift_support[0] = 0.0
@@ -298,6 +312,9 @@ class BalanceEngine(Notifier):
         # Store in private attributes
         self._shifting_distance_support = shift_support
         self._shortening_distance_span = shorten_span
+
+        # apply
+        self.shift_shorten_cable()
 
         # Reset and notify observers
         self.reset(full=False)
