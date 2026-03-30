@@ -388,6 +388,8 @@ def test_get_data_spans(balance_engine_simple: BalanceEngine):
     assert {
         'span_length',
         'elevation',
+        'slope_left',
+        'slope_right',
         'parameter',
         'tension_sup',
         'tension_inf',

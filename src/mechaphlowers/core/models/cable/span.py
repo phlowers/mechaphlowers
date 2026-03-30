@@ -629,7 +629,7 @@ class CatenarySpan(ISpan):
         """
         # values are signed: T_h is negative, T_v can be either positive of negative depending on side
         x_extremum = self._x_m if side == 'left' else self._x_n
-        return self.T_v(x_extremum) / self.T_h()
+        return np.atan2(self.T_v(x_extremum), self.T_h())
 
     def sag(self) -> np.ndarray:
         """Sag of the cable span (s1 formula).

@@ -487,6 +487,8 @@ class BalanceEngine(Notifier):
                     <li>parameter</li>
                     <li>tension_sup</li>
                     <li>tension_inf</li>
+                    <li>slope_left</li>
+                    <li>slope_right</li>
                     <li>L0</li>
                     <li>horizontal_distance</li>
                     <li>arc_length</li>
@@ -502,6 +504,13 @@ class BalanceEngine(Notifier):
         T_h_q_array = QuantityArray(
             self.span_model.T_h(), 'N', force_output_unit
         )
+        span_slope_left = QuantityArray(
+            self.span_model.slope(side="left"), 'rad', 'deg'
+        )
+        span_slope_right = QuantityArray(
+            self.span_model.slope(side="right"), 'rad', 'deg'
+        )
+
         result_dict = {
             "span_length": arr.decr(
                 self.section_array.data["span_length"].to_numpy()
@@ -510,6 +519,8 @@ class BalanceEngine(Notifier):
                 self.section_array.data["elevation_difference"].to_numpy()
             ).tolist(),
             "parameter": arr.decr(self.parameter).tolist(),
+            "slope_left": arr.decr(span_slope_left.value()).tolist(),
+            "slope_right": arr.decr(span_slope_right.value()).tolist(),
             "tension_sup": arr.decr(T_sup_q_array.value()).tolist(),
             "tension_inf": arr.decr(T_inf_q_array.value()).tolist(),
             "L0": self.L_ref.tolist(),
