@@ -175,13 +175,10 @@ def test_catenary_span_model__geometric_output() -> None:
 def test_catenary_span_model__data_container(
     default_data_container_one_span: DataContainer,
 ) -> None:
-    data_one_span = default_data_container_one_span.__dict__
-    data_one_span["parameter"] = (
-        default_data_container_one_span.sagging_parameter
+    span_model = CatenarySpan(
+        **default_data_container_one_span.__dict__,
+        parameter=default_data_container_one_span.sagging_parameter,
     )
-    del data_one_span["sagging_parameter"]
-
-    span_model = CatenarySpan(**data_one_span)
     x = np.array([100, 200.0])
 
     span_model.compute_x_m()

@@ -27,13 +27,10 @@ from mechaphlowers.entities.data_container import (
 def test_deformation_impl(
     default_data_container_one_span: DataContainer,
 ) -> None:
-    data_one_span = default_data_container_one_span.__dict__
-    data_one_span["parameter"] = (
-        default_data_container_one_span.sagging_parameter
+    span_model = CatenarySpan(
+        **default_data_container_one_span.__dict__,
+        parameter=default_data_container_one_span.sagging_parameter,
     )
-    del data_one_span["sagging_parameter"]
-
-    span_model = CatenarySpan(**data_one_span)
     tension_mean = span_model.T_mean()
     cable_length = span_model.compute_L()
 
@@ -67,11 +64,10 @@ def test_deformation_values__default_data(
 
     data_container.sagging_temperature = np.array([30, 30])
 
-    data = data_container.__dict__
-    data["parameter"] = data_container.sagging_parameter
-    del data["sagging_parameter"]
-
-    span_model = CatenarySpan(**data_container.__dict__)
+    span_model = CatenarySpan(
+        **data_container.__dict__,
+        parameter=data_container.sagging_parameter,
+    )
     tension_mean = span_model.T_mean()
     cable_length = span_model.compute_L()
 
