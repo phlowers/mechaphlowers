@@ -175,7 +175,13 @@ def test_catenary_span_model__geometric_output() -> None:
 def test_catenary_span_model__data_container(
     default_data_container_one_span: DataContainer,
 ) -> None:
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
+    data_one_span = default_data_container_one_span.__dict__
+    data_one_span["parameter"] = (
+        default_data_container_one_span.sagging_parameter
+    )
+    del data_one_span["sagging_parameter"]
+
+    span_model = CatenarySpan(**data_one_span)
     x = np.array([100, 200.0])
 
     span_model.compute_x_m()
@@ -284,7 +290,7 @@ def test_copy_attributes_partial() -> None:
     copy_span_model.mirror(span_model)
     np.testing.assert_equal(copy_span_model.span_length, a)
     np.testing.assert_equal(copy_span_model.elevation_difference, b)
-    np.testing.assert_equal(copy_span_model.sagging_parameter, p)
+    np.testing.assert_equal(copy_span_model.parameter, p)
     assert old_id == id(copy_span_model)
 
 
@@ -313,7 +319,7 @@ def test_copy_attributes_full() -> None:
     copy_span_model.mirror(span_model)
     np.testing.assert_equal(copy_span_model.span_length, a)
     np.testing.assert_equal(copy_span_model.elevation_difference, b)
-    np.testing.assert_equal(copy_span_model.sagging_parameter, p)
+    np.testing.assert_equal(copy_span_model.parameter, p)
     np.testing.assert_equal(copy_span_model.load_coefficient, k_load)
     np.testing.assert_equal(copy_span_model.span_index, span_index)
     np.testing.assert_equal(copy_span_model.span_type, span_type)
