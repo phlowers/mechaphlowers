@@ -6,10 +6,16 @@
 
 import logging
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
 from thermohl import solver  # type: ignore
+from thermohl.solver.entities import (  # type: ignore
+    PowerType,
+    TemperatureType,
+    VariableType,
+)
 from typing_extensions import Self
 
 from mechaphlowers.entities.arrays import CableArray
@@ -81,19 +87,18 @@ class ThermalTransientResults(ThermalResults):
             raise TypeError(
                 "DataFrame input not supported for transient results parsing."
             )
-        input_size = data["t_avg"].shape
-        out = pd.DataFrame(
+        input_size = data[TemperatureType.AVERAGE].shape
+        return pd.DataFrame(
             {
-                "time": np.tile(data["time"], input_size[1]),
+                "time": np.tile(data[VariableType.TIME], input_size[1]),
                 "id": np.tile(
                     np.arange(input_size[1]), (input_size[0], 1)
                 ).T.flatten(),
-                "t_avg": data["t_avg"].T.flatten(),
-                "t_surf": data["t_surf"].T.flatten(),
-                "t_core": data["t_core"].T.flatten(),
+                "t_avg": data[TemperatureType.AVERAGE].T.flatten(),
+                "t_surf": data[TemperatureType.SURFACE].T.flatten(),
+                "t_core": data[TemperatureType.CORE].T.flatten(),
             }
         )
-        return out
 
 
 class ThermalSteadyResults(ThermalResults):
@@ -108,7 +113,9 @@ class ThermalSteadyResults(ThermalResults):
         super().__init__(input_data)
 
     @staticmethod
-    def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
+    def parse_results(
+        data: dict | pd.DataFrame,
+    ) -> pd.DataFrame:
         """Parse steady-state thermal results into a DataFrame.
 
         Converts raw steady-state thermal output into standardized DataFrame format.
@@ -120,9 +127,22 @@ class ThermalSteadyResults(ThermalResults):
         Returns:
             Parsed results as a pandas DataFrame.
         """
+        column_names = {
+            VariableType.TRANSIT: "transit",
+            TemperatureType.SURFACE: "t_surf",
+            TemperatureType.AVERAGE: "t_avg",
+            TemperatureType.CORE: "t_core",
+            PowerType.JOULE: "P_joule",
+            PowerType.SOLAR: "P_solar",
+            PowerType.CONVECTION: "P_convection",
+            PowerType.RADIATION: "P_radiation",
+            PowerType.RAIN: "P_precipitation",
+        }
         if isinstance(data, pd.DataFrame):
-            return data
-        return pd.DataFrame(data)
+            return data.rename(columns=column_names)
+        return pd.DataFrame(
+            {column_names.get(key, key): value for key, value in data.items()}
+        )
 
 
 class ThermalForecastArray:
@@ -169,18 +189,27 @@ def check_inputs(
     array_length: int | None = None
 
     for key, value in kwargs.items():
-        if not isinstance(value, np.ndarray):
+        if key == "datetime_utc":
+            if not isinstance(value, list):
+                raise TypeError(
+                    f"Expected list of datetime for '{key}', got {type(value).__name__}."
+                )
+            elif not all(isinstance(v, datetime) for v in value):
+                raise TypeError(
+                    f"All elements in '{key}' must be datetime objects."
+                )
+        elif not isinstance(value, np.ndarray):
             raise TypeError(
                 f"Expected numpy array for '{key}', got {type(value).__name__}."
             )
 
         # Track and validate the length of array inputs
         if array_length is None:
-            array_length = value.size
-        elif value.size != array_length:
+            array_length = len(value)
+        elif len(value) != array_length:
             raise ValueError(
                 f"All array inputs must have the same length. "
-                f"Expected {array_length}, got {value.size} for {key}."
+                f"Expected {array_length}, got {len(value)} for {key}."
             )
 
     if array_length is None:
@@ -195,7 +224,9 @@ class ThermalEngine:
     available_power_model = {
         "rte": solver.rte,
     }
-    available_heat_equation = {"3t": "3t"}
+    available_heat_equation = {
+        "3t": solver.HeatEquationType.THREE_TEMPERATURES
+    }
 
     def __init__(self):
         """Initialize ThermalEngine.
@@ -222,7 +253,7 @@ class ThermalEngine:
         azimuth: np.ndarray,
         month: np.ndarray,
         day: np.ndarray,
-        hour: np.ndarray,
+        hour: np.ndarray,  # TODO: check: can hour be non-integer?
         intensity: np.ndarray,
         ambient_temp: np.ndarray,
         wind_speed: np.ndarray,
@@ -267,44 +298,65 @@ class ThermalEngine:
         )
 
         self.dict_input = {
-            "Qs": inputs["solar_irradiance"],
-            "lat": inputs["latitude"],
-            "lon": inputs["longitude"],
-            "alt": inputs["altitude"],
-            "azm": inputs["azimuth"],
-            "month": inputs["month"],
-            "day": inputs["day"],
-            "hour": inputs["hour"],
-            "Ta": inputs["ambient_temp"],
-            "ws": inputs["wind_speed"],  # wind speed (m.s**-1)
-            "wa": inputs["wind_angle"],  # wind angle (deg, regarding north)
+            "measured_solar_radiation": inputs["solar_irradiance"],
+            "latitude": inputs["latitude"],
+            "longitude": inputs["longitude"],
+            "altitude": inputs["altitude"],
+            "cable_azimuth": inputs["azimuth"],
+            "datetime_utc": [
+                datetime(
+                    # We set an arbitrary year since it isn't used in calculations
+                    1970,
+                    month,
+                    day,
+                    hour,
+                )
+                for month, day, hour in zip(
+                    inputs["month"], inputs["day"], inputs["hour"]
+                )
+            ],
+            "ambient_temperature": inputs["ambient_temp"],
+            "wind_speed": inputs["wind_speed"],  # wind speed (m.s**-1)
+            "wind_azimuth": inputs[
+                "wind_angle"
+            ],  # wind angle (deg, regarding north)
             "transit": inputs["intensity"],
-            "m": np.full(self._len, cable_array.data.linear_mass.iloc[0]),
-            "d": np.full(self._len, cable_array.data.diameter_heart.iloc[0]),
-            "D": np.full(self._len, cable_array.data.diameter.iloc[0]),
-            "a": np.full(self._len, cable_array.data.section_heart.iloc[0]),
-            "A": np.full(
+            "linear_mass": np.full(
+                self._len, cable_array.data.linear_mass.iloc[0]
+            ),
+            "core_diameter": np.full(
+                self._len, cable_array.data.diameter_heart.iloc[0]
+            ),
+            "outer_diameter": np.full(
+                self._len, cable_array.data.diameter.iloc[0]
+            ),
+            "core_area": np.full(
+                self._len, cable_array.data.section_heart.iloc[0]
+            ),
+            "outer_area": np.full(
                 self._len, cable_array.data.section_conductor.iloc[0]
             ),
-            "l": np.full(
+            "radial_thermal_conductivity": np.full(
                 self._len, cable_array.data.radial_thermal_conductivity.iloc[0]
             ),
-            "alpha": np.full(
+            "solar_absorptivity": np.full(
                 self._len, cable_array.data.solar_absorption.iloc[0]
             ),
-            "epsilon": np.full(self._len, cable_array.data.emissivity.iloc[0]),
-            "RDC20": np.full(
+            "emissivity": np.full(
+                self._len, cable_array.data.emissivity.iloc[0]
+            ),
+            "linear_resistance_dc_20c": np.full(
                 self._len, cable_array.data.electric_resistance_20.iloc[0]
             ),
-            "kl": np.full(
+            "temperature_coeff_linear": np.full(
                 self._len,
                 cable_array.data.linear_resistance_temperature_coef.iloc[0],
             ),
-            "km": np.full(
+            "magnetic_coeff": np.full(
                 self._len,
                 1.006 if cable_array.data.has_magnetic_heart.iloc[0] else 1.0,
             ),
-            "ki": np.full(
+            "magnetic_coeff_per_a": np.full(
                 self._len,
                 0.016 if cable_array.data.has_magnetic_heart.iloc[0] else 0.0,
             ),
@@ -321,8 +373,8 @@ class ThermalEngine:
     def _load(self):
         """Load the thermal model with the current input parameters."""
         # expected to fail if arguments are not filled
-        self.thermal_model = self.power_model(
-            dic=self.dict_input, heateq=self.heateq
+        self.thermal_model = self.power_model(  # TODO
+            dic=self.dict_input, heat_equation=self.heateq
         )
 
     def steady_temperature(
@@ -366,7 +418,7 @@ class ThermalEngine:
             self.forecast = forecast_control
 
         return ThermalTransientResults(
-            self.thermal_model.transient_temperature(time=self.forecast.time)
+            self.thermal_model.transient_temperature(offset=self.forecast.time)
         )
 
     @property
@@ -378,12 +430,16 @@ class ThermalEngine:
         Returns:
             Angle in degrees between wind direction and cable azimuth.
         """
+        # TODO: use wind_angle computed by thermohl?
         # TODO: move this into thl (formulae in thl.power.convective_cooling line 35)
         return np.rad2deg(
             np.arcsin(
                 np.sin(
                     np.deg2rad(
-                        np.abs(self.dict_input["azm"] - self.dict_input["wa"])
+                        np.abs(
+                            self.dict_input["cable_azimuth"]
+                            - self.dict_input["wind_azimuth"]
+                        )
                         % 180.0
                     )
                 )

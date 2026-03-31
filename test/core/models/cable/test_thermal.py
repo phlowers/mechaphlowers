@@ -245,9 +245,8 @@ def test_wrong_array_length_at_load(thermal_engine_3_spans: ThermalEngine):
 
 def test_add_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
     thermal_engine = thermal_engine_3_spans
-    # latitude_old = thermal_engine.dict_input["lat"]
 
-    thermal_engine.dict_input["lat"] = 40.0
+    thermal_engine.dict_input["latitude"] = 40.0
 
     with pytest.raises(TypeError):
         thermal_engine.load()
@@ -255,13 +254,13 @@ def test_add_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
 
 def test_change_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
     thermal_engine = thermal_engine_3_spans
-    latitude_old = thermal_engine.dict_input["lat"]
+    latitude_old = thermal_engine.dict_input["latitude"]
 
-    thermal_engine.dict_input["lat"] = np.array([40.0, 40.0, 40.0])
+    thermal_engine.dict_input["latitude"] = np.array([40.0, 40.0, 40.0])
     thermal_engine.load()
 
     assert not np.array_equal(
-        thermal_engine.thermal_model.args.lat, latitude_old
+        thermal_engine.thermal_model.args.latitude, latitude_old
     )
 
 
