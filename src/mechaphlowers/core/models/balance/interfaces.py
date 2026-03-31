@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from copy import copy
-from typing import Type
+from typing import Any, Type
 
 import numpy as np
 
@@ -77,15 +77,19 @@ class IBalanceModel(IModelForSolver, ABC):
         ] = FindParamSolverForLoop,
     ):
         self.adjustment: bool = NotImplemented
-        self.sagging_temperature = sagging_temperature
+        self.sagging_temperature: np.ndarray = sagging_temperature
         self.deformation_model = deformation_model
         self.cable_loads = cable_loads
         self.span_model = span_model
         self.nodes_span_model: ISpan = copy(self.span_model)
-        self.parameter = parameter
+        self.parameter: np.ndarray = parameter
         self.cable_array = cable_array
         self.a: np.ndarray
         self.b: np.ndarray
+        self.Th: np.ndarray
+        self.Tv_d: np.ndarray
+        self.Tv_g: np.ndarray
+        self.nodes: Any  # Concrete type is Nodes (defined in model_ducloux)
 
     @abstractmethod
     def update_L_ref(self) -> np.ndarray:
