@@ -824,6 +824,26 @@ class Nodes:
             self.dx, self.dy, self.dz
         )
 
+    def __copy__(self) -> Nodes:
+        new = object.__new__(Nodes)
+        new.masks = self.masks
+        new.z_arm = self.z_arm
+        new.dxdydz = self.dxdydz.copy()
+        new.insulator_length = self.insulator_length
+        new.signed_insulator_weight = self.signed_insulator_weight
+        new.crossarm_length = self.crossarm_length
+        new.line_angle = self.line_angle
+        new.span_length = self.span_length
+        new.load_weight = self.load_weight
+        new.load_position = self.load_position
+        new.has_load_on_span = self.has_load_on_span
+        new.signed_counterweight = self.signed_counterweight
+        new.bundle_number = self.bundle_number
+        new.vector_projection = VectorProjection(
+            new.line_angle, new.bundle_number
+        )
+        return new
+
     def compute_moment(self) -> None:
         """Compute moments of two forces: force of the cable, and chain weight."""
         F_zeros = np.empty(self.signed_insulator_weight.shape)
