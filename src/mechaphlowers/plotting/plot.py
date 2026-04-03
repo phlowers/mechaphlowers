@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -25,6 +25,7 @@ from mechaphlowers.plotting.plot_config import (
     insulator_trace,
     support_trace,
 )
+from mechaphlowers.plotting.plot_distances import plot_distance_engine
 
 logger = logging.getLogger(__name__)
 
@@ -157,28 +158,86 @@ def plot_support_shape(fig: go.Figure, support_shape: SupportShape) -> None:
     )
 
 
-def set_layout(fig: go.Figure, auto: bool = True) -> None:
+def _validate_aspect_ratio(aspect_ratio: dict[str, float]) -> dict[str, float]:
+    """Validate and normalise a custom aspect ratio dict.
+
+    Args:
+        aspect_ratio: Dictionary that must contain keys 'x', 'y', 'z' with positive float values.
+
+    Returns:
+        Validated dictionary with float values.
+
+    Raises:
+        ValueError: If the dict is missing a required key, a value is not float-convertible,
+            or a value is not strictly positive.
+    """
+    if not isinstance(aspect_ratio, dict):
+        raise ValueError(
+            "aspect_ratio must be a dict with keys 'x', 'y', 'z' and positive float values."
+        )
+
+    required_keys = ("x", "y", "z")
+    validated: dict[str, float] = {}
+    for key in required_keys:
+        if key not in aspect_ratio:
+            raise ValueError(
+                f"aspect_ratio is missing required key {key!r}. "
+                "Expected keys are 'x', 'y', and 'z'."
+            )
+        value = aspect_ratio[key]
+        try:
+            value_float = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"aspect_ratio[{key!r}] must be a float-convertible number, got {value!r}."
+            ) from exc
+        if value_float <= 0:
+            raise ValueError(
+                f"aspect_ratio[{key!r}] must be a positive float, got {value_float!r}."
+            )
+        validated[key] = value_float
+    return validated
+
+
+def set_layout(
+    fig: go.Figure,
+    auto: bool = True,
+    aspect_ratio: dict[str, float] | None = None,
+) -> None:
     """set_layout
 
     Args:
         fig (go.Figure): plotly figure where layout has to be updated
-        auto (bool, optional): Automatic layout based on data (scale respect). False means manual with an aspectradio of x=1, y=.05, z=.5. Defaults to True.
+        auto (bool, optional): Automatic layout based on data (scale respect). False means manual with an aspectratio of x=1, y=.5, z=.5. Only used when aspect_ratio is None. Defaults to True.
+        aspect_ratio (dict[str, float] | None, optional): Custom aspect ratio dictionary with keys 'x', 'y', 'z'. When provided, forces aspectmode to 'manual' and uses these values. When None, behavior is controlled by the auto parameter. Defaults to None.
+
+    Examples:
+        >>> fig = go.Figure()
+        >>> # Use default automatic layout
+        >>> set_layout(fig, auto=True)
+        >>>
+        >>> # Use custom aspect ratio (e.g., from compute_aspect_ratio)
+        >>> custom_aspect = {'x': 0.5, 'y': 0.3, 'z': 10.0}
+        >>> set_layout(fig, aspect_ratio=custom_aspect)
     """
 
-    # Check input
     auto = bool(auto)
-    aspect_mode: str = "data" if auto else "manual"
-    zoom: float = (
-        1 if auto else 5
-    )  # perhaps this approx of the zoom will not be adequate for all cases
-    aspect_ratio = {'x': 1, 'y': 0.5, 'z': 0.5}
+
+    if aspect_ratio is not None:
+        aspect_mode: str = "manual"
+        final_aspect_ratio = _validate_aspect_ratio(aspect_ratio)
+        zoom: float = 5
+    else:
+        aspect_mode = "data" if auto else "manual"
+        final_aspect_ratio = {'x': 1, 'y': 0.5, 'z': 0.5}
+        zoom = 1 if auto else 5
 
     fig.update_layout(
         scene={
             'xaxis_title': "X (m)",
             'yaxis_title': "Y (m)",
             'zaxis_title': "Z (m)",
-            'aspectratio': aspect_ratio,
+            'aspectratio': final_aspect_ratio,
             'aspectmode': aspect_mode,
             'camera': {
                 'up': {'x': 0, 'y': 0, 'z': 1},
@@ -308,9 +367,14 @@ class PlotEngine(Observer):
         """Delegate to :meth:`PositionEngine.get_obstacles_points`."""
         return self.position_engine.get_obstacles_points()
 
-    def obstacles_dict(self) -> dict:
-        """Delegate to :meth:`PositionEngine.obstacles_dict`."""
-        return self.position_engine.obstacles_dict()
+    def obstacles_dict(self, project=False, frame_index=0) -> dict:
+        """Returns a dictionary storing object coordinates.
+
+        Key is object name, value is coordinates of object.
+
+        Format: {'obs_0': [[x0, y0, z0], [x1, y1, z1], ...]}
+        """
+        return self.position_engine.obstacles_dict(project, frame_index)
 
     def get_loads_coords(
         self, project: bool = False, frame_index: int = 0
@@ -329,12 +393,16 @@ class PlotEngine(Observer):
         fig: go.Figure,
         view: Literal["full", "analysis"] = "full",
         mode: Literal["main", "background"] = "main",
+        aspect_ratio: dict[str, float] | None = None,
     ) -> None:
         """Plot 3D of power lines sections
 
         Args:
             fig (go.Figure): plotly figure where new traces has to be added
             view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+            mode (Literal['main', 'background'], optional): Style mode for the traces. Defaults to "main".
+            aspect_ratio (dict[str, float] | None, optional): Custom aspect ratio dictionary with keys 'x', 'y', 'z'.
+                When provided, overrides the layout aspect ratio. Can be computed using compute_aspect_ratio(). Defaults to None.
 
         Raises:
             ValueError: view is not an expected value
@@ -368,7 +436,7 @@ class PlotEngine(Observer):
                 fig, obstacles.points(True), TraceProfile(name="Obstacles")
             )
 
-        set_layout(fig, auto=_auto)
+        set_layout(fig, auto=_auto, aspect_ratio=aspect_ratio)
 
     def preview_line2d(
         self,
@@ -429,6 +497,18 @@ class PlotEngine(Observer):
             view=view,
         )
 
+        if hasattr(self.section_pts, "obstacles_array"):
+            obstacles_dict = self.obstacles_dict(
+                project=True, frame_index=frame_index
+            )
+            for obstacle_name, obstacle_coords in obstacles_dict.items():
+                plot_points_2d(
+                    fig,
+                    np.array(obstacle_coords),
+                    TraceProfile(name=obstacle_name),
+                    view=view,
+                )
+
     def point_relative_to_absolute(
         self, span_index: int, point_relative: np.ndarray
     ) -> np.ndarray:
@@ -459,12 +539,16 @@ class PlotEngine(Observer):
         Returns:
             :class:`~mechaphlowers.core.geometry.distances.DistanceResult`.
 
-        Example:
+        Examples:
+
+            >>> balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
             >>> plt_engine = PlotEngine(balance_engine)
-            >>> fig = figure_factory("blank")
-            >>> dr = plt_engine.point_distance(
-            ...     span_index=0, point=np.array([10.0, 5.0, 2.0]), fig=fig
-            ... )
+            >>> point = np.array(
+            ...     [10.0, 5.0, 2.0]
+            ... )  # Absolute coordinates of the point to analyze
+            >>> fig = figure_factory()
+            >>> distance_result = plt_engine.point_distance(span_index=0, point=point)
+            # ...get a distance result object with the distance and closest point coordinates
             >>> fig.show()
         """
         distance_result = self.position_engine.point_distance(
@@ -472,7 +556,8 @@ class PlotEngine(Observer):
         )
 
         if fig is not None:
-            self.position_engine.distance_engine.plot(
+            plot_distance_engine(
+                self.position_engine.distance_engine,
                 distance_result=distance_result,
                 fig=fig,
                 show_plane=True,

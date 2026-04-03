@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 import numpy as np
 
@@ -17,11 +17,9 @@ from mechaphlowers.core.geometry.distances import (
 )
 from mechaphlowers.core.geometry.planes import change_local_frame
 from mechaphlowers.core.geometry.points import Points, SectionPoints
+from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import ObstacleArray
 from mechaphlowers.entities.reactivity import Notifier, Observer
-
-if TYPE_CHECKING:
-    from mechaphlowers.core.models.balance.engine import BalanceEngine
 
 logger = logging.getLogger(__name__)
 
@@ -29,20 +27,20 @@ logger = logging.getLogger(__name__)
 class PositionEngine(Observer, Notifier):
     """PositionEngine computes point positions, distances, and coordinates.
 
-    Observes a :class:`BalanceEngine` and updates its internal geometry state
+    Observes a `BalanceEngine` and updates its internal geometry state
     whenever the balance engine notifies observers.  It is also a
-    :class:`Notifier` itself, so downstream observers (e.g. a
-    :class:`~mechaphlowers.plotting.plot.PlotEngine`) are automatically
+    `Notifier` itself, so downstream observers (e.g. a
+    `PlotEngine`) are automatically
     notified after every update.
 
-    Users can work with a ``PositionEngine`` directly — without any Plotly
+    Users can work with a `PositionEngine` directly — without any Plotly
     dependency — to obtain span points, support positions, obstacle
     coordinates, and point-to-cable distances.
 
     Args:
-        balance_engine: :class:`BalanceEngine` to observe.
+        balance_engine: `BalanceEngine` to observe.
 
-    Example:
+    Examples:
         >>> from mechaphlowers.core.geometry.position_engine import PositionEngine
         >>> pos_engine = PositionEngine(balance_engine)
         >>> pos_engine.get_supports_points()
@@ -60,9 +58,7 @@ class PositionEngine(Observer, Notifier):
         self.reset(balance_engine=balance_engine)
 
     def initialize_engine(self, balance_engine: BalanceEngine) -> None:
-        """Initialise internal references from *balance_engine*."""
-        # Import here to avoid a circular import at module level.
-
+        """Initialise internal references from `balance_engine`."""
         self.span_model = balance_engine.balance_model.nodes_span_model
         self.cable_loads = balance_engine.cable_loads
         self.section_array = balance_engine.section_array
@@ -74,20 +70,16 @@ class PositionEngine(Observer, Notifier):
         )
 
     def reset(self, balance_engine: BalanceEngine) -> None:
-        """Reset geometry state from *balance_engine*.
+        """Reset geometry state from `balance_engine`.
 
-        Called automatically by :meth:`update` when the balance engine
+        Called automatically by `update` when the balance engine
         notifies; can also be called manually after direct modifications to
         the section array.
 
         Raises:
-            TypeError: If *balance_engine* is not a :class:`BalanceEngine`.
+            TypeError: If `balance_engine` is not a [BalanceEngine][].
         """
-        from mechaphlowers.core.models.balance.engine import (
-            BalanceEngine as _BE,
-        )
-
-        if not isinstance(balance_engine, _BE):
+        if not isinstance(balance_engine, BalanceEngine):
             raise TypeError(
                 "balance_engine must be an instance of BalanceEngine"
             )
@@ -96,13 +88,9 @@ class PositionEngine(Observer, Notifier):
         self.section_pts.reset()
 
     def update(self, notifier: Notifier) -> None:
-        """Observer callback — invoked by :class:`BalanceEngine` on state change."""
-        from mechaphlowers.core.models.balance.engine import (
-            BalanceEngine as _BE,
-        )
-
+        """Observer callback — invoked by `BalanceEngine` on state change."""
         logger.debug("Position engine notified from balance engine.")
-        if isinstance(notifier, _BE):
+        if isinstance(notifier, BalanceEngine):
             self.reset(balance_engine=notifier)
             # Propagate the notification to any downstream observers (e.g. PlotEngine).
             self.notify()
@@ -110,7 +98,7 @@ class PositionEngine(Observer, Notifier):
     # ── Obstacle management ───────────────────────────────────────────────────
 
     def add_obstacles(self, obstacles_array: ObstacleArray) -> None:
-        """Attach an :class:`ObstacleArray` for coordinate computation."""
+        """Attach an `ObstacleArray` for coordinate computation."""
         self.obstacles_array = obstacles_array
         self.section_pts.add_obstacles(obstacles_array)
 
@@ -118,7 +106,7 @@ class PositionEngine(Observer, Notifier):
 
     @property
     def beta(self) -> np.ndarray:
-        """Load angle (β) for each span, in radians."""
+        """Load angle ($\\beta$) for each span, in radians."""
         return self.cable_loads.load_angle
 
     # ── Data retrieval methods ────────────────────────────────────────────────
@@ -148,12 +136,12 @@ class PositionEngine(Observer, Notifier):
         """Return obstacle coordinates transformed to the section frame."""
         return self.section_pts.compute_obstacle_coords().points(True)
 
-    def obstacles_dict(self) -> dict:
+    def obstacles_dict(self, project=False, frame_index=0) -> dict:
         """Return obstacle coordinates keyed by obstacle name.
 
         Format: ``{'obs_0': [[x0, y0, z0], [x1, y1, z1], ...]}``.
         """
-        return self.section_pts.obstacles_dict()
+        return self.section_pts.obstacles_dict(project, frame_index)
 
     def get_loads_coords(
         self, project: bool = False, frame_index: int = 0
@@ -168,7 +156,7 @@ class PositionEngine(Observer, Notifier):
                 (for 2-D graphs). Defaults to ``False``.
             frame_index: Index of the support frame used for projection.
                 Must be in ``[0, nb_supports - 1]``.  Unused when
-                *project* is ``False``.  Defaults to ``0``.
+                `project` is `False`.  Defaults to ``0``.
 
         Returns:
             Dict mapping span index (``int``) to coordinate array of shape
@@ -187,17 +175,17 @@ class PositionEngine(Observer, Notifier):
     def get_points_for_plot(
         self, project: bool = False, frame_index: int = 0
     ) -> tuple[Points, Points, Points]:
-        """Return :class:`Points` objects for spans, supports, and insulators.
+        """Return `Points` objects for spans, supports, and insulators.
 
         Args:
-            project: ``True`` to project into a support frame (2-D mode).
+            project: `True` to project into a support frame (2-D mode).
             frame_index: Index of the support frame for projection.
 
         Returns:
-            Tuple of ``(spans, supports, insulators)`` as :class:`Points`.
+            Tuple of ``(spans, supports, insulators)`` as `Points`.
 
         Raises:
-            ValueError: If *frame_index* is out of range.
+            ValueError: If `frame_index` is out of range.
         """
         return self.section_pts.get_points_for_plot(project, frame_index)
 
@@ -222,8 +210,8 @@ class PositionEngine(Observer, Notifier):
             Absolute coordinate array of shape ``(3,)``.
 
         Raises:
-            IndexError: If *span_index* is out of range.
-            ValueError: If *point_relative* does not have shape ``(3,)``.
+            IndexError: If `span_index` is out of range.
+            ValueError: If `point_relative` does not have shape ``(3,)``.
         """
         point_relative = np.asarray(point_relative)
         if point_relative.shape != (3,):
@@ -245,19 +233,18 @@ class PositionEngine(Observer, Notifier):
     def point_distance(
         self, span_index: int, point: np.ndarray
     ) -> DistanceResult:
-        """Compute the minimum distance from *point* to a cable span.
+        """Compute the minimum distance from `point` to a cable span.
 
         Args:
             span_index: Span index in ``[0, num_supports - 2]``.
             point: Absolute coordinates of shape ``(3,)``.
 
         Returns:
-            :class:`~mechaphlowers.core.geometry.distances.DistanceResult`
-            with the distance value and closest-point coordinates.
+            `DistanceResult` with the distance value and closest-point coordinates.
 
         Raises:
-            IndexError: If *span_index* is out of range.
-            ValueError: If *point* does not have shape ``(3,)``.
+            IndexError: If `span_index` is out of range.
+            ValueError: If `point` does not have shape ``(3,)``.
         """
         point = np.asarray(point)
         if point.shape != (3,):

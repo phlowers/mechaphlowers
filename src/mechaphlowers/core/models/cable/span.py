@@ -366,6 +366,27 @@ class ISpan(ABC):
         Tm_Tn = np.array([self.T(x_m), self.T(x_n)])
         return (np.max(Tm_Tn, axis=0), np.min(Tm_Tn, axis=0))
 
+    @abstractmethod
+    def sag(self) -> np.ndarray:
+        """Sag of the cable span (s1 formula).
+
+        The sag is the maximum perpendicular distance between the cable and the chord
+        connecting both attachment points.
+
+        Returns:
+            np.ndarray: sag value for each span.
+        """
+
+    @abstractmethod
+    def sag_s2(self) -> np.ndarray:
+        """Sag of the cable span, computed with the s2 formula.
+
+        The sag s2 is the maximum perpendicular distance between the lowest point of the cable and the lowest hanging point.
+
+        Returns:
+            np.ndarray: sag s2 value for each span.
+        """
+
 
 class CatenarySpan(ISpan):
     """Implementation of a span cable model according to the catenary equation.
@@ -619,7 +640,44 @@ class CatenarySpan(ISpan):
         """
         # values are signed: T_h is negative, T_v can be either positive of negative depending on side
         x_extremum = self._x_m if side == 'left' else self._x_n
-        return self.T_v(x_extremum) / self.T_h()
+        return np.atan2(self.T_v(x_extremum), self.T_h())
+
+    def sag(self) -> np.ndarray:
+        """Sag of the cable span (s1 formula).
+
+        The sag is the maximum perpendicular distance between the cable and the chord
+        connecting both attachment points.
+
+        Returns:
+            np.ndarray: sag value for each span.
+        """
+        a = self.span_length
+        b = self.elevation_difference
+        p = self.sagging_parameter
+        # x0g: horizontal distance from left support to the lowest point of the cable
+        x0g = -self.compute_x_m()
+        # x0: abscissa corresponding to the inclined chord reference
+        x0 = p * np.arcsinh(b / a)
+        return (x0g + x0) / a * b + p * (np.cosh(x0g / p) - np.cosh(x0 / p))
+
+    def sag_s2(self) -> np.ndarray:
+        """Sag of the cable span, computed with the s2 formula.
+
+        The sag s2 is the maximum perpendicular distance between the lowest point of the cable and the lowest hanging point.
+
+        Returns:
+            np.ndarray: sag s2 value for each span.
+        """
+
+        self.compute_values()
+        mask = (self.x_m >= 0) | (self.x_n <= 0)
+
+        z_left = self.z_one_point(self._x_m)
+        z_right = self.z_one_point(self._x_n)
+        z_lowest_hanging_point = np.minimum(z_left, z_right)
+        z_lowest_hanging_point[mask] = 0
+
+        return abs(z_lowest_hanging_point)
 
 
 def span_model_builder(
@@ -627,7 +685,7 @@ def span_model_builder(
     cable_array: CableArray,
     span_model_type: Type[ISpan],
 ) -> ISpan:
-    """Builds a Span object, using data from ScetionArray and CableArray
+    """Builds a Span object, using data from SectionArray and CableArray
 
     Args:
         section_array (SectionArray): input data (span_length, elevation_difference, sagging_parameter)

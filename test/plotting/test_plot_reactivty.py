@@ -399,9 +399,9 @@ class TestCoordCoherence:
         1. After construction, x_cable is computed once (initial sagging_parameter).
         2. solve_adjustment + solve_change_state update nodes_span_model.sagging_parameter
            in-place — but solve does NOT call notify(), so x_cable remains stale.
-        3. add_loads() calls reset(full=False) → BalanceEngine.notify()
-           → PositionEngine.reset() → section_pts.reset() → set_cable_coordinates()
-           recomputes x_cable → PositionEngine.notify() → PlotEngine.update().
+        3. add_loads() calls reset(full=False) -> BalanceEngine.notify()
+           -> PositionEngine.reset() -> section_pts.reset() -> set_cable_coordinates()
+           recomputes x_cable -> PositionEngine.notify() -> PlotEngine.update().
         4. x_cable now matches the post-solve sagging_parameter and differs from
            the initial cached value.
         """

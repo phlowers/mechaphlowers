@@ -22,7 +22,7 @@ from mechaphlowers.core.models.cable.deformation import IDeformation
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.core import VhlStrength
+from mechaphlowers.entities.core import VhlResult
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +86,7 @@ class IBalanceModel(IModelForSolver, ABC):
         self.cable_array = cable_array
         self.a: np.ndarray
         self.b: np.ndarray
+        self.L_ref: np.ndarray
 
     @abstractmethod
     def update_L_ref(self) -> np.ndarray:
@@ -117,14 +118,14 @@ class IBalanceModel(IModelForSolver, ABC):
         """
 
     @abstractmethod
-    def vhl_under_chain(self) -> VhlStrength:
+    def vhl_under_chain(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
         Default unit is daN"""
         pass
 
     @abstractmethod
-    def vhl_under_chain_left(self) -> VhlStrength:
+    def vhl_under_chain_left(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the left of the support.
@@ -134,7 +135,7 @@ class IBalanceModel(IModelForSolver, ABC):
         pass
 
     @abstractmethod
-    def vhl_under_chain_right(self) -> VhlStrength:
+    def vhl_under_chain_right(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the right of the support.
@@ -144,7 +145,7 @@ class IBalanceModel(IModelForSolver, ABC):
         pass
 
     @abstractmethod
-    def vhl_under_console(self) -> VhlStrength:
+    def vhl_under_console(self) -> VhlResult:
         """Get the VHL efforts under console: considering insulator_weight.
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
         Default unit is daN"""

@@ -38,7 +38,7 @@ from mechaphlowers.core.models.cable.deformation import (
 from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.core import VhlStrength
+from mechaphlowers.entities.core import VhlResult
 from mechaphlowers.numeric import cubic
 from mechaphlowers.utils import arr
 
@@ -167,6 +167,7 @@ class BalanceModel(IBalanceModel):
             self.k_load[self.nodes.has_load_on_span],
             self.sagging_temperature[self.nodes.has_load_on_span],
             self.parameter[self.nodes.has_load_on_span],
+            self.nodes.bundle_number,
         )
 
     def initialize_cable(self, cable_array):
@@ -468,12 +469,16 @@ class BalanceModel(IBalanceModel):
         self.update_span()
         self.update_tensions()
 
-    def vhl_under_chain(self) -> VhlStrength:
-        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
-        vhl_result = np.array([-Fz, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
+    # For the following vhl methods, the Fz and Fy components are reversed:
+    # the z axis is reversed (downwards) for users wanting vhl results
+    # the y axis is also reversed: toward oneself (right of the line)
 
-    def vhl_under_chain_left(self) -> VhlStrength:
+    def vhl_under_chain(self) -> VhlResult:
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
+
+    def vhl_under_chain_left(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the left of the support.
@@ -481,13 +486,13 @@ class BalanceModel(IBalanceModel):
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
 
         Returns:
-            VhlStrength: VhlStrength object
+            VhlResult: VhlResult object
         """
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable_left()
-        vhl_result = np.array([-Fz, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
 
-    def vhl_under_chain_right(self) -> VhlStrength:
+    def vhl_under_chain_right(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the right of the support.
@@ -495,18 +500,21 @@ class BalanceModel(IBalanceModel):
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
 
         Returns:
-            VhlStrength: VhlStrength object
+            VhlResult: VhlResult object
         """
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable_right()
-        vhl_result = np.array([-Fz, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
 
-    def vhl_under_console(self) -> VhlStrength:
+    def vhl_under_console(self) -> VhlResult:
         Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
-        vhl_result = np.array(
-            [-(Fz + self.nodes.signed_insulator_weight), Fy, Fx]
+        Fz_with_weights = (
+            Fz
+            + self.nodes.signed_insulator_weight
+            + self.nodes.signed_counterweight
         )
-        return VhlStrength(vhl_result, "N")
+        vhl_result = np.array([Fz_with_weights, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
 
     @property
     def has_loads(self) -> bool:
@@ -673,6 +681,8 @@ class Nodes:
         # load and load_position must of length nb_supports - 1
         load_weight: np.ndarray,
         load_position: np.ndarray,
+        counterweight: np.ndarray,
+        bundle_number: int,  # np.ndarray?
     ):
         # TODO: docstring of this whole class
 
@@ -701,8 +711,11 @@ class Nodes:
         self.has_load_on_span = np.logical_and(
             load_weight != 0, load_position != 0
         )
-
-        self.vector_projection = VectorProjection()
+        self.signed_counterweight = -counterweight
+        self.bundle_number = bundle_number
+        self.vector_projection = VectorProjection(
+            self.line_angle, self.bundle_number
+        )
 
     @property
     def dx(self) -> np.ndarray:
@@ -837,16 +850,22 @@ class Nodes:
 
     def compute_moment(self) -> None:
         """Compute moments of two forces: force of the cable, and chain weight."""
+        F_zeros = np.empty(self.signed_insulator_weight.shape)
+        F_zeros.fill(0.0)
         # Force of the cable. Applied at attachement point between cable and chain.
         Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
         force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
+        force_counterweight = np.vstack(
+            (F_zeros, F_zeros, self.signed_counterweight)
+        ).T
         # size : (nb nodes , 3 for 3D)
+
         lever_cable = np.array([self.dx, self.dy, self.dz]).T
-        M_cable = np.cross(lever_cable, force_cable)
+        M_cable = np.cross(lever_cable, force_cable + force_counterweight)
+
+        # add counterweight here (full length chain)
 
         # Weight of the chain. Applied on center of gravity of the chain
-        F_zeros = np.empty(self.signed_insulator_weight.shape)
-        F_zeros.fill(0.0)
         force_chain_weight = np.vstack(
             (F_zeros, F_zeros, self.signed_insulator_weight)
         ).T
@@ -899,8 +918,25 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         section_array.data.conductor_attachment_altitude.to_numpy()
     )
     span_length = arr.decr(section_array.data.span_length.to_numpy())
-    load_weight = arr.decr(section_array.data.load_weight.to_numpy())
-    load_position = arr.decr(section_array.data.load_position.to_numpy())
+
+    load_weight = (
+        arr.decr(section_array.data.load_weight.to_numpy())
+        if "load_weight" in section_array.data
+        else np.zeros(span_length.shape)
+    )
+    load_position = (
+        arr.decr(section_array.data.load_position.to_numpy())
+        if "load_position" in section_array.data
+        else np.zeros(span_length.shape)
+    )
+    counterweight = (
+        section_array.data.counterweight.to_numpy()
+        if "counterweight" in section_array.data
+        else np.zeros(insulator_length.shape)
+    )
+
+    bundle_number = section_array.bundle_number
+
     return Nodes(
         insulator_length,
         insulator_weight,
@@ -910,6 +946,8 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
         span_length,
         load_weight,
         load_position,
+        counterweight,
+        bundle_number,
     )
 
 
@@ -930,6 +968,7 @@ class LoadModel(IModelForSolver):
         k_load: np.ndarray,
         temperature: np.ndarray,
         parameter: np.ndarray,
+        bundle_number: int,
         find_param_solver_type: Type[
             IFindParamSolver
         ] = FindParamSolverForLoop,
@@ -950,6 +989,8 @@ class LoadModel(IModelForSolver):
         self.load_position = load_position
         self.find_param_solver_type = find_param_solver_type
         self._n_loads = len(load_weight)
+        self.bundle_number = bundle_number
+        # TODO: Need a way to choose Span model
 
         # Individual span models for objective_function and external access
         self.span_model_left = CatenarySpan(
@@ -1068,7 +1109,12 @@ class LoadModel(IModelForSolver):
         Tv_g_loc = self.span_model_right.T_v(x_m_right)
 
         Th_diff = Th_left - Th_right
-        Tv_diff = Tv_d_loc + Tv_g_loc - self.load_weight * self.k_load
+        # TODO: check if divide by bundle number here?
+        Tv_diff = (
+            Tv_d_loc
+            + Tv_g_loc
+            - self.k_load * self.load_weight / self.bundle_number
+        )
 
         n = len(Th_diff)
         out = np.empty(2 * n)

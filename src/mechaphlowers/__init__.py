@@ -10,6 +10,7 @@ from importlib.metadata import version
 import pandas as pd
 
 from mechaphlowers.config import options
+from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.cable.thermal import ThermalEngine
 from mechaphlowers.core.models.guying import Guying
