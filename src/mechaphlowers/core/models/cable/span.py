@@ -148,8 +148,11 @@ class ISpan(ABC):
         are called during solver iterations.
         """
         self._x_m = self.compute_x_m()
-        self._x_n = self.compute_x_n()
-        self._L = self.compute_L()
+        # Optimisation: not using compute_x_n() and compute_L()
+        # to avoid calling compute_x_m() many times
+        self._x_n = self.span_length + self._x_m
+        p = self.sagging_parameter
+        self._L = p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
 
     def mirror(self, span_model: Self) -> None:
         """Copy attributes from an other ISpan object.
@@ -256,12 +259,13 @@ class ISpan(ABC):
         In other words: opposite of the abscissa of the left hanging point.
         """
 
-    @abstractmethod
     def compute_x_n(self) -> np.ndarray:
         """Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
 
         In other words: abscissa of the right hanging point.
         """
+        a = self.span_length
+        return a + self.compute_x_m()
 
     @abstractmethod
     def x(self, resolution: int) -> np.ndarray:
@@ -286,7 +290,8 @@ class ISpan(ABC):
 
     @abstractmethod
     def compute_L(self) -> np.ndarray:
-        """Total length of the cable."""
+        """Total length of the cable.
+        Should be called after calling compute_x_m and compute_x_n if x_n or x_m have changed"""
 
     @abstractmethod
     def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
@@ -424,22 +429,6 @@ class CatenarySpan(ISpan):
         # return error if linear_weight = None?
         return -a / 2 + p * np.arcsinh(b / (2 * p * np.sinh(a / (2 * p))))
 
-    def compute_x_n(self):
-        # move in superclass?
-        a = self.span_length
-        return a + self.compute_x_m()
-
-    def compute_values(self):
-        """Override to avoid double computation of compute_x_m.
-
-        compute_x_n calls compute_x_m internally, so we reuse the cached _x_m.
-        compute_L is inlined using sinh intermediates.
-        """
-        self._x_m = self.compute_x_m()
-        self._x_n = self.span_length + self._x_m
-        p = self.sagging_parameter
-        self._L = p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
-
     def x(self, resolution: int = 10) -> np.ndarray:
         """x_coordinate for catenary generation in cable frame
 
@@ -569,7 +558,9 @@ class CatenarySpan(ISpan):
         # move in superclass?
         """Total length of the cable."""
         p = self.sagging_parameter
-        return p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
+        return p * (
+            np.sinh(self.compute_x_n() / p) - np.sinh(self.compute_x_m() / p)
+        )
 
     def T_h(self) -> np.ndarray:
         if self.linear_weight is None:
