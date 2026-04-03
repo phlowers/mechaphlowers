@@ -188,6 +188,92 @@ class SectionArray(ElementArray):
             lambda x: max(x, 0.01)
         )
 
+    def support_manipulation(
+        self, manipulation: dict[int, dict[str, float]]
+    ) -> None:
+        """Apply additive offsets to support geometry.
+
+        Modifies `conductor_attachment_altitude` and/or `crossarm_length`
+        in the internal data for the specified supports.
+
+        On first call, the original values are saved so they can be
+        restored with [`reset_manipulation`][mechaphlowers.entities.arrays.SectionArray.reset_manipulation].
+
+        Args:
+            manipulation: Dictionary mapping support index (0-based) to
+                offsets. Each value is a dict with optional keys:
+
+                - `"y"`: added to `crossarm_length` (meters)
+                - `"z"`: added to `conductor_attachment_altitude` (meters)
+
+        Raises:
+            ValueError: If a support index is out of range.
+            ValueError: If an inner dict contains keys other than `"y"` or `"z"`.
+
+        Examples:
+            >>> section_array.support_manipulation({1: {"z": 2.0, "y": -1.0}})
+            >>> section_array.support_manipulation({0: {"z": 0.5}, 2: {"y": 3.0}})
+        """
+        n_supports = len(self._data)
+        allowed_keys = {"y", "z"}
+
+        for idx, offsets in manipulation.items():
+            if idx < 0 or idx >= n_supports:
+                raise ValueError(
+                    f"Support index {idx} is out of range [0, {n_supports - 1}]"
+                )
+            invalid_keys = set(offsets.keys()) - allowed_keys
+            if invalid_keys:
+                raise ValueError(
+                    f"Invalid keys {invalid_keys} for support {idx}. Allowed keys: {allowed_keys}"
+                )
+
+        # Snapshot originals on first call
+        if not hasattr(self, "_original_conductor_attachment_altitude"):
+            self._original_conductor_attachment_altitude = (
+                self._data["conductor_attachment_altitude"].copy()
+            )
+            self._original_crossarm_length = self._data[
+                "crossarm_length"
+            ].copy()
+
+        for idx, offsets in manipulation.items():
+            if "z" in offsets:
+                self._data.loc[idx, "conductor_attachment_altitude"] += offsets[
+                    "z"
+                ]
+            if "y" in offsets:
+                self._data.loc[idx, "crossarm_length"] += offsets["y"]
+
+        logger.debug(f"Support manipulation applied: {manipulation}")
+
+    def reset_manipulation(self) -> None:
+        """Restore `conductor_attachment_altitude` and `crossarm_length` to their original values.
+
+        Reverts all changes made by
+        [`support_manipulation`][mechaphlowers.entities.arrays.SectionArray.support_manipulation].
+        Does nothing if no manipulation has been applied.
+
+        Examples:
+            >>> section_array.support_manipulation({1: {"z": 5.0}})
+            >>> section_array.reset_manipulation()
+        """
+        if not hasattr(self, "_original_conductor_attachment_altitude"):
+            logger.debug(
+                "reset_manipulation called but no manipulation was applied."
+            )
+            return
+
+        self._data["conductor_attachment_altitude"] = (
+            self._original_conductor_attachment_altitude
+        )
+        self._data["crossarm_length"] = self._original_crossarm_length
+
+        del self._original_conductor_attachment_altitude
+        del self._original_crossarm_length
+
+        logger.debug("Support manipulation reset to original values.")
+
     @property
     def angles_sense(self) -> Literal["clockwise", "anticlockwise"]:
         """Affects line_angle, crossarm_length sign

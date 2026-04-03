@@ -101,6 +101,42 @@ When creating a SectionArray, you may add a `bundle_number` argument. `bundle_nu
 
     section_array = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15, bundle_number=2)
 
+### Support Manipulation
+
+After creating a `SectionArray`, you can modify the geometry of individual supports using `support_manipulation`. This applies **additive offsets** to `conductor_attachment_altitude` and/or `crossarm_length`.
+
+The input is a dictionary where keys are support indices (0-based) and values are dicts with optional keys `"y"` (crossarm length offset) and `"z"` (altitude offset), both in meters.
+
+```python
+# Raise support 1 by 2 m and shorten its crossarm by 1 m
+section_array.support_manipulation({1: {"z": 2.0, "y": -1.0}})
+
+# Modify several supports at once
+section_array.support_manipulation({0: {"z": 0.5}, 2: {"y": 3.0}})
+```
+
+To restore the original geometry:
+
+```python
+section_array.reset_manipulation()
+```
+
+When using a `BalanceEngine`, the same methods are available and will automatically rebuild internal models while preserving observer bindings (e.g. `PlotEngine`):
+
+```python
+engine.support_manipulation({1: {"z": 2.0}})
+engine.solve_adjustment()
+engine.solve_change_state(new_temperature=15.0)
+
+# Restore original geometry
+engine.reset_manipulation()
+```
+
+!!! note
+
+    Manipulations are **additive**: calling `support_manipulation` multiple times stacks the offsets.
+    `reset_manipulation` always restores the values from before the first manipulation.
+
 ## Cable
 
 This paragraph describes the input data and the associated format needed about the cable properties in mechaphlowers.

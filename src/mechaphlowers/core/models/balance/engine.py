@@ -324,6 +324,61 @@ class BalanceEngine(Notifier):
         )
         logger.debug(debug_msg)
 
+    def support_manipulation(
+        self, manipulation: dict[int, dict[str, float]]
+    ) -> None:
+        """Apply additive offsets to support geometry.
+
+        Delegates to
+        [`SectionArray.support_manipulation`][mechaphlowers.entities.arrays.SectionArray.support_manipulation],
+        then rebuilds internal models while preserving observer bindings.
+
+        Args:
+            manipulation: Dictionary mapping support index (0-based) to
+                offsets. Each value is a dict with optional keys:
+
+                - `"y"`: added to `crossarm_length` (meters)
+                - `"z"`: added to `conductor_attachment_altitude` (meters)
+
+        Raises:
+            ValueError: If a support index is out of range.
+            ValueError: If an inner dict contains keys other than `"y"` or `"z"`.
+
+        Examples:
+            >>> balance_engine.support_manipulation({1: {"z": 2.0, "y": -1.0}})
+            >>> balance_engine.solve_adjustment()
+            >>> balance_engine.solve_change_state(new_temperature=15.0)
+        """
+        self.section_array.support_manipulation(manipulation)
+        self._rebuild_after_geometry_change()
+
+    def reset_manipulation(self) -> None:
+        """Restore support geometry to the original values before any manipulation.
+
+        Delegates to
+        [`SectionArray.reset_manipulation`][mechaphlowers.entities.arrays.SectionArray.reset_manipulation],
+        then rebuilds internal models while preserving observer bindings.
+
+        Examples:
+            >>> balance_engine.support_manipulation({1: {"z": 5.0}})
+            >>> balance_engine.reset_manipulation()
+        """
+        self.section_array.reset_manipulation()
+        self._rebuild_after_geometry_change()
+
+    def _rebuild_after_geometry_change(self) -> None:
+        """Rebuild span model and reset balance model after geometry changes.
+
+        Preserves observer bindings by using ``reset(full=False)``.
+        """
+        self.span_model = span_model_builder(
+            self.section_array, self.cable_array, self.span_model_type
+        )
+        self.reset(full=False)
+        logger.debug(
+            "Geometry changed. Models rebuilt; observers preserved."
+        )
+
     def shift_span_length(self) -> np.ndarray:
         """Transform shifting distance which is support based into L_ref shift which is span based.
 

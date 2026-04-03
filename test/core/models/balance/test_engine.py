@@ -630,3 +630,97 @@ def test_add_cable_shifting_stores_values(
     np.testing.assert_array_equal(
         balance_engine_simple.shortening_span, shortening
     )
+
+
+def test_support_manipulation_modifies_section_array(
+    balance_engine_simple: BalanceEngine,
+):
+    original_alt = (
+        balance_engine_simple.section_array._data[
+            "conductor_attachment_altitude"
+        ]
+        .copy()
+        .to_numpy()
+    )
+
+    balance_engine_simple.support_manipulation({1: {"z": 5.0, "y": -2.0}})
+
+    new_alt = balance_engine_simple.section_array._data[
+        "conductor_attachment_altitude"
+    ].to_numpy()
+    np.testing.assert_allclose(new_alt[1], original_alt[1] + 5.0)
+
+    new_arm = balance_engine_simple.section_array._data[
+        "crossarm_length"
+    ].to_numpy()
+    assert new_arm[1] == pytest.approx(-2.0)  # was 0, now 0 + (-2)
+
+
+def test_support_manipulation_preserves_observers(
+    balance_engine_simple: BalanceEngine,
+):
+    from mechaphlowers.entities.reactivity import Observer
+
+    class _TestObserver(Observer):
+        def __init__(self):
+            self.call_count = 0
+
+        def update(self, notifier, *args, **kwargs):
+            self.call_count += 1
+
+    obs = _TestObserver()
+    balance_engine_simple.bind_to(obs)
+    assert obs in balance_engine_simple._observers
+
+    balance_engine_simple.support_manipulation({1: {"z": 1.0}})
+
+    # Observer must still be registered and have been notified
+    assert obs in balance_engine_simple._observers
+    assert obs.call_count >= 1
+
+    # Also preserved after reset_manipulation
+    prev_count = obs.call_count
+    balance_engine_simple.reset_manipulation()
+    assert obs in balance_engine_simple._observers
+    assert obs.call_count > prev_count
+
+
+def test_support_manipulation_wrong_index(
+    balance_engine_simple: BalanceEngine,
+):
+    with pytest.raises(ValueError, match="out of range"):
+        balance_engine_simple.support_manipulation({99: {"z": 1.0}})
+
+
+def test_support_manipulation_integration(
+    balance_engine_simple: BalanceEngine,
+):
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state(new_temperature=15.0)
+    L_ref_before = balance_engine_simple.L_ref.copy()
+
+    balance_engine_simple.support_manipulation({1: {"z": 10.0}, 2: {"z": -10.0}})
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state(new_temperature=15.0)
+    L_ref_after = balance_engine_simple.L_ref
+
+    # L_ref must differ after geometry change (elevation differences changed)
+    assert not np.allclose(
+        L_ref_before, L_ref_after
+    ), "L_ref should change after support manipulation"
+
+
+def test_reset_manipulation_integration(
+    balance_engine_simple: BalanceEngine,
+):
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state(new_temperature=15.0)
+    param_original = balance_engine_simple.parameter.copy()
+
+    balance_engine_simple.support_manipulation({1: {"z": 10.0}})
+    balance_engine_simple.reset_manipulation()
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state(new_temperature=15.0)
+    param_restored = balance_engine_simple.parameter
+
+    np.testing.assert_allclose(param_original, param_restored, rtol=1e-6)

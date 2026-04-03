@@ -508,3 +508,118 @@ def test_create_section_bundle_number(
             sagging_temperature=15,
             bundle_number=0,
         )
+
+
+def test_support_manipulation_single_support(
+    section_array: SectionArray,
+) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+    original_arm = section_array._data["crossarm_length"].copy()
+
+    section_array.support_manipulation({1: {"z": 3.0, "y": -2.0}})
+
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[1],
+        original_alt.iloc[1] + 3.0,
+    )
+    assert_allclose(
+        section_array._data["crossarm_length"].iloc[1],
+        original_arm.iloc[1] - 2.0,
+    )
+    # Other supports unchanged
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[0],
+        original_alt.iloc[0],
+    )
+
+
+def test_support_manipulation_multiple_supports(
+    section_array: SectionArray,
+) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+
+    section_array.support_manipulation(
+        {0: {"z": 1.0}, 2: {"z": -0.5, "y": 2.0}}
+    )
+
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[0],
+        original_alt.iloc[0] + 1.0,
+    )
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[2],
+        original_alt.iloc[2] - 0.5,
+    )
+
+
+def test_support_manipulation_partial_keys(
+    section_array: SectionArray,
+) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+    original_arm = section_array._data["crossarm_length"].copy()
+
+    section_array.support_manipulation({0: {"z": 1.5}})
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[0],
+        original_alt.iloc[0] + 1.5,
+    )
+    assert_allclose(
+        section_array._data["crossarm_length"].iloc[0],
+        original_arm.iloc[0],
+    )
+
+    section_array.reset_manipulation()
+
+    section_array.support_manipulation({0: {"y": -1.0}})
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[0],
+        original_alt.iloc[0],
+    )
+    assert_allclose(
+        section_array._data["crossarm_length"].iloc[0],
+        original_arm.iloc[0] - 1.0,
+    )
+
+
+def test_support_manipulation_invalid_index(
+    section_array: SectionArray,
+) -> None:
+    with pytest.raises(ValueError, match="out of range"):
+        section_array.support_manipulation({10: {"z": 1.0}})
+
+
+def test_support_manipulation_invalid_keys(
+    section_array: SectionArray,
+) -> None:
+    with pytest.raises(ValueError, match="Invalid keys"):
+        section_array.support_manipulation({0: {"x": 1.0}})
+
+
+def test_reset_manipulation(section_array: SectionArray) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+    original_arm = section_array._data["crossarm_length"].copy()
+
+    section_array.support_manipulation({0: {"z": 5.0}, 1: {"y": -3.0}})
+    section_array.support_manipulation({2: {"z": 1.0}})
+
+    section_array.reset_manipulation()
+
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].to_numpy(),
+        original_alt.to_numpy(),
+    )
+    assert_allclose(
+        section_array._data["crossarm_length"].to_numpy(),
+        original_arm.to_numpy(),
+    )
+
+
+def test_reset_manipulation_no_prior(section_array: SectionArray) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+
+    section_array.reset_manipulation()  # should not raise
+
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].to_numpy(),
+        original_alt.to_numpy(),
+    )
