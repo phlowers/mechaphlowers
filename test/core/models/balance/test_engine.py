@@ -724,3 +724,79 @@ def test_reset_manipulation_integration(
     param_restored = balance_engine_simple.parameter
 
     np.testing.assert_allclose(param_original, param_restored, rtol=1e-6)
+
+
+def test_rope_manipulation_modifies_data(
+    balance_engine_simple: BalanceEngine,
+) -> None:
+    original_length = (
+        balance_engine_simple.section_array._data["insulator_length"].copy()
+    )
+
+    balance_engine_simple.rope_manipulation({1: 6.0, 2: 4.0})
+
+    data = balance_engine_simple.section_array.data
+    np.testing.assert_allclose(data["insulator_length"].iloc[1], 6.0)
+    np.testing.assert_allclose(data["insulator_length"].iloc[2], 4.0)
+    # _data untouched
+    np.testing.assert_allclose(
+        balance_engine_simple.section_array._data["insulator_length"].to_numpy(),
+        original_length.to_numpy(),
+    )
+
+
+def test_rope_manipulation_preserves_observers(
+    balance_engine_simple: BalanceEngine,
+) -> None:
+    from mechaphlowers.entities.reactivity import Observer
+
+    class _TestObserver(Observer):
+        def __init__(self):
+            self.call_count = 0
+
+        def update(self, notifier, *args, **kwargs):
+            self.call_count += 1
+
+    obs = _TestObserver()
+    balance_engine_simple.bind_to(obs)
+
+    balance_engine_simple.rope_manipulation({1: 5.0})
+
+    assert obs in balance_engine_simple._observers
+    assert obs.call_count >= 1
+
+    prev_count = obs.call_count
+    balance_engine_simple.reset_rope_manipulation()
+    assert obs in balance_engine_simple._observers
+    assert obs.call_count > prev_count
+
+
+def test_rope_manipulation_integration(
+    balance_engine_simple: BalanceEngine,
+) -> None:
+    balance_engine_simple.rope_manipulation({1: 6.0, 2: 4.0})
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state(new_temperature=15.0)
+    # Should complete without error
+
+
+def test_reset_rope_manipulation_integration(
+    balance_engine_simple: BalanceEngine,
+) -> None:
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state(new_temperature=15.0)
+    displacement_original = (
+        balance_engine_simple.balance_model.chain_displacement().copy()
+    )
+
+    balance_engine_simple.rope_manipulation({1: 6.0})
+    balance_engine_simple.reset_rope_manipulation()
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state(new_temperature=15.0)
+    displacement_restored = (
+        balance_engine_simple.balance_model.chain_displacement()
+    )
+
+    np.testing.assert_allclose(
+        displacement_original, displacement_restored, atol=1e-9
+    )

@@ -136,6 +136,44 @@ engine.reset_manipulation()
 
     Manipulations are **additive**: calling `support_manipulation` multiple times stacks the offsets.
     `reset_manipulation` always restores the values from before the first manipulation.
+    For each affected support, `counterweight` is set to 0 in `.data`; unaffected supports keep their original counterweight.
+
+### Rope Manipulation
+
+`rope_manipulation` replaces the insulator length and mass for specified supports with rope values, **without modifying the underlying data**. The override is only visible through `.data`; `_data` remains unchanged.
+
+The input is a dictionary where keys are support indices (0-based) and values are the rope length in meters. An optional `rope_lineic_mass` parameter (kg/m, default `0.01`) controls the mass per unit length.
+
+```python
+# Replace insulator properties for supports 1 and 2 with rope values
+section_array.rope_manipulation({1: 4.5, 2: 3.0})
+
+# With a custom linear mass
+section_array.rope_manipulation({0: 2.0}, rope_lineic_mass=0.05)
+```
+
+To remove the rope overlay:
+
+```python
+section_array.reset_rope_manipulation()
+```
+
+The same API is available on `BalanceEngine`:
+
+```python
+engine.rope_manipulation({1: 4.5})
+engine.solve_adjustment()
+engine.solve_change_state(new_temperature=15.0)
+
+engine.reset_rope_manipulation()
+```
+
+!!! note
+
+    The rope overlay only affects `insulator_length` and `insulator_mass` (and the derived `insulator_weight`) for the listed supports.
+    Unlisted supports keep their original insulator values.
+    For each affected support, `counterweight` is set to 0 in `.data`; unaffected supports keep their original counterweight.
+    The default linear mass can be changed globally via `options.data.rope_lineic_mass_default`.
 
 ## Cable
 

@@ -623,3 +623,139 @@ def test_reset_manipulation_no_prior(section_array: SectionArray) -> None:
         section_array._data["conductor_attachment_altitude"].to_numpy(),
         original_alt.to_numpy(),
     )
+
+
+def test_rope_manipulation_overrides_data(section_array: SectionArray) -> None:
+    original_insulator_length = section_array._data["insulator_length"].copy()
+    original_insulator_mass = section_array._data["insulator_mass"].copy()
+
+    section_array.rope_manipulation({1: 5.0, 2: 3.0})
+    data = section_array.data
+
+    # Modified supports
+    assert_allclose(data["insulator_length"].iloc[1], 5.0)
+    assert_allclose(data["insulator_length"].iloc[2], 3.0)
+    assert_allclose(
+        data["insulator_mass"].iloc[1], 5.0 * 0.01
+    )  # default lineic mass
+    assert_allclose(data["insulator_mass"].iloc[2], 3.0 * 0.01)
+
+    # Unlisted support unchanged
+    assert_allclose(
+        data["insulator_length"].iloc[0],
+        original_insulator_length.iloc[0],
+    )
+    assert_allclose(
+        data["insulator_mass"].iloc[0], original_insulator_mass.iloc[0]
+    )
+
+    # _data must be untouched
+    assert_allclose(
+        section_array._data["insulator_length"].to_numpy(),
+        original_insulator_length.to_numpy(),
+    )
+    assert_allclose(
+        section_array._data["insulator_mass"].to_numpy(),
+        original_insulator_mass.to_numpy(),
+    )
+
+
+def test_rope_manipulation_custom_lineic_mass(
+    section_array: SectionArray,
+) -> None:
+    section_array.rope_manipulation({0: 2.0}, rope_lineic_mass=0.5)
+    data = section_array.data
+
+    assert_allclose(data["insulator_mass"].iloc[0], 2.0 * 0.5)
+
+
+def test_rope_manipulation_insulator_weight_updated(
+    section_array: SectionArray,
+) -> None:
+    """insulator_weight in .data must reflect the rope mass."""
+    section_array.rope_manipulation({1: 4.0}, rope_lineic_mass=0.1)
+    data = section_array.data
+
+    expected_weight = 4.0 * 0.1 * 9.81  # approx N
+    assert_allclose(data["insulator_weight"].iloc[1], expected_weight, rtol=1e-3)
+
+
+def test_rope_manipulation_invalid_index(section_array: SectionArray) -> None:
+    with pytest.raises(ValueError, match="out of range"):
+        section_array.rope_manipulation({99: 3.0})
+
+
+def test_reset_rope_manipulation(section_array: SectionArray) -> None:
+    original_length = section_array.data["insulator_length"].copy()
+    original_mass = section_array.data["insulator_mass"].copy()
+
+    section_array.rope_manipulation({1: 5.0, 2: 3.0})
+    section_array.reset_rope_manipulation()
+    data = section_array.data
+
+    assert_allclose(data["insulator_length"].to_numpy(), original_length.to_numpy())
+    assert_allclose(data["insulator_mass"].to_numpy(), original_mass.to_numpy())
+
+
+def test_reset_rope_manipulation_no_prior(section_array: SectionArray) -> None:
+    section_array.reset_rope_manipulation()  # should not raise
+
+
+def _make_section_array_with_counterweight() -> SectionArray:
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [1000, 500, 500, 1000],
+                "counterweight_mass": [0, 200, 300, 0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    return sa
+
+
+def test_counterweight_masked_during_support_manipulation() -> None:
+    sa = _make_section_array_with_counterweight()
+    original_counterweight = sa.data["counterweight"].copy()
+    assert (original_counterweight > 0).any()
+
+    sa.support_manipulation({1: {"z": 2.0}})
+    data = sa.data
+    # Only support 1 is affected
+    assert_allclose(data["counterweight"].iloc[1], 0.0)
+    # Other supports with counterweight are unchanged
+    assert_allclose(data["counterweight"].iloc[2], original_counterweight.iloc[2])
+
+    sa.reset_manipulation()
+    assert_allclose(
+        sa.data["counterweight"].to_numpy(),
+        original_counterweight.to_numpy(),
+    )
+
+
+def test_counterweight_masked_during_rope_manipulation() -> None:
+    sa = _make_section_array_with_counterweight()
+    original_counterweight = sa.data["counterweight"].copy()
+    assert (original_counterweight > 0).any()
+
+    sa.rope_manipulation({1: 4.5})
+    data = sa.data
+    # Only support 1 is affected
+    assert_allclose(data["counterweight"].iloc[1], 0.0)
+    # Other supports with counterweight are unchanged
+    assert_allclose(data["counterweight"].iloc[2], original_counterweight.iloc[2])
+
+    sa.reset_rope_manipulation()
+    assert_allclose(
+        sa.data["counterweight"].to_numpy(),
+        original_counterweight.to_numpy(),
+    )

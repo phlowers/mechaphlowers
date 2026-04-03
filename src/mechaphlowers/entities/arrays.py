@@ -163,6 +163,11 @@ class SectionArray(ElementArray):
         self._angles_sense: Literal["clockwise", "anticlockwise"] = (
             "anticlockwise"
         )
+        self._rope_overlay: dict[int, float] | None = None
+        self._rope_lineic_mass: float | None = None
+        self._original_conductor_attachment_altitude: pd.Series | None = None
+        self._original_crossarm_length: pd.Series | None = None
+        self._manipulation_indices: set[int] | None = None
         logger.debug("Section Array initialized.")
 
     def compute_elevation_difference(self) -> np.ndarray:
@@ -199,6 +204,10 @@ class SectionArray(ElementArray):
         On first call, the original values are saved so they can be
         restored with [`reset_manipulation`][mechaphlowers.entities.arrays.SectionArray.reset_manipulation].
 
+        For each affected support, `counterweight` is set to 0 in
+        [`data`][mechaphlowers.entities.arrays.SectionArray.data].
+        Unaffected supports keep their original counterweight value.
+
         Args:
             manipulation: Dictionary mapping support index (0-based) to
                 offsets. Each value is a dict with optional keys:
@@ -229,7 +238,7 @@ class SectionArray(ElementArray):
                 )
 
         # Snapshot originals on first call
-        if not hasattr(self, "_original_conductor_attachment_altitude"):
+        if self._original_conductor_attachment_altitude is None:
             self._original_conductor_attachment_altitude = (
                 self._data["conductor_attachment_altitude"].copy()
             )
@@ -245,6 +254,9 @@ class SectionArray(ElementArray):
             if "y" in offsets:
                 self._data.loc[idx, "crossarm_length"] += offsets["y"]
 
+        self._manipulation_indices = (
+            self._manipulation_indices or set()
+        ) | set(manipulation.keys())
         logger.debug(f"Support manipulation applied: {manipulation}")
 
     def reset_manipulation(self) -> None:
@@ -258,7 +270,7 @@ class SectionArray(ElementArray):
             >>> section_array.support_manipulation({1: {"z": 5.0}})
             >>> section_array.reset_manipulation()
         """
-        if not hasattr(self, "_original_conductor_attachment_altitude"):
+        if self._original_conductor_attachment_altitude is None:
             logger.debug(
                 "reset_manipulation called but no manipulation was applied."
             )
@@ -269,8 +281,9 @@ class SectionArray(ElementArray):
         )
         self._data["crossarm_length"] = self._original_crossarm_length
 
-        del self._original_conductor_attachment_altitude
-        del self._original_crossarm_length
+        self._original_conductor_attachment_altitude = None
+        self._original_crossarm_length = None
+        self._manipulation_indices = None
 
         logger.debug("Support manipulation reset to original values.")
 
@@ -294,16 +307,94 @@ class SectionArray(ElementArray):
             )
         self._angles_sense = value
 
+    def rope_manipulation(
+        self,
+        rope: dict[int, float],
+        rope_lineic_mass: float | None = None,
+    ) -> None:
+        """Override insulator length and mass for specified supports with rope values.
+
+        The override is applied only in the
+        [`data`][mechaphlowers.entities.arrays.SectionArray.data] property;
+        `_data` is never modified.
+        Use [`reset_rope_manipulation`][mechaphlowers.entities.arrays.SectionArray.reset_rope_manipulation]
+        to remove the overlay.
+
+        For each affected support, `counterweight` is set to 0 in
+        [`data`][mechaphlowers.entities.arrays.SectionArray.data].
+        Unaffected supports keep their original counterweight value.
+
+        Args:
+            rope: Dictionary mapping support index (0-based) to rope length (meters).
+                Only listed supports are affected.
+            rope_lineic_mass: Linear mass of the rope in kg/m. Defaults to
+                ``options.data.rope_lineic_mass_default`` (``0.01`` kg/m).
+
+        Raises:
+            ValueError: If a support index is out of range.
+
+        Examples:
+            >>> section_array.rope_manipulation({1: 4.5, 2: 3.0})
+            >>> section_array.rope_manipulation({0: 2.0}, rope_lineic_mass=0.05)
+        """
+        n_supports = len(self._data)
+        for idx in rope:
+            if idx < 0 or idx >= n_supports:
+                raise ValueError(
+                    f"Support index {idx} is out of range [0, {n_supports - 1}]"
+                )
+
+        self._rope_overlay = rope
+        self._rope_lineic_mass = (
+            rope_lineic_mass
+            if rope_lineic_mass is not None
+            else options.data.rope_lineic_mass_default
+        )
+        logger.debug(f"Rope manipulation applied: {rope}")
+
+    def reset_rope_manipulation(self) -> None:
+        """Remove the rope overlay and restore original insulator values in
+        [`data`][mechaphlowers.entities.arrays.SectionArray.data].
+
+        Does nothing if no rope manipulation has been applied.
+
+        Examples:
+            >>> section_array.rope_manipulation({1: 4.5})
+            >>> section_array.reset_rope_manipulation()
+        """
+        if self._rope_overlay is None:
+            logger.debug(
+                "reset_rope_manipulation called but no rope manipulation was applied."
+            )
+            return
+        self._rope_overlay = None
+        self._rope_lineic_mass = None
+        logger.debug("Rope manipulation cleared.")
+
     @property
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
         data_output = super().data
+        if self._rope_overlay is not None:
+            for idx, rope_length in self._rope_overlay.items():
+                data_output.loc[idx, "insulator_length"] = rope_length
+                data_output.loc[idx, "insulator_mass"] = (
+                    rope_length * self._rope_lineic_mass
+                )
         mass_weight_conversion = {
             "insulator_mass": "insulator_weight",
             "load_mass": "load_weight",
             "counterweight_mass": "counterweight",
         }
         self.create_column_weight(data_output, mass_weight_conversion)
+        if "counterweight" in data_output.columns:
+            affected: set[int] = set()
+            if self._manipulation_indices is not None:
+                affected |= self._manipulation_indices
+            if self._rope_overlay is not None:
+                affected |= set(self._rope_overlay.keys())
+            for idx in affected:
+                data_output.loc[idx, "counterweight"] = 0.0
         self.validate_ground_altitude(data_output)
         data_output = self._adjust_angle_sense(data_output)
         if self.sagging_parameter is None or self.sagging_temperature is None:

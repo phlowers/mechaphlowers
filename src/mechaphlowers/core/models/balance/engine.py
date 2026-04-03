@@ -366,6 +366,53 @@ class BalanceEngine(Notifier):
         self.section_array.reset_manipulation()
         self._rebuild_after_geometry_change()
 
+    def rope_manipulation(
+        self,
+        rope: dict[int, float],
+        rope_lineic_mass: float | None = None,
+    ) -> None:
+        """Override insulator length and mass for specified supports with rope values.
+
+        Delegates to
+        [`SectionArray.rope_manipulation`][mechaphlowers.entities.arrays.SectionArray.rope_manipulation],
+        then resets internal models while preserving observer bindings.
+
+        Args:
+            rope: Dictionary mapping support index (0-based) to rope length (meters).
+            rope_lineic_mass: Linear mass of the rope in kg/m. Defaults to
+                ``options.data.rope_lineic_mass_default`` (``0.01`` kg/m).
+
+        Raises:
+            ValueError: If a support index is out of range.
+
+        Examples:
+            >>> balance_engine.rope_manipulation({1: 4.5, 2: 3.0})
+            >>> balance_engine.solve_adjustment()
+            >>> balance_engine.solve_change_state(new_temperature=15.0)
+        """
+        self.section_array.rope_manipulation(rope, rope_lineic_mass)
+        self.reset(full=False)
+        logger.debug(
+            "Rope manipulation applied. Observers preserved."
+        )
+
+    def reset_rope_manipulation(self) -> None:
+        """Remove the rope overlay and restore original insulator values.
+
+        Delegates to
+        [`SectionArray.reset_rope_manipulation`][mechaphlowers.entities.arrays.SectionArray.reset_rope_manipulation],
+        then resets internal models while preserving observer bindings.
+
+        Examples:
+            >>> balance_engine.rope_manipulation({1: 4.5})
+            >>> balance_engine.reset_rope_manipulation()
+        """
+        self.section_array.reset_rope_manipulation()
+        self.reset(full=False)
+        logger.debug(
+            "Rope manipulation cleared. Observers preserved."
+        )
+
     def _rebuild_after_geometry_change(self) -> None:
         """Rebuild span model and reset balance model after geometry changes.
 
