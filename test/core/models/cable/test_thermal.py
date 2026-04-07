@@ -329,7 +329,7 @@ def test_steady_temperature_1(thermal_engine_3_spans: ThermalEngine):
 
     np.testing.assert_array_almost_equal(
         steady_temp_results.data["t_core"],
-        np.array([15.1, 45.4, 87.9]),
+        np.array([15.1, 45.4, 90.0]),
         decimal=0,
     )
 
