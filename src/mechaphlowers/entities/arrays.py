@@ -391,7 +391,8 @@ class SectionArray(ElementArray):
                 must not be the last support) to a dict with keys:
 
                 - ``"x"``: distance from the left support in meters (must be
-                  strictly between 0 and the original span length).
+                  strictly between ``-abs(crossarm_length[left_support])`` and
+                  ``abs(span_length) + abs(crossarm_length[right_support])``).
                 - ``"y"``: lateral offset in meters.  Used to compute
                   ``line_angle = atan2(y, x)`` for the left support (and
                   its negation for the virtual support).
@@ -424,10 +425,14 @@ class SectionArray(ElementArray):
                     f"Missing keys {missing_keys} for span {span_idx}. Required: {required_keys}"
                 )
             span_length = float(self._data["span_length"].iloc[span_idx])
+            crossarm_left = float(self._data["crossarm_length"].iloc[span_idx])
+            crossarm_right = float(self._data["crossarm_length"].iloc[span_idx + 1])
             x = vs["x"]
-            if x <= 0 or x >= span_length:
+            x_lower = -abs(crossarm_left)
+            x_upper = abs(span_length) + abs(crossarm_right)
+            if x <= x_lower or x >= x_upper:
                 raise ValueError(
-                    f"x={x} is out of range (0, {span_length}) for span {span_idx}"
+                    f"x={x} is out of range ({x_lower}, {x_upper}) for span {span_idx}"
                 )
 
         if self._virtual_support_overlay is None:

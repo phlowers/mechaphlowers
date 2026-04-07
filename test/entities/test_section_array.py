@@ -938,11 +938,150 @@ def test_add_virtual_support_invalid_span_index() -> None:
 
 
 def test_add_virtual_support_x_out_of_range() -> None:
+    """x equal to span_length (with crossarm=0) is rejected."""
     sa = _make_section_array_for_virtual()
     with pytest.raises(ValueError, match="out of range"):
         sa.add_virtual_support(
             {1: {"x": 300.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
         )
+
+
+def test_add_virtual_support_x_extended_by_crossarm_right() -> None:
+    """x > span_length is valid when abs(crossarm_right) > 0."""
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 0.0, 5.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    # span 1: crossarm_left=0, abs(crossarm_right)=5 → upper = 300 + 5 = 305
+    # x=302 is valid; x=306 is not
+    sa.add_virtual_support(
+        {1: {"x": 302.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+    )
+    assert len(sa.data) == 5
+    with pytest.raises(ValueError, match="out of range"):
+        sa2 = SectionArray(
+            sa._data.copy(), sagging_parameter=2000, sagging_temperature=15
+        )
+        sa2.add_units({"line_angle": "grad"})
+        sa2.add_virtual_support(
+            {1: {"x": 306.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+        )
+
+
+def test_add_virtual_support_x_negative_crossarm_right() -> None:
+    """Negative crossarm_right still extends upper bound by its absolute value."""
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 0.0, -5.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    # crossarm_right=-5 → abs=5, upper = 305; same as positive crossarm
+    sa.add_virtual_support(
+        {1: {"x": 302.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+    )
+    assert len(sa.data) == 5
+
+
+def test_add_virtual_support_x_below_crossarm_left_is_invalid() -> None:
+    """x ≤ -abs(crossarm_left) is rejected; x can be negative but must be > lower bound."""
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 4.0, 0.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    # span 1: abs(crossarm_left)=4, lower=-4; x=-4 is exactly the bound → invalid
+    with pytest.raises(ValueError, match="out of range"):
+        sa.add_virtual_support(
+            {1: {"x": -4.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+        )
+
+
+def test_add_virtual_support_x_negative_valid() -> None:
+    """Negative x is valid when abs(crossarm_left) > 0 and x > -abs(crossarm_left)."""
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 4.0, 0.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    # lower=-4, x=-2 → valid
+    sa.add_virtual_support(
+        {1: {"x": -2.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+    )
+    assert len(sa.data) == 5
+
+
+def test_add_virtual_support_x_valid_with_crossarm_left() -> None:
+    """x > 0 with positive crossarm_left is accepted."""
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 4.0, 0.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    sa.add_virtual_support(
+        {1: {"x": 5.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+    )
+    assert len(sa.data) == 5
 
 
 def test_add_virtual_support_missing_keys() -> None:

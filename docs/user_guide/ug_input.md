@@ -183,7 +183,7 @@ The input is a dictionary where keys are left-support indices (0-based, must not
 
 | Key | Description |
 |---|---|
-| `"x"` | Distance from the left support (m) — must be strictly in `(0, span_length)` |
+| `"x"` | Distance from the left support (m) — must be strictly in `(-abs(crossarm_length[left_support]), abs(span_length) + abs(crossarm_length[right_support]))` |
 | `"y"` | Lateral offset (m) — sets `line_angle = atan2(y, x)` on the left support |
 | `"z"` | `conductor_attachment_altitude` of the virtual support (m) |
 | `"insulator_length"` | Insulator length on the virtual support (m) |
