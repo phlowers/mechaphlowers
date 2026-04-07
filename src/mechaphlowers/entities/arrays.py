@@ -168,6 +168,7 @@ class SectionArray(ElementArray):
         self._original_conductor_attachment_altitude: pd.Series | None = None
         self._original_crossarm_length: pd.Series | None = None
         self._manipulation_indices: set[int] | None = None
+        self._virtual_support_overlay: dict[int, dict] | None = None
         logger.debug("Section Array initialized.")
 
     def compute_elevation_difference(self) -> np.ndarray:
@@ -371,6 +372,150 @@ class SectionArray(ElementArray):
         self._rope_lineic_mass = None
         logger.debug("Rope manipulation cleared.")
 
+    def add_virtual_support(
+        self, virtual_support: dict[int, dict[str, float]]
+    ) -> None:
+        """Insert virtual supports into [`data`][mechaphlowers.entities.arrays.SectionArray.data] without modifying `_data`.
+
+        Each virtual support splits the span containing it: the left support
+        span length is reduced to ``x``, and the virtual support gets the
+        remaining length.  Only the [`data`][mechaphlowers.entities.arrays.SectionArray.data]
+        property is affected; ``_data`` is never modified.
+        Use [`reset_virtual_support`][mechaphlowers.entities.arrays.SectionArray.reset_virtual_support]
+        to remove all virtual supports.
+
+        For the virtual support row, ``counterweight`` is set to 0.
+
+        Args:
+            virtual_support: Dictionary mapping left-support index (0-based,
+                must not be the last support) to a dict with keys:
+
+                - ``"x"``: distance from the left support in meters (must be
+                  strictly between 0 and the original span length).
+                - ``"y"``: lateral offset in meters.  Used to compute
+                  ``line_angle = atan2(y, x)`` for the left support (and
+                  its negation for the virtual support).
+                - ``"z"``: ``conductor_attachment_altitude`` of the new
+                  virtual support in meters.
+                - ``"insulator_length"``: insulator length in meters.
+                - ``"insulator_mass"``: insulator mass in kg.
+
+        Raises:
+            ValueError: If a span index is out of range.
+            ValueError: If ``x`` is not strictly within ``(0, span_length)``.
+            ValueError: If required keys are missing.
+
+        Examples:
+            >>> section_array.add_virtual_support({1: {"x": 200.0, "y": 0.0, "z": 55.0,
+            ...                                        "insulator_length": 3.0,
+            ...                                        "insulator_mass": 500.0}})
+        """
+        n_supports = len(self._data)
+        required_keys = {"x", "y", "z", "insulator_length", "insulator_mass"}
+
+        for span_idx, vs in virtual_support.items():
+            if span_idx < 0 or span_idx >= n_supports - 1:
+                raise ValueError(
+                    f"Span index {span_idx} is out of range [0, {n_supports - 2}]"
+                )
+            missing_keys = required_keys - set(vs.keys())
+            if missing_keys:
+                raise ValueError(
+                    f"Missing keys {missing_keys} for span {span_idx}. Required: {required_keys}"
+                )
+            span_length = float(self._data["span_length"].iloc[span_idx])
+            x = vs["x"]
+            if x <= 0 or x >= span_length:
+                raise ValueError(
+                    f"x={x} is out of range (0, {span_length}) for span {span_idx}"
+                )
+
+        if self._virtual_support_overlay is None:
+            self._virtual_support_overlay = {}
+        self._virtual_support_overlay.update(virtual_support)
+        logger.debug(f"Virtual support overlay updated: {virtual_support}")
+
+    def reset_virtual_support(self) -> None:
+        """Remove all virtual supports from
+        [`data`][mechaphlowers.entities.arrays.SectionArray.data].
+
+        Does nothing if no virtual supports have been added.
+
+        Examples:
+            >>> section_array.add_virtual_support({1: {"x": 200.0, "y": 0.0, "z": 55.0,
+            ...                                        "insulator_length": 3.0,
+            ...                                        "insulator_mass": 500.0}})
+            >>> section_array.reset_virtual_support()
+        """
+        if self._virtual_support_overlay is None:
+            logger.debug(
+                "reset_virtual_support called but no virtual support was added."
+            )
+            return
+        self._virtual_support_overlay = None
+        logger.debug("Virtual support overlay cleared.")
+
+    def _apply_virtual_support_overlay(
+        self, data_output: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Insert virtual support rows into data_output."""
+        sorted_keys = sorted(self._virtual_support_overlay.keys())
+        for offset, span_idx in enumerate(sorted_keys):
+            vs = self._virtual_support_overlay[span_idx]
+            effective_idx = span_idx + offset
+            original_span_length = float(
+                data_output.loc[effective_idx, "span_length"]
+            )
+            x = vs["x"]
+            y = vs["y"]
+            angle = np.arctan2(y, x)
+
+            # Modify left support
+            data_output.loc[effective_idx, "span_length"] = x
+            data_output.loc[effective_idx, "line_angle"] = angle
+
+            # Build virtual row
+            virtual_row: dict[str, object] = {
+                col: np.nan for col in data_output.columns
+            }
+            virtual_row.update(
+                {
+                    "name": f"virtual_{span_idx}",
+                    "suspension": True,
+                    "conductor_attachment_altitude": float(vs["z"]),
+                    "crossarm_length": 0.0,
+                    "line_angle": -angle,
+                    "insulator_length": max(float(vs["insulator_length"]), 0.01),
+                    "span_length": abs(original_span_length - x),
+                    "insulator_mass": float(vs["insulator_mass"]),
+                    "insulator_weight": float(
+                        convert_mass_to_weight(
+                            np.array([vs["insulator_mass"]], dtype=float)
+                        )[0]
+                    ),
+                    "ground_altitude": float(vs["z"])
+                    - options.ground.default_support_length,
+                }
+            )
+            for optional_col, fill in (
+                ("load_mass", 0.0),
+                ("load_weight", 0.0),
+                ("load_position", np.nan),
+                ("counterweight_mass", 0.0),
+                ("counterweight", 0.0),
+            ):
+                if optional_col in data_output.columns:
+                    virtual_row[optional_col] = fill
+
+            virtual_df = pd.DataFrame([virtual_row])
+            top = data_output.iloc[: effective_idx + 1]
+            bottom = data_output.iloc[effective_idx + 1 :]
+            data_output = pd.concat(
+                [top, virtual_df, bottom], ignore_index=True
+            )
+
+        return data_output
+
     @property
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
@@ -396,22 +541,26 @@ class SectionArray(ElementArray):
             for idx in affected:
                 data_output.loc[idx, "counterweight"] = 0.0
         self.validate_ground_altitude(data_output)
+        if self._virtual_support_overlay is not None:
+            data_output = self._apply_virtual_support_overlay(data_output)
         data_output = self._adjust_angle_sense(data_output)
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
             )
-        else:
-            sagging_parameter = np.repeat(
-                np.float64(self.sagging_parameter), data_output.shape[0]
-            )
-            sagging_parameter[-1] = np.nan
-            return data_output.assign(
-                elevation_difference=self.compute_elevation_difference(),
-                sagging_parameter=sagging_parameter,
-                sagging_temperature=self.sagging_temperature,
-                bundle_number=self.bundle_number,
-            )
+        # Compute elevation_difference from data_output to handle virtual supports
+        alt = data_output["conductor_attachment_altitude"].to_numpy()
+        elevation_difference = np.append(np.diff(alt), np.nan)
+        sagging_parameter = np.repeat(
+            np.float64(self.sagging_parameter), data_output.shape[0]
+        )
+        sagging_parameter[-1] = np.nan
+        return data_output.assign(
+            elevation_difference=elevation_difference,
+            sagging_parameter=sagging_parameter,
+            sagging_temperature=self.sagging_temperature,
+            bundle_number=self.bundle_number,
+        )
 
     def create_column_weight(
         self, df_output: pd.DataFrame, columns_to_convert: dict[str, str]

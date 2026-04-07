@@ -800,3 +800,66 @@ def test_reset_rope_manipulation_integration(
     np.testing.assert_allclose(
         displacement_original, displacement_restored, atol=1e-9
     )
+
+
+# ── virtual support tests ────────────────────────────────────────────────────
+
+
+def test_add_virtual_support_changes_data_shape(
+    balance_engine_simple: BalanceEngine,
+) -> None:
+    assert len(balance_engine_simple.section_array.data) == 4
+    balance_engine_simple.add_virtual_support(
+        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+    )
+    assert len(balance_engine_simple.section_array.data) == 5
+
+
+def test_add_virtual_support_preserves_observers(
+    balance_engine_simple: BalanceEngine,
+) -> None:
+    from mechaphlowers.entities.reactivity import Observer
+
+    class _TestObserver(Observer):
+        def __init__(self):
+            self.call_count = 0
+
+        def update(self, notifier, *args, **kwargs):
+            self.call_count += 1
+
+    obs = _TestObserver()
+    balance_engine_simple.bind_to(obs)
+    assert obs in balance_engine_simple._observers
+
+    balance_engine_simple.add_virtual_support(
+        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+    )
+    assert obs in balance_engine_simple._observers
+    assert obs.call_count >= 1
+
+    prev_count = obs.call_count
+    balance_engine_simple.reset_virtual_support()
+    assert obs in balance_engine_simple._observers
+    assert obs.call_count > prev_count
+
+
+def test_reset_virtual_support_restores_data_shape(
+    balance_engine_simple: BalanceEngine,
+) -> None:
+    balance_engine_simple.add_virtual_support(
+        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+    )
+    balance_engine_simple.reset_virtual_support()
+    assert len(balance_engine_simple.section_array.data) == 4
+
+
+def test_add_virtual_support_integration(
+    balance_engine_simple: BalanceEngine,
+) -> None:
+    balance_engine_simple.add_virtual_support(
+        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+    )
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.solve_change_state(new_temperature=15.0)
+    # Should complete without error
+

@@ -175,6 +175,63 @@ engine.reset_rope_manipulation()
     For each affected support, `counterweight` is set to 0 in `.data`; unaffected supports keep their original counterweight.
     The default linear mass can be changed globally via `options.data.rope_lineic_mass_default`.
 
+### Virtual Support
+
+`add_virtual_support` inserts intermediate supports into a line section **as an overlay** on `.data`, without ever modifying the underlying `_data`. Each virtual support splits a given span at a specified horizontal distance from the left support.
+
+The input is a dictionary where keys are left-support indices (0-based, must not be the last support) and values are dicts with the following required keys:
+
+| Key | Description |
+|---|---|
+| `"x"` | Distance from the left support (m) — must be strictly in `(0, span_length)` |
+| `"y"` | Lateral offset (m) — sets `line_angle = atan2(y, x)` on the left support |
+| `"z"` | `conductor_attachment_altitude` of the virtual support (m) |
+| `"insulator_length"` | Insulator length on the virtual support (m) |
+| `"insulator_mass"` | Insulator mass on the virtual support (kg) |
+
+```python
+# insert a virtual support at 100 m into span 1
+section_array.add_virtual_support({
+    1: {"x": 100.0, "y": 0.0, "z": 55.0,
+        "insulator_length": 3.0, "insulator_mass": 500.0}
+})
+```
+
+Multiple spans can be provided in one call, or via successive calls (overlays accumulate):
+
+```python
+section_array.add_virtual_support({
+    0: {"x": 200.0, "y": 0.0, "z": 40.0, "insulator_length": 3.0, "insulator_mass": 500.0},
+    2: {"x": 200.0, "y": 10.0, "z": 62.0, "insulator_length": 3.0, "insulator_mass": 500.0},
+})
+```
+
+To remove all virtual supports:
+
+```python
+section_array.reset_virtual_support()
+```
+
+The same API is available on `BalanceEngine`. Because the number of supports changes, the full internal model is rebuilt while preserving observer bindings:
+
+```python
+engine.add_virtual_support({
+    1: {"x": 100.0, "y": 0.0, "z": 55.0,
+        "insulator_length": 3.0, "insulator_mass": 500.0}
+})
+engine.solve_adjustment()
+engine.solve_change_state(new_temperature=15.0)
+
+engine.reset_virtual_support()
+```
+
+!!! note
+
+    Virtual supports have `crossarm_length = 0` and `suspension = True`.  
+    The `counterweight` column is set to 0 for each virtual row.  
+    `elevation_difference` is recomputed from `data` (not `_data`) so it always reflects the inserted supports.  
+    `_data` is never modified; all changes are overlay-only and reversible with `reset_virtual_support`.
+
 ## Cable
 
 This paragraph describes the input data and the associated format needed about the cable properties in mechaphlowers.
