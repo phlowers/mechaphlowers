@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -6,6 +6,7 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from mechaphlowers.data.initializer.array_importer import (
     ImporterRte,
@@ -16,11 +17,13 @@ from mechaphlowers.entities.arrays import (
     SectionArray,
     WeatherArray,
 )
+from mechaphlowers.entities.errors import DataWarning
 
 
 def test_build_importer():
     importer = ImporterRte("section_import_from_proto_utf8.csv")
-    imported_section_array = importer.section_array
+    with pytest.warns(DataWarning):
+        imported_section_array = importer.section_array
     imported_cable_array = importer.cable_array
     imported_weather_array = importer.weather_array
     expected_weather_array = WeatherArray(
@@ -71,9 +74,10 @@ def test_build_importer():
 
 
 def test_import_data_from_proto():
-    section_array, cable_array, weather_array = import_data_from_proto(
-        "section_import_from_proto_utf8.csv"
-    )
+    with pytest.warns(DataWarning):
+        section_array, cable_array, weather_array = import_data_from_proto(
+            "section_import_from_proto_utf8.csv"
+        )
     assert isinstance(section_array, SectionArray)
     assert isinstance(cable_array, CableArray)
     assert isinstance(weather_array, WeatherArray)
