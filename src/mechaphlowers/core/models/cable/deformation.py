@@ -49,6 +49,8 @@ class IDeformation(ABC):
 
         if max_stress is None:
             self.max_stress = np.full(self.cable_length.shape, 0)
+        else:
+            self.max_stress = max_stress
 
     @abstractmethod
     def L_ref(self) -> np.ndarray:
@@ -187,7 +189,7 @@ class DeformationRte(IDeformation):
         if np.inf in real_smallest_root:
             raise ConvergenceError(
                 "No solution found for at least one span",
-                level="deformation_model",
+                origin="deformation_model",
             )
         return real_smallest_root
 

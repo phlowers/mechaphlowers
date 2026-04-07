@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Callable, List, Type
+from typing import Callable, Type
 
 import numpy as np
+from typing_extensions import Literal
 
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.interfaces import IBalanceModel
@@ -33,6 +34,7 @@ from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.core import QuantityArray
 from mechaphlowers.entities.errors import BalanceEngineWarning, SolverError
+from mechaphlowers.entities.reactivity import Notifier
 from mechaphlowers.utils import arr, check_time
 
 logger = logging.getLogger(__name__)
@@ -46,7 +48,7 @@ class DisplacementResult:
         self.dxdydz = dxdydz
 
 
-class BalanceEngine:
+class BalanceEngine(Notifier):
     """Engine for solving insulator chains positions.
 
     After solving any situation, many attributes are updated in the models.
@@ -96,10 +98,16 @@ class BalanceEngine:
         self.balance_model_type = balance_model_type
         self.span_model_type = span_model_type
         self.deformation_model_type = deformation_model_type
+        self._shifting_distance_support: np.ndarray = np.zeros_like(
+            self.section_array.data.conductor_attachment_altitude.to_numpy()
+        )
+        self._shortening_distance_span: np.ndarray = np.zeros(
+            len(self.section_array.data.conductor_attachment_altitude) - 1
+        )
 
-        self.reset()
+        self.reset(full=True)
 
-    def reset(self) -> None:
+    def reset(self, full: bool = False) -> None:
         """Reset the balance engine to initial state.
 
         This method re-initializes the span model, cable loads, deformation model, balance model, and solvers.
@@ -107,69 +115,85 @@ class BalanceEngine:
         """
 
         logger.debug("Resetting balance engine.")
-        zeros_vector = np.zeros_like(
-            self.section_array.data.conductor_attachment_altitude.to_numpy()
-        )
 
-        sagging_temperature = arr.decr(
-            (self.section_array.data.sagging_temperature.to_numpy())
-        )
-        parameter = arr.decr(
-            self.section_array.data.sagging_parameter.to_numpy()
-        )
-        self.span_model = span_model_builder(
-            self.section_array, self.cable_array, self.span_model_type
-        )
-        self.cable_loads = CableLoads(
-            np.float64(self.cable_array.data.diameter.iloc[0]),
-            np.float64(self.cable_array.data.linear_weight.iloc[0]),
-            zeros_vector,
-            zeros_vector,
-        )
-        self.deformation_model = deformation_model_builder(
-            self.cable_array,
-            self.span_model,
-            sagging_temperature,
-            self.deformation_model_type,
-        )
+        if full:
+            self.initialized = False
+            zeros_vector = np.zeros_like(
+                self.section_array.data.conductor_attachment_altitude.to_numpy()
+            )
+            sagging_temperature = arr.decr(
+                (self.section_array.data.sagging_temperature.to_numpy())
+            )
+            parameter = arr.decr(
+                self.section_array.data.sagging_parameter.to_numpy()
+            )
+            self.span_model = span_model_builder(
+                self.section_array, self.cable_array, self.span_model_type
+            )
+            self.cable_loads = CableLoads(
+                np.float64(self.cable_array.data.diameter.iloc[0]),
+                np.float64(self.cable_array.data.linear_weight.iloc[0]),
+                zeros_vector,
+                zeros_vector,
+            )
+            self.deformation_model = deformation_model_builder(
+                self.cable_array,
+                self.span_model,
+                sagging_temperature,
+                self.deformation_model_type,
+            )
+            super().__init__()
+            self.balance_model = self.balance_model_type(
+                sagging_temperature,
+                parameter,
+                self.section_array,
+                self.cable_array,
+                self.span_model,
+                self.deformation_model,
+                self.cable_loads,
+            )
+        else:
+            self.balance_model.reset(
+                cable_array=self.cable_array,
+                span_model=self.span_model,
+                deformation_model=self.deformation_model,
+                cable_loads=self.cable_loads,
+                full=full,
+            )
 
-        self.balance_model = self.balance_model_type(
-            sagging_temperature,
-            parameter,
-            self.section_array,
-            self.cable_array,
-            self.span_model,
-            self.deformation_model,
-            self.cable_loads,
-        )
-        self.solver_change_state = BalanceSolver(
-            **options.solver.balance_solver_change_state_params
-        )
-        self.solver_adjustment = BalanceSolver(
-            **options.solver.balance_solver_adjustment_params
-        )
-        self.L_ref: np.ndarray
+        if full:
+            self.solver_change_state = BalanceSolver(
+                **options.solver.balance_solver_change_state_params
+            )
+            self.solver_adjustment = BalanceSolver(
+                **options.solver.balance_solver_adjustment_params
+            )
+            self.L_ref: np.ndarray
 
         self.get_displacement: Callable[[], np.ndarray] = (
             self.balance_model.chain_displacement
         )
+
+        self.notify()
+        self.initialized = True
+
         logger.debug("Balance engine initialized.")
 
     def add_loads(
         self,
-        load_position_distance: np.ndarray | List,
-        load_mass: np.ndarray | List,
+        load_position_distance: np.ndarray | list,
+        load_mass: np.ndarray | list,
     ) -> None:
         """Adds loads to BalanceEngine.
         Updates load_position and load_mass fields in SectionArray.
 
-        Input for postition is a distance, and will be converted into ratio to match SectionArray.
+        Input for position is a distance, and will be converted into ratio to match SectionArray.
 
         Expected input are arrays of size matching the number of supports. Each value refers to a span.
 
         Args:
-            load_position_distance (np.ndarray | List): Poisition of the loads, in meters
-            load_mass (np.ndarray | List): Mass of the loads
+            load_position_distance (np.ndarray | list): Position of the loads, in meters
+            load_mass (np.ndarray | list): Mass of the loads
 
         Raises:
             ValueError: if load_position_distance is not in [0, span_length] for at least one span
@@ -195,9 +219,129 @@ class BalanceEngine:
         self.section_array._data["load_position"] = load_position_ratio
         self.section_array._data["load_mass"] = load_mass
 
-        self.reset()
-        debug_loads = "Loads have been added. If you are using a PlotEngine object, you should reset it, using PlotEngine.generate_reset()"
+        self.reset(full=False)
+        debug_loads = (
+            "Loads have been added. PlotEngine will be notified automatically "
+            "via the observer pattern; no manual reset is required."
+        )
         logger.debug(debug_loads)
+
+    @property
+    def shift_support(self) -> np.ndarray:
+        """Shifting distance, in meters."""
+        return self._shifting_distance_support
+
+    @property
+    def shortening_span(self) -> np.ndarray:
+        """shortening distance, in meters."""
+        return self._shortening_distance_span
+
+    def add_cable_shifting(
+        self,
+        shift_support: np.ndarray | list | None = None,
+        shorten_span: np.ndarray | list | None = None,
+    ) -> None:
+        """Adds cable shifting to BalanceEngine.
+        Updates internal shifting and span-length modification fields.
+
+        Expected input are arrays whose sizes match the number of supports.
+        Warning: shift shorten the left span and lengthen the right span.
+        So if you want to shorten the right span, you should input a negative value.
+
+        Args:
+            shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
+                Array of length ``support_number`` (support based). The first and last values
+                are enforced to 0. If ``None``, an array of zeros is used.
+            shorten_span (np.ndarray | list | None): Span length modification, in meters.
+                Array of length ``support_number - 1`` (span based), one value per span.
+                Positive values shorten the spans, negative values shorten them. If ``None``,
+                an array of zeros is used.
+
+        Raises:
+            ValueError: if input arrays don't have correct size.
+
+        Examples:
+            >>> balance_engine.add_cable_shifting(
+            ...     shorten_span=np.array([1.5, 0, 0]),
+            ...     shift_support=np.array([0, 1, 0.5, 0]),
+            ... )
+            >>> balance_engine.shift_shorten_cable()
+            >>> balance_engine.L_ref
+            # Output: array of shifted span lengths, in meters.
+            >>> balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
+            >>> balance_engine.parameter
+            # Output: array of sagging parameters, updated after shifting and shortening the cable.
+        """
+        # Convert to numpy arrays
+        shift_support = (
+            np.array(shift_support, dtype=np.float64)
+            if shift_support is not None
+            else np.zeros(self.support_number)
+        )
+        shorten_span = (
+            np.array(shorten_span, dtype=np.float64)
+            if shorten_span is not None
+            else np.zeros(self.support_number - 1)
+        )
+
+        # Check size matches number of supports
+        expected_size = self.support_number
+        if shift_support.size != expected_size:
+            raise ValueError(
+                f"shift_support has incorrect size: {expected_size} is expected, received {shift_support.size}"
+            )
+        expected_span_size = self.support_number - 1
+        if shorten_span.size != expected_span_size:
+            raise ValueError(
+                f"shorten_span has incorrect size: {expected_span_size} is expected, received {shorten_span.size}"
+            )
+
+        # Enforce constraints: shifting_distance first and last are 0
+        if abs(shift_support[0]) > 0.0 or abs(shift_support[-1]) > 0.0:
+            logger.warning(
+                "shift_support first and last values must be 0 (support based). "
+                "Enforcing this constraint."
+            )
+            warnings.warn(
+                "First and last values of shift_support have been reset to 0",
+                BalanceEngineWarning,
+            )
+        shift_support[0] = 0.0
+        shift_support[-1] = 0.0
+
+        # Store in private attributes
+        self._shifting_distance_support = shift_support
+        self._shortening_distance_span = shorten_span
+
+        # apply
+        self.shift_shorten_cable()
+
+        # Reset and notify observers
+        self.reset(full=False)
+        debug_msg = (
+            "Cable shifting has been added. PlotEngine will be notified automatically "
+            "via the observer pattern; no manual reset is required."
+        )
+        logger.debug(debug_msg)
+
+    def shift_span_length(self) -> np.ndarray:
+        """Transform shifting distance which is support based into L_ref shift which is span based.
+
+        Returns:
+            np.ndarray: Shifted span length, in meters.
+        """
+        return (
+            self._shifting_distance_support[:-1]
+            - self._shifting_distance_support[1:]
+        )
+
+    def shift_shorten_cable(self) -> None:
+        """Shift the cable length according to the shifting and shortening distances."""
+        shifted_length = (
+            -self.shift_span_length() - self._shortening_distance_span
+        )
+        self.L_ref = self.initial_L_ref + shifted_length
+        self.balance_model.L_ref = self.L_ref
 
     @check_time
     def solve_adjustment(self) -> None:
@@ -222,7 +366,7 @@ class BalanceEngine:
             e.origin = "solve_adjustment"
             raise e
 
-        self.L_ref = self.balance_model.update_L_ref()
+        self.initial_L_ref = self.L_ref = self.balance_model.update_L_ref()
 
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")
 
@@ -232,6 +376,7 @@ class BalanceEngine:
         wind_pressure: np.ndarray | float | None = None,
         ice_thickness: np.ndarray | float | None = None,
         new_temperature: np.ndarray | float | None = None,
+        wind_sense: Literal["clockwise", "anticlockwise"] = "anticlockwise",
     ) -> None:
         """Solve the chain positions, for a case of change of state.
         Updates weather conditions and/or sagging temperature if provided.
@@ -241,6 +386,7 @@ class BalanceEngine:
             wind_pressure (np.ndarray | float | None): Wind pressure in Pa. Default to None
             ice_thickness (np.ndarray | float | None): Ice thickness in m. Default to None
             new_temperature (np.ndarray | float | None): New temperature in °C. Default to None
+            wind_sense (Literal["clockwise", "anticlockwise"]): Direction of the wind: if "clockwise": towards user (right), if "anticlockwise": away from user (left). Default to "anticlockwise".
 
         After running this method, many attributes are updated.
         Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
@@ -252,31 +398,36 @@ class BalanceEngine:
         """
         logger.debug("Starting change state.")
         logger.debug(
-            f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}"
+            f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}\nwind_sense {str(wind_sense)}"
         )
 
         span_shape = self.section_array.data.span_length.shape
 
         def validate_input(input_value, name: str):
-            if input_value is not None and not isinstance(
-                input_value, (int, float, np.ndarray)
-            ):
-                raise TypeError(f"{name} has incorrect type")
             if input_value is None:
-                input_value = self.default_value[name]
-            if isinstance(input_value, (int, float)):
+                input_value = np.full(span_shape, self.default_value[name])
+            elif isinstance(input_value, (int, float)):
                 input_value = np.full(span_shape, input_value)
-            if isinstance(input_value, np.ndarray):
+            elif isinstance(input_value, np.ndarray):
                 if input_value.shape != span_shape:
                     raise ValueError(
                         f"{name} has incorrect shape: {span_shape} is expected, received {input_value.shape}"
                     )
+            else:
+                raise TypeError(f"{name} has incorrect type")
 
             return input_value
 
-        self.balance_model.cable_loads.wind_pressure = validate_input(
-            wind_pressure, "wind_pressure"
-        )
+        if wind_sense not in ["clockwise", "anticlockwise"]:
+            raise ValueError(
+                f"wind_sense should be 'clockwise' or 'anticlockwise', received {wind_sense}"
+            )
+        validated_wind = validate_input(wind_pressure, "wind_pressure")
+        if wind_sense == "clockwise":
+            validated_wind = -validated_wind
+
+        self.balance_model.cable_loads.wind_pressure = validated_wind
+
         # TODO: convert ice thickness from cm to m? Right now, user has to input in m
         self.balance_model.cable_loads.ice_thickness = validate_input(
             ice_thickness, "ice_thickness"
@@ -288,13 +439,23 @@ class BalanceEngine:
 
         # check if adjustment has been done before
         try:
-            _ = self.L_ref
+            _ = self.initial_L_ref
+            logger.debug(
+                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.initial_L_ref)}"
+            )
         except AttributeError:
             logger.warning(self._warning_no_L_ref)
             warnings.warn(self._warning_no_L_ref, BalanceEngineWarning)
             self.solve_adjustment()
 
         self.balance_model.adjustment = False
+
+        logger.debug(f"Shifting distance: {str(self.shift_support)}")
+        logger.debug(f"shortening distance: {str(self.shortening_span)}")
+        logger.debug("Taking into account cable shifting and shortening.")
+        self.shift_shorten_cable()
+        logger.debug(f"L_ref after shifting: {str(self.L_ref)}")
+
         self.span_model.load_coefficient = (
             self.balance_model.cable_loads.load_coefficient
         )
@@ -326,6 +487,8 @@ class BalanceEngine:
                     <li>parameter</li>
                     <li>tension_sup</li>
                     <li>tension_inf</li>
+                    <li>slope_left</li>
+                    <li>slope_right</li>
                     <li>L0</li>
                     <li>horizontal_distance</li>
                     <li>arc_length</li>
@@ -341,6 +504,13 @@ class BalanceEngine:
         T_h_q_array = QuantityArray(
             self.span_model.T_h(), 'N', force_output_unit
         )
+        span_slope_left = QuantityArray(
+            self.span_model.slope(side="left"), 'rad', 'deg'
+        )
+        span_slope_right = QuantityArray(
+            self.span_model.slope(side="right"), 'rad', 'deg'
+        )
+
         result_dict = {
             "span_length": arr.decr(
                 self.section_array.data["span_length"].to_numpy()
@@ -349,12 +519,16 @@ class BalanceEngine:
                 self.section_array.data["elevation_difference"].to_numpy()
             ).tolist(),
             "parameter": arr.decr(self.parameter).tolist(),
+            "slope_left": arr.decr(span_slope_left.value()).tolist(),
+            "slope_right": arr.decr(span_slope_right.value()).tolist(),
             "tension_sup": arr.decr(T_sup_q_array.value()).tolist(),
             "tension_inf": arr.decr(T_inf_q_array.value()).tolist(),
             "L0": self.L_ref.tolist(),
             "horizontal_distance": self.balance_model.a.tolist(),
             "arc_length": arr.decr(self.span_model.compute_L()).tolist(),
             "T_h": arr.decr(T_h_q_array.value()).tolist(),
+            "sag": arr.decr(self.span_model.sag()).tolist(),
+            "sag_s2": arr.decr(self.span_model.sag_s2()).tolist(),
         }
         return result_dict
 

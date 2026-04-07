@@ -35,6 +35,8 @@ class DataConfig:
     """configuration for data loading and saving"""
 
     sagging_temperature_default: float = 15.0
+    safety_coefficient_default: float = 1.5
+    safety_security_factor: float = 1.5
 
 
 @dataclass
@@ -78,7 +80,7 @@ class SolverConfig:
         default_factory=lambda: {
             "perturb": 0.0001,
             "stop_condition": 1e-2,
-            "relax_ratio": 0.8,
+            "relax_ratio": 0.95,  # was previously at 0.8, but 0.95 allows to reach more extreme cases
             "relax_power": 3,
             "max_iter": 100,
         }
@@ -147,9 +149,18 @@ class InputUnitsConfig:
             "diameter_heart": "mm",
             "section_conductor": "mm^2",
             "section_heart": "mm^2",
-            "electric_resistance_20": "ohm.m**-1",
+            "electric_resistance_20": "ohm.km**-1",
             "linear_resistance_temperature_coef": "K**-1",
             "radial_thermal_conductivity": "W.m**-1.K**-1",
+            "rts_cable": "N",
+            "rts_layer_1": "N",
+            "rts_layer_2": "N",
+            "rts_layer_3": "N",
+            "rts_layer_4": "N",
+            "rts_layer_5": "N",
+            "rts_layer_6": "N",
+            "rts_layer_7": "N",
+            "rts_layer_8": "N",
         }
     )
     section_array: dict[str, str] = field(

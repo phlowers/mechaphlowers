@@ -9,7 +9,11 @@ class SolverError(Exception):
     """Base class for solver errors."""
 
     def __init__(
-        self, message: str, level: str = "ERROR", details: str = ""
+        self,
+        message: str,
+        origin: str = "unknown",
+        level: str = "ERROR",
+        details: str = "",
     ) -> None:
         """SolverError specific exception.
 
@@ -17,10 +21,11 @@ class SolverError(Exception):
 
         Args:
             message (str): error message
-            level (str, optional): error level. Defaults to "".
+            origin (str, optional): origin of the error. Defaults to "unknown"
+            level (str, optional): error level. Defaults to "ERROR".
             details (str, optional): error details. Defaults to "".
 
-        Example:
+        Examples:
 
             >>> error = SolverError(
             ...     "An error occurred", level="CRITICAL", details="Matrix is singular"
@@ -32,10 +37,16 @@ class SolverError(Exception):
         """
         self.level = level
         self.details = details
-        self.origin = "unknown"
+        self.origin = origin
         prefix = f"[{level}][{self.origin}]"
 
         super().__init__(f"{prefix} {message} | {details}")
+
+
+class SuspectedChainReversal(SolverError):
+    """Raised in solver when chain is suspected to be reversed
+    (above horizontal position)
+    """
 
 
 class ConvergenceError(SolverError):
@@ -56,3 +67,7 @@ class BalanceEngineWarning(UserWarning):
 
 class ViewChoiceWarning(UserWarning):
     """Base class for choice of view (ex: choice of support or span view)."""
+
+
+class RtsDataNotAvailable(ValueError):
+    """Raised when RTS catalog data (rts_cable, rts_layer_*) is missing or NaN."""

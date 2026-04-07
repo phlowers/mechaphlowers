@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+import warnings as _warnings
 from copy import deepcopy
 
 import numpy as np
@@ -16,7 +17,10 @@ from mechaphlowers.core.models.balance.engine import (
     BalanceEngine,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.errors import ConvergenceError
+from mechaphlowers.entities.errors import (
+    BalanceEngineWarning,
+    ConvergenceError,
+)
 
 
 @fixture
@@ -291,7 +295,7 @@ def test_load_span__check_node_span_changes(cable_array_AM600: CableArray):
 
 def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
     def fail(_: object):
-        raise ConvergenceError("did not converge", level="adjustment")
+        raise ConvergenceError("did not converge", origin="adjustment")
 
     # Mock the solver to raise
     monkeypatch.setattr(balance_engine_simple.solver_adjustment, "solve", fail)
@@ -303,9 +307,10 @@ def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
 def test_adjustment_convergence_error_origin(
     monkeypatch, balance_engine_simple
 ):
-    def fail_generator(level: str):
+    # weird test: sets origin to "adjustment" but get replaced by "solve_adjustment" anyway in engine.py
+    def fail_generator(origin: str):
         def fail(_: object):
-            raise ConvergenceError("did not converge", level=level)
+            raise ConvergenceError("did not converge", origin=origin)
 
         return fail
 
@@ -318,7 +323,7 @@ def test_adjustment_convergence_error_origin(
     with pytest.raises(ConvergenceError) as excinfo:
         balance_engine_simple.solve_adjustment()
 
-    assert excinfo.value.level == "adjustment"
+    assert excinfo.value.origin == "solve_adjustment"
     assert getattr(excinfo.value, "origin", None) == "solve_adjustment"
 
     monkeypatch.setattr(
@@ -326,13 +331,15 @@ def test_adjustment_convergence_error_origin(
         "solve",
         fail_generator("change_state"),
     )
-    # mocking L_ref to avoid launching adjustment solver first
-    balance_engine_simple.L_ref = 500.0
+    # mocking L_ref and initial_L_ref to avoid launching adjustment solver first
+    dummy_L_ref = np.zeros(balance_engine_simple.support_number - 1)
+    balance_engine_simple.L_ref = dummy_L_ref
+    balance_engine_simple.initial_L_ref = dummy_L_ref
 
     with pytest.raises(ConvergenceError) as excinfo:
         balance_engine_simple.solve_change_state()
 
-    assert excinfo.value.level == "change_state"
+    assert excinfo.value.origin == "solve_change_state"
     assert getattr(excinfo.value, "origin", None) == "solve_change_state"
 
 
@@ -349,7 +356,7 @@ def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
         initial_wind
     )
 
-    balance_engine_simple.reset()
+    balance_engine_simple.reset(True)
 
     np.testing.assert_array_equal(
         balance_engine_simple.span_model.sagging_parameter, initial_span_param
@@ -379,6 +386,8 @@ def test_get_data_spans(balance_engine_simple: BalanceEngine):
     assert {
         'span_length',
         'elevation',
+        'slope_left',
+        'slope_right',
         'parameter',
         'tension_sup',
         'tension_inf',
@@ -386,6 +395,8 @@ def test_get_data_spans(balance_engine_simple: BalanceEngine):
         'horizontal_distance',
         'arc_length',
         'T_h',
+        'sag',
+        'sag_s2',
     } <= data_spans.keys()
     for value in data_spans.values():
         assert len(value) == 3
@@ -401,3 +412,219 @@ def test_get_data_spans_with_loads(balance_engine_simple: BalanceEngine):
     data_spans = balance_engine_simple.get_data_spans()
     for value in data_spans.values():
         assert len(value) == 3
+
+
+def test_engine_wind_sense(balance_engine_simple: BalanceEngine):
+    balance_engine_simple.solve_adjustment()
+
+    # Test with wind_sense "clockwise"
+    balance_engine_simple.solve_change_state(
+        wind_pressure=200,
+        wind_sense="clockwise",
+    )
+    displacement_clockwise = (
+        balance_engine_simple.balance_model.chain_displacement()
+    )
+
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.wind_pressure,
+        np.array([-200.0, -200.0, -200.0, -200.0]),
+    )
+
+    # Test with wind_sense "anticlockwise"
+    balance_engine_simple.solve_change_state(
+        wind_pressure=-200,
+        wind_sense="anticlockwise",
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.balance_model.cable_loads.wind_pressure,
+        np.array([-200.0, -200.0, -200.0, -200.0]),
+    )
+    displacement_anticlockwise = (
+        balance_engine_simple.balance_model.chain_displacement()
+    )
+
+    np.testing.assert_array_equal(
+        displacement_clockwise, displacement_anticlockwise
+    )
+
+
+@pytest.mark.integration
+def test_shifting_and_shortening_cable(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [5, 10, -10, 5],
+                "line_angle": [0, 30, 0, 0],
+                "insulator_length": [0.01, 3, 3, 0.01],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [1000, 500, 500, 1000],
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        ),
+        sagging_parameter=1200,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "grad"})
+    balance_engine = BalanceEngine(
+        cable_array=cable_array_AM600, section_array=section_array
+    )
+
+    # Base case: no shifting, no shortening
+
+    with pytest.warns(BalanceEngineWarning):
+        balance_engine.solve_change_state(
+            wind_pressure=0.0, new_temperature=15.0
+        )
+
+    assert balance_engine.L_ref.shape == (3,)
+    np.testing.assert_allclose(
+        balance_engine.span_model.T_h(),
+        np.array([2119.0, 2119.0, 2119.0, np.nan]) * 10,
+        atol=10,
+    )
+    np.testing.assert_allclose(
+        balance_engine.L_ref, np.array([500.8, 298.5, 401.7]), atol=0.1
+    )
+
+    # Shift support 2 by 1m
+    balance_engine.add_cable_shifting(shift_support=np.array([0, 1, 0, 0]))
+
+    assert balance_engine.L_ref.shape == (3,)
+    np.testing.assert_allclose(
+        balance_engine.L_ref, np.array([501.8, 297.5, 401.7]), atol=0.1
+    )
+
+    balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
+    np.testing.assert_allclose(
+        balance_engine.span_model.T_h(),
+        np.array([2026.0, 2315.0, 2246.0, np.nan]) * 10.0,
+        atol=10,
+    )
+
+    # shorten span 2 by 2m
+    balance_engine.add_cable_shifting(shorten_span=np.array([0, 2, 0]))
+
+    np.testing.assert_allclose(
+        balance_engine.L_ref, np.array([500.8, 296.5, 401.7]), atol=0.1
+    )
+
+    balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
+    np.testing.assert_allclose(
+        balance_engine.span_model.T_h(),
+        np.array([2411.0, 2846.0, 2614.0, np.nan]) * 10.0,
+        atol=10,
+    )
+
+    # Shift support 2 by 1.5m and shorten span 1 by 1.5m
+    balance_engine.add_cable_shifting(
+        shorten_span=np.array([1.5, 0, 0]),
+        shift_support=np.array([0, 1, 0.5, 0]),
+    )
+
+    np.testing.assert_allclose(
+        balance_engine.L_ref, np.array([500.338, 298.042, 401.254]), atol=0.1
+    )
+
+    balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
+    np.testing.assert_allclose(
+        balance_engine.span_model.T_h(),
+        np.array([2353.0, 2459.0, 2454.0, np.nan]) * 10.0,
+        atol=10,
+    )
+    np.testing.assert_allclose(
+        balance_engine.parameter,
+        np.array([1333.0, 1392.0, 1390.0, np.nan]),
+        atol=1,
+    )
+
+
+def test_add_cable_shifting_default_values(
+    balance_engine_simple: BalanceEngine,
+):
+    balance_engine_simple.solve_adjustment()
+    balance_engine_simple.add_cable_shifting()
+
+    expected_support = np.zeros(balance_engine_simple.support_number)
+    np.testing.assert_array_equal(
+        balance_engine_simple.shift_support, expected_support
+    )
+    expected_span = np.zeros(balance_engine_simple.support_number - 1)
+    np.testing.assert_array_equal(
+        balance_engine_simple.shortening_span, expected_span
+    )
+
+
+def test_add_cable_shifting_wrong_size_shifting(
+    balance_engine_simple: BalanceEngine,
+):
+    with pytest.raises(ValueError):
+        balance_engine_simple.add_cable_shifting(
+            shift_support=np.array([0.0, 1.0, 0.0])  # 3 elements, 4 expected
+        )
+
+
+def test_add_cable_shifting_wrong_size_shortening(
+    balance_engine_simple: BalanceEngine,
+):
+    with pytest.raises(ValueError):
+        balance_engine_simple.add_cable_shifting(
+            shorten_span=np.array(
+                [0.0, 1.0, 0.0, 0.0]
+            )  # 4 elements, 3 expected
+        )
+
+
+def test_add_cable_shifting_enforces_shifting_boundaries(
+    balance_engine_simple: BalanceEngine,
+):
+    balance_engine_simple.solve_adjustment()
+    with pytest.warns(
+        BalanceEngineWarning,
+    ):
+        balance_engine_simple.add_cable_shifting(
+            shift_support=np.array([5.0, 1.0, 2.0, 3.0])
+        )
+
+    assert abs(balance_engine_simple.shift_support[0]) < 1e-5
+    assert abs(balance_engine_simple.shift_support[-1]) < 1e-5
+    np.testing.assert_array_equal(
+        balance_engine_simple.shift_support[1:-1],
+        np.array([1.0, 2.0]),
+    )
+
+
+def test_add_cable_shifting_no_warning_when_boundaries_are_compliant(
+    balance_engine_simple: BalanceEngine,
+):
+    balance_engine_simple.solve_adjustment()
+    with _warnings.catch_warnings():
+        _warnings.simplefilter("error", BalanceEngineWarning)
+        balance_engine_simple.add_cable_shifting(
+            shift_support=np.array([0.0, 1.0, 2.0, 0.0]),
+            shorten_span=np.array([0.0, 1.0, 2.0]),
+        )
+
+
+def test_add_cable_shifting_stores_values(
+    balance_engine_simple: BalanceEngine,
+):
+    balance_engine_simple.solve_adjustment()
+    shifting = np.array([0.0, 1.5, 2.0, 0.0])
+    shortening = np.array([0.0, 0.5, 1.0])
+
+    balance_engine_simple.add_cable_shifting(
+        shift_support=shifting,
+        shorten_span=shortening,
+    )
+
+    np.testing.assert_array_equal(
+        balance_engine_simple.shift_support, shifting
+    )
+    np.testing.assert_array_equal(
+        balance_engine_simple.shortening_span, shortening
+    )

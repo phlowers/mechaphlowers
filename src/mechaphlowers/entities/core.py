@@ -4,7 +4,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Tuple
 
 import numpy as np
 
@@ -43,7 +42,7 @@ class QuantityArray:
         """Return the unit symbol of the quantity array as a string"""
         return f"{self.quantity.u:P~}"
 
-    def to_tuple(self) -> Tuple[Quantity, str]:
+    def to_tuple(self) -> tuple[Quantity, str]:
         """Helper providing the quantity array as a tuple of (magnitude, unit symbol)"""
         return (self.quantity.m, self.symbol)
 
@@ -55,17 +54,22 @@ class QuantityArray:
         return f"{class_name}({self.quantity.m}, {self.symbol})"
 
 
-class VhlStrength:
+class VhlResult:
     """Class representing the VHL forces"""
 
     output_unit = options.output_units.force
 
-    def __init__(self, vhl: np.ndarray, input_unit="N") -> None:
+    def __init__(
+        self, vhl: np.ndarray, input_unit="N", change_frame: bool = True
+    ) -> None:
         """
         Args:
             vhl (np.ndarray): 2D array representing VHL forces (expected format: [[V0, V1, ...], [H0, H1, ...], [L0, L1, ...]]),
             input_unit (str, optional): unit of the input vhl array. Defaults to "N".
+            change_frame (bool): If set to True, change frame to frame where z axis is downwards. In that case, y axis is also reversed. Defaults to True
         """
+        if change_frame:
+            vhl = np.array([-vhl[0], -vhl[1], vhl[2]])
         self._vhl_section = vhl
         self.input_unit = input_unit
 
@@ -77,7 +81,7 @@ class VhlStrength:
         )
 
     @property
-    def vhl(self) -> Tuple[QuantityArray, QuantityArray, QuantityArray]:
+    def vhl(self) -> tuple[QuantityArray, QuantityArray, QuantityArray]:
         """Return the V, H, L components as a tuple of 3 QuantityArrays"""
         return (self.V, self.H, self.L)
 

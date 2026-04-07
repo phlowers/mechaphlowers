@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -7,112 +7,27 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Dict, Literal, Self, Tuple
+from typing import Literal, Union
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
-from mechaphlowers.config import options as cfg
-from mechaphlowers.core.geometry.points import (
-    Points,
-    SectionPoints,
-)
+from mechaphlowers.core.geometry.distances import DistanceResult
+from mechaphlowers.core.geometry.points import Points
+from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.core.models.cable.span import ISpan
-from mechaphlowers.core.models.external_loads import CableLoads
-from mechaphlowers.entities.arrays import ObstacleArray, SectionArray
+from mechaphlowers.entities.arrays import ObstacleArray
+from mechaphlowers.entities.reactivity import Notifier, Observer
 from mechaphlowers.entities.shapes import SupportShape  # type: ignore
+from mechaphlowers.plotting.plot_config import (
+    TraceProfile,
+    cable_trace,
+    insulator_trace,
+    support_trace,
+)
+from mechaphlowers.plotting.plot_distances import plot_distance_engine
 
 logger = logging.getLogger(__name__)
-
-
-class TraceProfile:
-    """TraceProfile is a configuration class to handle a trace parameter.
-    It is designed to be used with some plotly specific figures and getters are specialized to return the right format for plotly.
-    """
-
-    def __init__(
-        self,
-        name: str = "Test",
-        color: str = "blue",
-        size: float = cfg.graphics.marker_size,
-        width: float = 8.0,
-        opacity: float = 1.0,
-    ):
-        self.color = color
-        self.size = size
-        self.width = width
-        self.name = name
-        self.opacity = opacity
-        self._mode = "main"
-
-    @property
-    def dimension(self) -> str:
-        return self._dimension
-
-    @dimension.setter
-    def dimension(self, value: Literal["2d", "3d"]):
-        if not isinstance(value, str):
-            raise TypeError()
-        if value not in ["2d", "3d"]:
-            raise ValueError("Dimension must be either '2d' or '3d'")
-        self._dimension = value
-
-    @property
-    def mode(self) -> str:
-        return self._mode
-
-    @mode.setter
-    def mode(self, value):
-        if value not in ["background", "main"]:
-            raise ValueError("Mode must be either 'background' or 'main'")
-        self._mode = value
-        if value == "background":
-            self.opacity = cfg.graphics.background_opacity
-        elif value == "main":
-            self.opacity = 1.0
-
-    @property
-    def dashed(self) -> dict:
-        if self._mode == "background":
-            return {'dash': 'dot'}
-        return {}
-
-    @property
-    def line(self) -> dict:
-        if self._dimension == "2d":
-            width = self.size
-        else:
-            width = self.width
-        return {'color': self.color, 'width': width} | self.dashed
-
-    @property
-    def marker(self) -> dict:
-        if self._dimension == "2d":
-            return {'size': self.size + 1, 'color': self.color}
-        else:
-            return {'size': self.size, 'color': self.color}
-
-    @property
-    def name(self) -> str:
-        if self._mode == "background":
-            return f"{self._name} baseline"
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        if not isinstance(value, str):
-            raise TypeError("Name must be a string")
-        self._name = value
-
-    def __call__(self, mode) -> Self:
-        self.mode = mode
-        return self
-
-
-cable_trace = TraceProfile(**cfg.graphics.cable_trace_profile)
-insulator_trace = TraceProfile(**cfg.graphics.insulator_trace_profile)
-support_trace = TraceProfile(**cfg.graphics.support_trace_profile)
 
 
 def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
@@ -128,6 +43,9 @@ def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
             height=800,
             width=1400,
             scene=dict(
+                xaxis_title="X (m)",
+                yaxis_title="Y (m)",
+                zaxis_title="Z (m)",
                 xaxis=dict(
                     backgroundcolor="gainsboro",
                     gridcolor="dimgray",
@@ -155,12 +73,9 @@ def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
 def plot_text_3d(
     fig: go.Figure,
     points: np.ndarray,
-    text: np.ndarray,
-    color=None,
-    width=3,
-    size=None,
-    name="Points",
-):
+    text: list[str] | np.ndarray,
+    name: str = "Points",
+) -> None:
     fig.add_trace(
         go.Scatter3d(
             x=points[:, 0],
@@ -188,7 +103,7 @@ def plot_points_3d(
             x=points[:, 0],
             y=points[:, 1],
             z=points[:, 2],
-            mode='markers+lines',
+            mode=trace_profile.scatter_mode,
             marker=trace_profile.marker,
             line=trace_profile.line,
             opacity=trace_profile.opacity,
@@ -230,7 +145,7 @@ def plot_points_2d(
     )
 
 
-def plot_support_shape(fig: go.Figure, support_shape: SupportShape):
+def plot_support_shape(fig: go.Figure, support_shape: SupportShape) -> None:
     """plot_support_shape enables to plot the support shape on a plotly figure
 
     Args:
@@ -243,25 +158,86 @@ def plot_support_shape(fig: go.Figure, support_shape: SupportShape):
     )
 
 
-def set_layout(fig: go.Figure, auto: bool = True) -> None:
+def _validate_aspect_ratio(aspect_ratio: dict[str, float]) -> dict[str, float]:
+    """Validate and normalise a custom aspect ratio dict.
+
+    Args:
+        aspect_ratio: Dictionary that must contain keys 'x', 'y', 'z' with positive float values.
+
+    Returns:
+        Validated dictionary with float values.
+
+    Raises:
+        ValueError: If the dict is missing a required key, a value is not float-convertible,
+            or a value is not strictly positive.
+    """
+    if not isinstance(aspect_ratio, dict):
+        raise ValueError(
+            "aspect_ratio must be a dict with keys 'x', 'y', 'z' and positive float values."
+        )
+
+    required_keys = ("x", "y", "z")
+    validated: dict[str, float] = {}
+    for key in required_keys:
+        if key not in aspect_ratio:
+            raise ValueError(
+                f"aspect_ratio is missing required key {key!r}. "
+                "Expected keys are 'x', 'y', and 'z'."
+            )
+        value = aspect_ratio[key]
+        try:
+            value_float = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"aspect_ratio[{key!r}] must be a float-convertible number, got {value!r}."
+            ) from exc
+        if value_float <= 0:
+            raise ValueError(
+                f"aspect_ratio[{key!r}] must be a positive float, got {value_float!r}."
+            )
+        validated[key] = value_float
+    return validated
+
+
+def set_layout(
+    fig: go.Figure,
+    auto: bool = True,
+    aspect_ratio: dict[str, float] | None = None,
+) -> None:
     """set_layout
 
     Args:
         fig (go.Figure): plotly figure where layout has to be updated
-        auto (bool, optional): Automatic layout based on data (scale respect). False means manual with an aspectradio of x=1, y=.05, z=.5. Defaults to True.
+        auto (bool, optional): Automatic layout based on data (scale respect). False means manual with an aspectratio of x=1, y=.5, z=.5. Only used when aspect_ratio is None. Defaults to True.
+        aspect_ratio (dict[str, float] | None, optional): Custom aspect ratio dictionary with keys 'x', 'y', 'z'. When provided, forces aspectmode to 'manual' and uses these values. When None, behavior is controlled by the auto parameter. Defaults to None.
+
+    Examples:
+        >>> fig = go.Figure()
+        >>> # Use default automatic layout
+        >>> set_layout(fig, auto=True)
+        >>>
+        >>> # Use custom aspect ratio (e.g., from compute_aspect_ratio)
+        >>> custom_aspect = {'x': 0.5, 'y': 0.3, 'z': 10.0}
+        >>> set_layout(fig, aspect_ratio=custom_aspect)
     """
 
-    # Check input
     auto = bool(auto)
-    aspect_mode: str = "data" if auto else "manual"
-    zoom: float = (
-        1 if auto else 5
-    )  # perhaps this approx of the zoom will not be adequate for all cases
-    aspect_ratio = {'x': 1, 'y': 0.5, 'z': 0.5}
+
+    if aspect_ratio is not None:
+        aspect_mode: str = "manual"
+        final_aspect_ratio = _validate_aspect_ratio(aspect_ratio)
+        zoom: float = 5
+    else:
+        aspect_mode = "data" if auto else "manual"
+        final_aspect_ratio = {'x': 1, 'y': 0.5, 'z': 0.5}
+        zoom = 1 if auto else 5
 
     fig.update_layout(
         scene={
-            'aspectratio': aspect_ratio,
+            'xaxis_title': "X (m)",
+            'yaxis_title': "Y (m)",
+            'zaxis_title': "Z (m)",
+            'aspectratio': final_aspect_ratio,
             'aspectmode': aspect_mode,
             'camera': {
                 'up': {'x': 0, 'y': 0, 'z': 1},
@@ -271,144 +247,162 @@ def set_layout(fig: go.Figure, auto: bool = True) -> None:
     )
 
 
-class PlotEngine:
+class PlotEngine(Observer):
+    """PlotEngine renders power-line sections on Plotly figures.
+
+    It accepts either a :class:`~mechaphlowers.core.models.balance.engine.BalanceEngine`
+    or an already-constructed :class:`~mechaphlowers.core.geometry.position_engine.PositionEngine`.
+    When a ``BalanceEngine`` is passed, a ``PositionEngine`` is created
+    automatically and exposed via :attr:`position_engine`.
+
+    Reactivity is preserved through a two-hop observer chain:
+
+    .. code-block:: text
+
+        BalanceEngine  ──notifies──►  PositionEngine  ──notifies──►  PlotEngine
+
+    Args:
+        engine: A :class:`BalanceEngine` or :class:`PositionEngine` instance.
+
+    Example:
+        >>> import plotly.graph_objects as go
+        >>> # Pass a BalanceEngine directly (PositionEngine is auto-created)
+        >>> plt_engine = PlotEngine(balance_engine)
+        >>> fig = go.Figure()
+        >>> plt_engine.preview_line3d(fig)
+        >>> fig.show()
+        >>> # Access the position engine for headless computation:
+        >>> pos_engine = plt_engine.position_engine
+        >>> pos_engine.get_supports_points()
+        array(...)
+        >>> # Or build a PositionEngine first and pass it in:
+        >>> from mechaphlowers.core.geometry.position_engine import PositionEngine
+        >>> pos_engine = PositionEngine(balance_engine)
+        >>> plt_engine = PlotEngine(pos_engine)
+    """
+
     def __init__(
         self,
-        balance_engine: BalanceEngine,
-        span_model: ISpan,
-        cable_loads: CableLoads,
-        section_array: SectionArray,
-        get_displacement: Callable[[], np.ndarray],
+        engine: Union[BalanceEngine, PositionEngine],
     ) -> None:
-        self.balance_engine = balance_engine
-        self.spans = span_model
-        self.cable_loads = cable_loads
-        self.section_array = section_array
+        if isinstance(engine, BalanceEngine):
+            self.position_engine = PositionEngine(engine)
+        elif isinstance(engine, PositionEngine):
+            self.position_engine = engine
+        else:
+            raise TypeError(
+                "engine must be a BalanceEngine or PositionEngine instance"
+            )
+        self.position_engine.bind_to(self)
 
-        self.section_pts = SectionPoints(
-            section_array=self.section_array,
-            span_model=span_model,
-            cable_loads=cable_loads,
-            get_displacement=get_displacement,
-        )
+    # ── Observer callback ─────────────────────────────────────────────────────
 
-    def add_obstacles(self, obstacles_array: ObstacleArray):
-        self.obstacles_array = obstacles_array
-        self.section_pts.add_obstacles(obstacles_array)
+    def update(self, notifier: Notifier) -> None:
+        """Receive notification from :class:`PositionEngine`.
+
+        The ``PositionEngine`` has already refreshed all coordinates before
+        calling this method, so no additional state update is required here.
+        """
+        logger.debug("Plot engine notified from position engine.")
+
+    # ── Backward-compatible delegating properties ─────────────────────────────
+    # These forward attribute access to position_engine so that existing code
+    # that accesses plt_engine.span_model, plt_engine.section_pts, etc. keeps
+    # working without modification.
+
+    @property
+    def span_model(self):
+        """Delegating property — see :attr:`PositionEngine.span_model`."""
+        return self.position_engine.span_model
+
+    @property
+    def cable_loads(self):
+        """Delegating property — see :attr:`PositionEngine.cable_loads`."""
+        return self.position_engine.cable_loads
+
+    @property
+    def section_array(self):
+        """Delegating property — see :attr:`PositionEngine.section_array`."""
+        return self.position_engine.section_array
+
+    @property
+    def section_pts(self):
+        """Delegating property — see :attr:`PositionEngine.section_pts`."""
+        return self.position_engine.section_pts
 
     @property
     def beta(self) -> np.ndarray:
-        return self.cable_loads.load_angle
+        """Delegating property — see :attr:`PositionEngine.beta`."""
+        return self.position_engine.beta
 
-    @staticmethod
-    def builder_from_balance_engine(
-        balance_engine: BalanceEngine,
-    ) -> PlotEngine:
-        logger.debug("Plot engine initialized from balance engine.")
+    # ── Backward-compatible delegating methods ────────────────────────────────
 
-        return PlotEngine(
-            balance_engine,
-            balance_engine.balance_model.nodes_span_model,
-            balance_engine.cable_loads,
-            balance_engine.section_array,
-            balance_engine.get_displacement,
-        )
+    def initialize_engine(self, balance_engine: BalanceEngine) -> None:
+        """Delegate to :meth:`PositionEngine.initialize_engine`."""
+        self.position_engine.initialize_engine(balance_engine)
 
-    def generate_reset(self) -> PlotEngine:
-        """Create and returns a PlotEngine object using stored BalanceEngine object.
-        This method does not modify the current PlotEngine instance.
+    def reset(self, balance_engine: BalanceEngine) -> None:
+        """Delegate to :meth:`PositionEngine.reset`."""
+        self.position_engine.reset(balance_engine)
 
-        Method used if BalanceEngine attributes have changed.
-
-        Examples:
-            >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
-            >>> balance_engine.add_loads(...)  # modification on balance engine
-            >>> plt_engine = plt_engine.generate_reset()
-
-        Returns:
-            PlotEngine: object with reset attributes
-        """
-        return self.builder_from_balance_engine(self.balance_engine)
+    def add_obstacles(self, obstacles_array: ObstacleArray) -> None:
+        """Delegate to :meth:`PositionEngine.add_obstacles`."""
+        self.position_engine.add_obstacles(obstacles_array)
 
     def get_spans_points(
         self, frame: Literal["section", "localsection", "cable"]
     ) -> np.ndarray:
-        return self.section_pts.get_spans(frame).points(True)
+        """Delegate to :meth:`PositionEngine.get_spans_points`."""
+        return self.position_engine.get_spans_points(frame)
 
     def get_supports_points(self) -> np.ndarray:
-        return self.section_pts.get_supports().points(True)
+        """Delegate to :meth:`PositionEngine.get_supports_points`."""
+        return self.position_engine.get_supports_points()
 
     def get_insulators_points(self) -> np.ndarray:
-        return self.section_pts.get_insulators().points(True)
+        """Delegate to :meth:`PositionEngine.get_insulators_points`."""
+        return self.position_engine.get_insulators_points()
 
     def get_obstacles_points(self) -> np.ndarray:
-        return self.section_pts.compute_obstacle_coords().points(True)
+        """Delegate to :meth:`PositionEngine.get_obstacles_points`."""
+        return self.position_engine.get_obstacles_points()
 
-    def obstacles_dict(self) -> dict:
+    def obstacles_dict(self, project=False, frame_index=0) -> dict:
         """Returns a dictionary storing object coordinates.
 
         Key is object name, value is coordinates of object.
 
         Format: {'obs_0': [[x0, y0, z0], [x1, y1, z1], ...]}
         """
-        return self.section_pts.obstacles_dict()
+        return self.position_engine.obstacles_dict(project, frame_index)
 
-    def get_loads_coords(self, project=False, frame_index=0) -> Dict:
-        """Get a dictionary of coordinates of the loads.
-
-        If there are two loads in spans $0$ and $2$, the format is the following:
-
-        `{0: [x0, y0, z0], 2: [x2, y2, z2]}`
-
-        The arguments should be the same as `get_points_for_plot()`.
-
-        Args:
-            project (bool, optional): Set to True if 2d graph: this project all objects into a support frame. Defaults to False.
-            frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
-
-        Returns:
-            Dict: dictionary that stores the coordinates. Key is span index. Value is a np.array of coordinates.
-        """
-        spans_points, _, _ = self.get_points_for_plot(project, frame_index)
-        loads_spans_idx, loads_points_idx = self.spans.loads_indices
-        result_dict = {}
-        for index_in_small_array, span_index in enumerate(loads_spans_idx):
-            # point_index is the index of the load point in spans_points.coords
-            point_index = loads_points_idx[index_in_small_array]
-            result_dict[int(span_index)] = spans_points.coords[
-                span_index, point_index
-            ]
-        return result_dict
+    def get_loads_coords(
+        self, project: bool = False, frame_index: int = 0
+    ) -> dict:
+        """Delegate to :meth:`PositionEngine.get_loads_coords`."""
+        return self.position_engine.get_loads_coords(project, frame_index)
 
     def get_points_for_plot(
-        self, project=False, frame_index=0
-    ) -> Tuple[Points, Points, Points]:
-        """Get Points objects for span, supports and insulators.
-        Can be used for plotting 2D or 3D graphs.
-
-        Args:
-            project (bool, optional): Set to True if 2d graph: this project all objects into a support frame. Defaults to False.
-            frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
-
-        Returns:
-            Tuple[Points, Points, Points]: Points for spans, supports and insulators respectively.
-
-        Raises:
-            ValueError: frame_index is out of range
-        """
-        return self.section_pts.get_points_for_plot(project, frame_index)
+        self, project: bool = False, frame_index: int = 0
+    ) -> tuple[Points, Points, Points]:
+        """Delegate to :meth:`PositionEngine.get_points_for_plot`."""
+        return self.position_engine.get_points_for_plot(project, frame_index)
 
     def preview_line3d(
         self,
         fig: go.Figure,
         view: Literal["full", "analysis"] = "full",
         mode: Literal["main", "background"] = "main",
+        aspect_ratio: dict[str, float] | None = None,
     ) -> None:
         """Plot 3D of power lines sections
 
         Args:
             fig (go.Figure): plotly figure where new traces has to be added
             view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+            mode (Literal['main', 'background'], optional): Style mode for the traces. Defaults to "main".
+            aspect_ratio (dict[str, float] | None, optional): Custom aspect ratio dictionary with keys 'x', 'y', 'z'.
+                When provided, overrides the layout aspect ratio. Can be computed using compute_aspect_ratio(). Defaults to None.
 
         Raises:
             ValueError: view is not an expected value
@@ -442,7 +436,7 @@ class PlotEngine:
                 fig, obstacles.points(True), TraceProfile(name="Obstacles")
             )
 
-        set_layout(fig, auto=_auto)
+        set_layout(fig, auto=_auto, aspect_ratio=aspect_ratio)
 
     def preview_line2d(
         self,
@@ -503,15 +497,91 @@ class PlotEngine:
             view=view,
         )
 
-    def __str__(self) -> str:
-        return (
-            f"number of supports: {self.section_array.data.span_length.shape[0]}\n"
-            f"parameter: {self.spans.sagging_parameter}\n"
-            f"wind: {self.cable_loads.wind_pressure}\n"
-            f"ice: {self.cable_loads.ice_thickness}\n"
-            f"beta: {self.beta}\n"
+        if hasattr(self.section_pts, "obstacles_array"):
+            obstacles_dict = self.obstacles_dict(
+                project=True, frame_index=frame_index
+            )
+            for obstacle_name, obstacle_coords in obstacles_dict.items():
+                plot_points_2d(
+                    fig,
+                    np.array(obstacle_coords),
+                    TraceProfile(name=obstacle_name),
+                    view=view,
+                )
+
+    def point_relative_to_absolute(
+        self, span_index: int, point_relative: np.ndarray
+    ) -> np.ndarray:
+        """Delegate to :meth:`PositionEngine.point_relative_to_absolute`."""
+        return self.position_engine.point_relative_to_absolute(
+            span_index, point_relative
         )
+
+    def point_distance(
+        self,
+        span_index: int,
+        point: np.ndarray,
+        *,
+        fig: go.Figure | None = None,
+    ) -> DistanceResult:
+        """Compute the distance from *point* to a span, with optional plotting.
+
+        Delegates the geometric computation to
+        :meth:`PositionEngine.point_distance` and, when *fig* is provided,
+        plots the result on the figure.
+
+        Args:
+            span_index: Span index in ``[0, num_supports - 2]``.
+            point: Absolute coordinates of shape ``(3,)``.
+            fig: Optional Plotly figure.  When supplied, the geometry is
+                rendered on it.
+
+        Returns:
+            :class:`~mechaphlowers.core.geometry.distances.DistanceResult`.
+
+        Examples:
+
+            >>> balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
+            >>> plt_engine = PlotEngine(balance_engine)
+            >>> point = np.array(
+            ...     [10.0, 5.0, 2.0]
+            ... )  # Absolute coordinates of the point to analyze
+            >>> fig = figure_factory()
+            >>> distance_result = plt_engine.point_distance(span_index=0, point=point)
+            # ...get a distance result object with the distance and closest point coordinates
+            >>> fig.show()
+        """
+        distance_result = self.position_engine.point_distance(
+            span_index, point
+        )
+
+        if fig is not None:
+            plot_distance_engine(
+                self.position_engine.distance_engine,
+                distance_result=distance_result,
+                fig=fig,
+                show_plane=True,
+                show_projections=True,
+                title_addendum=f" - Span {span_index}",
+                force_layout=True,
+            )
+            fig.update_layout(
+                title=f"Point Distance Analysis - Span {span_index}",
+                scene=dict(
+                    xaxis_title="X (m)",
+                    yaxis_title="Y (m)",
+                    zaxis_title="Z (m)",
+                    aspectmode="data",
+                ),
+                showlegend=True,
+                legend=dict(x=0.02, y=0.98),
+            )
+
+        return distance_result
+
+    def __str__(self) -> str:
+        return str(self.position_engine)
 
     def __repr__(self) -> str:
         class_name = type(self).__name__
-        return f"{class_name}\n{self.__str__()}"
+        return f"{class_name}\n{self.position_engine.__str__()}"

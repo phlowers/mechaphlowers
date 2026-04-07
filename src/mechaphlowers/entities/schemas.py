@@ -4,6 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+
 from typing import Optional
 
 import numpy as np
@@ -35,14 +36,17 @@ class SectionArrayInput(pa.DataFrameModel):
     insulator_length: pdt.Series[float] = pa.Field(coerce=True)
     span_length: pdt.Series[float] = pa.Field(nullable=True, coerce=True)
     insulator_mass: pdt.Series[float] = pa.Field(coerce=True)
-    load_mass: Optional[pdt.Series[float]] = pa.Field(
+    load_mass: pdt.Series[float] | None = pa.Field(
         nullable=True,
         coerce=True,
     )
-    load_position: Optional[pdt.Series[float]] = pa.Field(
+    load_position: pdt.Series[float] | None = pa.Field(
         nullable=True, coerce=True
     )
-    ground_altitude: Optional[pdt.Series[float]] = pa.Field(
+    ground_altitude: pdt.Series[float] | None = pa.Field(
+        nullable=True, coerce=True
+    )
+    counterweight_mass: pdt.Series[float] | None = pa.Field(
         nullable=True, coerce=True
     )
 
@@ -98,6 +102,60 @@ class CableArrayInput(pa.DataFrameModel):
     is_polynomial: pdt.Series[bool]
     radial_thermal_conductivity: pdt.Series[float] = pa.Field(coerce=True)
     has_magnetic_heart: pdt.Series[bool]
+    rts_cable: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    rts_layer_1: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    rts_layer_2: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    rts_layer_3: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    rts_layer_4: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    rts_layer_5: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    rts_layer_6: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    rts_layer_7: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    rts_layer_8: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    safety_coefficient: Optional[pdt.Series[float]] = pa.Field(
+        nullable=True, coerce=True
+    )
+    nb_strand_layer_1: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    nb_strand_layer_2: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    nb_strand_layer_3: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    nb_strand_layer_4: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    nb_strand_layer_5: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    nb_strand_layer_6: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    nb_strand_layer_7: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    nb_strand_layer_8: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
 
 
 class WeatherArrayInput(pa.DataFrameModel):

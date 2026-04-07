@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -7,7 +7,7 @@
 import logging
 import warnings
 from abc import ABC
-from typing import Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -16,8 +16,12 @@ from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Literal, Self, Type
 
 from mechaphlowers.config import options
-from mechaphlowers.data.units import Q_
+from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.errors import DataWarning
+from mechaphlowers.entities.geography import get_gps_from_arrays
+
+if TYPE_CHECKING:
+    from mechaphlowers.core.models.cable.cable_strength import ITensileStrength
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     ObstacleArrayInput,
@@ -76,6 +80,9 @@ class ElementArray(ABC):
         """Returns a copy of self._data that converts values into SI units"""
         data_SI = self._data.copy()
         for column, input_unit in self.input_units.items():
+            # input_units lists every column that might need conversion, but columns can be optional. If a column is missing, we just skip it.
+            if column not in data_SI.columns:
+                continue
             data_SI[column] = (
                 Q_(self._data[column].to_numpy(), input_unit)
                 .to(self.target_units[column])
@@ -122,6 +129,7 @@ class SectionArray(ElementArray):
         "span_length": "m",
         "insulator_mass": "kg",
         "load_mass": "kg",
+        "counterweight_mass": "kg",
     }
 
     def __init__(
@@ -129,6 +137,7 @@ class SectionArray(ElementArray):
         data: pd.DataFrame,
         sagging_parameter: float | None = None,
         sagging_temperature: float | None = None,
+        bundle_number: int = 1,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
 
@@ -144,8 +153,16 @@ class SectionArray(ElementArray):
             self.sagging_temperature = options.data.sagging_temperature_default
         else:
             self.sagging_temperature = sagging_temperature
+        if bundle_number < 1:
+            raise ValueError(
+                f"bundle_number should be a positive integer. Received: {bundle_number}"
+            )
+        self.bundle_number = bundle_number
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
+        self._angles_sense: Literal["clockwise", "anticlockwise"] = (
+            "anticlockwise"
+        )
         logger.debug("Section Array initialized.")
 
     def compute_elevation_difference(self) -> np.ndarray:
@@ -172,19 +189,37 @@ class SectionArray(ElementArray):
         )
 
     @property
+    def angles_sense(self) -> Literal["clockwise", "anticlockwise"]:
+        """Affects line_angle, crossarm_length sign
+
+        If "anticlockwise", line_angle is anticlockwise and crossarm_length is away from user (left).
+        If "clockwise", line_angle is clockwise and crossarm_length is towards user (right).
+
+        Defaults to "anticlockwise"."""
+        return self._angles_sense
+
+    @angles_sense.setter
+    def angles_sense(
+        self, value: Literal["clockwise", "anticlockwise"]
+    ) -> None:
+        if value not in ["clockwise", "anticlockwise"]:
+            raise ValueError(
+                f"angles_sense should be 'clockwise' or 'anticlockwise', received {value}"
+            )
+        self._angles_sense = value
+
+    @property
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
         data_output = super().data
-        data_output["insulator_weight"] = (
-            Q_(data_output["insulator_mass"].to_numpy(), "kg").to("N").m
-        )
-        if "load_mass" in data_output:
-            data_output["load_weight"] = (
-                Q_(data_output["load_mass"].to_numpy(), "kg").to("N").m
-            )
-
+        mass_weight_conversion = {
+            "insulator_mass": "insulator_weight",
+            "load_mass": "load_weight",
+            "counterweight_mass": "counterweight",
+        }
+        self.create_column_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
-
+        data_output = self._adjust_angle_sense(data_output)
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
@@ -198,7 +233,24 @@ class SectionArray(ElementArray):
                 elevation_difference=self.compute_elevation_difference(),
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
+                bundle_number=self.bundle_number,
             )
+
+    def create_column_weight(
+        self, df_output: pd.DataFrame, columns_to_convert: dict[str, str]
+    ) -> None:
+        for column_mass, column_weight in columns_to_convert.items():
+            if column_mass in self._data:
+                df_output[column_weight] = convert_mass_to_weight(
+                    df_output[column_mass].to_numpy()
+                )
+
+    def _adjust_angle_sense(self, data_output: pd.DataFrame) -> pd.DataFrame:
+        if self.angles_sense == "clockwise":
+            # use data_output instead of self._data to keep eventual unit conversion
+            data_output["line_angle"] = -data_output["line_angle"]
+            data_output["crossarm_length"] = -data_output["crossarm_length"]
+        return data_output
 
     def equivalent_span(self) -> float:
         """equivalent_span
@@ -237,6 +289,33 @@ class SectionArray(ElementArray):
                 warnings.warn(warning_string)
                 logger.warning(warning_string)
 
+    def compute_gps_coordinates(
+        self,
+        start_latitude: float,
+        start_longitude: float,
+        start_azimuth: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute GPS coordinates for the cable array.
+
+        Args:
+            start_latitude (float): Latitude of the first support in degrees.
+            start_longitude (float): Longitude of the first support in degrees.
+            start_azimuth (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: Two arrays of GPS coordinates (latitude, longitude) in degrees.
+        """
+        line_angle_geo_degrees = (
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        return get_gps_from_arrays(
+            start_latitude,
+            start_longitude,
+            start_azimuth,
+            line_angle_geo_degrees,
+            self.data["span_length"].to_numpy(),
+        )
+
     def __copy__(self) -> Self:
         copy_obj = super().__copy__()
         copy_obj.sagging_parameter = self.sagging_parameter
@@ -247,11 +326,24 @@ class SectionArray(ElementArray):
 class CableArray(ElementArray):
     """Physical description of a cable.
 
+    Holds catalog data for one cable type and provides RRTS (Residual Rated
+    Tensile Strength) calculations via [`rrts`][mechaphlowers.entities.arrays.CableArray.rrts] and [`utilization_rate`][mechaphlowers.entities.arrays.CableArray.utilization_rate].
+    Use [`cut_strands`][mechaphlowers.entities.arrays.CableArray.cut_strands] to declare the number of damaged strands per layer.
+
+    The tensile strength model is handled by
+    [`AdditiveLayerRts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts]
+    by default, but any [`ITensileStrength`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength] implementation
+    can be injected via the ``tensile_strength`` constructor argument.
+
     Args:
-            data: Input data
+        data: Input data as a DataFrame matching
+            [`CableArrayInput`][mechaphlowers.entities.schemas.CableArrayInput].
+        tensile_strength: Optional tensile strength model. Defaults to
+            [`AdditiveLayerRts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts].
     """
 
     array_input_type: Type[pa.DataFrameModel] = CableArrayInput
+
     target_units: dict[str, str] = {
         "section": "m^2",
         "diameter": "m",
@@ -275,6 +367,15 @@ class CableArray(ElementArray):
         "electric_resistance_20": "ohm.m**-1",
         "linear_resistance_temperature_coef": "K**-1",
         "radial_thermal_conductivity": "W.m**-1.K**-1",
+        "rts_cable": "N",
+        "rts_layer_1": "N",
+        "rts_layer_2": "N",
+        "rts_layer_3": "N",
+        "rts_layer_4": "N",
+        "rts_layer_5": "N",
+        "rts_layer_6": "N",
+        "rts_layer_7": "N",
+        "rts_layer_8": "N",
     }
     mecha_attributes = [
         "section",
@@ -316,18 +417,92 @@ class CableArray(ElementArray):
     def __init__(
         self,
         data: pd.DataFrame,
+        tensile_strength: "ITensileStrength | None" = None,
     ) -> None:
         super().__init__(data)
         self.input_units: dict[str, str] = (
             options.input_units.cable_array.copy()
         )
+        if tensile_strength is None:
+            from mechaphlowers.core.models.cable.cable_strength import (
+                AdditiveLayerRts,
+            )  # noqa: PLC0415
+
+            self._tensile_strength: ITensileStrength = AdditiveLayerRts(
+                self.data
+            )
+        else:
+            self._tensile_strength = tensile_strength
+
+    # ------------------------------------------------------------------
+    # Delegation: tensile strength model
+    # ------------------------------------------------------------------
+
+    @property
+    def high_safety(self) -> bool:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.high_safety`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.high_safety].
+        """
+        return self._tensile_strength.high_safety
+
+    @high_safety.setter
+    def high_safety(self, value: bool) -> None:
+        self._tensile_strength.high_safety = value
+
+    @property
+    def safety_coefficient(self) -> float:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.safety_coefficient`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.safety_coefficient].
+        """
+        return self._tensile_strength.safety_coefficient
+
+    @property
+    def nb_strand_per_layer(self) -> np.ndarray:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.nb_strand_per_layer`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.nb_strand_per_layer].
+        """
+        return self._tensile_strength.nb_strand_per_layer
+
+    def rts_coverage(self) -> float:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.rts_coverage`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.rts_coverage].
+        """
+        return self._tensile_strength.rts_coverage()
+
+    @property
+    def cut_strands(self) -> np.ndarray:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.cut_strands`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.cut_strands].
+        """
+        return self._tensile_strength.cut_strands
+
+    @cut_strands.setter
+    def cut_strands(self, value: list[int] | np.ndarray) -> None:
+        self._tensile_strength.cut_strands = np.asarray(value)
+
+    @property
+    def rrts(self) -> float:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.rrts`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.rrts].
+        """
+        return self._tensile_strength.rrts
+
+    def utilization_rate(self, tension_sup_N: np.ndarray) -> np.ndarray:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.utilization_rate`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.utilization_rate].
+        """
+        return self._tensile_strength.utilization_rate(tension_sup_N)
+
+    # ------------------------------------------------------------------
+    # End Delegation
+    # ------------------------------------------------------------------
 
     @property
     def data(self) -> pd.DataFrame:
         data_output = super().data
         # add new column using linear_mass data: linear_weight
-        data_output["linear_weight"] = (
-            Q_(data_output["linear_mass"].to_numpy(), "kg").to("N").m
+        data_output["linear_weight"] = convert_mass_to_weight(
+            data_output["linear_mass"].to_numpy()
         )
         return data_output
 
@@ -474,7 +649,7 @@ class ObstacleArray(ElementArray):
     ) -> np.ndarray:
         return span_length[span_index] - x
 
-    def get_vectors(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_vectors(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         return (
             self.data["x"].to_numpy(),
             self.data["y"].to_numpy(),

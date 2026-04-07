@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from copy import copy
-from typing import Tuple, Type
+from typing import Type
 
 import numpy as np
 import pandas as pd
@@ -38,7 +38,7 @@ from mechaphlowers.core.models.cable.deformation import (
 from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.core import VhlStrength
+from mechaphlowers.entities.core import VhlResult
 from mechaphlowers.numeric import cubic
 from mechaphlowers.utils import arr
 
@@ -66,8 +66,112 @@ class BalanceModel(IBalanceModel):
     ) -> None:
         # tempertaure and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
-        self.parameter = parameter
-        self.nodes = nodes_builder(section_array)
+        self.parameter_init = parameter
+        self.section_array = section_array
+        self.find_param_solver_type = find_param_solver_type
+
+        self.reset(
+            cable_array, span_model, deformation_model, cable_loads, full=True
+        )
+
+    def reset(
+        self,
+        cable_array: CableArray,
+        span_model: ISpan,
+        deformation_model: IDeformation,
+        cable_loads: CableLoads,
+        full: bool = False,
+    ) -> None:
+        """set or reset the model.
+
+        For full=True, all attributes are re-initialized, including cable data and nodes.
+        Else, only models references are updated. It is useful for loads update for examples.
+
+        Args:
+            cable_array (CableArray): cable data
+            span_model (ISpan): span model
+            deformation_model (IDeformation): deformation model
+            cable_loads (CableLoads): cable loads
+            full (bool, optional): whether to re-initialize all attributes or only models references. Defaults to False.
+        """
+
+        # declaration of attributes
+        self.a: np.ndarray
+        self.b: np.ndarray
+        self.Th: np.ndarray
+        self.Tv_d: np.ndarray
+        self.Tv_g: np.ndarray
+
+        self._adjustment: bool = True
+
+        # if full is True:
+        self.parameter = self.parameter_init
+        self.initialize_cable(cable_array)
+
+        self.nodes = nodes_builder(self.section_array)
+
+        self.initialize_models_references(
+            span_model, deformation_model, cable_loads, full=full
+        )
+
+        # TODO: during adjustment computation, perhaps set cable_temperature = 0
+        # temperature here is tuning temperature / only in the real span part
+        # there is another temperature : change state
+
+        self.initialize_loadmodel()
+        self.initialize_solvers()
+        self.initialize_state()
+
+    def initialize_state(self):
+        """Initialize the state of the model. Mainly used as a preprocess before a computation."""
+        self.update()
+        self.nodes.compute_dx_dy_dz()
+        self.nodes.vector_projection.set_tensions(
+            self.Th, self.Tv_d, self.Tv_g
+        )
+        self.nodes.compute_moment()
+
+    def initialize_models_references(
+        self,
+        span_model: ISpan,
+        deformation_model: IDeformation,
+        cable_loads: CableLoads,
+        full: bool = False,
+    ):
+        """Initialize or reset models references. Special behavior for nodes_span_model if full is False to avoid breaking references.
+
+        Args:
+            span_model (ISpan): span model
+            deformation_model (IDeformation): deformation model
+            cable_loads (CableLoads): cable loads
+            full (bool, optional): whether to re-initialize all attributes or only models references. Defaults to False.
+        """
+        self.span_model = span_model
+        if full is True:
+            self.nodes_span_model = copy(self.span_model)
+        else:
+            self.nodes_span_model.mirror(self.span_model)
+        self.deformation_model = deformation_model
+        self.cable_loads = cable_loads
+
+    def initialize_loadmodel(self):
+        """Initialize LoadModel object used in change_state case with loads."""
+        self.load_model = LoadModel(
+            self.cable_array,
+            self.nodes.load_weight[self.nodes.has_load_on_span],
+            self.nodes.load_position[self.nodes.has_load_on_span],
+            arr.decr(self.span_model.span_length)[self.nodes.has_load_on_span],
+            arr.decr(self.span_model.elevation_difference)[
+                self.nodes.has_load_on_span
+            ],
+            self.k_load[self.nodes.has_load_on_span],
+            self.sagging_temperature[self.nodes.has_load_on_span],
+            self.parameter[self.nodes.has_load_on_span],
+            self.nodes.bundle_number,
+        )
+
+    def initialize_cable(self, cable_array):
+        """Configure cable data from cable_array by copying attributes to local. Mainly used during full reset."""
         self.cable_array = cable_array
         # TODO: temporary solution to manage cable data, must find a better way to do this
         self.cable_section = np.float64(self.cable_array.data.section.iloc[0])
@@ -84,47 +188,19 @@ class BalanceModel(IBalanceModel):
         self.temperature_reference = np.float64(
             self.cable_array.data.temperature_reference.iloc[0]
         )
-        self.span_model = span_model
-        self.nodes_span_model = copy(self.span_model)
-        self.deformation_model = deformation_model
-        self.cable_loads = cable_loads
 
-        self.a: np.ndarray
-        self.b: np.ndarray
-        self.Th: np.ndarray
-        self.Tv_d: np.ndarray
-        self.Tv_g: np.ndarray
+    def initialize_solvers(self):
+        """initialize_solvers initializes the solvers used in the model."""
 
-        self._adjustment: bool = True
-        # TODO: during adjustment computation, perhaps set cable_temperature = 0
-        # temperature here is tuning temperature / only in the real span part
-        # there is another temperature : change state
-
-        self.load_model = LoadModel(
-            self.cable_array,
-            self.nodes.load_weight[self.nodes.has_load_on_span],
-            self.nodes.load_position[self.nodes.has_load_on_span],
-            arr.decr(self.span_model.span_length)[self.nodes.has_load_on_span],
-            arr.decr(self.span_model.elevation_difference)[
-                self.nodes.has_load_on_span
-            ],
-            self.k_load[self.nodes.has_load_on_span],
-            self.sagging_temperature[self.nodes.has_load_on_span],
-            self.parameter[self.nodes.has_load_on_span],
-        )
         self.find_param_model = FindParamModel(
             self.span_model, self.deformation_model
         )
-        self.find_param_solver = find_param_solver_type(self.find_param_model)
+        self.find_param_solver = self.find_param_solver_type(
+            self.find_param_model
+        )
         self.load_solver = BalanceSolver(
             **options.solver.balance_solver_load_params
         )
-        self.update()
-        self.nodes.compute_dx_dy_dz()
-        self.nodes.vector_projection.set_tensions(
-            self.Th, self.Tv_d, self.Tv_g
-        )
-        self.nodes.compute_moment()
 
     @property
     def adjustment(self) -> bool:
@@ -211,12 +287,12 @@ class BalanceModel(IBalanceModel):
 
     def compute_Th_and_extremum(
         self,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Run FindParamSolver to compute parameter, and then compute Th, x_m and x_n.
         Used only in change_state case.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Th, x_m, x_n, parameter
+            tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Th, x_m, x_n, parameter
         """
         # First run approx_parameter to have a closer first value of the parameter. This uses the parabola model.
         parameter_parabola = approx_parameter(
@@ -331,15 +407,13 @@ class BalanceModel(IBalanceModel):
             beta,
             self.nodes.line_angle,
             self.proj_angle,
-            self.nodes.insulator_weight,
         )
 
     def compute_inter(self) -> None:
         # TODO: understand this and write docstring
         # warning: counting from right to left
         proj_d_i = self.nodes.proj_d
-        proj_g_ip1 = np.roll(self.nodes.proj_g, -1, axis=1)
-        proj_diff = (proj_g_ip1 - proj_d_i)[:, :-1]
+        proj_diff = self.nodes.proj_g[:, 1:] - proj_d_i[:, :-1]
         # x: initial input to calculate span_length
         self.inter1: np.ndarray = self.nodes.span_length + proj_diff[0]
         self.inter2: np.ndarray = proj_diff[1]
@@ -354,8 +428,7 @@ class BalanceModel(IBalanceModel):
         self.compute_inter()
 
         self.a = (self.inter1**2 + self.inter2**2) ** 0.5
-        b = np.roll(z, -1) - z
-        self.b = b[:-1]
+        self.b = z[1:] - z[:-1]
         # TODO: fix array lengths?
         self.span_model.set_lengths(
             arr.incr(self.a_prime), arr.incr(self.b_prime)
@@ -370,7 +443,10 @@ class BalanceModel(IBalanceModel):
         # Need to run update() before this method if necessary
         self.nodes.compute_moment()
 
-        out = np.array([self.nodes.Mx, self.nodes.My]).flatten('F')
+        n = len(self.nodes.Mx)
+        out = np.empty(2 * n)
+        out[0::2] = self.nodes.Mx
+        out[1::2] = self.nodes.My
         return out
 
     @property
@@ -393,39 +469,52 @@ class BalanceModel(IBalanceModel):
         self.update_span()
         self.update_tensions()
 
-    def vhl_under_chain(self, output_unit: str = "daN") -> VhlStrength:
-        V = -(self.nodes.Fz - self.nodes.insulator_weight / 2)
-        vhl_result = np.array([V, self.nodes.Fy, self.nodes.Fx])
-        return VhlStrength(vhl_result, "N")
+    # For the following vhl methods, the Fz and Fy components are reversed:
+    # the z axis is reversed (downwards) for users wanting vhl results
+    # the y axis is also reversed: toward oneself (right of the line)
 
-    def vhl_under_chain_left(self, output_unit: str = "daN") -> VhlStrength:
+    def vhl_under_chain(self) -> VhlResult:
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
+
+    def vhl_under_chain_left(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the left of the support.
 
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
-        Default unit is daN"""
-        Fx, Fy, Fz = self.nodes.vector_projection.forces_left()
-        V = -(Fz - self.nodes.insulator_weight / 2)
-        vhl_result = np.array([V, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
 
-    # TODO: right and left are swapped
-    def vhl_under_chain_right(self, output_unit: str = "daN") -> VhlStrength:
+        Returns:
+            VhlResult: VhlResult object
+        """
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable_left()
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
+
+    def vhl_under_chain_right(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
-        VHL at the left of the support.
+        VHL at the right of the support.
 
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
-        Default unit is daN"""
-        Fx, Fy, Fz = self.nodes.vector_projection.forces_right()
-        V = -(Fz - self.nodes.insulator_weight / 2)
-        vhl_result = np.array([V, Fy, Fx])
-        return VhlStrength(vhl_result, "N")
 
-    def vhl_under_console(self, output_unit: str = "daN") -> VhlStrength:
-        vhl_result = np.array([self.nodes.Fz, self.nodes.Fy, self.nodes.Fx])
-        return VhlStrength(vhl_result, "N")
+        Returns:
+            VhlResult: VhlResult object
+        """
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable_right()
+        vhl_result = np.array([Fz + self.nodes.signed_counterweight, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
+
+    def vhl_under_console(self) -> VhlResult:
+        Fx, Fy, Fz = self.nodes.vector_projection.force_cable()
+        Fz_with_weights = (
+            Fz
+            + self.nodes.signed_insulator_weight
+            + self.nodes.signed_counterweight
+        )
+        vhl_result = np.array([Fz_with_weights, Fy, Fx])
+        return VhlResult(vhl_result, "N", change_frame=True)
 
     @property
     def has_loads(self) -> bool:
@@ -444,50 +533,73 @@ class BalanceModel(IBalanceModel):
 
     def merge_loads_to_span_model(self):
         """Fetch load_model and give it to nodes_span_model, splitting spans into two, if they contains a load."""
-        bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
+        if not hasattr(self, "_merge_normal_idx"):
+            self._precompute_merge_indices()
 
-        new_span_model = copy(self.span_model)
+        normal_idx = self._merge_normal_idx
+        left_idx = self._merge_left_idx
+        right_idx = self._merge_right_idx
+        not_load_mask = self._merge_not_load_mask
 
-        def insert_array(arr, arr_insert_left, arr_insert_right, mask):
-            arr_new = copy(arr)
-            arr_new[mask] = arr_insert_right
-            insert_mask = np.nonzero(mask)[0]
-            return np.insert(arr_new, insert_mask, arr_insert_left)
+        def build_merged(original, left_values, right_values):
+            result = np.empty(self._merge_n_total, dtype=original.dtype)
+            result[normal_idx] = original[not_load_mask]
+            result[left_idx] = left_values
+            result[right_idx] = right_values
+            return result
 
-        sagging_parameter = insert_array(
-            new_span_model.sagging_parameter,
+        self.nodes_span_model.sagging_parameter = build_merged(
+            self.span_model.sagging_parameter,
             self.load_model.span_model_left.sagging_parameter,
             self.load_model.span_model_right.sagging_parameter,
-            bool_mask,
         )
-        span_length = insert_array(
-            new_span_model.span_length,
+        self.nodes_span_model.span_length = build_merged(
+            self.span_model.span_length,
             self.load_model.span_model_left.span_length,
             self.load_model.span_model_right.span_length,
-            bool_mask,
         )
-        elevation_difference = insert_array(
-            new_span_model.elevation_difference,
+        self.nodes_span_model.elevation_difference = build_merged(
+            self.span_model.elevation_difference,
             self.load_model.span_model_left.elevation_difference,
             self.load_model.span_model_right.elevation_difference,
-            bool_mask,
         )
-        np_array = np.arange(len(self.span_model.span_length))
-        span_index = np.insert(
-            np_array, np.nonzero(bool_mask)[0], np_array[bool_mask]
-        )
-        span_type = insert_array(
-            np.full_like(self.span_model.span_length, 0),
-            np.full_like(self.load_model.span_model_left.span_length, 1),
-            np.full_like(self.load_model.span_model_right.span_length, 2),
-            bool_mask,
-        )
+        self.nodes_span_model.span_index = self._merge_span_index
+        self.nodes_span_model.span_type = self._merge_span_type
 
-        self.nodes_span_model.span_length = span_length
-        self.nodes_span_model.elevation_difference = elevation_difference
-        self.nodes_span_model.sagging_parameter = sagging_parameter
-        self.nodes_span_model.span_index = span_index
-        self.nodes_span_model.span_type = span_type
+    def _precompute_merge_indices(self):
+        """Pre-compute index maps for merge_loads_to_span_model.
+
+        Called once, then reused on every subsequent merge call.
+        Replaces the repeated np.insert + copy allocations with
+        direct index assignment into pre-sized arrays.
+        """
+        bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
+        not_load_mask = ~bool_mask
+        self._merge_not_load_mask = not_load_mask
+
+        n_original = len(bool_mask)
+        n_total = n_original + np.count_nonzero(bool_mask)
+        self._merge_n_total = n_total
+
+        # Each original position maps to 1 slot (normal) or
+        # 2 slots (left + right) in the expanded array.
+        expanded_pos = np.cumsum(np.where(bool_mask, 2, 1)) - 1
+        self._merge_right_idx = expanded_pos[bool_mask]
+        self._merge_left_idx = self._merge_right_idx - 1
+        self._merge_normal_idx = expanded_pos[not_load_mask]
+
+        # span_index and span_type are constant across calls
+        np_arange = np.arange(n_original)
+        span_index = np.empty(n_total, dtype=np_arange.dtype)
+        span_index[self._merge_normal_idx] = np_arange[not_load_mask]
+        span_index[self._merge_left_idx] = np_arange[bool_mask]
+        span_index[self._merge_right_idx] = np_arange[bool_mask]
+        self._merge_span_index = span_index
+
+        span_type = np.zeros(n_total, dtype=np.float64)
+        span_type[self._merge_left_idx] = 1
+        span_type[self._merge_right_idx] = 2
+        self._merge_span_type = span_type
 
     def dict_to_store(self) -> dict:
         return {
@@ -564,30 +676,15 @@ class Nodes:
         insulator_weight: np.ndarray,
         crossarm_length: np.ndarray,
         line_angle: np.ndarray,
-        z: np.ndarray,
+        initial_attach_alt: np.ndarray,
         span_length: np.ndarray,
         # load and load_position must of length nb_supports - 1
         load_weight: np.ndarray,
         load_position: np.ndarray,
+        counterweight: np.ndarray,
+        bundle_number: int,  # np.ndarray?
     ):
         # TODO: docstring of this whole class
-
-        self.insulator_length = insulator_length
-        # insulator_weight: positive weight means downward force
-        self.insulator_weight = -insulator_weight
-        # arm length: positive length means further from observer
-        self.crossarm_length = crossarm_length
-        # line_angle: anti clockwise
-        self.line_angle = line_angle
-        self.init_coordinates(span_length, z)
-        # dx, dy, dz are the distances between the attachment point and the arm, including the chain
-        # format: [[x0, x1, ...], [y0, y1, ...], [z0, z1, ...]]
-        self.dxdydz = np.zeros((3, len(z)), dtype=np.float64)
-        self.load_weight = load_weight
-        self.load_position = load_position
-        self.has_load_on_span = np.logical_and(
-            load_weight != 0, load_position != 0
-        )
 
         nodes_type = [
             "anchor_first"
@@ -597,9 +694,28 @@ class Nodes:
             else "suspension"
             for i in range(len(insulator_weight))
         ]
-        self.masks = Masks(nodes_type, self.insulator_length)
+        self.masks = Masks(nodes_type, insulator_length)
+        self.init_coordinates(initial_attach_alt, insulator_length)
 
-        self.vector_projection = VectorProjection()
+        self.insulator_length = insulator_length
+        # insulator_weight is absolute value. Add a negative sign because weight is downwards
+        self.signed_insulator_weight = -insulator_weight
+        # arm length: positive length means further from observer
+        self.crossarm_length = crossarm_length
+        # line_angle: anti clockwise
+        self.line_angle = line_angle
+        self.span_length = span_length
+
+        self.load_weight = load_weight
+        self.load_position = load_position
+        self.has_load_on_span = np.logical_and(
+            load_weight != 0, load_position != 0
+        )
+        self.signed_counterweight = -counterweight
+        self.bundle_number = bundle_number
+        self.vector_projection = VectorProjection(
+            self.line_angle, self.bundle_number
+        )
 
     @property
     def dx(self) -> np.ndarray:
@@ -634,11 +750,6 @@ class Nodes:
         return self.z_arm + self.dz
 
     @property
-    def z_arm(self) -> np.ndarray:
-        """This property returns the altitude of the end the arm. Should not be modified during computation."""
-        return self._z0 - self.z_suspension_chain
-
-    @property
     def proj_g(self) -> np.ndarray:
         arm_length = self.crossarm_length
         gamma = self.line_angle
@@ -666,39 +777,68 @@ class Nodes:
 
     @property
     def state_vector(self) -> np.ndarray:
-        # [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
-        dxdy = self.dxdydz[[0, 1], 1:-1]
-        dzdy = self.dxdydz[[2, 1]][:, [0, -1]]
+        """Getter for state_vector, using self.dxdydz
+
+        Format of state_vector : [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
+
+        Format of self.dxdydz: [[dx0, dx1,...], [dy0, dy1,...], [dz0, dz1,...]]
+
+        Returns:
+            np.ndarray: state_vector, used by the solver.
+        """
+
+        # get lines dx and dy, for suspension supports
+        # dxdy = [[dx1, dx2, dx3,...], [dy1, dy2, dy3,...]]
+        dxdy = self.dxdydz[[0, 1]][:, self.masks.is_suspension]
+        # get lines dz and dy, for anchor supports
+        # dzdy = [[dz1, dz2, dz3,...], [dy1, dy2, dy3,...]]
+        dzdy = self.dxdydz[[2, 1]][:, self.masks.is_anchor]
         return np.vstack([dzdy[:, 0], dxdy.T, dzdy[:, 1]]).flatten()
 
     @state_vector.setter
     def state_vector(self, state_vector: np.ndarray):
-        # TODO: refactor with mask
+        """Setter for state_vector.
+
+        Recalculate and update dx, dy, dz.
+
+        Args:
+            state_vector (np.ndarray): Format: [dz_0, dy_0, dx_1, dy_1, ... , dz_n, dy_n]
+        """
+        # [dz_0, dx_1, dx2, ..., dz_n]
         dzdxdz = state_vector[::2]
         dy = state_vector[1::2]
 
+        is_sus = self.masks.is_suspension
+        is_anchor = self.masks.is_anchor
         self.dy = dy
-        self.dx[1:-1] = dzdxdz[1:-1]
-        self.dz[[0, -1]] = dzdxdz[[0, -1]]
+        # Get dx for suspensions and dz for anchors
+        self.dx[is_sus] = dzdxdz[is_sus]
+        self.dz[is_anchor] = dzdxdz[is_anchor]
         self.compute_dx_dy_dz()
 
-    def init_coordinates(self, span_length: np.ndarray, z: np.ndarray) -> None:
-        # unused code?
-        # self.x_anchor_chain = np.zeros_like(z)
-        # self.x_anchor_chain[0] = self.insulator_length[0]
-        # self.x_anchor_chain[-1] = -self.insulator_length[-1]
-        self.z_suspension_chain = np.zeros_like(z)
-        self.z_suspension_chain[1:-1] = -self.insulator_length[1:-1]
+    def init_coordinates(
+        self, initial_attach_alt: np.ndarray, insulator_length: np.ndarray
+    ) -> None:
+        """Init self.z_arm (altitude of the arm) and self.dxdydz (array of coordinates of the chain).
 
-        # warning: x0 and z0 does not mean the same thing
-        # x0 is the absissa of the arm
-        # z0 is the altitude of the attachement point
-        self.span_length = span_length
-        self._z0 = z
-        self._y = np.zeros_like(z, dtype=np.float64)
+        z_arm is a constant used for getting the z coordinates of the attachment.
+
+        dxdydz is a variable storing the coordinates of the chain.
+
+        Args:
+            initial_attach_alt (np.ndarray): array of the initial altitude of the attachments (data from SectionArray)
+        """
+        z_suspension_chain = np.zeros_like(initial_attach_alt)
+        is_sus = self.masks.is_suspension
+        z_suspension_chain[is_sus] = -insulator_length[is_sus]
+        self.z_arm = initial_attach_alt - z_suspension_chain
+
+        # dx, dy, dz are the distances between the attachment point and the arm, including the chain
+        # format: [[x0, x1, ...], [y0, y1, ...], [z0, z1, ...]]
+        self.dxdydz = np.zeros((3, len(initial_attach_alt)), dtype=np.float64)
 
     def compute_dx_dy_dz(self) -> None:
-        """Update dx and dz according to insulator_length and the othre displacement, using Pytagoras.
+        """Update dx and dz according to insulator_length and the other displacement, using Pytagoras.
 
         For anchor chains: update dx
 
@@ -709,21 +849,34 @@ class Nodes:
         )
 
     def compute_moment(self) -> None:
-        Fx, Fy, Fz = self.vector_projection.forces()
-
-        lever_arm = np.array([self.dx, self.dy, self.dz]).T
+        """Compute moments of two forces: force of the cable, and chain weight."""
+        F_zeros = np.empty(self.signed_insulator_weight.shape)
+        F_zeros.fill(0.0)
+        # Force of the cable. Applied at attachement point between cable and chain.
+        Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
+        force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
+        force_counterweight = np.vstack(
+            (F_zeros, F_zeros, self.signed_counterweight)
+        ).T
         # size : (nb nodes , 3 for 3D)
 
-        force_3d = np.vstack((Fx, Fy, Fz)).T
+        lever_cable = np.array([self.dx, self.dy, self.dz]).T
+        M_cable = np.cross(lever_cable, force_cable + force_counterweight)
 
-        M = np.cross(lever_arm, force_3d)
+        # add counterweight here (full length chain)
+
+        # Weight of the chain. Applied on center of gravity of the chain
+        force_chain_weight = np.vstack(
+            (F_zeros, F_zeros, self.signed_insulator_weight)
+        ).T
+        lever_chain_weight = np.array([self.dx, self.dy, self.dz]).T / 2
+        M_chain_weight = np.cross(lever_chain_weight, force_chain_weight)
+
+        M = M_cable + M_chain_weight
+
         Mx = M[:, 0]
         My = M[:, 1]
-        # Mz is supposed to be equal to 0 on each span
         Mz = M[:, 2]
-        self.Fx = Fx
-        self.Fy = Fy
-        self.Fz = Fz
         self.Mx = Mx
         self.My = My
         self.Mz = Mz
@@ -733,11 +886,9 @@ class Nodes:
             'dx': self.dx,
             'dy': self.dy,
             'dz': self.dz,
-            'Fx': self.Fx,
-            'Fy': self.Fy,
-            'Fz': self.Fz,
             'Mx': self.Mx,
             'My': self.My,
+            'Mz': self.Mz,
         }
         out = pd.DataFrame(data)
 
@@ -763,19 +914,40 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
     insulator_weight = section_array.data.insulator_weight.to_numpy()
     crossarm_length = section_array.data.crossarm_length.to_numpy()
     line_angle = section_array.data.line_angle.to_numpy()
-    z = section_array.data.conductor_attachment_altitude.to_numpy()
+    initial_attach_alt = (
+        section_array.data.conductor_attachment_altitude.to_numpy()
+    )
     span_length = arr.decr(section_array.data.span_length.to_numpy())
-    load_weight = arr.decr(section_array.data.load_weight.to_numpy())
-    load_position = arr.decr(section_array.data.load_position.to_numpy())
+
+    load_weight = (
+        arr.decr(section_array.data.load_weight.to_numpy())
+        if "load_weight" in section_array.data
+        else np.zeros(span_length.shape)
+    )
+    load_position = (
+        arr.decr(section_array.data.load_position.to_numpy())
+        if "load_position" in section_array.data
+        else np.zeros(span_length.shape)
+    )
+    counterweight = (
+        section_array.data.counterweight.to_numpy()
+        if "counterweight" in section_array.data
+        else np.zeros(insulator_length.shape)
+    )
+
+    bundle_number = section_array.bundle_number
+
     return Nodes(
         insulator_length,
         insulator_weight,
         crossarm_length,
         line_angle,
-        z,
+        initial_attach_alt,
         span_length,
         load_weight,
         load_position,
+        counterweight,
+        bundle_number,
     )
 
 
@@ -796,6 +968,7 @@ class LoadModel(IModelForSolver):
         k_load: np.ndarray,
         temperature: np.ndarray,
         parameter: np.ndarray,
+        bundle_number: int,
         find_param_solver_type: Type[
             IFindParamSolver
         ] = FindParamSolverForLoop,
@@ -815,36 +988,37 @@ class LoadModel(IModelForSolver):
         self.load_weight = load_weight
         self.load_position = load_position
         self.find_param_solver_type = find_param_solver_type
+        self._n_loads = len(load_weight)
+        self.bundle_number = bundle_number
         # TODO: Need a way to choose Span model
 
-        # init objects with placeholder values, but they will be updated when needed
+        # Individual span models for objective_function and external access
         self.span_model_left = CatenarySpan(
             a, b, parameter, k_load, self.linear_weight
         )
         self.span_model_right = CatenarySpan(
             a, b, parameter, k_load, self.linear_weight
         )
-        self.deformation_model_left = deformation_model_builder(
+
+        # Combined span model (2N elements: [left..., right...])
+        # for batched approx_parameter + find_parameter
+        a2 = np.concatenate([a, a])
+        b2 = np.concatenate([b, b])
+        p2 = np.concatenate([parameter, parameter])
+        k2 = np.concatenate([k_load, k_load])
+        t2 = np.concatenate([temperature, temperature])
+
+        self._span_combined = CatenarySpan(a2, b2, p2, k2, self.linear_weight)
+        self._deformation_combined = deformation_model_builder(
             self.cable_array,
-            self.span_model_left,
-            temperature,
+            self._span_combined,
+            t2,
         )
-        self.deformation_model_right = deformation_model_builder(
-            self.cable_array,
-            self.span_model_right,
-            temperature,
+        self._find_param_model = FindParamModel(
+            self._span_combined, self._deformation_combined
         )
-        self.find_param_model_left = FindParamModel(
-            self.span_model_left, self.deformation_model_left
-        )
-        self.find_param_model_right = FindParamModel(
-            self.span_model_right, self.deformation_model_right
-        )
-        self.find_param_solver_left = self.find_param_solver_type(
-            self.find_param_model_left
-        )
-        self.find_param_solver_right = self.find_param_solver_type(
-            self.find_param_model_right
+        self._find_param_solver = self.find_param_solver_type(
+            self._find_param_model
         )
 
     def set_all(
@@ -885,8 +1059,10 @@ class LoadModel(IModelForSolver):
         self.span_model_left.load_coefficient = self.k_load
         self.span_model_right.load_coefficient = self.k_load
 
-        self.deformation_model_left.current_temperature = self.temperature
-        self.deformation_model_right.current_temperature = self.temperature
+        k2 = np.concatenate([self.k_load, self.k_load])
+        t2 = np.concatenate([self.temperature, self.temperature])
+        self._span_combined.load_coefficient = k2
+        self._deformation_combined.current_temperature = t2
 
     def update_lengths_span_models(self) -> None:
         self.span_model_left.span_length = self.x_i
@@ -900,7 +1076,11 @@ class LoadModel(IModelForSolver):
         Returns:
             np.ndarray: state vector. Format is `[x_i0, z_i0, x_i1, z_i1,...]`
         """
-        return np.array([self.x_i, self.z_i]).flatten('F')
+        n = len(self.x_i)
+        out = np.empty(2 * n)
+        out[0::2] = self.x_i
+        out[1::2] = self.z_i
+        return out
 
     @state_vector.setter
     def state_vector(self, value: np.ndarray) -> None:
@@ -929,55 +1109,57 @@ class LoadModel(IModelForSolver):
         Tv_g_loc = self.span_model_right.T_v(x_m_right)
 
         Th_diff = Th_left - Th_right
-        Tv_diff = Tv_d_loc + Tv_g_loc - self.load_weight * self.k_load
+        # TODO: check if divide by bundle number here?
+        Tv_diff = (
+            Tv_d_loc
+            + Tv_g_loc
+            - self.k_load * self.load_weight / self.bundle_number
+        )
 
-        return np.array([Th_diff, Tv_diff]).flatten('F')
+        n = len(Th_diff)
+        out = np.empty(2 * n)
+        out[0::2] = Th_diff
+        out[1::2] = Tv_diff
+        return out
 
     def update(self) -> None:
         """Update attributes on both span models: `span length`, `elevation difference`, `L_ref` and `parameter`"""
         self.update_lengths_span_models()
-        # update parameter left
+        n = self._n_loads
         L_ref_left = self.load_position * self.L_ref
-        a_left = self.x_i
-        b_left = self.z_i
-        parameter_left = approx_parameter(
-            a_left,
-            b_left,
-            L_ref_left,
-            self.k_load,
-            self.cable_section,
-            self.linear_weight,
-            self.young_modulus,
-            self.dilatation_coefficient,
-            self.temperature,
-        )
-        self.find_param_model_left.set_attributes(
-            initial_parameter=parameter_left,
-            L_ref=L_ref_left,
-        )
-
-        parameter_left = self.find_param_solver_left.find_parameter()
-        self.span_model_left.set_parameter(parameter_left)
-
-        # update parameter right
         L_ref_right = self.L_ref - L_ref_left
-        a_right = self.a_prime - self.x_i
-        b_right = self.b_prime - self.z_i
-        parameter_right = approx_parameter(
-            a_right,
-            b_right,
-            L_ref_right,
-            self.k_load,
+
+        # Concatenate left + right arrays for a single batched call
+        a_both = np.concatenate([self.x_i, self.a_prime - self.x_i])
+        b_both = np.concatenate([self.z_i, self.b_prime - self.z_i])
+        L_ref_both = np.concatenate([L_ref_left, L_ref_right])
+        k_both = np.concatenate([self.k_load, self.k_load])
+        t_both = np.concatenate([self.temperature, self.temperature])
+
+        # Update combined span model geometry
+        self._span_combined.span_length = a_both
+        self._span_combined.elevation_difference = b_both
+
+        # Single approx_parameter call (2N elements)
+        param_both = approx_parameter(
+            a_both,
+            b_both,
+            L_ref_both,
+            k_both,
             self.cable_section,
             self.linear_weight,
             self.young_modulus,
             self.dilatation_coefficient,
-            self.temperature,
-        )
-        self.find_param_model_right.set_attributes(
-            initial_parameter=parameter_right,
-            L_ref=L_ref_right,
+            t_both,
         )
 
-        parameter_right = self.find_param_solver_right.find_parameter()
-        self.span_model_right.set_parameter(parameter_right)
+        # Single find_parameter call (2N elements)
+        self._find_param_model.set_attributes(
+            initial_parameter=param_both,
+            L_ref=L_ref_both,
+        )
+        param_both = self._find_param_solver.find_parameter()
+
+        # Split results and update individual span models
+        self.span_model_left.set_parameter(param_both[:n])
+        self.span_model_right.set_parameter(param_both[n:])

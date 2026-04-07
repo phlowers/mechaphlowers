@@ -60,7 +60,6 @@ class CableLoads:
         self,
     ) -> np.ndarray:
         """Norm of the force (R) applied on the cable due to weather loads and cable own weight, per meter cable"""
-
         linear_weight = self.linear_weight
         ice_load = self.ice_load
         wind_load = self.wind_load
@@ -142,7 +141,7 @@ class WindSpeedPressureConverter:
         self.gust = gust
         self._speed_average_open_country = speed_average_open_country
         if angle_cable_degrees is None:
-            angle_cable_degrees = np.full_like(90, speed_average_open_country)
+            angle_cable_degrees = np.full(speed_average_open_country.shape, 90)
         self.angle_cable_degrees = angle_cable_degrees
         self.voltage = voltage
         self.category_surface_roughness = category_surface_roughness

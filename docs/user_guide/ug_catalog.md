@@ -1,11 +1,18 @@
 # Data catalog
 
-## Catalogs available
+## How to use the catalogs
+
+### Catalogs available
 
 Mechaphlowers comes with a few catalogs that you can use to instantiate entities.  
 You can find the following catalogs with sample data inside:
+
 - `sample_cable_catalog`
 - `sample_support_catalog`
+- `section_factory_sample_data`
+
+
+### Get a support as an object
 
 ```python
 from mechaphlowers.data.catalog import sample_support_catalog
@@ -21,11 +28,83 @@ sample_support_catalog.get_as_object(["support_1", "support_5"])
 
 ```
 
+### sample_cable_catalog
 
+Four fictive cables representative of common overhead line conductor families:
 
-## Loading your data in the catalogs
+```python
+from mechaphlowers.data.catalog import sample_cable_catalog
 
-You can add new catalogs in `.csv` format to the a user folder.
+sample_cable_catalog.keys()
+cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
+```
+
+| Name | Section (mm²) | Diameter (mm) | Linear mass (kg/m) | Notes |
+|------|--------------|---------------|--------------------|-------|
+| ASTER600 | 600.4 | 31.86 | 1.8 | Linear stress-strain model |
+| CROCUS400 | 400.9 | 26.16 | 1.6 | Linear stress-strain model |
+| NARCISSE600G | 600.4 | 29.56 | 2.2 | Polynomial stress-strain model |
+| PETUNIA600 | 599.7 | 31.66 | 2.3 | Linear model, magnetic heart |
+
+Columns and their input units (before SI conversion):
+
+| Column (CSV → internal) | Input unit | Description |
+|-------------------------|-----------|-------------|
+| `section` | mm² | Total cross-section |
+| `diameter` | mm | External diameter |
+| `young_modulus` | MPa | Young's modulus |
+| `linear_mass` | kg/m | Linear mass |
+| `dilatation_coefficient` | 1/K | Thermal expansion coefficient |
+| `temperature_reference` | °C | Reference temperature |
+| `stress_strain_a0`…`a4` → `a0`…`a4` | MPa | Conductor polynomial stress-strain coefficients |
+| `stress_strain_b0`…`b4` → `b0`…`b4` | MPa | Heart polynomial stress-strain coefficients |
+| `diameter_heart` | mm | Heart diameter |
+| `section_conductor` | mm² | Conductor cross-section |
+| `section_heart` | mm² | Heart cross-section |
+| `solar_absorption` | — | Solar absorption coefficient |
+| `emissivity` | — | Emissivity coefficient |
+| `electric_resistance_20` | Ω/km | Electric resistance at 20 °C |
+| `linear_resistance_temperature_coef` | 1/K | Temperature coefficient of resistance |
+| `is_polynomial` | — | `True` if polynomial stress-strain model is used |
+| `radial_thermal_conductivity` | W·m⁻¹·K⁻¹ | Radial thermal conductivity |
+| `has_magnetic_heart` | — | `True` if the heart is magnetic (e.g. steel) |
+| `rts_cable` | N | Rated Tensile Strength of the intact cable |
+| `rts_layer_1`…`rts_layer_8` | N | Unit RTS per strand per layer (`0` = unused layer) |
+| `safety_coefficient` | — | Safety coefficient for utilization rate (default 1.5) |
+| `nb_strand_layer_1`…`nb_strand_layer_8` | — | Number of strands per layer (`0` = unused layer) |
+
+!!! note "Stress-strain model"
+    For linear cables (`is_polynomial = False`), only `a1` and `b1` are non-zero (conductor and heart Young's modulus). Polynomial cables use all five coefficients `a0`…`a4` / `b0`…`b4`.
+
+!!! note "RRTS columns"
+    `rts_cable`, `rts_layer_*`, `safety_coefficient` and `nb_strand_layer_*` are optional. They are only required for [RRTS and utilization rate calculations](ug_rrts.md).
+### Build a balance engine from scratch
+
+```python
+# Get section factory data as a dataframe
+from mechaphlowers.data.catalog import section_factory_sample_data
+
+data = section_factory_sample_data(size_section = 5, seed = 42)
+
+# Get cable array object from the cable catalog
+from mechaphlowers.data.catalog import sample_cable_catalog
+
+cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
+
+# Build a balance engine with the section array and the cable array
+import mechaphlowers as mph
+import pandas as pd
+
+section_array = mph.SectionArray(pd.DataFrame(data))
+balance_engine = mph.BalanceEngine(section_array=section_array, cable_array=cable_array)
+# ... do some computations with balance_engine
+```
+
+## Custom catalogs
+
+### Loading your data in the catalogs
+
+You can add new catalogs in `.csv` format to a user folder.
 
 To configure how Mechaphlowers will read them, you need to provide a corresponding `.yaml` file that references the CSV catalog, also placed in the same folder.
 
@@ -45,7 +124,7 @@ my_catalog = build_catalog_from_yaml("new_catalog_config_file.yaml", user_filepa
 ```
 
 
-## yaml file format
+### yaml file format
 
 Here is an example of yaml file:
 
@@ -91,13 +170,13 @@ columns_units:
 !!! warning "Booleans"
     To avoid issues when empty value in boolean columns, booleans columns are not type checked.
 
-## Augmenting your catalog
+### Augmenting your catalog
 
-For developers who wants to directly instanciate objects from custom catalogs, there are two ways: 
+For developers who wants to directly instantiate objects from custom catalogs, there are two ways: 
 - use the existing catalogs and add your own data. You will take advantage of the existing object facilities with the `get_as_object()` method. For example support catalog will provide a list of `SupportShape` objects.
 - Implement in a pull request your own object to handle a new type of data.
 
-## Unit conversion
+### Unit conversion
 
 You can specify the unit of the data in the csv. This way, they will be automatically converted into SI units for computations.
 

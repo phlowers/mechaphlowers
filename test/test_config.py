@@ -11,11 +11,12 @@ import plotly.graph_objects as go  # type: ignore[import-untyped]
 from mechaphlowers.config import options
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.plotting.plot import PlotEngine
+from test.conftest import show_figures
 
 
 def test_config_on_plot(balance_engine_base_test) -> None:
     balance_engine_base_test.solve_adjustment()
-    plt_line = PlotEngine.builder_from_balance_engine(balance_engine_base_test)
+    plt_line = PlotEngine(balance_engine_base_test)
 
     fig = go.Figure()
     original_res = options.graphics.resolution
@@ -29,7 +30,8 @@ def test_config_on_plot(balance_engine_base_test) -> None:
     assert fig._data[0].get('x').shape[0] == (  # type: ignore[attr-defined]
         options.graphics.resolution + 1
     ) * (balance_engine_base_test.section_array.data.shape[0] - 1)
-    # fig.show() # deactivate for auto unit testing
+    if show_figures:
+        fig.show()  # deactivate for auto unit testing
     # restore original settings
     options.graphics.resolution = original_res
     options.graphics.cable_trace_profile = original_trace_profile
@@ -62,9 +64,18 @@ def test_change_values_input_unit__one_value() -> None:
         "diameter_heart": "mm",
         "section_conductor": "mm^2",
         "section_heart": "mm^2",
-        "electric_resistance_20": "ohm.m**-1",
+        "electric_resistance_20": "ohm.km**-1",
         "linear_resistance_temperature_coef": "K**-1",
         "radial_thermal_conductivity": "W.m**-1.K**-1",
+        "rts_cable": "N",
+        "rts_layer_1": "N",
+        "rts_layer_2": "N",
+        "rts_layer_3": "N",
+        "rts_layer_4": "N",
+        "rts_layer_5": "N",
+        "rts_layer_6": "N",
+        "rts_layer_7": "N",
+        "rts_layer_8": "N",
     }
 
     expected_dict_section = {

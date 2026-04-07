@@ -118,7 +118,7 @@ def test_run_balance_engine_plot():
 
     balance_engine.solve_adjustment()
     balance_engine.solve_change_state(new_temperature=90, wind_pressure=200)
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+    plt_engine = PlotEngine(balance_engine)
 
     # get coordinates for plotting in 3D
     plt_engine.get_points_for_plot()

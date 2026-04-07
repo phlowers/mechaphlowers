@@ -8,7 +8,7 @@ import logging
 import warnings
 from functools import wraps
 from time import time
-from typing import Any, Callable, Dict, Literal, Protocol, TypeVar, cast
+from typing import Any, Callable, Literal, Protocol, TypeVar, cast
 
 import numpy as np
 import pandas as pd
@@ -20,7 +20,7 @@ from mechaphlowers.entities.errors import ViewChoiceWarning
 logger = logging.getLogger(__name__)
 
 
-def ppnp(arr: np.ndarray, prec: int = 2):
+def ppnp(arr: np.ndarray, prec: int = 2) -> None:
     """ppnp helper function to force display without scientific notation
 
     Args:
@@ -52,7 +52,7 @@ class CachedAccessor:
         self._name: str = name
         self._accessor: Callable = accessor
 
-    def __get__(self, obj, cls):
+    def __get__(self, obj: Any, cls: Any) -> Any:
         if obj is None:
             # we're accessing the attribute of the class, i.e., Dataset.geo
             return self._accessor
@@ -65,7 +65,7 @@ class CachedAccessor:
         return accessor_obj
 
 
-def float_to_array(data: Dict[str, np.ndarray | float | int]) -> Dict:
+def float_to_array(data: dict[str, np.ndarray | float | int]) -> dict:
     """Convert inputs to the required format."""
     for key, value in data.items():
         if isinstance(value, (int, float)):
@@ -75,7 +75,7 @@ def float_to_array(data: Dict[str, np.ndarray | float | int]) -> Dict:
     return data
 
 
-def span_to_support_view(
+def span_to_support_view_guying(
     span_index: int,
     selected_support: Literal['left', 'right'],
 ) -> tuple[int, Literal['left', 'right']]:
@@ -95,25 +95,23 @@ def span_to_support_view(
     )
     if selected_support == "right":
         support_index = span_index + 1
-        support_side: Literal['left', 'right'] = "left"
     elif selected_support == "left":
         support_index = span_index
-        support_side = "right"
     else:
-        raise AttributeError("support_side must be 'left' or 'right'")
+        raise ValueError("selected_support must be 'left' or 'right'")
     logger.debug(
-        f"Equivalent support for calculation: index: {support_index}, side: {support_side}"
+        f"Equivalent support for calculation: index: {support_index}, side: {selected_support}"
     )
     warnings.warn(
-        f"Equivalent support view for calculation: index: {support_index}, side: {support_side}",
+        f"Equivalent support view for calculation: index: {support_index}, side: {selected_support}",
         ViewChoiceWarning,
     )
-    return support_index, support_side
+    return support_index, selected_support
 
 
 def add_stderr_logger(
     level: int = logging.DEBUG,
-):
+) -> logging.StreamHandler:
     """Helper for quickly adding a StreamHandler to the logger. Useful for
     debugging. Inspired by the urllib3 library.
 
@@ -167,11 +165,11 @@ def df_to_dict(df: pd.DataFrame) -> dict:
     return q
 
 
-def reduce_to_span(array_to_reduce: np.ndarray):
+def reduce_to_span(array_to_reduce: np.ndarray) -> np.ndarray:
     return array_to_reduce[0:-1]
 
 
-def fill_to_support(array_to_fill: np.ndarray):
+def fill_to_support(array_to_fill: np.ndarray) -> np.ndarray:
     return np.concatenate((array_to_fill, [np.nan]))
 
 
@@ -257,12 +255,12 @@ T = TypeVar("T", bound=Callable[..., Any])
 class CachedCallable(Protocol):
     def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
 
-    _cache: Dict[bytes, Any]
+    _cache: dict[bytes, Any]
 
     def cache_clear(self) -> None: ...
 
 
-def numpy_cache(f: Callable[..., Any]):
+def numpy_cache(f: Callable[..., Any]) -> CachedCallable:
     """Decorator to cache numpy array results of a function based on its arguments.
 
     Warning: it is not designed for complex uses. For example, view of a same array are not distinguished, and there is no checks on contiguousness of arrays.
@@ -307,3 +305,27 @@ def numpy_cache(f: Callable[..., Any]):
     _wrapped_any.cache_clear = cache_clear
     _wrapped_any._cache = cache
     return cast(CachedCallable, _wrapped_any)
+
+
+def convert_angle_signed_to_unsigned(angle: np.ndarray) -> np.ndarray:
+    """Convert angles from signed format (-pi to pi) to unsigned format (0 to 2*pi).
+
+    Args:
+        angle (np.ndarray): Array of angles in signed format.
+
+    Returns:
+        np.ndarray: Array of angles in unsigned format.
+    """
+    return (angle + 2 * np.pi) % (2 * np.pi)
+
+
+def convert_angle_unsigned_to_signed(angle: np.ndarray) -> np.ndarray:
+    """Convert angles from unsigned format (0 to 2*pi) to signed format (-pi to pi).
+
+    Args:
+        angle (np.ndarray): Array of angles in unsigned format.
+
+    Returns:
+        np.ndarray: Array of angles in signed format.
+    """
+    return (angle + np.pi) % (2 * np.pi) - np.pi
