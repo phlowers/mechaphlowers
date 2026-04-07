@@ -76,9 +76,11 @@ def test_span_lengths_values(
     expected_a_prime: np.ndarray,
     expected_b_prime: np.ndarray,
 ):
-    section_array = SectionArray(pd.DataFrame(section_array_dict))
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
+    section_array = SectionArray(
+        pd.DataFrame(section_array_dict),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
     section_array.add_units({"line_angle": "deg"})
 
     span_length = section_array.data.span_length.to_numpy()
