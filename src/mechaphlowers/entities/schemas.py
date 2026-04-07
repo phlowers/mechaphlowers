@@ -49,6 +49,12 @@ class SectionArrayInput(pa.DataFrameModel):
     counterweight_mass: pdt.Series[float] | None = pa.Field(
         nullable=True, coerce=True
     )
+    sagging_parameter: pdt.Series[float] | None = pa.Field(
+        nullable=True, coerce=True
+    )
+    sagging_temperature: pdt.Series[float] | None = pa.Field(
+        nullable=True, coerce=True
+    )
 
     @pa.dataframe_check(
         description="""Each row in the dataframe contains information about a support
@@ -58,6 +64,23 @@ class SectionArrayInput(pa.DataFrameModel):
     )
     def no_span_length_for_last_row(cls, df: pd.DataFrame) -> bool:
         return df.tail(1)["span_length"].isin([0, np.nan]).all()
+
+    @pa.dataframe_check(
+        description="""Each row in the dataframe contains information about a support
+        and the span next to it, except the last support which doesn't have a "next" span.
+        So, specifying a sagging parameter or temperature in the last row doesn't make any sense.
+        Please set sagging_parameter and sagging_temperature to "not a number" (numpy.nan)
+        to suppress this error.""",
+    )
+    def no_sagging_properties_for_last_row(cls, df: pd.DataFrame) -> bool:
+        sagging_columns = [
+            column
+            for column in ("sagging_parameter", "sagging_temperature")
+            if column in df.columns
+        ]
+        return (not sagging_columns) or df.tail(1)[
+            sagging_columns
+        ].isna().all().all()
 
 
 class CableArrayInput(pa.DataFrameModel):
