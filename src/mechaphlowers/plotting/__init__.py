@@ -13,7 +13,6 @@ from mechaphlowers.plotting.plot import (
 from mechaphlowers.plotting.utils import compute_aspect_ratio
 
 __all__ = [
-    "PlotEngine",
     "PositionEngine",
     "figure_factory",
     "plot_support_shape",
