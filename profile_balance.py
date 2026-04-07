@@ -1,4 +1,5 @@
 """Profile solve_change_state to identify numpy hot spots."""
+
 import cProfile
 import pstats
 import io
@@ -49,20 +50,20 @@ def run_change_state(engine):
 
 def profile_run():
     engine = setup()
-    
+
     pr = cProfile.Profile()
     pr.enable()
     for _ in range(50):
         run_change_state(engine)
     pr.disable()
-    
+
     s = io.StringIO()
     ps = pstats.Stats(pr, stream=s)
     ps.sort_stats('cumulative')
     print("=== CUMULATIVE ===")
     ps.print_stats(60)
     print(s.getvalue())
-    
+
     s2 = io.StringIO()
     ps2 = pstats.Stats(pr, stream=s2)
     ps2.sort_stats('tottime')
@@ -73,14 +74,16 @@ def profile_run():
 
 def benchmark():
     engine = setup()
-    
+
     # Warmup
     run_change_state(engine)
-    
+
     N = 100
     times = timeit.repeat(lambda: run_change_state(engine), number=N, repeat=5)
     avg_per_call = min(times) / N * 1000  # ms
-    print(f"\nBenchmark: {avg_per_call:.3f} ms per solve_change_state call (best of 5 repeats, {N} calls each)")
+    print(
+        f"\nBenchmark: {avg_per_call:.3f} ms per solve_change_state call (best of 5 repeats, {N} calls each)"
+    )
     return avg_per_call
 
 
