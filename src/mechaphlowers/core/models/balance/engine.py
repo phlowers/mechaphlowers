@@ -558,7 +558,7 @@ class BalanceEngine(Notifier):
             f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}\nwind_sense {str(wind_sense)}"
         )
 
-        span_shape = self.section_array.data.span_length.shape
+        span_shape = self.span_model.sagging_parameter.shape  # span_model holds n-sized array (same shape as span_length)
 
         def validate_input(input_value, name: str):
             if input_value is None:
