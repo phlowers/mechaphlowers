@@ -39,10 +39,31 @@ from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.core import VhlResult
-from mechaphlowers.numeric import cubic
+
+from mechaphlowers.numeric.cubic_interface import ICubicSolver
 from mechaphlowers.utils import arr
 
 logger = logging.getLogger(__name__)
+
+
+def _build_cubic_solver() -> ICubicSolver:
+    """Instantiate the cubic solver selected in ``options.solver.cubic_solver``."""
+    name = options.solver.cubic_solver
+    if name == "eigval_batch":
+        from mechaphlowers.numeric.eigval_batch_lapack import EigvalBatchSolver
+
+        return EigvalBatchSolver()
+    if name == "cardano":
+        from mechaphlowers.numeric.cubic import CardanoSolver
+
+        return CardanoSolver()
+    raise ValueError(
+        f"Unknown cubic_solver {name!r}. "
+        "Expected 'eigval_batch' or 'cardano'."
+    )
+
+
+_cubic_solver: ICubicSolver = _build_cubic_solver()
 
 
 class BalanceModel(IBalanceModel):
@@ -665,7 +686,7 @@ def approx_parameter(
     # we have to do p3 * x**3 + p2 * x**2 + p1 * x + p0 = 0
     # p = p3 | p2 | p1 | p0
     p = np.vstack((p3, p2, p1, p0)).T
-    roots = cubic.cubic_roots(p)
+    roots = _cubic_solver.solve(p)
     return roots.real
 
 
