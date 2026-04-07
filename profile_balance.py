@@ -1,15 +1,16 @@
 """Profile solve_change_state to identify numpy hot spots."""
 
 import cProfile
-import pstats
 import io
+import pstats
+import timeit
+
 import numpy as np
 import pandas as pd
-import timeit
 
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
-from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.arrays import SectionArray
 
 
 def setup():
