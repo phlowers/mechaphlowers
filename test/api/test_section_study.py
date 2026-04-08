@@ -102,7 +102,50 @@ class TestSectionStudyLifecycle:
             vhl_after_change_state.vhl_matrix.value(),
         )
 
-    # test that changing state does not affect memento
+    @pytest.mark.skip(reason="Fix this later when refacto add_loads")
+    def test_save_restore_loads(self, cable_array_AM600: CableArray):
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2", "3", "4"],
+                    "suspension": [False, True, True, False],
+                    "conductor_attachment_altitude": [50, 60, 40, 50],
+                    "crossarm_length": [10, 10, 10, 10],
+                    "line_angle": [0, 10, 15, 5],
+                    "insulator_length": [3, 3, 3, 3],
+                    "span_length": [500, 500, 500, np.nan],
+                    "insulator_mass": [100.0, 50.0, 50.0, 100.0],
+                    "load_mass": [0, 0, 0, 0],
+                    "load_position": [0, 0, 0, 0],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        study = SectionStudy(
+            cable_array=cable_array_AM600,
+            section_array=section_array,
+        )
+        study.solve_adjustment()
+        study.solve_change_state()
+        vhl_before_save = study.vhl_under_chain()
+        memento = study.save_state()
+
+
+        # test that using restore reverts correcty
+        study.add_loads(load_position_distance=np.array([0,300,0,0]), load_mass=np.array([0,100,0,0]))
+        study.solve_change_state()
+        study.restore_state(memento)
+        study.solve_change_state()
+        vhl_after_restore = study.vhl_under_chain()
+
+        np.testing.assert_array_almost_equal(
+            vhl_before_save.vhl_matrix.value(),
+            vhl_after_restore.vhl_matrix.value(),
+        )
+
+    # TODO: test that changing state does not affect memento
 
     def test_restore_notifies_position_engine(
         self, balance_engine_base_test: BalanceEngine
