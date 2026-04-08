@@ -57,9 +57,13 @@ def _build_cubic_solver() -> ICubicSolver:
         from mechaphlowers.numeric.cubic import CardanoSolver
 
         return CardanoSolver()
+    if name == "analytical_real":
+        from mechaphlowers.numeric.analytical_cubic import AnalyticalRealSolver
+
+        return AnalyticalRealSolver()
     raise ValueError(
         f"Unknown cubic_solver {name!r}. "
-        "Expected 'eigval_batch' or 'cardano'."
+        "Expected 'eigval_batch', 'cardano', or 'analytical_real'."
     )
 
 
