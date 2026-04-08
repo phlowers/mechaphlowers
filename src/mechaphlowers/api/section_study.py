@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Type
 import numpy as np
 from typing_extensions import Literal
 
+from mechaphlowers.core.geometry.points import Points
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.balance.memento import (
@@ -296,7 +297,9 @@ class SectionStudy:
         """
         return self._position_engine.get_supports_points()
 
-    def get_points_for_plot(self, project=False, frame_index=0) -> np.ndarray:
+    def get_points_for_plot(
+        self, project=False, frame_index=0
+    ) -> tuple[Points, Points, Points]:
         """Delegate to [`PositionEngine.get_points_for_plot`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_points_for_plot].
 
         Args:

@@ -172,7 +172,7 @@ class TestStudyErrorAndRestoreState:
         with pytest.raises(Exception):
             study.solve_change_state(ice_thickness=7)
         np.testing.assert_array_equal(
-            basic_state.nodes_dxdydz, study.get_dxdydz()
+            basic_state.nodes_dxdydz, study.chain_displacement().T
         )
 
     def test_change_state_error_ice(
