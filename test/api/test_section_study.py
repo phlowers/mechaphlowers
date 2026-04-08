@@ -5,11 +5,13 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
+import pandas as pd
 import pytest
 from plotly import graph_objects as go
 
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.plotting.plot import PlotEngine
 from test.conftest import show_figures
 
@@ -49,6 +51,53 @@ class TestSectionStudyLifecycle:
         np.testing.assert_array_almost_equal(
             study.balance_engine.balance_model.nodes.dxdydz,
             memento.nodes_dxdydz,
+        )
+
+    def test_save_restore_complex_case(self, cable_array_AM600: CableArray):
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2", "3", "4"],
+                    "suspension": [False, True, True, False],
+                    "conductor_attachment_altitude": [50, 60, 40, 50],
+                    "crossarm_length": [10, 10, 10, 10],
+                    "line_angle": [0, 10, 15, 5],
+                    "insulator_length": [3, 3, 3, 3],
+                    "span_length": [500, 500, 500, np.nan],
+                    "insulator_mass": [100.0, 50.0, 50.0, 100.0],
+                    "load_mass": [0, 50, 50, 0],
+                    "load_position": [0, 0.4, 0.6, 0],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+            bundle_number=2,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        study = SectionStudy(
+            cable_array=cable_array_AM600,
+            section_array=section_array,
+        )
+        study.solve_adjustment()
+        study.solve_change_state(wind_pressure=200)
+        vhl_before_save = study.vhl_under_chain()
+        memento = study.save_state()
+
+        study.solve_change_state(wind_pressure=0, ice_thickness=2e-2)
+        study.restore_state(memento)
+        vhl_after_restore = study.vhl_under_chain()
+
+        np.testing.assert_array_almost_equal(
+            vhl_before_save.vhl_matrix.value(),
+            vhl_after_restore.vhl_matrix.value(),
+        )
+
+        study.solve_change_state(wind_pressure=200)
+        vhl_after_change_state = study.vhl_under_chain()
+
+        np.testing.assert_array_almost_equal(
+            vhl_before_save.vhl_matrix.value(),
+            vhl_after_change_state.vhl_matrix.value(),
         )
 
     def test_restore_notifies_position_engine(
