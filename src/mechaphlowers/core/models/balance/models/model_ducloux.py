@@ -73,6 +73,7 @@ class BalanceModel(IBalanceModel):
         self.reset(
             cable_array, span_model, deformation_model, cable_loads, full=True
         )
+        self.nodes: Nodes
 
     def reset(
         self,
@@ -405,7 +406,6 @@ class BalanceModel(IBalanceModel):
             self.Tv_g,
             alpha,
             beta,
-            self.nodes.line_angle,
             self.proj_angle,
         )
 

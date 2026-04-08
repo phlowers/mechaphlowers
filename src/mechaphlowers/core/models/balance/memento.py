@@ -39,6 +39,11 @@ class BalanceEngineMemento:
     a: np.ndarray
     b: np.ndarray
 
+    # --- VectorProjection arrays
+    alpha: np.ndarray
+    beta: np.ndarray
+    proj_angle: np.ndarray
+
     # --- span_model geometry ---
     span_sagging_parameter: np.ndarray
     span_span_length: np.ndarray
@@ -89,6 +94,9 @@ class BalanceEngineCaretaker:
             Tv_g=bm.Tv_g.copy(),
             a=bm.a.copy(),
             b=bm.b.copy(),
+            alpha=bm.nodes.vector_projection.alpha.copy(),
+            beta=bm.nodes.vector_projection.beta.copy(),
+            proj_angle=bm.nodes.vector_projection.proj_angle.copy(),
             span_sagging_parameter=engine.span_model.sagging_parameter.copy(),
             span_span_length=engine.span_model.span_length.copy(),
             span_elevation_difference=engine.span_model.elevation_difference.copy(),
@@ -167,7 +175,14 @@ class BalanceEngineCaretaker:
         # (g) Re-sync derived objects
         bm.nodes_span_model.mirror(engine.span_model)
         bm.nodes.compute_dx_dy_dz()
-        bm.nodes.vector_projection.set_tensions(bm.Th, bm.Tv_d, bm.Tv_g)
+        bm.nodes.vector_projection.set_all(
+            bm.Th,
+            bm.Tv_d,
+            bm.Tv_g,
+            memento.alpha,
+            memento.beta,
+            memento.proj_angle,
+        )
         bm.nodes.compute_moment()
 
         logger.debug("Balance engine state restored from memento.")

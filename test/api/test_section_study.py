@@ -53,7 +53,7 @@ class TestSectionStudyLifecycle:
             memento.nodes_dxdydz,
         )
 
-    def test_save_restore_complex_case(self, cable_array_AM600: CableArray):
+    def test_save_restore_angles(self, cable_array_AM600: CableArray):
         section_array = SectionArray(
             pd.DataFrame(
                 {
@@ -83,6 +83,7 @@ class TestSectionStudyLifecycle:
         vhl_before_save = study.vhl_under_chain()
         memento = study.save_state()
 
+        # test that using restore reverts correcty
         study.solve_change_state(wind_pressure=0, ice_thickness=2e-2)
         study.restore_state(memento)
         vhl_after_restore = study.vhl_under_chain()
@@ -92,6 +93,7 @@ class TestSectionStudyLifecycle:
             vhl_after_restore.vhl_matrix.value(),
         )
 
+        # test that solve_change_state in the same state will give same results
         study.solve_change_state(wind_pressure=200)
         vhl_after_change_state = study.vhl_under_chain()
 
@@ -99,6 +101,8 @@ class TestSectionStudyLifecycle:
             vhl_before_save.vhl_matrix.value(),
             vhl_after_change_state.vhl_matrix.value(),
         )
+
+    # test that changing state does not affect memento
 
     def test_restore_notifies_position_engine(
         self, balance_engine_base_test: BalanceEngine
