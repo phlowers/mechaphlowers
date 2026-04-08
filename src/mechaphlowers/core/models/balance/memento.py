@@ -27,7 +27,7 @@ class BalanceEngineMemento:
     """
 
     # --- nodes (solver primary state) ---
-    nodes_dxdydz: np.ndarray
+    dxdydz: np.ndarray
 
     # --- balance_model scalars / arrays ---
     parameter: np.ndarray
@@ -38,11 +38,6 @@ class BalanceEngineMemento:
     Tv_g: np.ndarray
     a: np.ndarray
     b: np.ndarray
-
-    # --- VectorProjection arrays
-    alpha: np.ndarray
-    beta: np.ndarray
-    proj_angle: np.ndarray
 
     # --- span_model geometry ---
     span_sagging_parameter: np.ndarray
@@ -85,7 +80,7 @@ class BalanceEngineCaretaker:
         engine = self._engine
         bm = engine.balance_model
         return BalanceEngineMemento(
-            nodes_dxdydz=bm.nodes.dxdydz.copy(),
+            dxdydz=bm.get_dxdydz().copy(),
             parameter=bm.parameter.copy(),
             sagging_temperature=bm.sagging_temperature.copy(),
             adjustment=bm.adjustment,
@@ -94,9 +89,6 @@ class BalanceEngineCaretaker:
             Tv_g=bm.Tv_g.copy(),
             a=bm.a.copy(),
             b=bm.b.copy(),
-            alpha=bm.nodes.vector_projection.alpha.copy(),
-            beta=bm.nodes.vector_projection.beta.copy(),
-            proj_angle=bm.nodes.vector_projection.proj_angle.copy(),
             span_sagging_parameter=engine.span_model.sagging_parameter.copy(),
             span_span_length=engine.span_model.span_length.copy(),
             span_elevation_difference=engine.span_model.elevation_difference.copy(),
@@ -126,7 +118,6 @@ class BalanceEngineCaretaker:
         bm = engine.balance_model
 
         # (a) Restore nodes — in-place write preserves array identity
-        bm.nodes.dxdydz[:] = memento.nodes_dxdydz
 
         # (b) Restore balance_model scalars / arrays
         bm.parameter = memento.parameter.copy()
@@ -173,16 +164,7 @@ class BalanceEngineCaretaker:
             del engine.L_ref
 
         # (g) Re-sync derived objects
-        bm.nodes_span_model.mirror(engine.span_model)
-        bm.nodes.compute_dx_dy_dz()
-        bm.nodes.vector_projection.set_all(
-            bm.Th,
-            bm.Tv_d,
-            bm.Tv_g,
-            memento.alpha,
-            memento.beta,
-            memento.proj_angle,
-        )
-        bm.nodes.compute_moment()
+
+        bm.sync_after_memento_restore(engine.span_model, memento.dxdydz)
 
         logger.debug("Balance engine state restored from memento.")

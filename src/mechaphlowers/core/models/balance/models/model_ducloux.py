@@ -219,6 +219,15 @@ class BalanceModel(IBalanceModel):
         """
         return self.nodes.dxdydz.T
 
+    def get_dxdydz(self) -> np.ndarray:
+        """Get the dxdydz vector of the nodes.
+
+        dxdydz and chain_displacement are the transpose of each other
+
+        Format: [[x0, x1, x2,...], [y0, y1, y2,...], [z0, z1, z2,...]]
+        """
+        return self.nodes.dxdydz
+
     @property
     def attachment_altitude_after_solve(self) -> np.ndarray:
         """Attachment altitude after considering chain displacement.
@@ -600,6 +609,20 @@ class BalanceModel(IBalanceModel):
         span_type[self._merge_left_idx] = 1
         span_type[self._merge_right_idx] = 2
         self._merge_span_type = span_type
+
+    def sync_after_memento_restore(
+        self, span_model_to_mirror: ISpan, dxdydz: np.ndarray
+    ):
+        self.nodes.dxdydz[:] = dxdydz
+        self.nodes_span_model.mirror(span_model_to_mirror)
+        self.nodes.compute_dx_dy_dz()
+        self.nodes.vector_projection.set_tensions(
+            self.Th,
+            self.Tv_d,
+            self.Tv_g,
+        )
+        self.update_tensions()
+        self.nodes.compute_moment()
 
     def dict_to_store(self) -> dict:
         return {

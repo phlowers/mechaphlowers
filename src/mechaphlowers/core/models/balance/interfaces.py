@@ -110,7 +110,22 @@ class IBalanceModel(IModelForSolver, ABC):
 
     @abstractmethod
     def chain_displacement(self) -> np.ndarray:
-        """Get the displacement vector of the nodes."""
+        """Get the displacement vectors of the chains.
+
+        dxdydz and chain_displacement are the transpose of each other
+
+        Format: [[x0, y0, z0], [x1, y1, z1],...]
+        """
+        pass
+
+    @abstractmethod
+    def get_dxdydz(self) -> np.ndarray:
+        """Get the dxdydz vector of the nodes.
+
+        dxdydz and chain_displacement are the transpose of each other
+
+        Format: [[x0, x1, x2,...], [y0, y1, y2,...], [z0, z1, z2,...]]
+        """
         pass
 
     @property
@@ -184,4 +199,8 @@ class IBalanceModel(IModelForSolver, ABC):
             cable_loads (CableLoads): cable loads
             full (bool): if True, re-initialize all attributes; otherwise only update model references.
         """
+        pass
+
+    @abstractmethod
+    def sync_after_memento_restore(self, *args, **kwargs):
         pass

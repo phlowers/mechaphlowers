@@ -21,11 +21,11 @@ class TestCaretakerSave:
 
         caretaker = BalanceEngineCaretaker(engine)
         memento = caretaker.save()
-        old_dxdydz = memento.nodes_dxdydz.copy()
+        old_dxdydz = memento.dxdydz.copy()
 
         # Mutate the engine — memento must not change
         engine.balance_model.nodes.dxdydz[0, 0] = 9999.0
-        np.testing.assert_array_equal(memento.nodes_dxdydz, old_dxdydz)
+        np.testing.assert_array_equal(memento.dxdydz, old_dxdydz)
 
     def test_memento_captures_L_ref(
         self, balance_engine_base_test: BalanceEngine
@@ -58,7 +58,7 @@ class TestCaretakerRestore:
 
         caretaker = BalanceEngineCaretaker(engine)
         memento = caretaker.save()
-        saved_dxdydz = memento.nodes_dxdydz.copy()
+        saved_dxdydz = memento.dxdydz.copy()
         saved_param = memento.span_sagging_parameter.copy()
 
         # Change engine state via another solve

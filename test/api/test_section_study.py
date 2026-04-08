@@ -50,7 +50,7 @@ class TestSectionStudyLifecycle:
 
         np.testing.assert_array_almost_equal(
             study.balance_engine.balance_model.nodes.dxdydz,
-            memento.nodes_dxdydz,
+            memento.dxdydz,
         )
 
     def test_save_restore_angles(self, cable_array_AM600: CableArray):
@@ -132,9 +132,11 @@ class TestSectionStudyLifecycle:
         vhl_before_save = study.vhl_under_chain()
         memento = study.save_state()
 
-
         # test that using restore reverts correcty
-        study.add_loads(load_position_distance=np.array([0,300,0,0]), load_mass=np.array([0,100,0,0]))
+        study.add_loads(
+            load_position_distance=np.array([0, 300, 0, 0]),
+            load_mass=np.array([0, 100, 0, 0]),
+        )
         study.solve_change_state()
         study.restore_state(memento)
         study.solve_change_state()
@@ -268,7 +270,7 @@ class TestStudyErrorAndRestoreState:
         with pytest.raises(Exception):
             study.solve_change_state(ice_thickness=7)
         np.testing.assert_array_equal(
-            basic_state.nodes_dxdydz, study.chain_displacement().T
+            basic_state.dxdydz, study.chain_displacement().T
         )
 
     def test_change_state_error_ice(
