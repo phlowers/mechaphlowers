@@ -98,6 +98,12 @@ class BalanceEngine(Notifier):
         self.balance_model_type = balance_model_type
         self.span_model_type = span_model_type
         self.deformation_model_type = deformation_model_type
+        self._shifting_distance_support: np.ndarray = np.zeros_like(
+            self.section_array.data.conductor_attachment_altitude.to_numpy()
+        )
+        self._shortening_distance_span: np.ndarray = np.zeros(
+            len(self.section_array.data.conductor_attachment_altitude) - 1
+        )
 
         self.reset(full=True)
 
@@ -220,6 +226,123 @@ class BalanceEngine(Notifier):
         )
         logger.debug(debug_loads)
 
+    @property
+    def shift_support(self) -> np.ndarray:
+        """Shifting distance, in meters."""
+        return self._shifting_distance_support
+
+    @property
+    def shortening_span(self) -> np.ndarray:
+        """shortening distance, in meters."""
+        return self._shortening_distance_span
+
+    def add_cable_shifting(
+        self,
+        shift_support: np.ndarray | list | None = None,
+        shorten_span: np.ndarray | list | None = None,
+    ) -> None:
+        """Adds cable shifting to BalanceEngine.
+        Updates internal shifting and span-length modification fields.
+
+        Expected input are arrays whose sizes match the number of supports.
+        Warning: shift shorten the left span and lengthen the right span.
+        So if you want to shorten the right span, you should input a negative value.
+
+        Args:
+            shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
+                Array of length ``support_number`` (support based). The first and last values
+                are enforced to 0. If ``None``, an array of zeros is used.
+            shorten_span (np.ndarray | list | None): Span length modification, in meters.
+                Array of length ``support_number - 1`` (span based), one value per span.
+                Positive values shorten the spans, negative values shorten them. If ``None``,
+                an array of zeros is used.
+
+        Raises:
+            ValueError: if input arrays don't have correct size.
+
+        Examples:
+            >>> balance_engine.add_cable_shifting(
+            ...     shorten_span=np.array([1.5, 0, 0]),
+            ...     shift_support=np.array([0, 1, 0.5, 0]),
+            ... )
+            >>> balance_engine.shift_shorten_cable()
+            >>> balance_engine.L_ref
+            # Output: array of shifted span lengths, in meters.
+            >>> balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
+            >>> balance_engine.parameter
+            # Output: array of sagging parameters, updated after shifting and shortening the cable.
+        """
+        # Convert to numpy arrays
+        shift_support = (
+            np.array(shift_support, dtype=np.float64)
+            if shift_support is not None
+            else np.zeros(self.support_number)
+        )
+        shorten_span = (
+            np.array(shorten_span, dtype=np.float64)
+            if shorten_span is not None
+            else np.zeros(self.support_number - 1)
+        )
+
+        # Check size matches number of supports
+        expected_size = self.support_number
+        if shift_support.size != expected_size:
+            raise ValueError(
+                f"shift_support has incorrect size: {expected_size} is expected, received {shift_support.size}"
+            )
+        expected_span_size = self.support_number - 1
+        if shorten_span.size != expected_span_size:
+            raise ValueError(
+                f"shorten_span has incorrect size: {expected_span_size} is expected, received {shorten_span.size}"
+            )
+
+        # Enforce constraints: shifting_distance first and last are 0
+        if abs(shift_support[0]) > 0.0 or abs(shift_support[-1]) > 0.0:
+            logger.warning(
+                "shift_support first and last values must be 0 (support based). "
+                "Enforcing this constraint."
+            )
+            warnings.warn(
+                "First and last values of shift_support have been reset to 0",
+                BalanceEngineWarning,
+            )
+        shift_support[0] = 0.0
+        shift_support[-1] = 0.0
+
+        # Store in private attributes
+        self._shifting_distance_support = shift_support
+        self._shortening_distance_span = shorten_span
+
+        # apply
+        self.shift_shorten_cable()
+
+        # Reset and notify observers
+        self.reset(full=False)
+        debug_msg = (
+            "Cable shifting has been added. PlotEngine will be notified automatically "
+            "via the observer pattern; no manual reset is required."
+        )
+        logger.debug(debug_msg)
+
+    def shift_span_length(self) -> np.ndarray:
+        """Transform shifting distance which is support based into L_ref shift which is span based.
+
+        Returns:
+            np.ndarray: Shifted span length, in meters.
+        """
+        return (
+            self._shifting_distance_support[:-1]
+            - self._shifting_distance_support[1:]
+        )
+
+    def shift_shorten_cable(self) -> None:
+        """Shift the cable length according to the shifting and shortening distances."""
+        shifted_length = (
+            -self.shift_span_length() - self._shortening_distance_span
+        )
+        self.L_ref = self.initial_L_ref + shifted_length
+        self.balance_model.L_ref = self.L_ref
+
     @check_time
     def solve_adjustment(self) -> None:
         """Solve the chain positions in the adjustment case, updating L_ref in the balance model.
@@ -243,7 +366,7 @@ class BalanceEngine(Notifier):
             e.origin = "solve_adjustment"
             raise e
 
-        self.L_ref = self.balance_model.update_L_ref()
+        self.initial_L_ref = self.L_ref = self.balance_model.update_L_ref()
 
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")
 
@@ -316,13 +439,23 @@ class BalanceEngine(Notifier):
 
         # check if adjustment has been done before
         try:
-            _ = self.L_ref
+            _ = self.initial_L_ref
+            logger.debug(
+                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.initial_L_ref)}"
+            )
         except AttributeError:
             logger.warning(self._warning_no_L_ref)
             warnings.warn(self._warning_no_L_ref, BalanceEngineWarning)
             self.solve_adjustment()
 
         self.balance_model.adjustment = False
+
+        logger.debug(f"Shifting distance: {str(self.shift_support)}")
+        logger.debug(f"shortening distance: {str(self.shortening_span)}")
+        logger.debug("Taking into account cable shifting and shortening.")
+        self.shift_shorten_cable()
+        logger.debug(f"L_ref after shifting: {str(self.L_ref)}")
+
         self.span_model.load_coefficient = (
             self.balance_model.cable_loads.load_coefficient
         )
@@ -354,6 +487,8 @@ class BalanceEngine(Notifier):
                     <li>parameter</li>
                     <li>tension_sup</li>
                     <li>tension_inf</li>
+                    <li>slope_left</li>
+                    <li>slope_right</li>
                     <li>L0</li>
                     <li>horizontal_distance</li>
                     <li>arc_length</li>
@@ -369,6 +504,13 @@ class BalanceEngine(Notifier):
         T_h_q_array = QuantityArray(
             self.span_model.T_h(), 'N', force_output_unit
         )
+        span_slope_left = QuantityArray(
+            self.span_model.slope(side="left"), 'rad', 'deg'
+        )
+        span_slope_right = QuantityArray(
+            self.span_model.slope(side="right"), 'rad', 'deg'
+        )
+
         result_dict = {
             "span_length": arr.decr(
                 self.section_array.data["span_length"].to_numpy()
@@ -377,6 +519,8 @@ class BalanceEngine(Notifier):
                 self.section_array.data["elevation_difference"].to_numpy()
             ).tolist(),
             "parameter": arr.decr(self.parameter).tolist(),
+            "slope_left": arr.decr(span_slope_left.value()).tolist(),
+            "slope_right": arr.decr(span_slope_right.value()).tolist(),
             "tension_sup": arr.decr(T_sup_q_array.value()).tolist(),
             "tension_inf": arr.decr(T_inf_q_array.value()).tolist(),
             "L0": self.L_ref.tolist(),

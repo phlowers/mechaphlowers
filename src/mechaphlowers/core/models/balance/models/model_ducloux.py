@@ -413,8 +413,7 @@ class BalanceModel(IBalanceModel):
         # TODO: understand this and write docstring
         # warning: counting from right to left
         proj_d_i = self.nodes.proj_d
-        proj_g_ip1 = np.roll(self.nodes.proj_g, -1, axis=1)
-        proj_diff = (proj_g_ip1 - proj_d_i)[:, :-1]
+        proj_diff = self.nodes.proj_g[:, 1:] - proj_d_i[:, :-1]
         # x: initial input to calculate span_length
         self.inter1: np.ndarray = self.nodes.span_length + proj_diff[0]
         self.inter2: np.ndarray = proj_diff[1]
@@ -429,8 +428,7 @@ class BalanceModel(IBalanceModel):
         self.compute_inter()
 
         self.a = (self.inter1**2 + self.inter2**2) ** 0.5
-        b = np.roll(z, -1) - z
-        self.b = b[:-1]
+        self.b = z[1:] - z[:-1]
         # TODO: fix array lengths?
         self.span_model.set_lengths(
             arr.incr(self.a_prime), arr.incr(self.b_prime)
@@ -445,7 +443,10 @@ class BalanceModel(IBalanceModel):
         # Need to run update() before this method if necessary
         self.nodes.compute_moment()
 
-        out = np.array([self.nodes.Mx, self.nodes.My]).flatten('F')
+        n = len(self.nodes.Mx)
+        out = np.empty(2 * n)
+        out[0::2] = self.nodes.Mx
+        out[1::2] = self.nodes.My
         return out
 
     @property
@@ -532,50 +533,73 @@ class BalanceModel(IBalanceModel):
 
     def merge_loads_to_span_model(self):
         """Fetch load_model and give it to nodes_span_model, splitting spans into two, if they contains a load."""
-        bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
+        if not hasattr(self, "_merge_normal_idx"):
+            self._precompute_merge_indices()
 
-        new_span_model = copy(self.span_model)
+        normal_idx = self._merge_normal_idx
+        left_idx = self._merge_left_idx
+        right_idx = self._merge_right_idx
+        not_load_mask = self._merge_not_load_mask
 
-        def insert_array(arr, arr_insert_left, arr_insert_right, mask):
-            arr_new = copy(arr)
-            arr_new[mask] = arr_insert_right
-            insert_mask = np.nonzero(mask)[0]
-            return np.insert(arr_new, insert_mask, arr_insert_left)
+        def build_merged(original, left_values, right_values):
+            result = np.empty(self._merge_n_total, dtype=original.dtype)
+            result[normal_idx] = original[not_load_mask]
+            result[left_idx] = left_values
+            result[right_idx] = right_values
+            return result
 
-        sagging_parameter = insert_array(
-            new_span_model.sagging_parameter,
+        self.nodes_span_model.sagging_parameter = build_merged(
+            self.span_model.sagging_parameter,
             self.load_model.span_model_left.sagging_parameter,
             self.load_model.span_model_right.sagging_parameter,
-            bool_mask,
         )
-        span_length = insert_array(
-            new_span_model.span_length,
+        self.nodes_span_model.span_length = build_merged(
+            self.span_model.span_length,
             self.load_model.span_model_left.span_length,
             self.load_model.span_model_right.span_length,
-            bool_mask,
         )
-        elevation_difference = insert_array(
-            new_span_model.elevation_difference,
+        self.nodes_span_model.elevation_difference = build_merged(
+            self.span_model.elevation_difference,
             self.load_model.span_model_left.elevation_difference,
             self.load_model.span_model_right.elevation_difference,
-            bool_mask,
         )
-        np_array = np.arange(len(self.span_model.span_length))
-        span_index = np.insert(
-            np_array, np.nonzero(bool_mask)[0], np_array[bool_mask]
-        )
-        span_type = insert_array(
-            np.full_like(self.span_model.span_length, 0),
-            np.full_like(self.load_model.span_model_left.span_length, 1),
-            np.full_like(self.load_model.span_model_right.span_length, 2),
-            bool_mask,
-        )
+        self.nodes_span_model.span_index = self._merge_span_index
+        self.nodes_span_model.span_type = self._merge_span_type
 
-        self.nodes_span_model.span_length = span_length
-        self.nodes_span_model.elevation_difference = elevation_difference
-        self.nodes_span_model.sagging_parameter = sagging_parameter
-        self.nodes_span_model.span_index = span_index
-        self.nodes_span_model.span_type = span_type
+    def _precompute_merge_indices(self):
+        """Pre-compute index maps for merge_loads_to_span_model.
+
+        Called once, then reused on every subsequent merge call.
+        Replaces the repeated np.insert + copy allocations with
+        direct index assignment into pre-sized arrays.
+        """
+        bool_mask = np.concatenate((self.nodes.has_load_on_span, [False]))
+        not_load_mask = ~bool_mask
+        self._merge_not_load_mask = not_load_mask
+
+        n_original = len(bool_mask)
+        n_total = n_original + np.count_nonzero(bool_mask)
+        self._merge_n_total = n_total
+
+        # Each original position maps to 1 slot (normal) or
+        # 2 slots (left + right) in the expanded array.
+        expanded_pos = np.cumsum(np.where(bool_mask, 2, 1)) - 1
+        self._merge_right_idx = expanded_pos[bool_mask]
+        self._merge_left_idx = self._merge_right_idx - 1
+        self._merge_normal_idx = expanded_pos[not_load_mask]
+
+        # span_index and span_type are constant across calls
+        np_arange = np.arange(n_original)
+        span_index = np.empty(n_total, dtype=np_arange.dtype)
+        span_index[self._merge_normal_idx] = np_arange[not_load_mask]
+        span_index[self._merge_left_idx] = np_arange[bool_mask]
+        span_index[self._merge_right_idx] = np_arange[bool_mask]
+        self._merge_span_index = span_index
+
+        span_type = np.zeros(n_total, dtype=np.float64)
+        span_type[self._merge_left_idx] = 1
+        span_type[self._merge_right_idx] = 2
+        self._merge_span_type = span_type
 
     def dict_to_store(self) -> dict:
         return {
@@ -984,37 +1008,37 @@ class LoadModel(IModelForSolver):
         self.load_weight = load_weight
         self.load_position = load_position
         self.find_param_solver_type = find_param_solver_type
+        self._n_loads = len(load_weight)
         self.bundle_number = bundle_number
         # TODO: Need a way to choose Span model
 
-        # init objects with placeholder values, but they will be updated when needed
+        # Individual span models for objective_function and external access
         self.span_model_left = CatenarySpan(
             a, b, parameter, k_load, self.linear_weight
         )
         self.span_model_right = CatenarySpan(
             a, b, parameter, k_load, self.linear_weight
         )
-        self.deformation_model_left = deformation_model_builder(
+
+        # Combined span model (2N elements: [left..., right...])
+        # for batched approx_parameter + find_parameter
+        a2 = np.concatenate([a, a])
+        b2 = np.concatenate([b, b])
+        p2 = np.concatenate([parameter, parameter])
+        k2 = np.concatenate([k_load, k_load])
+        t2 = np.concatenate([temperature, temperature])
+
+        self._span_combined = CatenarySpan(a2, b2, p2, k2, self.linear_weight)
+        self._deformation_combined = deformation_model_builder(
             self.cable_array,
-            self.span_model_left,
-            temperature,
+            self._span_combined,
+            t2,
         )
-        self.deformation_model_right = deformation_model_builder(
-            self.cable_array,
-            self.span_model_right,
-            temperature,
+        self._find_param_model = FindParamModel(
+            self._span_combined, self._deformation_combined
         )
-        self.find_param_model_left = FindParamModel(
-            self.span_model_left, self.deformation_model_left
-        )
-        self.find_param_model_right = FindParamModel(
-            self.span_model_right, self.deformation_model_right
-        )
-        self.find_param_solver_left = self.find_param_solver_type(
-            self.find_param_model_left
-        )
-        self.find_param_solver_right = self.find_param_solver_type(
-            self.find_param_model_right
+        self._find_param_solver = self.find_param_solver_type(
+            self._find_param_model
         )
 
     def set_all(
@@ -1055,8 +1079,10 @@ class LoadModel(IModelForSolver):
         self.span_model_left.load_coefficient = self.k_load
         self.span_model_right.load_coefficient = self.k_load
 
-        self.deformation_model_left.current_temperature = self.temperature
-        self.deformation_model_right.current_temperature = self.temperature
+        k2 = np.concatenate([self.k_load, self.k_load])
+        t2 = np.concatenate([self.temperature, self.temperature])
+        self._span_combined.load_coefficient = k2
+        self._deformation_combined.current_temperature = t2
 
     def update_lengths_span_models(self) -> None:
         self.span_model_left.span_length = self.x_i
@@ -1070,7 +1096,11 @@ class LoadModel(IModelForSolver):
         Returns:
             np.ndarray: state vector. Format is `[x_i0, z_i0, x_i1, z_i1,...]`
         """
-        return np.array([self.x_i, self.z_i]).flatten('F')
+        n = len(self.x_i)
+        out = np.empty(2 * n)
+        out[0::2] = self.x_i
+        out[1::2] = self.z_i
+        return out
 
     @state_vector.setter
     def state_vector(self, value: np.ndarray) -> None:
@@ -1106,53 +1136,50 @@ class LoadModel(IModelForSolver):
             - self.k_load * self.load_weight / self.bundle_number
         )
 
-        return np.array([Th_diff, Tv_diff]).flatten('F')
+        n = len(Th_diff)
+        out = np.empty(2 * n)
+        out[0::2] = Th_diff
+        out[1::2] = Tv_diff
+        return out
 
     def update(self) -> None:
         """Update attributes on both span models: `span length`, `elevation difference`, `L_ref` and `parameter`"""
         self.update_lengths_span_models()
-        # update parameter left
+        n = self._n_loads
         L_ref_left = self.load_position * self.L_ref
-        a_left = self.x_i
-        b_left = self.z_i
-        parameter_left = approx_parameter(
-            a_left,
-            b_left,
-            L_ref_left,
-            self.k_load,
-            self.cable_section,
-            self.linear_weight,
-            self.young_modulus,
-            self.dilatation_coefficient,
-            self.temperature,
-        )
-        self.find_param_model_left.set_attributes(
-            initial_parameter=parameter_left,
-            L_ref=L_ref_left,
-        )
-
-        parameter_left = self.find_param_solver_left.find_parameter()
-        self.span_model_left.set_parameter(parameter_left)
-
-        # update parameter right
         L_ref_right = self.L_ref - L_ref_left
-        a_right = self.a_prime - self.x_i
-        b_right = self.b_prime - self.z_i
-        parameter_right = approx_parameter(
-            a_right,
-            b_right,
-            L_ref_right,
-            self.k_load,
+
+        # Concatenate left + right arrays for a single batched call
+        a_both = np.concatenate([self.x_i, self.a_prime - self.x_i])
+        b_both = np.concatenate([self.z_i, self.b_prime - self.z_i])
+        L_ref_both = np.concatenate([L_ref_left, L_ref_right])
+        k_both = np.concatenate([self.k_load, self.k_load])
+        t_both = np.concatenate([self.temperature, self.temperature])
+
+        # Update combined span model geometry
+        self._span_combined.span_length = a_both
+        self._span_combined.elevation_difference = b_both
+
+        # Single approx_parameter call (2N elements)
+        param_both = approx_parameter(
+            a_both,
+            b_both,
+            L_ref_both,
+            k_both,
             self.cable_section,
             self.linear_weight,
             self.young_modulus,
             self.dilatation_coefficient,
-            self.temperature,
-        )
-        self.find_param_model_right.set_attributes(
-            initial_parameter=parameter_right,
-            L_ref=L_ref_right,
+            t_both,
         )
 
-        parameter_right = self.find_param_solver_right.find_parameter()
-        self.span_model_right.set_parameter(parameter_right)
+        # Single find_parameter call (2N elements)
+        self._find_param_model.set_attributes(
+            initial_parameter=param_both,
+            L_ref=L_ref_both,
+        )
+        param_both = self._find_param_solver.find_parameter()
+
+        # Split results and update individual span models
+        self.span_model_left.set_parameter(param_both[:n])
+        self.span_model_right.set_parameter(param_both[n:])

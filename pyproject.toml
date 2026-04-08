@@ -40,7 +40,7 @@ Issues = "https://github.com/phlowers/mechaphlowers/issues"
 Documentation = "https://phlowers.readthedocs.io/projects/mechaphlowers/"
 
 [project.optional-dependencies]
-full = ["scipy<=1.14.1", "requests==2.32.4"]
+full = ["scipy<=1.14.1", "requests==2.33.1"]
 
 [dependency-groups]
 dev = [
@@ -57,7 +57,7 @@ dev = [
     "plotly-stubs==0.0.5",
     "types-pyyaml>=6.0.12.20250915",
 ]
-test = ["pytest==8.3.2", "pytest-cov==5.0.0", "requests==2.32.4"]
+test = ["pytest==8.3.2", "pytest-cov==5.0.0", "requests==2.33.1"]
 docs = [
     "mkdocs==1.6.1",
     "mkdocstrings[python]==0.26.2",

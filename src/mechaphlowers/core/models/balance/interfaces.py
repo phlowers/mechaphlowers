@@ -90,6 +90,7 @@ class IBalanceModel(IModelForSolver, ABC):
         self.Tv_d: np.ndarray
         self.Tv_g: np.ndarray
         self.nodes: Any  # Concrete type is Nodes (defined in model_ducloux)
+        self.L_ref: np.ndarray
 
     @abstractmethod
     def update_L_ref(self) -> np.ndarray:

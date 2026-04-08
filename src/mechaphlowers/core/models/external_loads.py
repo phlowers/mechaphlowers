@@ -71,7 +71,6 @@ class CableLoads:
         self,
     ) -> np.ndarray:
         """Norm of the force (R) applied on the cable due to weather loads and cable own weight, per meter cable"""
-
         linear_weight = self.linear_weight
         ice_load = self.ice_load
         wind_load = self.wind_load
