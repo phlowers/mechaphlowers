@@ -5,9 +5,13 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
+import pytest
+from plotly import graph_objects as go
 
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.plotting.plot import PlotEngine
+from test.conftest import show_figures
 
 
 class TestSectionStudyLifecycle:
@@ -126,3 +130,134 @@ class TestSectionStudySubEngines:
         )
         # PositionEngine should be registered as observer
         assert study.position_engine in study.balance_engine._observers
+
+
+class TestSectionStudyPlotEngine:
+    def test_link_plot_engine(self, balance_engine_base_test: BalanceEngine):
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=90)
+        fig_study = go.Figure()
+        study.solve_change_state(wind_pressure=500, new_temperature=90)
+        study.plot_engine.preview_line3d(fig_study)
+
+        balance_engine_base_test.solve_adjustment()
+        balance_engine_base_test.solve_change_state(new_temperature=90)
+        fig_engine = go.Figure()
+        plot_engine = PlotEngine(balance_engine_base_test)
+        balance_engine_base_test.solve_change_state(
+            wind_pressure=500, new_temperature=90
+        )
+        plot_engine.preview_line3d(fig_engine)
+
+        if show_figures:
+            fig_study.show()
+            fig_engine.show()
+
+
+class TestStudyErrorAndRestoreState:
+    def test_error_back_to_default_state(
+        self, balance_engine_base_test: BalanceEngine
+    ):
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        study.solve_adjustment()
+        study.solve_change_state()
+        basic_state = study.save_state()
+        with pytest.raises(Exception):
+            study.solve_change_state(ice_thickness=7)
+        np.testing.assert_array_equal(
+            basic_state.nodes_dxdydz, study.get_dxdydz()
+        )
+
+    def test_change_state_error_ice(
+        self, balance_engine_base_test: BalanceEngine
+    ):
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        study.solve_adjustment()
+        study.solve_change_state()
+        with pytest.raises(Exception):
+            study.solve_change_state(ice_thickness=7)
+
+        # check solver runs correctly after error
+        study.solve_change_state(ice_thickness=2e-2)
+
+    def test_change_state_error_wind(
+        self, balance_engine_base_test: BalanceEngine
+    ):
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        study.solve_adjustment()
+        study.solve_change_state()
+        with pytest.raises(Exception):
+            study.solve_change_state(wind_pressure=-99999)
+
+        # check solver runs correctly after error
+        study.solve_change_state(wind_pressure=400)
+
+
+class TestSectionStudyDelegates:
+    """Verify that SectionStudy delegate methods return the same values as
+    the underlying BalanceEngine / PositionEngine."""
+
+    @pytest.fixture()
+    def solved_study(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> SectionStudy:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=30)
+        return study
+
+    def test_get_data_spans(self, solved_study: SectionStudy):
+        result = solved_study.get_data_spans()
+        expected = solved_study.balance_engine.get_data_spans()
+        assert result == expected
+
+    def test_chain_displacement(self, solved_study: SectionStudy):
+        result = solved_study.chain_displacement()
+        expected = (
+            solved_study.balance_engine.balance_model.chain_displacement()
+        )
+        np.testing.assert_array_equal(result, expected)
+
+    def test_vhl_under_chain(self, solved_study: SectionStudy):
+        result = solved_study.vhl_under_chain()
+        expected = solved_study.balance_engine.balance_model.vhl_under_chain()
+        np.testing.assert_array_equal(
+            result.vhl_matrix.value(), expected.vhl_matrix.value()
+        )
+
+    def test_vhl_under_console(self, solved_study: SectionStudy):
+        result = solved_study.vhl_under_console()
+        expected = (
+            solved_study.balance_engine.balance_model.vhl_under_console()
+        )
+        np.testing.assert_array_equal(
+            result.vhl_matrix.value(), expected.vhl_matrix.value()
+        )
+
+    def test_supports_number(self, solved_study: SectionStudy):
+        result = solved_study.supports_number()
+        expected = solved_study.balance_engine.support_number
+        assert result == expected
+
+    def test_get_points_for_plot(self, solved_study: SectionStudy):
+        result_span, _, _ = solved_study.get_points_for_plot()
+        expected_span, _, _ = solved_study.position_engine.get_points_for_plot(
+            project=False, frame_index=0
+        )
+        np.testing.assert_array_equal(result_span.coords, expected_span.coords)

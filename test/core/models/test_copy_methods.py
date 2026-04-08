@@ -9,7 +9,6 @@ from copy import copy
 import numpy as np
 
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.entities.arrays import CableArray
 
 
 class TestCableLoadsCopy:
@@ -116,6 +115,4 @@ class TestNodesCopy:
         np.testing.assert_array_equal(
             copied.insulator_length, original.insulator_length
         )
-        np.testing.assert_array_equal(
-            copied.line_angle, original.line_angle
-        )
+        np.testing.assert_array_equal(copied.line_angle, original.line_angle)

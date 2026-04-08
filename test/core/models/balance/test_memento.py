@@ -88,7 +88,9 @@ class TestCaretakerRestore:
         # _x_m, _x_n, _L should match the recomputed values from restored arrays
         engine.span_model.compute_values()
         expected_xm = engine.span_model.compute_x_m()
-        np.testing.assert_array_almost_equal(engine.span_model.x_m, expected_xm)
+        np.testing.assert_array_almost_equal(
+            engine.span_model.x_m, expected_xm
+        )
 
     def test_restore_refreshes_deformation_snapshots(
         self, balance_engine_base_test: BalanceEngine
@@ -137,9 +139,7 @@ class TestCaretakerRestore:
             result_after_restore, result_from_scratch, decimal=8
         )
 
-    def test_restore_L_ref(
-        self, balance_engine_base_test: BalanceEngine
-    ):
+    def test_restore_L_ref(self, balance_engine_base_test: BalanceEngine):
         engine = balance_engine_base_test
         engine.solve_adjustment()
         caretaker = BalanceEngineCaretaker(engine)

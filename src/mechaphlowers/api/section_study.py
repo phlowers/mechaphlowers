@@ -24,8 +24,8 @@ from mechaphlowers.core.models.cable.deformation import (
 )
 from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.core import VhlResult
 from mechaphlowers.entities.errors import SolverError
-from mechaphlowers.utils import arr
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.cable.thermal import ThermalEngine
@@ -295,6 +295,31 @@ class SectionStudy:
             np.ndarray: Array of support points coordinates.
         """
         return self._position_engine.get_supports_points()
+
+    def get_points_for_plot(self, project=False, frame_index=0) -> np.ndarray:
+        """Delegate to [`PositionEngine.get_points_for_plot`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_points_for_plot].
+
+        Args:
+            project: `True` to project into a support frame (2-D mode).
+            frame_index: Index of the support frame for projection.
+
+        Returns:
+            Tuple of ``(spans, supports, insulators)`` as `Points`.
+        """
+        return self._position_engine.get_points_for_plot(project, frame_index)
+
+    def chain_displacement(self) -> np.ndarray:
+        return self._balance_engine.balance_model.chain_displacement()
+
+    def vhl_under_chain(self) -> VhlResult:
+        return self._balance_engine.balance_model.vhl_under_chain()
+
+    def vhl_under_console(self) -> VhlResult:
+        return self._balance_engine.balance_model.vhl_under_console()
+
+    def supports_number(self) -> int:
+        """Return the number of supports in the balance engine."""
+        return self._balance_engine.support_number
 
     # ── Representation ────────────────────────────────────────────────────
 

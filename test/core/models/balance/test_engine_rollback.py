@@ -64,9 +64,7 @@ class TestSolveChangeStateRollback:
             side_effect=SolverError("mock failure"),
         ):
             with pytest.raises(SolverError):
-                study.solve_change_state(
-                    wind_pressure=200, new_temperature=90
-                )
+                study.solve_change_state(wind_pressure=200, new_temperature=90)
 
         # State must be unchanged
         np.testing.assert_array_equal(
