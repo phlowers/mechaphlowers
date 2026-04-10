@@ -7,6 +7,7 @@
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -167,8 +168,8 @@ class ThermalForecastArray:
 
 
 def check_inputs(
-    **kwargs: np.ndarray,
-) -> tuple[dict[str, np.ndarray], int]:
+    **kwargs: Union[np.ndarray, list[datetime]],
+) -> tuple[dict[str, Union[np.ndarray, list[datetime]]], int]:
     """Validate input parameters.
 
     Ensures all inputs are numpy arrays with the same size.
@@ -208,7 +209,7 @@ def check_inputs(
             array_length = len(value)
         elif (
             key == "datetime_utc" and len(value) != array_length
-        ) or value.size != array_length:
+        ) or value.size != array_length:  # type: ignore
             raise ValueError(
                 f"All list/array inputs must have the same length. "
                 f"Expected {array_length}, got {len(value)} for {key}."
