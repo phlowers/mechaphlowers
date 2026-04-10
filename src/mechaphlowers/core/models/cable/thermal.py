@@ -219,6 +219,25 @@ def check_inputs(
                 f"Expected {array_length}, got {len(value)} for {key}."
             )
 
+        if key in ["month", "day", "hour"]:
+            if not np.issubdtype(value.dtype, np.integer):  # type: ignore
+                raise TypeError(
+                    f"Expected integer array for '{key}', got {value.dtype}."  # type: ignore
+                )
+
+        if key == "month" and not np.all((1 <= value) & (value <= 12)):  # type: ignore
+            raise ValueError(
+                f"Month values must be in the range 1-12. Invalid values found in '{key}'."
+            )
+        if key == "day" and not np.all((1 <= value) & (value <= 31)):  # type: ignore
+            raise ValueError(
+                f"Day values must be in the range 1-31. Invalid values found in '{key}'."
+            )
+        if key == "hour" and not np.all((0 <= value) & (value <= 23)):  # type: ignore
+            raise ValueError(
+                f"Hour values must be in the range 0-23. Invalid values found in '{key}'."
+            )
+
     if array_length is None:
         array_length = 0
 
@@ -260,7 +279,7 @@ class ThermalEngine:
         azimuth: np.ndarray,
         month: np.ndarray,
         day: np.ndarray,
-        hour: np.ndarray,  # TODO: check: can hour be non-integer?
+        hour: np.ndarray,
         intensity: np.ndarray,
         ambient_temp: np.ndarray,
         wind_speed: np.ndarray,
