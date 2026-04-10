@@ -2,9 +2,11 @@
 
 Uses the same balance engine context as profile_balance.py (4 supports with loads).
 """
-import numpy as np
+# mypy: ignore-errors
+
 import timeit
-import textwrap
+
+import numpy as np
 
 # ── 1. Collect realistic coefficients from a real solve ──────────────────────
 from mechaphlowers.core.models.balance.models import model_ducloux as md
@@ -14,21 +16,28 @@ from mechaphlowers.numeric import cubic as cubic_mod
 _captured_coeffs = []
 _orig_cubic_roots = cubic_mod.cubic_roots
 
+
 def _capturing_cubic_roots(p, only_max_real=True):
     _captured_coeffs.append(np.array(p, copy=True))
     return _orig_cubic_roots(p, only_max_real=only_max_real)
 
+
 cubic_mod.cubic_roots = _capturing_cubic_roots
 # Also patch the reference in model_ducloux module
 _orig_md_cubic = md.cubic
+
+
 class _PatchedCubic:
     def __getattr__(self, name):
         if name == "cubic_roots":
             return _capturing_cubic_roots
         return getattr(_orig_md_cubic, name)
+
+
 md.cubic = _PatchedCubic()
 
-from test.benchmark.profile_balance import setup, run_change_state
+from test.benchmark.profile_balance import run_change_state, setup
+
 engine = setup()
 run_change_state(engine)  # one call to capture coefficients
 
@@ -36,15 +45,19 @@ run_change_state(engine)  # one call to capture coefficients
 md.cubic = _orig_md_cubic
 cubic_mod.cubic_roots = _orig_cubic_roots
 
-print(f"Captured {len(_captured_coeffs)} cubic_roots calls from 1 solve_change_state")
+print(
+    f"Captured {len(_captured_coeffs)} cubic_roots calls from 1 solve_change_state"
+)
 print(f"Coefficient shapes: {[c.shape for c in _captured_coeffs[:5]]}...")
 
 # ── 2. Define solvers to benchmark ──────────────────────────────────────────
+
 
 # Current implementation
 def solve_current(p_array):
     """Current custom Cardano (numpy) solver."""
     return cubic_mod.cubic_roots(p_array, only_max_real=True)
+
 
 # Scipy: np.roots via companion matrix (calls LAPACK)
 def solve_np_roots(p_array):
@@ -59,8 +72,10 @@ def solve_np_roots(p_array):
         results[i] = np.max(real_roots) if len(real_roots) > 0 else 0.0
     return results
 
+
 # Scipy compiled root finder
 from scipy.optimize import brentq
+
 
 def solve_scipy_brentq(p_array):
     """scipy.optimize.brentq - compiled C bisection for each polynomial."""
@@ -70,13 +85,14 @@ def solve_scipy_brentq(p_array):
     results = np.empty(p.shape[0])
     for i in range(p.shape[0]):
         a0, b0, c0, d0 = p[i]
-        poly = lambda x: a0*x**3 + b0*x**2 + c0*x + d0
+        poly = lambda x: a0 * x**3 + b0 * x**2 + c0 * x + d0  # noqa: E731
         # bracket: parameter is positive and typically in [0, 1e6]
         try:
             results[i] = brentq(poly, 0, 1e7)
         except ValueError:
             results[i] = 0.0
     return results
+
 
 # numpy.polynomial.polynomial companion matrix (vectorized via eigenvalues)
 def solve_np_companion(p_array):
@@ -93,8 +109,10 @@ def solve_np_companion(p_array):
         results[i] = np.max(real_roots) if len(real_roots) > 0 else 0.0
     return results
 
+
 # scipy.optimize.newton (compiled Newton-Raphson)
 from scipy.optimize import newton as scipy_newton
+
 
 def solve_scipy_newton(p_array):
     """scipy.optimize.newton - compiled Newton-Raphson with analytical derivative."""
@@ -104,15 +122,16 @@ def solve_scipy_newton(p_array):
     results = np.empty(p.shape[0])
     for i in range(p.shape[0]):
         a0, b0, c0, d0 = p[i]
-        f = lambda x: a0*x**3 + b0*x**2 + c0*x + d0
-        fp = lambda x: 3*a0*x**2 + 2*b0*x + c0
+        f = lambda x: a0 * x**3 + b0 * x**2 + c0 * x + d0  # noqa: E731
+        fp = lambda x: 3 * a0 * x**2 + 2 * b0 * x + c0  # noqa: E731
         # Initial guess from a rough estimate
-        x0 = max(1.0, (-d0/a0)**(1/3)) if a0 != 0 else 1.0
+        x0 = max(1.0, (-d0 / a0) ** (1 / 3)) if a0 != 0 else 1.0
         try:
             results[i] = scipy_newton(f, x0, fprime=fp, maxiter=50)
         except RuntimeError:
             results[i] = 0.0
     return results
+
 
 # numpy.linalg.eigvals batch companion matrix (truly vectorized)
 def solve_eigvals_batch(p_array):
@@ -159,7 +178,9 @@ for name, solver in [
 
 
 # ── 4. Micro-benchmark: isolated cubic_roots calls ──────────────────────────
-print("\n=== Micro-benchmark: single cubic_roots call (typical array size) ===")
+print(
+    "\n=== Micro-benchmark: single cubic_roots call (typical array size) ==="
+)
 test_p = _captured_coeffs[0]
 print(f"Array shape: {test_p.shape}")
 
@@ -180,21 +201,26 @@ for name, solver in [
 # ── 5. Full integration benchmark: solve_change_state with swapped solver ───
 print("\n=== Full integration benchmark: solve_change_state ===")
 
+
 def bench_full(label, cubic_roots_fn, N=100, repeats=5):
     """Benchmark full solve_change_state with a given cubic_roots implementation."""
     # Monkey-patch
     cubic_mod.cubic_roots = cubic_roots_fn
+
     class _Patch:
         def __getattr__(self, name):
             if name == "cubic_roots":
                 return cubic_roots_fn
             return getattr(_orig_md_cubic, name)
+
     md.cubic = _Patch()
 
     engine2 = setup()
     run_change_state(engine2)  # warmup
 
-    times = timeit.repeat(lambda: run_change_state(engine2), number=N, repeat=repeats)
+    times = timeit.repeat(
+        lambda: run_change_state(engine2), number=N, repeat=repeats
+    )
     avg = min(times) / N * 1000
 
     # Restore
@@ -236,8 +262,12 @@ def scipy_brentq_cubic_roots(p, only_max_real=True):
 
 
 results = {}
-results["current (Cardano/numpy)"] = bench_full("current (Cardano/numpy)", _orig_cubic_roots)
-results["eigvals_batch (numpy LAPACK)"] = bench_full("eigvals_batch (numpy LAPACK)", scipy_eigvals_cubic_roots)
+results["current (Cardano/numpy)"] = bench_full(
+    "current (Cardano/numpy)", _orig_cubic_roots
+)
+results["eigvals_batch (numpy LAPACK)"] = bench_full(
+    "eigvals_batch (numpy LAPACK)", scipy_eigvals_cubic_roots
+)
 
 # scipy.newton and brentq are loop-based and may not converge reliably
 # with the initial guesses for all polynomial shapes in the solver.

@@ -209,9 +209,7 @@ class CardanoSolver(ICubicSolver):
     :class:`~mechaphlowers.numeric.cubic_interface.ICubicSolver` interface.
     """
 
-    def solve(
-        self, p: np.ndarray, only_max_real: bool = True
-    ) -> np.ndarray:
+    def solve(self, p: np.ndarray, only_max_real: bool = True) -> np.ndarray:
         """Solve a batch of cubic polynomials using Cardano's analytical method.
 
         Parameters

@@ -3,12 +3,12 @@
 Uses the same balance-engine context as profile_balance.py
 (4 supports with loads, wind+ice+temperature).
 """
+
 import timeit
 
 import numpy as np
 import pandas as pd
 
-from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.entities.arrays import SectionArray
@@ -51,7 +51,9 @@ def run_change_state(engine):
 def bench(label, N=100, repeats=5):
     engine = setup()
     run_change_state(engine)  # warmup
-    times = timeit.repeat(lambda: run_change_state(engine), number=N, repeat=repeats)
+    times = timeit.repeat(
+        lambda: run_change_state(engine), number=N, repeat=repeats
+    )
     avg = min(times) / N * 1000
     print(f"  {label:25s}: {avg:.3f} ms/call")
     return avg
@@ -91,13 +93,23 @@ if __name__ == "__main__":
     analytical_ms = results["analytical_real"]
 
     print(f"\n  cardano        : {cardano_ms:.3f} ms  (baseline)")
-    print(f"  eigval_batch   : {eigval_ms:.3f} ms  ({(cardano_ms - eigval_ms) / cardano_ms * 100:.1f}% faster than cardano)")
-    print(f"  analytical_real: {analytical_ms:.3f} ms  ({(cardano_ms - analytical_ms) / cardano_ms * 100:.1f}% faster than cardano)")
+    print(
+        f"  eigval_batch   : {eigval_ms:.3f} ms  ({(cardano_ms - eigval_ms) / cardano_ms * 100:.1f}% faster than cardano)"
+    )
+    print(
+        f"  analytical_real: {analytical_ms:.3f} ms  ({(cardano_ms - analytical_ms) / cardano_ms * 100:.1f}% faster than cardano)"
+    )
 
     best_ms = min(eigval_ms, analytical_ms)
-    best_label = "eigval_batch" if eigval_ms <= analytical_ms else "analytical_real"
+    best_label = (
+        "eigval_batch" if eigval_ms <= analytical_ms else "analytical_real"
+    )
     print(f"\n  Best solver: {best_label} ({best_ms:.3f} ms)")
     if analytical_ms < eigval_ms:
-        print(f"  analytical_real is {(eigval_ms - analytical_ms) / eigval_ms * 100:.1f}% faster than eigval_batch")
+        print(
+            f"  analytical_real is {(eigval_ms - analytical_ms) / eigval_ms * 100:.1f}% faster than eigval_batch"
+        )
     else:
-        print(f"  eigval_batch is {(analytical_ms - eigval_ms) / analytical_ms * 100:.1f}% faster than analytical_real")
+        print(
+            f"  eigval_batch is {(analytical_ms - eigval_ms) / analytical_ms * 100:.1f}% faster than analytical_real"
+        )

@@ -10,11 +10,11 @@ import numpy as np
 import pytest
 
 from mechaphlowers.numeric.analytical_cubic import AnalyticalRealSolver
-from mechaphlowers.numeric.cubic import CardanoSolver, cubic_roots
+from mechaphlowers.numeric.cubic import CardanoSolver
 from mechaphlowers.numeric.eigval_batch_lapack import EigvalBatchSolver
 
-
 # --- Fixtures ---------------------------------------------------------------
+
 
 @pytest.fixture(params=["cardano", "eigval_batch", "analytical_real"])
 def solver(request):
@@ -29,13 +29,15 @@ def solver(request):
 # --- Test data ---------------------------------------------------------------
 
 # Coefficients from test_cubic.py
-P_MULTI = np.array([
-    [5, 2, -3, -4],
-    [0.1, 2, -3, -4],
-    [0.01, 0, -3, -4],
-    [0.00001, 0, 0, -4],
-    [1e-10, 0, 0, 0],
-])
+P_MULTI = np.array(
+    [
+        [5, 2, -3, -4],
+        [0.1, 2, -3, -4],
+        [0.01, 0, -3, -4],
+        [0.00001, 0, 0, -4],
+        [1e-10, 0, 0, 0],
+    ]
+)
 
 # Known max-real roots (from existing test_cubic.py)
 EXPECTED_MAX_REAL = np.array([1.0, 2.17988479, 17.95219749, 73.68062997, 0.0])
@@ -43,13 +45,16 @@ EXPECTED_MAX_REAL = np.array([1.0, 2.17988479, 17.95219749, 73.68062997, 0.0])
 
 # --- Tests -------------------------------------------------------------------
 
+
 class TestEigvalBatchSolver:
     """Tests specific to the eigval-batch implementation."""
 
     def test_solve_only_max_real(self):
         solver = EigvalBatchSolver()
         result = solver.solve(P_MULTI, only_max_real=True)
-        np.testing.assert_array_almost_equal(result, EXPECTED_MAX_REAL, decimal=4)
+        np.testing.assert_array_almost_equal(
+            result, EXPECTED_MAX_REAL, decimal=4
+        )
 
     def test_solve_all_roots_shape(self):
         solver = EigvalBatchSolver()
@@ -74,7 +79,9 @@ class TestCardanoSolver:
     def test_solve_only_max_real(self):
         solver = CardanoSolver()
         result = solver.solve(P_MULTI, only_max_real=True)
-        np.testing.assert_array_almost_equal(result, EXPECTED_MAX_REAL, decimal=4)
+        np.testing.assert_array_almost_equal(
+            result, EXPECTED_MAX_REAL, decimal=4
+        )
 
     def test_solve_all_roots_shape(self):
         solver = CardanoSolver()
@@ -88,7 +95,9 @@ class TestAnalyticalRealSolver:
     def test_solve_only_max_real(self):
         solver = AnalyticalRealSolver()
         result = solver.solve(P_MULTI, only_max_real=True)
-        np.testing.assert_array_almost_equal(result, EXPECTED_MAX_REAL, decimal=4)
+        np.testing.assert_array_almost_equal(
+            result, EXPECTED_MAX_REAL, decimal=4
+        )
 
     def test_solve_all_roots_shape(self):
         solver = AnalyticalRealSolver()
@@ -129,7 +138,9 @@ class TestSolversAgree:
 
     def test_max_real_roots_agree(self, solver):
         result = solver.solve(P_MULTI, only_max_real=True)
-        np.testing.assert_array_almost_equal(result, EXPECTED_MAX_REAL, decimal=4)
+        np.testing.assert_array_almost_equal(
+            result, EXPECTED_MAX_REAL, decimal=4
+        )
 
     def test_random_polynomials_agree(self):
         """All solvers must return the same max-real root for random cubics

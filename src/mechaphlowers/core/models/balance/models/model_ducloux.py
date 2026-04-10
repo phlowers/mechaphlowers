@@ -39,7 +39,6 @@ from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.core import VhlResult
-
 from mechaphlowers.numeric.cubic_interface import ICubicSolver
 from mechaphlowers.utils import arr
 

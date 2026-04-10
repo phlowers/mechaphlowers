@@ -48,9 +48,7 @@ class EigvalBatchSolver(ICubicSolver):
     def __init__(self, imag_threshold: float = 1e-10) -> None:
         self._imag_threshold = imag_threshold
 
-    def solve(
-        self, p: np.ndarray, only_max_real: bool = True
-    ) -> np.ndarray:
+    def solve(self, p: np.ndarray, only_max_real: bool = True) -> np.ndarray:
         """Solve a batch of cubic polynomials.
 
         Parameters

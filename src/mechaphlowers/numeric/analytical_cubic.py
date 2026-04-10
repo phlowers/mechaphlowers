@@ -60,9 +60,7 @@ class AnalyticalRealSolver(ICubicSolver):
     def __init__(self, imag_threshold: float = 1e-10) -> None:
         self._imag_threshold = imag_threshold
 
-    def solve(
-        self, p: np.ndarray, only_max_real: bool = True
-    ) -> np.ndarray:
+    def solve(self, p: np.ndarray, only_max_real: bool = True) -> np.ndarray:
         """Solve a batch of cubic polynomials.
 
         Parameters
@@ -99,7 +97,7 @@ class AnalyticalRealSolver(ICubicSolver):
         # --- Depress: t³ + p_dep·t + q_dep = 0  via  x = t − a/3 ---
         a3 = a / 3.0
         a3_sq = a3 * a3
-        p_dep = b - 3.0 * a3_sq          # b − a²/3
+        p_dep = b - 3.0 * a3_sq  # b − a²/3
         q_dep = a3 * (2.0 * a3_sq - b) + c  # a/3·(2a²/9 − b) + c
 
         # --- Discriminant ---
@@ -159,7 +157,7 @@ class AnalyticalRealSolver(ICubicSolver):
         For D < 0 (three real): all three trigonometric roots are returned.
         Results are sorted in descending order per polynomial.
         """
-        n = len(a3)
+
         half_q = 0.5 * q_dep
         sqrt_D = np.sqrt(np.maximum(D, 0.0))
 
