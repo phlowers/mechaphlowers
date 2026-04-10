@@ -206,9 +206,11 @@ def check_inputs(
         # Track and validate the length of array inputs
         if array_length is None:
             array_length = len(value)
-        elif len(value) != array_length:
+        elif (
+            key == "datetime_utc" and len(value) != array_length
+        ) or value.size != array_length:
             raise ValueError(
-                f"All array inputs must have the same length. "
+                f"All list/array inputs must have the same length. "
                 f"Expected {array_length}, got {len(value)} for {key}."
             )
 
