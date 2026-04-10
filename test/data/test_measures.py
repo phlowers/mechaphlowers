@@ -4,13 +4,31 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import unittest.mock
+
 import numpy as np
+import pandas as pd
+import pytest
 
 from mechaphlowers.data.measures import (
     PapotoParameterMeasure,
     param_calibration,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+
+PAPOTO_INPUTS = dict(
+    a=498.565922913587,
+    HL=0.0,
+    VL=97.4327311161033,
+    HR=162.614599621714,
+    VR=88.6907631859419,
+    H1=5.1134354937127,
+    V1=98.4518011880176,
+    H2=19.6314054626454,
+    V2=97.6289296721015,
+    H3=97.1475339907774,
+    V3=87.9335010245142,
+)
 
 
 def test_papoto_floats():
@@ -153,3 +171,90 @@ def test_parameter_15_deg(
     param_calibration(
         2000, 60, section_array_complete, cable_array_AM600, span_index=2
     )
+
+
+EXPECTED_UNCERTAINTY_KEYS = {
+    'mean_parameter_valid_values',
+    'std_parameter_valid_values',
+    'min_parameter_valid_values',
+    'max_parameter_valid_values',
+    'parameter_by_span_length',
+    'number_non_valid_values',
+    'mean_non_valid_values',
+    'std_non_valid_values',
+    'min_all_values',
+    'max_all_values',
+}
+
+
+def test_uncertainty_raises_before_measure_method():
+    """uncertainty() must raise RuntimeError if measure_method() not called first."""
+    papoto = PapotoParameterMeasure()
+    with pytest.raises(RuntimeError, match="measure_method"):
+        papoto.uncertainty()
+
+
+def test_uncertainty_returns_expected_keys():
+    """uncertainty() must return a dict with all expected keys."""
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+    result = papoto.uncertainty(draw_number=100)
+    assert isinstance(result, dict)
+    assert set(result.keys()) == EXPECTED_UNCERTAINTY_KEYS
+
+
+def test_uncertainty_number_non_valid_is_int():
+    """number_non_valid_values must be an integer."""
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+    result = papoto.uncertainty(draw_number=100)
+    assert isinstance(result['number_non_valid_values'], int)
+
+
+def test_uncertainty_valid_values_consistent():
+    """mean/std/min/max over valid draws must be internally consistent."""
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+
+    fixed_rng = np.random.default_rng(42)
+    with unittest.mock.patch('numpy.random.default_rng', return_value=fixed_rng):
+        result = papoto.uncertainty(draw_number=500, angle_error=0.01)
+
+    assert result['min_parameter_valid_values'] <= result['mean_parameter_valid_values']
+    assert result['mean_parameter_valid_values'] <= result['max_parameter_valid_values']
+    assert result['std_parameter_valid_values'] >= 0
+    assert result['min_all_values'] <= result['max_all_values']
+
+
+def test_uncertainty_parameter_by_span_length():
+    """parameter_by_span_length must equal mean_valid / a."""
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+    result = papoto.uncertainty(draw_number=200)
+    expected = result['mean_parameter_valid_values'] / PAPOTO_INPUTS['a']
+    np.testing.assert_allclose(result['parameter_by_span_length'], expected)
+
+
+def test_uncertainty_non_valid_nan_when_all_valid():
+    """When all draws are valid, non-valid stats should be NaN."""
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+
+    # Use very small angle_error so all draws should be valid
+    result = papoto.uncertainty(draw_number=200, angle_error=1e-6)
+
+    if result['number_non_valid_values'] == 0:
+        assert np.isnan(result['mean_non_valid_values'])
+        assert np.isnan(result['std_non_valid_values'])
+
+
+def test_uncertainty_all_values_bounds():
+    """min/max_all_values must bound all draws."""
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+    result = papoto.uncertainty(draw_number=300)
+
+    if not np.isnan(result['min_parameter_valid_values']):
+        assert result['min_all_values'] <= result['min_parameter_valid_values']
+        assert result['max_all_values'] >= result['max_parameter_valid_values']
+
