@@ -399,7 +399,7 @@ class ThermalEngine:
     def _load(self):
         """Load the thermal model with the current input parameters."""
         # expected to fail if arguments are not filled
-        self.thermal_model = self.power_model(  # TODO
+        self.thermal_model = self.power_model(
             dic=self.dict_input, heat_equation=self.heateq
         )
 
