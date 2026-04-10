@@ -35,7 +35,6 @@ def test_proj_no_angles():
         Tv_d=Tv_d,
         alpha=np.array([0, 0, 0]),
         beta=np.array([0, 0, 0]),
-        line_angle=np.array([0, 0, 0, 0]),
         proj_angle=np.array([0, 0, 0]),
     )
     T_attachment_left = vector_projection.T_attachments_plane_left()

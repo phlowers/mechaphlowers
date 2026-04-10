@@ -9,11 +9,13 @@ from importlib.metadata import version
 
 import pandas as pd
 
+from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.config import options
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.cable.thermal import ThermalEngine
 from mechaphlowers.core.models.guying import Guying
+from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.data.measures import (
     PapotoParameterMeasure,
     param_calibration,
@@ -36,12 +38,14 @@ logger.info(f"Mechaphlowers version: {__version__}")
 
 __all__ = [
     "options",
+    "SectionStudy",
     "BalanceEngine",
     "PlotEngine",
     "PositionEngine",
     "SectionArray",
     "CableArray",
     "SupportShape",
+    "sample_cable_catalog",
     "units",
     "PapotoParameterMeasure",
     "param_calibration",
