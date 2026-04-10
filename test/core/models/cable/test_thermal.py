@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -242,6 +244,55 @@ def test_wrong_array_length_at_load(thermal_engine_3_spans: ThermalEngine):
         match="All array inputs must have the same length.",
     ):
         thermal_engine.dict_input["latitude"] = np.array([45.0, 45.0])
+        thermal_engine.load()
+
+
+def test_wrong_array_length_at_load_datetime(
+    thermal_engine_3_spans: ThermalEngine,
+):
+    thermal_engine = thermal_engine_3_spans
+
+    thermal_engine.dict_input["datetime_utc"] = [
+        datetime(2024, 3, 21, 12),
+        datetime(2024, 3, 21, 12),
+    ]
+    with pytest.raises(
+        ValueError,
+        match="All list inputs must have the same length.",
+    ):
+        thermal_engine.load()
+
+
+def test_wrong_type_month(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+
+    with pytest.raises(
+        TypeError,
+        match="Expected integer array for 'month', got float64.",
+    ):
+        thermal_engine.dict_input["month"] = np.array([3.0, 3.0, 3.0])
+        thermal_engine.load()
+
+
+def test_wrong_type_day(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+
+    with pytest.raises(
+        TypeError,
+        match="Expected integer array for 'day', got float64.",
+    ):
+        thermal_engine.dict_input["day"] = np.array([21.0, 21.0, 21.0])
+        thermal_engine.load()
+
+
+def test_wrong_type_hour(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+
+    with pytest.raises(
+        TypeError,
+        match="Expected integer array for 'hour', got float64.",
+    ):
+        thermal_engine.dict_input["hour"] = np.array([12.0, 12.0, 12.0])
         thermal_engine.load()
 
 
