@@ -240,18 +240,18 @@ class SectionArray(ElementArray):
 
         # Snapshot originals on first call
         if self._original_conductor_attachment_altitude is None:
-            self._original_conductor_attachment_altitude = (
-                self._data["conductor_attachment_altitude"].copy()
-            )
+            self._original_conductor_attachment_altitude = self._data[
+                "conductor_attachment_altitude"
+            ].copy()
             self._original_crossarm_length = self._data[
                 "crossarm_length"
             ].copy()
 
         for idx, offsets in manipulation.items():
             if "z" in offsets:
-                self._data.loc[idx, "conductor_attachment_altitude"] += offsets[
-                    "z"
-                ]
+                self._data.loc[idx, "conductor_attachment_altitude"] += (
+                    offsets["z"]
+                )
             if "y" in offsets:
                 self._data.loc[idx, "crossarm_length"] += offsets["y"]
 
@@ -400,19 +400,35 @@ class SectionArray(ElementArray):
                   virtual support in meters.
                 - ``"insulator_length"``: insulator length in meters.
                 - ``"insulator_mass"``: insulator mass in kg.
+                - ``"hanging_cable_point_from_left_support"``: distance from
+                  the left support to the cable hanging point in meters (must be
+                  strictly between ``-abs(crossarm_length[left_support])`` and
+                  ``abs(span_length) + abs(crossarm_length[right_support])``).  Not
+                  used for computation currently.
 
         Raises:
             ValueError: If a span index is out of range.
-            ValueError: If ``x`` is not strictly within ``(0, span_length)``.
+            ValueError: If ``x`` or ``hanging_cable_point_from_left_support`` is
+                not strictly within ``(-abs(crossarm_length[left_support]),
+                abs(span_length) + abs(crossarm_length[right_support]))``.
             ValueError: If required keys are missing.
 
         Examples:
-            >>> section_array.add_virtual_support({1: {"x": 200.0, "y": 0.0, "z": 55.0,
-            ...                                        "insulator_length": 3.0,
-            ...                                        "insulator_mass": 500.0}})
+            >>> section_array.add_virtual_support(
+            ...     {
+            ...         1: {
+            ...             "x": 200.0,
+            ...             "y": 0.0,
+            ...             "z": 55.0,
+            ...             "insulator_length": 3.0,
+            ...             "insulator_mass": 500.0,
+            ...             "hanging_cable_point_from_left_support": 200.0,
+            ...         }
+            ...     }
+            ... )
         """
         n_supports = len(self._data)
-        required_keys = {"x", "y", "z", "insulator_length", "insulator_mass"}
+        required_keys = {"x", "y", "z", "insulator_length", "insulator_mass", "hanging_cable_point_from_left_support"}
 
         for span_idx, vs in virtual_support.items():
             if span_idx < 0 or span_idx >= n_supports - 1:
@@ -426,13 +442,20 @@ class SectionArray(ElementArray):
                 )
             span_length = float(self._data["span_length"].iloc[span_idx])
             crossarm_left = float(self._data["crossarm_length"].iloc[span_idx])
-            crossarm_right = float(self._data["crossarm_length"].iloc[span_idx + 1])
+            crossarm_right = float(
+                self._data["crossarm_length"].iloc[span_idx + 1]
+            )
             x = vs["x"]
             x_lower = -abs(crossarm_left)
             x_upper = abs(span_length) + abs(crossarm_right)
             if x <= x_lower or x >= x_upper:
                 raise ValueError(
                     f"x={x} is out of range ({x_lower}, {x_upper}) for span {span_idx}"
+                )
+            hcp = vs["hanging_cable_point_from_left_support"]
+            if hcp <= x_lower or hcp >= x_upper:
+                raise ValueError(
+                    f"hanging_cable_point_from_left_support={hcp} is out of range ({x_lower}, {x_upper}) for span {span_idx}"
                 )
 
         if self._virtual_support_overlay is None:
@@ -447,9 +470,17 @@ class SectionArray(ElementArray):
         Does nothing if no virtual supports have been added.
 
         Examples:
-            >>> section_array.add_virtual_support({1: {"x": 200.0, "y": 0.0, "z": 55.0,
-            ...                                        "insulator_length": 3.0,
-            ...                                        "insulator_mass": 500.0}})
+            >>> section_array.add_virtual_support(
+            ...     {
+            ...         1: {
+            ...             "x": 200.0,
+            ...             "y": 0.0,
+            ...             "z": 55.0,
+            ...             "insulator_length": 3.0,
+            ...             "insulator_mass": 500.0,
+            ...         }
+            ...     }
+            ... )
             >>> section_array.reset_virtual_support()
         """
         if self._virtual_support_overlay is None:
@@ -490,7 +521,9 @@ class SectionArray(ElementArray):
                     "conductor_attachment_altitude": float(vs["z"]),
                     "crossarm_length": 0.0,
                     "line_angle": -angle,
-                    "insulator_length": max(float(vs["insulator_length"]), 0.01),
+                    "insulator_length": max(
+                        float(vs["insulator_length"]), 0.01
+                    ),
                     "span_length": abs(original_span_length - x),
                     "insulator_mass": float(vs["insulator_mass"]),
                     "insulator_weight": float(

@@ -188,12 +188,14 @@ The input is a dictionary where keys are left-support indices (0-based, must not
 | `"z"` | `conductor_attachment_altitude` of the virtual support (m) |
 | `"insulator_length"` | Insulator length on the virtual support (m) |
 | `"insulator_mass"` | Insulator mass on the virtual support (kg) |
+| `"hanging_cable_point_from_left_support"` | Distance from the left support to the cable hanging point (m) — must be strictly in `(-abs(crossarm_length[left_support]), abs(span_length) + abs(crossarm_length[right_support]))`. Not used for computation currently. |
 
 ```python
 # insert a virtual support at 100 m into span 1
 section_array.add_virtual_support({
     1: {"x": 100.0, "y": 0.0, "z": 55.0,
-        "insulator_length": 3.0, "insulator_mass": 500.0}
+        "insulator_length": 3.0, "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": 100.0}
 })
 ```
 
@@ -201,8 +203,10 @@ Multiple spans can be provided in one call, or via successive calls (overlays ac
 
 ```python
 section_array.add_virtual_support({
-    0: {"x": 200.0, "y": 0.0, "z": 40.0, "insulator_length": 3.0, "insulator_mass": 500.0},
-    2: {"x": 200.0, "y": 10.0, "z": 62.0, "insulator_length": 3.0, "insulator_mass": 500.0},
+    0: {"x": 200.0, "y": 0.0, "z": 40.0, "insulator_length": 3.0, "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": 200.0},
+    2: {"x": 200.0, "y": 10.0, "z": 62.0, "insulator_length": 3.0, "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": 200.0},
 })
 ```
 
@@ -217,7 +221,8 @@ The same API is available on `BalanceEngine`. Because the number of supports cha
 ```python
 engine.add_virtual_support({
     1: {"x": 100.0, "y": 0.0, "z": 55.0,
-        "insulator_length": 3.0, "insulator_mass": 500.0}
+        "insulator_length": 3.0, "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": 100.0}
 })
 engine.solve_adjustment()
 engine.solve_change_state(new_temperature=15.0)

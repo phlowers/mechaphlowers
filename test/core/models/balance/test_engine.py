@@ -699,7 +699,9 @@ def test_support_manipulation_integration(
     balance_engine_simple.solve_change_state(new_temperature=15.0)
     L_ref_before = balance_engine_simple.L_ref.copy()
 
-    balance_engine_simple.support_manipulation({1: {"z": 10.0}, 2: {"z": -10.0}})
+    balance_engine_simple.support_manipulation(
+        {1: {"z": 10.0}, 2: {"z": -10.0}}
+    )
     balance_engine_simple.solve_adjustment()
     balance_engine_simple.solve_change_state(new_temperature=15.0)
     L_ref_after = balance_engine_simple.L_ref
@@ -729,9 +731,9 @@ def test_reset_manipulation_integration(
 def test_rope_manipulation_modifies_data(
     balance_engine_simple: BalanceEngine,
 ) -> None:
-    original_length = (
-        balance_engine_simple.section_array._data["insulator_length"].copy()
-    )
+    original_length = balance_engine_simple.section_array._data[
+        "insulator_length"
+    ].copy()
 
     balance_engine_simple.rope_manipulation({1: 6.0, 2: 4.0})
 
@@ -740,7 +742,9 @@ def test_rope_manipulation_modifies_data(
     np.testing.assert_allclose(data["insulator_length"].iloc[2], 4.0)
     # _data untouched
     np.testing.assert_allclose(
-        balance_engine_simple.section_array._data["insulator_length"].to_numpy(),
+        balance_engine_simple.section_array._data[
+            "insulator_length"
+        ].to_numpy(),
         original_length.to_numpy(),
     )
 
@@ -810,7 +814,16 @@ def test_add_virtual_support_changes_data_shape(
 ) -> None:
     assert len(balance_engine_simple.section_array.data) == 4
     balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+        {
+            1: {
+                "x": 100.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 100.0,
+            }
+        }
     )
     assert len(balance_engine_simple.section_array.data) == 5
 
@@ -832,7 +845,16 @@ def test_add_virtual_support_preserves_observers(
     assert obs in balance_engine_simple._observers
 
     balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+        {
+            1: {
+                "x": 100.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 100.0,
+            }
+        }
     )
     assert obs in balance_engine_simple._observers
     assert obs.call_count >= 1
@@ -847,7 +869,16 @@ def test_reset_virtual_support_restores_data_shape(
     balance_engine_simple: BalanceEngine,
 ) -> None:
     balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+        {
+            1: {
+                "x": 100.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 100.0,
+            }
+        }
     )
     balance_engine_simple.reset_virtual_support()
     assert len(balance_engine_simple.section_array.data) == 4
@@ -857,7 +888,16 @@ def test_add_virtual_support_integration(
     balance_engine_simple: BalanceEngine,
 ) -> None:
     balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0}}
+        {
+            1: {
+                "x": 100.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 100.0,
+            }
+        }
     )
     balance_engine_simple.solve_adjustment()
     balance_engine_simple.solve_change_state(new_temperature=15.0)
@@ -866,22 +906,55 @@ def test_add_virtual_support_integration(
 
 # ── performance tests ────────────────────────────────────────────────────────
 
+
 def _make_8support_section_array(cable_array: "CableArray") -> "BalanceEngine":
     """8-support line with spans of varying length."""
     section_array = SectionArray(
         pd.DataFrame(
             {
                 "name": ["1", "2", "3", "4", "5", "6", "7", "8"],
-                "suspension": [False, True, True, True, True, True, True, False],
+                "suspension": [
+                    False,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    False,
+                ],
                 "conductor_attachment_altitude": [
-                    30.0, 45.0, 55.0, 60.0, 50.0, 65.0, 40.0, 35.0
+                    30.0,
+                    45.0,
+                    55.0,
+                    60.0,
+                    50.0,
+                    65.0,
+                    40.0,
+                    35.0,
                 ],
                 "crossarm_length": [0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0],
                 "line_angle": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                 "insulator_length": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
-                "span_length": [400.0, 350.0, 450.0, 300.0, 500.0, 380.0, 420.0, np.nan],
+                "span_length": [
+                    400.0,
+                    350.0,
+                    450.0,
+                    300.0,
+                    500.0,
+                    380.0,
+                    420.0,
+                    np.nan,
+                ],
                 "insulator_mass": [
-                    1000.0, 500.0, 500.0, 500.0, 500.0, 500.0, 500.0, 1000.0
+                    1000.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    1000.0,
                 ],
                 "load_mass": [0.0] * 8,
                 "load_position": [0.0] * 8,
@@ -894,26 +967,84 @@ def _make_8support_section_array(cable_array: "CableArray") -> "BalanceEngine":
     return BalanceEngine(cable_array=cable_array, section_array=section_array)
 
 
-def _make_12support_section_array(cable_array: "CableArray") -> "BalanceEngine":
+def _make_12support_section_array(
+    cable_array: "CableArray",
+) -> "BalanceEngine":
     """12-support plain line for size-scaling comparison."""
     section_array = SectionArray(
         pd.DataFrame(
             {
-                "name": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+                "name": [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                    "6",
+                    "7",
+                    "8",
+                    "9",
+                    "10",
+                    "11",
+                    "12",
+                ],
                 "suspension": [
-                    False, True, True, True, True, True,
-                    True, True, True, True, True, False,
+                    False,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    False,
                 ],
                 "conductor_attachment_altitude": [
-                    30.0, 45.0, 55.0, 60.0, 50.0, 65.0,
-                    40.0, 35.0, 50.0, 58.0, 42.0, 38.0,
+                    30.0,
+                    45.0,
+                    55.0,
+                    60.0,
+                    50.0,
+                    65.0,
+                    40.0,
+                    35.0,
+                    50.0,
+                    58.0,
+                    42.0,
+                    38.0,
                 ],
-                "crossarm_length": [0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0],
+                "crossarm_length": [
+                    0.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    0.0,
+                ],
                 "line_angle": [0.0] * 12,
                 "insulator_length": [3.0] * 12,
                 "span_length": [
-                    400.0, 350.0, 450.0, 300.0, 500.0, 380.0,
-                    420.0, 370.0, 410.0, 340.0, 460.0, np.nan,
+                    400.0,
+                    350.0,
+                    450.0,
+                    300.0,
+                    500.0,
+                    380.0,
+                    420.0,
+                    370.0,
+                    410.0,
+                    340.0,
+                    460.0,
+                    np.nan,
                 ],
                 "insulator_mass": [1000.0] + [500.0] * 10 + [1000.0],
                 "load_mass": [0.0] * 12,
@@ -964,21 +1095,53 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
     # ── 8-support with manipulations ─────────────────────────────────────────
     engine_manip = _make_8support_section_array(cable_array_AM600)
     # 4 support manipulations (supports 1, 2, 4, 5)
-    engine_manip.support_manipulation({
-        1: {"z": 1.0},
-        2: {"z": -1.0, "y": 0.5},
-        4: {"z": 2.0},
-        5: {"y": -0.5},
-    })
+    engine_manip.support_manipulation(
+        {
+            1: {"z": 1.0},
+            2: {"z": -1.0, "y": 0.5},
+            4: {"z": 2.0},
+            5: {"y": -0.5},
+        }
+    )
     # 1 rope manipulation (support 3)
     engine_manip.rope_manipulation({3: 4.5})
     # 4 virtual supports (one per span: spans 0, 2, 4, 6)
-    engine_manip.add_virtual_support({
-        0: {"x": 200.0, "y": 0.0, "z": 38.0, "insulator_length": 3.0, "insulator_mass": 500.0},
-        2: {"x": 200.0, "y": 0.0, "z": 58.0, "insulator_length": 3.0, "insulator_mass": 500.0},
-        4: {"x": 250.0, "y": 0.0, "z": 52.0, "insulator_length": 3.0, "insulator_mass": 500.0},
-        6: {"x": 200.0, "y": 0.0, "z": 42.0, "insulator_length": 3.0, "insulator_mass": 500.0},
-    })
+    engine_manip.add_virtual_support(
+        {
+            0: {
+                "x": 200.0,
+                "y": 0.0,
+                "z": 38.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 200.0,
+            },
+            2: {
+                "x": 200.0,
+                "y": 0.0,
+                "z": 58.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 200.0,
+            },
+            4: {
+                "x": 250.0,
+                "y": 0.0,
+                "z": 52.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 250.0,
+            },
+            6: {
+                "x": 200.0,
+                "y": 0.0,
+                "z": 42.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 200.0,
+            },
+        }
+    )
     engine_manip.solve_adjustment()
     manip_data_s, manip_change_state_s = _measure(engine_manip)
 
@@ -1000,7 +1163,12 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
     print("-" * sum(col_w))
     for label, base, manip, ref12 in (
         (".data", baseline_data_s, manip_data_s, ref12_data_s),
-        ("solve_change_state", baseline_change_state_s, manip_change_state_s, ref12_change_state_s),
+        (
+            "solve_change_state",
+            baseline_change_state_s,
+            manip_change_state_s,
+            ref12_change_state_s,
+        ),
     ):
         ratio = manip / ref12 if ref12 > 0 else float("inf")
         print(
@@ -1014,5 +1182,3 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
         "expected: solve_change_state overhead from manipulations should be "
         "comparable to the plain size increase from 8 to 12 supports"
     )
-
-

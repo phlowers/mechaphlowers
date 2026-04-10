@@ -392,9 +392,7 @@ class BalanceEngine(Notifier):
         """
         self.section_array.rope_manipulation(rope, rope_lineic_mass)
         self.reset(full=False)
-        logger.debug(
-            "Rope manipulation applied. Observers preserved."
-        )
+        logger.debug("Rope manipulation applied. Observers preserved.")
 
     def reset_rope_manipulation(self) -> None:
         """Remove the rope overlay and restore original insulator values.
@@ -409,9 +407,7 @@ class BalanceEngine(Notifier):
         """
         self.section_array.reset_rope_manipulation()
         self.reset(full=False)
-        logger.debug(
-            "Rope manipulation cleared. Observers preserved."
-        )
+        logger.debug("Rope manipulation cleared. Observers preserved.")
 
     def add_virtual_support(
         self, virtual_support: dict[int, dict[str, float]]
@@ -427,14 +423,28 @@ class BalanceEngine(Notifier):
                 [`SectionArray.add_virtual_support`][mechaphlowers.entities.arrays.SectionArray.add_virtual_support].
 
         Examples:
-            >>> balance_engine.add_virtual_support({1: {"x": 200.0, "y": 0.0, "z": 55.0,
-            ...                                         "insulator_length": 3.0,
-            ...                                         "insulator_mass": 500.0}})
+            >>> balance_engine.add_virtual_support(
+            ...     {
+            ...         1: {
+            ...             "x": 200.0,
+            ...             "y": 0.0,
+            ...             "z": 55.0,
+            ...             "insulator_length": 3.0,
+            ...             "insulator_mass": 500.0,
+            ...         }
+            ...     }
+            ... )
         """
         self.section_array.add_virtual_support(virtual_support)
-        saved_observers = self._observers.copy()  # reset(full=True) calls super().__init__() which clears _observers
-        self.reset(full=True)  # full=True required: row count changes, so array sizes must be reallocated
-        self._observers = saved_observers  # restore observers lost by super().__init__()
+        saved_observers = (
+            self._observers.copy()
+        )  # reset(full=True) calls super().__init__() which clears _observers
+        self.reset(
+            full=True
+        )  # full=True required: row count changes, so array sizes must be reallocated
+        self._observers = (
+            saved_observers  # restore observers lost by super().__init__()
+        )
         _zeros = np.zeros_like(
             self.section_array.data.conductor_attachment_altitude.to_numpy()
         )
@@ -451,15 +461,29 @@ class BalanceEngine(Notifier):
         then fully rebuilds all internal models while preserving observer bindings.
 
         Examples:
-            >>> balance_engine.add_virtual_support({1: {"x": 200.0, "y": 0.0, "z": 55.0,
-            ...                                         "insulator_length": 3.0,
-            ...                                         "insulator_mass": 500.0}})
+            >>> balance_engine.add_virtual_support(
+            ...     {
+            ...         1: {
+            ...             "x": 200.0,
+            ...             "y": 0.0,
+            ...             "z": 55.0,
+            ...             "insulator_length": 3.0,
+            ...             "insulator_mass": 500.0,
+            ...         }
+            ...     }
+            ... )
             >>> balance_engine.reset_virtual_support()
         """
         self.section_array.reset_virtual_support()
-        saved_observers = self._observers.copy()  # reset(full=True) calls super().__init__() which clears _observers
-        self.reset(full=True)  # full=True required: row count changes, so array sizes must be reallocated
-        self._observers = saved_observers  # restore observers lost by super().__init__()
+        saved_observers = (
+            self._observers.copy()
+        )  # reset(full=True) calls super().__init__() which clears _observers
+        self.reset(
+            full=True
+        )  # full=True required: row count changes, so array sizes must be reallocated
+        self._observers = (
+            saved_observers  # restore observers lost by super().__init__()
+        )
         _zeros = np.zeros_like(
             self.section_array.data.conductor_attachment_altitude.to_numpy()
         )
@@ -477,9 +501,7 @@ class BalanceEngine(Notifier):
             self.section_array, self.cable_array, self.span_model_type
         )
         self.reset(full=False)
-        logger.debug(
-            "Geometry changed. Models rebuilt; observers preserved."
-        )
+        logger.debug("Geometry changed. Models rebuilt; observers preserved.")
 
     def shift_span_length(self) -> np.ndarray:
         """Transform shifting distance which is support based into L_ref shift which is span based.
@@ -558,7 +580,9 @@ class BalanceEngine(Notifier):
             f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}\nwind_sense {str(wind_sense)}"
         )
 
-        span_shape = self.span_model.sagging_parameter.shape  # span_model holds n-sized array (same shape as span_length)
+        span_shape = (
+            self.span_model.sagging_parameter.shape
+        )  # span_model holds n-sized array (same shape as span_length)
 
         def validate_input(input_value, name: str):
             if input_value is None:
