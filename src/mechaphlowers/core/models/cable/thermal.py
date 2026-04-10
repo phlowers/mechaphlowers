@@ -324,7 +324,7 @@ class ThermalEngine:
         )
 
         self.dict_input = {
-            "measured_solar_irradiance": inputs["solar_irradiance"],
+            "measured_global_radiation": inputs["solar_irradiance"],
             "latitude": inputs["latitude"],
             "longitude": inputs["longitude"],
             "altitude": inputs["altitude"],
