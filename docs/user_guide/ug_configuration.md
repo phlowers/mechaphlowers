@@ -6,6 +6,8 @@ Those parameters are accessible through the `options` module available at mechap
 The following code snippet shows how to import and use these parameters:
 ```python
 import mechaphlowers as mph
+from plotly import graph_objects as go
+
 
 # Computations before plotting
 balance_engine = mph.BalanceEngine(cable_array, section_array)

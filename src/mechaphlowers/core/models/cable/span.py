@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Literal, Self, Type
 
@@ -184,6 +186,22 @@ class ISpan(ABC):
         self.load_coefficient = span_model.load_coefficient
         self.span_index = span_model.span_index
         self.span_type = span_model.span_type
+
+    def __copy__(self) -> Self:
+        new = object.__new__(type(self))
+        new.span_length = self.span_length.copy()
+        new.elevation_difference = self.elevation_difference.copy()
+        new.sagging_parameter = self.sagging_parameter.copy()
+        new.load_coefficient = self.load_coefficient.copy()
+        new.linear_weight = self.linear_weight
+        new.span_index = self.span_index.copy()
+        new.span_type = self.span_type.copy()
+        new.loads_indices = (
+            self.loads_indices[0].copy(),
+            self.loads_indices[1].copy(),
+        )
+        new.compute_values()
+        return new
 
     @property
     def x_m(self):

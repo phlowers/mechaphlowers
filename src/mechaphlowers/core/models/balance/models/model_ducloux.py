@@ -73,6 +73,7 @@ class BalanceModel(IBalanceModel):
         self.reset(
             cable_array, span_model, deformation_model, cable_loads, full=True
         )
+        self.nodes: Nodes
 
     def reset(
         self,
@@ -217,6 +218,15 @@ class BalanceModel(IBalanceModel):
         Format: [[x0, y0, z0], [x1, y1, z1],...]
         """
         return self.nodes.dxdydz.T
+
+    def get_dxdydz(self) -> np.ndarray:
+        """Get the dxdydz vector of the nodes.
+
+        dxdydz and chain_displacement are the transpose of each other
+
+        Format: [[x0, x1, x2,...], [y0, y1, y2,...], [z0, z1, z2,...]]
+        """
+        return self.nodes.dxdydz
 
     @property
     def attachment_altitude_after_solve(self) -> np.ndarray:
@@ -405,7 +415,6 @@ class BalanceModel(IBalanceModel):
             self.Tv_g,
             alpha,
             beta,
-            self.nodes.line_angle,
             self.proj_angle,
         )
 
@@ -600,6 +609,20 @@ class BalanceModel(IBalanceModel):
         span_type[self._merge_left_idx] = 1
         span_type[self._merge_right_idx] = 2
         self._merge_span_type = span_type
+
+    def sync_after_memento_restore(
+        self, span_model_to_mirror: ISpan, dxdydz: np.ndarray
+    ):
+        self.nodes.dxdydz[:] = dxdydz
+        self.nodes_span_model.mirror(span_model_to_mirror)
+        self.nodes.compute_dx_dy_dz()
+        self.nodes.vector_projection.set_tensions(
+            self.Th,
+            self.Tv_d,
+            self.Tv_g,
+        )
+        self.update_tensions()
+        self.nodes.compute_moment()
 
     def dict_to_store(self) -> dict:
         return {
@@ -847,6 +870,26 @@ class Nodes:
         self.dx, self.dz = self.masks.compute_dx_dy_dz(
             self.dx, self.dy, self.dz
         )
+
+    def __copy__(self) -> Nodes:
+        new = object.__new__(Nodes)
+        new.masks = self.masks
+        new.z_arm = self.z_arm
+        new.dxdydz = self.dxdydz.copy()
+        new.insulator_length = self.insulator_length
+        new.signed_insulator_weight = self.signed_insulator_weight
+        new.crossarm_length = self.crossarm_length
+        new.line_angle = self.line_angle
+        new.span_length = self.span_length
+        new.load_weight = self.load_weight
+        new.load_position = self.load_position
+        new.has_load_on_span = self.has_load_on_span
+        new.signed_counterweight = self.signed_counterweight
+        new.bundle_number = self.bundle_number
+        new.vector_projection = VectorProjection(
+            new.line_angle, new.bundle_number
+        )
+        return new
 
     def compute_moment(self) -> None:
         """Compute moments of two forces: force of the cable, and chain weight."""
