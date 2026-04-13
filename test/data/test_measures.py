@@ -247,4 +247,3 @@ def test_uncertainty_non_valid_nan_when_all_valid():
         assert np.isnan(result['mean_non_valid_values'])
         assert np.isnan(result['std_non_valid_values'])
 
-

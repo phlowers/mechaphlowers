@@ -4,6 +4,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import pytest
+
+from mechaphlowers import PapotoParameterMeasure
 import numpy as np
 import pandas as pd
 
@@ -152,3 +155,34 @@ def test_param_calibr_deg_elevation_diff(cable_array_AM600: CableArray):
         2000, 60, section_array, cable_array_AM600, span_index=2
     )
     np.testing.assert_allclose(param_2, 2603.1956, atol=1e-1)
+
+
+@pytest.mark.integration
+def test_uncertainty_integration():
+    """Integration test for uncertainty() with realistic inputs."""
+    
+    PAPOTO_INPUTS = dict(
+    a=500.0,
+    HL=309.3920,
+    VL=97.5154,
+    HR=458.0377,
+    VR=74.0039,
+    H1=316.0746,
+    V1=96.2049,
+    H2=333.1511,
+    V2=89.8211,
+    H3=395.4711,
+    V3=71.2413,
+)
+    
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+
+    papoto.parameter
+    np.testing.assert_allclose(papoto.validity[0], .004, atol=1e-3)
+
+    result = papoto.uncertainty(draw_number=1000, angle_error=0.01)
+
+    assert isinstance(result, dict)
+    # assert set(result.keys()) == EXPECTED_UNCERTAINTY_KEYS
+    assert result['number_non_valid_values'] >= 0

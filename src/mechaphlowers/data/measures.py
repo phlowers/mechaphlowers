@@ -200,7 +200,7 @@ class PapotoParameterMeasure(ParameterMeasure):
                 "measure_method() must be called before uncertainty()."
             )
 
-        rng = np.random.default_rng()
+        rng = np.random.default_rng(np.random.randint(0, 2**32 - 1))
         angle_keys = ['HL', 'VL', 'HR', 'VR', 'H1', 'V1', 'H2', 'V2', 'H3', 'V3']
 
         perturbed_converted: dict = {}
