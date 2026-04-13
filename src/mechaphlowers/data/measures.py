@@ -204,20 +204,22 @@ class PapotoParameterMeasure(ParameterMeasure):
             raise RuntimeError(
                 "measure_method() must be called before uncertainty()."
             )
-        if (  
-            isinstance(draw_number, bool)  
-            or not isinstance(draw_number, (int, np.integer))  
-            or draw_number <= 0  
-        ):  
-            raise ValueError("draw_number must be a positive integer.")  
+        if (
+            isinstance(draw_number, bool)
+            or not isinstance(draw_number, (int, np.integer))
+            or draw_number <= 0
+        ):
+            raise ValueError("draw_number must be a positive integer.")
 
-        if (  
-            isinstance(angle_error, bool)  
-            or not np.isscalar(angle_error)  
-            or not np.isreal(angle_error)  
-            or angle_error < 0  
-        ):  
-            raise ValueError("angle_error must be a non-negative real number.")  
+        if (
+            isinstance(angle_error, bool)
+            or not isinstance(angle_error, (int, float, np.floating, np.integer))
+            or angle_error < 0
+        ):
+            raise ValueError("angle_error must be a non-negative real number.")
+
+        _draw_number: int = int(draw_number)
+        _angle_error: float = float(angle_error)  # type: ignore[arg-type]
         rng = np.random.default_rng(seed)
         angle_keys = [
             'HL',
@@ -235,7 +237,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         perturbed_converted: dict = {}
         for key in angle_keys:
             random_angle = (
-                angle_error * 2 * rng.random(draw_number) - angle_error
+                _angle_error * 2 * rng.random(_draw_number) - _angle_error
             )
             perturbed_converted[key] = (
                 np.asarray(self._base_measures[key], dtype=float)

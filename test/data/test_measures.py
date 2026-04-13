@@ -259,7 +259,9 @@ def test_uncertainty_invalid_draw_number(bad_draw_number):
         papoto.uncertainty(draw_number=bad_draw_number)
 
 
-@pytest.mark.parametrize("bad_angle_error", [-0.01, -1, "0.01", True, None, [0.01]])
+@pytest.mark.parametrize(
+    "bad_angle_error", [-0.01, -1, "0.01", True, None, [0.01]]
+)
 def test_uncertainty_invalid_angle_error(bad_angle_error):
     """angle_error must be a non-negative real scalar; anything else raises ValueError."""
     papoto = PapotoParameterMeasure()
