@@ -213,7 +213,9 @@ class PapotoParameterMeasure(ParameterMeasure):
 
         if (
             isinstance(angle_error, bool)
-            or not isinstance(angle_error, (int, float, np.floating, np.integer))
+            or not isinstance(
+                angle_error, (int, float, np.floating, np.integer)
+            )
             or angle_error < 0
         ):
             raise ValueError("angle_error must be a non-negative real number.")
