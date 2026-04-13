@@ -94,7 +94,7 @@ papoto(
 )
 
 # Then estimate the uncertainty using 1000 Monte Carlo draws
-# with an angle error of ±0.01 rad
+# with an angle error of ±0.01 grad
 result = papoto.uncertainty(draw_number=1000, angle_error=0.01)
 
 print(result["mean_parameter_valid_values"])   # mean parameter over valid draws

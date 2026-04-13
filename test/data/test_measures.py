@@ -248,3 +248,21 @@ def test_uncertainty_non_valid_nan_when_all_valid():
     if result['number_non_valid_values'] == 0:
         assert np.isnan(result['mean_non_valid_values'])
         assert np.isnan(result['std_non_valid_values'])
+
+
+@pytest.mark.parametrize("bad_draw_number", [0, -1, 1.5, "100", True, None])
+def test_uncertainty_invalid_draw_number(bad_draw_number):
+    """draw_number must be a positive integer; anything else raises ValueError."""
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+    with pytest.raises(ValueError, match="draw_number"):
+        papoto.uncertainty(draw_number=bad_draw_number)
+
+
+@pytest.mark.parametrize("bad_angle_error", [-0.01, -1, "0.01", True, None, [0.01]])
+def test_uncertainty_invalid_angle_error(bad_angle_error):
+    """angle_error must be a non-negative real scalar; anything else raises ValueError."""
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+    with pytest.raises(ValueError, match="angle_error"):
+        papoto.uncertainty(angle_error=bad_angle_error)
