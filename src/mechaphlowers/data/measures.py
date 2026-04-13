@@ -181,7 +181,12 @@ class PapotoParameterMeasure(ParameterMeasure):
     def parameter(self):
         return self._parameter
 
-    def uncertainty(self, draw_number: int = 1000, angle_error: float = 0.01) -> dict:
+    def uncertainty(
+        self,
+        draw_number: int = 1000,
+        angle_error: float = 0.01,
+        seed: int = 42,
+    ) -> dict:
         """Estimate uncertainty on the PAPOTO parameter using Monte Carlo method.
 
         Args:
@@ -200,14 +205,28 @@ class PapotoParameterMeasure(ParameterMeasure):
                 "measure_method() must be called before uncertainty()."
             )
 
-        rng = np.random.default_rng(np.random.randint(0, 2**32 - 1))
-        angle_keys = ['HL', 'VL', 'HR', 'VR', 'H1', 'V1', 'H2', 'V2', 'H3', 'V3']
+        rng = np.random.default_rng(seed)
+        angle_keys = [
+            'HL',
+            'VL',
+            'HR',
+            'VR',
+            'H1',
+            'V1',
+            'H2',
+            'V2',
+            'H3',
+            'V3',
+        ]
 
         perturbed_converted: dict = {}
         for key in angle_keys:
-            random_angle = angle_error * 2 * rng.random(draw_number) - angle_error
+            random_angle = (
+                angle_error * 2 * rng.random(draw_number) - angle_error
+            )
             perturbed_converted[key] = (
-                np.asarray(self._base_measures[key], dtype=float) + random_angle
+                np.asarray(self._base_measures[key], dtype=float)
+                + random_angle
             )
 
         self.input_conversion(perturbed_converted)
@@ -225,29 +244,47 @@ class PapotoParameterMeasure(ParameterMeasure):
 
         perturbed_parameter = np.mean(
             np.array(
-                [perturbed_parameter_1_2, perturbed_parameter_2_3, perturbed_parameter_1_3]
+                [
+                    perturbed_parameter_1_2,
+                    perturbed_parameter_2_3,
+                    perturbed_parameter_1_3,
+                ]
             ),
             axis=0,
         )
 
         validity = papoto_validity(
-            perturbed_parameter_1_2, perturbed_parameter_2_3, perturbed_parameter_1_3
+            perturbed_parameter_1_2,
+            perturbed_parameter_2_3,
+            perturbed_parameter_1_3,
         )
         non_valid_mask = ~(validity < self.validity_criteria)
 
         valid_parameter = perturbed_parameter[~non_valid_mask]
         non_valid_parameter = perturbed_parameter[non_valid_mask]
 
-        mean_valid = np.mean(valid_parameter) if len(valid_parameter) > 0 else np.nan
-        std_valid = np.std(valid_parameter) if len(valid_parameter) > 0 else np.nan
-        min_valid = np.min(valid_parameter) if len(valid_parameter) > 0 else np.nan
-        max_valid = np.max(valid_parameter) if len(valid_parameter) > 0 else np.nan
+        mean_valid = (
+            np.mean(valid_parameter) if len(valid_parameter) > 0 else np.nan
+        )
+        std_valid = (
+            np.std(valid_parameter) if len(valid_parameter) > 0 else np.nan
+        )
+        min_valid = (
+            np.min(valid_parameter) if len(valid_parameter) > 0 else np.nan
+        )
+        max_valid = (
+            np.max(valid_parameter) if len(valid_parameter) > 0 else np.nan
+        )
 
         mean_non_valid = (
-            np.mean(non_valid_parameter) if len(non_valid_parameter) > 0 else np.nan
+            np.mean(non_valid_parameter)
+            if len(non_valid_parameter) > 0
+            else np.nan
         )
         std_non_valid = (
-            np.std(non_valid_parameter) if len(non_valid_parameter) > 0 else np.nan
+            np.std(non_valid_parameter)
+            if len(non_valid_parameter) > 0
+            else np.nan
         )
 
         return {

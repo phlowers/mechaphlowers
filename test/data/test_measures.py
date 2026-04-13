@@ -4,10 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-import unittest.mock
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from mechaphlowers.data.measures import (
@@ -216,12 +214,16 @@ def test_uncertainty_valid_values_consistent():
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
 
-    fixed_rng = np.random.default_rng(42)
-    with unittest.mock.patch('numpy.random.default_rng', return_value=fixed_rng):
-        result = papoto.uncertainty(draw_number=500, angle_error=0.01)
+    result = papoto.uncertainty(draw_number=500, angle_error=0.01, seed=42)
 
-    assert result['min_parameter_valid_values'] <= result['mean_parameter_valid_values']
-    assert result['mean_parameter_valid_values'] <= result['max_parameter_valid_values']
+    assert (
+        result['min_parameter_valid_values']
+        <= result['mean_parameter_valid_values']
+    )
+    assert (
+        result['mean_parameter_valid_values']
+        <= result['max_parameter_valid_values']
+    )
     assert result['std_parameter_valid_values'] >= 0
     assert result['min_all_values'] <= result['max_all_values']
 
@@ -230,7 +232,7 @@ def test_uncertainty_parameter_by_span_length():
     """parameter_by_span_length must equal mean_valid / a."""
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
-    result = papoto.uncertainty(draw_number=200)
+    result = papoto.uncertainty(draw_number=200, seed=42)
     expected = result['mean_parameter_valid_values'] / PAPOTO_INPUTS['a']
     np.testing.assert_allclose(result['parameter_by_span_length'], expected)
 
@@ -246,4 +248,3 @@ def test_uncertainty_non_valid_nan_when_all_valid():
     if result['number_non_valid_values'] == 0:
         assert np.isnan(result['mean_non_valid_values'])
         assert np.isnan(result['std_non_valid_values'])
-
