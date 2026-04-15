@@ -353,7 +353,7 @@ class BalanceModel(IBalanceModel):
 
                 # Left Th and right Th are equal because balance just got solved (same for parameter)
                 parameter[self.nodes.has_load_on_span] = (
-                    self.load_model.span_model_left.sagging_parameter
+                    self.load_model.span_model_left.parameter
                 )
                 Th[self.nodes.has_load_on_span] = (
                     self.load_model.span_model_left.T_h()
@@ -542,10 +542,10 @@ class BalanceModel(IBalanceModel):
             insert_mask = np.nonzero(mask)[0]
             return np.insert(arr_new, insert_mask, arr_insert_left)
 
-        sagging_parameter = insert_array(
-            new_span_model.sagging_parameter,
-            self.load_model.span_model_left.sagging_parameter,
-            self.load_model.span_model_right.sagging_parameter,
+        parameter = insert_array(
+            new_span_model.parameter,
+            self.load_model.span_model_left.parameter,
+            self.load_model.span_model_right.parameter,
             bool_mask,
         )
         span_length = insert_array(
@@ -573,7 +573,7 @@ class BalanceModel(IBalanceModel):
 
         self.nodes_span_model.span_length = span_length
         self.nodes_span_model.elevation_difference = elevation_difference
-        self.nodes_span_model.sagging_parameter = sagging_parameter
+        self.nodes_span_model.parameter = parameter
         self.nodes_span_model.span_index = span_index
         self.nodes_span_model.span_type = span_type
 

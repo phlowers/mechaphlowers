@@ -342,18 +342,18 @@ class TestCoordCoherence:
     ):
         """This test captures the core value of the reactivity feature:
 
-        1. After construction, x_cable is computed once (initial sagging_parameter).
-        2. solve_adjustment + solve_change_state update nodes_span_model.sagging_parameter
+        1. After construction, x_cable is computed once (initial parameter).
+        2. solve_adjustment + solve_change_state update nodes_span_model.parameter
            in-place — but solve does NOT call notify(), so x_cable remains stale.
         3. add_loads() calls reset(full=False) → notify() → PlotEngine.reset()
            → section_pts.reset() → set_cable_coordinates() recomputes x_cable.
-        4. x_cable now matches the post-solve sagging_parameter and differs from
+        4. x_cable now matches the post-solve parameter and differs from
            the initial cached value.
         """
         plt_engine = PlotEngine(balance_engine_base_test)
         x_cable_initial = plt_engine.section_pts.x_cable.copy()
 
-        # Solve — updates nodes_span_model.sagging_parameter in-place via mirror,
+        # Solve — updates nodes_span_model.parameter in-place via mirror,
         # but does NOT trigger an observer notification.
         balance_engine_base_test.solve_adjustment()
         balance_engine_base_test.solve_change_state(new_temperature=50)
@@ -378,7 +378,7 @@ class TestCoordCoherence:
         )
 
         # And it differs from the initial cached value —
-        # confirming sagging_parameter changed after solve_change_state.
+        # confirming parameter changed after solve_change_state.
         assert not np.array_equal(
             plt_engine.section_pts.x_cable, x_cable_initial
         )
