@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -245,11 +247,59 @@ def test_wrong_array_length_at_load(thermal_engine_3_spans: ThermalEngine):
         thermal_engine.load()
 
 
+def test_wrong_array_length_at_load_datetime(
+    thermal_engine_3_spans: ThermalEngine,
+):
+    thermal_engine = thermal_engine_3_spans
+
+    thermal_engine.dict_input["datetime_utc"] = [
+        datetime(2024, 3, 21, 12),
+        datetime(2024, 3, 21, 12),
+    ]
+    with pytest.raises(
+        ValueError,
+        match="All list inputs must have the same length.",
+    ):
+        thermal_engine.load()
+
+
+def test_wrong_type_month(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+
+    with pytest.raises(
+        TypeError,
+        match="Expected integer array for 'month', got float64.",
+    ):
+        thermal_engine.dict_input["month"] = np.array([3.0, 3.0, 3.0])
+        thermal_engine.load()
+
+
+def test_wrong_type_day(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+
+    with pytest.raises(
+        TypeError,
+        match="Expected integer array for 'day', got float64.",
+    ):
+        thermal_engine.dict_input["day"] = np.array([21.0, 21.0, 21.0])
+        thermal_engine.load()
+
+
+def test_wrong_type_hour(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+
+    with pytest.raises(
+        TypeError,
+        match="Expected integer array for 'hour', got float64.",
+    ):
+        thermal_engine.dict_input["hour"] = np.array([12.0, 12.0, 12.0])
+        thermal_engine.load()
+
+
 def test_add_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
     thermal_engine = thermal_engine_3_spans
-    # latitude_old = thermal_engine.dict_input["lat"]
 
-    thermal_engine.dict_input["lat"] = 40.0
+    thermal_engine.dict_input["latitude"] = 40.0
 
     with pytest.raises(TypeError):
         thermal_engine.load()
@@ -257,13 +307,13 @@ def test_add_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
 
 def test_change_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
     thermal_engine = thermal_engine_3_spans
-    latitude_old = thermal_engine.dict_input["lat"]
+    latitude_old = thermal_engine.dict_input["latitude"]
 
-    thermal_engine.dict_input["lat"] = np.array([40.0, 40.0, 40.0])
+    thermal_engine.dict_input["latitude"] = np.array([40.0, 40.0, 40.0])
     thermal_engine.load()
 
     assert not np.array_equal(
-        thermal_engine.thermal_model.args.lat, latitude_old
+        thermal_engine.thermal_model.args.latitude, latitude_old
     )
 
 
@@ -332,7 +382,7 @@ def test_steady_temperature_1(thermal_engine_3_spans: ThermalEngine):
 
     np.testing.assert_array_almost_equal(
         steady_temp_results.data["t_core"],
-        np.array([15.1, 45.4, 87.9]),
+        np.array([15.1, 45.4, 90.0]),
         decimal=0,
     )
 
