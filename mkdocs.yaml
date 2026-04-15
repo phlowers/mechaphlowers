@@ -58,6 +58,7 @@ nav:
       - Geography: user_guide/ug_geography.md
       - Plotting: user_guide/ug_plotting.md
       - Thermal engine: user_guide/ug_thermal_engine.md
+      - Section Study: user_guide/ug_section_study.md
       - Specific errors used: user_guide/ug_mph_errors.md
   - Developer guide:
       - API Reference:
@@ -79,6 +80,7 @@ nav:
                   - Balance:
                     - Engine: docstring/core/models/balance/engine.md
                     - Interfaces: docstring/core/models/balance/interfaces.md
+                    - Memento: docstring/core/models/balance/memento.md
                     - Models:
                       - Model Ducloux: docstring/core/models/balance/models/model_ducloux.md
                       - Utils: docstring/core/models/balance/models/utils_model_ducloux.md
@@ -98,6 +100,8 @@ nav:
               - Geography: docstring/data/geography/helpers.md
               - Measures: docstring/data/measures.md
           - Configuration: docstring/config.md
+          - API:
+              - Section Study: docstring/api/section_study.md
           - Plotting:
               - Distance: docstring/plotting/distance.md
               - Plot: docstring/plotting/plot.md

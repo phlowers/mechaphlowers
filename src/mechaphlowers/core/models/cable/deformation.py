@@ -52,6 +52,21 @@ class IDeformation(ABC):
         else:
             self.max_stress = max_stress
 
+    def __copy__(self) -> IDeformation:
+        new = object.__new__(type(self))
+        new.tension_mean = self.tension_mean.copy()
+        new.cable_length = self.cable_length.copy()
+        new.cable_section_area = self.cable_section_area
+        new.linear_weight = self.linear_weight
+        new.young_modulus = self.young_modulus
+        new.dilatation_coefficient = self.dilatation_coefficient
+        new.temp_ref = self.temp_ref
+        new.polynomial_conductor = self.polynomial_conductor
+        new.current_temperature = self.current_temperature.copy()
+        new.is_polynomial = self.is_polynomial
+        new.max_stress = self.max_stress.copy()
+        return new
+
     @abstractmethod
     def L_ref(self) -> np.ndarray:
         """Unstressed cable length, at a chosen reference temperature, compared to the temperature reference"""
