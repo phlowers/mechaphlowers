@@ -171,6 +171,8 @@ class InputUnitsConfig:
             "insulator_length": "m",
             "span_length": "m",
             "insulator_mass": "kg",
+            "x_offset": "m",
+            "support_height": "m",
         }
     )
 
