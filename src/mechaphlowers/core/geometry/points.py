@@ -569,11 +569,11 @@ class CoordsCalculator:
         Used for 2D plots that need to be projected in a specific frame.
 
         Args:
-            points (Points): Points object
+            points_array list[_PointsT]: array of Points of SparsePoints objects
             frame_index (int): Index of the frame the projection is made.
 
         Returns:
-            Points: points object projected in local frame
+            list[_PointsT]: array of points object projected in local frame
             projected into the frame of support number `frame_index`.
         """
         translation_vector = -self.get_supports().coords[frame_index, 0]

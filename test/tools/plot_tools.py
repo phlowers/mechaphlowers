@@ -17,7 +17,7 @@ def assert_cable_linked_to_attachment(
     atol=0,
 ):
     """Assert that span coordinates start and end at the same points than the attachments.
-    Points can be fetched by calling CoordsCalculator.get_points_for_plot(), or SectionsPoints.get_spans("section")/SectionsPoints.get_insulators()
+    Points can be fetched by calling CoordsCalculator.get_points_for_plot(), or CoordsCalculator.get_spans("section")/CoordsCalculator.get_insulators()
 
     Args:
         span_points (Points): Points object for spans.
