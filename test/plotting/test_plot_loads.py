@@ -134,7 +134,7 @@ def test_plot_add_loads_later(balance_engine_no_loads: BalanceEngine):
         fig.show()
 
     span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
+        plt_engine.coords_calculator.get_points_for_plot()
     )
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
@@ -180,7 +180,7 @@ def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
         fig.show()
 
     span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
+        plt_engine.coords_calculator.get_points_for_plot()
     )
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
@@ -282,6 +282,6 @@ def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
         fig.show()
 
     span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
+        plt_engine.coords_calculator.get_points_for_plot()
     )
     assert_cable_linked_to_attachment(span_points, insulators_points)
