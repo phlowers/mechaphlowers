@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Literal
 
 import numpy as np
@@ -16,7 +17,7 @@ from mechaphlowers.core.geometry.distances import (
     DistanceResult,
 )
 from mechaphlowers.core.geometry.planes import change_local_frame
-from mechaphlowers.core.geometry.points import Points, SectionPoints
+from mechaphlowers.core.geometry.points import CoordsCalculator, Points
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import ObstacleArray
 from mechaphlowers.entities.reactivity import Notifier, Observer
@@ -62,12 +63,20 @@ class PositionEngine(Observer, Notifier):
         self.span_model = balance_engine.balance_model.nodes_span_model
         self.cable_loads = balance_engine.cable_loads
         self.section_array = balance_engine.section_array
-        self.section_pts = SectionPoints(
+        self.coords_calculator = CoordsCalculator(
             section_array=self.section_array,
             span_model=self.span_model,
             cable_loads=self.cable_loads,
             get_displacement=balance_engine.get_displacement,
         )
+
+    @property
+    def section_pts(self):
+        warnings.warn(
+            "section_pts was renamed coords_calculator. Use self.coords_calculator instead",
+            DeprecationWarning,
+        )
+        return self.coords_calculator
 
     def reset(self, balance_engine: BalanceEngine) -> None:
         """Reset geometry state from `balance_engine`.
@@ -85,7 +94,7 @@ class PositionEngine(Observer, Notifier):
             )
         if balance_engine.initialized is False:
             self.initialize_engine(balance_engine)
-        self.section_pts.reset()
+        self.coords_calculator.reset()
 
     def update(self, notifier: Notifier) -> None:
         """Observer callback — invoked by `BalanceEngine` on state change."""
@@ -100,7 +109,7 @@ class PositionEngine(Observer, Notifier):
     def add_obstacles(self, obstacles_array: ObstacleArray) -> None:
         """Attach an `ObstacleArray` for coordinate computation."""
         self.obstacles_array = obstacles_array
-        self.section_pts.add_obstacles(obstacles_array)
+        self.coords_calculator.add_obstacles(obstacles_array)
 
     # ── Properties ───────────────────────────────────────────────────────────
 
@@ -122,26 +131,26 @@ class PositionEngine(Observer, Notifier):
         Returns:
             numpy array of shape ``(n_points, 3)``.
         """
-        return self.section_pts.get_spans(frame).points(True)
+        return self.coords_calculator.get_spans(frame).points(True)
 
     def get_supports_points(self) -> np.ndarray:
         """Return support structure points (absolute section frame)."""
-        return self.section_pts.get_supports().points(True)
+        return self.coords_calculator.get_supports().points(True)
 
     def get_insulators_points(self) -> np.ndarray:
         """Return insulator attachment points (absolute section frame)."""
-        return self.section_pts.get_insulators().points(True)
+        return self.coords_calculator.get_insulators().points(True)
 
     def get_obstacles_points(self) -> np.ndarray:
         """Return obstacle coordinates transformed to the section frame."""
-        return self.section_pts.compute_obstacle_coords().points(True)
+        return self.coords_calculator.compute_obstacle_coords().points(True)
 
     def obstacles_dict(self, project=False, frame_index=0) -> dict:
         """Return obstacle coordinates keyed by obstacle name.
 
         Format: ``{'obs_0': [[x0, y0, z0], [x1, y1, z1], ...]}``.
         """
-        return self.section_pts.obstacles_dict(project, frame_index)
+        return self.coords_calculator.obstacles_dict(project, frame_index)
 
     def get_loads_coords(
         self, project: bool = False, frame_index: int = 0
@@ -187,7 +196,7 @@ class PositionEngine(Observer, Notifier):
         Raises:
             ValueError: If `frame_index` is out of range.
         """
-        return self.section_pts.get_points_for_plot(project, frame_index)
+        return self.coords_calculator.get_points_for_plot(project, frame_index)
 
     # ── Coordinate / distance analysis ────────────────────────────────────────
 
@@ -217,7 +226,7 @@ class PositionEngine(Observer, Notifier):
         if point_relative.shape != (3,):
             raise ValueError("point_relative must be a 1D array of shape (3,)")
 
-        ground_supports = self.section_pts.supports_ground_coords
+        ground_supports = self.coords_calculator.supports_ground_coords
         if span_index < 0 or span_index >= len(ground_supports) - 1:
             raise IndexError(
                 f"span_index {span_index} out of range"
@@ -250,7 +259,7 @@ class PositionEngine(Observer, Notifier):
         if point.shape != (3,):
             raise ValueError("point must be a 1D array of shape (3,)")
 
-        ground_supports = self.section_pts.supports_ground_coords.copy()
+        ground_supports = self.coords_calculator.supports_ground_coords.copy()
         if span_index < 0 or span_index >= len(ground_supports) - 1:
             raise IndexError(
                 f"span_index {span_index} out of range"
@@ -261,7 +270,9 @@ class PositionEngine(Observer, Notifier):
             ground_supports[span_index], ground_supports[span_index + 1]
         )
         self.distance_engine.add_curves(
-            self.section_pts.get_spans(frame="section").coords[span_index]
+            self.coords_calculator.get_spans(frame="section").coords[
+                span_index
+            ]
         )
         return self.distance_engine.plane_distance(point, frame="span")
 

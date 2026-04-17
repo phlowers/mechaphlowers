@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Literal, Union
 
 import numpy as np
@@ -307,7 +308,7 @@ class PlotEngine(Observer):
 
     # ── Backward-compatible delegating properties ─────────────────────────────
     # These forward attribute access to position_engine so that existing code
-    # that accesses plt_engine.span_model, plt_engine.section_pts, etc. keeps
+    # that accesses plt_engine.span_model, plt_engine.coords_calculator, etc. keeps
     # working without modification.
 
     @property
@@ -326,9 +327,17 @@ class PlotEngine(Observer):
         return self.position_engine.section_array
 
     @property
+    def coords_calculator(self):
+        """Delegating property — see :attr:`PositionEngine.coords_calculator`."""
+        return self.position_engine.coords_calculator
+
+    @property
     def section_pts(self):
-        """Delegating property — see :attr:`PositionEngine.section_pts`."""
-        return self.position_engine.section_pts
+        warnings.warn(
+            "section_pts was renamed coords_calculator. Use self.coords_calculator instead",
+            DeprecationWarning,
+        )
+        return self.coords_calculator
 
     @property
     def beta(self) -> np.ndarray:
@@ -430,8 +439,8 @@ class PlotEngine(Observer):
             fig, insulators.points(True), insulator_trace(mode=mode)
         )
 
-        if hasattr(self.section_pts, "obstacles_array"):
-            obstacles = self.section_pts.compute_obstacle_coords()
+        if hasattr(self.coords_calculator, "obstacles_array"):
+            obstacles = self.coords_calculator.compute_obstacle_coords()
             plot_points_3d(
                 fig, obstacles.points(True), TraceProfile(name="Obstacles")
             )
@@ -497,7 +506,7 @@ class PlotEngine(Observer):
             view=view,
         )
 
-        if hasattr(self.section_pts, "obstacles_array"):
+        if hasattr(self.coords_calculator, "obstacles_array"):
             obstacles_dict = self.obstacles_dict(
                 project=True, frame_index=frame_index
             )
