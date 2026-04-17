@@ -49,6 +49,10 @@ class SectionArrayInput(pa.DataFrameModel):
     counterweight_mass: pdt.Series[float] | None = pa.Field(
         nullable=True, coerce=True
     )
+    x_offset: pdt.Series[float] | None = pa.Field(nullable=True, coerce=True)
+    support_height: pdt.Series[float] | None = pa.Field(
+        nullable=True, coerce=True, ge=0
+    )
 
     @pa.dataframe_check(
         description="""Each row in the dataframe contains information about a support
