@@ -512,3 +512,808 @@ def test_create_section_bundle_number(
             sagging_temperature=15,
             bundle_number=0,
         )
+
+
+def test_support_manipulation_single_support(
+    section_array: SectionArray,
+) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+    original_arm = section_array._data["crossarm_length"].copy()
+
+    section_array.support_manipulation({1: {"z": 3.0, "y": -2.0}})
+
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[1],
+        original_alt.iloc[1] + 3.0,
+    )
+    assert_allclose(
+        section_array._data["crossarm_length"].iloc[1],
+        original_arm.iloc[1] - 2.0,
+    )
+    # Other supports unchanged
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[0],
+        original_alt.iloc[0],
+    )
+
+
+def test_support_manipulation_multiple_supports(
+    section_array: SectionArray,
+) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+
+    section_array.support_manipulation(
+        {0: {"z": 1.0}, 2: {"z": -0.5, "y": 2.0}}
+    )
+
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[0],
+        original_alt.iloc[0] + 1.0,
+    )
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[2],
+        original_alt.iloc[2] - 0.5,
+    )
+
+
+def test_support_manipulation_partial_keys(
+    section_array: SectionArray,
+) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+    original_arm = section_array._data["crossarm_length"].copy()
+
+    section_array.support_manipulation({0: {"z": 1.5}})
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[0],
+        original_alt.iloc[0] + 1.5,
+    )
+    assert_allclose(
+        section_array._data["crossarm_length"].iloc[0],
+        original_arm.iloc[0],
+    )
+
+    section_array.reset_manipulation()
+
+    section_array.support_manipulation({0: {"y": -1.0}})
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].iloc[0],
+        original_alt.iloc[0],
+    )
+    assert_allclose(
+        section_array._data["crossarm_length"].iloc[0],
+        original_arm.iloc[0] - 1.0,
+    )
+
+
+def test_support_manipulation_invalid_index(
+    section_array: SectionArray,
+) -> None:
+    with pytest.raises(ValueError, match="out of range"):
+        section_array.support_manipulation({10: {"z": 1.0}})
+
+
+def test_support_manipulation_invalid_keys(
+    section_array: SectionArray,
+) -> None:
+    with pytest.raises(ValueError, match="Invalid keys"):
+        section_array.support_manipulation({0: {"x": 1.0}})
+
+
+def test_reset_manipulation(section_array: SectionArray) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+    original_arm = section_array._data["crossarm_length"].copy()
+
+    section_array.support_manipulation({0: {"z": 5.0}, 1: {"y": -3.0}})
+    section_array.support_manipulation({2: {"z": 1.0}})
+
+    section_array.reset_manipulation()
+
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].to_numpy(),
+        original_alt.to_numpy(),
+    )
+    assert_allclose(
+        section_array._data["crossarm_length"].to_numpy(),
+        original_arm.to_numpy(),
+    )
+
+
+def test_reset_manipulation_no_prior(section_array: SectionArray) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+
+    section_array.reset_manipulation()  # should not raise
+
+    assert_allclose(
+        section_array._data["conductor_attachment_altitude"].to_numpy(),
+        original_alt.to_numpy(),
+    )
+
+
+def test_rope_manipulation_overrides_data(section_array: SectionArray) -> None:
+    original_insulator_length = section_array._data["insulator_length"].copy()
+    original_insulator_mass = section_array._data["insulator_mass"].copy()
+
+    section_array.rope_manipulation({1: 5.0, 2: 3.0})
+    data = section_array.data
+
+    # Modified supports
+    assert_allclose(data["insulator_length"].iloc[1], 5.0)
+    assert_allclose(data["insulator_length"].iloc[2], 3.0)
+    assert_allclose(
+        data["insulator_mass"].iloc[1], 5.0 * 0.01
+    )  # default lineic mass
+    assert_allclose(data["insulator_mass"].iloc[2], 3.0 * 0.01)
+
+    # Unlisted support unchanged
+    assert_allclose(
+        data["insulator_length"].iloc[0],
+        original_insulator_length.iloc[0],
+    )
+    assert_allclose(
+        data["insulator_mass"].iloc[0], original_insulator_mass.iloc[0]
+    )
+
+    # _data must be untouched
+    assert_allclose(
+        section_array._data["insulator_length"].to_numpy(),
+        original_insulator_length.to_numpy(),
+    )
+    assert_allclose(
+        section_array._data["insulator_mass"].to_numpy(),
+        original_insulator_mass.to_numpy(),
+    )
+
+
+def test_rope_manipulation_custom_lineic_mass(
+    section_array: SectionArray,
+) -> None:
+    section_array.rope_manipulation({0: 2.0}, rope_lineic_mass=0.5)
+    data = section_array.data
+
+    assert_allclose(data["insulator_mass"].iloc[0], 2.0 * 0.5)
+
+
+def test_rope_manipulation_insulator_weight_updated(
+    section_array: SectionArray,
+) -> None:
+    """insulator_weight in .data must reflect the rope mass."""
+    section_array.rope_manipulation({1: 4.0}, rope_lineic_mass=0.1)
+    data = section_array.data
+
+    expected_weight = 4.0 * 0.1 * 9.81  # approx N
+    assert_allclose(
+        data["insulator_weight"].iloc[1], expected_weight, rtol=1e-3
+    )
+
+
+def test_rope_manipulation_invalid_index(section_array: SectionArray) -> None:
+    with pytest.raises(ValueError, match="out of range"):
+        section_array.rope_manipulation({99: 3.0})
+
+
+def test_reset_rope_manipulation(section_array: SectionArray) -> None:
+    original_length = section_array.data["insulator_length"].copy()
+    original_mass = section_array.data["insulator_mass"].copy()
+
+    section_array.rope_manipulation({1: 5.0, 2: 3.0})
+    section_array.reset_rope_manipulation()
+    data = section_array.data
+
+    assert_allclose(
+        data["insulator_length"].to_numpy(), original_length.to_numpy()
+    )
+    assert_allclose(
+        data["insulator_mass"].to_numpy(), original_mass.to_numpy()
+    )
+
+
+def test_reset_rope_manipulation_no_prior(section_array: SectionArray) -> None:
+    section_array.reset_rope_manipulation()  # should not raise
+
+
+def _make_section_array_with_counterweight() -> SectionArray:
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [1000, 500, 500, 1000],
+                "counterweight_mass": [0, 200, 300, 0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    return sa
+
+
+def test_counterweight_masked_during_support_manipulation() -> None:
+    sa = _make_section_array_with_counterweight()
+    original_counterweight = sa.data["counterweight"].copy()
+    assert (original_counterweight > 0).any()
+
+    sa.support_manipulation({1: {"z": 2.0}})
+    data = sa.data
+    # Only support 1 is affected
+    assert_allclose(data["counterweight"].iloc[1], 0.0)
+    # Other supports with counterweight are unchanged
+    assert_allclose(
+        data["counterweight"].iloc[2], original_counterweight.iloc[2]
+    )
+
+    sa.reset_manipulation()
+    assert_allclose(
+        sa.data["counterweight"].to_numpy(),
+        original_counterweight.to_numpy(),
+    )
+
+
+def test_counterweight_masked_during_rope_manipulation() -> None:
+    sa = _make_section_array_with_counterweight()
+    original_counterweight = sa.data["counterweight"].copy()
+    assert (original_counterweight > 0).any()
+
+    sa.rope_manipulation({1: 4.5})
+    data = sa.data
+    # Only support 1 is affected
+    assert_allclose(data["counterweight"].iloc[1], 0.0)
+    # Other supports with counterweight are unchanged
+    assert_allclose(
+        data["counterweight"].iloc[2], original_counterweight.iloc[2]
+    )
+
+    sa.reset_rope_manipulation()
+    assert_allclose(
+        sa.data["counterweight"].to_numpy(),
+        original_counterweight.to_numpy(),
+    )
+
+
+# ── virtual support tests ────────────────────────────────────────────────────
+
+
+def _make_section_array_for_virtual() -> SectionArray:
+    """4-support array with spans [500, 300, 400]."""
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 0.0, 0.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    return sa
+
+
+def test_add_virtual_support_data_has_extra_row() -> None:
+    sa = _make_section_array_for_virtual()
+    assert len(sa._data) == 4
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 100.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 100.0,
+            }
+        }
+    )
+    assert len(sa._data) == 4  # _data unchanged
+    assert len(sa.data) == 5  # data has virtual row
+
+
+def test_add_virtual_support_row_position() -> None:
+    sa = _make_section_array_for_virtual()
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 100.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 100.0,
+            }
+        }
+    )
+    data = sa.data
+    assert data["name"].iloc[1] == "2"  # original left support
+    assert data["name"].iloc[2] == "virtual_1"  # virtual inserted after left
+    assert data["name"].iloc[3] == "3"  # original right support shifted
+
+
+def test_add_virtual_support_span_lengths() -> None:
+    sa = _make_section_array_for_virtual()
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 100.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 100.0,
+            }
+        }
+    )
+    data = sa.data
+    assert_allclose(data["span_length"].iloc[1], 100.0)
+    assert_allclose(data["span_length"].iloc[2], 200.0)  # 300 - 100
+
+
+def test_add_virtual_support_altitude() -> None:
+    sa = _make_section_array_for_virtual()
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 150.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 150.0,
+            }
+        }
+    )
+    assert_allclose(sa.data["conductor_attachment_altitude"].iloc[2], 55.0)
+
+
+def test_add_virtual_support_suspension_true() -> None:
+    sa = _make_section_array_for_virtual()
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 150.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 150.0,
+            }
+        }
+    )
+    assert sa.data["suspension"].iloc[2] == True
+
+
+def test_add_virtual_support_crossarm_zero() -> None:
+    sa = _make_section_array_for_virtual()
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 150.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 150.0,
+            }
+        }
+    )
+    assert_allclose(sa.data["crossarm_length"].iloc[2], 0.0)
+
+
+def test_add_virtual_support_line_angle_y_nonzero() -> None:
+    sa = _make_section_array_for_virtual()
+    x, y = 150.0, 30.0
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": x,
+                "y": y,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 150.0,
+            }
+        }
+    )
+    expected_angle = np.arctan2(y, x)
+    data = sa.data
+    assert_allclose(data["line_angle"].iloc[1], expected_angle, atol=1e-12)
+    assert_allclose(data["line_angle"].iloc[2], -expected_angle, atol=1e-12)
+
+
+def test_add_virtual_support_counterweight_zero() -> None:
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 0.0, 0.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+                "counterweight_mass": [0.0, 200.0, 300.0, 0.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 150.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 150.0,
+            }
+        }
+    )
+    assert_allclose(sa.data["counterweight"].iloc[2], 0.0)
+
+
+def test_add_virtual_support_elevation_difference_recalculated() -> None:
+    sa = _make_section_array_for_virtual()
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 100.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 100.0,
+            }
+        }
+    )
+    # altitudes in order: [30, 50, 55, 60, 65]
+    expected = np.array([20.0, 5.0, 5.0, 5.0, np.nan])
+    elev = sa.data["elevation_difference"].to_numpy()
+    assert_allclose(elev[:-1], expected[:-1], atol=1e-9)
+    assert np.isnan(elev[-1])
+
+
+def test_add_virtual_support_multiple_spans() -> None:
+    sa = _make_section_array_for_virtual()
+    sa.add_virtual_support(
+        {
+            0: {
+                "x": 200.0,
+                "y": 0.0,
+                "z": 40.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 200.0,
+            },
+            2: {
+                "x": 200.0,
+                "y": 0.0,
+                "z": 62.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 200.0,
+            },
+        }
+    )
+    assert len(sa.data) == 6  # 4 original + 2 virtual
+
+
+def test_add_virtual_support_accumulates() -> None:
+    sa = _make_section_array_for_virtual()
+    sa.add_virtual_support(
+        {
+            0: {
+                "x": 200.0,
+                "y": 0.0,
+                "z": 40.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 200.0,
+            }
+        }
+    )
+    sa.add_virtual_support(
+        {
+            2: {
+                "x": 200.0,
+                "y": 0.0,
+                "z": 62.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 200.0,
+            }
+        }
+    )
+    assert len(sa.data) == 6
+
+
+def test_reset_virtual_support() -> None:
+    sa = _make_section_array_for_virtual()
+    baseline_span = sa.data["span_length"].to_numpy().copy()
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 100.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 100.0,
+            }
+        }
+    )
+    sa.reset_virtual_support()
+    assert len(sa.data) == 4
+    assert_allclose(
+        sa.data["span_length"].to_numpy()[:-1],
+        baseline_span[:-1],
+    )
+
+
+def test_reset_virtual_support_no_prior() -> None:
+    sa = _make_section_array_for_virtual()
+    sa.reset_virtual_support()  # should not raise
+
+
+def test_add_virtual_support_invalid_span_index() -> None:
+    sa = _make_section_array_for_virtual()
+    with pytest.raises(ValueError, match="out of range"):
+        sa.add_virtual_support(
+            {
+                3: {
+                    "x": 100.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                }
+            }
+        )
+
+
+def test_add_virtual_support_x_out_of_range() -> None:
+    """x equal to span_length (with crossarm=0) is rejected."""
+    sa = _make_section_array_for_virtual()
+    with pytest.raises(ValueError, match="out of range"):
+        sa.add_virtual_support(
+            {
+                1: {
+                    "x": 300.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                }
+            }
+        )
+
+
+def test_add_virtual_support_x_extended_by_crossarm_right() -> None:
+    """x > span_length is valid when abs(crossarm_right) > 0."""
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 0.0, 5.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    # span 1: crossarm_left=0, abs(crossarm_right)=5 → upper = 300 + 5 = 305
+    # x=302 is valid; x=306 is not
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 302.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 302.0,
+            }
+        }
+    )
+    assert len(sa.data) == 5
+    with pytest.raises(ValueError, match="out of range"):
+        sa2 = SectionArray(
+            sa._data.copy(), sagging_parameter=2000, sagging_temperature=15
+        )
+        sa2.add_units({"line_angle": "grad"})
+        sa2.add_virtual_support(
+            {
+                1: {
+                    "x": 306.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 302.0,
+                }
+            }
+        )
+
+
+def test_add_virtual_support_x_negative_crossarm_right() -> None:
+    """Negative crossarm_right still extends upper bound by its absolute value."""
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 0.0, -5.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    # crossarm_right=-5 → abs=5, upper = 305; same as positive crossarm
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 302.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 302.0,
+            }
+        }
+    )
+    assert len(sa.data) == 5
+
+
+def test_add_virtual_support_x_below_crossarm_left_is_invalid() -> None:
+    """x ≤ -abs(crossarm_left) is rejected; x can be negative but must be > lower bound."""
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 4.0, 0.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    # span 1: abs(crossarm_left)=4, lower=-4; x=-4 is exactly the bound → invalid
+    with pytest.raises(ValueError, match="out of range"):
+        sa.add_virtual_support(
+            {
+                1: {
+                    "x": -4.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                }
+            }
+        )
+
+
+def test_add_virtual_support_x_negative_valid() -> None:
+    """Negative x is valid when abs(crossarm_left) > 0 and x > -abs(crossarm_left)."""
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 4.0, 0.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    # lower=-4, x=-2 → valid
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": -2.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": -2.0,
+            }
+        }
+    )
+    assert len(sa.data) == 5
+
+
+def test_add_virtual_support_x_valid_with_crossarm_left() -> None:
+    """x > 0 with positive crossarm_left is accepted."""
+    sa = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30.0, 50.0, 60.0, 65.0],
+                "crossarm_length": [0.0, 4.0, 0.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0],
+                "span_length": [500.0, 300.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    sa.add_units({"line_angle": "grad"})
+    sa.add_virtual_support(
+        {
+            1: {
+                "x": 5.0,
+                "y": 0.0,
+                "z": 55.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 5.0,
+            }
+        }
+    )
+    assert len(sa.data) == 5
+
+
+def test_add_virtual_support_missing_keys() -> None:
+    sa = _make_section_array_for_virtual()
+    with pytest.raises(ValueError, match="Missing keys"):
+        sa.add_virtual_support({1: {"x": 100.0, "y": 0.0, "z": 55.0}})
+
+
+def test_add_virtual_support_hanging_cable_point_out_of_range() -> None:
+    """hanging_cable_point_from_left_support must satisfy the same bounds as x."""
+    sa = _make_section_array_for_virtual()
+    # span 1: crossarm=0 on both sides → valid range (0, 300); hcp=300 is at the upper bound → invalid
+    with pytest.raises(ValueError, match="hanging_cable_point_from_left_support"):
+        sa.add_virtual_support(
+            {
+                1: {
+                    "x": 100.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 300.0,
+                }
+            }
+        )

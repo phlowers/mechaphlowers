@@ -324,6 +324,185 @@ class BalanceEngine(Notifier):
         )
         logger.debug(debug_msg)
 
+    def support_manipulation(
+        self, manipulation: dict[int, dict[str, float]]
+    ) -> None:
+        """Apply additive offsets to support geometry.
+
+        Delegates to
+        [`SectionArray.support_manipulation`][mechaphlowers.entities.arrays.SectionArray.support_manipulation],
+        then rebuilds internal models while preserving observer bindings.
+
+        Args:
+            manipulation: Dictionary mapping support index (0-based) to
+                offsets. Each value is a dict with optional keys:
+
+                - `"y"`: added to `crossarm_length` (meters)
+                - `"z"`: added to `conductor_attachment_altitude` (meters)
+
+        Raises:
+            ValueError: If a support index is out of range.
+            ValueError: If an inner dict contains keys other than `"y"` or `"z"`.
+
+        Examples:
+            >>> balance_engine.support_manipulation({1: {"z": 2.0, "y": -1.0}})
+            >>> balance_engine.solve_adjustment()
+            >>> balance_engine.solve_change_state(new_temperature=15.0)
+        """
+        self.section_array.support_manipulation(manipulation)
+        self._rebuild_after_geometry_change()
+
+    def reset_manipulation(self) -> None:
+        """Restore support geometry to the original values before any manipulation.
+
+        Delegates to
+        [`SectionArray.reset_manipulation`][mechaphlowers.entities.arrays.SectionArray.reset_manipulation],
+        then rebuilds internal models while preserving observer bindings.
+
+        Examples:
+            >>> balance_engine.support_manipulation({1: {"z": 5.0}})
+            >>> balance_engine.reset_manipulation()
+        """
+        self.section_array.reset_manipulation()
+        self._rebuild_after_geometry_change()
+
+    def rope_manipulation(
+        self,
+        rope: dict[int, float],
+        rope_lineic_mass: float | None = None,
+    ) -> None:
+        """Override insulator length and mass for specified supports with rope values.
+
+        Delegates to
+        [`SectionArray.rope_manipulation`][mechaphlowers.entities.arrays.SectionArray.rope_manipulation],
+        then resets internal models while preserving observer bindings.
+
+        Args:
+            rope: Dictionary mapping support index (0-based) to rope length (meters).
+            rope_lineic_mass: Linear mass of the rope in kg/m. Defaults to
+                ``options.data.rope_lineic_mass_default`` (``0.01`` kg/m).
+
+        Raises:
+            ValueError: If a support index is out of range.
+
+        Examples:
+            >>> balance_engine.rope_manipulation({1: 4.5, 2: 3.0})
+            >>> balance_engine.solve_adjustment()
+            >>> balance_engine.solve_change_state(new_temperature=15.0)
+        """
+        self.section_array.rope_manipulation(rope, rope_lineic_mass)
+        self.reset(full=False)
+        logger.debug("Rope manipulation applied. Observers preserved.")
+
+    def reset_rope_manipulation(self) -> None:
+        """Remove the rope overlay and restore original insulator values.
+
+        Delegates to
+        [`SectionArray.reset_rope_manipulation`][mechaphlowers.entities.arrays.SectionArray.reset_rope_manipulation],
+        then resets internal models while preserving observer bindings.
+
+        Examples:
+            >>> balance_engine.rope_manipulation({1: 4.5})
+            >>> balance_engine.reset_rope_manipulation()
+        """
+        self.section_array.reset_rope_manipulation()
+        self.reset(full=False)
+        logger.debug("Rope manipulation cleared. Observers preserved.")
+
+    def add_virtual_support(
+        self, virtual_support: dict[int, dict[str, float]]
+    ) -> None:
+        """Insert virtual supports into the section array overlay.
+
+        Delegates to
+        [`SectionArray.add_virtual_support`][mechaphlowers.entities.arrays.SectionArray.add_virtual_support],
+        then fully rebuilds all internal models while preserving observer bindings.
+
+        Args:
+            virtual_support: See
+                [`SectionArray.add_virtual_support`][mechaphlowers.entities.arrays.SectionArray.add_virtual_support].
+
+        Examples:
+            >>> balance_engine.add_virtual_support(
+            ...     {
+            ...         1: {
+            ...             "x": 200.0,
+            ...             "y": 0.0,
+            ...             "z": 55.0,
+            ...             "insulator_length": 3.0,
+            ...             "insulator_mass": 500.0,
+            ...         }
+            ...     }
+            ... )
+        """
+        self.section_array.add_virtual_support(virtual_support)
+        saved_observers = (
+            self._observers.copy()
+        )  # reset(full=True) calls super().__init__() which clears _observers
+        self.reset(
+            full=True
+        )  # full=True required: row count changes, so array sizes must be reallocated
+        self._observers = (
+            saved_observers  # restore observers lost by super().__init__()
+        )
+        _zeros = np.zeros_like(
+            self.section_array.data.conductor_attachment_altitude.to_numpy()
+        )
+        self._shifting_distance_support = _zeros.copy()
+        self._shortening_distance_span = np.zeros(len(_zeros) - 1)
+        self.notify()
+        logger.debug("Virtual support added. Observers preserved.")
+
+    def reset_virtual_support(self) -> None:
+        """Remove all virtual supports from the section array overlay.
+
+        Delegates to
+        [`SectionArray.reset_virtual_support`][mechaphlowers.entities.arrays.SectionArray.reset_virtual_support],
+        then fully rebuilds all internal models while preserving observer bindings.
+
+        Examples:
+            >>> balance_engine.add_virtual_support(
+            ...     {
+            ...         1: {
+            ...             "x": 200.0,
+            ...             "y": 0.0,
+            ...             "z": 55.0,
+            ...             "insulator_length": 3.0,
+            ...             "insulator_mass": 500.0,
+            ...         }
+            ...     }
+            ... )
+            >>> balance_engine.reset_virtual_support()
+        """
+        self.section_array.reset_virtual_support()
+        saved_observers = (
+            self._observers.copy()
+        )  # reset(full=True) calls super().__init__() which clears _observers
+        self.reset(
+            full=True
+        )  # full=True required: row count changes, so array sizes must be reallocated
+        self._observers = (
+            saved_observers  # restore observers lost by super().__init__()
+        )
+        _zeros = np.zeros_like(
+            self.section_array.data.conductor_attachment_altitude.to_numpy()
+        )
+        self._shifting_distance_support = _zeros.copy()
+        self._shortening_distance_span = np.zeros(len(_zeros) - 1)
+        self.notify()
+        logger.debug("Virtual support cleared. Observers preserved.")
+
+    def _rebuild_after_geometry_change(self) -> None:
+        """Rebuild span model and reset balance model after geometry changes.
+
+        Preserves observer bindings by using ``reset(full=False)``.
+        """
+        self.span_model = span_model_builder(
+            self.section_array, self.cable_array, self.span_model_type
+        )
+        self.reset(full=False)
+        logger.debug("Geometry changed. Models rebuilt; observers preserved.")
+
     def shift_span_length(self) -> np.ndarray:
         """Transform shifting distance which is support based into L_ref shift which is span based.
 
@@ -401,7 +580,9 @@ class BalanceEngine(Notifier):
             f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}\nwind_sense {str(wind_sense)}"
         )
 
-        span_shape = self.section_array.data.span_length.shape
+        span_shape = (
+            self.span_model.sagging_parameter.shape
+        )  # span_model holds n-sized array (same shape as span_length)
 
         def validate_input(input_value, name: str):
             if input_value is None:
