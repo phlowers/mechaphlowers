@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -23,6 +23,7 @@ from mechaphlowers.core.papoto.papoto_model import (
 )
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.errors import MeasurementDataNotAvailable
 from mechaphlowers.utils import float_to_array
 
 logger = logging.getLogger(__name__)
@@ -108,42 +109,61 @@ class PapotoParameterMeasure(ParameterMeasure):
             "H3": H3,
             "V3": V3,
         }
-        self.measures = {
-            "HL": HL,
-            "VL": VL,
-            "HR": HR,
-            "VR": VR,
-            "H1": H1,
-            "V1": V1,
-            "H2": H2,
-            "V2": V2,
-            "H3": H3,
-            "V3": V3,
-        }
-        self.measures = float_to_array(self.measures)
+
+        self.measures = float_to_array(dict(self._base_measures))
         self.angle_unit = angle_unit
         measures_converted = self.input_conversion(self.measures)
         measures_converted["a"] = a
 
-        self.parameter_1_2 = papoto_2_points(
+        (
+            self._parameter,
+            self._validity,
+            self.parameter_1_2,
+            self.parameter_2_3,
+            self.parameter_1_3,
+        ) = self.compute_papoto(measures_converted)
+        logger.debug("PapotoParameterMeasure.measure_method() ended")
+
+    def compute_papoto(
+        self, measures_converted
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Compute the PAPOTO parameter and validity from the converted measures.
+
+        Assumes that measures_converted contains the following keys: 'a', 'HL', 'VL', 'HR', 'VR', 'H1', 'V1', 'H2', 'V2', 'H3', 'V3'.
+
+        Args:
+            measures_converted (dict): dictionary of converted measures
+
+        Returns:
+            tuple: (mean_parameter, validity, parameter_1_2, parameter_2_3, parameter_1_3)
+             - mean_parameter (np.ndarray): mean of the three PAPOTO parameters computed from the three pairs of points (1-2, 2-3, 1-3)
+             - validity (np.ndarray): validity criteria computed from the three PAPOTO parameters
+             - parameter_1_2 (np.ndarray): PAPOTO parameter computed from points 1 and 2
+             - parameter_2_3 (np.ndarray): PAPOTO parameter computed from points 2 and 3
+             - parameter_1_3 (np.ndarray): PAPOTO parameter computed from points 1 and 3
+        """
+
+        parameter_1_2 = papoto_2_points(
             **self.select_points_in_dict(1, 2, measures_converted)
         )
-        self.parameter_2_3 = papoto_2_points(
+        parameter_2_3 = papoto_2_points(
             **self.select_points_in_dict(2, 3, measures_converted)
         )
-        self.parameter_1_3 = papoto_2_points(
+        parameter_1_3 = papoto_2_points(
             **self.select_points_in_dict(1, 3, measures_converted)
         )
-        self._parameter = np.mean(
-            np.array(
-                [self.parameter_1_2, self.parameter_2_3, self.parameter_1_3]
-            ),
+        mean_parameter = np.mean(
+            np.array([parameter_1_2, parameter_2_3, parameter_1_3]),
             axis=0,
         )
-        self._validity = papoto_validity(
-            self.parameter_1_2, self.parameter_2_3, self.parameter_1_3
+        validity = papoto_validity(parameter_1_2, parameter_2_3, parameter_1_3)
+        return (
+            mean_parameter,
+            validity,
+            parameter_1_2,
+            parameter_2_3,
+            parameter_1_3,
         )
-        logger.debug("PapotoParameterMeasure.measure_method() ended")
 
     @staticmethod
     def select_points_in_dict(point_1, point_2, data):
@@ -198,12 +218,22 @@ class PapotoParameterMeasure(ParameterMeasure):
             dict: Dictionary with statistics over valid and non-valid draws.
 
         Raises:
-            RuntimeError: If measure_method() has not been called first.
+            MeasurementDataNotAvailable: If measure_method() has not been called first.
         """
+
+        # ===== Check inputs =====
+
         if not hasattr(self, 'measures'):
-            raise RuntimeError(
+            raise MeasurementDataNotAvailable(
                 "measure_method() must be called before uncertainty()."
             )
+
+        for value in self._base_measures.values():
+            if isinstance(value, np.ndarray) and value.ndim > 0:
+                raise ValueError(
+                    "uncertainty() only supports scalar inputs. "
+                    "Call measure_method() with scalar angle values."
+                )
         if (
             isinstance(draw_number, bool)
             or not isinstance(draw_number, (int, np.integer))
@@ -222,19 +252,11 @@ class PapotoParameterMeasure(ParameterMeasure):
 
         _draw_number: int = int(draw_number)
         _angle_error: float = float(angle_error)  # type: ignore[arg-type]
+
+        # ===== Monte Carlo simulation =====
+
         rng = np.random.default_rng(seed)
-        angle_keys = [
-            'HL',
-            'VL',
-            'HR',
-            'VR',
-            'H1',
-            'V1',
-            'H2',
-            'V2',
-            'H3',
-            'V3',
-        ]
+        angle_keys = self._base_measures.keys()
 
         perturbed_converted: dict = {}
         for key in angle_keys:
@@ -249,32 +271,12 @@ class PapotoParameterMeasure(ParameterMeasure):
         self.input_conversion(perturbed_converted)
         perturbed_converted['a'] = self.a
 
-        perturbed_parameter_1_2 = papoto_2_points(
-            **self.select_points_in_dict(1, 2, perturbed_converted)
-        )
-        perturbed_parameter_2_3 = papoto_2_points(
-            **self.select_points_in_dict(2, 3, perturbed_converted)
-        )
-        perturbed_parameter_1_3 = papoto_2_points(
-            **self.select_points_in_dict(1, 3, perturbed_converted)
+        # Save intermediates from measure_method, compute_papoto overwrites them
+        perturbed_parameter, validity, _, _, _ = self.compute_papoto(
+            perturbed_converted
         )
 
-        perturbed_parameter = np.mean(
-            np.array(
-                [
-                    perturbed_parameter_1_2,
-                    perturbed_parameter_2_3,
-                    perturbed_parameter_1_3,
-                ]
-            ),
-            axis=0,
-        )
-
-        validity = papoto_validity(
-            perturbed_parameter_1_2,
-            perturbed_parameter_2_3,
-            perturbed_parameter_1_3,
-        )
+        # ===== Post processing results =====
         non_valid_mask = ~(validity < self.validity_criteria)
 
         valid_parameter = perturbed_parameter[~non_valid_mask]

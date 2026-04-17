@@ -13,6 +13,7 @@ from mechaphlowers.data.measures import (
     param_calibration,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.errors import MeasurementDataNotAvailable
 
 PAPOTO_INPUTS = dict(
     a=498.565922913587,
@@ -186,9 +187,9 @@ EXPECTED_UNCERTAINTY_KEYS = {
 
 
 def test_uncertainty_raises_before_measure_method():
-    """uncertainty() must raise RuntimeError if measure_method() not called first."""
+    """uncertainty() must raise MeasurementDataNotAvailable if measure_method() not called first."""
     papoto = PapotoParameterMeasure()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(MeasurementDataNotAvailable):
         papoto.uncertainty()
 
 
@@ -242,12 +243,12 @@ def test_uncertainty_non_valid_nan_when_all_valid():
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
 
-    # Use very small angle_error so all draws should be valid
-    result = papoto.uncertainty(draw_number=200, angle_error=1e-6)
+    # Use angle_error=0 so all draws are identical and valid
+    result = papoto.uncertainty(draw_number=200, angle_error=0)
 
-    if result['number_non_valid_values'] == 0:
-        assert np.isnan(result['mean_non_valid_values'])
-        assert np.isnan(result['std_non_valid_values'])
+    assert result['number_non_valid_values'] == 0
+    assert np.isnan(result['mean_non_valid_values'])
+    assert np.isnan(result['std_non_valid_values'])
 
 
 @pytest.mark.parametrize("bad_draw_number", [0, -1, 1.5, "100", True, None])
