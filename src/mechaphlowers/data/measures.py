@@ -228,27 +228,7 @@ class PapotoParameterMeasure(ParameterMeasure):
                 "measure_method() must be called before uncertainty()."
             )
 
-        for value in self._base_measures.values():
-            if isinstance(value, np.ndarray) and value.ndim > 0:
-                raise ValueError(
-                    "uncertainty() only supports scalar inputs. "
-                    "Call measure_method() with scalar angle values."
-                )
-        if (
-            isinstance(draw_number, bool)
-            or not isinstance(draw_number, (int, np.integer))
-            or draw_number <= 0
-        ):
-            raise ValueError("draw_number must be a positive integer.")
-
-        if (
-            isinstance(angle_error, bool)
-            or not isinstance(
-                angle_error, (int, float, np.floating, np.integer)
-            )
-            or angle_error < 0
-        ):
-            raise ValueError("angle_error must be a non-negative real number.")
+        self._validate_inputs_uncertainty(draw_number, angle_error)
 
         _draw_number: int = int(draw_number)
         _angle_error: float = float(angle_error)  # type: ignore[arg-type]
@@ -277,6 +257,11 @@ class PapotoParameterMeasure(ParameterMeasure):
         )
 
         # ===== Post processing results =====
+        results = self._post_process_uncertainty(perturbed_parameter, validity)
+
+        return results
+
+    def _post_process_uncertainty(self, perturbed_parameter, validity):
         non_valid_mask = ~(validity < self.validity_criteria)
 
         valid_parameter = perturbed_parameter[~non_valid_mask]
@@ -318,6 +303,29 @@ class PapotoParameterMeasure(ParameterMeasure):
             'min_all_values': np.min(perturbed_parameter),
             'max_all_values': np.max(perturbed_parameter),
         }
+
+    def _validate_inputs_uncertainty(self, draw_number, angle_error):
+        for value in self._base_measures.values():
+            if isinstance(value, np.ndarray) and value.ndim > 0:
+                raise ValueError(
+                    "uncertainty() only supports scalar inputs. "
+                    "Call measure_method() with scalar angle values."
+                )
+        if (
+            isinstance(draw_number, bool)
+            or not isinstance(draw_number, (int, np.integer))
+            or draw_number <= 0
+        ):
+            raise ValueError("draw_number must be a positive integer.")
+
+        if (
+            isinstance(angle_error, bool)
+            or not isinstance(
+                angle_error, (int, float, np.floating, np.integer)
+            )
+            or angle_error < 0
+        ):
+            raise ValueError("angle_error must be a non-negative real number.")
 
     def __call__(self, *args, **kwds):
         return self.measure_method(*args, **kwds)
