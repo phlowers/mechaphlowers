@@ -141,6 +141,7 @@ class SectionArray(ElementArray):
         sagging_parameter: float | None = None,
         sagging_temperature: float | None = None,
         bundle_number: int = 1,
+        spacer: Spacer | None = None,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
 
@@ -161,6 +162,7 @@ class SectionArray(ElementArray):
                 f"bundle_number should be a positive integer. Received: {bundle_number}"
             )
         self.bundle_number = bundle_number
+        self.spacer = spacer if spacer is not None else Spacer()
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
         self._angles_sense: Literal["clockwise", "anticlockwise"] = (
@@ -178,14 +180,17 @@ class SectionArray(ElementArray):
         support_height = (
             self._data["support_height"].to_numpy()
             if "support_height" in self._data.columns
-            else np.full(len(self._data), options.ground.default_support_length)
+            else np.full(
+                len(self._data), options.ground.default_support_length
+            )
         )
-        spacer = Spacer()
+        foot_to_ground_clearance = options.ground.foot_to_ground_clearance
         return (
             self._data["conductor_attachment_altitude"].to_numpy()
             + self._data["insulator_length"].to_numpy()
             - support_height
-            - spacer.height(self.bundle_number)
+            + self.spacer.height(self.bundle_number)
+            - foot_to_ground_clearance
         )
 
     def correct_insulator_length(self) -> None:
@@ -232,7 +237,9 @@ class SectionArray(ElementArray):
         self.validate_ground_altitude(data_output)
         data_output = self._adjust_angle_sense(data_output)
         if "support_height" not in data_output.columns:
-            data_output["support_height"] = options.ground.default_support_length
+            data_output["support_height"] = (
+                options.ground.default_support_length
+            )
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"

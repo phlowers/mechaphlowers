@@ -211,7 +211,9 @@ def test_section_array__data(section_array_input_data: dict) -> None:
         },
     )
 
-    assert_frame_equal(exported_data, expected_data, atol=1e-07, check_like=True)
+    assert_frame_equal(
+        exported_data, expected_data, atol=1e-07, check_like=True
+    )
     # section_array inner data shouldn't have been modified
     assert_frame_equal(section_array._data, inner_data)
 
@@ -519,6 +521,7 @@ def test_create_section_bundle_number(
 
 def test_section_array__x_offset_and_support_height_in_data(
     section_array_input_data: dict,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     section_array_input_data["x_offset"] = [1.5, -2.0, 0.0, 3.0]
     section_array_input_data["support_height"] = [10.0, 20.0, 15.0, 5.0]
@@ -527,19 +530,26 @@ def test_section_array__x_offset_and_support_height_in_data(
         data=df, sagging_parameter=2_000, sagging_temperature=15
     )
 
+    monkeypatch.setattr(options.ground, "foot_to_ground_clearance", 1.0)
     assert "x_offset" in section_array._data.columns
     assert "support_height" in section_array._data.columns
     assert_allclose(
         section_array._data["x_offset"].to_numpy(), [1.5, -2.0, 0.0, 3.0]
     )
     assert_allclose(
-        section_array._data["support_height"].to_numpy(), [10.0, 20.0, 15.0, 5.0]
+        section_array._data["support_height"].to_numpy(),
+        [10.0, 20.0, 15.0, 5.0],
     )
     assert_allclose(
         section_array.data["x_offset"].to_numpy(), [1.5, -2.0, 0.0, 3.0]
     )
     assert_allclose(
-        section_array.data["support_height"].to_numpy(), [10.0, 20.0, 15.0, 5.0]
+        section_array.data["support_height"].to_numpy(),
+        [10.0, 20.0, 15.0, 5.0],
+    )
+    assert_allclose(
+        section_array.data.ground_altitude.to_numpy(),
+        np.array([-8.79, -12.0, -12.92, -5.99]),
     )
 
 
@@ -555,7 +565,8 @@ def test_section_array__support_height_default(
     assert "support_height" not in section_array._data.columns
     assert "support_height" in section_array.data.columns
     assert_allclose(
-        section_array.data["support_height"].to_numpy(), [30.0, 30.0, 30.0, 30.0]
+        section_array.data["support_height"].to_numpy(),
+        [30.0, 30.0, 30.0, 30.0],
     )
 
 
