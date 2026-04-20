@@ -165,10 +165,16 @@ class SectionArray(ElementArray):
         )
         self._rope_overlay: dict[int, float] | None = None
         self._rope_lineic_mass: float | None = None
-        self._original_conductor_attachment_altitude: pd.Series | None = None
-        self._original_crossarm_length: pd.Series | None = None
-        self._manipulation_indices: set[int] | None = None
+        self._support_overlay: dict[int, dict[str, float]] | None = None
         self._virtual_support_overlay: dict[int, dict] | None = None
+        self._manipulation_flags: dict[str, bool] = {
+            "shifting": False,
+            "rope": False,
+            "shorten_lengthen": False,
+            "support": False,
+            "virtual_support": False,
+        }
+        self._manipulation_active: bool = True
         logger.debug("Section Array initialized.")
 
     def compute_elevation_difference(self) -> np.ndarray:
@@ -199,11 +205,12 @@ class SectionArray(ElementArray):
     ) -> None:
         """Apply additive offsets to support geometry.
 
-        Modifies `conductor_attachment_altitude` and/or `crossarm_length`
-        in the internal data for the specified supports.
-
-        On first call, the original values are saved so they can be
-        restored with [`reset_manipulation`][mechaphlowers.entities.arrays.SectionArray.reset_manipulation].
+        Stores the offsets as an overlay applied in
+        [`data`][mechaphlowers.entities.arrays.SectionArray.data] when the
+        ``"support"`` manipulation flag is active;
+        ``_data`` is never modified.
+        Use [`reset_manipulation`][mechaphlowers.entities.arrays.SectionArray.reset_manipulation]
+        to remove the overlay.
 
         For each affected support, `counterweight` is set to 0 in
         [`data`][mechaphlowers.entities.arrays.SectionArray.data].
@@ -238,30 +245,22 @@ class SectionArray(ElementArray):
                     f"Invalid keys {invalid_keys} for support {idx}. Allowed keys: {allowed_keys}"
                 )
 
-        # Snapshot originals on first call
-        if self._original_conductor_attachment_altitude is None:
-            self._original_conductor_attachment_altitude = self._data[
-                "conductor_attachment_altitude"
-            ].copy()
-            self._original_crossarm_length = self._data[
-                "crossarm_length"
-            ].copy()
-
+        # Accumulate offsets into overlay
+        if self._support_overlay is None:
+            self._support_overlay = {}
         for idx, offsets in manipulation.items():
-            if "z" in offsets:
-                self._data.loc[idx, "conductor_attachment_altitude"] += (
-                    offsets["z"]
+            if idx not in self._support_overlay:
+                self._support_overlay[idx] = {}
+            for key, value in offsets.items():
+                self._support_overlay[idx][key] = (
+                    self._support_overlay[idx].get(key, 0.0) + value
                 )
-            if "y" in offsets:
-                self._data.loc[idx, "crossarm_length"] += offsets["y"]
 
-        self._manipulation_indices = (
-            self._manipulation_indices or set()
-        ) | set(manipulation.keys())
+        self._manipulation_flags["support"] = True
         logger.debug(f"Support manipulation applied: {manipulation}")
 
     def reset_manipulation(self) -> None:
-        """Restore `conductor_attachment_altitude` and `crossarm_length` to their original values.
+        """Remove the support manipulation overlay.
 
         Reverts all changes made by
         [`support_manipulation`][mechaphlowers.entities.arrays.SectionArray.support_manipulation].
@@ -271,20 +270,14 @@ class SectionArray(ElementArray):
             >>> section_array.support_manipulation({1: {"z": 5.0}})
             >>> section_array.reset_manipulation()
         """
-        if self._original_conductor_attachment_altitude is None:
+        if self._support_overlay is None:
             logger.debug(
                 "reset_manipulation called but no manipulation was applied."
             )
             return
 
-        self._data["conductor_attachment_altitude"] = (
-            self._original_conductor_attachment_altitude
-        )
-        self._data["crossarm_length"] = self._original_crossarm_length
-
-        self._original_conductor_attachment_altitude = None
-        self._original_crossarm_length = None
-        self._manipulation_indices = None
+        self._support_overlay = None
+        self._manipulation_flags["support"] = False
 
         logger.debug("Support manipulation reset to original values.")
 
@@ -351,6 +344,7 @@ class SectionArray(ElementArray):
             if rope_lineic_mass is not None
             else options.data.rope_lineic_mass_default
         )
+        self._manipulation_flags["rope"] = True
         logger.debug(f"Rope manipulation applied: {rope}")
 
     def reset_rope_manipulation(self) -> None:
@@ -370,6 +364,7 @@ class SectionArray(ElementArray):
             return
         self._rope_overlay = None
         self._rope_lineic_mass = None
+        self._manipulation_flags["rope"] = False
         logger.debug("Rope manipulation cleared.")
 
     def add_virtual_support(
@@ -461,6 +456,7 @@ class SectionArray(ElementArray):
         if self._virtual_support_overlay is None:
             self._virtual_support_overlay = {}
         self._virtual_support_overlay.update(virtual_support)
+        self._manipulation_flags["virtual_support"] = True
         logger.debug(f"Virtual support overlay updated: {virtual_support}")
 
     def reset_virtual_support(self) -> None:
@@ -489,7 +485,31 @@ class SectionArray(ElementArray):
             )
             return
         self._virtual_support_overlay = None
+        self._manipulation_flags["virtual_support"] = False
         logger.debug("Virtual support overlay cleared.")
+
+    def activate_manipulation(self) -> None:
+        """Enable overlay application in
+        [`data`][mechaphlowers.entities.arrays.SectionArray.data].
+
+        After this call, every overlay whose individual flag is ``True``
+        will be applied when reading
+        [`data`][mechaphlowers.entities.arrays.SectionArray.data].
+        """
+        self._manipulation_active = True
+        logger.debug("Manipulation master switch activated.")
+
+    def deactivate_manipulation(self) -> None:
+        """Disable overlay application in
+        [`data`][mechaphlowers.entities.arrays.SectionArray.data].
+
+        After this call, no overlay will be applied regardless of
+        individual flags, so
+        [`data`][mechaphlowers.entities.arrays.SectionArray.data]
+        returns values as if no manipulation was set.
+        """
+        self._manipulation_active = False
+        logger.debug("Manipulation master switch deactivated.")
 
     def _apply_virtual_support_overlay(
         self, data_output: pd.DataFrame
@@ -558,7 +578,14 @@ class SectionArray(ElementArray):
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
         data_output = super().data
-        if self._rope_overlay is not None:
+        # Order: support, rope, (weight conversion), virtual_support
+        if self._manipulation_active and self._manipulation_flags["support"]:
+            for idx, offsets in self._support_overlay.items():
+                if "z" in offsets:
+                    data_output.loc[idx, "conductor_attachment_altitude"] += offsets["z"]
+                if "y" in offsets:
+                    data_output.loc[idx, "crossarm_length"] += offsets["y"]
+        if self._manipulation_active and self._manipulation_flags["rope"]:
             for idx, rope_length in self._rope_overlay.items():
                 data_output.loc[idx, "insulator_length"] = rope_length
                 data_output.loc[idx, "insulator_mass"] = (
@@ -572,14 +599,14 @@ class SectionArray(ElementArray):
         self.create_column_weight(data_output, mass_weight_conversion)
         if "counterweight" in data_output.columns:
             affected: set[int] = set()
-            if self._manipulation_indices is not None:
-                affected |= self._manipulation_indices
-            if self._rope_overlay is not None:
+            if self._manipulation_active and self._manipulation_flags["support"]:
+                affected |= set(self._support_overlay.keys())
+            if self._manipulation_active and self._manipulation_flags["rope"]:
                 affected |= set(self._rope_overlay.keys())
             for idx in affected:
                 data_output.loc[idx, "counterweight"] = 0.0
         self.validate_ground_altitude(data_output)
-        if self._virtual_support_overlay is not None:
+        if self._manipulation_active and self._manipulation_flags["virtual_support"]:
             data_output = self._apply_virtual_support_overlay(data_output)
         data_output = self._adjust_angle_sense(data_output)
         if self.sagging_parameter is None or self.sagging_temperature is None:

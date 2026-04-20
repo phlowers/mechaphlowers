@@ -289,6 +289,10 @@ class ISpan(ABC):
         """Total length of the cable."""
 
     @abstractmethod
+    def compute_partial_L(self, x: np.ndarray) -> np.ndarray:
+        """Cable length from left hanging point to abscissa x."""
+
+    @abstractmethod
     def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
         """Get x and z coordinates for catenary generation in cable frame
 
@@ -559,6 +563,12 @@ class CatenarySpan(ISpan):
         """Total length of the cable."""
         p = self.sagging_parameter
         return p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
+
+    def compute_partial_L(self, x) -> np.ndarray:
+        # move in superclass?
+        """Total length of the cable."""
+        p = self.sagging_parameter
+        return p * (np.sinh(x / p) - np.sinh(self._x_m / p))
 
     def T_h(self) -> np.ndarray:
         if self.linear_weight is None:
