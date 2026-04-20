@@ -98,12 +98,9 @@ class VectorProjection:
         self.Tv_d = Tv_d
         self.Tv_g = Tv_g
 
-    def set_angles(
-        self, alpha: np.ndarray, beta: np.ndarray, line_angle: np.ndarray
-    ) -> None:
+    def set_angles(self, alpha: np.ndarray, beta: np.ndarray) -> None:
         self.alpha = alpha
         self.beta = beta
-        self.line_angle = line_angle
 
     def set_proj_angle(self, proj_angle: np.ndarray) -> None:
         self.proj_angle = proj_angle
@@ -115,11 +112,10 @@ class VectorProjection:
         Tv_g: np.ndarray,
         alpha: np.ndarray,
         beta: np.ndarray,
-        line_angle: np.ndarray,
         proj_angle: np.ndarray,
     ) -> None:
         self.set_tensions(Th, Tv_d, Tv_g)
-        self.set_angles(alpha, beta, line_angle)
+        self.set_angles(alpha, beta)
         self.set_proj_angle(proj_angle)
 
     # properties?

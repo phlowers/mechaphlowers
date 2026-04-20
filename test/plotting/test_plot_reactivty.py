@@ -206,13 +206,15 @@ class TestNotificationTriggers:
                 balance_engine=balance_engine_base_test
             )
 
-    def test_section_pts_reset_called_through_full_observer_chain(
+    def test_coords_calculator_reset_called_through_full_observer_chain(
         self, balance_engine_base_test: BalanceEngine
     ):
-        """section_pts.reset() is the terminal step of the observer chain."""
+        """coords_calculator.reset() is the terminal step of the observer chain."""
         plt_engine = PlotEngine(balance_engine_base_test)
         with patch.object(
-            plt_engine.section_pts, "reset", wraps=plt_engine.section_pts.reset
+            plt_engine.coords_calculator,
+            "reset",
+            wraps=plt_engine.coords_calculator.reset,
         ) as mock_reset:
             balance_engine_base_test.add_loads(
                 load_position_distance=np.array([0, 0, 0, np.nan]),
@@ -375,7 +377,7 @@ class TestCoordCoherence:
     def test_x_cable_consistent_with_span_model_after_observer_chain(
         self, balance_engine_base_test: BalanceEngine
     ):
-        """After the observer chain fires, section_pts.x_cable must exactly match
+        """After the observer chain fires, coords_calculator.x_cable must exactly match
         nodes_span_model.get_coords(), proving set_cable_coordinates() was called."""
         plt_engine = PlotEngine(balance_engine_base_test)
 
@@ -388,7 +390,7 @@ class TestCoordCoherence:
             cfg.graphics.resolution
         )
         np.testing.assert_array_equal(
-            plt_engine.section_pts.x_cable, x_expected
+            plt_engine.coords_calculator.x_cable, x_expected
         )
 
     def test_cable_coords_stale_after_solve_then_refreshed_by_observer_chain(
@@ -400,13 +402,13 @@ class TestCoordCoherence:
         2. solve_adjustment + solve_change_state update nodes_span_model.sagging_parameter
            in-place — but solve does NOT call notify(), so x_cable remains stale.
         3. add_loads() calls reset(full=False) -> BalanceEngine.notify()
-           -> PositionEngine.reset() -> section_pts.reset() -> set_cable_coordinates()
+           -> PositionEngine.reset() -> coords_calculator.reset() -> set_cable_coordinates()
            recomputes x_cable -> PositionEngine.notify() -> PlotEngine.update().
         4. x_cable now matches the post-solve sagging_parameter and differs from
            the initial cached value.
         """
         plt_engine = PlotEngine(balance_engine_base_test)
-        x_cable_initial = plt_engine.section_pts.x_cable.copy()
+        x_cable_initial = plt_engine.coords_calculator.x_cable.copy()
 
         # Solve — updates nodes_span_model.sagging_parameter in-place via mirror,
         # but does NOT trigger an observer notification.
@@ -415,7 +417,7 @@ class TestCoordCoherence:
 
         # x_cable is stale: solve did not notify observers.
         np.testing.assert_array_equal(
-            plt_engine.section_pts.x_cable, x_cable_initial
+            plt_engine.coords_calculator.x_cable, x_cable_initial
         )
 
         # Trigger the observer chain via add_loads.
@@ -429,11 +431,11 @@ class TestCoordCoherence:
             cfg.graphics.resolution
         )
         np.testing.assert_array_equal(
-            plt_engine.section_pts.x_cable, x_expected
+            plt_engine.coords_calculator.x_cable, x_expected
         )
 
         # And it differs from the initial cached value —
         # confirming sagging_parameter changed after solve_change_state.
         assert not np.array_equal(
-            plt_engine.section_pts.x_cable, x_cable_initial
+            plt_engine.coords_calculator.x_cable, x_cable_initial
         )

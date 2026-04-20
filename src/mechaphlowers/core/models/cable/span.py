@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Literal, Self, Type
 
@@ -148,8 +150,11 @@ class ISpan(ABC):
         are called during solver iterations.
         """
         self._x_m = self.compute_x_m()
-        self._x_n = self.compute_x_n()
-        self._L = self.compute_L()
+        # Optimisation: not using compute_x_n() and compute_L()
+        # to avoid calling compute_x_m() many times
+        self._x_n = self.span_length + self._x_m
+        p = self.sagging_parameter
+        self._L = p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
 
     def mirror(self, span_model: Self) -> None:
         """Copy attributes from an other ISpan object.
@@ -181,6 +186,22 @@ class ISpan(ABC):
         self.load_coefficient = span_model.load_coefficient
         self.span_index = span_model.span_index
         self.span_type = span_model.span_type
+
+    def __copy__(self) -> Self:
+        new = object.__new__(type(self))
+        new.span_length = self.span_length.copy()
+        new.elevation_difference = self.elevation_difference.copy()
+        new.sagging_parameter = self.sagging_parameter.copy()
+        new.load_coefficient = self.load_coefficient.copy()
+        new.linear_weight = self.linear_weight
+        new.span_index = self.span_index.copy()
+        new.span_type = self.span_type.copy()
+        new.loads_indices = (
+            self.loads_indices[0].copy(),
+            self.loads_indices[1].copy(),
+        )
+        new.compute_values()
+        return new
 
     @property
     def x_m(self):
@@ -256,12 +277,13 @@ class ISpan(ABC):
         In other words: opposite of the abscissa of the left hanging point.
         """
 
-    @abstractmethod
     def compute_x_n(self) -> np.ndarray:
         """Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
 
         In other words: abscissa of the right hanging point.
         """
+        a = self.span_length
+        return a + self.compute_x_m()
 
     @abstractmethod
     def x(self, resolution: int) -> np.ndarray:
@@ -286,7 +308,8 @@ class ISpan(ABC):
 
     @abstractmethod
     def compute_L(self) -> np.ndarray:
-        """Total length of the cable."""
+        """Total length of the cable.
+        Should be called after calling compute_x_m and compute_x_n if x_n or x_m have changed"""
 
     @abstractmethod
     def compute_partial_L(self, x: np.ndarray) -> np.ndarray:
@@ -428,11 +451,6 @@ class CatenarySpan(ISpan):
         # return error if linear_weight = None?
         return -a / 2 + p * np.arcsinh(b / (2 * p * np.sinh(a / (2 * p))))
 
-    def compute_x_n(self):
-        # move in superclass?
-        a = self.span_length
-        return a + self.compute_x_m()
-
     def x(self, resolution: int = 10) -> np.ndarray:
         """x_coordinate for catenary generation in cable frame
 
@@ -562,7 +580,9 @@ class CatenarySpan(ISpan):
         # move in superclass?
         """Total length of the cable."""
         p = self.sagging_parameter
-        return p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
+        return p * (
+            np.sinh(self.compute_x_n() / p) - np.sinh(self.compute_x_m() / p)
+        )
 
     def compute_partial_L(self, x) -> np.ndarray:
         # move in superclass?

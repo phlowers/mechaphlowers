@@ -57,9 +57,9 @@ def balance_engine_local_initialized() -> BalanceEngine:
         "load_position": [0, 0, 0, 0],
     }
 
-    section_array = SectionArray(data=pd.DataFrame(data))
-    section_array.sagging_parameter = 500
-    section_array.sagging_temperature = 15
+    section_array = SectionArray(
+        data=pd.DataFrame(data), sagging_parameter=500, sagging_temperature=15
+    )
     cable_array_AM600: CableArray = sample_cable_catalog.get_as_object(
         ["ASTER600"]
     )  # type: ignore[assignment]
@@ -272,8 +272,9 @@ def test_plot_2d(balance_engine_angles: BalanceEngine):
     assert fig_line.layout.yaxis.scaleanchor == "x"
     assert fig_profile.layout.yaxis.scaleanchor != "x"
 
-    # fig_line.show()
-    # fig_profile.show()  # deactivate for auto unit testing
+    if show_figures:
+        fig_line.show()
+        fig_profile.show()
     span_points, _, insulators_points = plt_engine.get_points_for_plot(
         project=True, frame_index=1
     )
@@ -281,9 +282,11 @@ def test_plot_2d(balance_engine_angles: BalanceEngine):
 
 
 def test_plot_more_spans(cable_array_AM600: CableArray):
-    section_array = SectionArray(pd.DataFrame(section_factory_sample_data(10)))
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
+    section_array = SectionArray(
+        pd.DataFrame(section_factory_sample_data(10)),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
     balance_engine = BalanceEngine(
         cable_array=cable_array_AM600, section_array=section_array
     )
@@ -299,8 +302,9 @@ def test_plot_more_spans(cable_array_AM600: CableArray):
     fig_profile = go.Figure()
     plt_engine.preview_line2d(fig_profile, "profile", 8)
 
-    # fig_line.show()
-    # fig_profile.show()  # deactivate for auto unit testing
+    if show_figures:
+        fig_line.show()
+        fig_profile.show()
     span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
 

@@ -58,10 +58,10 @@ from mechaphlowers.data.catalog import section_factory_sample_data
 section_array = mph.SectionArray(
     pd.DataFrame(
         section_factory_sample_data(6,2)
-    )
+    ),
+    sagging_parameter = 2000,
+    sagging_temperature = 15
 )
-section_array.sagging_parameter = 2000
-section_array.sagging_temperature = 15
 
 # Load cable from catalog
 from mechaphlowers.data.catalog import sample_cable_catalog
