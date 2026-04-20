@@ -633,277 +633,6 @@ def test_add_cable_shifting_stores_values(
     )
 
 
-def test_support_manipulation_modifies_section_array(
-    balance_engine_simple: BalanceEngine,
-):
-    original_alt = (
-        balance_engine_simple.section_array._data[
-            "conductor_attachment_altitude"
-        ]
-        .copy()
-        .to_numpy()
-    )
-
-    balance_engine_simple.support_manipulation({1: {"z": 5.0, "y": -2.0}})
-
-    # _data is NOT modified (overlay pattern)
-    np.testing.assert_array_equal(
-        balance_engine_simple.section_array._data[
-            "conductor_attachment_altitude"
-        ].to_numpy(),
-        original_alt,
-    )
-
-    # .data reflects the overlay
-    data = balance_engine_simple.section_array.data
-    np.testing.assert_allclose(data["conductor_attachment_altitude"].iloc[1], original_alt[1] + 5.0)
-
-    new_arm = data["crossarm_length"].to_numpy()
-    assert new_arm[1] == pytest.approx(-2.0)  # was 0, now 0 + (-2)
-
-
-def test_support_manipulation_preserves_observers(
-    balance_engine_simple: BalanceEngine,
-):
-    from mechaphlowers.entities.reactivity import Observer
-
-    class _TestObserver(Observer):
-        def __init__(self):
-            self.call_count = 0
-
-        def update(self, notifier, *args, **kwargs):
-            self.call_count += 1
-
-    obs = _TestObserver()
-    balance_engine_simple.bind_to(obs)
-    assert obs in balance_engine_simple._observers
-
-    balance_engine_simple.support_manipulation({1: {"z": 1.0}})
-
-    # Observer must still be registered
-    assert obs in balance_engine_simple._observers
-
-    # Also preserved after reset_manipulation
-    balance_engine_simple.reset_manipulation()
-    assert obs in balance_engine_simple._observers
-
-
-def test_support_manipulation_wrong_index(
-    balance_engine_simple: BalanceEngine,
-):
-    with pytest.raises(ValueError, match="out of range"):
-        balance_engine_simple.support_manipulation({99: {"z": 1.0}})
-
-
-def test_support_manipulation_integration(
-    balance_engine_simple: BalanceEngine,
-):
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    param_before = balance_engine_simple.parameter.copy()
-
-    balance_engine_simple.support_manipulation({1: {"z": 10.0}, 2: {"z": -10.0}})
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    param_after = balance_engine_simple.parameter
-
-    # parameter must differ after geometry change
-    assert not np.allclose(
-        param_before, param_after
-    ), "parameter should change after support manipulation"
-
-
-def test_reset_manipulation_integration(
-    balance_engine_simple: BalanceEngine,
-):
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    param_original = balance_engine_simple.parameter.copy()
-
-    balance_engine_simple.support_manipulation({1: {"z": 10.0}})
-    balance_engine_simple.reset_manipulation()
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    param_restored = balance_engine_simple.parameter
-
-    np.testing.assert_allclose(param_original, param_restored, rtol=1e-6)
-
-
-def test_rope_manipulation_modifies_data(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    original_length = (
-        balance_engine_simple.section_array._data["insulator_length"].copy()
-    )
-
-    balance_engine_simple.rope_manipulation({1: 6.0, 2: 4.0})
-
-    data = balance_engine_simple.section_array.data
-    np.testing.assert_allclose(data["insulator_length"].iloc[1], 6.0)
-    np.testing.assert_allclose(data["insulator_length"].iloc[2], 4.0)
-    # _data untouched
-    np.testing.assert_allclose(
-        balance_engine_simple.section_array._data["insulator_length"].to_numpy(),
-        original_length.to_numpy(),
-    )
-
-
-def test_rope_manipulation_preserves_observers(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    from mechaphlowers.entities.reactivity import Observer
-
-    class _TestObserver(Observer):
-        def __init__(self):
-            self.call_count = 0
-
-        def update(self, notifier, *args, **kwargs):
-            self.call_count += 1
-
-    obs = _TestObserver()
-    balance_engine_simple.bind_to(obs)
-
-    balance_engine_simple.rope_manipulation({1: 5.0})
-
-    # Observer must still be registered
-    assert obs in balance_engine_simple._observers
-
-    balance_engine_simple.reset_rope_manipulation()
-    assert obs in balance_engine_simple._observers
-
-
-def test_rope_manipulation_integration(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    balance_engine_simple.rope_manipulation({1: 6.0, 2: 4.0})
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    # Should complete without error
-
-
-def test_reset_rope_manipulation_integration(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    displacement_original = (
-        balance_engine_simple.balance_model.chain_displacement().copy()
-    )
-
-    balance_engine_simple.rope_manipulation({1: 6.0})
-    balance_engine_simple.reset_rope_manipulation()
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    displacement_restored = (
-        balance_engine_simple.balance_model.chain_displacement()
-    )
-
-    np.testing.assert_allclose(
-        displacement_original, displacement_restored, atol=1e-9
-    )
-
-
-# ── virtual support tests ────────────────────────────────────────────────────
-
-
-def test_add_virtual_support_changes_data_shape(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    assert len(balance_engine_simple.section_array.data) == 4
-    balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 100.0}}
-    )
-    assert len(balance_engine_simple.section_array.data) == 5
-
-
-def test_add_virtual_support_preserves_observers(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    from mechaphlowers.entities.reactivity import Observer
-
-    class _TestObserver(Observer):
-        def __init__(self):
-            self.call_count = 0
-
-        def update(self, notifier, *args, **kwargs):
-            self.call_count += 1
-
-    obs = _TestObserver()
-    balance_engine_simple.bind_to(obs)
-    assert obs in balance_engine_simple._observers
-
-    balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 100.0}}
-    )
-    # Observer must still be registered
-    assert obs in balance_engine_simple._observers
-
-    balance_engine_simple.reset_virtual_support()
-    assert obs in balance_engine_simple._observers
-
-
-def test_reset_virtual_support_restores_data_shape(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 100.0}}
-    )
-    balance_engine_simple.reset_virtual_support()
-    assert len(balance_engine_simple.section_array.data) == 4
-
-
-def test_add_virtual_support_integration(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 100.0}}
-    )
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    # Should complete without error
-
-
-def test_virtual_support_hanging_points_vector_and_mask(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    balance_engine_simple.add_virtual_support(
-        {
-            0: {
-                "x": 100.0,
-                "y": 0.0,
-                "z": 40.0,
-                "insulator_length": 3.0,
-                "insulator_mass": 500.0,
-                "hanging_cable_point_from_left_support": 100.0,
-            },
-            2: {
-                "x": 120.0,
-                "y": 0.0,
-                "z": 45.0,
-                "insulator_length": 3.0,
-                "insulator_mass": 500.0,
-                "hanging_cable_point_from_left_support": 120.0,
-            },
-        }
-    )
-    balance_engine_simple.solve_adjustment()
-
-    hanging_points, impacted_spans = (
-        balance_engine_simple._virtual_support_hanging_points_vector_and_mask()
-    )
-
-    expected_hanging_points = np.zeros_like(hanging_points)
-    expected_hanging_points[0] = 100.0
-    expected_hanging_points[3] = 120.0
-
-    expected_impacted_spans = np.zeros_like(impacted_spans)
-    expected_impacted_spans[0] = True
-    expected_impacted_spans[3] = True
-
-    np.testing.assert_allclose(hanging_points, expected_hanging_points)
-    np.testing.assert_array_equal(impacted_spans, expected_impacted_spans)
-
-
 # ── performance tests ────────────────────────────────────────────────────────
 
 def _make_8support_section_array(cable_array: "CableArray") -> "BalanceEngine":
@@ -1003,22 +732,28 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
 
     # ── 8-support with manipulations ─────────────────────────────────────────
     engine_manip = _make_8support_section_array(cable_array_AM600)
+    from mechaphlowers.core.manipulation import Manipulation
+
+    manip = Manipulation(engine_manip.section_array)
     # 4 support manipulations (supports 1, 2, 4, 5)
-    engine_manip.support_manipulation({
+    manip.support_manipulation({
         1: {"z": 1.0},
         2: {"z": -1.0, "y": 0.5},
         4: {"z": 2.0},
         5: {"y": -0.5},
     })
     # 1 rope manipulation (support 3)
-    engine_manip.rope_manipulation({3: 4.5})
+    manip.rope_manipulation({3: 4.5})
     # 4 virtual supports (one per span: spans 0, 2, 4, 6)
-    engine_manip.add_virtual_support({
+    manip.add_virtual_support({
         0: {"x": 200.0, "y": 0.0, "z": 38.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
         2: {"x": 200.0, "y": 0.0, "z": 58.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
         4: {"x": 250.0, "y": 0.0, "z": 52.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 250.0},
         6: {"x": 200.0, "y": 0.0, "z": 42.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
     })
+    # Apply manipulation and rebuild engine
+    manipulated_sa = manip.apply()
+    engine_manip = BalanceEngine(cable_array=cable_array_AM600, section_array=manipulated_sa)
     engine_manip.solve_adjustment()
     manip_data_s, manip_change_state_s = _measure(engine_manip)
 

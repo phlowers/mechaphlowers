@@ -14,6 +14,7 @@ from typing_extensions import Literal
 
 from mechaphlowers.core.geometry.points import Points
 from mechaphlowers.core.geometry.position_engine import PositionEngine
+from mechaphlowers.core.manipulation import Manipulation
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.balance.memento import (
     BalanceEngineCaretaker,
@@ -74,6 +75,12 @@ class SectionStudy:
         span_model_type: Type[ISpan] = CatenarySpan,
         deformation_model_type: Type[IDeformation] = DeformationRte,
     ) -> None:
+        self._cable_array = cable_array
+        self._section_array = section_array
+        self._span_model_type = span_model_type
+        self._deformation_model_type = deformation_model_type
+        self._manipulation = Manipulation(section_array)
+
         self._balance_engine = BalanceEngine(
             cable_array=cable_array,
             section_array=section_array,
@@ -128,10 +135,85 @@ class SectionStudy:
         """The memento captured after the intermediate warm-start solve, if any."""
         return self._intermediate_memento
 
+    @property
+    def manipulation(self) -> Manipulation:
+        """The :class:`Manipulation` object storing geometric overlays."""
+        return self._manipulation
+
+    # ── Manipulation methods ──────────────────────────────────────────────
+
+    def support_manipulation(
+        self, manipulation: dict[int, dict[str, float]]
+    ) -> None:
+        """Apply additive offsets to support geometry.
+
+        Delegates to
+        :meth:`Manipulation.support_manipulation`.
+
+        Args:
+            manipulation: Dictionary mapping support index (0-based) to
+                offsets with optional keys ``"y"`` and ``"z"``.
+        """
+        self._manipulation.support_manipulation(manipulation)
+
+    def reset_manipulation(self) -> None:
+        """Remove the support manipulation overlay.
+
+        Delegates to :meth:`Manipulation.reset_manipulation`.
+        """
+        self._manipulation.reset_manipulation()
+
+    def rope_manipulation(
+        self,
+        rope: dict[int, float],
+        rope_lineic_mass: float | None = None,
+    ) -> None:
+        """Override insulator length and mass for specified supports with rope values.
+
+        Delegates to :meth:`Manipulation.rope_manipulation`.
+
+        Args:
+            rope: Dictionary mapping support index (0-based) to rope length (meters).
+            rope_lineic_mass: Linear mass of the rope in kg/m.
+        """
+        self._manipulation.rope_manipulation(rope, rope_lineic_mass)
+
+    def reset_rope_manipulation(self) -> None:
+        """Remove the rope overlay.
+
+        Delegates to :meth:`Manipulation.reset_rope_manipulation`.
+        """
+        self._manipulation.reset_rope_manipulation()
+
+    def add_virtual_support(
+        self, virtual_support: dict[int, dict[str, float]]
+    ) -> None:
+        """Insert virtual supports.
+
+        Delegates to :meth:`Manipulation.add_virtual_support`.
+
+        Args:
+            virtual_support: Dictionary mapping left-support index to virtual
+                support parameters.
+        """
+        self._manipulation.add_virtual_support(virtual_support)
+
+    def reset_virtual_support(self) -> None:
+        """Remove all virtual supports.
+
+        Delegates to :meth:`Manipulation.reset_virtual_support`.
+        """
+        self._manipulation.reset_virtual_support()
+
     # ── Solve methods (with rollback + intermediate) ──────────────────────
 
     def solve_adjustment(self) -> None:
-        """Run [`BalanceEngine.solve_adjustment`][mechaphlowers.core.models.balance.engine.BalanceEngine.solve_adjustment] with automatic rollback.
+        """Run adjustment, then apply manipulations if any.
+
+        Phase 1: Solve adjustment on clean geometry to obtain ``L_ref``.
+        Phase 2: If manipulations are registered, create a manipulated copy
+        of the section array, rebuild the engine with it, and initialise
+        ``L_ref`` from the clean solve.
 
         On [`SolverError`][mechaphlowers.entities.errors.SolverError], the engine
         state is restored to the snapshot taken before the solve attempt, and the
@@ -140,13 +222,53 @@ class SectionStudy:
         Raises:
             SolverError: If the solver fails to converge.
         """
-        memento = self._caretaker.save()
-        try:
-            self._balance_engine.solve_adjustment()
-        except SolverError:
-            logger.error("Error during solve_adjustment, rolling back state.")
-            self._caretaker.restore(memento)
-            raise
+        if self._manipulation.has_manipulations:
+            # Build a temporary clean engine for the first phase
+            clean_engine = BalanceEngine(
+                cable_array=self._cable_array,
+                section_array=self._section_array,
+                span_model_type=self._span_model_type,
+                deformation_model_type=self._deformation_model_type,
+            )
+            # Phase 1 – solve on clean geometry
+            clean_engine.solve_adjustment()
+            initial_L_ref = clean_engine.initial_L_ref.copy()
+
+            # Handle virtual-support L_ref splitting
+            if self._manipulation.has_virtual_support:
+                L_ref = self._manipulation.compute_split_L_ref(
+                    initial_L_ref, clean_engine.span_model
+                )
+            else:
+                L_ref = initial_L_ref
+
+            # Phase 2 – rebuild engine with manipulated geometry
+            manipulated_sa = self._manipulation.apply()
+            self._balance_engine = BalanceEngine(
+                cable_array=self._cable_array,
+                section_array=manipulated_sa,
+                span_model_type=self._span_model_type,
+                deformation_model_type=self._deformation_model_type,
+            )
+            self._balance_engine.initial_L_ref = L_ref
+            self._balance_engine.L_ref = L_ref
+            self._balance_engine.balance_model.L_ref = L_ref
+
+            # Rewire downstream engines
+            self._caretaker = BalanceEngineCaretaker(self._balance_engine)
+            self._position_engine = PositionEngine(self._balance_engine)
+            self._plot_engine = None
+            self._guying = None
+        else:
+            memento = self._caretaker.save()
+            try:
+                self._balance_engine.solve_adjustment()
+            except SolverError:
+                logger.error(
+                    "Error during solve_adjustment, rolling back state."
+                )
+                self._caretaker.restore(memento)
+                raise
 
     def solve_change_state(
         self,

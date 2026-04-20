@@ -324,199 +324,6 @@ class BalanceEngine(Notifier):
         )
         logger.debug(debug_msg)
 
-    def support_manipulation(
-        self, manipulation: dict[int, dict[str, float]]
-    ) -> None:
-        """Apply additive offsets to support geometry.
-
-        Delegates to
-        [`SectionArray.support_manipulation`][mechaphlowers.entities.arrays.SectionArray.support_manipulation],
-        then rebuilds internal models while preserving observer bindings.
-
-        Args:
-            manipulation: Dictionary mapping support index (0-based) to
-                offsets. Each value is a dict with optional keys:
-
-                - `"y"`: added to `crossarm_length` (meters)
-                - `"z"`: added to `conductor_attachment_altitude` (meters)
-
-        Raises:
-            ValueError: If a support index is out of range.
-            ValueError: If an inner dict contains keys other than `"y"` or `"z"`.
-
-        Examples:
-            >>> balance_engine.support_manipulation({1: {"z": 2.0, "y": -1.0}})
-            >>> balance_engine.solve_adjustment()
-            >>> balance_engine.solve_change_state(new_temperature=15.0)
-        """
-        self.section_array.support_manipulation(manipulation)
-
-    def reset_manipulation(self) -> None:
-        """Restore support geometry to the original values before any manipulation.
-
-        Delegates to
-        [`SectionArray.reset_manipulation`][mechaphlowers.entities.arrays.SectionArray.reset_manipulation],
-        then rebuilds internal models while preserving observer bindings.
-
-        Examples:
-            >>> balance_engine.support_manipulation({1: {"z": 5.0}})
-            >>> balance_engine.reset_manipulation()
-        """
-        self.section_array.reset_manipulation()
-
-    def rope_manipulation(
-        self,
-        rope: dict[int, float],
-        rope_lineic_mass: float | None = None,
-    ) -> None:
-        """Override insulator length and mass for specified supports with rope values.
-
-        Delegates to
-        [`SectionArray.rope_manipulation`][mechaphlowers.entities.arrays.SectionArray.rope_manipulation],
-        then resets internal models while preserving observer bindings.
-
-        Args:
-            rope: Dictionary mapping support index (0-based) to rope length (meters).
-            rope_lineic_mass: Linear mass of the rope in kg/m. Defaults to
-                ``options.data.rope_lineic_mass_default`` (``0.01`` kg/m).
-
-        Raises:
-            ValueError: If a support index is out of range.
-
-        Examples:
-            >>> balance_engine.rope_manipulation({1: 4.5, 2: 3.0})
-            >>> balance_engine.solve_adjustment()
-            >>> balance_engine.solve_change_state(new_temperature=15.0)
-        """
-        self.section_array.rope_manipulation(rope, rope_lineic_mass)
-
-    def reset_rope_manipulation(self) -> None:
-        """Remove the rope overlay and restore original insulator values.
-
-        Delegates to
-        [`SectionArray.reset_rope_manipulation`][mechaphlowers.entities.arrays.SectionArray.reset_rope_manipulation],
-        then resets internal models while preserving observer bindings.
-
-        Examples:
-            >>> balance_engine.rope_manipulation({1: 4.5})
-            >>> balance_engine.reset_rope_manipulation()
-        """
-        self.section_array.reset_rope_manipulation()
-
-    def add_virtual_support(
-        self, virtual_support: dict[int, dict[str, float]]
-    ) -> None:
-        """Insert virtual supports into the section array overlay.
-
-        Delegates to
-        [`SectionArray.add_virtual_support`][mechaphlowers.entities.arrays.SectionArray.add_virtual_support],
-        then fully rebuilds all internal models while preserving observer bindings.
-
-        Args:
-            virtual_support: See
-                [`SectionArray.add_virtual_support`][mechaphlowers.entities.arrays.SectionArray.add_virtual_support].
-
-        Examples:
-            >>> balance_engine.add_virtual_support(
-            ...     {
-            ...         1: {
-            ...             "x": 200.0,
-            ...             "y": 0.0,
-            ...             "z": 55.0,
-            ...             "insulator_length": 3.0,
-            ...             "insulator_mass": 500.0,
-            ...         }
-            ...     }
-            ... )
-        """
-        self.section_array.add_virtual_support(virtual_support)
-
-    def reset_virtual_support(self) -> None:
-        """Remove all virtual supports from the section array overlay.
-
-        Delegates to
-        [`SectionArray.reset_virtual_support`][mechaphlowers.entities.arrays.SectionArray.reset_virtual_support],
-        then fully rebuilds all internal models while preserving observer bindings.
-
-        Examples:
-            >>> balance_engine.add_virtual_support(
-            ...     {
-            ...         1: {
-            ...             "x": 200.0,
-            ...             "y": 0.0,
-            ...             "z": 55.0,
-            ...             "insulator_length": 3.0,
-            ...             "insulator_mass": 500.0,
-            ...         }
-            ...     }
-            ... )
-            >>> balance_engine.reset_virtual_support()
-        """
-        self.section_array.reset_virtual_support()
-
-    def _virtual_support_hanging_points_vector_and_mask(
-        self,
-        n_spans: int | None = None,
-        apply_virtual_offset: bool = False,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Build a span-aligned hanging-point vector and impacted-span mask.
-
-        Args:
-            n_spans: Target vector size. If ``None``, uses the current
-                span-model size.
-            apply_virtual_offset: If ``True``, map each original span index to
-                its effective index after virtual-support insertion
-                (``span_idx + offset``). If ``False``, use original span
-                indices from the overlay.
-
-        Returns:
-            tuple[np.ndarray, np.ndarray]:
-                - A zero vector of size ``n_spans`` where virtual-support
-                  hanging points are placed at their corresponding span index.
-                - A boolean mask selecting spans impacted by virtual supports.
-        """
-        if n_spans is None:
-            n_spans = int(self.span_model.span_length.shape[0])
-        hanging_points = np.zeros(n_spans, dtype=np.float64)
-        impacted_spans = np.zeros(n_spans, dtype=bool)
-
-        overlay = self.section_array._virtual_support_overlay
-        if not overlay:
-            return hanging_points, impacted_spans
-
-        for offset, span_idx in enumerate(sorted(overlay.keys())):
-            target_idx = span_idx + offset if apply_virtual_offset else span_idx
-            if target_idx >= n_spans:
-                # Fallback for any temporary mismatch between overlay and
-                # current span model shape.
-                target_idx = span_idx
-            if 0 <= target_idx < n_spans:
-                hanging_points[target_idx] = float(
-                    overlay[span_idx][
-                        "hanging_cable_point_from_left_support"
-                    ]
-                )
-                impacted_spans[target_idx] = True
-
-        return hanging_points, impacted_spans
-
-    # def _expand_l_ref_with_virtual_support(
-    #     self,
-    #     base_l_ref: np.ndarray,
-    #     partial_l_ref: np.ndarray,
-    #     impacted_spans: np.ndarray,
-    # ) -> np.ndarray:
-    #     """Expand base L_ref by splitting impacted spans into two semi-spans."""
-    #     expanded_l_ref: list[float] = []
-    #     for span_idx, l_ref in enumerate(base_l_ref):
-    #         if impacted_spans[span_idx]:
-    #             left_l_ref = float(partial_l_ref[span_idx])
-    #             right_l_ref = float(l_ref - left_l_ref)
-    #             expanded_l_ref.extend([left_l_ref, right_l_ref])
-    #         else:
-    #             expanded_l_ref.append(float(l_ref))
-    #     return np.array(expanded_l_ref, dtype=np.float64)
-
     def shift_span_length(self) -> np.ndarray:
         """Transform shifting distance which is support based into L_ref shift which is span based.
 
@@ -549,27 +356,6 @@ class BalanceEngine(Notifier):
         """
         logger.debug("Starting adjustment.")
 
-        # Check if any manipulation overlay is active.
-        has_overlays = (
-            self.section_array._manipulation_flags.get("support")
-            or self.section_array._manipulation_flags.get("rope")
-            or self.section_array._manipulation_flags.get("virtual_support")
-        )
-        # Only virtual_support changes array dimensions and requires rebuild.
-        needs_rebuild = bool(
-            self.section_array._manipulation_flags.get("virtual_support")
-        )
-
-        if has_overlays:
-            # Phase 1: deactivate all overlays so L_ref is computed on
-            # clean geometry.
-            self.section_array.deactivate_manipulation()
-
-            if needs_rebuild:
-                saved_observers = self._observers.copy()
-                self.reset(full=True)
-                self._observers = saved_observers
-
         self.balance_model.adjustment = True
         try:
             self.solver_adjustment.solve(self.balance_model)
@@ -580,63 +366,16 @@ class BalanceEngine(Notifier):
             e.origin = "solve_adjustment"
             raise e
 
-        self.initial_L_ref = self.L_ref = self.balance_model.update_L_ref()            
+        self.initial_L_ref = self.L_ref = self.balance_model.update_L_ref()
 
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")
 
-        if has_overlays:
-            # Phase 2: re-enable all overlays and rebuild with manipulated
-            # geometry.
-            if self.section_array._manipulation_flags.get("virtual_support"):
-                self.L_ref, impacted_span_mask = self.get_split_L_ref()
-                # resize every span-based array in balance_model to match the new shape after virtual support insertion
-                
-            
-            self.section_array.activate_manipulation()
-
-            if needs_rebuild:
-                saved_observers = self._observers.copy()
-                self.reset(full=True)
-                self._observers = saved_observers
-
-
-            self.balance_model.L_ref = self.initial_L_ref
-            self.notify()
-
-        # Resize shifting/shortening arrays (may have changed due to virtual supports)
+        # Resize shifting/shortening arrays
         _zeros = np.zeros_like(
             self.section_array.data.conductor_attachment_altitude.to_numpy()
         )
         self._shifting_distance_support = _zeros.copy()
         self._shortening_distance_span = np.zeros(len(_zeros) - 1)
-
-    def get_split_L_ref(self):
-        impacted_span_mask = np.zeros_like(self.initial_L_ref, dtype=bool)
-
-        (
-            hanging_points,
-            impacted_span_mask,
-        ) = self._virtual_support_hanging_points_vector_and_mask(
-            n_spans=self.__len__(),
-            apply_virtual_offset=False,
-        )
-        
-        new_L_ref = arr.incr(self.initial_L_ref.copy())
-
-        new_L_ref_0 = self.span_model.compute_partial_L(x=hanging_points)[
-            impacted_span_mask
-        ]
-        new_L_ref_1 = new_L_ref[impacted_span_mask] - new_L_ref_0
-
-        # replace new L_ref 0 values in the right positions in initial_L_ref
-        new_L_ref[impacted_span_mask] = new_L_ref_1
-
-        # insert new L_ref 1 values in the right positions in initial_L_ref, shifted by one position to the right
-        
-        new_L_ref = np.insert(new_L_ref, impacted_span_mask, new_L_ref_0)
-        
-        return new_L_ref, impacted_span_mask
-
 
     @check_time
     def solve_change_state(
