@@ -205,15 +205,40 @@ class SectionStudy:
         """
         self._manipulation.reset_virtual_support()
 
+    def add_cable_shifting(
+        self,
+        shift_support: np.ndarray | list | None = None,
+        shorten_span: np.ndarray | list | None = None,
+    ) -> None:
+        """Validate and store cable shifting values.
+
+        Delegates to :meth:`Manipulation.add_cable_shifting`.
+
+        Args:
+            shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
+            shorten_span (np.ndarray | list | None): Span length modification, in meters.
+        """
+        self._manipulation.add_cable_shifting(shift_support, shorten_span)
+
+    def reset_cable_shifting(self) -> None:
+        """Remove cable shifting.
+
+        Delegates to :meth:`Manipulation.reset_cable_shifting`.
+        """
+        self._manipulation.reset_cable_shifting()
+
     # ── Solve methods (with rollback + intermediate) ──────────────────────
 
     def solve_adjustment(self) -> None:
-        """Run adjustment, then apply manipulations if any.
+        """Run adjustment on clean geometry, then apply manipulations if any.
 
-        Phase 1: Solve adjustment on clean geometry to obtain ``L_ref``.
-        Phase 2: If manipulations are registered, create a manipulated copy
-        of the section array, rebuild the engine with it, and initialise
-        ``L_ref`` from the clean solve.
+        1. Build a clean engine from the original section array and solve
+           adjustment to obtain ``initial_L_ref``.
+        2. If manipulations are registered, call
+           :meth:`Manipulation.from_section_array` to produce a manipulated
+           copy, then :meth:`Manipulation.initialize_engine` to build the
+           target engine with injected ``L_ref`` and blocked adjustment.
+        3. Rewire downstream engines (caretaker, position, plot, guying).
 
         On [`SolverError`][mechaphlowers.entities.errors.SolverError], the engine
         state is restored to the snapshot taken before the solve attempt, and the
@@ -223,36 +248,23 @@ class SectionStudy:
             SolverError: If the solver fails to converge.
         """
         if self._manipulation.has_manipulations:
-            # Build a temporary clean engine for the first phase
+            # Phase 1 – solve on clean geometry
             clean_engine = BalanceEngine(
                 cable_array=self._cable_array,
                 section_array=self._section_array,
                 span_model_type=self._span_model_type,
                 deformation_model_type=self._deformation_model_type,
             )
-            # Phase 1 – solve on clean geometry
             clean_engine.solve_adjustment()
             initial_L_ref = clean_engine.initial_L_ref.copy()
 
-            # Handle virtual-support L_ref splitting
-            if self._manipulation.has_virtual_support:
-                L_ref = self._manipulation.compute_split_L_ref(
-                    initial_L_ref, clean_engine.span_model
-                )
-            else:
-                L_ref = initial_L_ref
-
-            # Phase 2 – rebuild engine with manipulated geometry
-            manipulated_sa = self._manipulation.apply()
-            self._balance_engine = BalanceEngine(
-                cable_array=self._cable_array,
-                section_array=manipulated_sa,
-                span_model_type=self._span_model_type,
-                deformation_model_type=self._deformation_model_type,
+            # Phase 2 – build manipulated SA and target engine
+            manipulated_sa = self._manipulation.from_section_array(
+                self._section_array
             )
-            self._balance_engine.initial_L_ref = L_ref
-            self._balance_engine.L_ref = L_ref
-            self._balance_engine.balance_model.L_ref = L_ref
+            self._balance_engine = self._manipulation.initialize_engine(
+                clean_engine, manipulated_sa, initial_L_ref
+            )
 
             # Rewire downstream engines
             self._caretaker = BalanceEngineCaretaker(self._balance_engine)

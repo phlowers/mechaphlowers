@@ -7,6 +7,8 @@
 from __future__ import annotations
 
 import logging
+import warnings
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -14,7 +16,11 @@ import pandas as pd
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.errors import BalanceEngineWarning
 from mechaphlowers.utils import arr
+
+if TYPE_CHECKING:
+    from mechaphlowers.core.models.balance.engine import BalanceEngine
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +43,8 @@ class Manipulation:
         self._rope_overlay: dict[int, float] | None = None
         self._rope_lineic_mass: float | None = None
         self._virtual_support_overlay: dict[int, dict] | None = None
+        self._shifting_distance_support: np.ndarray | None = None
+        self._shortening_distance_span: np.ndarray | None = None
 
     # ── Query helpers ─────────────────────────────────────────────────────
 
@@ -46,11 +54,129 @@ class Manipulation:
             self._support_overlay is not None
             or self._rope_overlay is not None
             or self._virtual_support_overlay is not None
+            or self._shifting_distance_support is not None
         )
 
     @property
     def has_virtual_support(self) -> bool:
         return self._virtual_support_overlay is not None
+
+    @property
+    def has_shifting(self) -> bool:
+        return self._shifting_distance_support is not None
+
+    # ── Cable shifting ────────────────────────────────────────────────────
+
+    @property
+    def shift_support(self) -> np.ndarray | None:
+        """Shifting distance, in meters. ``None`` when no shifting is set."""
+        return self._shifting_distance_support
+
+    @property
+    def shortening_span(self) -> np.ndarray | None:
+        """Shortening distance, in meters. ``None`` when no shifting is set."""
+        return self._shortening_distance_span
+
+    def add_cable_shifting(
+        self,
+        shift_support: np.ndarray | list | None = None,
+        shorten_span: np.ndarray | list | None = None,
+    ) -> None:
+        """Validate and store cable shifting values.
+
+        Expected input are arrays whose sizes match the number of supports
+        (after virtual-support insertion, if any).
+
+        Args:
+            shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
+                Array of length ``support_number`` (support based). The first and last values
+                are enforced to 0. If ``None``, an array of zeros is used.
+            shorten_span (np.ndarray | list | None): Span length modification, in meters.
+                Array of length ``support_number - 1`` (span based), one value per span.
+                Positive values shorten the spans, negative values lengthen them. If ``None``,
+                an array of zeros is used.
+
+        Raises:
+            ValueError: if input arrays don't have correct size.
+        """
+        n_supports = len(self._section_array._data)
+        if self._virtual_support_overlay is not None:
+            n_supports += len(self._virtual_support_overlay)
+
+        # Convert to numpy arrays
+        shift_support = (
+            np.array(shift_support, dtype=np.float64)
+            if shift_support is not None
+            else np.zeros(n_supports)
+        )
+        shorten_span = (
+            np.array(shorten_span, dtype=np.float64)
+            if shorten_span is not None
+            else np.zeros(n_supports - 1)
+        )
+
+        # Check size matches number of supports
+        if shift_support.size != n_supports:
+            raise ValueError(
+                f"shift_support has incorrect size: {n_supports} is expected, received {shift_support.size}"
+            )
+        expected_span_size = n_supports - 1
+        if shorten_span.size != expected_span_size:
+            raise ValueError(
+                f"shorten_span has incorrect size: {expected_span_size} is expected, received {shorten_span.size}"
+            )
+
+        # Enforce constraints: shifting_distance first and last are 0
+        if abs(shift_support[0]) > 0.0 or abs(shift_support[-1]) > 0.0:
+            logger.warning(
+                "shift_support first and last values must be 0 (support based). "
+                "Enforcing this constraint."
+            )
+            warnings.warn(
+                "First and last values of shift_support have been reset to 0",
+                BalanceEngineWarning,
+            )
+        shift_support[0] = 0.0
+        shift_support[-1] = 0.0
+
+        # Store in private attributes
+        self._shifting_distance_support = shift_support
+        self._shortening_distance_span = shorten_span
+
+        logger.debug(f"Cable shifting stored: shift_support={shift_support}, shorten_span={shorten_span}")
+
+    def reset_cable_shifting(self) -> None:
+        """Remove cable shifting.
+
+        Does nothing if no shifting has been applied.
+        """
+        if self._shifting_distance_support is None:
+            logger.debug(
+                "reset_cable_shifting called but no shifting was applied."
+            )
+            return
+        self._shifting_distance_support = None
+        self._shortening_distance_span = None
+        logger.debug("Cable shifting cleared.")
+
+    def compute_shifted_L_ref(self, initial_L_ref: np.ndarray) -> np.ndarray:
+        """Compute L_ref with cable shifting and shortening applied.
+
+        Args:
+            initial_L_ref: Reference cable lengths from the adjustment solve
+                (span-based, ``n_supports - 1`` elements).
+
+        Returns:
+            Shifted L_ref array.
+        """
+        if self._shifting_distance_support is None:
+            return initial_L_ref
+        shift_span = (
+            self._shifting_distance_support[:-1]
+            - self._shifting_distance_support[1:]
+        )
+        shifted_length = -shift_span - self._shortening_distance_span
+        return initial_L_ref + shifted_length
 
     # ── Support manipulation ──────────────────────────────────────────────
 
@@ -296,7 +422,7 @@ class Manipulation:
 
     # ── Apply ─────────────────────────────────────────────────────────────
 
-    def apply(self) -> SectionArray:
+    def from_section_array(self, section_array: SectionArray) -> SectionArray:
         """Create a copy of the section array with all manipulations baked into ``_data``.
 
         The original section array is never modified.
@@ -307,11 +433,14 @@ class Manipulation:
         * ``counterweight_mass`` set to 0 for affected supports
         * Virtual support rows inserted
 
+        Args:
+            section_array: The original (clean) section array.
+
         Returns:
             A new :class:`SectionArray` whose ``_data`` reflects every
             active overlay.
         """
-        original = self._section_array
+        original = section_array
         raw_data = original._data.copy()
 
         # Apply support overlay
@@ -362,6 +491,63 @@ class Manipulation:
         sa.input_units = original.input_units.copy()
         sa._angles_sense = original._angles_sense
         return sa
+
+    def initialize_engine(
+        self,
+        clean_engine: BalanceEngine,
+        section_array: SectionArray,
+        initial_L_ref: np.ndarray,
+    ) -> BalanceEngine:
+        """Build a target :class:`BalanceEngine` with manipulated geometry.
+
+        The returned engine has ``L_ref`` / ``initial_L_ref`` injected from
+        outside and its adjustment is **blocked** — only ``solve_change_state``
+        may be called on it.
+
+        Steps performed:
+
+        1. Split ``initial_L_ref`` if virtual supports are present.
+        2. Apply cable shifting to the (possibly split) ``L_ref``.
+        3. Create a new :class:`BalanceEngine` from *section_array*
+           (the manipulated copy produced by :meth:`from_section_array`).
+        4. Inject ``L_ref`` and block adjustment.
+
+        Args:
+            clean_engine: The engine that ran the adjustment on clean geometry.
+                Its ``span_model`` is used for virtual-support L_ref splitting.
+            section_array: The manipulated section array (output of
+                :meth:`from_section_array`).
+            initial_L_ref: ``initial_L_ref`` from the clean adjustment solve.
+
+        Returns:
+            A configured :class:`BalanceEngine` ready for
+            ``solve_change_state`` calls.
+        """
+        from mechaphlowers.core.models.balance.engine import BalanceEngine as _BE
+
+        L_ref = initial_L_ref.copy()
+
+        # Virtual-support L_ref splitting
+        if self.has_virtual_support:
+            L_ref = self.compute_split_L_ref(L_ref, clean_engine.span_model)
+
+        # Cable shifting
+        if self.has_shifting:
+            L_ref = self.compute_shifted_L_ref(L_ref)
+
+        # Build target engine
+        target_engine = _BE(
+            cable_array=clean_engine.cable_array,
+            section_array=section_array,
+            span_model_type=clean_engine.span_model_type,
+            deformation_model_type=clean_engine.deformation_model_type,
+        )
+        target_engine.initial_L_ref = initial_L_ref.copy()
+        target_engine.L_ref = L_ref
+        target_engine.balance_model.L_ref = L_ref
+        target_engine._adjustment_blocked = True
+
+        return target_engine
 
     # ── Virtual support L_ref splitting ───────────────────────────────────
 
