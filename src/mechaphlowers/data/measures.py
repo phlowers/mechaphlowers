@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -23,6 +23,7 @@ from mechaphlowers.core.papoto.papoto_model import (
 )
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.errors import MeasurementDataNotAvailable
 from mechaphlowers.utils import float_to_array
 
 logger = logging.getLogger(__name__)
@@ -95,7 +96,8 @@ class PapotoParameterMeasure(ParameterMeasure):
         """
         logger.debug("Start running PapotoParameterMeasure.measure_method()")
 
-        self.measures = {
+        self.a = a
+        self._base_measures = {
             "HL": HL,
             "VL": VL,
             "HR": HR,
@@ -107,30 +109,61 @@ class PapotoParameterMeasure(ParameterMeasure):
             "H3": H3,
             "V3": V3,
         }
-        self.measures = float_to_array(self.measures)
+
+        self.measures = float_to_array(dict(self._base_measures))
         self.angle_unit = angle_unit
         measures_converted = self.input_conversion(self.measures)
         measures_converted["a"] = a
 
-        self.parameter_1_2 = papoto_2_points(
+        (
+            self._parameter,
+            self._validity,
+            self.parameter_1_2,
+            self.parameter_2_3,
+            self.parameter_1_3,
+        ) = self.compute_papoto(measures_converted)
+        logger.debug("PapotoParameterMeasure.measure_method() ended")
+
+    def compute_papoto(
+        self, measures_converted
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Compute the PAPOTO parameter and validity from the converted measures.
+
+        Assumes that measures_converted contains the following keys: 'a', 'HL', 'VL', 'HR', 'VR', 'H1', 'V1', 'H2', 'V2', 'H3', 'V3'.
+
+        Args:
+            measures_converted (dict): dictionary of converted measures
+
+        Returns:
+            tuple: (mean_parameter, validity, parameter_1_2, parameter_2_3, parameter_1_3)
+             - mean_parameter (np.ndarray): mean of the three PAPOTO parameters computed from the three pairs of points (1-2, 2-3, 1-3)
+             - validity (np.ndarray): validity criteria computed from the three PAPOTO parameters
+             - parameter_1_2 (np.ndarray): PAPOTO parameter computed from points 1 and 2
+             - parameter_2_3 (np.ndarray): PAPOTO parameter computed from points 2 and 3
+             - parameter_1_3 (np.ndarray): PAPOTO parameter computed from points 1 and 3
+        """
+
+        parameter_1_2 = papoto_2_points(
             **self.select_points_in_dict(1, 2, measures_converted)
         )
-        self.parameter_2_3 = papoto_2_points(
+        parameter_2_3 = papoto_2_points(
             **self.select_points_in_dict(2, 3, measures_converted)
         )
-        self.parameter_1_3 = papoto_2_points(
+        parameter_1_3 = papoto_2_points(
             **self.select_points_in_dict(1, 3, measures_converted)
         )
-        self._parameter = np.mean(
-            np.array(
-                [self.parameter_1_2, self.parameter_2_3, self.parameter_1_3]
-            ),
+        mean_parameter = np.mean(
+            np.array([parameter_1_2, parameter_2_3, parameter_1_3]),
             axis=0,
         )
-        self._validity = papoto_validity(
-            self.parameter_1_2, self.parameter_2_3, self.parameter_1_3
+        validity = papoto_validity(parameter_1_2, parameter_2_3, parameter_1_3)
+        return (
+            mean_parameter,
+            validity,
+            parameter_1_2,
+            parameter_2_3,
+            parameter_1_3,
         )
-        logger.debug("PapotoParameterMeasure.measure_method() ended")
 
     @staticmethod
     def select_points_in_dict(point_1, point_2, data):
@@ -167,6 +200,132 @@ class PapotoParameterMeasure(ParameterMeasure):
     @property
     def parameter(self):
         return self._parameter
+
+    def uncertainty(
+        self,
+        draw_number: int = 1000,
+        angle_error: float = 0.01,
+        seed: int = 42,
+    ) -> dict:
+        """Estimate uncertainty on the PAPOTO parameter using Monte Carlo method.
+
+        Args:
+            draw_number (int): Number of Monte Carlo random draws. Defaults to 1000.
+            angle_error (float): Magnitude of angle measurement error (uniform in
+                [-angle_error, +angle_error]). Defaults to 0.01.
+
+        Returns:
+            dict: Dictionary with statistics over valid and non-valid draws.
+
+        Raises:
+            MeasurementDataNotAvailable: If measure_method() has not been called first.
+        """
+
+        # ===== Check inputs =====
+
+        if not hasattr(self, 'measures'):
+            raise MeasurementDataNotAvailable(
+                "measure_method() must be called before uncertainty()."
+            )
+
+        self._validate_inputs_uncertainty(draw_number, angle_error)
+
+        _draw_number: int = int(draw_number)
+        _angle_error: float = float(angle_error)  # type: ignore[arg-type]
+
+        # ===== Monte Carlo simulation =====
+
+        rng = np.random.default_rng(seed)
+        angle_keys = self._base_measures.keys()
+
+        perturbed_converted: dict = {}
+        for key in angle_keys:
+            random_angle = (
+                _angle_error * 2 * rng.random(_draw_number) - _angle_error
+            )
+            perturbed_converted[key] = (
+                np.asarray(self._base_measures[key], dtype=float)
+                + random_angle
+            )
+
+        self.input_conversion(perturbed_converted)
+        perturbed_converted['a'] = self.a
+
+        # Save intermediates from measure_method, compute_papoto overwrites them
+        perturbed_parameter, validity, _, _, _ = self.compute_papoto(
+            perturbed_converted
+        )
+
+        # ===== Post processing results =====
+        results = self._post_process_uncertainty(perturbed_parameter, validity)
+
+        return results
+
+    def _post_process_uncertainty(self, perturbed_parameter, validity):
+        non_valid_mask = ~(validity < self.validity_criteria)
+
+        valid_parameter = perturbed_parameter[~non_valid_mask]
+        non_valid_parameter = perturbed_parameter[non_valid_mask]
+
+        mean_valid = (
+            np.mean(valid_parameter) if len(valid_parameter) > 0 else np.nan
+        )
+        std_valid = (
+            np.std(valid_parameter) if len(valid_parameter) > 0 else np.nan
+        )
+        min_valid = (
+            np.min(valid_parameter) if len(valid_parameter) > 0 else np.nan
+        )
+        max_valid = (
+            np.max(valid_parameter) if len(valid_parameter) > 0 else np.nan
+        )
+
+        mean_non_valid = (
+            np.mean(non_valid_parameter)
+            if len(non_valid_parameter) > 0
+            else np.nan
+        )
+        std_non_valid = (
+            np.std(non_valid_parameter)
+            if len(non_valid_parameter) > 0
+            else np.nan
+        )
+
+        return {
+            'mean_parameter_valid_values': mean_valid,
+            'std_parameter_valid_values': std_valid,
+            'min_parameter_valid_values': min_valid,
+            'max_parameter_valid_values': max_valid,
+            'parameter_by_span_length': mean_valid / self.a,
+            'number_non_valid_values': int(np.sum(non_valid_mask)),
+            'mean_non_valid_values': mean_non_valid,
+            'std_non_valid_values': std_non_valid,
+            'min_all_values': np.min(perturbed_parameter),
+            'max_all_values': np.max(perturbed_parameter),
+        }
+
+    def _validate_inputs_uncertainty(self, draw_number, angle_error):
+        for value in self._base_measures.values():
+            if isinstance(value, np.ndarray) and value.ndim > 0:
+                raise ValueError(
+                    "uncertainty() only supports scalar inputs. "
+                    "Call measure_method() with scalar angle values."
+                )
+        if (
+            isinstance(draw_number, bool)
+            or not isinstance(draw_number, (int, np.integer))
+            or draw_number <= 0
+        ):
+            raise ValueError("draw_number must be a positive integer.")
+
+        if (
+            isinstance(angle_error, bool)
+            or not isinstance(
+                angle_error, (int, float, np.floating, np.integer)
+            )
+            or angle_error < 0
+        ):
+            raise ValueError("angle_error must be a non-negative real number.")
 
     def __call__(self, *args, **kwds):
         return self.measure_method(*args, **kwds)

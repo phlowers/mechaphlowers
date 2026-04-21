@@ -64,3 +64,59 @@ To compute the initial guess, we reverse the state change process described abov
 | $p_m$         | $p_0$        |
 
 And we assume that $p_0$ is a good enough approximation of the parameter $p_s$ at $\theta_s$.
+
+## Uncertainty estimation (Monte Carlo)
+
+After estimating the PAPOTO parameter with `PapotoParameterMeasure`, you can quantify the sensitivity of the result to angle measurement errors using the `uncertainty()` method.
+
+### Principle
+
+The method applies a **Monte Carlo** approach:
+
+1. For each of the 10 angle inputs (`HL`, `VL`, `HR`, `VR`, `H1`, `V1`, `H2`, `V2`, `H3`, `V3`), a random perturbation drawn uniformly from `[-angle_error, +angle_error]` is added to the original measurement.
+2. The full PAPOTO computation is re-run for all draws simultaneously using NumPy vectorization.
+3. Draws where the validity criterion is not satisfied are filtered out.
+4. Statistics are returned for both the valid and non-valid populations.
+
+### Usage
+
+```python
+from mechaphlowers.data.measures import PapotoParameterMeasure
+
+papoto = PapotoParameterMeasure()
+
+# First, estimate the parameter from field measurements
+papoto(
+    a=498.57,
+    HL=0.0, VL=97.43, HR=162.61, VR=88.69,
+    H1=5.11, V1=98.45, H2=19.63, V2=97.63,
+    H3=97.15, V3=87.93,
+)
+
+# Then estimate the uncertainty using 1000 Monte Carlo draws
+# with an angle error of ±0.01 grad
+result = papoto.uncertainty(draw_number=1000, angle_error=0.01)
+
+print(result["mean_parameter_valid_values"])   # mean parameter over valid draws
+print(result["std_parameter_valid_values"])    # standard deviation
+print(result["parameter_by_span_length"])      # mean / span length
+print(result["number_non_valid_values"])       # draws that failed validity
+```
+
+### Output keys
+
+| Key | Description |
+|-----|-------------|
+| `mean_parameter_valid_values` | Mean parameter over valid draws |
+| `std_parameter_valid_values` | Standard deviation over valid draws |
+| `min_parameter_valid_values` | Minimum parameter over valid draws |
+| `max_parameter_valid_values` | Maximum parameter over valid draws |
+| `parameter_by_span_length` | `mean_parameter_valid_values / a` |
+| `number_non_valid_values` | Number of draws that failed validity |
+| `mean_non_valid_values` | Mean parameter over non-valid draws (`NaN` if none) |
+| `std_non_valid_values` | Std deviation over non-valid draws (`NaN` if none) |
+| `min_all_values` | Minimum over all draws |
+| `max_all_values` | Maximum over all draws |
+
+!!! note
+    `measure_method()` (or calling the object directly) must be invoked before `uncertainty()`. A `RuntimeError` is raised otherwise.

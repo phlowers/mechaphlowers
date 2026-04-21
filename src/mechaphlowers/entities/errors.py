@@ -71,3 +71,7 @@ class ViewChoiceWarning(UserWarning):
 
 class RtsDataNotAvailable(ValueError):
     """Raised when RTS catalog data (rts_cable, rts_layer_*) is missing or NaN."""
+
+
+class MeasurementDataNotAvailable(ValueError):
+    """Raised when measurement data are not available for computation."""
