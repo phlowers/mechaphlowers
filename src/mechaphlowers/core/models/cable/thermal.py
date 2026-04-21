@@ -482,7 +482,7 @@ class ThermalEngine:
         # expected to fail if arguments are not filled
         self.thermal_model = self.power_model(
             dic=self.dict_input,
-            heat_equation=self.heateq,  # TODO
+            heat_equation=self.heateq,
         )
 
     def steady_temperature(

@@ -248,7 +248,7 @@ def test_wrong_array_length_at_load(thermal_engine_3_spans: ThermalEngine):
         thermal_engine.load()
 
 
-def test_wrong_array_length_at_load_datetime(
+def test_wrong_array_length_datetime(
     thermal_engine_3_spans: ThermalEngine,
 ):
     thermal_engine = thermal_engine_3_spans
