@@ -272,8 +272,9 @@ def test_plot_2d(balance_engine_angles: BalanceEngine):
     assert fig_line.layout.yaxis.scaleanchor == "x"
     assert fig_profile.layout.yaxis.scaleanchor != "x"
 
-    # fig_line.show()
-    # fig_profile.show()  # deactivate for auto unit testing
+    if show_figures:
+        fig_line.show()
+        fig_profile.show()
     span_points, _, insulators_points = plt_engine.get_points_for_plot(
         project=True, frame_index=1
     )
@@ -301,8 +302,9 @@ def test_plot_more_spans(cable_array_AM600: CableArray):
     fig_profile = go.Figure()
     plt_engine.preview_line2d(fig_profile, "profile", 8)
 
-    # fig_line.show()
-    # fig_profile.show()  # deactivate for auto unit testing
+    if show_figures:
+        fig_line.show()
+        fig_profile.show()
     span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
 

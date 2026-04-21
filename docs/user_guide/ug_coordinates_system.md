@@ -51,8 +51,8 @@ points = points.to_points(stack=True)
 points = Points.from_coords(coords)
 ```
 
-### SectionPoints
-The `SectionPoints` class is used to handle all the points of a section.  
+### CoordsCalculator
+The `CoordsCalculator` class is used to handle all the points of a section.  
 It is useful to get the points of a section in a specific format.  
 The class provides helpers to get the points in different frames:
     - cable frame
@@ -72,7 +72,7 @@ Example:
 import numpy as np
 import pandas as pd
 
-from mechaphlowers.core.geometry.points import SectionPoints
+from mechaphlowers.core.geometry.points import CoordsCalculator
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.core.models.cable.span import CatenarySpan
 
@@ -95,7 +95,7 @@ section_array = SectionArray(
 
 span_model = CatenarySpan(**section_array.to_numpy())
 
-s = SectionPoints(
+s = CoordsCalculator(
     span_model=span_model, 
     **section_array.to_numpy()
 )

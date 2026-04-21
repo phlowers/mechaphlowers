@@ -158,12 +158,14 @@ class TestPositionEngineReactivity:
         assert downstream.call_count == 1
         assert downstream.last_notifier is pos_engine
 
-    def test_section_pts_reset_called_on_notify(
+    def test_coords_calculator_reset_called_on_notify(
         self, balance_engine_base_test: BalanceEngine
     ):
         pos_engine = PositionEngine(balance_engine_base_test)
         with patch.object(
-            pos_engine.section_pts, "reset", wraps=pos_engine.section_pts.reset
+            pos_engine.coords_calculator,
+            "reset",
+            wraps=pos_engine.coords_calculator.reset,
         ) as mock_reset:
             balance_engine_base_test.add_loads(
                 load_position_distance=np.array([0, 0, 0, np.nan]),
@@ -216,7 +218,7 @@ class TestPositionEngineReferenceIntegrity:
             cfg.graphics.resolution
         )
         np.testing.assert_array_equal(
-            pos_engine.section_pts.x_cable, x_expected
+            pos_engine.coords_calculator.x_cable, x_expected
         )
 
 

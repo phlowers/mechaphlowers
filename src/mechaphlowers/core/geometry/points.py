@@ -305,7 +305,7 @@ class SparsePoints:
 _PointsT = TypeVar("_PointsT", Points, SparsePoints)
 
 
-class SectionPoints:
+class CoordsCalculator:
     def __init__(
         self,
         section_array: SectionArray,
@@ -314,7 +314,7 @@ class SectionPoints:
         get_displacement: Callable[[], np.ndarray],
         **_,
     ):
-        """Initialize the SectionPoints object with section parameters and a span model.
+        """Initialize the CoordsCalculator object with section parameters and a span model.
 
         Args:
             section_array (SectionArray): section array
@@ -509,13 +509,11 @@ class SectionPoints:
     def obstacles_dict(self, project=False, frame_index=0) -> dict:
         if hasattr(self, "obstacles_array"):
             self.compute_obstacle_coords()
-            supports_points = self.get_supports()
             obstacles_points = self.obstacles_points
             if project:
                 self._validate_frame_index(frame_index)
-                translation_vector = -supports_points.coords[frame_index, 0]
-                obstacles_points = self.project_to_selected_frame(
-                    obstacles_points, translation_vector, frame_index
+                (obstacles_points,) = self.project_to_selected_frame(
+                    [obstacles_points], frame_index
                 )
             return obstacles_points.dict_coords()
         else:
@@ -528,7 +526,12 @@ class SectionPoints:
             )
 
     def get_points_for_plot(
-        self, project=False, frame_index=0
+        self,
+        project=False,
+        frame_index=0,
+        # origin_position: Literal[
+        #     "support", "attachment", "absolute"
+        # ] = "attachment",
     ) -> tuple[Points, Points, Points]:
         """Get Points objects for span, supports and insulators.
         Can be used for plotting 2D or 3D graphs.
@@ -548,52 +551,45 @@ class SectionPoints:
         insulators_points: Points = self.get_insulators()
         if project:
             self._validate_frame_index(frame_index)
-            translation_vector = -supports_points.coords[frame_index, 0]
-            spans_points = self.project_to_selected_frame(
-                spans_points,
-                translation_vector,
-                frame_index,
-            )
-            supports_points = self.project_to_selected_frame(
-                supports_points,
-                translation_vector,
-                frame_index,
-            )
-            insulators_points = self.project_to_selected_frame(
-                insulators_points,
-                translation_vector,
-                frame_index,
+            spans_points, supports_points, insulators_points = (
+                self.project_to_selected_frame(
+                    [spans_points, supports_points, insulators_points],
+                    frame_index,
+                )
             )
         return spans_points, supports_points, insulators_points
 
     def project_to_selected_frame(
         self,
-        points: _PointsT,
-        translation_vector: np.ndarray,
+        points_array: list[_PointsT],
         frame_index: int,
-    ) -> _PointsT:
+    ) -> list[_PointsT]:
         """Project points object into a support frame.
 
         Used for 2D plots that need to be projected in a specific frame.
 
         Args:
-            points (Points):  Points object
+            points_array list[_PointsT]: array of Points of SparsePoints objects
             frame_index (int): Index of the frame the projection is made.
 
         Returns:
-            Points: points object projected in local frame
+            list[_PointsT]: array of points object projected in local frame
             projected into the frame of support number `frame_index`.
         """
+        translation_vector = -self.get_supports().coords[frame_index, 0]
+        # set z coordinate to zero
+        translation_vector[2] = 0.0
         angle_to_project = np.cumsum(self.line_angle)[frame_index]
+        result_points = []
+        for original_points in points_array:
+            new_points = self.change_frame(
+                original_points, translation_vector, angle_to_project
+            )
+            result_points.append(new_points)
+        return result_points
 
-        new_points = self.change_frame(
-            points, translation_vector, angle_to_project
-        )
-        return new_points
-
-    # convert to function? self unused
+    @staticmethod
     def change_frame(
-        self,
         points: _PointsT,
         translation_vector: np.ndarray,
         angle_to_project: np.float64,
@@ -612,5 +608,5 @@ class SectionPoints:
         x, y, z = points.vectors
         x, y = project_coords(x, y, angle_to_project)
         # invert y axis to get more natural view
-        points.coords = np.array([x, -y, z]).T - translation_vector
+        points.coords = np.array([x, -y, z]).T
         return points

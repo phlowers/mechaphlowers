@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.core.geometry.points import SectionPoints
+from mechaphlowers.core.geometry.points import CoordsCalculator
 from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import SectionArray
@@ -102,11 +102,11 @@ def test_span_lengths_values(
     def get_displacement():
         return create_default_displacement_vector(insulator_length)
 
-    section_points = SectionPoints(
+    coords_calculator = CoordsCalculator(
         section_array, mock_span_model, mock_cable_loads, get_displacement
     )
 
-    a_chain = section_points.plane.a_chain
-    b_chain = section_points.plane.b_chain
+    a_chain = coords_calculator.plane.a_chain
+    b_chain = coords_calculator.plane.b_chain
     np.testing.assert_allclose(a_chain, expected_a_prime, rtol=0, atol=1e-6)
     np.testing.assert_allclose(b_chain, expected_b_prime)
