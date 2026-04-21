@@ -291,19 +291,22 @@ def check_datetime_argument_types(
 ) -> None:
     for arg_name, value in [("month", month), ("day", day), ("hour", hour)]:
         if value is not None and not isinstance(value, np.ndarray):
-                raise TypeError(
-                    f"Expected numpy array for '{arg_name}', got {type(value).__name__}."
-                )
+            raise TypeError(
+                f"Expected numpy array for '{arg_name}', got {type(value).__name__}."
+            )
     for arg_name, value in [("month", month), ("day", day)]:
         if value is not None and not np.issubdtype(value.dtype, np.integer):
-                raise TypeError(
-                    f"Expected integer array for '{arg_name}', got {value.dtype}."
-                )
-
-    if hour is not None and not (np.issubdtype(hour.dtype, np.integer) or np.issubdtype(hour.dtype, np.floating)):
             raise TypeError(
-                f"Expected integer or float array for 'hour', got {hour.dtype}."
+                f"Expected integer array for '{arg_name}', got {value.dtype}."
             )
+
+    if hour is not None and not (
+        np.issubdtype(hour.dtype, np.integer)
+        or np.issubdtype(hour.dtype, np.floating)
+    ):
+        raise TypeError(
+            f"Expected integer or float array for 'hour', got {hour.dtype}."
+        )
 
     if datetime_utc is not None and not isinstance(datetime_utc, list):
         raise TypeError(
