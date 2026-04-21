@@ -12,7 +12,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from pydantic import validate_call
 from thermohl import solver  # type: ignore
 from thermohl.solver.entities import (  # type: ignore
     PowerType,
@@ -233,7 +232,6 @@ def check_inputs(
     return kwargs, array_length
 
 
-@validate_call
 def check_datetime_arguments(
     array_length: int | None,
     month: np.ndarray[Any, np.dtype[np.integer]] | None,
@@ -248,8 +246,15 @@ def check_datetime_arguments(
             "Cannot provide both 'datetime_utc' and individual 'month', 'day', or 'hour' arrays."
         )
 
+    check_datetime_argument_types(month, day, hour, datetime_utc)
+
     for arg_name, value in [("month", month), ("day", day), ("hour", hour)]:
         if value is not None:
+            if not isinstance(value, np.ndarray):
+                raise TypeError(
+                    f"Expected numpy array for '{arg_name}', got {type(value).__name__}."
+                )
+
             if array_length is None:
                 array_length = value.size
             elif value.size != array_length:
@@ -276,6 +281,34 @@ def check_datetime_arguments(
         array_length = 0
 
     return array_length
+
+
+def check_datetime_argument_types(
+    month: np.ndarray[Any, np.dtype[np.integer]] | None,
+    day: np.ndarray[Any, np.dtype[np.integer]] | None,
+    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
+    datetime_utc: list[datetime] | None,
+) -> None:
+    for arg_name, value in [("month", month), ("day", day), ("hour", hour)]:
+        if value is not None and not isinstance(value, np.ndarray):
+                raise TypeError(
+                    f"Expected numpy array for '{arg_name}', got {type(value).__name__}."
+                )
+    for arg_name, value in [("month", month), ("day", day)]:
+        if value is not None and not np.issubdtype(value.dtype, np.integer):
+                raise TypeError(
+                    f"Expected integer array for '{arg_name}', got {value.dtype}."
+                )
+
+    if hour is not None and not (np.issubdtype(hour.dtype, np.integer) or np.issubdtype(hour.dtype, np.floating)):
+            raise TypeError(
+                f"Expected integer or float array for 'hour', got {hour.dtype}."
+            )
+
+    if datetime_utc is not None and not isinstance(datetime_utc, list):
+        raise TypeError(
+            f"Expected list of datetime objects for 'datetime_utc', got {type(datetime_utc).__name__}."
+        )
 
 
 def check_datetime_argument_ranges(
