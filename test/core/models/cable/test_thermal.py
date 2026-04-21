@@ -14,6 +14,7 @@ import pytest
 from mechaphlowers.core.models.cable.thermal import (
     ThermalEngine,
     ThermalTransientResults,
+    to_datetime,
 )
 from mechaphlowers.entities.arrays import CableArray
 
@@ -271,6 +272,7 @@ def test_wrong_type_month(thermal_engine_3_spans: ThermalEngine):
         match="Expected integer array for 'month', got float64.",
     ):
         thermal_engine.dict_input["month"] = np.array([3.0, 3.0, 3.0])
+        thermal_engine.dict_input["day"] = np.array([21, 21, 21])
         thermal_engine.load()
 
 
@@ -281,19 +283,14 @@ def test_wrong_type_day(thermal_engine_3_spans: ThermalEngine):
         TypeError,
         match="Expected integer array for 'day', got float64.",
     ):
+        thermal_engine.dict_input["month"] = np.array([3, 3, 3])
         thermal_engine.dict_input["day"] = np.array([21.0, 21.0, 21.0])
         thermal_engine.load()
 
 
-def test_wrong_type_hour(thermal_engine_3_spans: ThermalEngine):
-    thermal_engine = thermal_engine_3_spans
-
-    with pytest.raises(
-        TypeError,
-        match="Expected integer array for 'hour', got float64.",
-    ):
-        thermal_engine.dict_input["hour"] = np.array([12.0, 12.0, 12.0])
-        thermal_engine.load()
+def test_to_datetime():
+    result = to_datetime(3, 31, 16 + 42 / 60 + 3.1234567 / 3600)
+    assert result == datetime(1970, 3, 31, 16, 42, 3, 123456)
 
 
 def test_add_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):

@@ -7,10 +7,12 @@
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Union
+from math import floor
+from typing import Any
 
 import numpy as np
 import pandas as pd
+from pydantic import validate_call
 from thermohl import solver  # type: ignore
 from thermohl.solver.entities import (  # type: ignore
     PowerType,
@@ -168,11 +170,18 @@ class ThermalForecastArray:
 
 
 def check_inputs(
-    **kwargs: Union[np.ndarray, list[datetime]],
-) -> tuple[dict[str, Union[np.ndarray, list[datetime]]], int]:
+    month: np.ndarray[Any, np.dtype[np.integer]] | None = None,
+    day: np.ndarray[Any, np.dtype[np.integer]] | None = None,
+    hour: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]]
+    | None = None,
+    datetime_utc: list[datetime] | None = None,
+    **kwargs: np.ndarray[Any, Any] | list[datetime],
+) -> tuple[dict[str, np.ndarray[Any, Any] | list[datetime]], int]:
     """Validate input parameters.
 
-    Ensures all inputs are numpy arrays with the same size.
+    Ensures all inputs are numpy arrays with the same size and that
+    datetime-related inputs have the right type. Also ensures that
+    month, day and hour, if given, are in the right range.
 
     Args:
         **kwargs: Input parameters as numpy arrays.
@@ -190,58 +199,131 @@ def check_inputs(
     array_length: int | None = None
 
     for key, value in kwargs.items():
-        if key == "datetime_utc":
-            if not isinstance(value, list):
-                raise TypeError(
-                    f"Expected list of datetime for '{key}', got {type(value).__name__}."
-                )
-            elif not all(isinstance(v, datetime) for v in value):
-                raise TypeError(
-                    f"All elements in '{key}' must be datetime objects."
-                )
-        elif not isinstance(value, np.ndarray):
+        if not isinstance(value, np.ndarray):
             raise TypeError(
                 f"Expected numpy array for '{key}', got {type(value).__name__}."
             )
 
         # Track and validate the length of array inputs
         if array_length is None:
-            array_length = len(value)
-        elif key == "datetime_utc":
-            if len(value) != array_length:
-                raise ValueError(
-                    f"All list inputs must have the same length. "
-                    f"Expected {array_length}, got {len(value)} for {key}."
-                )
-        elif value.size != array_length:  # type: ignore
+            array_length = value.size
+        elif value.size != array_length:
             raise ValueError(
                 f"All array inputs must have the same length. "
-                f"Expected {array_length}, got {len(value)} for {key}."
+                f"Expected {array_length}, got {value.size} for {key}."
             )
 
-        if key in ["month", "day", "hour"]:
-            if not np.issubdtype(value.dtype, np.integer):  # type: ignore
-                raise TypeError(
-                    f"Expected integer array for '{key}', got {value.dtype}."  # type: ignore
+    array_length = check_datetime_arguments(
+        array_length,
+        month=month,
+        day=day,
+        hour=hour,
+        datetime_utc=datetime_utc,
+    )
+
+    if month is not None:
+        kwargs["month"] = month
+    if day is not None:
+        kwargs["day"] = day
+    if hour is not None:
+        kwargs["hour"] = hour
+    if datetime_utc is not None:
+        kwargs["datetime_utc"] = datetime_utc
+
+    return kwargs, array_length
+
+
+@validate_call
+def check_datetime_arguments(
+    array_length: int | None,
+    month: np.ndarray[Any, np.dtype[np.integer]] | None,
+    day: np.ndarray[Any, np.dtype[np.integer]] | None,
+    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
+    datetime_utc: list[datetime] | None,
+) -> int:
+    if datetime_utc is not None and (
+        month is not None or day is not None or hour is not None
+    ):
+        raise ValueError(
+            "Cannot provide both 'datetime_utc' and individual 'month', 'day', or 'hour' arrays."
+        )
+
+    for arg_name, value in [("month", month), ("day", day), ("hour", hour)]:
+        if value is not None:
+            if array_length is None:
+                array_length = value.size
+            elif value.size != array_length:
+                raise ValueError(
+                    f"All array inputs must have the same length. "
+                    f"Expected {array_length}, got {value.size} for {arg_name}."
                 )
+    if datetime_utc is not None:
+        if array_length is None:
+            array_length = len(datetime_utc)
+        elif len(datetime_utc) != array_length:
+            raise ValueError(
+                f"All array inputs must have the same length. "
+                f"Expected {array_length}, got {len(datetime_utc)} for 'datetime_utc'."
+            )
 
-        if key == "month" and not np.all((1 <= value) & (value <= 12)):  # type: ignore
-            raise ValueError(
-                f"Month values must be in the range 1-12. Invalid values found in '{key}'."
-            )
-        if key == "day" and not np.all((1 <= value) & (value <= 31)):  # type: ignore
-            raise ValueError(
-                f"Day values must be in the range 1-31. Invalid values found in '{key}'."
-            )
-        if key == "hour" and not np.all((0 <= value) & (value <= 23)):  # type: ignore
-            raise ValueError(
-                f"Hour values must be in the range 0-23. Invalid values found in '{key}'."
-            )
+    check_datetime_argument_ranges(
+        month=month,
+        day=day,
+        hour=hour,
+    )
 
     if array_length is None:
         array_length = 0
 
-    return kwargs, array_length
+    return array_length
+
+
+def check_datetime_argument_ranges(
+    month: np.ndarray[Any, np.dtype[np.integer]] | None,
+    day: np.ndarray[Any, np.dtype[np.integer]] | None,
+    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
+) -> None:
+    if month is not None:
+        if not np.all((1 <= month) & (month <= 12)):
+            raise ValueError(
+                "Month values must be in the range 1-12. Invalid values found in 'month'."
+            )
+    if day is not None:
+        if not np.all((1 <= day) & (day <= 31)):
+            raise ValueError(
+                "Day values must be in the range 1-31. Invalid values found in 'day'."
+            )
+    if hour is not None:
+        if not np.all((0 <= hour) & (hour < 24)):
+            raise ValueError(
+                "Hour values must be in the range [0-24[. Invalid values found in 'hour'."
+            )
+
+
+def to_datetime(
+    month: np.integer,
+    day: np.integer,
+    hour: np.floating,
+) -> datetime:
+    """Convert month, day, hour to a datetime object.
+
+    Args:
+        month (np.integer): Month value ([1-12]).
+        day (np.integer): Day value ([1-31]).
+        hour (np.floating): Hour value ([0-24[). Can include non-integer hours (e.g. 14.5 for 2:30 PM).
+
+    Returns:
+        datetime: A datetime object representing the given month, day, and hour.
+    """
+    return datetime(
+        1970,  # Arbitrary year since it's not used in calculations
+        month,
+        day,
+        hour=floor(hour),
+        minute=floor((hour % 1) * 60),
+        second=floor(((hour % 1) * 60) % 1 * 60),
+        microsecond=floor((((hour % 1) * 60) % 1 * 60) % 1 * 1000000),
+    )
 
 
 class ThermalEngine:
@@ -323,24 +405,23 @@ class ThermalEngine:
             solar_irradiance=solar_irradiance,
         )
 
+        if inputs.get("datetime_utc") is None:
+            datetime_utc = [
+                to_datetime(month, day, hour)
+                for month, day, hour in zip(
+                    inputs["month"], inputs["day"], inputs["hour"]
+                )
+            ]
+        else:
+            datetime_utc = inputs.get("datetime_utc")  # type: ignore
+
         self.dict_input = {
             "measured_global_radiation": inputs["solar_irradiance"],
             "latitude": inputs["latitude"],
             "longitude": inputs["longitude"],
             "altitude": inputs["altitude"],
             "cable_azimuth": inputs["azimuth"],
-            "datetime_utc": [
-                datetime(
-                    # We set an arbitrary year since it isn't used in calculations
-                    1970,
-                    month,
-                    day,
-                    hour,
-                )
-                for month, day, hour in zip(
-                    inputs["month"], inputs["day"], inputs["hour"]
-                )
-            ],
+            "datetime_utc": datetime_utc,
             "ambient_temperature": inputs["ambient_temp"],
             "wind_speed": inputs["wind_speed"],  # wind speed (m.s**-1)
             "wind_azimuth": inputs[
@@ -400,7 +481,8 @@ class ThermalEngine:
         """Load the thermal model with the current input parameters."""
         # expected to fail if arguments are not filled
         self.thermal_model = self.power_model(
-            dic=self.dict_input, heat_equation=self.heateq
+            dic=self.dict_input,
+            heat_equation=self.heateq,  # TODO
         )
 
     def steady_temperature(
