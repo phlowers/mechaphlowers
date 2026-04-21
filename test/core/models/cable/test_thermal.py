@@ -259,7 +259,7 @@ def test_wrong_array_length_datetime(
     ]
     with pytest.raises(
         ValueError,
-        match="All list inputs must have the same length.",
+        match="All array inputs must have the same length. Expected 3, got 2 for 'datetime_utc'.",
     ):
         thermal_engine.load()
 
@@ -271,6 +271,7 @@ def test_wrong_type_month(thermal_engine_3_spans: ThermalEngine):
         TypeError,
         match="Expected integer array for 'month', got float64.",
     ):
+        del thermal_engine.dict_input["datetime_utc"]
         thermal_engine.dict_input["month"] = np.array([3.0, 3.0, 3.0])
         thermal_engine.dict_input["day"] = np.array([21, 21, 21])
         thermal_engine.load()
@@ -283,6 +284,7 @@ def test_wrong_type_day(thermal_engine_3_spans: ThermalEngine):
         TypeError,
         match="Expected integer array for 'day', got float64.",
     ):
+        del thermal_engine.dict_input["datetime_utc"]
         thermal_engine.dict_input["month"] = np.array([3, 3, 3])
         thermal_engine.dict_input["day"] = np.array([21.0, 21.0, 21.0])
         thermal_engine.load()
