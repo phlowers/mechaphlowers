@@ -101,6 +101,142 @@ When creating a SectionArray, you may add a `bundle_number` argument. `bundle_nu
 
     section_array = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15, bundle_number=2)
 
+### Support Manipulation
+
+After creating a `SectionArray`, you can modify the geometry of individual supports using `support_manipulation`. This applies **additive offsets** to `conductor_attachment_altitude` and/or `crossarm_length`.
+
+The input is a dictionary where keys are support indices (0-based) and values are dicts with optional keys `"y"` (crossarm length offset) and `"z"` (altitude offset), both in meters.
+
+```python
+# Raise support 1 by 2 m and shorten its crossarm by 1 m
+section_array.support_manipulation({1: {"z": 2.0, "y": -1.0}})
+
+# Modify several supports at once
+section_array.support_manipulation({0: {"z": 0.5}, 2: {"y": 3.0}})
+```
+
+To restore the original geometry:
+
+```python
+section_array.reset_manipulation()
+```
+
+When using a `BalanceEngine`, the same methods are available and will automatically rebuild internal models while preserving observer bindings (e.g. `PlotEngine`):
+
+```python
+engine.support_manipulation({1: {"z": 2.0}})
+engine.solve_adjustment()
+engine.solve_change_state(new_temperature=15.0)
+
+# Restore original geometry
+engine.reset_manipulation()
+```
+
+!!! note
+
+    Manipulations are **additive**: calling `support_manipulation` multiple times stacks the offsets.
+    `reset_manipulation` always restores the values from before the first manipulation.
+    For each affected support, `counterweight` is set to 0 in `.data`; unaffected supports keep their original counterweight.
+
+### Rope Manipulation
+
+`rope_manipulation` replaces the insulator length and mass for specified supports with rope values, **without modifying the underlying data**. The override is only visible through `.data`; `_data` remains unchanged.
+
+The input is a dictionary where keys are support indices (0-based) and values are the rope length in meters. An optional `rope_lineic_mass` parameter (kg/m, default `0.01`) controls the mass per unit length.
+
+```python
+# Replace insulator properties for supports 1 and 2 with rope values
+section_array.rope_manipulation({1: 4.5, 2: 3.0})
+
+# With a custom linear mass
+section_array.rope_manipulation({0: 2.0}, rope_lineic_mass=0.05)
+```
+
+To remove the rope overlay:
+
+```python
+section_array.reset_rope_manipulation()
+```
+
+The same API is available on `BalanceEngine`:
+
+```python
+engine.rope_manipulation({1: 4.5})
+engine.solve_adjustment()
+engine.solve_change_state(new_temperature=15.0)
+
+engine.reset_rope_manipulation()
+```
+
+!!! note
+
+    The rope overlay only affects `insulator_length` and `insulator_mass` (and the derived `insulator_weight`) for the listed supports.
+    Unlisted supports keep their original insulator values.
+    For each affected support, `counterweight` is set to 0 in `.data`; unaffected supports keep their original counterweight.
+    The default linear mass can be changed globally via `options.data.rope_lineic_mass_default`.
+
+### Virtual Support
+
+`add_virtual_support` inserts intermediate supports into a line section **as an overlay** on `.data`, without ever modifying the underlying `_data`. Each virtual support splits a given span at a specified horizontal distance from the left support.
+
+The input is a dictionary where keys are left-support indices (0-based, must not be the last support) and values are dicts with the following required keys:
+
+| Key | Description |
+|---|---|
+| `"x"` | Distance from the left support (m) — must be strictly in `(-abs(crossarm_length[left_support]), abs(span_length) + abs(crossarm_length[right_support]))` |
+| `"y"` | Lateral offset (m) — sets `line_angle = atan2(y, x)` on the left support |
+| `"z"` | `conductor_attachment_altitude` of the virtual support (m) |
+| `"insulator_length"` | Insulator length on the virtual support (m) |
+| `"insulator_mass"` | Insulator mass on the virtual support (kg) |
+| `"hanging_cable_point_from_left_support"` | Distance from the left support to the cable hanging point (m) — must be strictly in `(-abs(crossarm_length[left_support]), abs(span_length) + abs(crossarm_length[right_support]))`. Not used for computation currently. |
+
+```python
+# insert a virtual support at 100 m into span 1
+section_array.add_virtual_support({
+    1: {"x": 100.0, "y": 0.0, "z": 55.0,
+        "insulator_length": 3.0, "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": 100.0}
+})
+```
+
+Multiple spans can be provided in one call, or via successive calls (overlays accumulate):
+
+```python
+section_array.add_virtual_support({
+    0: {"x": 200.0, "y": 0.0, "z": 40.0, "insulator_length": 3.0, "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": 200.0},
+    2: {"x": 200.0, "y": 10.0, "z": 62.0, "insulator_length": 3.0, "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": 200.0},
+})
+```
+
+To remove all virtual supports:
+
+```python
+section_array.reset_virtual_support()
+```
+
+The same API is available on `BalanceEngine`. Because the number of supports changes, the full internal model is rebuilt while preserving observer bindings:
+
+```python
+engine.add_virtual_support({
+    1: {"x": 100.0, "y": 0.0, "z": 55.0,
+        "insulator_length": 3.0, "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": 100.0}
+})
+engine.solve_adjustment()
+engine.solve_change_state(new_temperature=15.0)
+
+engine.reset_virtual_support()
+```
+
+!!! note
+
+    Virtual supports have `crossarm_length = 0` and `suspension = True`.  
+    The `counterweight` column is set to 0 for each virtual row.  
+    `elevation_difference` is recomputed from `data` (not `_data`) so it always reflects the inserted supports.  
+    `_data` is never modified; all changes are overlay-only and reversible with `reset_virtual_support`.
+
 ## Cable
 
 This paragraph describes the input data and the associated format needed about the cable properties in mechaphlowers.

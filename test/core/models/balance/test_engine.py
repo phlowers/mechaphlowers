@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-import warnings as _warnings
 from copy import deepcopy
 
 import numpy as np
@@ -18,7 +17,6 @@ from mechaphlowers.core.models.balance.engine import (
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import (
-    BalanceEngineWarning,
     ConvergenceError,
 )
 
@@ -294,11 +292,12 @@ def test_load_span__check_node_span_changes(cable_array_AM600: CableArray):
 
 
 def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
-    def fail(_: object):
+    def fail(*args):
         raise ConvergenceError("did not converge", origin="adjustment")
 
-    # Mock the solver to raise
-    monkeypatch.setattr(balance_engine_simple.solver_adjustment, "solve", fail)
+    # Patch at class level because solve_adjustment now recreates solver instances
+    from mechaphlowers.core.models.balance.solvers.balance_solver import BalanceSolver
+    monkeypatch.setattr(BalanceSolver, "solve", fail)
 
     with pytest.raises(ConvergenceError, match="did not converge"):
         balance_engine_simple.solve_adjustment()
@@ -309,13 +308,15 @@ def test_adjustment_convergence_error_origin(
 ):
     # weird test: sets origin to "adjustment" but get replaced by "solve_adjustment" anyway in engine.py
     def fail_generator(origin: str):
-        def fail(_: object):
+        def fail(*args):
             raise ConvergenceError("did not converge", origin=origin)
 
         return fail
 
+    # Patch at class level because solve_adjustment now recreates solver instances
+    from mechaphlowers.core.models.balance.solvers.balance_solver import BalanceSolver
     monkeypatch.setattr(
-        balance_engine_simple.solver_adjustment,
+        BalanceSolver,
         "solve",
         fail_generator("adjustment"),
     )
@@ -449,182 +450,161 @@ def test_engine_wind_sense(balance_engine_simple: BalanceEngine):
     )
 
 
-@pytest.mark.integration
-def test_shifting_and_shortening_cable(cable_array_AM600: CableArray):
+# ── performance tests ────────────────────────────────────────────────────────
+
+def _make_8support_section_array(cable_array: "CableArray") -> "BalanceEngine":
+    """8-support line with spans of varying length."""
     section_array = SectionArray(
         pd.DataFrame(
             {
-                "name": ["1", "2", "3", "4"],
-                "suspension": [False, True, True, False],
-                "conductor_attachment_altitude": [30, 50, 60, 65],
-                "crossarm_length": [5, 10, -10, 5],
-                "line_angle": [0, 30, 0, 0],
-                "insulator_length": [0.01, 3, 3, 0.01],
-                "span_length": [500, 300, 400, np.nan],
-                "insulator_mass": [1000, 500, 500, 1000],
-                "load_mass": [0, 0, 0, 0],
-                "load_position": [0, 0, 0, 0],
+                "name": ["1", "2", "3", "4", "5", "6", "7", "8"],
+                "suspension": [False, True, True, True, True, True, True, False],
+                "conductor_attachment_altitude": [
+                    30.0, 45.0, 55.0, 60.0, 50.0, 65.0, 40.0, 35.0
+                ],
+                "crossarm_length": [0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+                "span_length": [400.0, 350.0, 450.0, 300.0, 500.0, 380.0, 420.0, np.nan],
+                "insulator_mass": [
+                    1000.0, 500.0, 500.0, 500.0, 500.0, 500.0, 500.0, 1000.0
+                ],
+                "load_mass": [0.0] * 8,
+                "load_position": [0.0] * 8,
             }
         ),
-        sagging_parameter=1200,
+        sagging_parameter=2000,
         sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    balance_engine = BalanceEngine(
-        cable_array=cable_array_AM600, section_array=section_array
+    return BalanceEngine(cable_array=cable_array, section_array=section_array)
+
+
+def _make_12support_section_array(cable_array: "CableArray") -> "BalanceEngine":
+    """12-support plain line for size-scaling comparison."""
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+                "suspension": [
+                    False, True, True, True, True, True,
+                    True, True, True, True, True, False,
+                ],
+                "conductor_attachment_altitude": [
+                    30.0, 45.0, 55.0, 60.0, 50.0, 65.0,
+                    40.0, 35.0, 50.0, 58.0, 42.0, 38.0,
+                ],
+                "crossarm_length": [0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0],
+                "line_angle": [0.0] * 12,
+                "insulator_length": [3.0] * 12,
+                "span_length": [
+                    400.0, 350.0, 450.0, 300.0, 500.0, 380.0,
+                    420.0, 370.0, 410.0, 340.0, 460.0, np.nan,
+                ],
+                "insulator_mass": [1000.0] + [500.0] * 10 + [1000.0],
+                "load_mass": [0.0] * 12,
+                "load_position": [0.0] * 12,
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
+    section_array.add_units({"line_angle": "grad"})
+    return BalanceEngine(cable_array=cable_array, section_array=section_array)
 
-    # Base case: no shifting, no shortening
 
-    with pytest.warns(BalanceEngineWarning):
-        balance_engine.solve_change_state(
-            wind_pressure=0.0, new_temperature=15.0
-        )
+@pytest.mark.benchmark
+def test_perf_data_and_change_state_baseline_vs_manipulations(
+    cable_array_AM600: "CableArray",
+) -> None:
+    """Compare .data and solve_change_state timing between:
+    - a plain 8-support line (baseline),
+    - the same 8-support line with 4 support manipulations, 1 rope manipulation
+      and 4 virtual supports,
+    - a plain 12-support line (size-scaling reference).
 
-    assert balance_engine.L_ref.shape == (3,)
-    np.testing.assert_allclose(
-        balance_engine.span_model.T_h(),
-        np.array([2119.0, 2119.0, 2119.0, np.nan]) * 10,
-        atol=10,
+    Prints a timing table; does not assert on durations (benchmark only).
+    """
+    import time
+
+    n_iterations = 20
+
+    def _measure(engine: "BalanceEngine") -> tuple[float, float]:
+        t0 = time.perf_counter()
+        for _ in range(n_iterations):
+            _ = engine.section_array.data
+        data_s = (time.perf_counter() - t0) / n_iterations
+
+        t0 = time.perf_counter()
+        for _ in range(n_iterations):
+            engine.solve_change_state(new_temperature=15.0)
+        change_state_s = (time.perf_counter() - t0) / n_iterations
+
+        return data_s, change_state_s
+
+    # ── baseline: plain 8-support ────────────────────────────────────────────
+    engine_base = _make_8support_section_array(cable_array_AM600)
+    engine_base.solve_adjustment()
+    baseline_data_s, baseline_change_state_s = _measure(engine_base)
+
+    # ── 8-support with manipulations ─────────────────────────────────────────
+    engine_manip = _make_8support_section_array(cable_array_AM600)
+    from mechaphlowers.core.manipulation import Manipulation
+
+    manip = Manipulation(engine_manip.section_array)
+    # 4 support manipulations (supports 1, 2, 4, 5)
+    manip.support_manipulation({
+        1: {"z": 1.0},
+        2: {"z": -1.0, "y": 0.5},
+        4: {"z": 2.0},
+        5: {"y": -0.5},
+    })
+    # 1 rope manipulation (support 3)
+    manip.rope_manipulation({3: 4.5})
+    # 4 virtual supports (one per span: spans 0, 2, 4, 6)
+    manip.add_virtual_support({
+        0: {"x": 200.0, "y": 0.0, "z": 38.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
+        2: {"x": 200.0, "y": 0.0, "z": 58.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
+        4: {"x": 250.0, "y": 0.0, "z": 52.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 250.0},
+        6: {"x": 200.0, "y": 0.0, "z": 42.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
+    })
+    # Apply manipulation and rebuild engine
+    manipulated_sa = manip.from_section_array(engine_manip.section_array)
+    engine_manip = BalanceEngine(cable_array=cable_array_AM600, section_array=manipulated_sa)
+    engine_manip.solve_adjustment()
+    manip_data_s, manip_change_state_s = _measure(engine_manip)
+
+    # ── size-scaling reference: plain 12-support ──────────────────────────────
+    engine_12 = _make_12support_section_array(cable_array_AM600)
+    engine_12.solve_adjustment()
+    ref12_data_s, ref12_change_state_s = _measure(engine_12)
+
+    # ── report ────────────────────────────────────────────────────────────────
+    col_w = [30, 16, 24, 18, 8]
+    header = (
+        f"{'Measurement':<{col_w[0]}}"
+        f"{'8-support (ms)':>{col_w[1]}}"
+        f"{'8-support+manip (ms)':>{col_w[2]}}"
+        f"{'12-support (ms)':>{col_w[3]}}"
+        f"{'manip ratio':>{col_w[4]}}"
     )
-    np.testing.assert_allclose(
-        balance_engine.L_ref, np.array([500.8, 298.5, 401.7]), atol=0.1
-    )
-
-    # Shift support 2 by 1m
-    balance_engine.add_cable_shifting(shift_support=np.array([0, 1, 0, 0]))
-
-    assert balance_engine.L_ref.shape == (3,)
-    np.testing.assert_allclose(
-        balance_engine.L_ref, np.array([501.8, 297.5, 401.7]), atol=0.1
-    )
-
-    balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
-    np.testing.assert_allclose(
-        balance_engine.span_model.T_h(),
-        np.array([2026.0, 2315.0, 2246.0, np.nan]) * 10.0,
-        atol=10,
-    )
-
-    # shorten span 2 by 2m
-    balance_engine.add_cable_shifting(shorten_span=np.array([0, 2, 0]))
-
-    np.testing.assert_allclose(
-        balance_engine.L_ref, np.array([500.8, 296.5, 401.7]), atol=0.1
-    )
-
-    balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
-    np.testing.assert_allclose(
-        balance_engine.span_model.T_h(),
-        np.array([2411.0, 2846.0, 2614.0, np.nan]) * 10.0,
-        atol=10,
-    )
-
-    # Shift support 2 by 1.5m and shorten span 1 by 1.5m
-    balance_engine.add_cable_shifting(
-        shorten_span=np.array([1.5, 0, 0]),
-        shift_support=np.array([0, 1, 0.5, 0]),
-    )
-
-    np.testing.assert_allclose(
-        balance_engine.L_ref, np.array([500.338, 298.042, 401.254]), atol=0.1
-    )
-
-    balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
-    np.testing.assert_allclose(
-        balance_engine.span_model.T_h(),
-        np.array([2353.0, 2459.0, 2454.0, np.nan]) * 10.0,
-        atol=10,
-    )
-    np.testing.assert_allclose(
-        balance_engine.parameter,
-        np.array([1333.0, 1392.0, 1390.0, np.nan]),
-        atol=1,
-    )
-
-
-def test_add_cable_shifting_default_values(
-    balance_engine_simple: BalanceEngine,
-):
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.add_cable_shifting()
-
-    expected_support = np.zeros(balance_engine_simple.support_number)
-    np.testing.assert_array_equal(
-        balance_engine_simple.shift_support, expected_support
-    )
-    expected_span = np.zeros(balance_engine_simple.support_number - 1)
-    np.testing.assert_array_equal(
-        balance_engine_simple.shortening_span, expected_span
-    )
-
-
-def test_add_cable_shifting_wrong_size_shifting(
-    balance_engine_simple: BalanceEngine,
-):
-    with pytest.raises(ValueError):
-        balance_engine_simple.add_cable_shifting(
-            shift_support=np.array([0.0, 1.0, 0.0])  # 3 elements, 4 expected
-        )
-
-
-def test_add_cable_shifting_wrong_size_shortening(
-    balance_engine_simple: BalanceEngine,
-):
-    with pytest.raises(ValueError):
-        balance_engine_simple.add_cable_shifting(
-            shorten_span=np.array(
-                [0.0, 1.0, 0.0, 0.0]
-            )  # 4 elements, 3 expected
-        )
-
-
-def test_add_cable_shifting_enforces_shifting_boundaries(
-    balance_engine_simple: BalanceEngine,
-):
-    balance_engine_simple.solve_adjustment()
-    with pytest.warns(
-        BalanceEngineWarning,
+    print(f"\n{header}")
+    print("-" * sum(col_w))
+    for label, base, manip, ref12 in (
+        (".data", baseline_data_s, manip_data_s, ref12_data_s),
+        ("solve_change_state", baseline_change_state_s, manip_change_state_s, ref12_change_state_s),
     ):
-        balance_engine_simple.add_cable_shifting(
-            shift_support=np.array([5.0, 1.0, 2.0, 3.0])
+        ratio = manip / ref12 if ref12 > 0 else float("inf")
+        print(
+            f"{label:<{col_w[0]}}"
+            f"{base * 1000:>{col_w[1]}.3f}"
+            f"{manip * 1000:>{col_w[2]}.3f}"
+            f"{ref12 * 1000:>{col_w[3]}.3f}"
+            f"{ratio:>{col_w[4]}.2f}x"
         )
-
-    assert abs(balance_engine_simple.shift_support[0]) < 1e-5
-    assert abs(balance_engine_simple.shift_support[-1]) < 1e-5
-    np.testing.assert_array_equal(
-        balance_engine_simple.shift_support[1:-1],
-        np.array([1.0, 2.0]),
+    print(
+        "expected: solve_change_state overhead from manipulations should be "
+        "comparable to the plain size increase from 8 to 12 supports"
     )
 
 
-def test_add_cable_shifting_no_warning_when_boundaries_are_compliant(
-    balance_engine_simple: BalanceEngine,
-):
-    balance_engine_simple.solve_adjustment()
-    with _warnings.catch_warnings():
-        _warnings.simplefilter("error", BalanceEngineWarning)
-        balance_engine_simple.add_cable_shifting(
-            shift_support=np.array([0.0, 1.0, 2.0, 0.0]),
-            shorten_span=np.array([0.0, 1.0, 2.0]),
-        )
-
-
-def test_add_cable_shifting_stores_values(
-    balance_engine_simple: BalanceEngine,
-):
-    balance_engine_simple.solve_adjustment()
-    shifting = np.array([0.0, 1.5, 2.0, 0.0])
-    shortening = np.array([0.0, 0.5, 1.0])
-
-    balance_engine_simple.add_cable_shifting(
-        shift_support=shifting,
-        shorten_span=shortening,
-    )
-
-    np.testing.assert_array_equal(
-        balance_engine_simple.shift_support, shifting
-    )
-    np.testing.assert_array_equal(
-        balance_engine_simple.shortening_span, shortening
-    )

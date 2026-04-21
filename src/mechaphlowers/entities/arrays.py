@@ -224,17 +224,19 @@ class SectionArray(ElementArray):
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"
             )
-        else:
-            sagging_parameter = np.repeat(
-                np.float64(self.sagging_parameter), data_output.shape[0]
-            )
-            sagging_parameter[-1] = np.nan
-            return data_output.assign(
-                elevation_difference=self.compute_elevation_difference(),
-                sagging_parameter=sagging_parameter,
-                sagging_temperature=self.sagging_temperature,
-                bundle_number=self.bundle_number,
-            )
+        # Compute elevation_difference from data_output to handle virtual supports
+        alt = data_output["conductor_attachment_altitude"].to_numpy()
+        elevation_difference = np.append(np.diff(alt), np.nan)
+        sagging_parameter = np.repeat(
+            np.float64(self.sagging_parameter), data_output.shape[0]
+        )
+        sagging_parameter[-1] = np.nan
+        return data_output.assign(
+            elevation_difference=elevation_difference,
+            sagging_parameter=sagging_parameter,
+            sagging_temperature=self.sagging_temperature,
+            bundle_number=self.bundle_number,
+        )
 
     def create_column_weight(
         self, df_output: pd.DataFrame, columns_to_convert: dict[str, str]

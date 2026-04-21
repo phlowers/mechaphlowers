@@ -14,6 +14,7 @@ from typing_extensions import Literal
 
 from mechaphlowers.core.geometry.points import Points
 from mechaphlowers.core.geometry.position_engine import PositionEngine
+from mechaphlowers.core.manipulation import Manipulation
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.balance.memento import (
     BalanceEngineCaretaker,
@@ -74,6 +75,12 @@ class SectionStudy:
         span_model_type: Type[ISpan] = CatenarySpan,
         deformation_model_type: Type[IDeformation] = DeformationRte,
     ) -> None:
+        self._cable_array = cable_array
+        self._section_array = section_array
+        self._span_model_type = span_model_type
+        self._deformation_model_type = deformation_model_type
+        self._manipulation = Manipulation(section_array)
+
         self._balance_engine = BalanceEngine(
             cable_array=cable_array,
             section_array=section_array,
@@ -128,10 +135,110 @@ class SectionStudy:
         """The memento captured after the intermediate warm-start solve, if any."""
         return self._intermediate_memento
 
+    @property
+    def manipulation(self) -> Manipulation:
+        """The :class:`Manipulation` object storing geometric overlays."""
+        return self._manipulation
+
+    # ── Manipulation methods ──────────────────────────────────────────────
+
+    def support_manipulation(
+        self, manipulation: dict[int, dict[str, float]]
+    ) -> None:
+        """Apply additive offsets to support geometry.
+
+        Delegates to
+        :meth:`Manipulation.support_manipulation`.
+
+        Args:
+            manipulation: Dictionary mapping support index (0-based) to
+                offsets with optional keys ``"y"`` and ``"z"``.
+        """
+        self._manipulation.support_manipulation(manipulation)
+
+    def reset_manipulation(self) -> None:
+        """Remove the support manipulation overlay.
+
+        Delegates to :meth:`Manipulation.reset_manipulation`.
+        """
+        self._manipulation.reset_manipulation()
+
+    def rope_manipulation(
+        self,
+        rope: dict[int, float],
+        rope_lineic_mass: float | None = None,
+    ) -> None:
+        """Override insulator length and mass for specified supports with rope values.
+
+        Delegates to :meth:`Manipulation.rope_manipulation`.
+
+        Args:
+            rope: Dictionary mapping support index (0-based) to rope length (meters).
+            rope_lineic_mass: Linear mass of the rope in kg/m.
+        """
+        self._manipulation.rope_manipulation(rope, rope_lineic_mass)
+
+    def reset_rope_manipulation(self) -> None:
+        """Remove the rope overlay.
+
+        Delegates to :meth:`Manipulation.reset_rope_manipulation`.
+        """
+        self._manipulation.reset_rope_manipulation()
+
+    def add_virtual_support(
+        self, virtual_support: dict[int, dict[str, float]]
+    ) -> None:
+        """Insert virtual supports.
+
+        Delegates to :meth:`Manipulation.add_virtual_support`.
+
+        Args:
+            virtual_support: Dictionary mapping left-support index to virtual
+                support parameters.
+        """
+        self._manipulation.add_virtual_support(virtual_support)
+
+    def reset_virtual_support(self) -> None:
+        """Remove all virtual supports.
+
+        Delegates to :meth:`Manipulation.reset_virtual_support`.
+        """
+        self._manipulation.reset_virtual_support()
+
+    def add_cable_shifting(
+        self,
+        shift_support: np.ndarray | list | None = None,
+        shorten_span: np.ndarray | list | None = None,
+    ) -> None:
+        """Validate and store cable shifting values.
+
+        Delegates to :meth:`Manipulation.add_cable_shifting`.
+
+        Args:
+            shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
+            shorten_span (np.ndarray | list | None): Span length modification, in meters.
+        """
+        self._manipulation.add_cable_shifting(shift_support, shorten_span)
+
+    def reset_cable_shifting(self) -> None:
+        """Remove cable shifting.
+
+        Delegates to :meth:`Manipulation.reset_cable_shifting`.
+        """
+        self._manipulation.reset_cable_shifting()
+
     # ── Solve methods (with rollback + intermediate) ──────────────────────
 
     def solve_adjustment(self) -> None:
-        """Run [`BalanceEngine.solve_adjustment`][mechaphlowers.core.models.balance.engine.BalanceEngine.solve_adjustment] with automatic rollback.
+        """Run adjustment on clean geometry, then apply manipulations if any.
+
+        1. Build a clean engine from the original section array and solve
+           adjustment to obtain ``initial_L_ref``.
+        2. If manipulations are registered, call
+           :meth:`Manipulation.from_section_array` to produce a manipulated
+           copy, then :meth:`Manipulation.initialize_engine` to build the
+           target engine with injected ``L_ref`` and blocked adjustment.
+        3. Rewire downstream engines (caretaker, position, plot, guying).
 
         On [`SolverError`][mechaphlowers.entities.errors.SolverError], the engine
         state is restored to the snapshot taken before the solve attempt, and the
@@ -140,13 +247,40 @@ class SectionStudy:
         Raises:
             SolverError: If the solver fails to converge.
         """
-        memento = self._caretaker.save()
-        try:
-            self._balance_engine.solve_adjustment()
-        except SolverError:
-            logger.error("Error during solve_adjustment, rolling back state.")
-            self._caretaker.restore(memento)
-            raise
+        if self._manipulation.has_manipulations:
+            # Phase 1 – solve on clean geometry
+            clean_engine = BalanceEngine(
+                cable_array=self._cable_array,
+                section_array=self._section_array,
+                span_model_type=self._span_model_type,
+                deformation_model_type=self._deformation_model_type,
+            )
+            clean_engine.solve_adjustment()
+            initial_L_ref = clean_engine.initial_L_ref.copy()
+
+            # Phase 2 – build manipulated SA and target engine
+            manipulated_sa = self._manipulation.from_section_array(
+                self._section_array
+            )
+            self._balance_engine = self._manipulation.initialize_engine(
+                clean_engine, manipulated_sa, initial_L_ref
+            )
+
+            # Rewire downstream engines
+            self._caretaker = BalanceEngineCaretaker(self._balance_engine)
+            self._position_engine = PositionEngine(self._balance_engine)
+            self._plot_engine = None
+            self._guying = None
+        else:
+            memento = self._caretaker.save()
+            try:
+                self._balance_engine.solve_adjustment()
+            except SolverError:
+                logger.error(
+                    "Error during solve_adjustment, rolling back state."
+                )
+                self._caretaker.restore(memento)
+                raise
 
     def solve_change_state(
         self,
