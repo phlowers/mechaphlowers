@@ -232,7 +232,7 @@ def check_inputs(
     return kwargs, array_length
 
 
-def check_datetime_arguments(
+def check_datetime_arguments(  # NOSONAR
     array_length: int | None,
     month: np.ndarray[Any, np.dtype[np.integer]] | None,
     day: np.ndarray[Any, np.dtype[np.integer]] | None,
@@ -319,21 +319,18 @@ def check_datetime_argument_ranges(
     day: np.ndarray[Any, np.dtype[np.integer]] | None,
     hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
 ) -> None:
-    if month is not None:
-        if not np.all((1 <= month) & (month <= 12)):
-            raise ValueError(
-                "Month values must be in the range 1-12. Invalid values found in 'month'."
-            )
-    if day is not None:
-        if not np.all((1 <= day) & (day <= 31)):
-            raise ValueError(
-                "Day values must be in the range 1-31. Invalid values found in 'day'."
-            )
-    if hour is not None:
-        if not np.all((0 <= hour) & (hour < 24)):
-            raise ValueError(
-                "Hour values must be in the range [0-24[. Invalid values found in 'hour'."
-            )
+    if month is not None and not np.all((1 <= month) & (month <= 12)):
+        raise ValueError(
+            "Month values must be in the range 1-12. Invalid values found in 'month'."
+        )
+    if day is not None and not np.all((1 <= day) & (day <= 31)):
+        raise ValueError(
+            "Day values must be in the range 1-31. Invalid values found in 'day'."
+        )
+    if hour is not None and not np.all((0 <= hour) & (hour < 24)):
+        raise ValueError(
+            "Hour values must be in the range [0-24[. Invalid values found in 'hour'."
+        )
 
 
 def to_datetime(
