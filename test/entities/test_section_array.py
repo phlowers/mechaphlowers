@@ -16,6 +16,7 @@ from mechaphlowers.entities.arrays import (
     DefaultValueWarning,
     SectionArray,
 )
+from mechaphlowers.entities.equipment import Spacer
 from mechaphlowers.entities.errors import DataWarning
 
 
@@ -202,7 +203,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
-            "ground_altitude": [-27.79, -21.0, -26.92, -29.99],
+            "ground_altitude": [-27.99, -21.2, -27.12, -30.19],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15] * 4,
@@ -309,7 +310,7 @@ def test_section_array__wrong_ground_altitude() -> None:
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
-            "ground_altitude": [0.0, -21.0, -1.0, -29.99],
+            "ground_altitude": [0.0, -21.2, -1.0, -30.19],
             "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15] * 4,
             "load_mass": [500, 1000, 500, np.nan],
@@ -511,7 +512,7 @@ def test_create_section_bundle_number(
     assert section_array.bundle_number == 2
 
     with pytest.raises(ValueError):
-        section_array = SectionArray(
+        SectionArray(
             pd.DataFrame(section_array_input_data),
             sagging_parameter=2_000,
             sagging_temperature=15,
@@ -609,3 +610,56 @@ def test_create_section_array__support_height_negative(
 
     with pytest.raises(pa.errors.SchemaErrors):
         SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
+
+
+def test_section_array__spacer_default(section_array_input_data: dict) -> None:
+    """When spacer is not provided, a default Spacer() is created."""
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(
+        data=df, sagging_parameter=2_000, sagging_temperature=15
+    )
+    assert isinstance(section_array.spacer, Spacer)
+    assert section_array.spacer.length == 0.2
+
+
+def test_section_array__spacer_custom(section_array_input_data: dict) -> None:
+    """A custom Spacer passed to SectionArray is stored on the instance."""
+    custom_spacer = Spacer(length=0.5)
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(
+        data=df,
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+        spacer=custom_spacer,
+    )
+    assert section_array.spacer is custom_spacer
+
+
+def test_compute_ground_altitude__spacer_contributes_for_bundle_3(
+    section_array_input_data: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """For bundle_number=3, spacer height is added to ground altitude."""
+    monkeypatch.setattr(options.ground, "foot_to_ground_clearance", 0.0)
+    spacer = Spacer(length=0.3)
+    df = pd.DataFrame(section_array_input_data)
+
+    section_array_bundle1 = SectionArray(
+        data=df,
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+        bundle_number=1,
+        spacer=spacer,
+    )
+    section_array_bundle3 = SectionArray(
+        data=df,
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+        bundle_number=3,
+        spacer=spacer,
+    )
+
+    ground_bundle1 = section_array_bundle1.compute_ground_altitude()
+    ground_bundle3 = section_array_bundle3.compute_ground_altitude()
+
+    assert_allclose(ground_bundle3 - ground_bundle1, 0.3)

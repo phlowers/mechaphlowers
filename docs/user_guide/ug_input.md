@@ -11,6 +11,9 @@ This paragraph describes the input data and the associated format needed to perf
 
 In mechaphlowers a line section is described by the following data:
 
+
+
+
 - a sagging parameter, denoted later as $p$,
 - a sagging temperature (in Celsius degrees)
 - for each support:

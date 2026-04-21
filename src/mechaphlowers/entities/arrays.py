@@ -178,7 +178,9 @@ class SectionArray(ElementArray):
     def compute_ground_altitude(self) -> np.ndarray:
         """Generate ground altitude array using attachment altitude, insulator length, support height and spacer."""
         support_height = (
-            self._data["support_height"].to_numpy()
+            self._data["support_height"]
+            .fillna(options.ground.default_support_length)
+            .to_numpy()
             if "support_height" in self._data.columns
             else np.full(
                 len(self._data), options.ground.default_support_length
