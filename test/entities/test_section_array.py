@@ -13,6 +13,7 @@ from pandas.testing import assert_frame_equal
 
 from mechaphlowers.config import options
 from mechaphlowers.entities.arrays import (
+    DefaultValueWarning,
     SectionArray,
 )
 from mechaphlowers.entities.errors import DataWarning
@@ -212,7 +213,7 @@ def test_compute_elevation_difference() -> None:
             0,
         ]
         * 4,
-        "insulator_length": [0, 4.0, 3.0, 0],
+        "insulator_length": [0.01, 4.0, 3.0, 0.01],
         "span_length": [50, 100, 500, np.nan],
         "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
     }
@@ -388,19 +389,17 @@ def test_section_array__data_without_sagging_properties(
         section_array_without_temperature.data.sagging_temperature,
         expected_sagging_temperature,
     )
-
-    section_array_without_parameter = SectionArray(
-        data=df, sagging_temperature=15
-    )
-    expected_sagging_parameter = (
-        section_array_without_parameter.equivalent_span()
-        * 5
-        * np.ones(len(section_array_without_parameter.data))
-    )
-    expected_sagging_parameter[-1] = np.nan
+    with pytest.warns(DefaultValueWarning):
+        section_array_without_parameter = SectionArray(
+            data=df, sagging_temperature=15
+        )
     np.testing.assert_allclose(
         section_array_without_parameter.data.sagging_parameter,
-        expected_sagging_parameter,
+        section_array_without_parameter.equivalent_span()
+        * 5
+        * np.array(
+            [1] * (len(section_array_without_temperature.data) - 1) + [np.nan]
+        ),
     )
 
 
@@ -429,7 +428,9 @@ def test_section_array__set_sagging_parameter__array(
     section_array_input_data: dict,
 ) -> None:
     df = pd.DataFrame(section_array_input_data)
-    section_array = SectionArray(data=df)
+    section_array = SectionArray(
+        data=df, sagging_parameter=2000, sagging_temperature=15
+    )
 
     sagging_parameter = np.array([3000, 3000, 3000, np.nan])
     section_array.set_sagging_parameter(sagging_parameter)
@@ -579,9 +580,10 @@ def test_correct_insulator_length(section_array: SectionArray) -> None:
 
     # test on .data property
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
-    np.testing.assert_allclose(
-        section_array.data.insulator_length, expected_lengths
-    )
+    # warning expected in the test
+    with pytest.warns(DataWarning):
+        insulator_length = section_array.data.insulator_length
+    np.testing.assert_allclose(insulator_length, expected_lengths)
 
     # nothing to correct
     section_array._data.insulator_length = np.array([0.01, 4.0, 3.2, 0.01])

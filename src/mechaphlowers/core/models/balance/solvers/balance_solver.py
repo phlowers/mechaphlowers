@@ -68,7 +68,7 @@ class BalanceSolver:
             mem = np.linalg.norm(objective_vector)
 
             # correction calculus
-            correction = np.linalg.solve(jacobian.T, objective_vector)
+            correction = np.linalg.solve(jacobian, objective_vector)
 
             model.state_vector = model.state_vector - correction * (
                 1 - self.relax_ratio ** (counter**self.relax_power)
@@ -106,19 +106,18 @@ class BalanceSolver:
         model: IModelForSolver,
         perturb: float = 1e-4,
     ) -> np.ndarray:
+        n = len(objective_vector)
+        jacobian = np.empty((n, n))
         vector_perturb = np.zeros_like(objective_vector)
-        df_list = []
 
-        for i in range(len(vector_perturb)):
+        for i in range(n):
             vector_perturb[i] += perturb
 
             f_perturb = self._delta_d(model, vector_perturb)
-            df_dperturb = (f_perturb - objective_vector) / perturb
-            df_list.append(df_dperturb)
+            jacobian[:, i] = (f_perturb - objective_vector) / perturb
 
             vector_perturb[i] -= perturb
 
-        jacobian = np.array(df_list)
         return jacobian
 
     def _delta_d(

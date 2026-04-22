@@ -46,6 +46,7 @@ nav:
       - Coordinates system: user_guide/ug_coordinates_system.md
       - Cable modeling: user_guide/ug_cable_model.md
       - Sag-tension calculation: user_guide/ug_sag_tension_calc.md
+      - Balance Engine: user_guide/ug_balance_engine.md
       - Deformation: user_guide/ug_deformation.md
       - Wind speed conversion: user_guide/ug_wind_speed_conversion.md
       - Data catalog : user_guide/ug_catalog.md
@@ -57,6 +58,7 @@ nav:
       - Geography: user_guide/ug_geography.md
       - Plotting: user_guide/ug_plotting.md
       - Thermal engine: user_guide/ug_thermal_engine.md
+      - Section Study: user_guide/ug_section_study.md
       - Specific errors used: user_guide/ug_mph_errors.md
   - Developer guide:
       - API Reference:
@@ -73,10 +75,12 @@ nav:
                   - Coordinate systems: docstring/core/geometry/points.md
                   - Line angles: docstring/core/geometry/line_angles.md
                   - Distance: docstring/core/geometry/distance.md
+                  - Position Engine: docstring/core/geometry/position_engine.md
               - Models:
                   - Balance:
                     - Engine: docstring/core/models/balance/engine.md
                     - Interfaces: docstring/core/models/balance/interfaces.md
+                    - Memento: docstring/core/models/balance/memento.md
                     - Models:
                       - Model Ducloux: docstring/core/models/balance/models/model_ducloux.md
                       - Utils: docstring/core/models/balance/models/utils_model_ducloux.md
@@ -96,6 +100,8 @@ nav:
               - Geography: docstring/data/geography/helpers.md
               - Measures: docstring/data/measures.md
           - Configuration: docstring/config.md
+          - API:
+              - Section Study: docstring/api/section_study.md
           - Plotting:
               - Distance: docstring/plotting/distance.md
               - Plot: docstring/plotting/plot.md

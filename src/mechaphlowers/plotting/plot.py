@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -7,22 +7,15 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal
+import warnings
+from typing import Literal, Union
 
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
-from mechaphlowers.core.geometry.distances import (
-    DistanceEngine,
-    DistanceResult,
-)
-from mechaphlowers.core.geometry.planes import (
-    change_local_frame,
-)
-from mechaphlowers.core.geometry.points import (
-    Points,
-    SectionPoints,
-)
+from mechaphlowers.core.geometry.distances import DistanceResult
+from mechaphlowers.core.geometry.points import Points
+from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import ObstacleArray
 from mechaphlowers.entities.reactivity import Notifier, Observer
@@ -33,6 +26,7 @@ from mechaphlowers.plotting.plot_config import (
     insulator_trace,
     support_trace,
 )
+from mechaphlowers.plotting.plot_distances import plot_distance_engine
 
 logger = logging.getLogger(__name__)
 
@@ -255,146 +249,153 @@ def set_layout(
 
 
 class PlotEngine(Observer):
-    """PlotEngine object
+    """PlotEngine renders power-line sections on Plotly figures.
 
-    Engine to handle plotting of power line sections from a BalanceEngine object.
+    It accepts either a :class:`~mechaphlowers.core.models.balance.engine.BalanceEngine`
+    or an already-constructed :class:`~mechaphlowers.core.geometry.position_engine.PositionEngine`.
+    When a ``BalanceEngine`` is passed, a ``PositionEngine`` is created
+    automatically and exposed via :attr:`position_engine`.
+
+    Reactivity is preserved through a two-hop observer chain:
+
+    .. code-block:: text
+
+        BalanceEngine  ──notifies──►  PositionEngine  ──notifies──►  PlotEngine
 
     Args:
-        balance_engine (BalanceEngine): BalanceEngine object to link to the PlotEngine
+        engine: A :class:`BalanceEngine` or :class:`PositionEngine` instance.
 
     Example:
-        >>> from mechaphlowers.core.models.balance.engine import BalanceEngine
-        >>> from mechaphlowers.plotting.plot import PlotEngine
         >>> import plotly.graph_objects as go
-        >>> # Initialize balance engine and plot engine
-        >>> balance_engine = BalanceEngine(...)
+        >>> # Pass a BalanceEngine directly (PositionEngine is auto-created)
         >>> plt_engine = PlotEngine(balance_engine)
-        >>> # Create and display 3D plot
         >>> fig = go.Figure()
-        >>> plt_engine.preview_line3d(fig, view="full")
+        >>> plt_engine.preview_line3d(fig)
         >>> fig.show()
-        >>> # Create and display 2D profile plot
-        >>> fig = go.Figure()
-        >>> plt_engine.preview_line2d(fig, view="profile")
-        >>> fig.show()
-        >>> # When balance engine is modified, plot engine updates automatically
-        >>> balance_engine.add_loads(wind_pressure=50, ice_thickness=10)
-        >>> # PlotEngine receives update notification via observer pattern
+        >>> # Access the position engine for headless computation:
+        >>> pos_engine = plt_engine.position_engine
+        >>> pos_engine.get_supports_points()
+        array(...)
+        >>> # Or build a PositionEngine first and pass it in:
+        >>> from mechaphlowers.core.geometry.position_engine import PositionEngine
+        >>> pos_engine = PositionEngine(balance_engine)
+        >>> plt_engine = PlotEngine(pos_engine)
     """
 
     def __init__(
         self,
-        balance_engine: BalanceEngine,
+        engine: Union[BalanceEngine, PositionEngine],
     ) -> None:
-        balance_engine.bind_to(self)
-
-        self.distance_engine = DistanceEngine()
-        self.initialize_engine(balance_engine)
-        self.reset(balance_engine=balance_engine)
-
-    def initialize_engine(self, balance_engine: BalanceEngine):
-        self.span_model = balance_engine.balance_model.nodes_span_model
-        self.cable_loads = balance_engine.cable_loads
-        self.section_array = balance_engine.section_array
-        self.section_pts = SectionPoints(
-            section_array=self.section_array,
-            span_model=self.span_model,
-            cable_loads=self.cable_loads,
-            get_displacement=balance_engine.get_displacement,
-        )
-
-    def reset(self, balance_engine: BalanceEngine) -> None:
-        """Reset the plot engine with a new balance engine if needed (e.g. after re-initialization of the balance engine)."""
-
-        if not isinstance(balance_engine, BalanceEngine):
+        if isinstance(engine, BalanceEngine):
+            self.position_engine = PositionEngine(engine)
+        elif isinstance(engine, PositionEngine):
+            self.position_engine = engine
+        else:
             raise TypeError(
-                "balance_engine must be an instance of BalanceEngine"
+                "engine must be a BalanceEngine or PositionEngine instance"
             )
-        if balance_engine.initialized is False:
-            self.initialize_engine(balance_engine)
-        self.section_pts.reset()
+        self.position_engine.bind_to(self)
+
+    # ── Observer callback ─────────────────────────────────────────────────────
 
     def update(self, notifier: Notifier) -> None:
-        logger.debug("Plot engine notified from balance engine.")
-        # BalanceEngine notifies observers; refresh plot state when possible.
-        if isinstance(notifier, BalanceEngine):
-            self.reset(balance_engine=notifier)
+        """Receive notification from :class:`PositionEngine`.
 
-    def add_obstacles(self, obstacles_array: ObstacleArray) -> None:
-        self.obstacles_array = obstacles_array
-        self.section_pts.add_obstacles(obstacles_array)
+        The ``PositionEngine`` has already refreshed all coordinates before
+        calling this method, so no additional state update is required here.
+        """
+        logger.debug("Plot engine notified from position engine.")
+
+    # ── Backward-compatible delegating properties ─────────────────────────────
+    # These forward attribute access to position_engine so that existing code
+    # that accesses plt_engine.span_model, plt_engine.coords_calculator, etc. keeps
+    # working without modification.
+
+    @property
+    def span_model(self):
+        """Delegating property — see :attr:`PositionEngine.span_model`."""
+        return self.position_engine.span_model
+
+    @property
+    def cable_loads(self):
+        """Delegating property — see :attr:`PositionEngine.cable_loads`."""
+        return self.position_engine.cable_loads
+
+    @property
+    def section_array(self):
+        """Delegating property — see :attr:`PositionEngine.section_array`."""
+        return self.position_engine.section_array
+
+    @property
+    def coords_calculator(self):
+        """Delegating property — see :attr:`PositionEngine.coords_calculator`."""
+        return self.position_engine.coords_calculator
+
+    @property
+    def section_pts(self):
+        warnings.warn(
+            "section_pts was renamed coords_calculator. Use self.coords_calculator instead",
+            DeprecationWarning,
+        )
+        return self.coords_calculator
 
     @property
     def beta(self) -> np.ndarray:
-        return self.cable_loads.load_angle
+        """Delegating property — see :attr:`PositionEngine.beta`."""
+        return self.position_engine.beta
+
+    # ── Backward-compatible delegating methods ────────────────────────────────
+
+    def initialize_engine(self, balance_engine: BalanceEngine) -> None:
+        """Delegate to :meth:`PositionEngine.initialize_engine`."""
+        self.position_engine.initialize_engine(balance_engine)
+
+    def reset(self, balance_engine: BalanceEngine) -> None:
+        """Delegate to :meth:`PositionEngine.reset`."""
+        self.position_engine.reset(balance_engine)
+
+    def add_obstacles(self, obstacles_array: ObstacleArray) -> None:
+        """Delegate to :meth:`PositionEngine.add_obstacles`."""
+        self.position_engine.add_obstacles(obstacles_array)
 
     def get_spans_points(
         self, frame: Literal["section", "localsection", "cable"]
     ) -> np.ndarray:
-        return self.section_pts.get_spans(frame).points(True)
+        """Delegate to :meth:`PositionEngine.get_spans_points`."""
+        return self.position_engine.get_spans_points(frame)
 
     def get_supports_points(self) -> np.ndarray:
-        return self.section_pts.get_supports().points(True)
+        """Delegate to :meth:`PositionEngine.get_supports_points`."""
+        return self.position_engine.get_supports_points()
 
     def get_insulators_points(self) -> np.ndarray:
-        return self.section_pts.get_insulators().points(True)
+        """Delegate to :meth:`PositionEngine.get_insulators_points`."""
+        return self.position_engine.get_insulators_points()
 
     def get_obstacles_points(self) -> np.ndarray:
-        return self.section_pts.compute_obstacle_coords().points(True)
+        """Delegate to :meth:`PositionEngine.get_obstacles_points`."""
+        return self.position_engine.get_obstacles_points()
 
-    def obstacles_dict(self) -> dict:
+    def obstacles_dict(self, project=False, frame_index=0) -> dict:
         """Returns a dictionary storing object coordinates.
 
         Key is object name, value is coordinates of object.
 
         Format: {'obs_0': [[x0, y0, z0], [x1, y1, z1], ...]}
         """
-        return self.section_pts.obstacles_dict()
+        return self.position_engine.obstacles_dict(project, frame_index)
 
-    def get_loads_coords(self, project=False, frame_index=0) -> dict:
-        """Get a dictionary of coordinates of the loads.
-
-        If there are two loads in spans $0$ and $2$, the format is the following:
-
-        `{0: [x0, y0, z0], 2: [x2, y2, z2]}`
-
-        The arguments should be the same as `get_points_for_plot()`.
-
-        Args:
-            project (bool, optional): Set to True if 2d graph: this project all objects into a support frame. Defaults to False.
-            frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
-
-        Returns:
-            dict: dictionary that stores the coordinates. Key is span index. Value is a np.array of coordinates.
-        """
-        spans_points, _, _ = self.get_points_for_plot(project, frame_index)
-        loads_spans_idx, loads_points_idx = self.span_model.loads_indices
-        result_dict = {}
-        for index_in_small_array, span_index in enumerate(loads_spans_idx):
-            # point_index is the index of the load point in spans_points.coords
-            point_index = loads_points_idx[index_in_small_array]
-            result_dict[int(span_index)] = spans_points.coords[
-                span_index, point_index
-            ]
-        return result_dict
+    def get_loads_coords(
+        self, project: bool = False, frame_index: int = 0
+    ) -> dict:
+        """Delegate to :meth:`PositionEngine.get_loads_coords`."""
+        return self.position_engine.get_loads_coords(project, frame_index)
 
     def get_points_for_plot(
-        self, project=False, frame_index=0
+        self, project: bool = False, frame_index: int = 0
     ) -> tuple[Points, Points, Points]:
-        """Get Points objects for span, supports and insulators.
-        Can be used for plotting 2D or 3D graphs.
-
-        Args:
-            project (bool, optional): Set to True if 2d graph: this project all objects into a support frame. Defaults to False.
-            frame_index (int, optional): Index of the frame the projection is made. Should be between 0 and nb_supports-1 included. Unused if project is set to False. Defaults to 0.
-
-        Returns:
-            tuple[Points, Points, Points]: Points for spans, supports and insulators respectively.
-
-        Raises:
-            ValueError: frame_index is out of range
-        """
-        return self.section_pts.get_points_for_plot(project, frame_index)
+        """Delegate to :meth:`PositionEngine.get_points_for_plot`."""
+        return self.position_engine.get_points_for_plot(project, frame_index)
 
     def preview_line3d(
         self,
@@ -438,8 +439,8 @@ class PlotEngine(Observer):
             fig, insulators.points(True), insulator_trace(mode=mode)
         )
 
-        if hasattr(self.section_pts, "obstacles_array"):
-            obstacles = self.section_pts.compute_obstacle_coords()
+        if hasattr(self.coords_calculator, "obstacles_array"):
+            obstacles = self.coords_calculator.compute_obstacle_coords()
             plot_points_3d(
                 fig, obstacles.points(True), TraceProfile(name="Obstacles")
             )
@@ -505,51 +506,25 @@ class PlotEngine(Observer):
             view=view,
         )
 
+        if hasattr(self.coords_calculator, "obstacles_array"):
+            obstacles_dict = self.obstacles_dict(
+                project=True, frame_index=frame_index
+            )
+            for obstacle_name, obstacle_coords in obstacles_dict.items():
+                plot_points_2d(
+                    fig,
+                    np.array(obstacle_coords),
+                    TraceProfile(name=obstacle_name),
+                    view=view,
+                )
+
     def point_relative_to_absolute(
         self, span_index: int, point_relative: np.ndarray
     ) -> np.ndarray:
-        """Convert a point from span-local frame to absolute coordinates via frame change.
-
-        Performs a coordinate frame transformation from the span-local reference frame
-        to the absolute global coordinate system.
-
-        Span-local frame definition:
-
-        - X axis: along the span direction in the XY plane
-        - Y axis: perpendicular to the span direction in the XY plane
-        - Z axis: vertical (global Z)
-
-        Args:
-            span_index: Index of the span to analyze (0 to num_supports-2).
-            point_relative: Relative coordinate [x, y, z] in the span-local frame.
-
-        Returns:
-            Absolute point coordinates in the global frame as array of shape (3,).
-
-        Raises:
-            IndexError: If span_index is out of range.
-            ValueError: If point_relative has invalid shape or span has zero XY extent.
-        """
-
-        point_relative = np.asarray(point_relative)
-        if point_relative.shape != (3,):
-            raise ValueError("point_relative must be a 1D array of shape (3,)")
-
-        ground_supports = self.section_pts.supports_ground_coords
-        if span_index < 0 or span_index >= len(ground_supports) - 1:
-            raise IndexError(
-                f"span_index {span_index} out of range [0, {len(ground_supports) - 2}]"
-            )
-
-        # Perform frame change from span-local to absolute coordinates
-        support_start = ground_supports[span_index]
-        support_end = ground_supports[span_index + 1]
-
-        absolute_point = change_local_frame(
-            support_start, support_end, point_relative
+        """Delegate to :meth:`PositionEngine.point_relative_to_absolute`."""
+        return self.position_engine.point_relative_to_absolute(
+            span_index, point_relative
         )
-
-        return absolute_point
 
     def point_distance(
         self,
@@ -558,20 +533,25 @@ class PlotEngine(Observer):
         *,
         fig: go.Figure | None = None,
     ) -> DistanceResult:
-        """Point distance analysis: compute the distance from a point to a span and plot the configuration on the provided figure.
+        """Compute the distance from *point* to a span, with optional plotting.
+
+        Delegates the geometric computation to
+        :meth:`PositionEngine.point_distance` and, when *fig* is provided,
+        plots the result on the figure.
 
         Args:
-            span_index: Index of the span to analyze (0 to num_supports-2).
-            point: Absolute coordinates of the point to analyze, as array of shape (3,).
-            fig: Optional plotly figure where the configuration will be plotted. If None, no plot is generated.
+            span_index: Span index in ``[0, num_supports - 2]``.
+            point: Absolute coordinates of shape ``(3,)``.
+            fig: Optional Plotly figure.  When supplied, the geometry is
+                rendered on it.
 
         Returns:
-            DistanceResult: Object containing the distance analysis results, including the distance value and coordinates of the closest point on the span.
+            :class:`~mechaphlowers.core.geometry.distances.DistanceResult`.
 
         Examples:
 
             >>> balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
-            >>> plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+            >>> plt_engine = PlotEngine(balance_engine)
             >>> point = np.array(
             ...     [10.0, 5.0, 2.0]
             ... )  # Absolute coordinates of the point to analyze
@@ -580,30 +560,13 @@ class PlotEngine(Observer):
             # ...get a distance result object with the distance and closest point coordinates
             >>> fig.show()
         """
-        # Validate inputs and convert relative coordinates to absolute
-        point = np.asarray(point)
-        if point.shape != (3,):
-            raise ValueError("point must be a 1D array of shape (3,)")
-
-        # Get support points
-        ground_supports = self.section_pts.supports_ground_coords.copy()
-        if span_index < 0 or span_index >= len(ground_supports) - 1:
-            raise IndexError(
-                f"span_index {span_index} out of range [0, {len(ground_supports) - 2}]"
-            )
-
-        self.distance_engine.add_span_frame(
-            ground_supports[span_index], ground_supports[span_index + 1]
-        )
-        self.distance_engine.add_curves(
-            self.section_pts.get_spans(frame="section").coords[span_index]
-        )
-        distance_result = self.distance_engine.plane_distance(
-            point, frame="span"
+        distance_result = self.position_engine.point_distance(
+            span_index, point
         )
 
         if fig is not None:
-            self.distance_engine.plot(
+            plot_distance_engine(
+                self.position_engine.distance_engine,
                 distance_result=distance_result,
                 fig=fig,
                 show_plane=True,
@@ -611,8 +574,6 @@ class PlotEngine(Observer):
                 title_addendum=f" - Span {span_index}",
                 force_layout=True,
             )
-
-            # Update layout
             fig.update_layout(
                 title=f"Point Distance Analysis - Span {span_index}",
                 scene=dict(
@@ -628,14 +589,8 @@ class PlotEngine(Observer):
         return distance_result
 
     def __str__(self) -> str:
-        return (
-            f"number of supports: {self.section_array.data.span_length.shape[0]}\n"
-            f"parameter: {self.span_model.parameter}\n"
-            f"wind: {self.cable_loads.wind_pressure}\n"
-            f"ice: {self.cable_loads.ice_thickness}\n"
-            f"beta: {self.beta}\n"
-        )
+        return str(self.position_engine)
 
     def __repr__(self) -> str:
         class_name = type(self).__name__
-        return f"{class_name}\n{self.__str__()}"
+        return f"{class_name}\n{self.position_engine.__str__()}"

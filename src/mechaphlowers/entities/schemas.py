@@ -41,7 +41,7 @@ class SectionArrayInput(pa.DataFrameModel):
         coerce=True,
     )
     load_position: pdt.Series[float] | None = pa.Field(
-        nullable=True, coerce=True
+        nullable=True, coerce=True, ge=0, le=1
     )
     ground_altitude: pdt.Series[float] | None = pa.Field(
         nullable=True, coerce=True

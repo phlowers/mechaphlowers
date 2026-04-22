@@ -129,6 +129,13 @@ $$
 with $L = L_M + L_N$ the total cable length. These expressions provide a global and local understanding of
 how the forces are distributed along the cable, essential for analyzing strain and deformation.
 
+#### 3. Sags
+
+Two sags are implemented and are explained in the following chart.
+
+![cable sags computation](./assets/compute_sags.drawio.png "Cable sags computation image")
+
+
 ### Additional models
 
 #### Parabola model

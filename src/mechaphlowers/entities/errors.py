@@ -65,5 +65,13 @@ class BalanceEngineWarning(UserWarning):
     """Base class for balance-related warnings."""
 
 
+class ViewChoiceWarning(UserWarning):
+    """Base class for choice of view (ex: choice of support or span view)."""
+
+
 class RtsDataNotAvailable(ValueError):
     """Raised when RTS catalog data (rts_cable, rts_layer_*) is missing or NaN."""
+
+
+class MeasurementDataNotAvailable(ValueError):
+    """Raised when measurement data are not available for computation."""

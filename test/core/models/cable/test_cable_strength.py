@@ -24,14 +24,14 @@ from mechaphlowers.entities.errors import RtsDataNotAvailable
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.integration_test
+@pytest.mark.integration
 def test_rrts() -> None:
     """With no cut strands, RRTS equals rts_cable from the catalog."""
     cable: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
     assert cable.rrts == 200000
 
 
-@pytest.mark.integration_test
+@pytest.mark.integration
 def test_coverage_rrts() -> None:
     """rts_coverage is close to 0.976 for ASTER600 (sum of strand RTS / cable RTS)."""
     cable: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
@@ -39,7 +39,7 @@ def test_coverage_rrts() -> None:
     assert abs(cable_rrts - 0.976) < 0.01
 
 
-@pytest.mark.integration_test
+@pytest.mark.integration
 def test_cut_strands(balance_engine_base_test) -> None:
     """cut_strands reduces RRTS and changes utilization rate accordingly."""
     cable: CableArray = sample_cable_catalog.get_as_object(["ASTER600"])
@@ -62,7 +62,7 @@ def test_cut_strands(balance_engine_base_test) -> None:
     )
 
 
-@pytest.mark.integration_test
+@pytest.mark.integration
 def test_high_safety_rrts() -> None:
     """high_safety multiplies the safety coefficient by 1.5."""
     cable: CableArray = copy(sample_cable_catalog.get_as_object(["ASTER600"]))
@@ -87,7 +87,7 @@ def test_high_safety_rrts() -> None:
     options.data.safety_security_factor = 1.5
 
 
-@pytest.mark.integration_test
+@pytest.mark.integration
 def test_utilization_rate(balance_engine_base_test) -> None:
     """utilization_rate returns expected percentages for ASTER600."""
     cable = sample_cable_catalog.get_as_object(["ASTER600"])

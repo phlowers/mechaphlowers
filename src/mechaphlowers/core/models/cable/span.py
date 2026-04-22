@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Literal, Self, Type
 
@@ -148,8 +150,11 @@ class ISpan(ABC):
         are called during solver iterations.
         """
         self._x_m = self.compute_x_m()
-        self._x_n = self.compute_x_n()
-        self._L = self.compute_L()
+        # Optimisation: not using compute_x_n() and compute_L()
+        # to avoid calling compute_x_m() many times
+        self._x_n = self.span_length + self._x_m
+        p = self.sagging_parameter
+        self._L = p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
 
     def mirror(self, span_model: Self) -> None:
         """Copy attributes from an other ISpan object.
@@ -181,6 +186,22 @@ class ISpan(ABC):
         self.load_coefficient = span_model.load_coefficient
         self.span_index = span_model.span_index
         self.span_type = span_model.span_type
+
+    def __copy__(self) -> Self:
+        new = object.__new__(type(self))
+        new.span_length = self.span_length.copy()
+        new.elevation_difference = self.elevation_difference.copy()
+        new.sagging_parameter = self.sagging_parameter.copy()
+        new.load_coefficient = self.load_coefficient.copy()
+        new.linear_weight = self.linear_weight
+        new.span_index = self.span_index.copy()
+        new.span_type = self.span_type.copy()
+        new.loads_indices = (
+            self.loads_indices[0].copy(),
+            self.loads_indices[1].copy(),
+        )
+        new.compute_values()
+        return new
 
     @property
     def x_m(self):
@@ -256,12 +277,13 @@ class ISpan(ABC):
         In other words: opposite of the abscissa of the left hanging point.
         """
 
-    @abstractmethod
     def compute_x_n(self) -> np.ndarray:
         """Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
 
         In other words: abscissa of the right hanging point.
         """
+        a = self.span_length
+        return a + self.compute_x_m()
 
     @abstractmethod
     def x(self, resolution: int) -> np.ndarray:
@@ -286,7 +308,8 @@ class ISpan(ABC):
 
     @abstractmethod
     def compute_L(self) -> np.ndarray:
-        """Total length of the cable."""
+        """Total length of the cable.
+        Should be called after calling compute_x_m and compute_x_n if x_n or x_m have changed"""
 
     @abstractmethod
     def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
@@ -366,6 +389,27 @@ class ISpan(ABC):
         Tm_Tn = np.array([self.T(x_m), self.T(x_n)])
         return (np.max(Tm_Tn, axis=0), np.min(Tm_Tn, axis=0))
 
+    @abstractmethod
+    def sag(self) -> np.ndarray:
+        """Sag of the cable span (s1 formula).
+
+        The sag is the maximum perpendicular distance between the cable and the chord
+        connecting both attachment points.
+
+        Returns:
+            np.ndarray: sag value for each span.
+        """
+
+    @abstractmethod
+    def sag_s2(self) -> np.ndarray:
+        """Sag of the cable span, computed with the s2 formula.
+
+        The sag s2 is the maximum perpendicular distance between the lowest point of the cable and the lowest hanging point.
+
+        Returns:
+            np.ndarray: sag s2 value for each span.
+        """
+
 
 class CatenarySpan(ISpan):
     """Implementation of a span cable model according to the catenary equation.
@@ -402,11 +446,6 @@ class CatenarySpan(ISpan):
         p = self.parameter
         # return error if linear_weight = None?
         return -a / 2 + p * np.arcsinh(b / (2 * p * np.sinh(a / (2 * p))))
-
-    def compute_x_n(self):
-        # move in superclass?
-        a = self.span_length
-        return a + self.compute_x_m()
 
     def x(self, resolution: int = 10) -> np.ndarray:
         """x_coordinate for catenary generation in cable frame
@@ -537,7 +576,9 @@ class CatenarySpan(ISpan):
         # move in superclass?
         """Total length of the cable."""
         p = self.parameter
-        return p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
+        return p * (
+            np.sinh(self.compute_x_n() / p) - np.sinh(self.compute_x_m() / p)
+        )
 
     def T_h(self) -> np.ndarray:
         if self.linear_weight is None:
@@ -608,7 +649,44 @@ class CatenarySpan(ISpan):
         """
         # values are signed: T_h is negative, T_v can be either positive of negative depending on side
         x_extremum = self._x_m if side == 'left' else self._x_n
-        return self.T_v(x_extremum) / self.T_h()
+        return np.atan2(self.T_v(x_extremum), self.T_h())
+
+    def sag(self) -> np.ndarray:
+        """Sag of the cable span (s1 formula).
+
+        The sag is the maximum perpendicular distance between the cable and the chord
+        connecting both attachment points.
+
+        Returns:
+            np.ndarray: sag value for each span.
+        """
+        a = self.span_length
+        b = self.elevation_difference
+        p = self.sagging_parameter
+        # x0g: horizontal distance from left support to the lowest point of the cable
+        x0g = -self.compute_x_m()
+        # x0: abscissa corresponding to the inclined chord reference
+        x0 = p * np.arcsinh(b / a)
+        return (x0g + x0) / a * b + p * (np.cosh(x0g / p) - np.cosh(x0 / p))
+
+    def sag_s2(self) -> np.ndarray:
+        """Sag of the cable span, computed with the s2 formula.
+
+        The sag s2 is the maximum perpendicular distance between the lowest point of the cable and the lowest hanging point.
+
+        Returns:
+            np.ndarray: sag s2 value for each span.
+        """
+
+        self.compute_values()
+        mask = (self.x_m >= 0) | (self.x_n <= 0)
+
+        z_left = self.z_one_point(self._x_m)
+        z_right = self.z_one_point(self._x_n)
+        z_lowest_hanging_point = np.minimum(z_left, z_right)
+        z_lowest_hanging_point[mask] = 0
+
+        return abs(z_lowest_hanging_point)
 
 
 def span_model_builder(

@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from __future__ import annotations
+
 import math
 from math import pi
 from typing import Any, Literal
@@ -42,6 +44,15 @@ class CableLoads:
         self.wind_pressure = wind_pressure
         self.ice_density = ice_density
 
+    def __copy__(self) -> CableLoads:
+        return CableLoads(
+            diameter=self.diameter,
+            linear_weight=self.linear_weight,
+            ice_thickness=self.ice_thickness.copy(),
+            wind_pressure=self.wind_pressure.copy(),
+            ice_density=self.ice_density,
+        )
+
     @property
     def load_angle(self) -> np.ndarray:
         """Load angle (in radians)
@@ -60,7 +71,6 @@ class CableLoads:
         self,
     ) -> np.ndarray:
         """Norm of the force (R) applied on the cable due to weather loads and cable own weight, per meter cable"""
-
         linear_weight = self.linear_weight
         ice_load = self.ice_load
         wind_load = self.wind_load
