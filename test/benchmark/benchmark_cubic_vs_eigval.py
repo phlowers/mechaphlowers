@@ -1,3 +1,9 @@
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+
 """Performance comparison: Cardano vs EigvalBatch cubic solvers.
 
 Uses the same balance-engine context as profile_balance.py
@@ -30,11 +36,12 @@ def setup():
                 "load_mass": [500, 1000, 500, np.nan],
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
+
     engine = BalanceEngine(cable_array=cable, section_array=section_array)
     engine.solve_adjustment()
     return engine
@@ -85,7 +92,7 @@ if __name__ == "__main__":
     results["analytical_real"] = bench("analytical_real")
 
     # Restore default
-    md._cubic_solver = EigvalBatchSolver()
+    md._cubic_solver = md._build_cubic_solver()
 
     print("\n=== Summary ===")
     eigval_ms = results["eigval_batch (LAPACK)"]
