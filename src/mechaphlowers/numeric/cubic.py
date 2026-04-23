@@ -4,6 +4,8 @@ import math
 
 import numpy as np
 
+from mechaphlowers.numeric.cubic_interface import ICubicSolver
+
 
 def multi_cubic(
     a0: np.ndarray,
@@ -198,3 +200,28 @@ def cubic_roots(
         roots = np.where(np.isreal(roots), roots, 0)
         roots = np.max(roots, axis=1)
     return roots
+
+
+class CardanoSolver(ICubicSolver):
+    """Cubic solver using the analytical Cardano method.
+
+    Wraps the existing :func:`cubic_roots` function behind the
+    :class:`~mechaphlowers.numeric.cubic_interface.ICubicSolver` interface.
+    """
+
+    def solve(self, p: np.ndarray, only_max_real: bool = True) -> np.ndarray:
+        """Solve a batch of cubic polynomials using Cardano's analytical method.
+
+        Parameters
+        ----------
+        p : np.ndarray
+            Coefficient array of shape ``(M, 4)``.
+        only_max_real : bool, optional
+            If ``True``, return the largest real root per polynomial.
+
+        Returns
+        -------
+        np.ndarray
+            ``(M,)`` if *only_max_real*, else ``(M, 3)`` complex array.
+        """
+        return cubic_roots(p, only_max_real=only_max_real)
