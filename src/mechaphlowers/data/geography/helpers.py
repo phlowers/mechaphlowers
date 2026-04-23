@@ -155,10 +155,10 @@ def lambert93_to_gps(
     )
 
     long_rad = np.arcsin(sin_phi_it6)
-    lat_rad = gamma / constantes['n'] + constantes['LONG_0'] / 180 * np.pi
+    lat_rad = gamma / constantes['n'] + np.deg2rad(constantes['LONG_0'])
 
-    longitude = lat_rad / np.pi * 180
-    latitude = long_rad / np.pi * 180
+    longitude = np.rad2deg(lat_rad)
+    latitude = np.rad2deg(long_rad)
 
     return (latitude, longitude)
 

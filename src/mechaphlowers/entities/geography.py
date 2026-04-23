@@ -108,6 +108,41 @@ def get_dist_and_angles_from_gps(
     return distances, angles_correct_unit
 
 
+def get_dist_and_angles_from_lambert(
+    lambert_east: np.ndarray,
+    lambert_north: np.ndarray,
+    unit_output_angles: Literal["rad", "deg", "grad"] = "deg",
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compute distances and angles between supports using lambert coordinates.
+
+    Args:
+        lambert_east (np.ndarray): Lambert 93 Easting coordinate.
+        lambert_north (np.ndarray): Lambert 93 Northing coordinate.
+        unit_output_angles (Literal["rad", "deg", "grad"], optional): unit of the output angles. Defaults to "deg".
+
+    Raises:
+        ValueError: If lambert east and north arrays have different lengths, or unit_output_angles is not valid.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: tuple (distance, angles) distance is in meters and angles is anti-clockwise
+    """
+    if len(lambert_east) != len(lambert_north):
+        raise ValueError(
+            "lambert_east and lambert_north must have the same length"
+        )
+    if unit_output_angles not in ["rad", "deg", "grad"]:
+        raise ValueError(
+            "unit_output_angles must be one of 'rad', 'deg', 'grad'"
+        )
+    latitudes_deg, longitudes_deg = lambert93_to_gps(
+        lambert_east, lambert_north
+    )
+
+    return get_dist_and_angles_from_gps(
+        latitudes_deg, longitudes_deg, unit_output_angles
+    )
+
+
 def get_gps_from_arrays(
     start_lat_deg: float,
     start_lon_deg: float,

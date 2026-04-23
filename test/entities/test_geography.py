@@ -18,6 +18,7 @@ from mechaphlowers.entities.errors import GpsNoDataAvailable
 from mechaphlowers.entities.geography import (
     GeoLocator,
     get_dist_and_angles_from_gps,
+    get_dist_and_angles_from_lambert,
     get_gps_from_arrays,
 )
 
@@ -267,8 +268,8 @@ def test_get_dist_and_angles_from_gps_unit_conversion_consistency():
     np.testing.assert_allclose(angles_deg * 200 / 180, angles_grad, atol=1e-9)
 
 
-def test_round_trip():
-    # --- Forward: section geometry → GPS ---
+def test_round_trip_gps_dist():
+    # --- Forward: section geometry -> GPS ---
     # Put 0 at first and last support, because inverse operation can't manage them
     line_angles = np.array([0.0, 10.0, -15.0, 20.0, 0])  # anticlockwise
     span_lengths = np.array([300.0, 400.0, 500.0, 600.0, np.nan])
@@ -281,7 +282,7 @@ def test_round_trip():
         span_length=span_lengths,
     )
 
-    # --- Inverse: GPS → section geometry ---
+    # --- Inverse: GPS -> section geometry ---
     recovered_distances, recovered_angles = get_dist_and_angles_from_gps(
         lats, lons
     )
@@ -419,3 +420,28 @@ def test_geolocator_copy_without_starting_point_raises():
 
     with pytest.raises(GpsNoDataAvailable):
         geolocator_copy.get_gps(_LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy())
+
+
+def test_lambert_to_dist():
+    distances, angles = get_dist_and_angles_from_lambert(
+        _EXPECTED_EASTING, _EXPECTED_NORTHING
+    )
+
+    np.testing.assert_allclose(distances, _SPAN_LENGTHS, atol=1e-3)
+    np.testing.assert_allclose(angles, _LINE_ANGLES_DEG, atol=1e-3)
+
+
+def test_round_trip_lambert():
+    geolocator = GeoLocator()
+    geolocator.set_starting_gps(_START_LAT, _START_LON, _START_AZIMUTH)
+
+    easting, northing = geolocator.get_lambert93(
+        _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
+    )
+
+    distances, angles = get_dist_and_angles_from_lambert(
+        _EXPECTED_EASTING, _EXPECTED_NORTHING
+    )
+
+    np.testing.assert_allclose(distances, _SPAN_LENGTHS, atol=1e-3)
+    np.testing.assert_allclose(angles, _LINE_ANGLES_DEG, atol=1e-3)

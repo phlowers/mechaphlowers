@@ -13,6 +13,7 @@ In practice, support positions may be known as GPS coordinates (latitude / longi
 | `GeoLocator` | Section geometry ➜ GPS / Lambert 93 | Low-level computation class used internally by `SectionArray` |
 | `get_gps_from_arrays` | Section geometry ➜ GPS coordinates | Standalone function |
 | `get_dist_and_angles_from_gps` | GPS coordinates ➜ Section geometry | Standalone function |
+| `get_dist_and_angles_from_lambert` | Lambert 93 ➜ Section geometry | Standalone function |
 
 ---
 
