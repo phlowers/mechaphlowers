@@ -39,12 +39,11 @@ def balance_engine_no_loads(cable_array_AM600: CableArray) -> BalanceEngine:
                 "load_mass": [0, 0, 0, np.nan],
                 "load_position": [0, 0, 0, np.nan],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
 
     return BalanceEngine(
         cable_array=cable_array_AM600,
@@ -68,12 +67,11 @@ def balance_engine_with_loads(cable_array_AM600: CableArray) -> BalanceEngine:
                 "load_mass": [500, 0, 1000, np.nan],
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
 
     return BalanceEngine(
         cable_array=cable_array_AM600,
@@ -136,7 +134,7 @@ def test_plot_add_loads_later(balance_engine_no_loads: BalanceEngine):
         fig.show()
 
     span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
+        plt_engine.coords_calculator.get_points_for_plot()
     )
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
@@ -182,7 +180,7 @@ def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
         fig.show()
 
     span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
+        plt_engine.coords_calculator.get_points_for_plot()
     )
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
@@ -222,12 +220,11 @@ def test_get_loads_coords_4_spans(cable_array_AM600: CableArray):
                 "load_mass": [500, 1000, 0, 0, np.nan],
                 "load_position": [0.2, 0.4, 0.6, 0, np.nan],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
 
     balance_engine = BalanceEngine(
         cable_array=cable_array_AM600,
@@ -285,6 +282,6 @@ def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
         fig.show()
 
     span_points, _, insulators_points = (
-        plt_engine.section_pts.get_points_for_plot()
+        plt_engine.coords_calculator.get_points_for_plot()
     )
     assert_cable_linked_to_attachment(span_points, insulators_points)

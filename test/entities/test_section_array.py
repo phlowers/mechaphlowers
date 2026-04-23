@@ -16,6 +16,7 @@ from pandas.testing import assert_frame_equal
 from mechaphlowers.config import options
 from mechaphlowers.data.geography.helpers import gps_to_lambert93
 from mechaphlowers.entities.arrays import (
+    DefaultValueWarning,
     SectionArray,
 )
 from mechaphlowers.entities.errors import DataWarning
@@ -165,7 +166,7 @@ def test_compute_elevation_difference() -> None:
             0,
         ]
         * 4,
-        "insulator_length": [0, 4.0, 3.0, 0],
+        "insulator_length": [0.01, 4.0, 3.0, 0.01],
         "span_length": [50, 100, 500, np.nan],
         "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
     }
@@ -208,6 +209,7 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15] * 4,
+            "bundle_number": [1] * 4,
         },
     )
 
@@ -259,6 +261,7 @@ def test_section_array__data_with_optional() -> None:
             "load_mass": [500, 1000, 500, np.nan],
             "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
             "load_position": [0.2, 0.4, 0.6, np.nan],
+            "bundle_number": [1] * 4,
         },
     )
 
@@ -311,6 +314,7 @@ def test_section_array__wrong_ground_altitude() -> None:
             "load_mass": [500, 1000, 500, np.nan],
             "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
             "load_position": [0.2, 0.4, 0.6, np.nan],
+            "bundle_number": [1] * 4,
         },
     )
 
@@ -332,10 +336,10 @@ def test_section_array__data_without_sagging_properties(
         options.data.sagging_temperature_default
         * np.ones(len(section_array_without_temperature.data)),
     )
-
-    section_array_without_parameter = SectionArray(
-        data=df, sagging_temperature=15
-    )
+    with pytest.warns(DefaultValueWarning):
+        section_array_without_parameter = SectionArray(
+            data=df, sagging_temperature=15
+        )
     np.testing.assert_allclose(
         section_array_without_parameter.data.sagging_parameter,
         section_array_without_parameter.equivalent_span()
@@ -348,7 +352,9 @@ def test_section_array__data_without_sagging_properties(
 
 def test_section_array__data_original(section_array_input_data: dict) -> None:
     df = pd.DataFrame(section_array_input_data)
-    section_array = SectionArray(data=df)
+    section_array = SectionArray(
+        data=df, sagging_parameter=2000, sagging_temperature=15
+    )
 
     exported_data = section_array.data_original
 
@@ -559,9 +565,10 @@ def test_correct_insulator_length(section_array: SectionArray) -> None:
 
     # test on .data property
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
-    np.testing.assert_allclose(
-        section_array.data.insulator_length, expected_lengths
-    )
+    # warning expected in the test
+    with pytest.warns(DataWarning):
+        insulator_length = section_array.data.insulator_length
+    np.testing.assert_allclose(insulator_length, expected_lengths)
 
     # nothing to correct
     section_array._data.insulator_length = np.array([0.01, 4.0, 3.2, 0.01])
@@ -633,3 +640,23 @@ def test_section_array_angle_sense() -> None:
     np.testing.assert_allclose(
         section_array.data.crossarm_length, expected_crossarm_length
     )
+
+
+def test_create_section_bundle_number(
+    section_array_input_data: dict,
+) -> None:
+    section_array = SectionArray(
+        pd.DataFrame(section_array_input_data),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+        bundle_number=2,
+    )
+    assert section_array.bundle_number == 2
+
+    with pytest.raises(ValueError):
+        section_array = SectionArray(
+            pd.DataFrame(section_array_input_data),
+            sagging_parameter=2_000,
+            sagging_temperature=15,
+            bundle_number=0,
+        )

@@ -8,6 +8,7 @@ import logging
 import warnings
 from abc import ABC
 from copy import copy
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -19,6 +20,10 @@ from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.errors import DataWarning
 from mechaphlowers.entities.geography import GeoLocator
+from mechaphlowers.entities.geography import get_gps_from_arrays
+
+if TYPE_CHECKING:
+    from mechaphlowers.core.models.cable.cable_strength import ITensileStrength
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     ObstacleArrayInput,
@@ -77,6 +82,9 @@ class ElementArray(ABC):
         """Returns a copy of self._data that converts values into SI units"""
         data_SI = self._data.copy()
         for column, input_unit in self.input_units.items():
+            # input_units lists every column that might need conversion, but columns can be optional. If a column is missing, we just skip it.
+            if column not in data_SI.columns:
+                continue
             data_SI[column] = (
                 Q_(self._data[column].to_numpy(), input_unit)
                 .to(self.target_units[column])
@@ -123,6 +131,7 @@ class SectionArray(ElementArray):
         "span_length": "m",
         "insulator_mass": "kg",
         "load_mass": "kg",
+        "counterweight_mass": "kg",
     }
 
     def __init__(
@@ -130,6 +139,7 @@ class SectionArray(ElementArray):
         data: pd.DataFrame,
         sagging_parameter: float | None = None,
         sagging_temperature: float | None = None,
+        bundle_number: int = 1,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
 
@@ -145,6 +155,11 @@ class SectionArray(ElementArray):
             self.sagging_temperature = options.data.sagging_temperature_default
         else:
             self.sagging_temperature = sagging_temperature
+        if bundle_number < 1:
+            raise ValueError(
+                f"bundle_number should be a positive integer. Received: {bundle_number}"
+            )
+        self.bundle_number = bundle_number
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
         self._angles_sense: Literal["clockwise", "anticlockwise"] = (
@@ -221,6 +236,7 @@ class SectionArray(ElementArray):
                 elevation_difference=self.compute_elevation_difference(),
                 sagging_parameter=sagging_parameter,
                 sagging_temperature=self.sagging_temperature,
+                bundle_number=self.bundle_number,
             )
 
     def create_column_weight(
@@ -347,11 +363,24 @@ class SectionArray(ElementArray):
 class CableArray(ElementArray):
     """Physical description of a cable.
 
+    Holds catalog data for one cable type and provides RRTS (Residual Rated
+    Tensile Strength) calculations via [`rrts`][mechaphlowers.entities.arrays.CableArray.rrts] and [`utilization_rate`][mechaphlowers.entities.arrays.CableArray.utilization_rate].
+    Use [`cut_strands`][mechaphlowers.entities.arrays.CableArray.cut_strands] to declare the number of damaged strands per layer.
+
+    The tensile strength model is handled by
+    [`AdditiveLayerRts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts]
+    by default, but any [`ITensileStrength`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength] implementation
+    can be injected via the ``tensile_strength`` constructor argument.
+
     Args:
-            data: Input data
+        data: Input data as a DataFrame matching
+            [`CableArrayInput`][mechaphlowers.entities.schemas.CableArrayInput].
+        tensile_strength: Optional tensile strength model. Defaults to
+            [`AdditiveLayerRts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts].
     """
 
     array_input_type: Type[pa.DataFrameModel] = CableArrayInput
+
     target_units: dict[str, str] = {
         "section": "m^2",
         "diameter": "m",
@@ -375,6 +404,15 @@ class CableArray(ElementArray):
         "electric_resistance_20": "ohm.m**-1",
         "linear_resistance_temperature_coef": "K**-1",
         "radial_thermal_conductivity": "W.m**-1.K**-1",
+        "rts_cable": "N",
+        "rts_layer_1": "N",
+        "rts_layer_2": "N",
+        "rts_layer_3": "N",
+        "rts_layer_4": "N",
+        "rts_layer_5": "N",
+        "rts_layer_6": "N",
+        "rts_layer_7": "N",
+        "rts_layer_8": "N",
     }
     mecha_attributes = [
         "section",
@@ -416,11 +454,85 @@ class CableArray(ElementArray):
     def __init__(
         self,
         data: pd.DataFrame,
+        tensile_strength: "ITensileStrength | None" = None,
     ) -> None:
         super().__init__(data)
         self.input_units: dict[str, str] = (
             options.input_units.cable_array.copy()
         )
+        if tensile_strength is None:
+            from mechaphlowers.core.models.cable.cable_strength import (
+                AdditiveLayerRts,
+            )  # noqa: PLC0415
+
+            self._tensile_strength: ITensileStrength = AdditiveLayerRts(
+                self.data
+            )
+        else:
+            self._tensile_strength = tensile_strength
+
+    # ------------------------------------------------------------------
+    # Delegation: tensile strength model
+    # ------------------------------------------------------------------
+
+    @property
+    def high_safety(self) -> bool:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.high_safety`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.high_safety].
+        """
+        return self._tensile_strength.high_safety
+
+    @high_safety.setter
+    def high_safety(self, value: bool) -> None:
+        self._tensile_strength.high_safety = value
+
+    @property
+    def safety_coefficient(self) -> float:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.safety_coefficient`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.safety_coefficient].
+        """
+        return self._tensile_strength.safety_coefficient
+
+    @property
+    def nb_strand_per_layer(self) -> np.ndarray:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.nb_strand_per_layer`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.nb_strand_per_layer].
+        """
+        return self._tensile_strength.nb_strand_per_layer
+
+    def rts_coverage(self) -> float:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.rts_coverage`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.rts_coverage].
+        """
+        return self._tensile_strength.rts_coverage()
+
+    @property
+    def cut_strands(self) -> np.ndarray:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.cut_strands`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.cut_strands].
+        """
+        return self._tensile_strength.cut_strands
+
+    @cut_strands.setter
+    def cut_strands(self, value: list[int] | np.ndarray) -> None:
+        self._tensile_strength.cut_strands = np.asarray(value)
+
+    @property
+    def rrts(self) -> float:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.rrts`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.rrts].
+        """
+        return self._tensile_strength.rrts
+
+    def utilization_rate(self, tension_sup_N: np.ndarray) -> np.ndarray:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.utilization_rate`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.utilization_rate].
+        """
+        return self._tensile_strength.utilization_rate(tension_sup_N)
+
+    # ------------------------------------------------------------------
+    # End Delegation
+    # ------------------------------------------------------------------
 
     @property
     def data(self) -> pd.DataFrame:

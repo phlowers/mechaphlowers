@@ -55,12 +55,11 @@ def test_load_all_spans_wind_ice_temp_profiling():
                 "load_mass": [500, 1000, 500, np.nan],
                 "load_position": [0.2, 0.4, 0.6, np.nan],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
-
     section_3d_angles_arm = BalanceEngine(
         cable_array=cable_AM600, section_array=section_array
     )
@@ -96,10 +95,10 @@ def test_many_spans(cable_array_AM600: CableArray):
                 "load_mass": [0] * nb_spans,
                 "load_position": [0] * nb_spans,
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
 
     balance_engine = BalanceEngine(
         cable_array=cable_array_AM600,
@@ -131,10 +130,10 @@ def test_many_spans_with_load(cable_array_AM600: CableArray):
                 "load_mass": [500 / 9.81] * nb_spans,
                 "load_position": [0.5] * nb_spans,
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
 
     balance_engine = BalanceEngine(
         cable_array=cable_array_AM600,

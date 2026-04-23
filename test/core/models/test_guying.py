@@ -97,6 +97,54 @@ section_array_big_angles = SectionArray(
 )
 section_array_big_angles.add_units({"line_angle": "grad"})
 
+section_array_counterweight = SectionArray(
+    pd.DataFrame(
+        {
+            "name": ["1", "2", "3", "4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [30, 50, 60, 65],
+            "crossarm_length": [0, 10, -10, 0],
+            "line_angle": [0, 20, 30, 0],
+            "insulator_length": [0.01, 3, 3, 0.01],
+            "span_length": [500, 300, 400, np.nan],
+            "insulator_mass": convert_weight_to_mass([1000, 500, 500, 1000]),
+            "load_mass": [0, 0, 0, 0],
+            "load_position": [0, 0, 0, 0],
+            "counterweight_mass": convert_weight_to_mass(
+                [
+                    0,
+                    10000,
+                    10000,
+                    0,
+                ]
+            ),
+        }
+    ),
+    sagging_parameter=2000,
+    sagging_temperature=15,
+)
+section_array_counterweight.add_units({"line_angle": "grad"})
+
+section_array_bundle_number = SectionArray(
+    pd.DataFrame(
+        {
+            "name": ["1", "2", "3", "4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [30, 50, 60, 65],
+            "crossarm_length": [0, 10, -10, 0],
+            "line_angle": [0, 20, 30, 0],
+            "insulator_length": [0.01, 3, 3, 0.01],
+            "span_length": [500, 300, 400, np.nan],
+            "insulator_mass": convert_weight_to_mass([1000, 500, 500, 1000]),
+            "load_mass": [0, 0, 0, 0],
+            "load_position": [0, 0, 0, 0],
+        }
+    ),
+    sagging_parameter=2000,
+    sagging_temperature=15,
+    bundle_number=3,
+)
+section_array_bundle_number.add_units({"line_angle": "grad"})
 
 expected_guying_left_flat = {
     "guying_tension": Q_(4119.0, "daN"),
@@ -169,6 +217,34 @@ expected_guying_pulley_left_angles = {
     "guying_angle_degrees": Q_(51.1, "degrees"),
 }
 
+expected_guying_counterweight = {
+    "guying_tension": Q_(5009.0, "daN"),
+    "vertical_force": Q_(4867.0, "daN"),
+    "longitudinal_force": Q_(0, "daN"),
+    "guying_angle_degrees": Q_(45.2, "degrees"),
+}
+
+expected_guying_counterweight_pulley = {
+    "guying_tension": Q_(3534.0, "daN"),
+    "vertical_force": Q_(3821.0, "daN"),
+    "longitudinal_force": Q_(1039.0, "daN"),
+    "guying_angle_degrees": Q_(45.2, "degrees"),
+}
+
+expected_guying_bundle_number = {
+    "guying_tension": Q_(15129.0, "daN"),
+    "vertical_force": Q_(11637.0, "daN"),
+    "longitudinal_force": Q_(0, "daN"),
+    "guying_angle_degrees": Q_(45.5, "degrees"),
+}
+
+expected_guying_bundle_number_pulley = {
+    "guying_tension": Q_(10603.0, "daN"),
+    "vertical_force": Q_(8406.0, "daN"),
+    "longitudinal_force": Q_(3170.0, "daN"),
+    "guying_angle_degrees": Q_(45.5, "degrees"),
+}
+
 section_array_inputs = [
     (
         section_array_flat,
@@ -205,6 +281,20 @@ section_array_inputs = [
         expected_guying_left_angles,
         expected_guying_pulley_left_angles,
     ),
+    (
+        section_array_counterweight,
+        1,
+        "left",
+        expected_guying_counterweight,
+        expected_guying_counterweight_pulley,
+    ),
+    (
+        section_array_bundle_number,
+        1,
+        "left",
+        expected_guying_bundle_number,
+        expected_guying_bundle_number_pulley,
+    ),
 ]
 
 
@@ -218,6 +308,8 @@ section_array_inputs = [
         "complete_section_array_left",
         "complete_section_array_right",
         "angles_section_array_left",
+        "counterweight_section_array",
+        "bundle_number_section_array",
     ],
 )
 def test_guying_integration(
