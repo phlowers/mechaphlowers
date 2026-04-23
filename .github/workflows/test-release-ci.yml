@@ -55,7 +55,7 @@ jobs:
           fetch-depth: 0 # Disable shallow clones to improve sonarcloud analysis
 
       - name: ⚙️ Install uv and Set up Python
-        uses: astral-sh/setup-uv@v7.2.1
+        uses: astral-sh/setup-uv@v8.1.0
         with:
           # Install a specific version of uv.
           version: "0.9.28"
@@ -86,7 +86,7 @@ jobs:
           uv run pytest --cov-report xml --cov=mechaphlowers test/ -m "not benchmark"
 
       - name: ✔️ Run Sonar analysis
-        uses: SonarSource/sonarqube-scan-action@v7.0.0
+        uses: SonarSource/sonarqube-scan-action@v7.1.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_MPH }}
@@ -127,7 +127,7 @@ jobs:
         with:
           fetch-depth: 0 # Disable shallow clones to improve sonarcloud analysis
       - name: ⚙️ Install uv and Set up Python
-        uses: astral-sh/setup-uv@v7.2.1
+        uses: astral-sh/setup-uv@v8.1.0
         with:
           # Install a specific version of uv.
           version: "0.9.28"
