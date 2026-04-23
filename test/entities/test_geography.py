@@ -17,6 +17,7 @@ from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.errors import GpsNoDataAvailable
 from mechaphlowers.entities.geography import (
     GeoLocator,
+    get_azimuth_from_gps,
     get_dist_and_angles_from_gps,
     get_dist_and_angles_from_lambert,
     get_gps_from_arrays,
@@ -445,3 +446,12 @@ def test_round_trip_lambert():
 
     np.testing.assert_allclose(distances, _SPAN_LENGTHS, atol=1e-3)
     np.testing.assert_allclose(angles, _LINE_ANGLES_DEG, atol=1e-3)
+
+
+def test_get_azimuth_from_gps():
+    lats = np.array(
+        [48.8566, 48.86109661, 48.86109641, 48.8565998, 48.8565996]
+    )
+    lons = np.array([2.3522, 2.3522, 2.34536507, 2.34536507, 2.35219939])
+    azimuth = get_azimuth_from_gps(lats, lons, unit="deg")
+    np.testing.assert_allclose(azimuth, np.array([0, 90, 180, 270]), atol=1e-4)
