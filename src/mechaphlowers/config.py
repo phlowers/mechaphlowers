@@ -118,6 +118,7 @@ class GroundConfig:
     """Configuration class about ground."""
 
     default_support_length: float = 30.0
+    foot_to_ground_clearance: float = 0.2
 
 
 class LogConfig:
@@ -171,6 +172,8 @@ class InputUnitsConfig:
             "insulator_length": "m",
             "span_length": "m",
             "insulator_mass": "kg",
+            "x_offset": "m",
+            "support_height": "m",
         }
     )
 

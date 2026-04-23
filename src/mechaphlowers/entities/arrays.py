@@ -22,6 +22,7 @@ from mechaphlowers.entities.geography import get_gps_from_arrays
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.cable.cable_strength import ITensileStrength
+from mechaphlowers.entities.equipment import Spacer
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     ObstacleArrayInput,
@@ -130,6 +131,8 @@ class SectionArray(ElementArray):
         "insulator_mass": "kg",
         "load_mass": "kg",
         "counterweight_mass": "kg",
+        "x_offset": "m",
+        "support_height": "m",
     }
 
     def __init__(
@@ -138,6 +141,7 @@ class SectionArray(ElementArray):
         sagging_parameter: float | None = None,
         sagging_temperature: float | None = None,
         bundle_number: int = 1,
+        spacer: Spacer | None = None,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
 
@@ -158,6 +162,7 @@ class SectionArray(ElementArray):
                 f"bundle_number should be a positive integer. Received: {bundle_number}"
             )
         self.bundle_number = bundle_number
+        self.spacer = spacer if spacer is not None else Spacer()
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
         self._angles_sense: Literal["clockwise", "anticlockwise"] = (
@@ -171,10 +176,23 @@ class SectionArray(ElementArray):
         return (right_support_height - left_support_height).to_numpy()
 
     def compute_ground_altitude(self) -> np.ndarray:
-        """Generate ground altitude array using attachment altitude, and arbitrary a support length."""
+        """Generate ground altitude array using attachment altitude, insulator length, support height and spacer."""
+        support_height = (
+            self._data["support_height"]
+            .fillna(options.ground.default_support_length)
+            .to_numpy()
+            if "support_height" in self._data.columns
+            else np.full(
+                len(self._data), options.ground.default_support_length
+            )
+        )
+        foot_to_ground_clearance = options.ground.foot_to_ground_clearance
         return (
             self._data["conductor_attachment_altitude"].to_numpy()
-            - options.ground.default_support_length
+            + self._data["insulator_length"].to_numpy()
+            - support_height
+            + self.spacer.height(self.bundle_number)
+            - foot_to_ground_clearance
         )
 
     def correct_insulator_length(self) -> None:
@@ -220,6 +238,10 @@ class SectionArray(ElementArray):
         self.create_column_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
         data_output = self._adjust_angle_sense(data_output)
+        if "support_height" not in data_output.columns:
+            data_output["support_height"] = (
+                options.ground.default_support_length
+            )
         if self.sagging_parameter is None or self.sagging_temperature is None:
             raise AttributeError(
                 "Cannot return data: sagging_parameter and sagging_temperature are needed"

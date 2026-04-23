@@ -11,6 +11,9 @@ This paragraph describes the input data and the associated format needed to perf
 
 In mechaphlowers a line section is described by the following data:
 
+
+
+
 - a sagging parameter, denoted later as $p$,
 - a sagging temperature (in Celsius degrees)
 - for each support:
@@ -21,8 +24,10 @@ In mechaphlowers a line section is described by the following data:
     - the line angle (in degrees)
     - the insulator length
     - the insulator mass
-    - an optional field ground altitude
+    - an optional field `ground_altitude`
     - an optional counterweight
+    - an optional `support_height` (in meters, non-negative) — height of the support structure
+    - an optional `x_offset` (in meters) — longitudinal offset of the attachment point
 - for each span:
     - the span length, denoted later as $a$.
 
@@ -34,8 +39,17 @@ In mechaphlowers a line section is described by the following data:
 !!! Warning
 
     Ground altitude is optional because it is autofilled if not provided.  
-    Autofill rule: **ground_altitude = conductor_attachment_altitude - options_paramater**.  
-    options_parameter is globally defined in options.ground.default_support_length and can be modified by user.
+    Autofill rule:
+
+    $$
+    \text{ground\_altitude} = \text{conductor\_attachment\_altitude} + \text{insulator\_length} - \text{support\_height} + \text{spacer\_height} - \text{foot\_to\_ground\_clearance}
+    $$
+
+    Where:
+
+    - `support_height` is taken from the column if provided, otherwise from `options.ground.default_support_length` (default: 30 m).
+    - `spacer_height` is the height contribution of the `Spacer` equipment (default: 0.2 m for bundle numbers 3 and 4, else 0 m).
+    - `foot_to_ground_clearance` is defined in `options.ground.foot_to_ground_clearance` (default: 0.2 m). It is also called OO' distance.
 
 
 !!! Angle orientation convention
@@ -100,6 +114,41 @@ When creating a SectionArray, you may add a `bundle_number` argument. `bundle_nu
 
 
     section_array = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15, bundle_number=2)
+
+## Equipment
+
+Equipments are physical objects installed on the line that influence geometry calculations. They are passed to `SectionArray` at construction time.
+
+### Spacer
+
+A `Spacer` maintains separation between conductors in a bundle. It contributes to the `ground_altitude` computation when the bundle number is 3 or 4 (triangular or square bundles), adding its length (in meters) to the altitude offset.
+
+For bundle numbers 1 and 2, the spacer contribution is zero.
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `length`  | 0.2 m   | Physical length of the spacer |
+
+```python
+from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.equipment import Spacer
+
+# Default spacer (length=0.2 m)
+spacer = Spacer()
+
+# Custom spacer
+spacer = Spacer(length=0.35)
+
+section_array = SectionArray(
+    input_df,
+    sagging_parameter=2_000,
+    sagging_temperature=15,
+    bundle_number=3,
+    spacer=spacer,
+)
+```
+
+If no `spacer` is provided, a default `Spacer()` is used automatically.
 
 ## Cable
 

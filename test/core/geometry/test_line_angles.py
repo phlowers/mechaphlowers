@@ -109,13 +109,15 @@ def test_get_supports_ground_coords_default_alt():
     )
     expected_coords = np.array(
         [
-            [0.0, 0.0, 0.0],
-            [500.0, 0.0, 5.0],
-            [825.26911935, -325.26911935, -8.0],
-            [1327.55054902, -190.68321589, 40.0],
+            [0.000000e00, 0.000000e00, -1.900000e-01],
+            [5.000000e02, 0.000000e00, 9.800000e00],
+            [8.252691e02, -3.252691e02, 2.980000e01],
+            [1.327551e03, -1.906832e02, 3.981000e01],
         ]
     )
-    np.testing.assert_allclose(supports_ground_coords, expected_coords)
+    np.testing.assert_allclose(
+        supports_ground_coords, expected_coords, atol=0.001
+    )
 
     # import plotly.graph_objects as go
     # from mechaphlowers.plotting.plot import plot_points_3d

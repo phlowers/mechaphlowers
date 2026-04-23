@@ -16,6 +16,7 @@ from mechaphlowers.entities.arrays import (
     DefaultValueWarning,
     SectionArray,
 )
+from mechaphlowers.entities.equipment import Spacer
 from mechaphlowers.entities.errors import DataWarning
 
 
@@ -202,15 +203,18 @@ def test_section_array__data(section_array_input_data: dict) -> None:
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
-            "ground_altitude": [-27.8, -25.0, -30.12, -30.0],
+            "ground_altitude": [-27.99, -21.2, -27.12, -30.19],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15] * 4,
             "bundle_number": [1] * 4,
+            "support_height": [30.0, 30.0, 30.0, 30.0],
         },
     )
 
-    assert_frame_equal(exported_data, expected_data, atol=1e-07)
+    assert_frame_equal(
+        exported_data, expected_data, atol=1e-07, check_like=True
+    )
     # section_array inner data shouldn't have been modified
     assert_frame_equal(section_array._data, inner_data)
 
@@ -259,6 +263,7 @@ def test_section_array__data_with_optional() -> None:
             "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
             "load_position": [0.2, 0.4, 0.6, np.nan],
             "bundle_number": [1] * 4,
+            "support_height": [30.0, 30.0, 30.0, 30.0],
         },
     )
 
@@ -305,13 +310,14 @@ def test_section_array__wrong_ground_altitude() -> None:
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
-            "ground_altitude": [0.0, -25.0, -1.0, -30.0],
+            "ground_altitude": [0.0, -21.2, -1.0, -30.19],
             "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15] * 4,
             "load_mass": [500, 1000, 500, np.nan],
             "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
             "load_position": [0.2, 0.4, 0.6, np.nan],
             "bundle_number": [1] * 4,
+            "support_height": [30.0, 30.0, 30.0, 30.0],
         },
     )
 
@@ -506,9 +512,154 @@ def test_create_section_bundle_number(
     assert section_array.bundle_number == 2
 
     with pytest.raises(ValueError):
-        section_array = SectionArray(
+        SectionArray(
             pd.DataFrame(section_array_input_data),
             sagging_parameter=2_000,
             sagging_temperature=15,
             bundle_number=0,
         )
+
+
+def test_section_array__x_offset_and_support_height_in_data(
+    section_array_input_data: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    section_array_input_data["x_offset"] = [1.5, -2.0, 0.0, 3.0]
+    section_array_input_data["support_height"] = [10.0, 20.0, 15.0, 5.0]
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(
+        data=df, sagging_parameter=2_000, sagging_temperature=15
+    )
+
+    monkeypatch.setattr(options.ground, "foot_to_ground_clearance", 1.0)
+    assert "x_offset" in section_array._data.columns
+    assert "support_height" in section_array._data.columns
+    assert_allclose(
+        section_array._data["x_offset"].to_numpy(), [1.5, -2.0, 0.0, 3.0]
+    )
+    assert_allclose(
+        section_array._data["support_height"].to_numpy(),
+        [10.0, 20.0, 15.0, 5.0],
+    )
+    assert_allclose(
+        section_array.data["x_offset"].to_numpy(), [1.5, -2.0, 0.0, 3.0]
+    )
+    assert_allclose(
+        section_array.data["support_height"].to_numpy(),
+        [10.0, 20.0, 15.0, 5.0],
+    )
+    assert_allclose(
+        section_array.data.ground_altitude.to_numpy(),
+        np.array([-8.79, -12.0, -12.92, -5.99]),
+    )
+
+
+def test_section_array__support_height_default(
+    section_array_input_data: dict,
+) -> None:
+    """When support_height is not provided, data property should contain it with default 30."""
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(
+        data=df, sagging_parameter=2_000, sagging_temperature=15
+    )
+
+    assert "support_height" not in section_array._data.columns
+    assert "support_height" in section_array.data.columns
+    assert_allclose(
+        section_array.data["support_height"].to_numpy(),
+        [30.0, 30.0, 30.0, 30.0],
+    )
+
+
+def test_section_array__x_offset_absent_when_not_provided(
+    section_array_input_data: dict,
+) -> None:
+    """When x_offset is not provided, it should be absent from both _data and data."""
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(
+        data=df, sagging_parameter=2_000, sagging_temperature=15
+    )
+
+    assert "x_offset" not in section_array._data.columns
+    assert "x_offset" not in section_array.data.columns
+
+
+@pytest.mark.parametrize(
+    "column,value",
+    [
+        ("x_offset", ["1,2"] * 4),
+        ("support_height", ["1,2"] * 4),
+    ],
+)
+def test_create_section_array__wrong_type_optional(
+    section_array_input_data: dict, column: str, value: list
+) -> None:
+    section_array_input_data[column] = value
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pa.errors.SchemaErrors):
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
+
+
+def test_create_section_array__support_height_negative(
+    section_array_input_data: dict,
+) -> None:
+    """support_height must be non-negative (ge=0)."""
+    section_array_input_data["support_height"] = [10.0, -5.0, 15.0, 5.0]
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pa.errors.SchemaErrors):
+        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
+
+
+def test_section_array__spacer_default(section_array_input_data: dict) -> None:
+    """When spacer is not provided, a default Spacer() is created."""
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(
+        data=df, sagging_parameter=2_000, sagging_temperature=15
+    )
+    assert isinstance(section_array.spacer, Spacer)
+    assert section_array.spacer.length == 0.2
+
+
+def test_section_array__spacer_custom(section_array_input_data: dict) -> None:
+    """A custom Spacer passed to SectionArray is stored on the instance."""
+    custom_spacer = Spacer(length=0.5)
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(
+        data=df,
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+        spacer=custom_spacer,
+    )
+    assert section_array.spacer is custom_spacer
+
+
+def test_compute_ground_altitude__spacer_contributes_for_bundle_3(
+    section_array_input_data: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """For bundle_number=3, spacer height is added to ground altitude."""
+    monkeypatch.setattr(options.ground, "foot_to_ground_clearance", 0.0)
+    spacer = Spacer(length=0.3)
+    df = pd.DataFrame(section_array_input_data)
+
+    section_array_bundle1 = SectionArray(
+        data=df,
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+        bundle_number=1,
+        spacer=spacer,
+    )
+    section_array_bundle3 = SectionArray(
+        data=df,
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+        bundle_number=3,
+        spacer=spacer,
+    )
+
+    ground_bundle1 = section_array_bundle1.compute_ground_altitude()
+    ground_bundle3 = section_array_bundle3.compute_ground_altitude()
+
+    assert_allclose(ground_bundle3 - ground_bundle1, 0.3)
