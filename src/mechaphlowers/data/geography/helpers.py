@@ -274,7 +274,7 @@ def haversine(
     return c * RADIUS_EARTH
 
 
-def gps_to_bearing(
+def gps_to_bearing_two_points(
     lat1: np.ndarray,
     lon1: np.ndarray,
     lat2: np.ndarray,

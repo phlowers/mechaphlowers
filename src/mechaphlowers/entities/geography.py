@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -11,7 +11,7 @@ from typing_extensions import Literal
 
 from mechaphlowers.data.geography.helpers import (
     bearing_to_direction,
-    gps_to_bearing,
+    gps_to_bearing_two_points,
     gps_to_lambert93,
     haversine,
     lambert93_to_gps,
@@ -45,7 +45,7 @@ def geo_info_from_gps(lats: np.ndarray, lons: np.ndarray) -> SupportGeoInfo:
     elevations = gps_to_elevation(lats, lons)
     lambert_93_tuples = gps_to_lambert93(lats, lons)
     distances = haversine(lats[:-1], lons[:-1], lats[1:], lons[1:], unit="deg")
-    bearings = gps_to_bearing(
+    bearings = gps_to_bearing_two_points(
         lats[:-1], lons[:-1], lats[1:], lons[1:], unit="deg"
     )
     directions = bearing_to_direction(-bearings)
@@ -58,6 +58,28 @@ def geo_info_from_gps(lats: np.ndarray, lons: np.ndarray) -> SupportGeoInfo:
         bearing_to_next=bearings,
         direction_to_next=directions,
         lambert_93=lambert_93_tuples,
+    )
+
+
+# function exists as a high level function for azimuth
+def get_azimuth_from_gps(
+    lats: np.ndarray,
+    lons: np.ndarray,
+    unit: Literal["rad", "deg"] = "rad",
+) -> np.ndarray:
+    """Get azimuth of spans using gps coordinates of supports
+
+    Args:
+        lats (np.ndarray): array of latitudes of the supports
+        lons (np.ndarray): array of longitudes of the supports
+        unit (Literal["rad", "deg"]): Select the unit to use for both inputs and output. Defaults to "rad"
+
+    Returns:
+        np.ndarray: Bearing angle in degrees from north, anti clockwise (in radians by default)
+    """
+
+    return gps_to_bearing_two_points(
+        lats[:-1], lons[:-1], lats[1:], lons[1:], unit
     )
 
 
@@ -94,7 +116,7 @@ def get_dist_and_angles_from_gps(
     distances = np.append(distances, np.nan)
 
     # first and last angles are not computed
-    bearings_rad = gps_to_bearing(
+    bearings_rad = gps_to_bearing_two_points(
         lats_rad, lons_rad, lats_rolled_rad, lons_rolled_rad
     )
     # convert bearing to angles relative between supports
