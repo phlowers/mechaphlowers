@@ -20,7 +20,6 @@ from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.errors import DataWarning
 from mechaphlowers.entities.geography import GeoLocator
-from mechaphlowers.entities.geography import get_gps_from_arrays
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.cable.cable_strength import ITensileStrength
