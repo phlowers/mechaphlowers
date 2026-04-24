@@ -321,6 +321,17 @@ class SectionArray(ElementArray):
         """
         self.geolocator.set_starting_lambert93(easting, northing, azimuth_0)
 
+    def get_azimuth(self, unit: str = "deg") -> np.ndarray:
+        # TODO: docstring
+        self.geolocator._check_gps_available()
+        line_angles_degrees = (
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        azimuth_deg = (
+            np.cumsum(line_angles_degrees) + self.geolocator._azimuth_0
+        )
+        return Q_(azimuth_deg, "deg").to(unit).m
+
     def get_gps(self) -> tuple[np.ndarray, np.ndarray]:
         """Compute GPS coordinates for all pylons.
 

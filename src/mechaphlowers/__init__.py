@@ -16,6 +16,7 @@ from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.cable.thermal import ThermalEngine
 from mechaphlowers.core.models.guying import Guying
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
+from mechaphlowers.data.geography.helpers import lambert93_to_gps
 from mechaphlowers.data.measures import (
     PapotoParameterMeasure,
     param_calibration,
@@ -61,4 +62,5 @@ __all__ = [
     "get_dist_and_angles_from_gps",
     "get_dist_and_angles_from_lambert",
     "GeoLocator",
+    "lambert93_to_gps",
 ]
