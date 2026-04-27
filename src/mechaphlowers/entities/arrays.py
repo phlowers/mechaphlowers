@@ -322,7 +322,15 @@ class SectionArray(ElementArray):
         self.geolocator.set_starting_lambert93(easting, northing, azimuth_0)
 
     def get_azimuth(self, unit: str = "deg") -> np.ndarray:
-        # TODO: docstring
+        """Compute azimuth angle (or bearing) of the section.
+        0 is toward North. 90 degrees is toward West. (anti-clockwise sense)
+
+        Args:
+            unit (str, optional): Output unit. Defaults to "deg".
+
+        Returns:
+            np.ndarray: array of the azimuth of each span.
+        """
         self.geolocator._check_gps_available()
         line_angles_degrees = (
             Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
