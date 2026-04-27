@@ -6,10 +6,18 @@
 
 import logging
 from abc import ABC, abstractmethod
+from datetime import datetime
+from math import floor
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from thermohl import solver  # type: ignore
+from thermohl.solver.entities import (  # type: ignore
+    PowerType,
+    TemperatureType,
+    VariableType,
+)
 from typing_extensions import Self
 
 from mechaphlowers.entities.arrays import CableArray
@@ -81,19 +89,22 @@ class ThermalTransientResults(ThermalResults):
             raise TypeError(
                 "DataFrame input not supported for transient results parsing."
             )
-        input_size = data["t_avg"].shape
-        out = pd.DataFrame(
+        input_size = data[TemperatureType.AVERAGE].shape
+        return pd.DataFrame(
             {
-                "time": np.tile(data["time"], input_size[1]),
+                "time": np.tile(data[VariableType.TIME], input_size[1]),
                 "id": np.tile(
                     np.arange(input_size[1]), (input_size[0], 1)
                 ).T.flatten(),
-                "t_avg": data["t_avg"].T.flatten(),
-                "t_surf": data["t_surf"].T.flatten(),
-                "t_core": data["t_core"].T.flatten(),
+                "average_temperature": data[
+                    TemperatureType.AVERAGE
+                ].T.flatten(),
+                "surface_temperature": data[
+                    TemperatureType.SURFACE
+                ].T.flatten(),
+                "core_temperature": data[TemperatureType.CORE].T.flatten(),
             }
         )
-        return out
 
 
 class ThermalSteadyResults(ThermalResults):
@@ -108,7 +119,9 @@ class ThermalSteadyResults(ThermalResults):
         super().__init__(input_data)
 
     @staticmethod
-    def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
+    def parse_results(
+        data: dict | pd.DataFrame,
+    ) -> pd.DataFrame:
         """Parse steady-state thermal results into a DataFrame.
 
         Converts raw steady-state thermal output into standardized DataFrame format.
@@ -120,9 +133,22 @@ class ThermalSteadyResults(ThermalResults):
         Returns:
             Parsed results as a pandas DataFrame.
         """
+        column_names = {
+            VariableType.TRANSIT: "transit",
+            TemperatureType.SURFACE: "surface_temperature",
+            TemperatureType.AVERAGE: "average_temperature",
+            TemperatureType.CORE: "core_temperature",
+            PowerType.JOULE: "joule_power",
+            PowerType.SOLAR: "solar_power",
+            PowerType.CONVECTION: "convection_power",
+            PowerType.RADIATION: "radiation_power",
+            PowerType.RAIN: "precipitation_power",
+        }
         if isinstance(data, pd.DataFrame):
-            return data
-        return pd.DataFrame(data)
+            return data.rename(columns=column_names)
+        return pd.DataFrame(
+            {column_names.get(key, key): value for key, value in data.items()}
+        )
 
 
 class ThermalForecastArray:
@@ -147,11 +173,18 @@ class ThermalForecastArray:
 
 
 def check_inputs(
-    **kwargs: np.ndarray,
-) -> tuple[dict[str, np.ndarray], int]:
+    month: np.ndarray[Any, np.dtype[np.integer]] | None = None,
+    day: np.ndarray[Any, np.dtype[np.integer]] | None = None,
+    hour: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]]
+    | None = None,
+    datetime_utc: list[datetime] | None = None,
+    **kwargs: np.ndarray[Any, Any] | list[datetime],
+) -> tuple[dict[str, np.ndarray[Any, Any] | list[datetime]], int]:
     """Validate input parameters.
 
-    Ensures all inputs are numpy arrays with the same size.
+    Ensures all inputs are numpy arrays with the same size and that
+    datetime-related inputs have the right type. Also ensures that
+    month, day and hour, if given, are in the right range.
 
     Args:
         **kwargs: Input parameters as numpy arrays.
@@ -183,10 +216,151 @@ def check_inputs(
                 f"Expected {array_length}, got {value.size} for {key}."
             )
 
+    array_length = check_datetime_arguments(
+        array_length,
+        month=month,
+        day=day,
+        hour=hour,
+        datetime_utc=datetime_utc,
+    )
+
+    if month is not None:
+        kwargs["month"] = month
+    if day is not None:
+        kwargs["day"] = day
+    if hour is not None:
+        kwargs["hour"] = hour
+    if datetime_utc is not None:
+        kwargs["datetime_utc"] = datetime_utc
+
+    return kwargs, array_length
+
+
+def check_datetime_arguments(  # NOSONAR
+    array_length: int | None,
+    month: np.ndarray[Any, np.dtype[np.integer]] | None,
+    day: np.ndarray[Any, np.dtype[np.integer]] | None,
+    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
+    datetime_utc: list[datetime] | None,
+) -> int:
+    if datetime_utc is not None and (
+        month is not None or day is not None or hour is not None
+    ):
+        raise ValueError(
+            "Cannot provide both 'datetime_utc' and individual 'month', 'day', or 'hour' arrays."
+        )
+
+    check_datetime_argument_types(month, day, hour, datetime_utc)
+
+    for arg_name, value in [("month", month), ("day", day), ("hour", hour)]:
+        if value is not None:
+            if not isinstance(value, np.ndarray):
+                raise TypeError(
+                    f"Expected numpy array for '{arg_name}', got {type(value).__name__}."
+                )
+
+            if array_length is None:
+                array_length = value.size
+            elif value.size != array_length:
+                raise ValueError(
+                    f"All array inputs must have the same length. "
+                    f"Expected {array_length}, got {value.size} for {arg_name}."
+                )
+    if datetime_utc is not None:
+        if array_length is None:
+            array_length = len(datetime_utc)
+        elif len(datetime_utc) != array_length:
+            raise ValueError(
+                f"All array inputs must have the same length. "
+                f"Expected {array_length}, got {len(datetime_utc)} for 'datetime_utc'."
+            )
+
+    check_datetime_argument_ranges(
+        month=month,
+        day=day,
+        hour=hour,
+    )
+
     if array_length is None:
         array_length = 0
 
-    return kwargs, array_length
+    return array_length
+
+
+def check_datetime_argument_types(
+    month: np.ndarray[Any, np.dtype[np.integer]] | None,
+    day: np.ndarray[Any, np.dtype[np.integer]] | None,
+    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
+    datetime_utc: list[datetime] | None,
+) -> None:
+    for arg_name, value in [("month", month), ("day", day), ("hour", hour)]:
+        if value is not None and not isinstance(value, np.ndarray):
+            raise TypeError(
+                f"Expected numpy array for '{arg_name}', got {type(value).__name__}."
+            )
+    for arg_name, value in [("month", month), ("day", day)]:
+        if value is not None and not np.issubdtype(value.dtype, np.integer):
+            raise TypeError(
+                f"Expected integer array for '{arg_name}', got {value.dtype}."
+            )
+
+    if hour is not None and not (
+        np.issubdtype(hour.dtype, np.integer)
+        or np.issubdtype(hour.dtype, np.floating)
+    ):
+        raise TypeError(
+            f"Expected integer or float array for 'hour', got {hour.dtype}."
+        )
+
+    if datetime_utc is not None and not isinstance(datetime_utc, list):
+        raise TypeError(
+            f"Expected list of datetime objects for 'datetime_utc', got {type(datetime_utc).__name__}."
+        )
+
+
+def check_datetime_argument_ranges(
+    month: np.ndarray[Any, np.dtype[np.integer]] | None,
+    day: np.ndarray[Any, np.dtype[np.integer]] | None,
+    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
+) -> None:
+    if month is not None and not np.all((1 <= month) & (month <= 12)):
+        raise ValueError(
+            "Month values must be in the range 1-12. Invalid values found in 'month'."
+        )
+    if day is not None and not np.all((1 <= day) & (day <= 31)):
+        raise ValueError(
+            "Day values must be in the range 1-31. Invalid values found in 'day'."
+        )
+    if hour is not None and not np.all((0 <= hour) & (hour < 24)):
+        raise ValueError(
+            "Hour values must be in the range [0-24[. Invalid values found in 'hour'."
+        )
+
+
+def to_datetime(
+    month: np.integer,
+    day: np.integer,
+    hour: np.floating,
+) -> datetime:
+    """Convert month, day, hour to a datetime object.
+
+    Args:
+        month (np.integer): Month value ([1-12]).
+        day (np.integer): Day value ([1-31]).
+        hour (np.floating): Hour value ([0-24[). Can include non-integer hours (e.g. 14.5 for 2:30 PM).
+
+    Returns:
+        datetime: A datetime object representing the given month, day, and hour.
+    """
+    return datetime(
+        1970,  # Arbitrary year since it's not used in calculations
+        month,
+        day,
+        hour=floor(hour),
+        minute=floor((hour % 1) * 60),
+        second=floor(((hour % 1) * 60) % 1 * 60),
+        microsecond=floor((((hour % 1) * 60) % 1 * 60) % 1 * 1000000),
+    )
 
 
 class ThermalEngine:
@@ -195,7 +369,9 @@ class ThermalEngine:
     available_power_model = {
         "rte": solver.rte,
     }
-    available_heat_equation = {"3t": "3t"}
+    available_heat_equation = {
+        "3t": solver.HeatEquationType.THREE_TEMPERATURES
+    }
 
     def __init__(self):
         """Initialize ThermalEngine.
@@ -266,45 +442,65 @@ class ThermalEngine:
             solar_irradiance=solar_irradiance,
         )
 
+        if inputs.get("datetime_utc") is None:
+            datetime_utc = [
+                to_datetime(month, day, hour)
+                for month, day, hour in zip(
+                    inputs["month"], inputs["day"], inputs["hour"]
+                )
+            ]
+        else:
+            datetime_utc = inputs.get("datetime_utc")  # type: ignore
+
         self.dict_input = {
-            "Qs": inputs["solar_irradiance"],
-            "lat": inputs["latitude"],
-            "lon": inputs["longitude"],
-            "alt": inputs["altitude"],
-            "azm": inputs["azimuth"],
-            "month": inputs["month"],
-            "day": inputs["day"],
-            "hour": inputs["hour"],
-            "Ta": inputs["ambient_temp"],
-            "ws": inputs["wind_speed"],  # wind speed (m.s**-1)
-            "wa": inputs["wind_angle"],  # wind angle (deg, regarding north)
+            "measured_global_radiation": inputs["solar_irradiance"],
+            "latitude": inputs["latitude"],
+            "longitude": inputs["longitude"],
+            "altitude": inputs["altitude"],
+            "cable_azimuth": inputs["azimuth"],
+            "datetime_utc": datetime_utc,
+            "ambient_temperature": inputs["ambient_temp"],
+            "wind_speed": inputs["wind_speed"],  # wind speed (m.s**-1)
+            "wind_azimuth": inputs[
+                "wind_angle"
+            ],  # wind angle (deg, regarding north)
             "transit": inputs["intensity"],
-            "m": np.full(self._len, cable_array.data.linear_mass.iloc[0]),
-            "d": np.full(self._len, cable_array.data.diameter_heart.iloc[0]),
-            "D": np.full(self._len, cable_array.data.diameter.iloc[0]),
-            "a": np.full(self._len, cable_array.data.section_heart.iloc[0]),
-            "A": np.full(
+            "linear_mass": np.full(
+                self._len, cable_array.data.linear_mass.iloc[0]
+            ),
+            "core_diameter": np.full(
+                self._len, cable_array.data.diameter_heart.iloc[0]
+            ),
+            "outer_diameter": np.full(
+                self._len, cable_array.data.diameter.iloc[0]
+            ),
+            "core_area": np.full(
+                self._len, cable_array.data.section_heart.iloc[0]
+            ),
+            "outer_area": np.full(
                 self._len, cable_array.data.section_conductor.iloc[0]
             ),
-            "l": np.full(
+            "radial_thermal_conductivity": np.full(
                 self._len, cable_array.data.radial_thermal_conductivity.iloc[0]
             ),
-            "alpha": np.full(
+            "solar_absorptivity": np.full(
                 self._len, cable_array.data.solar_absorption.iloc[0]
             ),
-            "epsilon": np.full(self._len, cable_array.data.emissivity.iloc[0]),
-            "RDC20": np.full(
+            "emissivity": np.full(
+                self._len, cable_array.data.emissivity.iloc[0]
+            ),
+            "linear_resistance_dc_20c": np.full(
                 self._len, cable_array.data.electric_resistance_20.iloc[0]
             ),
-            "kl": np.full(
+            "temperature_coeff_linear": np.full(
                 self._len,
                 cable_array.data.linear_resistance_temperature_coef.iloc[0],
             ),
-            "km": np.full(
+            "magnetic_coeff": np.full(
                 self._len,
                 1.006 if cable_array.data.has_magnetic_heart.iloc[0] else 1.0,
             ),
-            "ki": np.full(
+            "magnetic_coeff_per_a": np.full(
                 self._len,
                 0.016 if cable_array.data.has_magnetic_heart.iloc[0] else 0.0,
             ),
@@ -322,7 +518,8 @@ class ThermalEngine:
         """Load the thermal model with the current input parameters."""
         # expected to fail if arguments are not filled
         self.thermal_model = self.power_model(
-            dic=self.dict_input, heateq=self.heateq
+            dic=self.dict_input,
+            heat_equation=self.heateq,
         )
 
     def steady_temperature(
@@ -366,7 +563,7 @@ class ThermalEngine:
             self.forecast = forecast_control
 
         return ThermalTransientResults(
-            self.thermal_model.transient_temperature(time=self.forecast.time)
+            self.thermal_model.transient_temperature(offset=self.forecast.time)
         )
 
     @property
@@ -379,7 +576,7 @@ class ThermalEngine:
             Angle in degrees between wind direction and cable azimuth.
         """
         return self.compute_wind_attack_angle(
-            self.dict_input["azm"], self.dict_input["wa"]
+            self.dict_input["cable_azimuth"], self.dict_input["wind_azimuth"]
         )
 
     # TODO: move this into thl (formulae in thl.power.convective_cooling line 35)
