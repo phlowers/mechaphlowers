@@ -96,9 +96,13 @@ class ThermalTransientResults(ThermalResults):
                 "id": np.tile(
                     np.arange(input_size[1]), (input_size[0], 1)
                 ).T.flatten(),
-                "t_avg": data[TemperatureType.AVERAGE].T.flatten(),
-                "t_surf": data[TemperatureType.SURFACE].T.flatten(),
-                "t_core": data[TemperatureType.CORE].T.flatten(),
+                "average_temperature": data[
+                    TemperatureType.AVERAGE
+                ].T.flatten(),
+                "surface_temperature": data[
+                    TemperatureType.SURFACE
+                ].T.flatten(),
+                "core_temperature": data[TemperatureType.CORE].T.flatten(),
             }
         )
 
@@ -131,14 +135,14 @@ class ThermalSteadyResults(ThermalResults):
         """
         column_names = {
             VariableType.TRANSIT: "transit",
-            TemperatureType.SURFACE: "t_surf",
-            TemperatureType.AVERAGE: "t_avg",
-            TemperatureType.CORE: "t_core",
-            PowerType.JOULE: "P_joule",
-            PowerType.SOLAR: "P_solar",
-            PowerType.CONVECTION: "P_convection",
-            PowerType.RADIATION: "P_radiation",
-            PowerType.RAIN: "P_precipitation",
+            TemperatureType.SURFACE: "surface_temperature",
+            TemperatureType.AVERAGE: "average_temperature",
+            TemperatureType.CORE: "core_temperature",
+            PowerType.JOULE: "joule_power",
+            PowerType.SOLAR: "solar_power",
+            PowerType.CONVECTION: "convection_power",
+            PowerType.RADIATION: "radiation_power",
+            PowerType.RAIN: "precipitation_power",
         }
         if isinstance(data, pd.DataFrame):
             return data.rename(columns=column_names)

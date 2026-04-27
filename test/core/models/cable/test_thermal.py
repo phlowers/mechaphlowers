@@ -162,8 +162,8 @@ def test_steady_intensity(thermal_engine_3_spans: ThermalEngine):
     assert (
         thermal_engine.steady_intensity(
             target_temperature=thermal_engine.target_temperature + 10
-        ).data["t_core"]
-        > copy_result_without_input["t_core"]
+        ).data["core_temperature"]
+        > copy_result_without_input["core_temperature"]
     ).all()
 
 
@@ -179,18 +179,18 @@ def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
 
     # Testing manual input + changing just one parameter
     assert (
-        copy_result_without_input["t_core"]
+        copy_result_without_input["core_temperature"]
         != thermal_engine.steady_temperature(
             intensity=np.array([1000.0, 200.0, 300.0])
-        ).data["t_core"]
+        ).data["core_temperature"]
     ).any()
 
     # testing higher intensity leads to higher temperature
     assert (
         thermal_engine.steady_temperature(
             intensity=np.array([1100.0, 1200.0, 1300.0])
-        ).data["t_core"]
-        > copy_result_without_input["t_core"]
+        ).data["core_temperature"]
+        > copy_result_without_input["core_temperature"]
     ).all()
 
 
@@ -380,7 +380,7 @@ def test_steady_temperature_1(thermal_engine_3_spans: ThermalEngine):
     assert len(steady_temp_results.data) == 3
 
     np.testing.assert_array_almost_equal(
-        steady_temp_results.data["t_core"],
+        steady_temp_results.data["core_temperature"],
         np.array([15.1, 45.4, 90.0]),
         decimal=0,
     )
