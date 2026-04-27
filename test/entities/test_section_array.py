@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from copy import copy
+
 import numpy as np
 import pandas as pd
 import pandera as pa
@@ -12,6 +14,7 @@ from numpy.testing import assert_allclose, assert_equal
 from pandas.testing import assert_frame_equal
 
 from mechaphlowers.config import options
+from mechaphlowers.data.geography.helpers import gps_to_lambert93
 from mechaphlowers.entities.arrays import (
     DefaultValueWarning,
     SectionArray,
@@ -548,6 +551,177 @@ def test_section_array__data_original(
     assert_frame_equal(exported_data, expected_data, atol=1e-07)
 
 
+def test_section_array_to_gps():
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["1", "2", "three", "4", "5"]),
+                "suspension": np.array([False, True, True, True, False]),
+                "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
+                "line_angle": np.array([90, 90, 90, 90, 90]),
+                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
+                "insulator_mass": np.array(
+                    [1000.0, 500.0, 500.0, 500.0, 1000.0]
+                ),
+            }
+        )
+    )
+    section_array.set_starting_gps(
+        latitude_0=48.8566,
+        longitude_0=2.3522,
+        azimuth_0=45,
+    )
+    latitude, longitude = section_array.get_gps()
+    assert latitude.shape == (5,)
+    assert longitude.shape == (5,)
+
+
+def test_section_array_set_starting_lambert93():
+    """set_starting_lambert93 converts coords to GPS and delegates correctly."""
+
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["1", "2", "three", "4", "5"]),
+                "suspension": np.array([False, True, True, True, False]),
+                "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
+                "line_angle": np.array([90, 90, 90, 90, 90]),
+                "insulator_length": np.array([0.1, 4, 3.2, 1, 0.1]),
+                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
+                "insulator_mass": np.array(
+                    [1000.0, 500.0, 500.0, 500.0, 1000.0]
+                ),
+            }
+        )
+    )
+    start_lat, start_lon = 48.8566, 2.3522
+    easting, northing = gps_to_lambert93(start_lat, start_lon)
+
+    section_array.set_starting_lambert93(
+        easting=float(easting),
+        northing=float(northing),
+        azimuth_0=45,
+    )
+    latitude, longitude = section_array.get_gps()
+
+    # GPS origin set via Lambert93 should produce the same shape as via GPS
+    assert latitude.shape == (5,)
+    assert longitude.shape == (5,)
+
+    # The first pylon should be very close to the original GPS origin
+    # (round-trip Lambert93→GPS introduces negligible error)
+    assert_allclose(latitude[0], start_lat, atol=1e-4)
+    assert_allclose(longitude[0], start_lon, atol=1e-4)
+
+
+def test_section_array_get_lambert93():
+    """get_lambert93 returns Lambert 93 coordinates consistent with get_gps output."""
+
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["1", "2", "three", "4", "5"]),
+                "suspension": np.array([False, True, True, True, False]),
+                "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
+                "line_angle": np.array([90, 90, 90, 90, 90]),
+                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
+                "insulator_mass": np.array(
+                    [1000.0, 500.0, 500.0, 500.0, 1000.0]
+                ),
+            }
+        )
+    )
+    section_array.set_starting_gps(
+        latitude_0=48.8566,
+        longitude_0=2.3522,
+        azimuth_0=45,
+    )
+
+    easting, northing = section_array.get_lambert93()
+    assert easting.shape == (5,)
+    assert northing.shape == (5,)
+
+    # Values must match converting the GPS output directly
+    lats, lons = section_array.get_gps()
+    expected_easting, expected_northing = gps_to_lambert93(lats, lons)
+    assert_allclose(easting, expected_easting, atol=1e-3)
+    assert_allclose(northing, expected_northing, atol=1e-3)
+
+
+def test_section_array_copy_preserves_geolocator():
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["1", "2", "three", "4", "5"]),
+                "suspension": np.array([False, True, True, True, False]),
+                "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
+                "line_angle": np.array([90, 90, 90, 90, 90]),
+                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
+                "insulator_mass": np.array(
+                    [1000.0, 500.0, 500.0, 500.0, 1000.0]
+                ),
+            }
+        )
+    )
+    section_array.set_starting_gps(
+        latitude_0=48.8566,
+        longitude_0=2.3522,
+        azimuth_0=45,
+    )
+
+    section_copy = copy(section_array)
+    lat_orig, lon_orig = section_array.get_gps()
+    lat_copy, lon_copy = section_copy.get_gps()
+
+    np.testing.assert_allclose(lat_copy, lat_orig, atol=1e-8)
+    np.testing.assert_allclose(lon_copy, lon_orig, atol=1e-8)
+
+
+def test_section_array_copy_geolocator_is_independent():
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["1", "2", "three", "4", "5"]),
+                "suspension": np.array([False, True, True, True, False]),
+                "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
+                "line_angle": np.array([90, 90, 90, 90, 90]),
+                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
+                "insulator_mass": np.array(
+                    [1000.0, 500.0, 500.0, 500.0, 1000.0]
+                ),
+            }
+        )
+    )
+    section_array.set_starting_gps(
+        latitude_0=48.8566,
+        longitude_0=2.3522,
+        azimuth_0=45,
+    )
+
+    section_copy = copy(section_array)
+    # Mutate the copy's geolocator
+    section_copy.set_starting_gps(
+        latitude_0=49.0,
+        longitude_0=3.0,
+        azimuth_0=90,
+    )
+
+    lat_orig, lon_orig = section_array.get_gps()
+    lat_copy, lon_copy = section_copy.get_gps()
+
+    assert not np.allclose(lat_orig, lat_copy)
+    assert not np.allclose(lon_orig, lon_copy)
+
+
 def test_equivalent_span(section_array) -> None:
     res = (
         section_array.data.span_length**3
@@ -609,32 +783,6 @@ def test_section_array__data_with_counterweight(
         section_array.data.counterweight.to_numpy(),
         np.array([0, 9810.0, 19620.0, 0]),
     )
-
-
-def test_section_array_to_gps():
-    section_array = SectionArray(
-        pd.DataFrame(
-            {
-                "name": np.array(["1", "2", "three", "4", "5"]),
-                "suspension": np.array([False, True, True, True, False]),
-                "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
-                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
-                "line_angle": np.array([90, 90, 90, 90, 90]),
-                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
-                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
-                "insulator_mass": np.array(
-                    [1000.0, 500.0, 500.0, 500.0, 1000.0]
-                ),
-            }
-        )
-    )
-    latitude, longitude = section_array.compute_gps_coordinates(
-        start_latitude=48.8566,
-        start_longitude=2.3522,
-        start_azimuth=45,
-    )
-    assert latitude.shape == (5,)
-    assert longitude.shape == (5,)
 
 
 def test_section_array_angle_sense() -> None:

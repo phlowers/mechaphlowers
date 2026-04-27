@@ -7,6 +7,7 @@
 import logging
 import warnings
 from abc import ABC
+from copy import copy
 from typing import TYPE_CHECKING, Iterable
 from warnings import warn
 
@@ -20,7 +21,7 @@ from typing_extensions import Literal, Self, Type
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.errors import DataWarning
-from mechaphlowers.entities.geography import get_gps_from_arrays
+from mechaphlowers.entities.geography import GeoLocator
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.cable.cable_strength import ITensileStrength
@@ -192,6 +193,7 @@ class SectionArray(ElementArray):
         self._angles_sense: Literal["clockwise", "anticlockwise"] = (
             "anticlockwise"
         )
+        self.geolocator: GeoLocator = GeoLocator()
         logger.debug("Section Array initialized.")
 
     def default_sagging_parameter(self) -> float:
@@ -374,32 +376,92 @@ class SectionArray(ElementArray):
                 warnings.warn(warning_string)
                 logger.warning(warning_string)
 
-    def compute_gps_coordinates(
+    def set_starting_gps(
         self,
-        start_latitude: float,
-        start_longitude: float,
-        start_azimuth: float,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Compute GPS coordinates for the cable array.
+        latitude_0: float,
+        longitude_0: float,
+        azimuth_0: float,
+    ) -> None:
+        """Set the starting GPS point and azimuth for coordinate computation.
 
         Args:
-            start_latitude (float): Latitude of the first support in degrees.
-            start_longitude (float): Longitude of the first support in degrees.
-            start_azimuth (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+            latitude_0 (float): Latitude of the first support in decimal degrees.
+            longitude_0 (float): Longitude of the first support in decimal degrees.
+            azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+        """
+        self.geolocator.set_starting_gps(latitude_0, longitude_0, azimuth_0)
+
+    def set_starting_lambert93(
+        self,
+        easting: float,
+        northing: float,
+        azimuth_0: float,
+    ) -> None:
+        """Set the starting point from Lambert 93 coordinates and azimuth.
+
+        Args:
+            easting (float): Lambert 93 easting coordinate in meters.
+            northing (float): Lambert 93 northing coordinate in meters.
+            azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+        """
+        self.geolocator.set_starting_lambert93(easting, northing, azimuth_0)
+
+    def get_azimuth(self, unit: str = "deg") -> np.ndarray:
+        """Compute azimuth angle (or bearing) of the section.
+        0 is toward North. 90 degrees is toward West. (anti-clockwise sense)
+
+        Args:
+            unit (str, optional): Output unit. Defaults to "deg".
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: Two arrays of GPS coordinates (latitude, longitude) in degrees.
+            np.ndarray: array of the azimuth of each span.
         """
-        line_angle_geo_degrees = (
+        self.geolocator._check_gps_available()
+        line_angles_degrees = (
             Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
         )
-        return get_gps_from_arrays(
-            start_latitude,
-            start_longitude,
-            start_azimuth,
-            line_angle_geo_degrees,
-            self.data["span_length"].to_numpy(),
+        azimuth_deg = (
+            np.cumsum(line_angles_degrees) + self.geolocator._azimuth_0
         )
+        return Q_(azimuth_deg, "deg").to(unit).m
+
+    def get_gps(self) -> tuple[np.ndarray, np.ndarray]:
+        """Compute GPS coordinates for all pylons.
+
+        Requires set_starting_gps() or set_starting_lambert93() to have been called first.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: (latitudes, longitudes) in decimal degrees.
+        """
+        line_angles_degrees = (
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        return self.geolocator.get_gps(
+            line_angles_degrees, self.data["span_length"].to_numpy()
+        )
+
+    def get_lambert93(self) -> tuple[np.ndarray, np.ndarray]:
+        """Compute Lambert 93 coordinates for all pylons.
+
+        Requires set_starting_gps() or set_starting_lambert93() to have been called first.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: (easting, northing) in Lambert 93 meters.
+        """
+        line_angles_degrees = (
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        return self.geolocator.get_lambert93(
+            line_angles_degrees, self.data["span_length"].to_numpy()
+        )
+
+    def __copy__(self) -> Self:
+        copy_obj = super().__copy__()
+        copy_obj.sagging_parameter = self.sagging_parameter
+        copy_obj.sagging_temperature = self.sagging_temperature
+        copy_obj.bundle_number = self.bundle_number
+        copy_obj.geolocator = copy(self.geolocator)
+        return copy_obj
 
 
 class CableArray(ElementArray):

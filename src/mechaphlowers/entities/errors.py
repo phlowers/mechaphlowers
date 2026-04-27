@@ -57,6 +57,10 @@ class ShapeError(ValueError):
     """Raised when there is a shape mismatch in arrays."""
 
 
+class GpsNoDataAvailable(AttributeError):
+    """Raised when GPS coordinates are requested but no starting point has been set."""
+
+
 class DataWarning(UserWarning):
     """Base class for data-related warnings."""
 
