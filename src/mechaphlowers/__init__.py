@@ -31,6 +31,7 @@ from mechaphlowers.entities.geography import (
 )
 from mechaphlowers.entities.shapes import SupportShape
 from mechaphlowers.plotting.plot import PlotEngine
+from mechaphlowers.utils import ArrayTools
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -63,4 +64,5 @@ __all__ = [
     "get_dist_and_angles_from_lambert",
     "GeoLocator",
     "lambert93_to_gps",
+    "ArrayTools",
 ]
