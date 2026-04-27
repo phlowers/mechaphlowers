@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-from typing import Optional
+from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
@@ -69,7 +69,7 @@ class SectionArrayInput(pa.DataFrameModel):
         description="""Each row in the dataframe contains information about a support
         and the span next to it, except the last support which doesn't have a "next" span.
         So, specifying a sagging parameter or temperature in the last row doesn't make any sense.
-        Please set sagging_parameter and sagging_temperature to "not a number" (numpy.nan)
+        Please set the last sagging_parameter and sagging_temperature to "not a number" (numpy.nan)
         to suppress this error.""",
     )
     def no_sagging_properties_for_last_row(cls, df: pd.DataFrame) -> bool:
@@ -78,9 +78,15 @@ class SectionArrayInput(pa.DataFrameModel):
             for column in ("sagging_parameter", "sagging_temperature")
             if column in df.columns
         ]
-        return (not sagging_columns) or df.tail(1)[
-            sagging_columns
-        ].isna().all().all()
+        return (not sagging_columns) or cls.last_values_are_nan_for_columns(
+            df, sagging_columns
+        )
+
+    @classmethod
+    def last_values_are_nan_for_columns(
+        cls, df: pd.DataFrame, columns: Iterable[str]
+    ) -> bool:
+        return df.tail(1)[columns].isna().all().all()
 
 
 class CableArrayInput(pa.DataFrameModel):

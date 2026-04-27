@@ -96,17 +96,13 @@ def test_create_section_array__only_ints() -> None:
 
 
 def test_create_section_array__span_length_for_last_support(
-    section_array_input_data_without_sagging_properties: dict,
+    section_array_input_data: dict,
 ) -> None:
-    section_array_input_data_without_sagging_properties["span_length"][-1] = (
-        300
-    )
-    input_df = pd.DataFrame(
-        section_array_input_data_without_sagging_properties
-    )
+    section_array_input_data["span_length"][-1] = 300
+    input_df = pd.DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
+        SectionArray(input_df)
 
 
 def test_create_section_array__sagging_parameter_for_last_support(
@@ -143,31 +139,23 @@ def test_create_section_array__sagging_temperature_for_last_support(
     ],
 )
 def test_create_section_array__missing_column(
-    section_array_input_data_without_sagging_properties: dict, column: str
+    section_array_input_data: dict, column: str
 ) -> None:
-    del section_array_input_data_without_sagging_properties[column]
-    input_df = pd.DataFrame(
-        section_array_input_data_without_sagging_properties
-    )
+    del section_array_input_data[column]
+    input_df = pd.DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
+        SectionArray(input_df)
 
 
 def test_create_section_array__extra_column(
-    section_array_input_data_without_sagging_properties: dict,
+    section_array_input_data: dict,
 ) -> None:
-    section_array_input_data_without_sagging_properties["extra column"] = [
-        0
-    ] * 4
+    section_array_input_data["extra column"] = [0] * 4
 
-    input_df = pd.DataFrame(
-        section_array_input_data_without_sagging_properties
-    )
+    input_df = pd.DataFrame(section_array_input_data)
 
-    section_array = SectionArray(
-        input_df, sagging_parameter=2_000, sagging_temperature=15
-    )
+    section_array = SectionArray(input_df)
 
     assert "extra column" not in section_array._data.columns
 
@@ -186,17 +174,15 @@ def test_create_section_array__extra_column(
     ],
 )
 def test_create_section_array__wrong_type(
-    section_array_input_data_without_sagging_properties: dict,
+    section_array_input_data: dict,
     column: str,
     value,
 ) -> None:
-    section_array_input_data_without_sagging_properties[column] = value
-    input_df = pd.DataFrame(
-        section_array_input_data_without_sagging_properties
-    )
+    section_array_input_data[column] = value
+    input_df = pd.DataFrame(section_array_input_data)
 
     with pytest.raises(pa.errors.SchemaErrors):
-        SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
+        SectionArray(input_df)
 
 
 def test_compute_elevation_difference() -> None:
@@ -485,13 +471,14 @@ def test_section_array__set_sagging_temperature__wrong_array(
 def test_section_array__sagging_properties_in_input(
     section_array_input_data_without_sagging_properties: dict,
 ) -> None:
-    section_array_input_data_without_sagging_properties.update(
+    input_data = section_array_input_data_without_sagging_properties
+    input_data.update(
         {
             "sagging_parameter": [3000, 3000, 3000, np.nan],
             "sagging_temperature": [20, 20, 20, np.nan],
         }
     )
-    df = pd.DataFrame(section_array_input_data_without_sagging_properties)
+    df = pd.DataFrame(input_data)
     section_array = SectionArray(df)
 
     np.testing.assert_allclose(
@@ -507,13 +494,14 @@ def test_section_array__sagging_properties_in_input(
 def test_section_array__sagging_properties_in_input_and_init_parameters(
     section_array_input_data_without_sagging_properties: dict,
 ) -> None:
-    section_array_input_data_without_sagging_properties.update(
+    input_data = section_array_input_data_without_sagging_properties
+    input_data.update(
         {
             "sagging_parameter": [3000, 3000, 3000, np.nan],
             "sagging_temperature": [20, 20, 20, np.nan],
         }
     )
-    df = pd.DataFrame(section_array_input_data_without_sagging_properties)
+    df = pd.DataFrame(input_data)
 
     with pytest.raises(ValueError):
         SectionArray(
@@ -607,15 +595,11 @@ def test_warning_on_insulator_length_correction(
 
 
 def test_section_array__data_with_counterweight(
-    section_array_input_data_without_sagging_properties: dict,
+    section_array_input_data: dict,
 ) -> None:
-    section_array_input_data_without_sagging_properties[
-        "counterweight_mass"
-    ] = [0, 1000, 2000, 0]
-    df = pd.DataFrame(section_array_input_data_without_sagging_properties)
-    section_array = SectionArray(
-        data=df, sagging_parameter=2_000, sagging_temperature=15
-    )
+    section_array_input_data["counterweight_mass"] = [0, 1000, 2000, 0]
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(data=df)
 
     assert_equal(
         section_array.data.counterweight_mass.to_numpy(),
