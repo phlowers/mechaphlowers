@@ -387,7 +387,7 @@ class BalanceModel(IBalanceModel):
 
                 # Left Th and right Th are equal because balance just got solved (same for parameter)
                 parameter[self.nodes.has_load_on_span] = (
-                    self.load_model.span_model_left.sagging_parameter
+                    self.load_model.span_model_left.parameter
                 )
                 Th[self.nodes.has_load_on_span] = (
                     self.load_model.span_model_left.T_h()
@@ -581,10 +581,10 @@ class BalanceModel(IBalanceModel):
             result[right_idx] = right_values
             return result
 
-        self.nodes_span_model.sagging_parameter = build_merged(
-            self.span_model.sagging_parameter,
-            self.load_model.span_model_left.sagging_parameter,
-            self.load_model.span_model_right.sagging_parameter,
+        self.nodes_span_model.parameter = build_merged(
+            self.span_model.parameter,
+            self.load_model.span_model_left.parameter,
+            self.load_model.span_model_right.parameter,
         )
         self.nodes_span_model.span_length = build_merged(
             self.span_model.span_length,

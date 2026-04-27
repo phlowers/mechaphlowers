@@ -281,7 +281,7 @@ class PositionEngine(Observer, Notifier):
     def __str__(self) -> str:
         return (
             f"number of supports: {self.section_array.data.span_length.shape[0]}\n"
-            f"parameter: {self.span_model.sagging_parameter}\n"
+            f"parameter: {self.span_model.parameter}\n"
             f"wind: {self.cable_loads.wind_pressure}\n"
             f"ice: {self.cable_loads.ice_thickness}\n"
             f"beta: {self.beta}\n"

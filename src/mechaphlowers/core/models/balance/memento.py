@@ -89,7 +89,7 @@ class BalanceEngineCaretaker:
             Tv_g=bm.Tv_g.copy(),
             a=bm.a.copy(),
             b=bm.b.copy(),
-            span_sagging_parameter=engine.span_model.sagging_parameter.copy(),
+            span_sagging_parameter=engine.span_model.parameter.copy(),
             span_span_length=engine.span_model.span_length.copy(),
             span_elevation_difference=engine.span_model.elevation_difference.copy(),
             span_load_coefficient=engine.span_model.load_coefficient.copy(),
@@ -130,9 +130,7 @@ class BalanceEngineCaretaker:
         bm.b = memento.b.copy()
 
         # (c) Restore span_model arrays + refresh cached _x_m/_x_n/_L
-        engine.span_model.sagging_parameter = (
-            memento.span_sagging_parameter.copy()
-        )
+        engine.span_model.parameter = memento.span_sagging_parameter.copy()
         engine.span_model.span_length = memento.span_span_length.copy()
         engine.span_model.elevation_difference = (
             memento.span_elevation_difference.copy()
