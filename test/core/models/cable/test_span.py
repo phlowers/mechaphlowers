@@ -176,7 +176,10 @@ def test_catenary_span_model__geometric_output() -> None:
 def test_catenary_span_model__data_container(
     default_data_container_one_span: DataContainer,
 ) -> None:
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
+    span_model = CatenarySpan(
+        **default_data_container_one_span.__dict__,
+        parameter=default_data_container_one_span.sagging_parameter,
+    )
     x = np.array([100, 200.0])
 
     span_model.compute_x_m()
@@ -285,7 +288,7 @@ def test_copy_attributes_partial() -> None:
     copy_span_model.mirror(span_model)
     np.testing.assert_equal(copy_span_model.span_length, a)
     np.testing.assert_equal(copy_span_model.elevation_difference, b)
-    np.testing.assert_equal(copy_span_model.sagging_parameter, p)
+    np.testing.assert_equal(copy_span_model.parameter, p)
     assert old_id == id(copy_span_model)
 
 
@@ -314,7 +317,7 @@ def test_copy_attributes_full() -> None:
     copy_span_model.mirror(span_model)
     np.testing.assert_equal(copy_span_model.span_length, a)
     np.testing.assert_equal(copy_span_model.elevation_difference, b)
-    np.testing.assert_equal(copy_span_model.sagging_parameter, p)
+    np.testing.assert_equal(copy_span_model.parameter, p)
     np.testing.assert_equal(copy_span_model.load_coefficient, k_load)
     np.testing.assert_equal(copy_span_model.span_index, span_index)
     np.testing.assert_equal(copy_span_model.span_type, span_type)
@@ -330,7 +333,7 @@ def test_sag() -> None:
         elevation_difference=np.array(
             [20.70485389, 9.38674557, -4.90829475, np.nan]
         ),
-        sagging_parameter=np.array(
+        parameter=np.array(
             [1199.99999844, 1199.99999793, 1199.99999826, np.nan]
         ),
     )
@@ -349,7 +352,7 @@ def test_sag() -> None:
     mountain_span = CatenarySpan(
         span_length=np.array([500.0, np.nan]),
         elevation_difference=np.array([200.70485389, np.nan]),
-        sagging_parameter=np.array([2200, np.nan]),
+        parameter=np.array([2200, np.nan]),
     )
 
     np.testing.assert_allclose(

@@ -39,10 +39,34 @@ from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.core import VhlResult
-from mechaphlowers.numeric import cubic
+from mechaphlowers.numeric.cubic_interface import ICubicSolver
 from mechaphlowers.utils import arr
 
 logger = logging.getLogger(__name__)
+
+
+def _build_cubic_solver() -> ICubicSolver:
+    """Instantiate the cubic solver selected in ``options.solver.cubic_solver``."""
+    name = options.solver.cubic_solver
+    if name == "eigval_batch":
+        from mechaphlowers.numeric.eigval_batch_lapack import EigvalBatchSolver
+
+        return EigvalBatchSolver()
+    if name == "cardano":
+        from mechaphlowers.numeric.cubic import CardanoSolver
+
+        return CardanoSolver()
+    if name == "analytical_real":
+        from mechaphlowers.numeric.analytical_cubic import AnalyticalRealSolver
+
+        return AnalyticalRealSolver()
+    raise ValueError(
+        f"Unknown cubic_solver {name!r}. "
+        "Expected 'eigval_batch', 'cardano', or 'analytical_real'."
+    )
+
+
+_cubic_solver: ICubicSolver = _build_cubic_solver()
 
 
 class BalanceModel(IBalanceModel):
@@ -363,7 +387,7 @@ class BalanceModel(IBalanceModel):
 
                 # Left Th and right Th are equal because balance just got solved (same for parameter)
                 parameter[self.nodes.has_load_on_span] = (
-                    self.load_model.span_model_left.sagging_parameter
+                    self.load_model.span_model_left.parameter
                 )
                 Th[self.nodes.has_load_on_span] = (
                     self.load_model.span_model_left.T_h()
@@ -557,10 +581,10 @@ class BalanceModel(IBalanceModel):
             result[right_idx] = right_values
             return result
 
-        self.nodes_span_model.sagging_parameter = build_merged(
-            self.span_model.sagging_parameter,
-            self.load_model.span_model_left.sagging_parameter,
-            self.load_model.span_model_right.sagging_parameter,
+        self.nodes_span_model.parameter = build_merged(
+            self.span_model.parameter,
+            self.load_model.span_model_left.parameter,
+            self.load_model.span_model_right.parameter,
         )
         self.nodes_span_model.span_length = build_merged(
             self.span_model.span_length,
@@ -688,7 +712,7 @@ def approx_parameter(
     # we have to do p3 * x**3 + p2 * x**2 + p1 * x + p0 = 0
     # p = p3 | p2 | p1 | p0
     p = np.vstack((p3, p2, p1, p0)).T
-    roots = cubic.cubic_roots(p)
+    roots = _cubic_solver.solve(p)
     return roots.real
 
 

@@ -8,11 +8,13 @@ import logging
 import warnings
 from abc import ABC
 from copy import copy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
+from warnings import warn
 
 import numpy as np
 import pandas as pd
 import pandera as pa
+from numpy import typing as npt
 from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Literal, Self, Type
 
@@ -131,6 +133,8 @@ class SectionArray(ElementArray):
         "insulator_mass": "kg",
         "load_mass": "kg",
         "counterweight_mass": "kg",
+        "sagging_parameter": "m",
+        "sagging_temperature": "°C",
     }
 
     def __init__(
@@ -142,18 +146,43 @@ class SectionArray(ElementArray):
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
 
-        if sagging_parameter is None:
+        if (
+            sagging_parameter is not None
+            and "sagging_parameter" in data.columns
+        ):
+            raise ValueError(
+                "sagging_parameter provided both as argument and in data columns."
+                " Please provide it only once."
+            )
+        elif (
+            sagging_parameter is None
+            and "sagging_parameter" not in data.columns
+        ):
             warnings.warn(
-                "sagging_parameter not provided. It will be set to 5 times the equivalent span.",
+                "sagging_parameter not provided. A default value will be computed.",
                 DefaultValueWarning,
             )
-            self.sagging_parameter = self.equivalent_span() * 5
-        else:
-            self.sagging_parameter = sagging_parameter
-        if sagging_temperature is None:
-            self.sagging_temperature = options.data.sagging_temperature_default
-        else:
-            self.sagging_temperature = sagging_temperature
+            sagging_parameter = self.default_sagging_parameter()
+        if sagging_parameter is not None:
+            self.set_sagging_parameter(sagging_parameter)
+
+        if (
+            sagging_temperature is not None
+            and "sagging_temperature" in data.columns
+        ):
+            raise ValueError(
+                "sagging_temperature provided both as argument and in data columns."
+                " Please provide it only once."
+            )
+        elif (
+            sagging_temperature is None
+            and "sagging_temperature" not in data.columns
+        ):
+            self.set_sagging_temperature(
+                options.data.sagging_temperature_default
+            )
+        elif sagging_temperature is not None:
+            self.set_sagging_temperature(sagging_temperature)
         if bundle_number < 1:
             raise ValueError(
                 f"bundle_number should be a positive integer. Received: {bundle_number}"
@@ -166,6 +195,9 @@ class SectionArray(ElementArray):
         )
         self.geolocator: GeoLocator = GeoLocator()
         logger.debug("Section Array initialized.")
+
+    def default_sagging_parameter(self) -> float:
+        return self.equivalent_span() * 5
 
     def compute_elevation_difference(self) -> np.ndarray:
         left_support_height = self._data["conductor_attachment_altitude"]
@@ -211,6 +243,62 @@ class SectionArray(ElementArray):
         self._angles_sense = value
 
     @property
+    def sagging_parameter(self):
+        return self._data["sagging_parameter"].to_numpy()
+
+    @sagging_parameter.setter
+    def sagging_parameter(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        warn(
+            "This is deprecated, use set_sagging_parameter instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.set_sagging_parameter(value)
+
+    def set_sagging_parameter(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        if isinstance(value, Iterable):
+            value = np.asarray(value, dtype=np.float64)
+        else:
+            value = np.repeat(np.float64(value), self._data.shape[0])
+            value[-1] = (
+                np.nan
+            )  # last value should be nan since it doesn't correspond to a span
+        self._data["sagging_parameter"] = value
+        SectionArrayInput.validate(self._data)
+
+    @property
+    def sagging_temperature(self):
+        return self._data["sagging_temperature"].to_numpy()
+
+    @sagging_temperature.setter
+    def sagging_temperature(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        warn(
+            "This is deprecated, use set_sagging_temperature instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.set_sagging_temperature(value)
+
+    def set_sagging_temperature(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        if isinstance(value, Iterable):
+            value = np.asarray(value, dtype=np.float64)
+        else:
+            value = np.repeat(np.float64(value), self._data.shape[0])
+            value[-1] = (
+                np.nan
+            )  # last value should be nan since it doesn't correspond to a span
+        self._data["sagging_temperature"] = value
+        SectionArrayInput.validate(self._data)
+
+    @property
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
         data_output = super().data
@@ -222,21 +310,18 @@ class SectionArray(ElementArray):
         self.create_column_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
         data_output = self._adjust_angle_sense(data_output)
-        if self.sagging_parameter is None or self.sagging_temperature is None:
-            raise AttributeError(
-                "Cannot return data: sagging_parameter and sagging_temperature are needed"
-            )
-        else:
-            sagging_parameter = np.repeat(
-                np.float64(self.sagging_parameter), data_output.shape[0]
-            )
-            sagging_parameter[-1] = np.nan
-            return data_output.assign(
-                elevation_difference=self.compute_elevation_difference(),
-                sagging_parameter=sagging_parameter,
-                sagging_temperature=self.sagging_temperature,
-                bundle_number=self.bundle_number,
-            )
+        return data_output.assign(
+            elevation_difference=self.compute_elevation_difference(),
+            bundle_number=self.bundle_number,
+        )
+
+    @property
+    def data_original(self) -> pd.DataFrame:
+        """Original dataframe with the exact same data as input
+        (except for sagging_parameter and sagging_temperature which are added if not provided in input)
+        original units and no (other) columns added
+        """
+        return super().data_original
 
     def create_column_weight(
         self, df_output: pd.DataFrame, columns_to_convert: dict[str, str]

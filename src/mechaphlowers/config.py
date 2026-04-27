@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -76,6 +76,7 @@ class SolverConfig:
     param_calibration_zeta: float = 1.0
     papoto_zeta: float = 1.0
     deformation_imag_thresh: float = 1e-5
+    cubic_solver: str = "analytical_real"
     balance_solver_change_state_params: dict = field(
         default_factory=lambda: {
             "perturb": 0.0001,
@@ -171,6 +172,8 @@ class InputUnitsConfig:
             "insulator_length": "m",
             "span_length": "m",
             "insulator_mass": "kg",
+            "sagging_parameter": "m",
+            "sagging_temperature": "°C",
         }
     )
 

@@ -11,8 +11,6 @@ This paragraph describes the input data and the associated format needed to perf
 
 In mechaphlowers a line section is described by the following data:
 
-- a sagging parameter, denoted later as $p$,
-- a sagging temperature (in Celsius degrees)
 - for each support:
     - the name of the support
     - a boolean named `suspension` describing whether it's a suspension or tension support
@@ -24,12 +22,9 @@ In mechaphlowers a line section is described by the following data:
     - an optional field ground altitude
     - an optional counterweight
 - for each span:
-    - the span length, denoted later as $a$.
-
-
-!!! important
-
-    Sagging parameter and temperature are assumed to be **the same for each span** in a line section - which doesn't necessarily reflect reality. This is not the case from the point you use physical engine to balance the line section.
+    - the span length, denoted later as $a$
+    - a sagging parameter, denoted later as $p$
+    - a sagging temperature (in Celsius degrees).
 
 !!! Warning
 
