@@ -333,7 +333,7 @@ def test_sag() -> None:
         elevation_difference=np.array(
             [20.70485389, 9.38674557, -4.90829475, np.nan]
         ),
-        sagging_parameter=np.array(
+        parameter=np.array(
             [1199.99999844, 1199.99999793, 1199.99999826, np.nan]
         ),
     )
@@ -352,7 +352,7 @@ def test_sag() -> None:
     mountain_span = CatenarySpan(
         span_length=np.array([500.0, np.nan]),
         elevation_difference=np.array([200.70485389, np.nan]),
-        sagging_parameter=np.array([2200, np.nan]),
+        parameter=np.array([2200, np.nan]),
     )
 
     np.testing.assert_allclose(

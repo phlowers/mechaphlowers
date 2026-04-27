@@ -153,7 +153,7 @@ class ISpan(ABC):
         # Optimisation: not using compute_x_n() and compute_L()
         # to avoid calling compute_x_m() many times
         self._x_n = self.span_length + self._x_m
-        p = self.sagging_parameter
+        p = self.parameter
         self._L = p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
 
     def mirror(self, span_model: Self) -> None:
@@ -191,7 +191,7 @@ class ISpan(ABC):
         new = object.__new__(type(self))
         new.span_length = self.span_length.copy()
         new.elevation_difference = self.elevation_difference.copy()
-        new.sagging_parameter = self.sagging_parameter.copy()
+        new.parameter = self.parameter.copy()
         new.load_coefficient = self.load_coefficient.copy()
         new.linear_weight = self.linear_weight
         new.span_index = self.span_index.copy()
@@ -662,7 +662,7 @@ class CatenarySpan(ISpan):
         """
         a = self.span_length
         b = self.elevation_difference
-        p = self.sagging_parameter
+        p = self.parameter
         # x0g: horizontal distance from left support to the lowest point of the cable
         x0g = -self.compute_x_m()
         # x0: abscissa corresponding to the inclined chord reference

@@ -425,9 +425,9 @@ def test_section_array__sagging_property_setters(
 
 
 def test_section_array__set_sagging_parameter__array(
-    section_array_input_data: dict,
+    section_array_input_data_without_sagging_properties: dict,
 ) -> None:
-    df = pd.DataFrame(section_array_input_data)
+    df = pd.DataFrame(section_array_input_data_without_sagging_properties)
     section_array = SectionArray(
         data=df, sagging_parameter=2000, sagging_temperature=15
     )
