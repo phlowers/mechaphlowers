@@ -1,4 +1,4 @@
-# Copyright (c) 2024, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -15,11 +15,12 @@ import pandas as pd
 from xxhash import xxh3_64
 
 from mechaphlowers.config import options
+from mechaphlowers.entities.errors import ViewChoiceWarning
 
 logger = logging.getLogger(__name__)
 
 
-def ppnp(arr: np.ndarray, prec: int = 2):
+def ppnp(arr: np.ndarray, prec: int = 2) -> None:
     """ppnp helper function to force display without scientific notation
 
     Args:
@@ -51,7 +52,7 @@ class CachedAccessor:
         self._name: str = name
         self._accessor: Callable = accessor
 
-    def __get__(self, obj, cls):
+    def __get__(self, obj: Any, cls: Any) -> Any:
         if obj is None:
             # we're accessing the attribute of the class, i.e., Dataset.geo
             return self._accessor
@@ -74,7 +75,7 @@ def float_to_array(data: dict[str, np.ndarray | float | int]) -> dict:
     return data
 
 
-def span_to_support_view(
+def span_to_support_view_guying(
     span_index: int,
     selected_support: Literal['left', 'right'],
 ) -> tuple[int, Literal['left', 'right']]:
@@ -94,24 +95,23 @@ def span_to_support_view(
     )
     if selected_support == "right":
         support_index = span_index + 1
-        support_side: Literal['left', 'right'] = "left"
     elif selected_support == "left":
         support_index = span_index
-        support_side = "right"
     else:
-        raise ValueError("support_side must be 'left' or 'right'")
+        raise ValueError("selected_support must be 'left' or 'right'")
     logger.debug(
-        f"Equivalent support for calculation: index: {support_index}, side: {support_side}"
+        f"Equivalent support for calculation: index: {support_index}, side: {selected_support}"
     )
     warnings.warn(
-        f"Equivalent support view for calculation: index: {support_index}, side: {support_side}"
+        f"Equivalent support view for calculation: index: {support_index}, side: {selected_support}",
+        ViewChoiceWarning,
     )
-    return support_index, support_side
+    return support_index, selected_support
 
 
 def add_stderr_logger(
     level: int = logging.DEBUG,
-):
+) -> logging.StreamHandler:
     """Helper for quickly adding a StreamHandler to the logger. Useful for
     debugging. Inspired by the urllib3 library.
 
@@ -165,11 +165,11 @@ def df_to_dict(df: pd.DataFrame) -> dict:
     return q
 
 
-def reduce_to_span(array_to_reduce: np.ndarray):
+def reduce_to_span(array_to_reduce: np.ndarray) -> np.ndarray:
     return array_to_reduce[0:-1]
 
 
-def fill_to_support(array_to_fill: np.ndarray):
+def fill_to_support(array_to_fill: np.ndarray) -> np.ndarray:
     return np.concatenate((array_to_fill, [np.nan]))
 
 
@@ -260,7 +260,7 @@ class CachedCallable(Protocol):
     def cache_clear(self) -> None: ...
 
 
-def numpy_cache(f: Callable[..., Any]):
+def numpy_cache(f: Callable[..., Any]) -> CachedCallable:
     """Decorator to cache numpy array results of a function based on its arguments.
 
     Warning: it is not designed for complex uses. For example, view of a same array are not distinguished, and there is no checks on contiguousness of arrays.

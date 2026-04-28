@@ -40,7 +40,7 @@ Issues = "https://github.com/phlowers/mechaphlowers/issues"
 Documentation = "https://phlowers.readthedocs.io/projects/mechaphlowers/"
 
 [project.optional-dependencies]
-full = ["scipy<=1.14.1", "requests==2.32.4"]
+full = ["scipy<=1.14.1", "requests==2.33.1"]
 
 [dependency-groups]
 dev = [
@@ -48,7 +48,7 @@ dev = [
     "mypy==1.11.2",
     "ipython==8.26.0",
     "ipykernel==6.29.5",
-    "pytest==8.3.2",
+    "pytest==9.0.3",
     "pytest-cov==5.0.0",
     "unittest-xml-reporting==3.2.0",
     "pandas-stubs==2.2.3.241009",
@@ -57,7 +57,7 @@ dev = [
     "plotly-stubs==0.0.5",
     "types-pyyaml>=6.0.12.20250915",
 ]
-test = ["pytest==8.3.2", "pytest-cov==5.0.0", "requests==2.32.4"]
+test = ["pytest==9.0.3", "pytest-cov==5.0.0", "requests==2.33.1"]
 docs = [
     "mkdocs==1.6.1",
     "mkdocstrings[python]==0.26.2",
@@ -139,6 +139,7 @@ log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(linen
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 addopts = ["-s", "-vv", "-m", "not benchmark and not release_test"]
 markers = ["unit_test", "integration", "benchmark", "release_test"]
+pythonpath = ["src"]
 
 
 [tool.coverage.run]

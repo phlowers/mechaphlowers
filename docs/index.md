@@ -58,10 +58,10 @@ from mechaphlowers.data.catalog import section_factory_sample_data
 section_array = mph.SectionArray(
     pd.DataFrame(
         section_factory_sample_data(6,2)
-    )
+    ),
+    sagging_parameter = 2000,
+    sagging_temperature = 15
 )
-section_array.sagging_parameter = 2000
-section_array.sagging_temperature = 15
 
 # Load cable from catalog
 from mechaphlowers.data.catalog import sample_cable_catalog
@@ -69,7 +69,7 @@ cable_array_AM600 = sample_cable_catalog.get_as_object(["ASTER600"])
 
 # Create balance engine and plot engine
 engine = mph.BalanceEngine(cable_array=cable_array_AM600, section_array=section_array)
-plt = mph.PlotEngine.builder_from_balance_engine(engine)
+plt = mph.PlotEngine(engine)
 
 # initialize plotly figure
 fig = mph.plotting.figure_factory(context="std")

@@ -26,14 +26,15 @@ def test_proj_no_angles():
     Th = np.array([35316.0, 35316.0, 35316.0])
     Tv_g = np.array([-2974.3816, -1473.2471, -3064.9025])
     Tv_d = np.array([-5831.3273, -3832.06, -3957.3933])
-    vector_projection = VectorProjection()
+    vector_projection = VectorProjection(
+        line_angle=np.array([0, 0, 0, 0]), bundle_number=1
+    )
     vector_projection.set_all(
         Th=Th,
         Tv_g=Tv_g,
         Tv_d=Tv_d,
         alpha=np.array([0, 0, 0]),
         beta=np.array([0, 0, 0]),
-        line_angle=np.array([0, 0, 0, 0]),
         proj_angle=np.array([0, 0, 0]),
     )
     T_attachment_left = vector_projection.T_attachments_plane_left()

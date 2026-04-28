@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from copy import copy
-from typing import Type
+from typing import Any, Type
 
 import numpy as np
 
@@ -22,7 +22,7 @@ from mechaphlowers.core.models.cable.deformation import IDeformation
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.core import VhlStrength
+from mechaphlowers.entities.core import VhlResult
 
 logger = logging.getLogger(__name__)
 
@@ -77,15 +77,20 @@ class IBalanceModel(IModelForSolver, ABC):
         ] = FindParamSolverForLoop,
     ):
         self.adjustment: bool = NotImplemented
-        self.sagging_temperature = sagging_temperature
+        self.sagging_temperature: np.ndarray = sagging_temperature
         self.deformation_model = deformation_model
         self.cable_loads = cable_loads
         self.span_model = span_model
-        self.nodes_span_model = copy(self.span_model)
-        self.parameter = parameter
+        self.nodes_span_model: ISpan = copy(self.span_model)
+        self.parameter: np.ndarray = parameter
         self.cable_array = cable_array
         self.a: np.ndarray
         self.b: np.ndarray
+        self.Th: np.ndarray
+        self.Tv_d: np.ndarray
+        self.Tv_g: np.ndarray
+        self.nodes: Any  # Concrete type is Nodes (defined in model_ducloux)
+        self.L_ref: np.ndarray
 
     @abstractmethod
     def update_L_ref(self) -> np.ndarray:
@@ -105,7 +110,22 @@ class IBalanceModel(IModelForSolver, ABC):
 
     @abstractmethod
     def chain_displacement(self) -> np.ndarray:
-        """Get the displacement vector of the nodes."""
+        """Get the displacement vectors of the chains.
+
+        dxdydz and chain_displacement are the transpose of each other
+
+        Format: [[x0, y0, z0], [x1, y1, z1],...]
+        """
+        pass
+
+    @abstractmethod
+    def get_dxdydz(self) -> np.ndarray:
+        """Get the dxdydz vector of the nodes.
+
+        dxdydz and chain_displacement are the transpose of each other
+
+        Format: [[x0, x1, x2,...], [y0, y1, y2,...], [z0, z1, z2,...]]
+        """
         pass
 
     @property
@@ -117,14 +137,14 @@ class IBalanceModel(IModelForSolver, ABC):
         """
 
     @abstractmethod
-    def vhl_under_chain(self) -> VhlStrength:
+    def vhl_under_chain(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
         Default unit is daN"""
         pass
 
     @abstractmethod
-    def vhl_under_chain_left(self) -> VhlStrength:
+    def vhl_under_chain_left(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the left of the support.
@@ -134,7 +154,7 @@ class IBalanceModel(IModelForSolver, ABC):
         pass
 
     @abstractmethod
-    def vhl_under_chain_right(self) -> VhlStrength:
+    def vhl_under_chain_right(self) -> VhlResult:
         """Get the VHL efforts under chain: without considering insulator_weight.
 
         VHL at the right of the support.
@@ -144,7 +164,7 @@ class IBalanceModel(IModelForSolver, ABC):
         pass
 
     @abstractmethod
-    def vhl_under_console(self) -> VhlStrength:
+    def vhl_under_console(self) -> VhlResult:
         """Get the VHL efforts under console: considering insulator_weight.
         Format: [[V0, H0, L0], [V1, H1, L1], ...]
         Default unit is daN"""
@@ -159,4 +179,28 @@ class IBalanceModel(IModelForSolver, ABC):
     @abstractmethod
     def update_nodes_span_model(self) -> None:
         """Update the span model of the nodes if loads are applied."""
+        pass
+
+    @abstractmethod
+    def reset(
+        self,
+        cable_array: CableArray,
+        span_model: ISpan,
+        deformation_model: IDeformation,
+        cable_loads: CableLoads,
+        full: bool = False,
+    ) -> None:
+        """Reset the model references, optionally performing a full re-initialization.
+
+        Args:
+            cable_array (CableArray): cable data
+            span_model (ISpan): span model
+            deformation_model (IDeformation): deformation model
+            cable_loads (CableLoads): cable loads
+            full (bool): if True, re-initialize all attributes; otherwise only update model references.
+        """
+        pass
+
+    @abstractmethod
+    def sync_after_memento_restore(self, *args, **kwargs):
         pass

@@ -4,6 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+
 import numpy as np
 import pytest
 
@@ -175,7 +176,10 @@ def test_catenary_span_model__geometric_output() -> None:
 def test_catenary_span_model__data_container(
     default_data_container_one_span: DataContainer,
 ) -> None:
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
+    span_model = CatenarySpan(
+        **default_data_container_one_span.__dict__,
+        parameter=default_data_container_one_span.sagging_parameter,
+    )
     x = np.array([100, 200.0])
 
     span_model.compute_x_m()
@@ -284,7 +288,7 @@ def test_copy_attributes_partial() -> None:
     copy_span_model.mirror(span_model)
     np.testing.assert_equal(copy_span_model.span_length, a)
     np.testing.assert_equal(copy_span_model.elevation_difference, b)
-    np.testing.assert_equal(copy_span_model.sagging_parameter, p)
+    np.testing.assert_equal(copy_span_model.parameter, p)
     assert old_id == id(copy_span_model)
 
 
@@ -313,8 +317,72 @@ def test_copy_attributes_full() -> None:
     copy_span_model.mirror(span_model)
     np.testing.assert_equal(copy_span_model.span_length, a)
     np.testing.assert_equal(copy_span_model.elevation_difference, b)
-    np.testing.assert_equal(copy_span_model.sagging_parameter, p)
+    np.testing.assert_equal(copy_span_model.parameter, p)
     np.testing.assert_equal(copy_span_model.load_coefficient, k_load)
     np.testing.assert_equal(copy_span_model.span_index, span_index)
     np.testing.assert_equal(copy_span_model.span_type, span_type)
     assert old_id == id(copy_span_model)
+
+
+@pytest.mark.integration
+def test_sag() -> None:
+    span = CatenarySpan(
+        span_length=np.array(
+            [497.30361916, 297.90642086, 400.23314761, np.nan]
+        ),
+        elevation_difference=np.array(
+            [20.70485389, 9.38674557, -4.90829475, np.nan]
+        ),
+        parameter=np.array(
+            [1199.99999844, 1199.99999793, 1199.99999826, np.nan]
+        ),
+    )
+
+    np.testing.assert_allclose(
+        span.sag(), np.array([25.88, 9.26, 16.73, np.nan]), atol=1e-2
+    )
+
+    np.testing.assert_allclose(
+        span.sag_s2(), np.array([16.55, 5.16, 14.36, np.nan]), atol=1e-2
+    )
+
+    # We want to test the case where the lowest point is at the same level as one
+    # of the two attachment points, which means that the sag s2 should be equal to 0.
+
+    mountain_span = CatenarySpan(
+        span_length=np.array([500.0, np.nan]),
+        elevation_difference=np.array([200.70485389, np.nan]),
+        parameter=np.array([2200, np.nan]),
+    )
+
+    np.testing.assert_allclose(
+        mountain_span.sag_s2(), np.array([0.0, np.nan]), atol=1e-2
+    )
+
+    # Generating usecase for above test
+    # section_array = SectionArray(
+    #     pd.DataFrame(
+    #         {
+    #             "name": ["1", "2", "3", "4"],
+    #             "suspension": [False, True, True, False],
+    #             "conductor_attachment_altitude": [30, 50, 60, 65],
+    #             "crossarm_length": [5, 10, -10, 5],
+    #             "line_angle": [0, 30, 0, 0],
+    #             "insulator_length": [0.01, 3, 3, 0.01],
+    #             "span_length": [500, 300, 400, np.nan],
+    #             "insulator_mass": [1000, 500, 500, 1000],
+    #             "load_mass": [0, 0, 0, 0],
+    #             "load_position": [0, 0, 0, 0],
+    #         }
+    #     ),
+    #     sagging_parameter=1200,
+    #     sagging_temperature=15,
+    # )
+    # section_array.add_units({"line_angle": "grad"})
+    # balance_engine = BalanceEngine(
+    #     cable_array=cable_array_AM600, section_array=section_array
+    # )
+
+    # balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
+
+    # balance_engine.span_model.sag()

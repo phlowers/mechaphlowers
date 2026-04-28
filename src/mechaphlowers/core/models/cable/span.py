@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Literal, Self, Type
 
@@ -27,7 +29,7 @@ class ISpan(ABC):
     Attributes:
         span_length (np.ndarray): Horizontal length of each span.
         elevation_difference (np.ndarray): Vertical difference between support points for each span.
-        sagging_parameter (np.ndarray): Parameter controlling the cable sag (model-dependent).
+        parameter (np.ndarray): Parameter controlling the cable sag (model-dependent).
         linear_weight (np.float64): Linear weight of the cable per unit length.
         load_coefficient (np.ndarray): Coefficient applied to loads for each span (defaults to ones).
         span_index (np.ndarray): Index identifying each span, with duplicates for spans with loads.
@@ -47,7 +49,7 @@ class ISpan(ABC):
     Notes:
         - The class uses caching for computed values (x_m, x_n, L) to optimize performance
         during iterative solving.
-        - Therefore, if sagging_parameter, span_length, or elevation_difference are updated,
+        - Therefore, if parameter, span_length, or elevation_difference are updated,
         it should be done by calling set_parameter or set_lengths methods to ensure consistency.
         - Arrays are vectorized to handle multiple spans simultaneously.
 
@@ -55,13 +57,13 @@ class ISpan(ABC):
         >>> span = CatenarySpan(
         ...     span_length=np.array([500, 600]),
         ...     elevation_difference=np.array([10, 20]),
-        ...     sagging_parameter=np.array([2000, 1500]),
+        ...     parameter=np.array([2000, 1500]),
         ...     linear_weight=9.5,
         ... )
         >>> span_with_load = CatenarySpan(
         ...     span_length=np.array([500, 200, 400]),
         ...     elevation_difference=np.array([10, -10, 30]),
-        ...     sagging_parameter=np.array([2000, 1500, 1500]),
+        ...     parameter=np.array([2000, 1500, 1500]),
         ...     linear_weight=9.5
         ...     span_index=np.array([0, 1, 1]),
         ...     span_type=np.array([0, 1, 2]),
@@ -72,7 +74,7 @@ class ISpan(ABC):
         self,
         span_length: np.ndarray,
         elevation_difference: np.ndarray,
-        sagging_parameter: np.ndarray,
+        parameter: np.ndarray,
         load_coefficient: np.ndarray | None = None,
         linear_weight: np.float64 | None = None,
         span_index: np.ndarray | None = None,
@@ -84,7 +86,7 @@ class ISpan(ABC):
 
         self.span_length = span_length
         self.elevation_difference = elevation_difference
-        self.sagging_parameter = sagging_parameter
+        self.parameter = parameter
         self.linear_weight = linear_weight
         if load_coefficient is None:
             self.load_coefficient = np.ones_like(span_length)
@@ -130,13 +132,13 @@ class ISpan(ABC):
         self.elevation_difference = elevation_difference
         self.compute_values()
 
-    def set_parameter(self, sagging_parameter: np.ndarray):
+    def set_parameter(self, parameter: np.ndarray):
         """Set value of sagging parameter and compute x_m, x_n and L.
 
         Args:
-            sagging_parameter (np.ndarray): new value for sagging parameter.
+            parameter (np.ndarray): new value for sagging parameter.
         """
-        self.sagging_parameter = sagging_parameter
+        self.parameter = parameter
         self.compute_values()
 
     def compute_values(self):
@@ -148,8 +150,11 @@ class ISpan(ABC):
         are called during solver iterations.
         """
         self._x_m = self.compute_x_m()
-        self._x_n = self.compute_x_n()
-        self._L = self.compute_L()
+        # Optimisation: not using compute_x_n() and compute_L()
+        # to avoid calling compute_x_m() many times
+        self._x_n = self.span_length + self._x_m
+        p = self.parameter
+        self._L = p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
 
     def mirror(self, span_model: Self) -> None:
         """Copy attributes from an other ISpan object.
@@ -162,12 +167,12 @@ class ISpan(ABC):
                 >>> span1 = CatenarySpan(
                 ...     span_length=np.array([500, 600]),
                 ...     elevation_difference=np.array([10, 20]),
-                ...     sagging_parameter=np.array([2000, 1500]),
+                ...     parameter=np.array([2000, 1500]),
                 ...)
                 >>> span2 = CatenarySpan(
                 ...     span_length=np.array([100, 100]),
                 ...     elevation_difference=np.array([0, 0]),
-                ...     sagging_parameter=np.array([500, 500]),
+                ...     parameter=np.array([500, 500]),
                 ... )
                 >>> span2.mirror(span1)
                 # now span2 has the same attributes as span1
@@ -176,11 +181,27 @@ class ISpan(ABC):
         """
         self.span_length = span_model.span_length
         self.elevation_difference = span_model.elevation_difference
-        self.sagging_parameter = span_model.sagging_parameter
+        self.parameter = span_model.parameter
         self.linear_weight = span_model.linear_weight
         self.load_coefficient = span_model.load_coefficient
         self.span_index = span_model.span_index
         self.span_type = span_model.span_type
+
+    def __copy__(self) -> Self:
+        new = object.__new__(type(self))
+        new.span_length = self.span_length.copy()
+        new.elevation_difference = self.elevation_difference.copy()
+        new.parameter = self.parameter.copy()
+        new.load_coefficient = self.load_coefficient.copy()
+        new.linear_weight = self.linear_weight
+        new.span_index = self.span_index.copy()
+        new.span_type = self.span_type.copy()
+        new.loads_indices = (
+            self.loads_indices[0].copy(),
+            self.loads_indices[1].copy(),
+        )
+        new.compute_values()
+        return new
 
     @property
     def x_m(self):
@@ -256,12 +277,13 @@ class ISpan(ABC):
         In other words: opposite of the abscissa of the left hanging point.
         """
 
-    @abstractmethod
     def compute_x_n(self) -> np.ndarray:
         """Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
 
         In other words: abscissa of the right hanging point.
         """
+        a = self.span_length
+        return a + self.compute_x_m()
 
     @abstractmethod
     def x(self, resolution: int) -> np.ndarray:
@@ -286,7 +308,8 @@ class ISpan(ABC):
 
     @abstractmethod
     def compute_L(self) -> np.ndarray:
-        """Total length of the cable."""
+        """Total length of the cable.
+        Should be called after calling compute_x_m and compute_x_n if x_n or x_m have changed"""
 
     @abstractmethod
     def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
@@ -366,6 +389,27 @@ class ISpan(ABC):
         Tm_Tn = np.array([self.T(x_m), self.T(x_n)])
         return (np.max(Tm_Tn, axis=0), np.min(Tm_Tn, axis=0))
 
+    @abstractmethod
+    def sag(self) -> np.ndarray:
+        """Sag of the cable span (s1 formula).
+
+        The sag is the maximum perpendicular distance between the cable and the chord
+        connecting both attachment points.
+
+        Returns:
+            np.ndarray: sag value for each span.
+        """
+
+    @abstractmethod
+    def sag_s2(self) -> np.ndarray:
+        """Sag of the cable span, computed with the s2 formula.
+
+        The sag s2 is the maximum perpendicular distance between the lowest point of the cable and the lowest hanging point.
+
+        Returns:
+            np.ndarray: sag s2 value for each span.
+        """
+
 
 class CatenarySpan(ISpan):
     """Implementation of a span cable model according to the catenary equation.
@@ -390,23 +434,18 @@ class CatenarySpan(ISpan):
 
     def z_many_points(self, x: np.ndarray) -> np.ndarray:
         """Altitude of cable points depending on the abscissa. Many points per spans, used for graphs."""
-        return self.z_many_points_local(x, self.sagging_parameter)
+        return self.z_many_points_local(x, self.parameter)
 
     def z_one_point(self, x: np.ndarray) -> np.ndarray:
-        z = self.sagging_parameter * (np.cosh(x / self.sagging_parameter) - 1)
+        z = self.parameter * (np.cosh(x / self.parameter) - 1)
         return z
 
     def compute_x_m(self) -> np.ndarray:
         a = self.span_length
         b = self.elevation_difference
-        p = self.sagging_parameter
+        p = self.parameter
         # return error if linear_weight = None?
         return -a / 2 + p * np.arcsinh(b / (2 * p * np.sinh(a / (2 * p))))
-
-    def compute_x_n(self):
-        # move in superclass?
-        a = self.span_length
-        return a + self.compute_x_m()
 
     def x(self, resolution: int = 10) -> np.ndarray:
         """x_coordinate for catenary generation in cable frame
@@ -460,7 +499,7 @@ class CatenarySpan(ISpan):
 
         if np.all(self.span_type == 0):
             x = np.linspace(start_points, end_points, resolution)
-            z = self.z_many_points_local(x, self.sagging_parameter)
+            z = self.z_many_points_local(x, self.parameter)
             return x, z
         start_points_0 = start_points[self.span_type == 0]
         end_points_0 = end_points[self.span_type == 0]
@@ -475,13 +514,13 @@ class CatenarySpan(ISpan):
         x_0 = np.linspace(start_points_0, end_points_0, resolution)
 
         z_left = self.z_many_points_local(
-            x_left, self.sagging_parameter[self.span_type == 1]
+            x_left, self.parameter[self.span_type == 1]
         )
         z_right = self.z_many_points_local(
-            x_right, self.sagging_parameter[self.span_type == 2]
+            x_right, self.parameter[self.span_type == 2]
         )
         z_0 = self.z_many_points_local(
-            x_0, self.sagging_parameter[self.span_type == 0]
+            x_0, self.parameter[self.span_type == 0]
         )
 
         # join
@@ -526,36 +565,38 @@ class CatenarySpan(ISpan):
         return x[:, mask_output], z[:, mask_output]
 
     def L_m(self) -> np.ndarray:
-        p = self.sagging_parameter
+        p = self.parameter
         return -p * np.sinh(self.compute_x_m() / p)
 
     def L_n(self) -> np.ndarray:
-        p = self.sagging_parameter
+        p = self.parameter
         return p * np.sinh(self.compute_x_n() / p)
 
     def compute_L(self) -> np.ndarray:
         # move in superclass?
         """Total length of the cable."""
-        p = self.sagging_parameter
-        return p * (np.sinh(self._x_n / p) - np.sinh(self._x_m / p))
+        p = self.parameter
+        return p * (
+            np.sinh(self.compute_x_n() / p) - np.sinh(self.compute_x_m() / p)
+        )
 
     def T_h(self) -> np.ndarray:
         if self.linear_weight is None:
             raise AttributeError("Cannot compute T_h: linear_weight is needed")
         else:
-            p = self.sagging_parameter
+            p = self.parameter
             k_load = self.load_coefficient
             lambd = self.linear_weight
             return p * k_load * lambd
 
     def T_v(self, x_one_per_span) -> np.ndarray:
         # an array of abscissa of the same length as the number of spans is expected
-        p = self.sagging_parameter
+        p = self.parameter
         return self.T_h() * np.sinh(x_one_per_span / p)
 
     def T(self, x_one_per_span) -> np.ndarray:
         # an array of abscissa of the same length as the number of spans is expected
-        p = self.sagging_parameter
+        p = self.parameter
         return self.T_h() * np.cosh(x_one_per_span / p)
 
     def T_mean_m(self) -> np.ndarray:
@@ -578,7 +619,7 @@ class CatenarySpan(ISpan):
         If any attribute has been updated, compute_values() should be called before calling this method.
 
         """
-        p = self.sagging_parameter
+        p = self.parameter
         k_load = self.load_coefficient
         lambd = self.linear_weight
         a = self._x_n - self._x_m
@@ -608,7 +649,44 @@ class CatenarySpan(ISpan):
         """
         # values are signed: T_h is negative, T_v can be either positive of negative depending on side
         x_extremum = self._x_m if side == 'left' else self._x_n
-        return self.T_v(x_extremum) / self.T_h()
+        return np.atan2(self.T_v(x_extremum), self.T_h())
+
+    def sag(self) -> np.ndarray:
+        """Sag of the cable span (s1 formula).
+
+        The sag is the maximum perpendicular distance between the cable and the chord
+        connecting both attachment points.
+
+        Returns:
+            np.ndarray: sag value for each span.
+        """
+        a = self.span_length
+        b = self.elevation_difference
+        p = self.parameter
+        # x0g: horizontal distance from left support to the lowest point of the cable
+        x0g = -self.compute_x_m()
+        # x0: abscissa corresponding to the inclined chord reference
+        x0 = p * np.arcsinh(b / a)
+        return (x0g + x0) / a * b + p * (np.cosh(x0g / p) - np.cosh(x0 / p))
+
+    def sag_s2(self) -> np.ndarray:
+        """Sag of the cable span, computed with the s2 formula.
+
+        The sag s2 is the maximum perpendicular distance between the lowest point of the cable and the lowest hanging point.
+
+        Returns:
+            np.ndarray: sag s2 value for each span.
+        """
+
+        self.compute_values()
+        mask = (self.x_m >= 0) | (self.x_n <= 0)
+
+        z_left = self.z_one_point(self._x_m)
+        z_right = self.z_one_point(self._x_n)
+        z_lowest_hanging_point = np.minimum(z_left, z_right)
+        z_lowest_hanging_point[mask] = 0
+
+        return abs(z_lowest_hanging_point)
 
 
 def span_model_builder(
@@ -616,10 +694,10 @@ def span_model_builder(
     cable_array: CableArray,
     span_model_type: Type[ISpan],
 ) -> ISpan:
-    """Builds a Span object, using data from ScetionArray and CableArray
+    """Builds a Span object, using data from SectionArray and CableArray
 
     Args:
-        section_array (SectionArray): input data (span_length, elevation_difference, sagging_parameter)
+        section_array (SectionArray): input data (span_length, elevation_difference, parameter)
         cable_array (CableArray): input data from cable (only linar weight used here)
         span_model_type (Type[Span]): choose the type of span model to use
 
@@ -628,11 +706,11 @@ def span_model_builder(
     """
     span_length = section_array.data.span_length.to_numpy()
     elevation_difference = section_array.data.elevation_difference.to_numpy()
-    sagging_parameter = section_array.data.sagging_parameter.to_numpy()
+    parameter = section_array.data.sagging_parameter.to_numpy()
     linear_weight = np.float64(cable_array.data.linear_weight.iloc[0])
     return span_model_type(
         span_length,
         elevation_difference,
-        sagging_parameter,
+        parameter,
         linear_weight=linear_weight,
     )

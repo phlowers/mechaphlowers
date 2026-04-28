@@ -370,7 +370,7 @@ class ThermalEngine:
         )
 
     @property
-    def wind_cable_angle(self) -> float | np.ndarray:
+    def wind_cable_angle(self) -> np.ndarray:
         """Compute the angle between wind and cable direction.
 
         Triggers ambient_wind_speed mode in models.
@@ -378,14 +378,28 @@ class ThermalEngine:
         Returns:
             Angle in degrees between wind direction and cable azimuth.
         """
-        # TODO: move this into thl (formulae in thl.power.convective_cooling line 35)
+        return self.compute_wind_attack_angle(
+            self.dict_input["azm"], self.dict_input["wa"]
+        )
+
+    # TODO: move this into thl (formulae in thl.power.convective_cooling line 35)
+    @staticmethod
+    def compute_wind_attack_angle(
+        cable_azimuth: np.ndarray, wind_azimuth: np.ndarray
+    ) -> np.ndarray:
+        """Compute the angle between wind and cable.
+
+        Args:
+            cable_azimuth (np.ndarray): azimuth of the cable, in degrees
+            wind_azimuth (np.ndarray): azimuth of the wind, in degrees
+
+        Returns:
+            Angle in degrees between wind direction and cable azimuth.
+        """
         return np.rad2deg(
             np.arcsin(
                 np.sin(
-                    np.deg2rad(
-                        np.abs(self.dict_input["azm"] - self.dict_input["wa"])
-                        % 180.0
-                    )
+                    np.deg2rad(np.abs(cable_azimuth - wind_azimuth) % 180.0)
                 )
             )
         )

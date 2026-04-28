@@ -20,6 +20,7 @@ from mechaphlowers.core.geometry.distances import (
     DistanceResult,
 )
 from mechaphlowers.plotting.plot import PlotEngine
+from mechaphlowers.plotting.plot_distances import plot_distance_engine
 from test.conftest import show_figures
 
 pt0 = np.array([0.0, 0.0, 38.69021545])
@@ -68,7 +69,9 @@ def test_distance_engine():
 
     dr = de.plane_distance(obstacle, frame="span")
 
-    fig = de.plot(distance_result=dr, show_plane=True, show_projections=True)
+    fig = plot_distance_engine(
+        de, distance_result=dr, show_plane=True, show_projections=True
+    )
     if show_figures:
         fig.show()
 
@@ -91,7 +94,7 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
         balance_engine_angles: Balance engine fixture with angle configuration.
     """
     # Setup: Create PlotEngine from balance engine
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    plt_engine = PlotEngine(balance_engine_angles)
     balance_engine_angles.solve_adjustment()
     balance_engine_angles.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])

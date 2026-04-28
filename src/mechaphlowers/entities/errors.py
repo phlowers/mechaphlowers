@@ -25,7 +25,7 @@ class SolverError(Exception):
             level (str, optional): error level. Defaults to "ERROR".
             details (str, optional): error details. Defaults to "".
 
-        Example:
+        Examples:
 
             >>> error = SolverError(
             ...     "An error occurred", level="CRITICAL", details="Matrix is singular"
@@ -57,9 +57,25 @@ class ShapeError(ValueError):
     """Raised when there is a shape mismatch in arrays."""
 
 
+class GpsNoDataAvailable(AttributeError):
+    """Raised when GPS coordinates are requested but no starting point has been set."""
+
+
 class DataWarning(UserWarning):
     """Base class for data-related warnings."""
 
 
 class BalanceEngineWarning(UserWarning):
     """Base class for balance-related warnings."""
+
+
+class ViewChoiceWarning(UserWarning):
+    """Base class for choice of view (ex: choice of support or span view)."""
+
+
+class RtsDataNotAvailable(ValueError):
+    """Raised when RTS catalog data (rts_cable, rts_layer_*) is missing or NaN."""
+
+
+class MeasurementDataNotAvailable(ValueError):
+    """Raised when measurement data are not available for computation."""

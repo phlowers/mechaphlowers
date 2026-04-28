@@ -41,7 +41,14 @@ distance_engine.add_span_frame(x_axis_start=np.array([0, 0, 0]), x_axis_end=np.a
 distance_result = distance_engine.plane_distance(point_base)
 ```
 
-You can also visualize the your setup and the distance result using the `plot` method of the `DistanceEngine` class.
+You can also visualize your setup and the distance result using the `plot_distance_engine` function from `mechaphlowers.plotting.plot_distances`:
+
+```python
+from mechaphlowers.plotting.plot_distances import plot_distance_engine
+
+fig = plot_distance_engine(distance_engine, distance_result=distance_result)
+fig.show()
+```
 
 ### Distance result
 
@@ -64,7 +71,7 @@ This more complete object gives access to `point_distance` method to compute dis
 from mechaphlowers.plotting.plot import PlotEngine
 
 balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
-plt_engine = PlotEngine.builder_from_balance_engine(balance_engine)
+plt_engine = PlotEngine(balance_engine)
 point = np.array([10.0, 5.0, 2.0])  # Absolute coordinates of the point to analyze
 fig = figure_factory()
 distance_result = plt_engine.point_distance(span_index=0, point=point)

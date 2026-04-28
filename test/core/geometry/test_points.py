@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -29,14 +29,14 @@ def section_array_line_angles():
                 "conductor_attachment_altitude": np.array([30, 40, 60, 70]),
                 "crossarm_length": np.array([40, 20, -30, -50]),
                 "line_angle": np.array([0, -45, 60, -30]),
-                "insulator_length": np.array([0, 5, 82, 0]),
+                "insulator_length": np.array([0.01, 5, 82, 0.01]),
                 "span_length": np.array([500, 460, 520, np.nan]),
                 "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
             }
-        )
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
     )
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
     section_array.add_units({"line_angle": "deg"})
     return section_array
 
@@ -152,7 +152,7 @@ def test_point_class():
 
 
 def test_get_points(balance_engine_angles: BalanceEngine):
-    plt_engine = PlotEngine.builder_from_balance_engine(balance_engine_angles)
+    plt_engine = PlotEngine(balance_engine_angles)
     balance_engine_angles.solve_adjustment()
     balance_engine_angles.solve_change_state(
         new_temperature=15 * np.array([1, 1, 1, 1])

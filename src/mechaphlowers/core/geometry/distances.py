@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-from typing import Any, Literal
+from typing import Literal
 
 import numpy as np
 
@@ -14,7 +14,6 @@ from mechaphlowers.core.geometry.planes import (
     intersection_curve_plane,
     plane_from_line,
 )
-from mechaphlowers.plotting.plot_distances import plot_distance_engine
 
 
 def points_distance_inside_plane(
@@ -147,13 +146,11 @@ class DistanceEngine:
 
     It uses a defined plane for the distance calculation. The plane is defined by a span frame, which is determined by two points (start and end of the span). The engine allows to add curves and span frames, and then compute the distance from a given point to the curve along the plane defined by the span frame. The result is returned as a DistanceResult object containing the distance information and projection details.
 
-    Example:
+    Examples:
         >>> de = DistanceEngine()
         >>> de.add_curves(curve_points)
         >>> de.add_span_frame(span_start, span_end)
         >>> distance_result = de.plane_distance(obstacle_point)
-        >>> fig = de.plot(distance_result)
-        >>> fig.show()
     """
 
     def __init__(self):
@@ -267,31 +264,4 @@ class DistanceEngine:
             distance_3d=distance_3d,
             distance_projection_u=distance_projection_u,
             distance_projection_v=distance_projection_v,
-        )
-
-    # this method is a viewer for user and is intended to be moved after refactor of the plotting module
-    def plot(
-        self,
-        distance_result: DistanceResult,
-        show_plane: bool = True,
-        show_projections: bool = True,
-        **kwargs: Any,
-    ):  # no typing for return here to avoid import plotly
-        """Helper method to plot the distance result using the plot_distance_engine function from the plotting module.
-
-        Args:
-            distance_result: The DistanceResult object containing the distance information.
-            show_plane: Boolean flag to indicate whether to show the distance plane.
-            show_projections: Boolean flag to indicate whether to show the distance projection.
-            **kwargs: Additional keyword arguments to pass to the plotting function.
-
-        Returns:
-            A plotly figure object containing the distance visualization.
-        """
-        return plot_distance_engine(
-            self,
-            distance_result,
-            show_plane=show_plane,
-            show_projections=show_projections,
-            **kwargs,
         )

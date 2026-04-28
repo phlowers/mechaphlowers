@@ -42,7 +42,11 @@ class IModelToSolve(ABC):
         pass
 
     @abstractmethod
-    def _delta_prime(self, parameter: np.ndarray) -> np.ndarray:
+    def _delta_prime(
+        self,
+        parameter: np.ndarray,
+        delta: np.ndarray | None = None,
+    ) -> np.ndarray:
         """Derivative of the function to find the root of."""
         pass
 
@@ -99,12 +103,18 @@ class FindParamModel(IModelToSolve):
         eps_therm = self.deformation_model.epsilon_therm_0()
         return (L - self.L_ref) / self.L_ref - (eps_mecha + eps_therm)
 
-    def _delta_prime(self, parameter) -> np.ndarray:
+    def _delta_prime(
+        self,
+        parameter: np.ndarray,
+        delta: np.ndarray | None = None,
+    ) -> np.ndarray:
         """Approximation of the derivative of the function to solve
         $$\\delta'(p) = \\frac{\\delta(p + \\zeta) - \\delta(p)}{\\zeta}$$
         """
+        if delta is None:
+            delta = self._delta(parameter)
         return (
-            self._delta(parameter + self.param_step) - self._delta(parameter)
+            self._delta(parameter + self.param_step) - delta
         ) / self.param_step
 
 
@@ -146,11 +156,13 @@ class FindParamSolverForLoop(IFindParamSolver):
 
     def find_parameter(self) -> np.ndarray:
         parameter = self.model.initial_value
+        _delta = self.model._delta
+        _delta_prime = self.model._delta_prime
 
         for i in range(self.max_iter):
             mem = parameter
-            delta = self.model._delta(parameter)
-            delta_prime = self.model._delta_prime(parameter)
+            delta = _delta(parameter)
+            delta_prime = _delta_prime(parameter, delta)
             parameter = parameter - delta / delta_prime
 
             if (

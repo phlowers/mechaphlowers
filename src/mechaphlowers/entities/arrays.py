@@ -7,17 +7,24 @@
 import logging
 import warnings
 from abc import ABC
+from copy import copy
+from typing import TYPE_CHECKING, Iterable
+from warnings import warn
 
 import numpy as np
 import pandas as pd
 import pandera as pa
+from numpy import typing as npt
 from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Literal, Self, Type
 
 from mechaphlowers.config import options
-from mechaphlowers.data.units import Q_
+from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.errors import DataWarning
-from mechaphlowers.entities.geography import get_gps_from_arrays
+from mechaphlowers.entities.geography import GeoLocator
+
+if TYPE_CHECKING:
+    from mechaphlowers.core.models.cable.cable_strength import ITensileStrength
 from mechaphlowers.entities.schemas import (
     CableArrayInput,
     ObstacleArrayInput,
@@ -76,6 +83,9 @@ class ElementArray(ABC):
         """Returns a copy of self._data that converts values into SI units"""
         data_SI = self._data.copy()
         for column, input_unit in self.input_units.items():
+            # input_units lists every column that might need conversion, but columns can be optional. If a column is missing, we just skip it.
+            if column not in data_SI.columns:
+                continue
             data_SI[column] = (
                 Q_(self._data[column].to_numpy(), input_unit)
                 .to(self.target_units[column])
@@ -122,6 +132,9 @@ class SectionArray(ElementArray):
         "span_length": "m",
         "insulator_mass": "kg",
         "load_mass": "kg",
+        "counterweight_mass": "kg",
+        "sagging_parameter": "m",
+        "sagging_temperature": "°C",
     }
 
     def __init__(
@@ -129,27 +142,62 @@ class SectionArray(ElementArray):
         data: pd.DataFrame,
         sagging_parameter: float | None = None,
         sagging_temperature: float | None = None,
+        bundle_number: int = 1,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
 
-        if sagging_parameter is None:
+        if (
+            sagging_parameter is not None
+            and "sagging_parameter" in data.columns
+        ):
+            raise ValueError(
+                "sagging_parameter provided both as argument and in data columns."
+                " Please provide it only once."
+            )
+        elif (
+            sagging_parameter is None
+            and "sagging_parameter" not in data.columns
+        ):
             warnings.warn(
-                "sagging_parameter not provided. It will be set to 5 times the equivalent span.",
+                "sagging_parameter not provided. A default value will be computed.",
                 DefaultValueWarning,
             )
-            self.sagging_parameter = self.equivalent_span() * 5
-        else:
-            self.sagging_parameter = sagging_parameter
-        if sagging_temperature is None:
-            self.sagging_temperature = options.data.sagging_temperature_default
-        else:
-            self.sagging_temperature = sagging_temperature
+            sagging_parameter = self.default_sagging_parameter()
+        if sagging_parameter is not None:
+            self.set_sagging_parameter(sagging_parameter)
+
+        if (
+            sagging_temperature is not None
+            and "sagging_temperature" in data.columns
+        ):
+            raise ValueError(
+                "sagging_temperature provided both as argument and in data columns."
+                " Please provide it only once."
+            )
+        elif (
+            sagging_temperature is None
+            and "sagging_temperature" not in data.columns
+        ):
+            self.set_sagging_temperature(
+                options.data.sagging_temperature_default
+            )
+        elif sagging_temperature is not None:
+            self.set_sagging_temperature(sagging_temperature)
+        if bundle_number < 1:
+            raise ValueError(
+                f"bundle_number should be a positive integer. Received: {bundle_number}"
+            )
+        self.bundle_number = bundle_number
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
         self._angles_sense: Literal["clockwise", "anticlockwise"] = (
             "anticlockwise"
         )
+        self.geolocator: GeoLocator = GeoLocator()
         logger.debug("Section Array initialized.")
+
+    def default_sagging_parameter(self) -> float:
+        return self.equivalent_span() * 5
 
     def compute_elevation_difference(self) -> np.ndarray:
         left_support_height = self._data["conductor_attachment_altitude"]
@@ -195,33 +243,94 @@ class SectionArray(ElementArray):
         self._angles_sense = value
 
     @property
+    def sagging_parameter(self):
+        return self._data["sagging_parameter"].to_numpy()
+
+    @sagging_parameter.setter
+    def sagging_parameter(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        warn(
+            "This is deprecated, use set_sagging_parameter instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.set_sagging_parameter(value)
+
+    def set_sagging_parameter(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        if isinstance(value, Iterable):
+            value = np.asarray(value, dtype=np.float64)
+        else:
+            value = np.repeat(np.float64(value), self._data.shape[0])
+            value[-1] = (
+                np.nan
+            )  # last value should be nan since it doesn't correspond to a span
+        self._data["sagging_parameter"] = value
+        SectionArrayInput.validate(self._data)
+
+    @property
+    def sagging_temperature(self):
+        return self._data["sagging_temperature"].to_numpy()
+
+    @sagging_temperature.setter
+    def sagging_temperature(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        warn(
+            "This is deprecated, use set_sagging_temperature instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.set_sagging_temperature(value)
+
+    def set_sagging_temperature(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        if isinstance(value, Iterable):
+            value = np.asarray(value, dtype=np.float64)
+        else:
+            value = np.repeat(np.float64(value), self._data.shape[0])
+            value[-1] = (
+                np.nan
+            )  # last value should be nan since it doesn't correspond to a span
+        self._data["sagging_temperature"] = value
+        SectionArrayInput.validate(self._data)
+
+    @property
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
         data_output = super().data
-        data_output["insulator_weight"] = (
-            Q_(data_output["insulator_mass"].to_numpy(), "kg").to("N").m
-        )
-        if "load_mass" in data_output:
-            data_output["load_weight"] = (
-                Q_(data_output["load_mass"].to_numpy(), "kg").to("N").m
-            )
-
+        mass_weight_conversion = {
+            "insulator_mass": "insulator_weight",
+            "load_mass": "load_weight",
+            "counterweight_mass": "counterweight",
+        }
+        self.create_column_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
         data_output = self._adjust_angle_sense(data_output)
-        if self.sagging_parameter is None or self.sagging_temperature is None:
-            raise AttributeError(
-                "Cannot return data: sagging_parameter and sagging_temperature are needed"
-            )
-        else:
-            sagging_parameter = np.repeat(
-                np.float64(self.sagging_parameter), data_output.shape[0]
-            )
-            sagging_parameter[-1] = np.nan
-            return data_output.assign(
-                elevation_difference=self.compute_elevation_difference(),
-                sagging_parameter=sagging_parameter,
-                sagging_temperature=self.sagging_temperature,
-            )
+        return data_output.assign(
+            elevation_difference=self.compute_elevation_difference(),
+            bundle_number=self.bundle_number,
+        )
+
+    @property
+    def data_original(self) -> pd.DataFrame:
+        """Original dataframe with the exact same data as input
+        (except for sagging_parameter and sagging_temperature which are added if not provided in input)
+        original units and no (other) columns added
+        """
+        return super().data_original
+
+    def create_column_weight(
+        self, df_output: pd.DataFrame, columns_to_convert: dict[str, str]
+    ) -> None:
+        for column_mass, column_weight in columns_to_convert.items():
+            if column_mass in self._data:
+                df_output[column_weight] = convert_mass_to_weight(
+                    df_output[column_mass].to_numpy()
+                )
 
     def _adjust_angle_sense(self, data_output: pd.DataFrame) -> pd.DataFrame:
         if self.angles_sense == "clockwise":
@@ -267,48 +376,115 @@ class SectionArray(ElementArray):
                 warnings.warn(warning_string)
                 logger.warning(warning_string)
 
-    def compute_gps_coordinates(
+    def set_starting_gps(
         self,
-        start_latitude: float,
-        start_longitude: float,
-        start_azimuth: float,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Compute GPS coordinates for the cable array.
+        latitude_0: float,
+        longitude_0: float,
+        azimuth_0: float,
+    ) -> None:
+        """Set the starting GPS point and azimuth for coordinate computation.
 
         Args:
-            start_latitude (float): Latitude of the first support in degrees.
-            start_longitude (float): Longitude of the first support in degrees.
-            start_azimuth (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+            latitude_0 (float): Latitude of the first support in decimal degrees.
+            longitude_0 (float): Longitude of the first support in decimal degrees.
+            azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+        """
+        self.geolocator.set_starting_gps(latitude_0, longitude_0, azimuth_0)
+
+    def set_starting_lambert93(
+        self,
+        easting: float,
+        northing: float,
+        azimuth_0: float,
+    ) -> None:
+        """Set the starting point from Lambert 93 coordinates and azimuth.
+
+        Args:
+            easting (float): Lambert 93 easting coordinate in meters.
+            northing (float): Lambert 93 northing coordinate in meters.
+            azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+        """
+        self.geolocator.set_starting_lambert93(easting, northing, azimuth_0)
+
+    def get_azimuth(self, unit: str = "deg") -> np.ndarray:
+        """Compute azimuth angle (or bearing) of the section.
+        0 is toward North. 90 degrees is toward West. (anti-clockwise sense)
+
+        Args:
+            unit (str, optional): Output unit. Defaults to "deg".
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: Two arrays of GPS coordinates (latitude, longitude) in degrees.
+            np.ndarray: array of the azimuth of each span.
         """
-        line_angle_geo_degrees = (
+        self.geolocator._check_gps_available()
+        line_angles_degrees = (
             Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
         )
-        return get_gps_from_arrays(
-            start_latitude,
-            start_longitude,
-            start_azimuth,
-            line_angle_geo_degrees,
-            self.data["span_length"].to_numpy(),
+        azimuth_deg = (
+            np.cumsum(line_angles_degrees) + self.geolocator._azimuth_0
+        )
+        return Q_(azimuth_deg, "deg").to(unit).m
+
+    def get_gps(self) -> tuple[np.ndarray, np.ndarray]:
+        """Compute GPS coordinates for all pylons.
+
+        Requires set_starting_gps() or set_starting_lambert93() to have been called first.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: (latitudes, longitudes) in decimal degrees.
+        """
+        line_angles_degrees = (
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        return self.geolocator.get_gps(
+            line_angles_degrees, self.data["span_length"].to_numpy()
+        )
+
+    def get_lambert93(self) -> tuple[np.ndarray, np.ndarray]:
+        """Compute Lambert 93 coordinates for all pylons.
+
+        Requires set_starting_gps() or set_starting_lambert93() to have been called first.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: (easting, northing) in Lambert 93 meters.
+        """
+        line_angles_degrees = (
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        return self.geolocator.get_lambert93(
+            line_angles_degrees, self.data["span_length"].to_numpy()
         )
 
     def __copy__(self) -> Self:
         copy_obj = super().__copy__()
         copy_obj.sagging_parameter = self.sagging_parameter
         copy_obj.sagging_temperature = self.sagging_temperature
+        copy_obj.bundle_number = self.bundle_number
+        copy_obj.geolocator = copy(self.geolocator)
         return copy_obj
 
 
 class CableArray(ElementArray):
     """Physical description of a cable.
 
+    Holds catalog data for one cable type and provides RRTS (Residual Rated
+    Tensile Strength) calculations via [`rrts`][mechaphlowers.entities.arrays.CableArray.rrts] and [`utilization_rate`][mechaphlowers.entities.arrays.CableArray.utilization_rate].
+    Use [`cut_strands`][mechaphlowers.entities.arrays.CableArray.cut_strands] to declare the number of damaged strands per layer.
+
+    The tensile strength model is handled by
+    [`AdditiveLayerRts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts]
+    by default, but any [`ITensileStrength`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength] implementation
+    can be injected via the ``tensile_strength`` constructor argument.
+
     Args:
-            data: Input data
+        data: Input data as a DataFrame matching
+            [`CableArrayInput`][mechaphlowers.entities.schemas.CableArrayInput].
+        tensile_strength: Optional tensile strength model. Defaults to
+            [`AdditiveLayerRts`][mechaphlowers.core.models.cable.cable_strength.AdditiveLayerRts].
     """
 
     array_input_type: Type[pa.DataFrameModel] = CableArrayInput
+
     target_units: dict[str, str] = {
         "section": "m^2",
         "diameter": "m",
@@ -332,6 +508,15 @@ class CableArray(ElementArray):
         "electric_resistance_20": "ohm.m**-1",
         "linear_resistance_temperature_coef": "K**-1",
         "radial_thermal_conductivity": "W.m**-1.K**-1",
+        "rts_cable": "N",
+        "rts_layer_1": "N",
+        "rts_layer_2": "N",
+        "rts_layer_3": "N",
+        "rts_layer_4": "N",
+        "rts_layer_5": "N",
+        "rts_layer_6": "N",
+        "rts_layer_7": "N",
+        "rts_layer_8": "N",
     }
     mecha_attributes = [
         "section",
@@ -373,18 +558,92 @@ class CableArray(ElementArray):
     def __init__(
         self,
         data: pd.DataFrame,
+        tensile_strength: "ITensileStrength | None" = None,
     ) -> None:
         super().__init__(data)
         self.input_units: dict[str, str] = (
             options.input_units.cable_array.copy()
         )
+        if tensile_strength is None:
+            from mechaphlowers.core.models.cable.cable_strength import (
+                AdditiveLayerRts,
+            )  # noqa: PLC0415
+
+            self._tensile_strength: ITensileStrength = AdditiveLayerRts(
+                self.data
+            )
+        else:
+            self._tensile_strength = tensile_strength
+
+    # ------------------------------------------------------------------
+    # Delegation: tensile strength model
+    # ------------------------------------------------------------------
+
+    @property
+    def high_safety(self) -> bool:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.high_safety`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.high_safety].
+        """
+        return self._tensile_strength.high_safety
+
+    @high_safety.setter
+    def high_safety(self, value: bool) -> None:
+        self._tensile_strength.high_safety = value
+
+    @property
+    def safety_coefficient(self) -> float:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.safety_coefficient`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.safety_coefficient].
+        """
+        return self._tensile_strength.safety_coefficient
+
+    @property
+    def nb_strand_per_layer(self) -> np.ndarray:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.nb_strand_per_layer`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.nb_strand_per_layer].
+        """
+        return self._tensile_strength.nb_strand_per_layer
+
+    def rts_coverage(self) -> float:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.rts_coverage`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.rts_coverage].
+        """
+        return self._tensile_strength.rts_coverage()
+
+    @property
+    def cut_strands(self) -> np.ndarray:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.cut_strands`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.cut_strands].
+        """
+        return self._tensile_strength.cut_strands
+
+    @cut_strands.setter
+    def cut_strands(self, value: list[int] | np.ndarray) -> None:
+        self._tensile_strength.cut_strands = np.asarray(value)
+
+    @property
+    def rrts(self) -> float:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.rrts`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.rrts].
+        """
+        return self._tensile_strength.rrts
+
+    def utilization_rate(self, tension_sup_N: np.ndarray) -> np.ndarray:
+        """Delegated to the tensile strength model. See
+        [`ITensileStrength.utilization_rate`][mechaphlowers.core.models.cable.cable_strength.ITensileStrength.utilization_rate].
+        """
+        return self._tensile_strength.utilization_rate(tension_sup_N)
+
+    # ------------------------------------------------------------------
+    # End Delegation
+    # ------------------------------------------------------------------
 
     @property
     def data(self) -> pd.DataFrame:
         data_output = super().data
         # add new column using linear_mass data: linear_weight
-        data_output["linear_weight"] = (
-            Q_(data_output["linear_mass"].to_numpy(), "kg").to("N").m
+        data_output["linear_weight"] = convert_mass_to_weight(
+            data_output["linear_mass"].to_numpy()
         )
         return data_output
 
