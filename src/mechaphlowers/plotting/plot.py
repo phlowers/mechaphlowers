@@ -604,7 +604,7 @@ class PlotEngine(Observer):
             span.points(True),
             _cable,
             hovertext=_build_hover_text(
-                span, self.span_names, SUPPORT_LABEL_PREFIX
+                span, self.span_names, SPAN_LABEL_PREFIX
             ),
         )
         plot_points_3d(
@@ -709,7 +709,7 @@ class PlotEngine(Observer):
             _cable,
             view=view,
             hovertext=_build_hover_text(
-                span, self.span_names, SUPPORT_LABEL_PREFIX
+                span, self.span_names, SPAN_LABEL_PREFIX
             ),
         )
         plot_points_2d(
