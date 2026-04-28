@@ -32,6 +32,10 @@ from mechaphlowers.plotting.plot_distances import plot_distance_engine
 logger = logging.getLogger(__name__)
 
 
+SUPPORT_LABEL_PREFIX = "support: "
+SPAN_LABEL_PREFIX = "span: "
+
+
 def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
     """create_figure creates a plotly figure
 
@@ -599,14 +603,16 @@ class PlotEngine(Observer):
             fig,
             span.points(True),
             _cable,
-            hovertext=_build_hover_text(span, self.span_names, "span: "),
+            hovertext=_build_hover_text(
+                span, self.span_names, SUPPORT_LABEL_PREFIX
+            ),
         )
         plot_points_3d(
             fig,
             supports.points(True),
             _support,
             hovertext=_build_hover_text(
-                supports, self.support_names, "support: "
+                supports, self.support_names, SUPPORT_LABEL_PREFIX
             ),
         )
         plot_points_3d(
@@ -614,7 +620,7 @@ class PlotEngine(Observer):
             insulators.points(True),
             _insulator,
             hovertext=_build_hover_text(
-                insulators, self.support_names, "support: "
+                insulators, self.support_names, SUPPORT_LABEL_PREFIX
             ),
         )
 
@@ -702,7 +708,9 @@ class PlotEngine(Observer):
             span.points(True),
             _cable,
             view=view,
-            hovertext=_build_hover_text(span, self.span_names, "span: "),
+            hovertext=_build_hover_text(
+                span, self.span_names, SUPPORT_LABEL_PREFIX
+            ),
         )
         plot_points_2d(
             fig,
@@ -710,7 +718,7 @@ class PlotEngine(Observer):
             _support,
             view=view,
             hovertext=_build_hover_text(
-                supports, self.support_names, "support: "
+                supports, self.support_names, SUPPORT_LABEL_PREFIX
             ),
         )
         plot_points_2d(
@@ -719,7 +727,7 @@ class PlotEngine(Observer):
             _insulator,
             view=view,
             hovertext=_build_hover_text(
-                insulators, self.support_names, "support: "
+                insulators, self.support_names, SUPPORT_LABEL_PREFIX
             ),
         )
 
