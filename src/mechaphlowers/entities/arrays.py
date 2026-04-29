@@ -802,7 +802,7 @@ class ObstacleArray(ElementArray):
         elif isinstance(obs_names_to_delete, list):
             indices_to_drop = []
             for name_to_delete in obs_names_to_delete:
-                indices_to_drop.append(
+                indices_to_drop.extend(
                     self._data.index[self._data["name"] == name_to_delete]
                 )
 
