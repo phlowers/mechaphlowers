@@ -117,7 +117,7 @@ def plot_points_3d(
             name=trace_profile.name,
             customdata=hovertext,
             hovertemplate=(
-                f"x: %{{x}}<br>y: %{{y}}<br>z: %{{z}}<br>%{{customdata}}"
+                "x: %{x}<br>y: %{y}<br>z: %{z}<br>%{customdata}"
                 f"<extra>{trace_profile.name}</extra>"
                 if hovertext is not None
                 else None
@@ -158,7 +158,7 @@ def plot_points_2d(
             name=trace_profile.name,
             customdata=hovertext,  # type: ignore[arg-type]
             hovertemplate=(
-                f"x: %{{x}}<br>y: %{{y}}<br>%{{customdata}}"
+                "x: %{x}<br>y: %{y}<br>%{customdata}"
                 f"<extra>{trace_profile.name}</extra>"
                 if hovertext is not None
                 else None
