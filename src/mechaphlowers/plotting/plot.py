@@ -211,6 +211,14 @@ def _group_labels_by_position(
     return np.array(grouped_coords), np.array(grouped_labels)
 
 
+def _check_labels_length(points: Points, labels: list[str]):
+    if len(labels) != len(points):
+        raise ValueError(
+            "labels length must match number of layers in points: "
+            f"got len(labels)={len(labels)} and len(points)={len(points)}"
+        )
+
+
 def _build_hover_text(
     points: Points, labels: list[str], label_prefix: str = ""
 ) -> list[str]:
@@ -229,6 +237,8 @@ def _build_hover_text(
     Returns:
         Flat list of length ``n_layers * (n_pts + 1)``.
     """
+    _check_labels_length(points, labels)
+
     n_pts = points.coords.shape[1]
     result: list[str] = []
     for label in labels:

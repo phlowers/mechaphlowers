@@ -11,6 +11,7 @@ import pytest
 from pytest import fixture
 
 from mechaphlowers.config import options as options
+from mechaphlowers.core.geometry.points import Points, vectors_to_coords
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.data.catalog.sample_section import (
@@ -25,6 +26,7 @@ from mechaphlowers.entities.shapes import SupportShape
 from mechaphlowers.plotting.plot import (
     PlotEngine,
     TraceProfile,
+    _build_hover_text,
     figure_factory,
     plot_points_2d,
     plot_points_3d,
@@ -690,3 +692,15 @@ def test_preview_line3d__custom_aspect_ratio(
     assert fig.layout.scene.aspectratio["z"] == pytest.approx(
         custom_aspect["z"], abs=1e-6
     )
+
+
+def test_build_hovertext_wrong_labels() -> None:
+    x = np.array([[1.0, 2.0], [3.0, 4.0]]).T
+    y = np.array([[0.0, 0.0], [-1.0, -1.00]]).T
+    z = np.array([[10.0, 20.0], [30.0, 40.00]]).T
+
+    coords = vectors_to_coords(x, y, z)
+    points = Points.from_coords(coords)
+
+    with pytest.raises(ValueError):
+        _build_hover_text(points, labels=["wrong_length_labels"])
