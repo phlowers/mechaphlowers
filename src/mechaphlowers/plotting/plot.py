@@ -567,11 +567,11 @@ class PlotEngine(Observer):
         aspect_ratio: dict[str, float] | None = None,
         name_addendum: str = "",
         cable_name: str | None = None,
-        cable_name_addendum: str = "",
+        cable_name_addendum: str | None = None,
         support_name: str | None = None,
-        support_name_addendum: str = "",
+        support_name_addendum: str | None = None,
         insulator_name: str | None = None,
-        insulator_name_addendum: str = "",
+        insulator_name_addendum: str | None = None,
     ) -> None:
         """Plot 3D of power lines sections
 
@@ -610,19 +610,28 @@ class PlotEngine(Observer):
         span, supports, insulators = self.get_points_for_plot(project=False)
 
         _cable = _apply_name_config(
-            cable_trace, mode, cable_name, cable_name_addendum or name_addendum
+            cable_trace,
+            mode,
+            cable_name,
+            cable_name_addendum
+            if cable_name_addendum is not None
+            else name_addendum,
         )
         _support = _apply_name_config(
             support_trace,
             mode,
             support_name,
-            support_name_addendum or name_addendum,
+            support_name_addendum
+            if support_name_addendum is not None
+            else name_addendum,
         )
         _insulator = _apply_name_config(
             insulator_trace,
             mode,
             insulator_name,
-            insulator_name_addendum or name_addendum,
+            insulator_name_addendum
+            if insulator_name_addendum is not None
+            else name_addendum,
         )
         plot_points_3d(
             fig,
