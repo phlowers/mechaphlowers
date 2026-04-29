@@ -27,6 +27,7 @@ from mechaphlowers.plotting.plot import (
     TraceProfile,
     figure_factory,
     plot_points_2d,
+    plot_points_3d,
     plot_support_shape,
 )
 from mechaphlowers.plotting.utils import compute_aspect_ratio
@@ -491,6 +492,20 @@ def test_plot_point_2d_wrong_view():
     points = np.array([[0, 0, 0], [1, 1, 1]])
     with pytest.raises(ValueError):
         plot_points_2d(fig, points, view="wrong_view")
+
+
+def test_plot_points_2d_wrong_hovertext():
+    fig = go.Figure()
+    points = np.array([[0, 0, 0], [1, 1, 1]])
+    with pytest.raises(ValueError):
+        plot_points_2d(fig, points, hovertext=["wrong_length_hovertext"])
+
+
+def test_plot_points_3d_wrong_hovertext():
+    fig = go.Figure()
+    points = np.array([[0, 0, 0], [1, 1, 1]])
+    with pytest.raises(ValueError):
+        plot_points_3d(fig, points, hovertext=["wrong_length_hovertext"])
 
 
 def test_preview_2d_wrong_view(balance_engine_angles: BalanceEngine):

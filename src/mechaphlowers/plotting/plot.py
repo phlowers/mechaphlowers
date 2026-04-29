@@ -95,16 +95,28 @@ def plot_text_3d(
     )
 
 
+def _check_hovertext_length(points: np.ndarray, hovertext: list[str]):
+    if len(hovertext) != len(points):
+        raise ValueError(
+            "hovertext length must match number of points: "
+            f"got len(hovertext)={len(hovertext)} and len(points)={len(points)}"
+        )
+
+
 def plot_points_3d(
     fig: go.Figure,
     points: np.ndarray,
     trace_profile: TraceProfile | None = None,
     hovertext: list[str] | None = None,
 ) -> None:
+    if hovertext is not None:
+        _check_hovertext_length(points, hovertext)
+
     if trace_profile is None:
         trace_profile = TraceProfile()
 
     trace_profile.dimension = "3d"
+
     fig.add_trace(
         go.Scatter3d(
             x=points[:, 0],
@@ -133,6 +145,9 @@ def plot_points_2d(
     view: Literal["profile", "line"] = "profile",
     hovertext: list[str] | None = None,
 ) -> None:
+    if hovertext is not None:
+        _check_hovertext_length(points, hovertext)
+
     if trace_profile is None:
         trace_profile = TraceProfile()
 
