@@ -11,6 +11,7 @@ import pytest
 from pytest import fixture
 
 from mechaphlowers.config import options as options
+from mechaphlowers.core.geometry.points import Points, vectors_to_coords
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.data.catalog.sample_section import (
@@ -25,8 +26,10 @@ from mechaphlowers.entities.shapes import SupportShape
 from mechaphlowers.plotting.plot import (
     PlotEngine,
     TraceProfile,
+    _build_hover_text,
     figure_factory,
     plot_points_2d,
+    plot_points_3d,
     plot_support_shape,
 )
 from mechaphlowers.plotting.utils import compute_aspect_ratio
@@ -182,7 +185,140 @@ def test_plot_support_shape():
 
     if show_figures:
         fig.show()
-    assert True
+    assert fig.data[0].name == "pyl"
+    assert fig.data[1].name == "Attachment points"
+
+
+def test_plot_support_shape__custom_names():
+    fig = go.Figure()
+    pyl_shape = SupportShape(
+        name="pyl",
+        xyz_arms=np.array([[0, 0, 18.5], [0, 3, 16.5]]),
+        set_number=np.array([22, 28]),
+    )
+    plot_support_shape(
+        fig, pyl_shape, structure_name="My Structure", points_name="My Points"
+    )
+    assert fig.data[0].name == "My Structure"
+    assert fig.data[1].name == "My Points"
+
+
+def test_plot_support_shape__coincident_points_grouped():
+    fig = go.Figure()
+    # Two arms share the same coordinates → their set numbers should be joined
+    pyl_shape = SupportShape(
+        name="pyl",
+        xyz_arms=np.array(
+            [
+                [0, 3, 16.5],  # unique
+                [0, 3, 16.5],  # coincident with row above
+                [0, 9, 16.5],  # unique
+            ]
+        ),
+        set_number=np.array([28, 29, 44]),
+    )
+    plot_support_shape(fig, pyl_shape)
+
+    text_trace = fig.data[1]
+    assert len(text_trace.x) == 2
+    assert "28, 29" in list(text_trace.text)
+    assert "44" in list(text_trace.text)
+
+
+def test_preview_line3d__name_addendum(
+    balance_engine_local_initialized: BalanceEngine,
+) -> None:
+    plt_engine = PlotEngine(balance_engine_local_initialized)
+    fig = go.Figure()
+    plt_engine.preview_line3d(fig, name_addendum="[wind]")
+    names = [trace.name for trace in fig.data]  # type: ignore[attr-defined]
+    assert "Cable [wind]" in names
+    assert "Support [wind]" in names
+    assert "Insulator [wind]" in names
+
+
+def test_preview_line3d__per_trace_name_override(
+    balance_engine_local_initialized: BalanceEngine,
+) -> None:
+    plt_engine = PlotEngine(balance_engine_local_initialized)
+    fig = go.Figure()
+    plt_engine.preview_line3d(
+        fig,
+        name_addendum="[wind]",
+        cable_name="My Cable",
+        support_name_addendum="[2]",
+    )
+    names = [trace.name for trace in fig.data]  # type: ignore[attr-defined]
+    # cable_name is a full override, ignores addendum
+    assert "My Cable" in names
+    # support_name_addendum overrides global name_addendum
+    assert "Support [2]" in names
+    # insulator falls back to global addendum
+    assert "Insulator [wind]" in names
+
+
+def test_preview_line2d__name_addendum(
+    balance_engine_local_initialized: BalanceEngine,
+) -> None:
+    plt_engine = PlotEngine(balance_engine_local_initialized)
+    fig = go.Figure()
+    plt_engine.preview_line2d(fig, name_addendum="[wind]")
+    names = [trace.name for trace in fig.data]  # type: ignore[attr-defined]
+    assert "Cable [wind]" in names
+    assert "Support [wind]" in names
+    assert "Insulator [wind]" in names
+
+
+def test_plot_engine__support_names(
+    balance_engine_local_initialized: BalanceEngine,
+) -> None:
+    plt_engine = PlotEngine(balance_engine_local_initialized)
+    assert plt_engine.support_names == ["1", "2", "three", "support 4"]
+
+
+def test_plot_engine__span_names(
+    balance_engine_local_initialized: BalanceEngine,
+) -> None:
+    plt_engine = PlotEngine(balance_engine_local_initialized)
+    assert plt_engine.span_names == ["1-2", "2-three", "three-support 4"]
+
+
+def test_preview_line3d__hover_text(
+    balance_engine_local_initialized: BalanceEngine,
+) -> None:
+    plt_engine = PlotEngine(balance_engine_local_initialized)
+    fig = go.Figure()
+    plt_engine.preview_line3d(fig)
+
+    cable_data = next(t for t in fig.data if t.name == "Cable")  # type: ignore[attr-defined]
+    assert cable_data.customdata is not None  # type: ignore[attr-defined]
+    assert "span: 1-2" in list(cable_data.customdata)  # type: ignore[attr-defined]
+    assert "span: 2-three" in list(cable_data.customdata)  # type: ignore[attr-defined]
+
+    support_data = next(t for t in fig.data if t.name == "Support")  # type: ignore[attr-defined]
+    assert support_data.customdata is not None  # type: ignore[attr-defined]
+    assert "support: 1" in list(support_data.customdata)  # type: ignore[attr-defined]
+    assert "support: support 4" in list(support_data.customdata)  # type: ignore[attr-defined]
+
+    insulator_data = next(t for t in fig.data if t.name == "Insulator")  # type: ignore[attr-defined]
+    assert insulator_data.customdata is not None  # type: ignore[attr-defined]
+    assert "support: 2" in list(insulator_data.customdata)  # type: ignore[attr-defined]
+
+
+def test_preview_line2d__hover_text(
+    balance_engine_local_initialized: BalanceEngine,
+) -> None:
+    plt_engine = PlotEngine(balance_engine_local_initialized)
+    fig = go.Figure()
+    plt_engine.preview_line2d(fig)
+
+    cable_data = next(t for t in fig.data if t.name == "Cable")  # type: ignore[attr-defined]
+    assert cable_data.customdata is not None  # type: ignore[attr-defined]
+    assert "span: 1-2" in list(cable_data.customdata)  # type: ignore[attr-defined]
+
+    support_data = next(t for t in fig.data if t.name == "Support")  # type: ignore[attr-defined]
+    assert support_data.customdata is not None  # type: ignore[attr-defined]
+    assert "support: 1" in list(support_data.customdata)  # type: ignore[attr-defined]
 
 
 def test_reactive_plot(balance_engine_base_test: BalanceEngine):
@@ -358,6 +494,20 @@ def test_plot_point_2d_wrong_view():
     points = np.array([[0, 0, 0], [1, 1, 1]])
     with pytest.raises(ValueError):
         plot_points_2d(fig, points, view="wrong_view")
+
+
+def test_plot_points_2d_wrong_hovertext():
+    fig = go.Figure()
+    points = np.array([[0, 0, 0], [1, 1, 1]])
+    with pytest.raises(ValueError):
+        plot_points_2d(fig, points, hovertext=["wrong_length_hovertext"])
+
+
+def test_plot_points_3d_wrong_hovertext():
+    fig = go.Figure()
+    points = np.array([[0, 0, 0], [1, 1, 1]])
+    with pytest.raises(ValueError):
+        plot_points_3d(fig, points, hovertext=["wrong_length_hovertext"])
 
 
 def test_preview_2d_wrong_view(balance_engine_angles: BalanceEngine):
@@ -542,3 +692,15 @@ def test_preview_line3d__custom_aspect_ratio(
     assert fig.layout.scene.aspectratio["z"] == pytest.approx(
         custom_aspect["z"], abs=1e-6
     )
+
+
+def test_build_hovertext_wrong_labels() -> None:
+    x = np.array([[1.0, 2.0], [3.0, 4.0]]).T
+    y = np.array([[0.0, 0.0], [-1.0, -1.00]]).T
+    z = np.array([[10.0, 20.0], [30.0, 40.00]]).T
+
+    coords = vectors_to_coords(x, y, z)
+    points = Points.from_coords(coords)
+
+    with pytest.raises(ValueError):
+        _build_hover_text(points, labels=["wrong_length_labels"])
