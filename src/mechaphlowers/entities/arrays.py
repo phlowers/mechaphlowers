@@ -721,23 +721,28 @@ class ObstacleArray(ElementArray):
         self,
         data: pd.DataFrame,
     ) -> None:
-        super().__init__(data)
-        # Check if points from the same obstacle have the same indices
-        points_has_same_indices = data.duplicated(
-            subset=['name', 'point_index']
-        ).any()
-        if points_has_same_indices:
-            raise ValueError(
-                "An obstacle have two points with the same point_index"
+        if data.empty:
+            columns_names = ObstacleArrayInput.__annotations__.keys()
+            empty_df = pd.DataFrame(columns=columns_names)
+            super().__init__(empty_df)
+        else:
+            super().__init__(data)
+            # Check if points from the same obstacle have the same indices
+            points_has_same_indices = data.duplicated(
+                subset=['name', 'point_index']
+            ).any()
+            if points_has_same_indices:
+                raise ValueError(
+                    "An obstacle have two points with the same point_index"
+                )
+            # Check if each group of 'name' has only one unique 'span_index'
+            obstacle_has_same_span_index = (
+                data.groupby('name')['span_index'].nunique().eq(1).all()
             )
-        # Check if each group of 'name' has only one unique 'span_index'
-        obstacle_has_same_span_index = (
-            data.groupby('name')['span_index'].nunique().eq(1).all()
-        )
-        if not obstacle_has_same_span_index:
-            raise ValueError(
-                "All points from the same obstacle should have the same span_index"
-            )
+            if not obstacle_has_same_span_index:
+                raise ValueError(
+                    "All points from the same obstacle should have the same span_index"
+                )
 
     def add_obstacle(
         self,
@@ -755,11 +760,15 @@ class ObstacleArray(ElementArray):
 
         If support_reference == "left", span_length is required
         """
-
+        # TODO: override if name already exists
         if len(coords.shape) != 2 or coords.shape[1] != 3:
             raise TypeError(
                 "coords have incorrect dimension: it should be (n x 3)"
             )
+        if name in self._data["name"].tolist():
+            indices_to_drop = self._data.index[self._data["name"] == name]
+            self._data.drop(indices_to_drop, inplace=True)
+
         nb_points = coords.shape[0]
 
         x = coords[:, 0]
