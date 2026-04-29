@@ -722,9 +722,7 @@ class ObstacleArray(ElementArray):
         data: pd.DataFrame,
     ) -> None:
         if data.empty:
-            columns_names = ObstacleArrayInput.__annotations__.keys()
-            empty_df = pd.DataFrame(columns=columns_names)
-            super().__init__(empty_df)
+            self.reset()
         else:
             super().__init__(data)
             # Check if points from the same obstacle have the same indices
@@ -758,9 +756,10 @@ class ObstacleArray(ElementArray):
 
         coords format: [[x0, y0, z0], [x1, y1, z1],...]
 
-        If support_reference == "left", span_length is required
+        If support_reference == "left", span_length is required.
+
+        Will override if name already exists
         """
-        # TODO: override if name already exists
         if len(coords.shape) != 2 or coords.shape[1] != 3:
             raise TypeError(
                 "coords have incorrect dimension: it should be (n x 3)"
@@ -768,6 +767,7 @@ class ObstacleArray(ElementArray):
         if name in self._data["name"].tolist():
             indices_to_drop = self._data.index[self._data["name"] == name]
             self._data.drop(indices_to_drop, inplace=True)
+            self._data.reset_index(drop=True, inplace=True)
 
         nb_points = coords.shape[0]
 
@@ -793,6 +793,26 @@ class ObstacleArray(ElementArray):
         )
         self._data = pd.concat([self._data, new_obstacle], ignore_index=True)
         logger.debug(f"Obstacle {name} added")
+
+    def delete_obstacle(self, obs_names_to_delete: str | list[str]) -> None:
+        if isinstance(obs_names_to_delete, str):
+            indices_to_drop = self._data.index[
+                self._data["name"] == obs_names_to_delete
+            ].tolist()
+        elif isinstance(obs_names_to_delete, list):
+            indices_to_drop = []
+            for name_to_delete in obs_names_to_delete:
+                indices_to_drop.append(
+                    self._data.index[self._data["name"] == name_to_delete]
+                )
+
+        self._data.drop(indices_to_drop, inplace=True)
+        self._data.reset_index(drop=True, inplace=True)
+
+    def reset(self) -> None:
+        columns_names = list(ObstacleArrayInput.__annotations__.keys())
+        empty_df = pd.DataFrame(columns=columns_names)
+        super().__init__(empty_df)
 
     def reverse_x_coord(
         self, x: np.ndarray, span_length: np.ndarray, span_index
