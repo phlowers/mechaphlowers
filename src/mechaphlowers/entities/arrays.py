@@ -721,23 +721,26 @@ class ObstacleArray(ElementArray):
         self,
         data: pd.DataFrame,
     ) -> None:
-        super().__init__(data)
-        # Check if points from the same obstacle have the same indices
-        points_has_same_indices = data.duplicated(
-            subset=['name', 'point_index']
-        ).any()
-        if points_has_same_indices:
-            raise ValueError(
-                "An obstacle have two points with the same point_index"
+        if data.empty:
+            self.reset()
+        else:
+            super().__init__(data)
+            # Check if points from the same obstacle have the same indices
+            points_has_same_indices = data.duplicated(
+                subset=['name', 'point_index']
+            ).any()
+            if points_has_same_indices:
+                raise ValueError(
+                    "An obstacle have two points with the same point_index"
+                )
+            # Check if each group of 'name' has only one unique 'span_index'
+            obstacle_has_same_span_index = (
+                data.groupby('name')['span_index'].nunique().eq(1).all()
             )
-        # Check if each group of 'name' has only one unique 'span_index'
-        obstacle_has_same_span_index = (
-            data.groupby('name')['span_index'].nunique().eq(1).all()
-        )
-        if not obstacle_has_same_span_index:
-            raise ValueError(
-                "All points from the same obstacle should have the same span_index"
-            )
+            if not obstacle_has_same_span_index:
+                raise ValueError(
+                    "All points from the same obstacle should have the same span_index"
+                )
 
     def add_obstacle(
         self,
@@ -753,13 +756,20 @@ class ObstacleArray(ElementArray):
 
         coords format: [[x0, y0, z0], [x1, y1, z1],...]
 
-        If support_reference == "left", span_length is required
-        """
+        If support_reference == "left", span_length is required.
 
+        Will override if name already exists
+        """
         if len(coords.shape) != 2 or coords.shape[1] != 3:
             raise TypeError(
                 "coords have incorrect dimension: it should be (n x 3)"
             )
+        # TODO: not so sure about that. Need to check how stellar works
+        if name in self._data["name"].tolist():
+            indices_to_drop = self._data.index[self._data["name"] == name]
+            self._data.drop(indices_to_drop, inplace=True)
+            self._data.reset_index(drop=True, inplace=True)
+
         nb_points = coords.shape[0]
 
         x = coords[:, 0]
@@ -784,6 +794,49 @@ class ObstacleArray(ElementArray):
         )
         self._data = pd.concat([self._data, new_obstacle], ignore_index=True)
         logger.debug(f"Obstacle {name} added")
+
+    def delete_obstacle(self, obs_names_to_delete: str | list[str]) -> None:
+        if isinstance(obs_names_to_delete, str):
+            indices_to_drop = self._data.index[
+                self._data["name"] == obs_names_to_delete
+            ].tolist()
+        elif isinstance(obs_names_to_delete, list):
+            indices_to_drop = []
+            for name_to_delete in obs_names_to_delete:
+                indices_to_drop.extend(
+                    self._data.index[self._data["name"] == name_to_delete]
+                )
+        if len(indices_to_drop) == 0:
+            logger.warning(
+                f"Obstacles {obs_names_to_delete} were not found. Did not delete anything"
+            )
+            warnings.warn(
+                f"Obstacles {obs_names_to_delete} were not found. Did not delete anything"
+            )
+        else:
+            self._data.drop(indices_to_drop, inplace=True)
+            self._data.reset_index(drop=True, inplace=True)
+
+    def delete_point(self, obs_name: str, point_index: int) -> None:
+        index_to_drop = self._data.index[
+            (self._data["name"] == obs_name)
+            & (self._data["point_index"] == point_index)
+        ]
+        if len(index_to_drop) == 0:
+            logger.warning(
+                f"Point {point_index} of obstacle {obs_name} was not found. Did not delete anything"
+            )
+            warnings.warn(
+                f"Point {point_index} of obstacle {obs_name} was not found. Did not delete anything"
+            )
+        else:
+            self._data.drop(index_to_drop, inplace=True)
+            self._data.reset_index(drop=True, inplace=True)
+
+    def reset(self) -> None:
+        columns_names = list(ObstacleArrayInput.__annotations__.keys())
+        empty_df = pd.DataFrame(columns=columns_names)
+        super().__init__(empty_df)
 
     def reverse_x_coord(
         self, x: np.ndarray, span_length: np.ndarray, span_index

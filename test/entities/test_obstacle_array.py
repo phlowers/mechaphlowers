@@ -14,6 +14,48 @@ from mechaphlowers.entities.arrays import (
 )
 
 
+@pytest.fixture
+def default_obstacle_array() -> ObstacleArray:
+    input_data = {
+        "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
+        "point_index": [0, 1, 0, 1, 2, 0],
+        "span_index": [0, 0, 1, 1, 1, 1],
+        "x": [
+            100.0,
+            200.0,
+            100.0,
+            200.0,
+            300.0,
+            200.0,
+        ],
+        "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
+        "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "object_type": [
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+            "ground",
+        ],
+    }
+    return ObstacleArray(pd.DataFrame(input_data))
+
+
+def test_empty_obstacle_array() -> None:
+    obstacle_array = ObstacleArray(pd.DataFrame({}))
+    expected_keys = {
+        "name",
+        "point_index",
+        "span_index",
+        "x",
+        "y",
+        "z",
+        "object_type",
+    }
+    assert expected_keys == set(obstacle_array._data.columns)
+
+
 def test_create_obstacle_array() -> None:
     input_data = {
         "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
@@ -38,7 +80,33 @@ def test_create_obstacle_array() -> None:
             "ground",
         ],
     }
-    ObstacleArray(pd.DataFrame(input_data))
+    obstacle_array = ObstacleArray(pd.DataFrame(input_data))
+    expected_df = pd.DataFrame(
+        {
+            "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
+            "point_index": [0, 1, 0, 1, 2, 0],
+            "span_index": [0, 0, 1, 1, 1, 1],
+            "x": [
+                100.0,
+                200.0,
+                100.0,
+                200.0,
+                300.0,
+                200.0,
+            ],
+            "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
+            "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "object_type": [
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+            ],
+        }
+    )
+    assert_frame_equal(obstacle_array.data, expected_df, check_like=True)
 
 
 def test_sort_obstacle_array() -> None:
@@ -199,6 +267,105 @@ def test_add_obstacle() -> None:
     assert_frame_equal(obstacle_array.data, expected_df, check_like=True)
 
 
+def test_add_obstacle_existing() -> None:
+    obstacle_array = ObstacleArray(
+        pd.DataFrame(
+            {
+                "name": ["obs_1", "obs_0"],
+                "point_index": [0, 1],
+                "span_index": [0, 0],
+                "x": [
+                    100.0,
+                    200.0,
+                ],
+                "y": [0.0, 10.0],
+                "z": [0.0, 0.0],
+                "object_type": [
+                    "ground",
+                    "ground",
+                ],
+            }
+        )
+    )
+    obstacle_array.add_obstacle(
+        name="obs_0",
+        span_index=1,
+        coords=np.array([[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]),
+        support_reference='left',
+    )
+
+    expected_df = pd.DataFrame(
+        {
+            "name": [
+                "obs_1",
+                "obs_0",
+                "obs_0",
+                "obs_0",
+                "obs_0",
+            ],
+            "point_index": [0, 0, 1, 2, 3],
+            "span_index": [0, 1, 1, 1, 1],
+            "x": [100.0, 50.0, 100.0, 150.0, 200.0],
+            "y": [0.0, 0.0, 0.0, 10.0, 0.0],
+            "z": [0.0, 0.0, 10.0, 0.0, 0.0],
+            "object_type": [
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+            ],
+        }
+    )
+
+    assert_frame_equal(obstacle_array.data, expected_df, check_like=True)
+
+
+def test_add_obstacle_from_empty() -> None:
+    obstacle_array = ObstacleArray(pd.DataFrame({}))
+    obstacle_array.add_obstacle(
+        name="obs_1",
+        span_index=1,
+        coords=np.array([[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]),
+        support_reference='left',
+    )
+    obstacle_array.add_obstacle(
+        name="obs_2",
+        span_index=1,
+        coords=np.array([[35, 0, 0], [100, 0, 10]]),
+        support_reference='right',
+        span_length=np.array([500, 400, 450, np.nan]),
+    )
+
+    expected_df = pd.DataFrame(
+        {
+            "name": [
+                "obs_1",
+                "obs_1",
+                "obs_1",
+                "obs_1",
+                "obs_2",
+                "obs_2",
+            ],
+            "point_index": [0, 1, 2, 3, 0, 1],
+            "span_index": [1, 1, 1, 1, 1, 1],
+            "x": [50.0, 100.0, 150.0, 200.0, 365.0, 300.0],
+            "y": [0.0, 0.0, 10.0, 0.0, 0.0, 0.0],
+            "z": [0.0, 10.0, 0.0, 0.0, 0.0, 10.0],
+            "object_type": [
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+            ],
+        }
+    )
+
+    assert_frame_equal(obstacle_array.data, expected_df, check_like=True)
+
+
 def test_add_obstacle_bad_arguments() -> None:
     input_data = {
         "name": ["obs_0", "obs_0"],
@@ -239,3 +406,162 @@ def test_add_obstacle_bad_arguments() -> None:
             coords=np.array([[35, 0, 0], [100, 0, 10]]),
             support_reference='right',
         )
+
+
+def test_delete_obstacle_single(default_obstacle_array: ObstacleArray) -> None:
+    default_obstacle_array.delete_obstacle("obs_0")
+
+    expected_df = pd.DataFrame(
+        {
+            "name": ["obs_1", "obs_1", "obs_1", "obs_2"],
+            "point_index": [0, 1, 2, 0],
+            "span_index": [1, 1, 1, 1],
+            "x": [
+                100.0,
+                200.0,
+                300.0,
+                200.0,
+            ],
+            "y": [0.0, 0.0, 10.0, 0.0],
+            "z": [0.0, 0.0, 0.0, 0.0],
+            "object_type": [
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+            ],
+        }
+    )
+    assert_frame_equal(
+        default_obstacle_array.data, expected_df, check_like=True
+    )
+
+
+def test_delete_obstacle_single_wrong(
+    default_obstacle_array: ObstacleArray,
+) -> None:
+    with pytest.warns():
+        default_obstacle_array.delete_obstacle("wrong_obstacle")
+
+    expected_df = pd.DataFrame(
+        {
+            "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
+            "point_index": [0, 1, 0, 1, 2, 0],
+            "span_index": [0, 0, 1, 1, 1, 1],
+            "x": [
+                100.0,
+                200.0,
+                100.0,
+                200.0,
+                300.0,
+                200.0,
+            ],
+            "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
+            "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "object_type": [
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+            ],
+        }
+    )
+    assert_frame_equal(
+        default_obstacle_array.data, expected_df, check_like=True
+    )
+
+
+def test_delete_obstacle_list(default_obstacle_array: ObstacleArray) -> None:
+    default_obstacle_array.delete_obstacle(["obs_0", "obs_2"])
+
+    expected_df = pd.DataFrame(
+        {
+            "name": ["obs_1", "obs_1", "obs_1"],
+            "point_index": [0, 1, 2],
+            "span_index": [1, 1, 1],
+            "x": [
+                100.0,
+                200.0,
+                300.0,
+            ],
+            "y": [0.0, 0.0, 10.0],
+            "z": [0.0, 0.0, 0.0],
+            "object_type": [
+                "ground",
+                "ground",
+                "ground",
+            ],
+        }
+    )
+    assert_frame_equal(
+        default_obstacle_array.data, expected_df, check_like=True
+    )
+
+
+def test_delete_obstacle_list_wrong(
+    default_obstacle_array: ObstacleArray,
+) -> None:
+    with pytest.warns():
+        default_obstacle_array.delete_obstacle(["wrong_obs_0", "wrong_obs_2"])
+
+    expected_df = pd.DataFrame(
+        {
+            "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_1", "obs_2"],
+            "point_index": [0, 1, 0, 1, 2, 0],
+            "span_index": [0, 0, 1, 1, 1, 1],
+            "x": [
+                100.0,
+                200.0,
+                100.0,
+                200.0,
+                300.0,
+                200.0,
+            ],
+            "y": [0.0, 10.0, 0.0, 0.0, 10.0, 0.0],
+            "z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "object_type": [
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+            ],
+        }
+    )
+    assert_frame_equal(
+        default_obstacle_array.data, expected_df, check_like=True
+    )
+
+
+def test_delete_point(default_obstacle_array: ObstacleArray) -> None:
+    default_obstacle_array.delete_point("obs_1", 2)
+
+    expected_df = pd.DataFrame(
+        {
+            "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_2"],
+            "point_index": [0, 1, 0, 1, 0],
+            "span_index": [0, 0, 1, 1, 1],
+            "x": [
+                100.0,
+                200.0,
+                100.0,
+                200.0,
+                200.0,
+            ],
+            "y": [0.0, 10.0, 0.0, 0.0, 0.0],
+            "z": [0.0, 0.0, 0.0, 0.0, 0.0],
+            "object_type": [
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+            ],
+        }
+    )
+    assert_frame_equal(
+        default_obstacle_array.data, expected_df, check_like=True
+    )
