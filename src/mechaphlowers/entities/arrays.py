@@ -764,6 +764,7 @@ class ObstacleArray(ElementArray):
             raise TypeError(
                 "coords have incorrect dimension: it should be (n x 3)"
             )
+        # TODO: not so sure about that. Need to check how stellar works
         if name in self._data["name"].tolist():
             indices_to_drop = self._data.index[self._data["name"] == name]
             self._data.drop(indices_to_drop, inplace=True)
@@ -805,9 +806,32 @@ class ObstacleArray(ElementArray):
                 indices_to_drop.extend(
                     self._data.index[self._data["name"] == name_to_delete]
                 )
+        if len(indices_to_drop) == 0:
+            logger.warning(
+                f"Obstacles {obs_names_to_delete} were not found. Did not delete anything"
+            )
+            warnings.warn(
+                f"Obstacles {obs_names_to_delete} were not found. Did not delete anything"
+            )
+        else:
+            self._data.drop(indices_to_drop, inplace=True)
+            self._data.reset_index(drop=True, inplace=True)
 
-        self._data.drop(indices_to_drop, inplace=True)
-        self._data.reset_index(drop=True, inplace=True)
+    def delete_point(self, obs_name: str, point_index: int) -> None:
+        index_to_drop = self._data.index[
+            (self._data["name"] == obs_name)
+            & (self._data["point_index"] == point_index)
+        ]
+        if len(index_to_drop) == 0:
+            logger.warning(
+                f"Point {point_index} of obstacle {obs_name} was not found. Did not delete anything"
+            )
+            warnings.warn(
+                f"Point {point_index} of obstacle {obs_name} was not found. Did not delete anything"
+            )
+        else:
+            self._data.drop(index_to_drop, inplace=True)
+            self._data.reset_index(drop=True, inplace=True)
 
     def reset(self) -> None:
         columns_names = list(ObstacleArrayInput.__annotations__.keys())
