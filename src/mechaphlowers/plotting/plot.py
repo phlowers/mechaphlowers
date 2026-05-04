@@ -676,7 +676,7 @@ class PlotEngine(Observer):
         cable_name: str | None = None,
         cable_name_addendum: str | None = None,
         support_name: str | None = None,
-        support_name_addendum: str = "",
+        support_name_addendum: str | None = None,
         insulator_name: str | None = None,
         insulator_name_addendum: str | None = None,
     ) -> None:
