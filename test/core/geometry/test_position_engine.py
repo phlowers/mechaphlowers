@@ -526,4 +526,31 @@ class TestPositionEngineObstacleArray:
             pos_engine.obstacle_array.data, expected_df, check_like=True
         )
 
+    def test_add_and_delete_obstacle_dict(
+        self, balance_engine_base_test: BalanceEngine
+    ):
+        pos_engine = PositionEngine(balance_engine_base_test)
+        pos_engine.add_obstacle(
+            name="obs_0",
+            span_index=0,
+            coords=np.array([[100, 0, 0], [200, 0, 10]]),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array(
+                [[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]
+            ),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_2",
+            span_index=1,
+            coords=np.array([[35, 0, 0], [100, 0, 10]]),
+            support_reference='right',
+            span_length=np.array([500, 400, 450, np.nan]),
+        )
+        pos_engine.delete_obstacle("obs_1")
 
+        assert set(pos_engine.obstacles_dict().keys()) == {"obs_0", "obs_2"}

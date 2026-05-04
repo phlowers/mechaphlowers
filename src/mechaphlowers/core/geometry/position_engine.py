@@ -11,7 +11,6 @@ import warnings
 from typing import Literal
 
 import numpy as np
-import pandas as pd
 
 from mechaphlowers.core.geometry.distances import (
     DistanceEngine,
@@ -64,7 +63,7 @@ class PositionEngine(Observer, Notifier):
         self.span_model = balance_engine.balance_model.nodes_span_model
         self.cable_loads = balance_engine.cable_loads
         self.section_array = balance_engine.section_array
-        self.obstacle_array = ObstacleArray(pd.DataFrame({}))
+        self.obstacle_array = ObstacleArray.build_empty_array()
         self.coords_calculator = CoordsCalculator(
             section_array=self.section_array,
             span_model=self.span_model,

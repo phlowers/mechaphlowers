@@ -322,7 +322,7 @@ def test_add_obstacle_existing() -> None:
 
 
 def test_add_obstacle_from_empty() -> None:
-    obstacle_array = ObstacleArray(pd.DataFrame({}))
+    obstacle_array = ObstacleArray.build_empty_array()
     obstacle_array.add_obstacle(
         name="obs_1",
         span_index=1,

@@ -7,7 +7,6 @@
 from typing import Callable, Self, TypeVar
 
 import numpy as np
-import pandas as pd
 from typing_extensions import Literal  # type: ignore[attr-defined]
 
 from mechaphlowers.config import options as cfg
@@ -325,7 +324,7 @@ class CoordsCalculator:
             get_displacement (Callable): function that returns an array of chain displacement. Usually, comes from BalanceModel.get_displacement()
         """
         if obstacle_array is None:
-            obstacle_array = ObstacleArray(pd.DataFrame({}))
+            obstacle_array = ObstacleArray.build_empty_array()
         self.store_references(
             section_array,
             span_model,
@@ -337,11 +336,11 @@ class CoordsCalculator:
 
     def store_references(
         self,
-        section_array,
-        span_model,
-        cable_loads,
-        get_displacement,
-        obstacle_array,
+        section_array: SectionArray,
+        span_model: ISpan,
+        cable_loads: CableLoads,
+        get_displacement: Callable[[], np.ndarray],
+        obstacle_array: ObstacleArray,
     ):
         self.cable_loads = cable_loads
         self.section_array = section_array
@@ -396,6 +395,7 @@ class CoordsCalculator:
         self.x_cable, self.z_cable = self.span_model.get_coords(resolution)
 
     def refresh_obstacles(self):
+        """Need to be called when any modification to obstacle_array occurs"""
         self.obstacles_points = SparsePoints.builder_from_obstacle_array(
             self.obstacle_array
         )

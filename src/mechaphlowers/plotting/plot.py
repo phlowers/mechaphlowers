@@ -355,7 +355,7 @@ class PlotEngine(Observer):
         self.position_engine.reset(balance_engine)
 
     def add_obstacle_array(self, obstacle_array: ObstacleArray) -> None:
-        """Delegate to :meth:`PositionEngine.add_obstacle`."""
+        """Delegate to :meth:`PositionEngine.add_obstacle_array`."""
         self.position_engine.add_obstacle_array(obstacle_array)
 
     def get_spans_points(

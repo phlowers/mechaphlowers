@@ -840,7 +840,6 @@ class ObstacleArray(ElementArray):
                 len(obstacle_indices)
             )
 
-
     def reverse_x_coord(
         self, x: np.ndarray, span_length: np.ndarray, span_index
     ) -> np.ndarray:
@@ -859,3 +858,7 @@ class ObstacleArray(ElementArray):
         # Sort points by obstacle and index order
         data_output.sort_values(by=["name", "point_index"], inplace=True)
         return data_output
+
+    @classmethod
+    def build_empty_array(cls) -> Self:
+        return cls(pd.DataFrame({}))
