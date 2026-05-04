@@ -80,7 +80,8 @@ class ThermalTransientResults(ThermalResults):
             data (dict | pd.DataFrame): Raw transient results dictionary or DataFrame.
 
         Returns:
-            pd.DataFrame: DataFrame with columns: time, id, t_avg, t_surf, t_core.
+            pd.DataFrame: DataFrame with columns: time, id, average_temperature,
+                surface_temperature, core_temperature.
 
         Raises:
             TypeError: If input is a DataFrame (only dict format is supported).
