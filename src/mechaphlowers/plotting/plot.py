@@ -354,9 +354,9 @@ class PlotEngine(Observer):
         """Delegate to :meth:`PositionEngine.reset`."""
         self.position_engine.reset(balance_engine)
 
-    def add_obstacles(self, obstacles_array: ObstacleArray) -> None:
-        """Delegate to :meth:`PositionEngine.add_obstacles`."""
-        self.position_engine.add_obstacles(obstacles_array)
+    def add_obstacle_array(self, obstacle_array: ObstacleArray) -> None:
+        """Delegate to :meth:`PositionEngine.add_obstacle`."""
+        self.position_engine.add_obstacle_array(obstacle_array)
 
     def get_spans_points(
         self, frame: Literal["section", "localsection", "cable"]
@@ -439,7 +439,7 @@ class PlotEngine(Observer):
             fig, insulators.points(True), insulator_trace(mode=mode)
         )
 
-        if hasattr(self.coords_calculator, "obstacles_array"):
+        if hasattr(self.coords_calculator, "obstacle_array"):
             obstacles = self.coords_calculator.compute_obstacle_coords()
             plot_points_3d(
                 fig, obstacles.points(True), TraceProfile(name="Obstacles")
@@ -506,7 +506,7 @@ class PlotEngine(Observer):
             view=view,
         )
 
-        if hasattr(self.coords_calculator, "obstacles_array"):
+        if hasattr(self.coords_calculator, "obstacle_array"):
             obstacles_dict = self.obstacles_dict(
                 project=True, frame_index=frame_index
             )

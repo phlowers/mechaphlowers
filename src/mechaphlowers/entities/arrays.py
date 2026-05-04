@@ -722,7 +722,9 @@ class ObstacleArray(ElementArray):
         data: pd.DataFrame,
     ) -> None:
         if data.empty:
-            self.reset()
+            columns_names = list(ObstacleArrayInput.__annotations__.keys())
+            empty_df = pd.DataFrame(columns=columns_names)
+            super().__init__(empty_df)
         else:
             super().__init__(data)
             # Check if points from the same obstacle have the same indices
@@ -756,7 +758,7 @@ class ObstacleArray(ElementArray):
 
         coords format: [[x0, y0, z0], [x1, y1, z1],...]
 
-        If support_reference == "left", span_length is required.
+        If support_reference == "right", span_length is required.
 
         Will override if name already exists
         """
@@ -832,11 +834,12 @@ class ObstacleArray(ElementArray):
         else:
             self._data.drop(index_to_drop, inplace=True)
             self._data.reset_index(drop=True, inplace=True)
+            obstacle_mask = self._data["name"] == obs_name
+            obstacle_indices = self._data.index[obstacle_mask].to_numpy()
+            self._data.loc[obstacle_indices, "point_index"] = np.arange(
+                len(obstacle_indices)
+            )
 
-    def reset(self) -> None:
-        columns_names = list(ObstacleArrayInput.__annotations__.keys())
-        empty_df = pd.DataFrame(columns=columns_names)
-        super().__init__(empty_df)
 
     def reverse_x_coord(
         self, x: np.ndarray, span_length: np.ndarray, span_index

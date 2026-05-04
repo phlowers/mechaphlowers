@@ -11,6 +11,7 @@ import warnings
 from typing import Literal
 
 import numpy as np
+import pandas as pd
 
 from mechaphlowers.core.geometry.distances import (
     DistanceEngine,
@@ -63,11 +64,13 @@ class PositionEngine(Observer, Notifier):
         self.span_model = balance_engine.balance_model.nodes_span_model
         self.cable_loads = balance_engine.cable_loads
         self.section_array = balance_engine.section_array
+        self.obstacle_array = ObstacleArray(pd.DataFrame({}))
         self.coords_calculator = CoordsCalculator(
             section_array=self.section_array,
             span_model=self.span_model,
             cable_loads=self.cable_loads,
             get_displacement=balance_engine.get_displacement,
+            obstacle_array=self.obstacle_array,
         )
 
     @property
@@ -106,10 +109,39 @@ class PositionEngine(Observer, Notifier):
 
     # ── Obstacle management ───────────────────────────────────────────────────
 
-    def add_obstacles(self, obstacles_array: ObstacleArray) -> None:
+    def add_obstacle_array(self, obstacle_array: ObstacleArray) -> None:
         """Attach an `ObstacleArray` for coordinate computation."""
-        self.obstacles_array = obstacles_array
-        self.coords_calculator.add_obstacles(obstacles_array)
+        self.obstacle_array = obstacle_array
+        self.coords_calculator.obstacle_array = self.obstacle_array
+        self.coords_calculator.refresh_obstacles()
+
+    def add_obstacle(
+        self,
+        name: str,
+        span_index: int,
+        coords: np.ndarray,
+        object_type: str = "ground",
+        support_reference: Literal['left', 'right'] = 'left',
+        span_length: np.ndarray | None = None,
+    ):
+        self.obstacle_array.add_obstacle(
+            name,
+            span_index,
+            coords,
+            object_type,
+            support_reference,
+            span_length,
+        )
+        # Replace by a Notifier/Observer pattern?
+        self.coords_calculator.refresh_obstacles()
+
+    def delete_obstacle(self, obs_names_to_delete: str | list[str]) -> None:
+        self.obstacle_array.delete_obstacle(obs_names_to_delete)
+        self.coords_calculator.refresh_obstacles()
+
+    def delete_point(self, obs_name: str, point_index: int) -> None:
+        self.obstacle_array.delete_point(obs_name, point_index)
+        self.coords_calculator.refresh_obstacles()
 
     # ── Properties ───────────────────────────────────────────────────────────
 

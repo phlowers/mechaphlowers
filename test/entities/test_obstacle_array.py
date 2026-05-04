@@ -537,6 +537,37 @@ def test_delete_obstacle_list_wrong(
 
 
 def test_delete_point(default_obstacle_array: ObstacleArray) -> None:
+    default_obstacle_array.delete_point("obs_1", 1)
+
+    expected_df = pd.DataFrame(
+        {
+            "name": ["obs_0", "obs_0", "obs_1", "obs_1", "obs_2"],
+            "point_index": [0, 1, 0, 1, 0],
+            "span_index": [0, 0, 1, 1, 1],
+            "x": [
+                100.0,
+                200.0,
+                100.0,
+                300.0,
+                200.0,
+            ],
+            "y": [0.0, 10.0, 0.0, 10.0, 0.0],
+            "z": [0.0, 0.0, 0.0, 0.0, 0.0],
+            "object_type": [
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+                "ground",
+            ],
+        }
+    )
+    assert_frame_equal(
+        default_obstacle_array.data, expected_df, check_like=True
+    )
+
+
+def test_delete_point_last(default_obstacle_array: ObstacleArray) -> None:
     default_obstacle_array.delete_point("obs_1", 2)
 
     expected_df = pd.DataFrame(
