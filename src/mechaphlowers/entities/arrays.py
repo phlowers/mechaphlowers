@@ -778,7 +778,6 @@ class ObstacleArray(ElementArray):
                     "If support_reference is set to 'right', span_length is required"
                 )
             x = self.reverse_x_coord(x, span_length, span_index)
-        # TODO: not so sure about that. Need to check how stellar works
         point_index = np.arange(nb_points)
 
         if name in self._data["name"].tolist():
