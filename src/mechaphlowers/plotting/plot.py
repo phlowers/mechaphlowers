@@ -199,15 +199,15 @@ def _group_labels_by_position(
     seen: dict[tuple, int] = {}
     grouped_coords: list[np.ndarray] = []
     grouped_labels: list[str] = []
-    for pt, sn in zip(points, flat_numbers):
-        key = tuple(pt)
+    for point, set_number in zip(points, flat_numbers):
+        key = tuple(point)
         if key in seen:
             idx = seen[key]
-            grouped_labels[idx] = f"{grouped_labels[idx]}, {sn}"
+            grouped_labels[idx] = f"{grouped_labels[idx]}, {set_number}"
         else:
             seen[key] = len(grouped_coords)
-            grouped_coords.append(pt)
-            grouped_labels.append(str(sn))
+            grouped_coords.append(point)
+            grouped_labels.append(str(set_number))
     return np.array(grouped_coords), np.array(grouped_labels)
 
 

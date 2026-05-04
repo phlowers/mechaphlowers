@@ -290,17 +290,25 @@ def test_preview_line3d__hover_text(
     fig = go.Figure()
     plt_engine.preview_line3d(fig)
 
-    cable_data = next(t for t in fig.data if t.name == "Cable")  # type: ignore[attr-defined]
+    cable_data = next(points for points in fig.data if points.name == "Cable")  # type: ignore[attr-defined]
     assert cable_data.customdata is not None  # type: ignore[attr-defined]
     assert "span: 1-2" in list(cable_data.customdata)  # type: ignore[attr-defined]
     assert "span: 2-three" in list(cable_data.customdata)  # type: ignore[attr-defined]
 
-    support_data = next(t for t in fig.data if t.name == "Support")  # type: ignore[attr-defined]
+    support_data = next(
+        points
+        for points in fig.data
+        if points.name == "Support"  # type: ignore[attr-defined]
+    )
     assert support_data.customdata is not None  # type: ignore[attr-defined]
     assert "support: 1" in list(support_data.customdata)  # type: ignore[attr-defined]
     assert "support: support 4" in list(support_data.customdata)  # type: ignore[attr-defined]
 
-    insulator_data = next(t for t in fig.data if t.name == "Insulator")  # type: ignore[attr-defined]
+    insulator_data = next(
+        points
+        for points in fig.data
+        if points.name == "Insulator"  # type: ignore[attr-defined]
+    )
     assert insulator_data.customdata is not None  # type: ignore[attr-defined]
     assert "support: 2" in list(insulator_data.customdata)  # type: ignore[attr-defined]
 
@@ -312,11 +320,15 @@ def test_preview_line2d__hover_text(
     fig = go.Figure()
     plt_engine.preview_line2d(fig)
 
-    cable_data = next(t for t in fig.data if t.name == "Cable")  # type: ignore[attr-defined]
+    cable_data = next(points for points in fig.data if points.name == "Cable")  # type: ignore[attr-defined]
     assert cable_data.customdata is not None  # type: ignore[attr-defined]
     assert "span: 1-2" in list(cable_data.customdata)  # type: ignore[attr-defined]
 
-    support_data = next(t for t in fig.data if t.name == "Support")  # type: ignore[attr-defined]
+    support_data = next(
+        points
+        for points in fig.data
+        if points.name == "Support"  # type: ignore[attr-defined]
+    )
     assert support_data.customdata is not None  # type: ignore[attr-defined]
     assert "support: 1" in list(support_data.customdata)  # type: ignore[attr-defined]
 
