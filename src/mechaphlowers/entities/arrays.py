@@ -752,6 +752,7 @@ class ObstacleArray(ElementArray):
         object_type: str = "ground",
         support_reference: Literal['left', 'right'] = 'left',
         span_length: np.ndarray | None = None,
+        overwrite: bool = True,
     ):
         """
         Method used for adding an obstacle to ObstacleArray
@@ -760,17 +761,12 @@ class ObstacleArray(ElementArray):
 
         If support_reference == "right", span_length is required.
 
-        Will override if name already exists
+        If overwrite == True, will overwrite if name already exists. Else, it will add points to obstacle
         """
         if len(coords.shape) != 2 or coords.shape[1] != 3:
             raise TypeError(
                 "coords have incorrect dimension: it should be (n x 3)"
             )
-        # TODO: not so sure about that. Need to check how stellar works
-        if name in self._data["name"].tolist():
-            indices_to_drop = self._data.index[self._data["name"] == name]
-            self._data.drop(indices_to_drop, inplace=True)
-            self._data.reset_index(drop=True, inplace=True)
 
         nb_points = coords.shape[0]
 
@@ -782,11 +778,23 @@ class ObstacleArray(ElementArray):
                     "If support_reference is set to 'right', span_length is required"
                 )
             x = self.reverse_x_coord(x, span_length, span_index)
+        # TODO: not so sure about that. Need to check how stellar works
+        point_index = np.arange(nb_points)
+
+        if name in self._data["name"].tolist():
+            indices_existing_obstacle = self._data.index[
+                self._data["name"] == name
+            ]
+            if overwrite:
+                self._data.drop(indices_existing_obstacle, inplace=True)
+                self._data.reset_index(drop=True, inplace=True)
+            else:
+                point_index = point_index + len(indices_existing_obstacle)
 
         new_obstacle = pd.DataFrame(
             {
                 "name": [name] * nb_points,
-                "point_index": np.arange(nb_points),
+                "point_index": point_index,
                 "span_index": [span_index] * nb_points,
                 "x": x,
                 "y": coords[:, 1],
@@ -802,22 +810,26 @@ class ObstacleArray(ElementArray):
             indices_to_drop = self._data.index[
                 self._data["name"] == obs_names_to_delete
             ].tolist()
+            if len(indices_to_drop) == 0:
+                raise ValueError(
+                    f"Obstacle {obs_names_to_delete} was not found."
+                )
         elif isinstance(obs_names_to_delete, list):
             indices_to_drop = []
+            existing_names = set(self._data["name"])
             for name_to_delete in obs_names_to_delete:
+                if name_to_delete not in existing_names:
+                    raise ValueError(
+                        f"Obstacle {name_to_delete} was not found."
+                    )
                 indices_to_drop.extend(
                     self._data.index[self._data["name"] == name_to_delete]
                 )
-        if len(indices_to_drop) == 0:
-            logger.warning(
-                f"Obstacles {obs_names_to_delete} were not found. Did not delete anything"
-            )
-            warnings.warn(
-                f"Obstacles {obs_names_to_delete} were not found. Did not delete anything"
-            )
         else:
-            self._data.drop(indices_to_drop, inplace=True)
-            self._data.reset_index(drop=True, inplace=True)
+            raise TypeError("obs_names_to_delete must be a str or list[str]")
+
+        self._data.drop(indices_to_drop, inplace=True)
+        self._data.reset_index(drop=True, inplace=True)
 
     def delete_point(self, obs_name: str, point_index: int) -> None:
         index_to_drop = self._data.index[
@@ -832,6 +844,7 @@ class ObstacleArray(ElementArray):
                 f"Point {point_index} of obstacle {obs_name} was not found. Did not delete anything"
             )
         else:
+            self._data.sort_values(by=["name", "point_index"], inplace=True)
             self._data.drop(index_to_drop, inplace=True)
             self._data.reset_index(drop=True, inplace=True)
             obstacle_mask = self._data["name"] == obs_name
