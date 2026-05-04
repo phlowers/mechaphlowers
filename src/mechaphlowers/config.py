@@ -172,6 +172,8 @@ class InputUnitsConfig:
             "insulator_length": "m",
             "span_length": "m",
             "insulator_mass": "kg",
+            "sagging_parameter": "m",
+            "sagging_temperature": "°C",
         }
     )
 

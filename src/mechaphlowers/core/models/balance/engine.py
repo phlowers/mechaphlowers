@@ -57,7 +57,7 @@ class BalanceEngine(Notifier):
 
     * `self.L_ref` for solve_adjustment()
 
-    * `self.balance_model.nodes.dxdydz` and `self.span_model.sagging_parameter` for solve_change_state().
+    * `self.balance_model.nodes.dxdydz` and `self.span_model.parameter` for solve_change_state().
 
     Examples:
 
@@ -349,7 +349,7 @@ class BalanceEngine(Notifier):
         In this case, there is no weather, no loads, and temperature is the sagging temperature.
 
         After running this method, many attributes are updated.
-        Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
+        Most interesting ones are `L_ref`, `parameter` in Span, and `dxdydz` in Nodes.
 
         raises:
             SolverError: If the solver fails to converge.
@@ -389,7 +389,7 @@ class BalanceEngine(Notifier):
             wind_sense (Literal["clockwise", "anticlockwise"]): Direction of the wind: if "clockwise": towards user (right), if "anticlockwise": away from user (left). Default to "anticlockwise".
 
         After running this method, many attributes are updated.
-        Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
+        Most interesting ones are `L_ref`, `parameter` in Span, and `dxdydz` in Nodes.
 
         raises:
             SolverError: If the solver fails to converge.
@@ -544,7 +544,7 @@ class BalanceEngine(Notifier):
         dxdydz = self.balance_model.chain_displacement().T
         return_string = (
             f"number of supports: {self.support_number}\n"
-            f"parameter: {self.span_model.sagging_parameter}\n"
+            f"parameter: {self.span_model.parameter}\n"
             f"wind: {self.balance_model.cable_loads.wind_pressure}\n"
             f"ice: {self.balance_model.cable_loads.ice_thickness}\n"
             f"temperature: {self.balance_model.sagging_temperature}\n"
@@ -562,4 +562,4 @@ class BalanceEngine(Notifier):
 
     @property
     def parameter(self) -> np.ndarray:
-        return self.span_model.sagging_parameter
+        return self.span_model.parameter

@@ -289,8 +289,8 @@ def test_load_span__check_node_span_changes(cable_array_AM600: CableArray):
     balance_engine_angles_arm.solve_change_state(new_temperature=75)
 
     assert len(
-        balance_engine_angles_arm.balance_model.nodes_span_model.sagging_parameter
-    ) > len(span_model_1.sagging_parameter)
+        balance_engine_angles_arm.balance_model.nodes_span_model.parameter
+    ) > len(span_model_1.parameter)
 
 
 def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
@@ -344,12 +344,10 @@ def test_adjustment_convergence_error_origin(
 
 
 def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
-    initial_span_param = (
-        balance_engine_simple.span_model.sagging_parameter.copy()
-    )
+    initial_span_param = balance_engine_simple.span_model.parameter.copy()
     initial_wind = balance_engine_simple.cable_loads.wind_pressure.copy()
 
-    balance_engine_simple.span_model.sagging_parameter = np.ones_like(
+    balance_engine_simple.span_model.parameter = np.ones_like(
         initial_span_param
     )
     balance_engine_simple.cable_loads.wind_pressure = np.ones_like(
@@ -359,7 +357,7 @@ def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
     balance_engine_simple.reset(True)
 
     np.testing.assert_array_equal(
-        balance_engine_simple.span_model.sagging_parameter, initial_span_param
+        balance_engine_simple.span_model.parameter, initial_span_param
     )
     np.testing.assert_array_equal(
         balance_engine_simple.cable_loads.wind_pressure, initial_wind

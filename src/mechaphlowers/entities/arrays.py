@@ -7,18 +7,21 @@
 import logging
 import warnings
 from abc import ABC
-from typing import TYPE_CHECKING
+from copy import copy
+from typing import TYPE_CHECKING, Iterable
+from warnings import warn
 
 import numpy as np
 import pandas as pd
 import pandera as pa
+from numpy import typing as npt
 from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Literal, Self, Type
 
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.errors import DataWarning
-from mechaphlowers.entities.geography import get_gps_from_arrays
+from mechaphlowers.entities.geography import GeoLocator
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.cable.cable_strength import ITensileStrength
@@ -130,6 +133,8 @@ class SectionArray(ElementArray):
         "insulator_mass": "kg",
         "load_mass": "kg",
         "counterweight_mass": "kg",
+        "sagging_parameter": "m",
+        "sagging_temperature": "°C",
     }
 
     def __init__(
@@ -141,18 +146,43 @@ class SectionArray(ElementArray):
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
 
-        if sagging_parameter is None:
+        if (
+            sagging_parameter is not None
+            and "sagging_parameter" in data.columns
+        ):
+            raise ValueError(
+                "sagging_parameter provided both as argument and in data columns."
+                " Please provide it only once."
+            )
+        elif (
+            sagging_parameter is None
+            and "sagging_parameter" not in data.columns
+        ):
             warnings.warn(
-                "sagging_parameter not provided. It will be set to 5 times the equivalent span.",
+                "sagging_parameter not provided. A default value will be computed.",
                 DefaultValueWarning,
             )
-            self.sagging_parameter = self.equivalent_span() * 5
-        else:
-            self.sagging_parameter = sagging_parameter
-        if sagging_temperature is None:
-            self.sagging_temperature = options.data.sagging_temperature_default
-        else:
-            self.sagging_temperature = sagging_temperature
+            sagging_parameter = self.default_sagging_parameter()
+        if sagging_parameter is not None:
+            self.set_sagging_parameter(sagging_parameter)
+
+        if (
+            sagging_temperature is not None
+            and "sagging_temperature" in data.columns
+        ):
+            raise ValueError(
+                "sagging_temperature provided both as argument and in data columns."
+                " Please provide it only once."
+            )
+        elif (
+            sagging_temperature is None
+            and "sagging_temperature" not in data.columns
+        ):
+            self.set_sagging_temperature(
+                options.data.sagging_temperature_default
+            )
+        elif sagging_temperature is not None:
+            self.set_sagging_temperature(sagging_temperature)
         if bundle_number < 1:
             raise ValueError(
                 f"bundle_number should be a positive integer. Received: {bundle_number}"
@@ -163,7 +193,11 @@ class SectionArray(ElementArray):
         self._angles_sense: Literal["clockwise", "anticlockwise"] = (
             "anticlockwise"
         )
+        self.geolocator: GeoLocator = GeoLocator()
         logger.debug("Section Array initialized.")
+
+    def default_sagging_parameter(self) -> float:
+        return self.equivalent_span() * 5
 
     def compute_elevation_difference(self) -> np.ndarray:
         left_support_height = self._data["conductor_attachment_altitude"]
@@ -209,6 +243,62 @@ class SectionArray(ElementArray):
         self._angles_sense = value
 
     @property
+    def sagging_parameter(self):
+        return self._data["sagging_parameter"].to_numpy()
+
+    @sagging_parameter.setter
+    def sagging_parameter(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        warn(
+            "This is deprecated, use set_sagging_parameter instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.set_sagging_parameter(value)
+
+    def set_sagging_parameter(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        if isinstance(value, Iterable):
+            value = np.asarray(value, dtype=np.float64)
+        else:
+            value = np.repeat(np.float64(value), self._data.shape[0])
+            value[-1] = (
+                np.nan
+            )  # last value should be nan since it doesn't correspond to a span
+        self._data["sagging_parameter"] = value
+        SectionArrayInput.validate(self._data)
+
+    @property
+    def sagging_temperature(self):
+        return self._data["sagging_temperature"].to_numpy()
+
+    @sagging_temperature.setter
+    def sagging_temperature(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        warn(
+            "This is deprecated, use set_sagging_temperature instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.set_sagging_temperature(value)
+
+    def set_sagging_temperature(
+        self, value: float | int | npt.NDArray[np.floating]
+    ) -> None:
+        if isinstance(value, Iterable):
+            value = np.asarray(value, dtype=np.float64)
+        else:
+            value = np.repeat(np.float64(value), self._data.shape[0])
+            value[-1] = (
+                np.nan
+            )  # last value should be nan since it doesn't correspond to a span
+        self._data["sagging_temperature"] = value
+        SectionArrayInput.validate(self._data)
+
+    @property
     def data(self) -> pd.DataFrame:
         self.correct_insulator_length()
         data_output = super().data
@@ -220,21 +310,18 @@ class SectionArray(ElementArray):
         self.create_column_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
         data_output = self._adjust_angle_sense(data_output)
-        if self.sagging_parameter is None or self.sagging_temperature is None:
-            raise AttributeError(
-                "Cannot return data: sagging_parameter and sagging_temperature are needed"
-            )
-        else:
-            sagging_parameter = np.repeat(
-                np.float64(self.sagging_parameter), data_output.shape[0]
-            )
-            sagging_parameter[-1] = np.nan
-            return data_output.assign(
-                elevation_difference=self.compute_elevation_difference(),
-                sagging_parameter=sagging_parameter,
-                sagging_temperature=self.sagging_temperature,
-                bundle_number=self.bundle_number,
-            )
+        return data_output.assign(
+            elevation_difference=self.compute_elevation_difference(),
+            bundle_number=self.bundle_number,
+        )
+
+    @property
+    def data_original(self) -> pd.DataFrame:
+        """Original dataframe with the exact same data as input
+        (except for sagging_parameter and sagging_temperature which are added if not provided in input)
+        original units and no (other) columns added
+        """
+        return super().data_original
 
     def create_column_weight(
         self, df_output: pd.DataFrame, columns_to_convert: dict[str, str]
@@ -289,37 +376,91 @@ class SectionArray(ElementArray):
                 warnings.warn(warning_string)
                 logger.warning(warning_string)
 
-    def compute_gps_coordinates(
+    def set_starting_gps(
         self,
-        start_latitude: float,
-        start_longitude: float,
-        start_azimuth: float,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Compute GPS coordinates for the cable array.
+        latitude_0: float,
+        longitude_0: float,
+        azimuth_0: float,
+    ) -> None:
+        """Set the starting GPS point and azimuth for coordinate computation.
 
         Args:
-            start_latitude (float): Latitude of the first support in degrees.
-            start_longitude (float): Longitude of the first support in degrees.
-            start_azimuth (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+            latitude_0 (float): Latitude of the first support in decimal degrees.
+            longitude_0 (float): Longitude of the first support in decimal degrees.
+            azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+        """
+        self.geolocator.set_starting_gps(latitude_0, longitude_0, azimuth_0)
+
+    def set_starting_lambert93(
+        self,
+        easting: float,
+        northing: float,
+        azimuth_0: float,
+    ) -> None:
+        """Set the starting point from Lambert 93 coordinates and azimuth.
+
+        Args:
+            easting (float): Lambert 93 easting coordinate in meters.
+            northing (float): Lambert 93 northing coordinate in meters.
+            azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+        """
+        self.geolocator.set_starting_lambert93(easting, northing, azimuth_0)
+
+    def get_azimuth(self, unit: str = "deg") -> np.ndarray:
+        """Compute azimuth angle (or bearing) of the section.
+        0 is toward North. 90 degrees is toward West. (anti-clockwise sense)
+
+        Args:
+            unit (str, optional): Output unit. Defaults to "deg".
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: Two arrays of GPS coordinates (latitude, longitude) in degrees.
+            np.ndarray: array of the azimuth of each span.
         """
-        line_angle_geo_degrees = (
+        self.geolocator._check_gps_available()
+        line_angles_degrees = (
             Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
         )
-        return get_gps_from_arrays(
-            start_latitude,
-            start_longitude,
-            start_azimuth,
-            line_angle_geo_degrees,
-            self.data["span_length"].to_numpy(),
+        azimuth_deg = (
+            np.cumsum(line_angles_degrees) + self.geolocator._azimuth_0
+        )
+        return Q_(azimuth_deg, "deg").to(unit).m
+
+    def get_gps(self) -> tuple[np.ndarray, np.ndarray]:
+        """Compute GPS coordinates for all pylons.
+
+        Requires set_starting_gps() or set_starting_lambert93() to have been called first.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: (latitudes, longitudes) in decimal degrees.
+        """
+        line_angles_degrees = (
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        return self.geolocator.get_gps(
+            line_angles_degrees, self.data["span_length"].to_numpy()
+        )
+
+    def get_lambert93(self) -> tuple[np.ndarray, np.ndarray]:
+        """Compute Lambert 93 coordinates for all pylons.
+
+        Requires set_starting_gps() or set_starting_lambert93() to have been called first.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: (easting, northing) in Lambert 93 meters.
+        """
+        line_angles_degrees = (
+            Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
+        )
+        return self.geolocator.get_lambert93(
+            line_angles_degrees, self.data["span_length"].to_numpy()
         )
 
     def __copy__(self) -> Self:
         copy_obj = super().__copy__()
         copy_obj.sagging_parameter = self.sagging_parameter
         copy_obj.sagging_temperature = self.sagging_temperature
+        copy_obj.bundle_number = self.bundle_number
+        copy_obj.geolocator = copy(self.geolocator)
         return copy_obj
 
 
