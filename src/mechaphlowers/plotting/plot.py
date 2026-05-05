@@ -251,21 +251,19 @@ def set_layout(
 class PlotEngine(Observer):
     """PlotEngine renders power-line sections on Plotly figures.
 
-    It accepts either a :class:`~mechaphlowers.core.models.balance.engine.BalanceEngine`
-    or an already-constructed :class:`~mechaphlowers.core.geometry.position_engine.PositionEngine`.
-    When a ``BalanceEngine`` is passed, a ``PositionEngine`` is created
-    automatically and exposed via :attr:`position_engine`.
+    It accepts either a [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine]
+    or an already-constructed [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine].
+    When a `BalanceEngine` is passed, a `PositionEngine` is created
+    automatically and exposed via `position_engine`.
 
     Reactivity is preserved through a two-hop observer chain:
 
-    .. code-block:: text
-
-        BalanceEngine  ──notifies──►  PositionEngine  ──notifies──►  PlotEngine
+        BalanceEngine  --notifies-->  PositionEngine  --notifies-->  PlotEngine
 
     Args:
-        engine: A :class:`BalanceEngine` or :class:`PositionEngine` instance.
+        engine: A [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] or [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine] instance.
 
-    Example:
+    Examples:
         >>> import plotly.graph_objects as go
         >>> # Pass a BalanceEngine directly (PositionEngine is auto-created)
         >>> plt_engine = PlotEngine(balance_engine)
@@ -299,9 +297,9 @@ class PlotEngine(Observer):
     # ── Observer callback ─────────────────────────────────────────────────────
 
     def update(self, notifier: Notifier) -> None:
-        """Receive notification from :class:`PositionEngine`.
+        """Receive notification from [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine].
 
-        The ``PositionEngine`` has already refreshed all coordinates before
+        The `PositionEngine` has already refreshed all coordinates before
         calling this method, so no additional state update is required here.
         """
         logger.debug("Plot engine notified from position engine.")
@@ -313,22 +311,22 @@ class PlotEngine(Observer):
 
     @property
     def span_model(self):
-        """Delegating property — see :attr:`PositionEngine.span_model`."""
+        """Delegating property — see [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine]."""
         return self.position_engine.span_model
 
     @property
     def cable_loads(self):
-        """Delegating property — see :attr:`PositionEngine.cable_loads`."""
+        """Delegating property — see [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine]."""
         return self.position_engine.cable_loads
 
     @property
     def section_array(self):
-        """Delegating property — see :attr:`PositionEngine.section_array`."""
+        """Delegating property — see [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine]."""
         return self.position_engine.section_array
 
     @property
     def coords_calculator(self):
-        """Delegating property — see :attr:`PositionEngine.coords_calculator`."""
+        """Delegating property — see [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine]."""
         return self.position_engine.coords_calculator
 
     @property
@@ -341,39 +339,39 @@ class PlotEngine(Observer):
 
     @property
     def beta(self) -> np.ndarray:
-        """Delegating property — see :attr:`PositionEngine.beta`."""
+        """Delegating property — see [`PositionEngine.beta`][mechaphlowers.core.geometry.position_engine.PositionEngine.beta]."""
         return self.position_engine.beta
 
     # ── Backward-compatible delegating methods ────────────────────────────────
 
     def initialize_engine(self, balance_engine: BalanceEngine) -> None:
-        """Delegate to :meth:`PositionEngine.initialize_engine`."""
+        """Delegate to [`PositionEngine.initialize_engine`][mechaphlowers.core.geometry.position_engine.PositionEngine.initialize_engine]."""
         self.position_engine.initialize_engine(balance_engine)
 
     def reset(self, balance_engine: BalanceEngine) -> None:
-        """Delegate to :meth:`PositionEngine.reset`."""
+        """Delegate to [`PositionEngine.reset`][mechaphlowers.core.geometry.position_engine.PositionEngine.reset]."""
         self.position_engine.reset(balance_engine)
 
     def add_obstacle_array(self, obstacle_array: ObstacleArray) -> None:
-        """Delegate to :meth:`PositionEngine.add_obstacle_array`."""
+        """Delegate to [`PositionEngine.add_obstacle_array`][mechaphlowers.core.geometry.position_engine.PositionEngine.add_obstacle_array]."""
         self.position_engine.add_obstacle_array(obstacle_array)
 
     def get_spans_points(
         self, frame: Literal["section", "localsection", "cable"]
     ) -> np.ndarray:
-        """Delegate to :meth:`PositionEngine.get_spans_points`."""
+        """Delegate to [`PositionEngine.get_spans_points`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_spans_points]."""
         return self.position_engine.get_spans_points(frame)
 
     def get_supports_points(self) -> np.ndarray:
-        """Delegate to :meth:`PositionEngine.get_supports_points`."""
+        """Delegate to [`PositionEngine.get_supports_points`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_supports_points]."""
         return self.position_engine.get_supports_points()
 
     def get_insulators_points(self) -> np.ndarray:
-        """Delegate to :meth:`PositionEngine.get_insulators_points`."""
+        """Delegate to [`PositionEngine.get_insulators_points`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_insulators_points]."""
         return self.position_engine.get_insulators_points()
 
     def get_obstacles_points(self) -> np.ndarray:
-        """Delegate to :meth:`PositionEngine.get_obstacles_points`."""
+        """Delegate to [`PositionEngine.get_obstacles_points`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_obstacles_points]."""
         return self.position_engine.get_obstacles_points()
 
     def obstacles_dict(self, project=False, frame_index=0) -> dict:
@@ -388,13 +386,13 @@ class PlotEngine(Observer):
     def get_loads_coords(
         self, project: bool = False, frame_index: int = 0
     ) -> dict:
-        """Delegate to :meth:`PositionEngine.get_loads_coords`."""
+        """Delegate to [`PositionEngine.get_loads_coords`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_loads_coords]."""
         return self.position_engine.get_loads_coords(project, frame_index)
 
     def get_points_for_plot(
         self, project: bool = False, frame_index: int = 0
     ) -> tuple[Points, Points, Points]:
-        """Delegate to :meth:`PositionEngine.get_points_for_plot`."""
+        """Delegate to [`PositionEngine.get_points_for_plot`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_points_for_plot]."""
         return self.position_engine.get_points_for_plot(project, frame_index)
 
     def preview_line3d(
@@ -521,7 +519,7 @@ class PlotEngine(Observer):
     def point_relative_to_absolute(
         self, span_index: int, point_relative: np.ndarray
     ) -> np.ndarray:
-        """Delegate to :meth:`PositionEngine.point_relative_to_absolute`."""
+        """Delegate to [`PositionEngine.point_relative_to_absolute`][mechaphlowers.core.geometry.position_engine.PositionEngine.point_relative_to_absolute]."""
         return self.position_engine.point_relative_to_absolute(
             span_index, point_relative
         )
@@ -536,17 +534,17 @@ class PlotEngine(Observer):
         """Compute the distance from *point* to a span, with optional plotting.
 
         Delegates the geometric computation to
-        :meth:`PositionEngine.point_distance` and, when *fig* is provided,
+        [`PositionEngine.point_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.point_distance] and, when *fig* is provided,
         plots the result on the figure.
 
         Args:
-            span_index: Span index in ``[0, num_supports - 2]``.
-            point: Absolute coordinates of shape ``(3,)``.
+            span_index: Span index in `[0, num_supports - 2]`.
+            point: Absolute coordinates of shape `(3,)`.
             fig: Optional Plotly figure.  When supplied, the geometry is
                 rendered on it.
 
         Returns:
-            :class:`~mechaphlowers.core.geometry.distances.DistanceResult`.
+            [`DistanceResult`][mechaphlowers.core.geometry.distances.DistanceResult].
 
         Examples:
 

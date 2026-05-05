@@ -805,6 +805,15 @@ class ObstacleArray(ElementArray):
         logger.debug(f"Obstacle {name} added")
 
     def delete_obstacle(self, obs_names_to_delete: str | list[str]) -> None:
+        """Deletes obstacles by name. Can delete multiple obstacles at once
+
+        Args:
+            obs_names_to_delete (str | list[str]): str or list of obstacles to delete
+
+        Raises:
+            ValueError: If obstacle name to delete is not found
+            TypeError: If obs_names_to_delete is not a str or a list
+        """
         if isinstance(obs_names_to_delete, str):
             indices_to_drop = self._data.index[
                 self._data["name"] == obs_names_to_delete
@@ -831,6 +840,14 @@ class ObstacleArray(ElementArray):
         self._data.reset_index(drop=True, inplace=True)
 
     def delete_point(self, obs_name: str, point_index: int) -> None:
+        """Delete single point of an obstacle.
+
+        Refers to the point by obstacle name and point index.
+
+        Args:
+            obs_name (str): name of obstacle point to delete
+            point_index (int): point_index of point to delete
+        """
         index_to_drop = self._data.index[
             (self._data["name"] == obs_name)
             & (self._data["point_index"] == point_index)

@@ -88,7 +88,7 @@ class PositionEngine(Observer, Notifier):
         the section array.
 
         Raises:
-            TypeError: If `balance_engine` is not a [BalanceEngine][].
+            TypeError: If `balance_engine` is not a `BalanceEngine`.
         """
         if not isinstance(balance_engine, BalanceEngine):
             raise TypeError(
@@ -123,6 +123,7 @@ class PositionEngine(Observer, Notifier):
         support_reference: Literal['left', 'right'] = 'left',
         span_length: np.ndarray | None = None,
     ):
+        """Delegate to [`ObstacleArray.add_obstacle`][mechaphlowers.entities.arrays.ObstacleArray.add_obstacle]."""
         self.obstacle_array.add_obstacle(
             name,
             span_index,
@@ -135,10 +136,12 @@ class PositionEngine(Observer, Notifier):
         self.coords_calculator.refresh_obstacles()
 
     def delete_obstacle(self, obs_names_to_delete: str | list[str]) -> None:
+        """Delegate to [`ObstacleArray.delete_obstacle`][mechaphlowers.entities.arrays.ObstacleArray.delete_obstacle]."""
         self.obstacle_array.delete_obstacle(obs_names_to_delete)
         self.coords_calculator.refresh_obstacles()
 
     def delete_point(self, obs_name: str, point_index: int) -> None:
+        """Delegate to [`ObstacleArray.delete_point`][mechaphlowers.entities.arrays.ObstacleArray.delete_point]."""
         self.obstacle_array.delete_point(obs_name, point_index)
         self.coords_calculator.refresh_obstacles()
 

@@ -298,13 +298,13 @@ class SectionStudy:
         return self._position_engine.get_supports_points()
 
     def get_points_for_plot(
-        self, project=False, frame_index=0
+        self, project: bool = False, frame_index: int = 0
     ) -> tuple[Points, Points, Points]:
         """Delegate to [`PositionEngine.get_points_for_plot`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_points_for_plot].
 
         Args:
-            project: `True` to project into a support frame (2-D mode).
-            frame_index: Index of the support frame for projection.
+            project (bool): `True` to project into a support frame (2-D mode).
+            frame_index (int): Index of the support frame for projection.
 
         Returns:
             Tuple of ``(spans, supports, insulators)`` as `Points`.

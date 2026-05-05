@@ -135,12 +135,11 @@ class PapotoParameterMeasure(ParameterMeasure):
             measures_converted (dict): dictionary of converted measures
 
         Returns:
-            tuple: (mean_parameter, validity, parameter_1_2, parameter_2_3, parameter_1_3)
-             - mean_parameter (np.ndarray): mean of the three PAPOTO parameters computed from the three pairs of points (1-2, 2-3, 1-3)
-             - validity (np.ndarray): validity criteria computed from the three PAPOTO parameters
-             - parameter_1_2 (np.ndarray): PAPOTO parameter computed from points 1 and 2
-             - parameter_2_3 (np.ndarray): PAPOTO parameter computed from points 2 and 3
-             - parameter_1_3 (np.ndarray): PAPOTO parameter computed from points 1 and 3
+                mean_parameter (np.ndarray): mean of the three PAPOTO parameters computed from the three pairs of points (1-2, 2-3, 1-3)
+                validity (np.ndarray): validity criteria computed from the three PAPOTO parameters
+                parameter_1_2 (np.ndarray): PAPOTO parameter computed from points 1 and 2
+                parameter_2_3 (np.ndarray): PAPOTO parameter computed from points 2 and 3
+                parameter_1_3 (np.ndarray): PAPOTO parameter computed from points 1 and 3
         """
 
         parameter_1_2 = papoto_2_points(
