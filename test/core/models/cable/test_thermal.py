@@ -60,6 +60,7 @@ def thermal_engine_3_spans(cable_array_AM600: CableArray) -> ThermalEngine:
                 90.0,
             ]
         ),
+        nebulosity=np.array([0, 0, 0]),
     )
     return thermal_engine
 
@@ -101,6 +102,7 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
                 90.0,
             ]
         ),
+        nebulosity=np.array([1, 2]),
     )
 
     assert thermal_engine.steady_intensity().data.shape[0] == 2
@@ -138,6 +140,7 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
                 90.0,
             ]
         ),
+        nebulosity=np.array([1, 1]),
     )
     # expected 2 output rows, got 1 thl issue
     assert thermal_engine.steady_intensity().data.shape[0] == 1
@@ -235,6 +238,7 @@ def test_wrong_array_length(cable_array_AM600: CableArray):
                     90.0,
                 ]
             ),
+            nebulosity=np.array([0, 0]),
         )
 
 
@@ -367,6 +371,7 @@ def test_transient_thermal(cable_array_AM600: CableArray):
                 90.0,
             ]
         ),
+        nebulosity=np.array([0, 0, 0]),
     )
     assert thermal_engine.transient_temperature().data.shape[0] == 3 * 10
 

@@ -404,6 +404,7 @@ class ThermalEngine:
         ambient_temp: np.ndarray,
         wind_speed: np.ndarray,
         wind_angle: np.ndarray,
+        nebulosity: np.ndarray,
         solar_irradiance: np.ndarray | None = None,
     ):
         """Set input parameters for thermal calculations.
@@ -421,6 +422,7 @@ class ThermalEngine:
             ambient_temp (np.ndarray): Ambient temperature values.
             wind_speed (np.ndarray): Wind speed values.
             wind_angle (np.ndarray): Wind angle values.
+            nebulosity (np.ndarray): Nebulosity level (int from 0 to 8).
             solar_irradiance (np.ndarray | None): Solar irradiance values (optional). Defaults to None.
         """
         # Handle optional solar_irradiance - create NaN array if not provided
@@ -440,6 +442,7 @@ class ThermalEngine:
             ambient_temp=ambient_temp,
             wind_speed=wind_speed,
             wind_angle=wind_angle,
+            nebulosity=nebulosity,
             solar_irradiance=solar_irradiance,
         )
 
@@ -465,6 +468,7 @@ class ThermalEngine:
             "wind_azimuth": inputs[
                 "wind_angle"
             ],  # wind angle (deg, regarding north)
+            "nebulosity": inputs["nebulosity"],
             "transit": inputs["intensity"],
             "linear_mass": np.full(
                 self._len, cable_array.data.linear_mass.iloc[0]
