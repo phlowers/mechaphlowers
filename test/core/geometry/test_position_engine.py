@@ -11,7 +11,9 @@ Tests for PositionEngine — standalone geometry computation without Plotly.
 from unittest.mock import patch
 
 import numpy as np
+import pandas as pd
 import pytest
+from pandas.testing import assert_frame_equal
 
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.geometry.distances import DistanceResult
@@ -321,3 +323,234 @@ class TestPositionEngineRepr:
     ):
         pos_engine = PositionEngine(balance_engine_base_test)
         assert "PositionEngine" in repr(pos_engine)
+
+
+class TestPositionEngineObstacleArray:
+    def test_obstacle_array_init(
+        self, balance_engine_base_test: BalanceEngine
+    ):
+        pos_engine = PositionEngine(balance_engine_base_test)
+        assert hasattr(pos_engine, "obstacle_array")
+
+    def test_create_obstacle(self, balance_engine_base_test: BalanceEngine):
+        pos_engine = PositionEngine(balance_engine_base_test)
+        pos_engine.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array(
+                [[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]
+            ),
+            support_reference='left',
+        )
+        expected_df = pd.DataFrame(
+            {
+                'name': ['obs_1', 'obs_1', 'obs_1', 'obs_1'],
+                'point_index': [0, 1, 2, 3],
+                'span_index': [1, 1, 1, 1],
+                'x': [50.0, 100.0, 150.0, 200.0],
+                'y': [0.0, 0.0, 10.0, 0.0],
+                'z': [0.0, 10.0, 0.0, 0.0],
+                'object_type': [
+                    'ground',
+                    'ground',
+                    'ground',
+                    'ground',
+                ],
+            }
+        )
+        assert_frame_equal(
+            pos_engine.obstacle_array.data, expected_df, check_like=True
+        )
+
+    def test_add_many_obstacle(self, balance_engine_base_test: BalanceEngine):
+        pos_engine = PositionEngine(balance_engine_base_test)
+        pos_engine.add_obstacle(
+            name="obs_0",
+            span_index=0,
+            coords=np.array([[100, 0, 0], [200, 0, 10]]),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array(
+                [[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]
+            ),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_2",
+            span_index=1,
+            coords=np.array([[35, 0, 0], [100, 0, 10]]),
+            support_reference='right',
+            span_length=np.array([500, 400, 450, np.nan]),
+        )
+
+        expected_df = pd.DataFrame(
+            {
+                "name": [
+                    "obs_0",
+                    "obs_0",
+                    "obs_1",
+                    "obs_1",
+                    "obs_1",
+                    "obs_1",
+                    "obs_2",
+                    "obs_2",
+                ],
+                "point_index": [0, 1, 0, 1, 2, 3, 0, 1],
+                "span_index": [0, 0, 1, 1, 1, 1, 1, 1],
+                "x": [100.0, 200.0, 50.0, 100.0, 150.0, 200.0, 365.0, 300.0],
+                "y": [0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0],
+                "z": [0.0, 10.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0],
+                "object_type": [
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                ],
+            }
+        )
+        assert_frame_equal(
+            pos_engine.obstacle_array.data, expected_df, check_like=True
+        )
+
+    def test_add_and_delete_obstacle(
+        self, balance_engine_base_test: BalanceEngine
+    ):
+        pos_engine = PositionEngine(balance_engine_base_test)
+        pos_engine.add_obstacle(
+            name="obs_0",
+            span_index=0,
+            coords=np.array([[100, 0, 0], [200, 0, 10]]),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array(
+                [[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]
+            ),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_2",
+            span_index=1,
+            coords=np.array([[35, 0, 0], [100, 0, 10]]),
+            support_reference='right',
+            span_length=np.array([500, 400, 450, np.nan]),
+        )
+        pos_engine.delete_obstacle("obs_1")
+        expected_df = pd.DataFrame(
+            {
+                "name": [
+                    "obs_0",
+                    "obs_0",
+                    "obs_2",
+                    "obs_2",
+                ],
+                "point_index": [0, 1, 0, 1],
+                "span_index": [0, 0, 1, 1],
+                "x": [100.0, 200.0, 365.0, 300.0],
+                "y": [0.0, 0.0, 0.0, 0.0],
+                "z": [0.0, 10.0, 0.0, 10.0],
+                "object_type": [
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                ],
+            }
+        )
+        assert_frame_equal(
+            pos_engine.obstacle_array.data, expected_df, check_like=True
+        )
+
+    def test_delete_point(self, balance_engine_base_test: BalanceEngine):
+        pos_engine = PositionEngine(balance_engine_base_test)
+        pos_engine.add_obstacle(
+            name="obs_0",
+            span_index=0,
+            coords=np.array([[100, 0, 0], [200, 0, 10]]),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array(
+                [[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]
+            ),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_2",
+            span_index=1,
+            coords=np.array([[35, 0, 0], [100, 0, 10]]),
+            support_reference='right',
+            span_length=np.array([500, 400, 450, np.nan]),
+        )
+        pos_engine.delete_point(obs_name="obs_1", point_index=2)
+
+        expected_df = pd.DataFrame(
+            {
+                "name": [
+                    "obs_0",
+                    "obs_0",
+                    "obs_1",
+                    "obs_1",
+                    "obs_1",
+                    "obs_2",
+                    "obs_2",
+                ],
+                "point_index": [0, 1, 0, 1, 2, 0, 1],
+                "span_index": [0, 0, 1, 1, 1, 1, 1],
+                "x": [100.0, 200.0, 50.0, 100.0, 200.0, 365.0, 300.0],
+                "y": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                "z": [0.0, 10.0, 0.0, 10.0, 0.0, 0.0, 10.0],
+                "object_type": [
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                    "ground",
+                ],
+            }
+        )
+        assert_frame_equal(
+            pos_engine.obstacle_array.data, expected_df, check_like=True
+        )
+
+    def test_add_and_delete_obstacle_dict(
+        self, balance_engine_base_test: BalanceEngine
+    ):
+        pos_engine = PositionEngine(balance_engine_base_test)
+        pos_engine.add_obstacle(
+            name="obs_0",
+            span_index=0,
+            coords=np.array([[100, 0, 0], [200, 0, 10]]),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array(
+                [[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]
+            ),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_2",
+            span_index=1,
+            coords=np.array([[35, 0, 0], [100, 0, 10]]),
+            support_reference='right',
+            span_length=np.array([500, 400, 450, np.nan]),
+        )
+        pos_engine.delete_obstacle("obs_1")
+
+        assert set(pos_engine.obstacles_dict().keys()) == {"obs_0", "obs_2"}

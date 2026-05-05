@@ -440,9 +440,7 @@ def test_round_trip_lambert():
         _LINE_ANGLES_DEG.copy(), _SPAN_LENGTHS.copy()
     )
 
-    distances, angles = get_dist_and_angles_from_lambert(
-        _EXPECTED_EASTING, _EXPECTED_NORTHING
-    )
+    distances, angles = get_dist_and_angles_from_lambert(easting, northing)
 
     np.testing.assert_allclose(distances, _SPAN_LENGTHS, atol=1e-3)
     np.testing.assert_allclose(angles, _LINE_ANGLES_DEG, atol=1e-3)

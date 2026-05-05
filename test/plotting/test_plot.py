@@ -94,7 +94,7 @@ def test_plot_line3d__all_line(
         )
         == 1
     )
-    assert len(fig.data) == 3  # Just trying to see if the previous code raises
+    assert len(fig.data) == 4  # Just trying to see if the previous code raises
     span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
 
@@ -118,7 +118,7 @@ def test_plot_line3d__view_option(
         )
         == 1
     )
-    assert len(fig.data) == 3  # Just trying to see if the previous code raises
+    assert len(fig.data) == 4  # Just trying to see if the previous code raises
 
 
 def test_plot_line3d__wrong_view_option(
@@ -157,7 +157,7 @@ def test_plot_line3d__with_beta(
         )
         == 1
     )
-    assert len(fig.data) == 3  # Just trying to see if the previous code raises
+    assert len(fig.data) == 4  # Just trying to see if the previous code raises
 
     span_points, _, insulators_points = plt_engine.get_points_for_plot()
     assert_cable_linked_to_attachment(span_points, insulators_points)
