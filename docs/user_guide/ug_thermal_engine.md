@@ -57,6 +57,7 @@ thermal_engine.set(
     ambient_temp=np.array([15.0]),  # Ambient temperature in Celsius
     wind_speed=np.array([10.0]),  # Wind speed in m/s
     wind_angle=np.array([90.0]),  # Wind direction angle (degrees from north)
+    nebulosity=np.array([0]),  # Nebulosity level (int from 0 to 8)
     solar_irradiance=None,  # Optional: solar radiation (W/m²)
 )
 ```
@@ -77,6 +78,7 @@ thermal_engine.set(
 | `ambient_temp` | np.ndarray | °C | Ambient air temperature |
 | `wind_speed` | np.ndarray | m/s | Wind speed magnitude |
 | `wind_angle` | np.ndarray | degrees | Wind direction (0°=North, 90°=East) |
+| `nebulosity` | np.ndarray | 0-8 | Nebulosity level |
 | `solar_irradiance` | np.ndarray \| None | W/m² | Solar radiation (optional, auto-calculated if None) |
 
 ## Features and Usage
@@ -99,6 +101,7 @@ thermal_engine.set(
     ambient_temp=np.array([15.0]),
     wind_speed=np.array([10.0]),
     wind_angle=np.array([90.0]),
+    nebulosity=np.array([0]),
 )
 
 # Compute steady-state temperature

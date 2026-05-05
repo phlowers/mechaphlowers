@@ -380,6 +380,55 @@ def test_transient_thermal(cable_array_AM600: CableArray):
     )
 
 
+def test_nebulosity_variation(cable_array_AM600: CableArray):
+    # Checks that nebulosity is taken into account
+    thermal_engine = ThermalEngine()
+    thermal_engine.set(
+        cable_array_AM600,
+        latitude=np.array([45.0, 45.0, 45.0]),
+        longitude=np.array([0.0, 0.0, 0.0]),
+        altitude=np.array([0.0, 0.0, 0.0]),
+        azimuth=np.array([0.0, 0.0, 0.0]),
+        month=np.array(
+            [
+                3,
+                3,
+                3,
+            ]
+        ),
+        day=np.array(
+            [
+                21,
+                21,
+                21,
+            ]
+        ),
+        hour=np.array(
+            [
+                12,
+                12,
+                12,
+            ]
+        ),
+        intensity=np.array([100.0, 100.0, 100.0]),
+        ambient_temp=np.array([15.0, 15.0, 15.0]),
+        wind_speed=np.array([10.0, 10.0, 10.0]),
+        wind_angle=np.array(
+            [
+                90.0,
+                90.0,
+                90.0,
+            ]
+        ),
+        nebulosity=np.array([0, 3, 8]),
+    )
+    core_temperature = thermal_engine.steady_temperature().data[
+        "core_temperature"
+    ]
+    assert abs(core_temperature.iloc[0] - core_temperature.iloc[1]) > 1e-4
+    assert abs(core_temperature.iloc[2] - core_temperature.iloc[1]) > 1e-4
+
+
 def test_steady_temperature_1(thermal_engine_3_spans: ThermalEngine):
     steady_temp_results = thermal_engine_3_spans.steady_temperature()
     assert len(steady_temp_results.data) == 3
