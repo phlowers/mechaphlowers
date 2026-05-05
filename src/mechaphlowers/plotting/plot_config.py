@@ -47,7 +47,7 @@ class TraceConfig:
     color: str = "blue"
     size: float = cfg.graphics.marker_size
     width: float = 8.0
-    name: str = "Test"
+    name: str = "Trace"
     opacity: float = 1.0
     dash: DashStyle | None = None
     show_legend: bool = True
