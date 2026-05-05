@@ -179,6 +179,7 @@ def check_inputs(
     hour: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]]
     | None = None,
     datetime_utc: list[datetime] | None = None,
+    nebulosity: np.ndarray | None = None,
     **kwargs: np.ndarray[Any, Any] | list[datetime],
 ) -> tuple[dict[str, np.ndarray[Any, Any] | list[datetime]], int]:
     """Validate input parameters.
@@ -225,6 +226,8 @@ def check_inputs(
         datetime_utc=datetime_utc,
     )
 
+    check_nebulosity_range(nebulosity)
+
     if month is not None:
         kwargs["month"] = month
     if day is not None:
@@ -233,8 +236,19 @@ def check_inputs(
         kwargs["hour"] = hour
     if datetime_utc is not None:
         kwargs["datetime_utc"] = datetime_utc
+    if nebulosity is not None:
+        kwargs["nebulosity"] = nebulosity
 
     return kwargs, array_length
+
+
+def check_nebulosity_range(nebulosity: np.ndarray | None = None) -> None:
+    if nebulosity is not None and not np.all(
+        (0 <= nebulosity) & (nebulosity <= 8)
+    ):
+        raise ValueError(
+            "Nebulosity values must be in the range [0-8]. Invalid values found in 'nebulosity'."
+        )
 
 
 def check_datetime_arguments(  # NOSONAR
