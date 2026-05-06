@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -179,6 +179,8 @@ def check_inputs(
     hour: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]]
     | None = None,
     datetime_utc: list[datetime] | None = None,
+    nebulosity: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]]
+    | None = None,
     **kwargs: np.ndarray[Any, Any] | list[datetime],
 ) -> tuple[dict[str, np.ndarray[Any, Any] | list[datetime]], int]:
     """Validate input parameters.
@@ -201,6 +203,9 @@ def check_inputs(
     """
 
     array_length: int | None = None
+
+    if nebulosity is not None:
+        kwargs["nebulosity"] = nebulosity
 
     for key, value in kwargs.items():
         if not isinstance(value, np.ndarray):
@@ -225,6 +230,8 @@ def check_inputs(
         datetime_utc=datetime_utc,
     )
 
+    check_nebulosity_range(nebulosity)
+
     if month is not None:
         kwargs["month"] = month
     if day is not None:
@@ -235,6 +242,15 @@ def check_inputs(
         kwargs["datetime_utc"] = datetime_utc
 
     return kwargs, array_length
+
+
+def check_nebulosity_range(nebulosity: np.ndarray | None = None) -> None:
+    if nebulosity is not None and not np.all(
+        ((0 <= nebulosity) & (nebulosity <= 8)) | np.isnan(nebulosity)
+    ):
+        raise ValueError(
+            "Nebulosity values must be in the range [0-8]. Invalid values found in 'nebulosity'."
+        )
 
 
 def check_datetime_arguments(  # NOSONAR
@@ -404,6 +420,7 @@ class ThermalEngine:
         ambient_temp: np.ndarray,
         wind_speed: np.ndarray,
         wind_angle: np.ndarray,
+        nebulosity: np.ndarray,
         solar_irradiance: np.ndarray | None = None,
     ):
         """Set input parameters for thermal calculations.
@@ -421,6 +438,7 @@ class ThermalEngine:
             ambient_temp (np.ndarray): Ambient temperature values.
             wind_speed (np.ndarray): Wind speed values.
             wind_angle (np.ndarray): Wind angle values.
+            nebulosity (np.ndarray): Nebulosity level (int from 0 to 8).
             solar_irradiance (np.ndarray | None): Solar irradiance values (optional). Defaults to None.
         """
         # Handle optional solar_irradiance - create NaN array if not provided
@@ -440,6 +458,7 @@ class ThermalEngine:
             ambient_temp=ambient_temp,
             wind_speed=wind_speed,
             wind_angle=wind_angle,
+            nebulosity=nebulosity,
             solar_irradiance=solar_irradiance,
         )
 
@@ -465,6 +484,7 @@ class ThermalEngine:
             "wind_azimuth": inputs[
                 "wind_angle"
             ],  # wind angle (deg, regarding north)
+            "nebulosity": inputs["nebulosity"],
             "transit": inputs["intensity"],
             "linear_mass": np.full(
                 self._len, cable_array.data.linear_mass.iloc[0]
