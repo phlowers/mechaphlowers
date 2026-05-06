@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -179,7 +179,8 @@ def check_inputs(
     hour: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]]
     | None = None,
     datetime_utc: list[datetime] | None = None,
-    nebulosity: np.ndarray | None = None,
+    nebulosity: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]]
+    | None = None,
     **kwargs: np.ndarray[Any, Any] | list[datetime],
 ) -> tuple[dict[str, np.ndarray[Any, Any] | list[datetime]], int]:
     """Validate input parameters.
@@ -202,6 +203,9 @@ def check_inputs(
     """
 
     array_length: int | None = None
+
+    if nebulosity is not None:
+        kwargs["nebulosity"] = nebulosity
 
     for key, value in kwargs.items():
         if not isinstance(value, np.ndarray):
@@ -236,15 +240,13 @@ def check_inputs(
         kwargs["hour"] = hour
     if datetime_utc is not None:
         kwargs["datetime_utc"] = datetime_utc
-    if nebulosity is not None:
-        kwargs["nebulosity"] = nebulosity
 
     return kwargs, array_length
 
 
 def check_nebulosity_range(nebulosity: np.ndarray | None = None) -> None:
     if nebulosity is not None and not np.all(
-        (0 <= nebulosity) & (nebulosity <= 8)
+        ((0 <= nebulosity) & (nebulosity <= 8)) | np.isnan(nebulosity)
     ):
         raise ValueError(
             "Nebulosity values must be in the range [0-8]. Invalid values found in 'nebulosity'."
