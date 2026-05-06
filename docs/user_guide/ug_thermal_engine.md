@@ -78,7 +78,7 @@ thermal_engine.set(
 | `ambient_temp` | np.ndarray | °C | Ambient air temperature |
 | `wind_speed` | np.ndarray | m/s | Wind speed magnitude |
 | `wind_angle` | np.ndarray | degrees | Wind direction (0°=North, 90°=East) |
-| `nebulosity` | np.ndarray | 0-8 | Nebulosity level |
+| `nebulosity` | np.ndarray | 0-8 | Nebulosity level: from 0 (not cloudy at all) to 8 (very cloudy) |
 | `solar_irradiance` | np.ndarray \| None | W/m² | Solar radiation (optional, auto-calculated if None) |
 
 ## Features and Usage
