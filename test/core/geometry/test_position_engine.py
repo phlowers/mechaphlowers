@@ -554,3 +554,40 @@ class TestPositionEngineObstacleArray:
         pos_engine.delete_obstacle("obs_1")
 
         assert set(pos_engine.obstacles_dict().keys()) == {"obs_0", "obs_2"}
+
+
+class TestDistancesFromObstacles:
+    @pytest.fixture
+    def pos_engine_with_obstacles(
+        self, balance_engine_base_test
+    ) -> PositionEngine:
+        pos_engine = PositionEngine(balance_engine_base_test)
+        pos_engine.add_obstacle(
+            name="obs_0",
+            span_index=0,
+            coords=np.array([[100, 0, 0], [200, 0, 10]]),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array(
+                [[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]
+            ),
+            support_reference='left',
+        )
+        pos_engine.add_obstacle(
+            name="obs_2",
+            span_index=1,
+            coords=np.array([[35, 0, 0], [100, 0, 10]]),
+            support_reference='right',
+            span_length=np.array([500, 400, 450, np.nan]),
+        )
+        return pos_engine
+
+    def test_basic_usecase(self, pos_engine_with_obstacles: PositionEngine):
+        distances_dict = (
+            pos_engine_with_obstacles.get_distances_from_obstacles()
+        )
+        assert set(distances_dict.keys()) == {"obs_0", "obs_1", "obs_2"}
+        assert set(distances_dict["obs_1"].keys()) == {0, 1, 2, 3}
