@@ -784,6 +784,7 @@ class PlotEngine(Observer):
                     view=view,
                 )
 
+    # unused?
     def point_relative_to_absolute(
         self, span_index: int, point_relative: np.ndarray
     ) -> np.ndarray:

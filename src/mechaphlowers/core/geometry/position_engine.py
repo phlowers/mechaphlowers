@@ -322,17 +322,18 @@ class PositionEngine(Observer, Notifier):
         """
 
         distance_dict_result = {}
-        obstacle_points = self.coords_calculator.obstacles_points
+        obstacle_sparse_points = self.coords_calculator.obstacles_points
+        # index of obstacle point among total points
         loop_index = 0
         for (
             obstacle_name,
             obstacle_coords_array,
-        ) in obstacle_points.dict_coords().items():
+        ) in obstacle_sparse_points.dict_coords().items():
             current_distance_result = {}
             # create dict {0: DistanceResult, 1:: DistanceResult, ...} per obstacle
             for obstacle_coords in obstacle_coords_array:
-                span_index = obstacle_points.span_index[loop_index]
-                point_index = obstacle_points.point_index[loop_index]
+                span_index = obstacle_sparse_points.span_index[loop_index]
+                point_index = obstacle_sparse_points.point_index[loop_index]
                 distance_result = self.point_distance(
                     span_index, obstacle_coords
                 )
@@ -340,7 +341,7 @@ class PositionEngine(Observer, Notifier):
                 loop_index += 1
             distance_dict_result[obstacle_name] = current_distance_result
 
-        # TODO: project in selected frame?
+        # TODO: project in selected frame
         return distance_dict_result
 
     # ── String representations ────────────────────────────────────────────────
