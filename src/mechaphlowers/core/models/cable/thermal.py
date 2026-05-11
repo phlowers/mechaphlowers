@@ -387,7 +387,7 @@ class ThermalEngine:
         "rte": solver.rte,
     }
     available_heat_equation = {
-        "3t": solver.HeatEquationType.THREE_TEMPERATURES
+        "3tl": solver.HeatEquationType.THREE_TEMPERATURES_LEGACY
     }
 
     def __init__(self):
@@ -401,7 +401,7 @@ class ThermalEngine:
             target_temperature: Target temperature for steady-state calculations in celsius.
         """
         self.power_model = self.available_power_model.get("rte", ValueError)
-        self.heateq = self.available_heat_equation.get("3t", ValueError)
+        self.heateq = self.available_heat_equation.get("3tl", ValueError)
         self.dict_input = {}
         self.forecast = ThermalForecastArray()
         self.target_temperature = 65
@@ -436,8 +436,8 @@ class ThermalEngine:
             hour (np.ndarray): Hour values.
             intensity (np.ndarray): Current intensity values.
             ambient_temp (np.ndarray): Ambient temperature values.
-            wind_speed (np.ndarray): Wind speed values.
-            wind_angle (np.ndarray): Wind angle values.
+            wind_speed (np.ndarray): Wind speed values in m/s
+            wind_angle (np.ndarray): Wind angle values in degrees, regarding north.
             nebulosity (np.ndarray): Nebulosity level (int from 0 to 8).
             solar_irradiance (np.ndarray | None): Solar irradiance values (optional). Defaults to None.
         """
