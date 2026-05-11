@@ -310,6 +310,43 @@ class PositionEngine(Observer, Notifier):
         )
         return self.distance_engine.plane_distance(point, frame="span")
 
+    def get_distances_from_obstacles(self):
+        """Compute distances for all obstacles to their respective spans.
+
+        Only in absolute coordiantes for now.
+
+        {
+            'obs_0': {0: DistanceResult, 1: DistanceResult},
+            'obs_1': {0: DistanceResult}
+        }
+
+        Returns:
+            dict: dictionary of DistanceResult, sorted by obstacles
+        """
+
+        distance_dict_result = {}
+        obstacle_sparse_points = self.coords_calculator.obstacles_points
+        # index of obstacle point among total points
+        loop_index = 0
+        for (
+            obstacle_name,
+            obstacle_coords_array,
+        ) in obstacle_sparse_points.dict_coords().items():
+            current_distance_result = {}
+            # create dict {0: DistanceResult, 1:: DistanceResult, ...} per obstacle
+            for obstacle_coords in obstacle_coords_array:
+                span_index = obstacle_sparse_points.span_index[loop_index]
+                point_index = obstacle_sparse_points.point_index[loop_index]
+                distance_result = self.point_distance(
+                    span_index, obstacle_coords
+                )
+                current_distance_result[point_index] = distance_result
+                loop_index += 1
+            distance_dict_result[obstacle_name] = current_distance_result
+
+        # TODO: project in selected frame
+        return distance_dict_result
+
     # ── String representations ────────────────────────────────────────────────
 
     def __str__(self) -> str:
