@@ -387,7 +387,8 @@ class ThermalEngine:
         "rte": solver.rte,
     }
     available_heat_equation = {
-        "3tl": solver.HeatEquationType.THREE_TEMPERATURES_LEGACY
+        "3tl": solver.HeatEquationType.THREE_TEMPERATURES_LEGACY,
+        "3t": solver.HeatEquationType.THREE_TEMPERATURES,
     }
 
     def __init__(self):
@@ -437,7 +438,7 @@ class ThermalEngine:
             intensity (np.ndarray): Current intensity values.
             ambient_temp (np.ndarray): Ambient temperature values.
             wind_speed (np.ndarray): Wind speed values in m/s
-            wind_angle (np.ndarray): Wind angle values in degrees, regarding north.
+            wind_angle (np.ndarray): Wind angle values in degrees, clockwise from North (?).
             nebulosity (np.ndarray): Nebulosity level (int from 0 to 8).
             solar_irradiance (np.ndarray | None): Solar irradiance values (optional). Defaults to None.
         """
@@ -483,7 +484,7 @@ class ThermalEngine:
             "wind_speed": inputs["wind_speed"],  # wind speed (m.s**-1)
             "wind_azimuth": inputs[
                 "wind_angle"
-            ],  # wind angle (deg, regarding north)
+            ],  # wind angle (deg, 0 means north)
             "nebulosity": inputs["nebulosity"],
             "transit": inputs["intensity"],
             "linear_mass": np.full(
