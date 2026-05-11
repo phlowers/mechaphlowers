@@ -310,15 +310,18 @@ class PositionEngine(Observer, Notifier):
         )
         return self.distance_engine.plane_distance(point, frame="span")
 
-    def get_distances_from_obstacles(self, project=False, frame_index=0):
+    def get_distances_from_obstacles(self):
         """Compute distances for all obstacles to their respective spans.
+
+        Only in absolute coordiantes for now.
+
         {
             'obs_0': {0: DistanceResult, 1: DistanceResult},
             'obs_1': {0: DistanceResult}
         }
 
         Returns:
-            dict: _description
+            dict: dictionary of DistanceResult, sorted by obstacles
         """
 
         distance_dict_result = {}
