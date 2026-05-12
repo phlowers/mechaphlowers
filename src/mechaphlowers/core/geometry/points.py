@@ -312,6 +312,7 @@ class CoordsCalculator:
         span_model: ISpan,
         cable_loads: CableLoads,
         get_displacement: Callable[[], np.ndarray],
+        obstacle_array: ObstacleArray | None = None,
         **_,
     ):
         """Initialize the CoordsCalculator object with section parameters and a span model.
@@ -322,18 +323,30 @@ class CoordsCalculator:
             cable_loads (CableLoads): cable loads, used for beta angle
             get_displacement (Callable): function that returns an array of chain displacement. Usually, comes from BalanceModel.get_displacement()
         """
+        if obstacle_array is None:
+            obstacle_array = ObstacleArray.build_empty_array()
         self.store_references(
-            section_array, span_model, cable_loads, get_displacement
+            section_array,
+            span_model,
+            cable_loads,
+            get_displacement,
+            obstacle_array,
         )
         self.reset()
 
     def store_references(
-        self, section_array, span_model, cable_loads, get_displacement
+        self,
+        section_array: SectionArray,
+        span_model: ISpan,
+        cable_loads: CableLoads,
+        get_displacement: Callable[[], np.ndarray],
+        obstacle_array: ObstacleArray,
     ):
         self.cable_loads = cable_loads
         self.section_array = section_array
         self.span_model = span_model
         self.get_displacement = get_displacement
+        self.obstacle_array = obstacle_array
 
     def reset(self):
         span_length = self.section_array.data.span_length.to_numpy()
@@ -375,21 +388,22 @@ class CoordsCalculator:
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
+        self.refresh_obstacles()
 
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
         self.x_cable, self.z_cable = self.span_model.get_coords(resolution)
 
-    def add_obstacles(self, obstacles_array: ObstacleArray):
-        self.obstacles_array = obstacles_array
+    def refresh_obstacles(self):
+        """Need to be called when any modification to obstacle_array occurs"""
         self.obstacles_points = SparsePoints.builder_from_obstacle_array(
-            obstacles_array
+            self.obstacle_array
         )
 
     def compute_obstacle_coords(self) -> SparsePoints:
-        x, y, z = self.obstacles_array.get_vectors()
+        x, y, z = self.obstacle_array.get_vectors()
         azimuth_line = np.cumsum(self.line_angle)
-        span_index = self.obstacles_array.data["span_index"].to_numpy()
+        span_index = self.obstacle_array.data["span_index"].to_numpy()
         azimuth_line_obstacles = azimuth_line[span_index]
         x_rotated, y_rotated, z_rotated = cable_to_localsection_frame(
             x, y, z, azimuth_line_obstacles
@@ -507,7 +521,7 @@ class CoordsCalculator:
         return Points.from_coords(insulator_layers)
 
     def obstacles_dict(self, project=False, frame_index=0) -> dict:
-        if hasattr(self, "obstacles_array"):
+        if hasattr(self, "obstacle_array"):
             self.compute_obstacle_coords()
             obstacles_points = self.obstacles_points
             if project:
@@ -569,7 +583,7 @@ class CoordsCalculator:
         Used for 2D plots that need to be projected in a specific frame.
 
         Args:
-            points_array list[_PointsT]: array of Points of SparsePoints objects
+            points_array (list[_PointsT]): array of Points of SparsePoints objects
             frame_index (int): Index of the frame the projection is made.
 
         Returns:

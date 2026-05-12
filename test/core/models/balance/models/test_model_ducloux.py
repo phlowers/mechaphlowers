@@ -49,7 +49,7 @@ def test_load_span_model(cable_array_AM600: CableArray):
 
     balance_engine.solve_change_state()
     nodes_span_model = balance_engine.balance_model.nodes_span_model
-    assert nodes_span_model.sagging_parameter.shape == (5,)
+    assert nodes_span_model.parameter.shape == (5,)
     np.testing.assert_equal(
         nodes_span_model.span_index, np.array([0, 1, 1, 2, 3])
     )

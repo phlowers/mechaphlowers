@@ -322,8 +322,8 @@ def plot_distance_points(
 
 def plot_3d_line(
     fig: go.Figure,
-    point_1: tuple,
-    point_2: tuple,
+    point_1: np.ndarray,
+    point_2: np.ndarray,
     distance_float: float,
     title_addendum: str,
 ):
@@ -335,14 +335,14 @@ def plot_3d_line(
             mode=line3d_trace.scatter_mode,
             line=line3d_trace.line,
             name=f"{line3d_trace.name}: {distance_float:.3f}m",
-            legendgroup=line3d_trace.legend_group + " " + title_addendum,
+            legendgroup=str(line3d_trace.legend_group) + " " + title_addendum,
         )
     )
 
 
 def plot_text(
     fig: go.Figure,
-    text: str,
+    text: float,
     title_addendum: str,
     position,
 ) -> None:
@@ -366,7 +366,7 @@ def plot_text(
             textposition=distance_text.text_position,
             textfont=distance_text.text_font,
             name=distance_text.name,
-            legendgroup=distance_text.legend_group + title_addendum,
+            legendgroup=str(distance_text.legend_group) + title_addendum,
             showlegend=distance_text.show_legend,
             hoverinfo=distance_text.hoverinfo,
         )
@@ -375,12 +375,12 @@ def plot_text(
 
 def plot_projected_distances(
     fig: go.Figure,
-    position: tuple,
+    position: np.ndarray,
     distance: float,
     name: str,
     title_addendum: str,
     projection_color: str,
-    vect_proj: tuple,
+    vect_proj: np.ndarray,
 ):
     fig.add_trace(
         go.Scatter3d(
@@ -406,7 +406,8 @@ def plot_projected_distances(
                 "Z: %{z:.3f}<br>"
                 "<extra></extra>"
             ),
-            legendgroup=projected_distance_trace.legend_group + title_addendum,
+            legendgroup=str(projected_distance_trace.legend_group)
+            + title_addendum,
         )
     )
 

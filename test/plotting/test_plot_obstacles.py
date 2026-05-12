@@ -47,7 +47,7 @@ def test_plot_obstacles(balance_engine_angles: BalanceEngine):
             }
         )
     )
-    plt_engine.add_obstacles(obs_array)
+    plt_engine.add_obstacle_array(obs_array)
     fig = go.Figure()
     obstacle_dict = plt_engine.obstacles_dict()
 
@@ -107,7 +107,7 @@ def test_plot_obstacles_2d(balance_engine_angles: BalanceEngine):
             }
         )
     )
-    plt_engine.add_obstacles(obs_array)
+    plt_engine.add_obstacle_array(obs_array)
     obstacle_dict = plt_engine.obstacles_dict(project=True, frame_index=1)
 
     assert list(obstacle_dict.keys()) == ['obs_0', 'obs_1', 'obs_2']
@@ -172,7 +172,7 @@ def test_plot_obstacles_frame_index_out_of_range(
             }
         )
     )
-    plt_engine.add_obstacles(obs_array)
+    plt_engine.add_obstacle_array(obs_array)
     with pytest.raises(ValueError):
         plt_engine.obstacles_dict(project=True, frame_index=5)
     with pytest.raises(ValueError):

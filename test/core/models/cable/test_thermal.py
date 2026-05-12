@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -12,6 +14,7 @@ import pytest
 from mechaphlowers.core.models.cable.thermal import (
     ThermalEngine,
     ThermalTransientResults,
+    to_datetime,
 )
 from mechaphlowers.entities.arrays import CableArray
 
@@ -57,6 +60,7 @@ def thermal_engine_3_spans(cable_array_AM600: CableArray) -> ThermalEngine:
                 90.0,
             ]
         ),
+        nebulosity=np.array([0, 0, 0]),
     )
     return thermal_engine
 
@@ -98,6 +102,7 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
                 90.0,
             ]
         ),
+        nebulosity=np.array([1, 2]),
     )
 
     assert thermal_engine.steady_intensity().data.shape[0] == 2
@@ -135,6 +140,7 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
                 90.0,
             ]
         ),
+        nebulosity=np.array([1, 1]),
     )
     # expected 2 output rows, got 1 thl issue
     assert thermal_engine.steady_intensity().data.shape[0] == 1
@@ -159,8 +165,8 @@ def test_steady_intensity(thermal_engine_3_spans: ThermalEngine):
     assert (
         thermal_engine.steady_intensity(
             target_temperature=thermal_engine.target_temperature + 10
-        ).data["t_core"]
-        > copy_result_without_input["t_core"]
+        ).data["core_temperature"]
+        > copy_result_without_input["core_temperature"]
     ).all()
 
 
@@ -176,18 +182,18 @@ def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
 
     # Testing manual input + changing just one parameter
     assert (
-        copy_result_without_input["t_core"]
+        copy_result_without_input["core_temperature"]
         != thermal_engine.steady_temperature(
             intensity=np.array([1000.0, 200.0, 300.0])
-        ).data["t_core"]
+        ).data["core_temperature"]
     ).any()
 
     # testing higher intensity leads to higher temperature
     assert (
         thermal_engine.steady_temperature(
             intensity=np.array([1100.0, 1200.0, 1300.0])
-        ).data["t_core"]
-        > copy_result_without_input["t_core"]
+        ).data["core_temperature"]
+        > copy_result_without_input["core_temperature"]
     ).all()
 
 
@@ -232,6 +238,7 @@ def test_wrong_array_length(cable_array_AM600: CableArray):
                     90.0,
                 ]
             ),
+            nebulosity=np.array([0, 0]),
         )
 
 
@@ -245,11 +252,57 @@ def test_wrong_array_length_at_load(thermal_engine_3_spans: ThermalEngine):
         thermal_engine.load()
 
 
+def test_wrong_array_length_datetime(
+    thermal_engine_3_spans: ThermalEngine,
+):
+    thermal_engine = thermal_engine_3_spans
+
+    thermal_engine.dict_input["datetime_utc"] = [
+        datetime(2024, 3, 21, 12),
+        datetime(2024, 3, 21, 12),
+    ]
+    with pytest.raises(
+        ValueError,
+        match="All array inputs must have the same length. Expected 3, got 2 for 'datetime_utc'.",
+    ):
+        thermal_engine.load()
+
+
+def test_wrong_type_month(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+
+    with pytest.raises(
+        TypeError,
+        match="Expected integer array for 'month', got float64.",
+    ):
+        del thermal_engine.dict_input["datetime_utc"]
+        thermal_engine.dict_input["month"] = np.array([3.0, 3.0, 3.0])
+        thermal_engine.dict_input["day"] = np.array([21, 21, 21])
+        thermal_engine.load()
+
+
+def test_wrong_type_day(thermal_engine_3_spans: ThermalEngine):
+    thermal_engine = thermal_engine_3_spans
+
+    with pytest.raises(
+        TypeError,
+        match="Expected integer array for 'day', got float64.",
+    ):
+        del thermal_engine.dict_input["datetime_utc"]
+        thermal_engine.dict_input["month"] = np.array([3, 3, 3])
+        thermal_engine.dict_input["day"] = np.array([21.0, 21.0, 21.0])
+        thermal_engine.load()
+
+
+def test_to_datetime():
+    result = to_datetime(3, 31, 16 + 42 / 60 + 3.1234567 / 3600)
+    assert result == datetime(1970, 3, 31, 16, 42, 3, 123456)
+
+
 def test_add_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
     thermal_engine = thermal_engine_3_spans
-    # latitude_old = thermal_engine.dict_input["lat"]
 
-    thermal_engine.dict_input["lat"] = 40.0
+    thermal_engine.dict_input["latitude"] = 40.0
 
     with pytest.raises(TypeError):
         thermal_engine.load()
@@ -257,13 +310,13 @@ def test_add_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
 
 def test_change_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
     thermal_engine = thermal_engine_3_spans
-    latitude_old = thermal_engine.dict_input["lat"]
+    latitude_old = thermal_engine.dict_input["latitude"]
 
-    thermal_engine.dict_input["lat"] = np.array([40.0, 40.0, 40.0])
+    thermal_engine.dict_input["latitude"] = np.array([40.0, 40.0, 40.0])
     thermal_engine.load()
 
     assert not np.array_equal(
-        thermal_engine.thermal_model.args.lat, latitude_old
+        thermal_engine.thermal_model.args.latitude, latitude_old
     )
 
 
@@ -318,6 +371,7 @@ def test_transient_thermal(cable_array_AM600: CableArray):
                 90.0,
             ]
         ),
+        nebulosity=np.array([0, 0, 0]),
     )
     assert thermal_engine.transient_temperature().data.shape[0] == 3 * 10
 
@@ -326,13 +380,62 @@ def test_transient_thermal(cable_array_AM600: CableArray):
     )
 
 
+def test_nebulosity_variation(cable_array_AM600: CableArray):
+    # Checks that nebulosity is taken into account
+    thermal_engine = ThermalEngine()
+    thermal_engine.set(
+        cable_array_AM600,
+        latitude=np.array([45.0, 45.0, 45.0]),
+        longitude=np.array([0.0, 0.0, 0.0]),
+        altitude=np.array([0.0, 0.0, 0.0]),
+        azimuth=np.array([0.0, 0.0, 0.0]),
+        month=np.array(
+            [
+                3,
+                3,
+                3,
+            ]
+        ),
+        day=np.array(
+            [
+                21,
+                21,
+                21,
+            ]
+        ),
+        hour=np.array(
+            [
+                12,
+                12,
+                12,
+            ]
+        ),
+        intensity=np.array([100.0, 100.0, 100.0]),
+        ambient_temp=np.array([15.0, 15.0, 15.0]),
+        wind_speed=np.array([10.0, 10.0, 10.0]),
+        wind_angle=np.array(
+            [
+                90.0,
+                90.0,
+                90.0,
+            ]
+        ),
+        nebulosity=np.array([0, 3, 8]),
+    )
+    core_temperature = thermal_engine.steady_temperature().data[
+        "core_temperature"
+    ]
+    assert abs(core_temperature.iloc[0] - core_temperature.iloc[1]) > 1e-4
+    assert abs(core_temperature.iloc[2] - core_temperature.iloc[1]) > 1e-4
+
+
 def test_steady_temperature_1(thermal_engine_3_spans: ThermalEngine):
     steady_temp_results = thermal_engine_3_spans.steady_temperature()
     assert len(steady_temp_results.data) == 3
 
     np.testing.assert_array_almost_equal(
-        steady_temp_results.data["t_core"],
-        np.array([15.1, 45.4, 87.9]),
+        steady_temp_results.data["core_temperature"],
+        np.array([15.1, 45.4, 90.0]),
         decimal=0,
     )
 

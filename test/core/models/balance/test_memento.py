@@ -71,7 +71,7 @@ class TestCaretakerRestore:
             engine.balance_model.nodes.dxdydz, saved_dxdydz
         )
         np.testing.assert_array_almost_equal(
-            engine.span_model.sagging_parameter, saved_param
+            engine.span_model.parameter, saved_param
         )
 
     def test_restore_refreshes_span_cache(
@@ -164,6 +164,6 @@ class TestCaretakerRestore:
 
         # nodes_span_model should mirror span_model after restore
         np.testing.assert_array_almost_equal(
-            engine.balance_model.nodes_span_model.sagging_parameter,
-            engine.span_model.sagging_parameter,
+            engine.balance_model.nodes_span_model.parameter,
+            engine.span_model.parameter,
         )

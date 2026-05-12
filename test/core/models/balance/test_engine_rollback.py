@@ -24,7 +24,7 @@ class TestSolveAdjustmentRollback:
         )
         engine = study.balance_engine
         dxdydz_before = engine.balance_model.nodes.dxdydz.copy()
-        param_before = engine.span_model.sagging_parameter.copy()
+        param_before = engine.span_model.parameter.copy()
 
         with patch.object(
             engine.solver_adjustment,
@@ -39,7 +39,7 @@ class TestSolveAdjustmentRollback:
             engine.balance_model.nodes.dxdydz, dxdydz_before
         )
         np.testing.assert_array_equal(
-            engine.span_model.sagging_parameter, param_before
+            engine.span_model.parameter, param_before
         )
 
 
@@ -55,7 +55,7 @@ class TestSolveChangeStateRollback:
         study.solve_adjustment()
 
         dxdydz_before = engine.balance_model.nodes.dxdydz.copy()
-        param_before = engine.span_model.sagging_parameter.copy()
+        param_before = engine.span_model.parameter.copy()
         L_ref_before = engine.L_ref.copy()
 
         with patch.object(
@@ -71,7 +71,7 @@ class TestSolveChangeStateRollback:
             engine.balance_model.nodes.dxdydz, dxdydz_before
         )
         np.testing.assert_array_equal(
-            engine.span_model.sagging_parameter, param_before
+            engine.span_model.parameter, param_before
         )
         np.testing.assert_array_equal(engine.L_ref, L_ref_before)
 
