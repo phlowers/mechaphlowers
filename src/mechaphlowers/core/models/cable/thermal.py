@@ -438,7 +438,7 @@ class ThermalEngine:
             intensity (np.ndarray): Current intensity values.
             ambient_temp (np.ndarray): Ambient temperature values.
             wind_speed (np.ndarray): Wind speed values in m/s
-            wind_angle (np.ndarray): Wind angle values in degrees, clockwise from North (?).
+            wind_angle (np.ndarray): Wind angle values in degrees, clockwise from North.
             nebulosity (np.ndarray): Nebulosity level (int from 0 to 8).
             solar_irradiance (np.ndarray | None): Solar irradiance values (optional). Defaults to None.
         """
