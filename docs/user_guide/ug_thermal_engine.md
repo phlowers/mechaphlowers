@@ -262,11 +262,11 @@ Inspect engine configuration using string representations:
 ```python
 # Brief string representation
 print(str(thermal_engine))
-# Output: power_model=rte, heateq=3t
+# Output: power_model=rte, heateq=3tl
 
 # Detailed representation
 print(repr(thermal_engine))
-# Output: <ThermalEngine(power_model=rte, heateq=3t)>
+# Output: <ThermalEngine(power_model=rte, heateq=3tl)>
 
 # Check engine size
 print(f"Number of conditions: {len(thermal_engine)}")
