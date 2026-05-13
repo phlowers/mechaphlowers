@@ -221,10 +221,13 @@ def get_azimuth_from_line_angles(
     input_unit: str = "deg",
     output_unit: str = "deg",
 ):
+    if len(line_angle) == 0:
+        return np.array([])
     # first value of line_angles is set to 0 to avoid unexpected behaviour.
     # now azimuth is truly the orientation of the first span
-    line_angle[0] = 0.0
-    azimuth = np.cumsum(line_angle) + azimuth_first
+    line_angle_copy = line_angle.copy()
+    line_angle_copy[0] = 0.0
+    azimuth = np.cumsum(line_angle_copy) + azimuth_first
     return Q_(azimuth, input_unit).to(output_unit).m
 
 
