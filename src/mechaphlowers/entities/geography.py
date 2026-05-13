@@ -197,11 +197,10 @@ def get_gps_from_arrays(
     current_lon_rad = np.radians(start_lon_deg)
     lat_array_rad = [current_lat_rad]
     lon_array_rad = [current_lon_rad]
-    # first value of line_angles is set to 0 to avoid unexpected behaviour.
-    # now azimuth is truly the orientation of the first span
-    line_angles_degrees[0] = 0.0
-    bearings_deg = np.cumsum(line_angles_degrees) + azimuth_deg
-    bearings_rad = np.radians(bearings_deg)
+
+    bearings_rad = get_azimuth_from_line_angles(
+        line_angles_degrees, azimuth_deg, input_unit="deg", output_unit="rad"
+    )
     # Deliberate choice to not take into account the last angle: refers to the angle with the next section
     for index in range(len(line_angles_degrees) - 1):
         # Build the current point using the previous one, length and angle
@@ -214,6 +213,19 @@ def get_gps_from_arrays(
         lat_array_rad.append(current_lat_rad)
         lon_array_rad.append(current_lon_rad)
     return np.degrees(lat_array_rad), np.degrees(lon_array_rad)
+
+
+def get_azimuth_from_line_angles(
+    line_angle: np.ndarray,
+    azimuth_first: float,
+    input_unit: str = "deg",
+    output_unit: str = "deg",
+):
+    # first value of line_angles is set to 0 to avoid unexpected behaviour.
+    # now azimuth is truly the orientation of the first span
+    line_angle[0] = 0.0
+    azimuth = np.cumsum(line_angle) + azimuth_first
+    return Q_(azimuth, input_unit).to(output_unit).m
 
 
 class GeoLocator:
@@ -272,7 +284,11 @@ class GeoLocator:
         return new
 
     def _check_gps_available(self) -> None:
-        if self._latitude_0 is None:
+        if (
+            self._latitude_0 is None
+            or self._longitude_0 is None
+            or self._azimuth_0 is None
+        ):
             raise GpsNoDataAvailable(
                 "Location data is not available. Call set_starting_gps() or set_starting_lambert93() first."
             )

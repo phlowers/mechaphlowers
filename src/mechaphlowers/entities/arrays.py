@@ -21,7 +21,10 @@ from typing_extensions import Literal, Self, Type
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.errors import DataWarning
-from mechaphlowers.entities.geography import GeoLocator
+from mechaphlowers.entities.geography import (
+    GeoLocator,
+    get_azimuth_from_line_angles,
+)
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.cable.cable_strength import ITensileStrength
@@ -420,10 +423,12 @@ class SectionArray(ElementArray):
         line_angles_degrees = (
             Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
         )
-        azimuth_deg = (
-            np.cumsum(line_angles_degrees) + self.geolocator._azimuth_0
+        return get_azimuth_from_line_angles(
+            line_angles_degrees,
+            self.geolocator._azimuth_0,  # type: ignore[arg-type]
+            input_unit="deg",
+            output_unit=unit,
         )
-        return Q_(azimuth_deg, "deg").to(unit).m
 
     def get_gps(self) -> tuple[np.ndarray, np.ndarray]:
         """Compute GPS coordinates for all pylons.
