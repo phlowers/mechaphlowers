@@ -563,6 +563,7 @@ class CoordsCalculator:
         spans_points: Points = self.get_spans("section")
         supports_points: Points = self.get_supports()
         insulators_points: Points = self.get_insulators()
+        # TODO: remove this -> will eventually be delegated to GroupPoints
         if project:
             self._validate_frame_index(frame_index)
             spans_points, supports_points, insulators_points = (
@@ -573,6 +574,7 @@ class CoordsCalculator:
             )
         return spans_points, supports_points, insulators_points
 
+    # TODO: remove this -> will eventually be delegated to GroupPoints
     def project_to_selected_frame(
         self,
         points_array: list[_PointsT],
@@ -596,31 +598,31 @@ class CoordsCalculator:
         angle_to_project = np.cumsum(self.line_angle)[frame_index]
         result_points = []
         for original_points in points_array:
-            new_points = self.change_frame(
+            new_points = compute_new_frame(
                 original_points, translation_vector, angle_to_project
             )
             result_points.append(new_points)
         return result_points
 
-    @staticmethod
-    def change_frame(
-        points: _PointsT,
-        translation_vector: np.ndarray,
-        angle_to_project: np.float64,
-    ) -> _PointsT:
-        """Change the frame of the given Points by applying a translation and a rotation.
 
-        Args:
-            points (Points): points to transform
-            translation_vector (np.ndarray): translation vector to apply
-            angle_to_project (np.float64): angle of the rotation
+def compute_new_frame(
+    points: _PointsT,
+    translation_vector: np.ndarray,
+    angle_to_project: np.float64,
+) -> _PointsT:
+    """Change the frame of the given Points by applying a translation and a rotation.
 
-        Returns:
-            Points: new Points object in the new frame
-        """
-        points.coords = points.coords + translation_vector
-        x, y, z = points.vectors
-        x, y = project_coords(x, y, angle_to_project)
-        # invert y axis to get more natural view
-        points.coords = np.array([x, -y, z]).T
-        return points
+    Args:
+        points (Points): points to transform
+        translation_vector (np.ndarray): translation vector to apply
+        angle_to_project (np.float64): angle of the rotation
+
+    Returns:
+        Points: new Points object in the new frame
+    """
+    points.coords = points.coords + translation_vector
+    x, y, z = points.vectors
+    x, y = project_coords(x, y, angle_to_project)
+    # invert y axis to get more natural view
+    points.coords = np.array([x, -y, z]).T
+    return points
