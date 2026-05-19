@@ -626,3 +626,67 @@ def test_add_cable_shifting_stores_values(
     np.testing.assert_array_equal(
         balance_engine_simple.shortening_span, shortening
     )
+
+
+@pytest.mark.integration
+def test_ruling_span_length(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, 10, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [0, 3, 3, 0],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [100, 50, 50, 100],
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "grad"})
+    balance_engine = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=section_array,
+    )
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state()
+    ruling_span = balance_engine.get_ruling_span_length()
+    # Value from proto. Result is close but not exactly the same due to using a_chain instead of a
+    np.testing.assert_allclose(ruling_span, 424.04, atol=0.1)
+
+
+@pytest.mark.integration
+def test_ruling_span_length_angle(cable_array_AM600: CableArray):
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, 10, 0],
+                "line_angle": [0, 20, 30, 0],
+                "insulator_length": [0, 3, 3, 0],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [100, 50, 50, 100],
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "grad"})
+    balance_engine = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=section_array,
+    )
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state()
+    ruling_span = balance_engine.get_ruling_span_length()
+    # value in proto is 424.04, but our value is supposed to be the correct one
+    np.testing.assert_allclose(ruling_span, 421.74, atol=0.1)
