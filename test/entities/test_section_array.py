@@ -560,7 +560,7 @@ def test_section_array_to_gps():
                 "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
                 "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
                 "line_angle": np.array([90, 90, 90, 90, 90]),
-                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "insulator_length": np.array([0.01, 0.01, 0.01, 0.01, 0.01]),
                 "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
                 "insulator_mass": np.array(
                     [1000.0, 500.0, 500.0, 500.0, 1000.0]
@@ -628,7 +628,7 @@ def test_section_array_get_lambert93():
                 "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
                 "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
                 "line_angle": np.array([90, 90, 90, 90, 90]),
-                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "insulator_length": np.array([0.01, 0.01, 0.01, 0.01, 0.01]),
                 "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
                 "insulator_mass": np.array(
                     [1000.0, 500.0, 500.0, 500.0, 1000.0]
@@ -662,7 +662,7 @@ def test_section_array_copy_preserves_geolocator():
                 "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
                 "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
                 "line_angle": np.array([90, 90, 90, 90, 90]),
-                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "insulator_length": np.array([0.01, 0.01, 0.01, 0.01, 0.01]),
                 "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
                 "insulator_mass": np.array(
                     [1000.0, 500.0, 500.0, 500.0, 1000.0]
@@ -693,7 +693,7 @@ def test_section_array_copy_geolocator_is_independent():
                 "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
                 "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
                 "line_angle": np.array([90, 90, 90, 90, 90]),
-                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "insulator_length": np.array([0.01, 0.01, 0.01, 0.01, 0.01]),
                 "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
                 "insulator_mass": np.array(
                     [1000.0, 500.0, 500.0, 500.0, 1000.0]
@@ -731,7 +731,7 @@ def test_section_array_get_azimuth():
                 "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
                 "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
                 "line_angle": np.array([17, 5, 10, 15, 22]),
-                "insulator_length": np.array([0, 4, 3.2, 0, 0]),
+                "insulator_length": np.array([0.01, 0.01, 0.01, 0.01, 0.01]),
                 "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
                 "insulator_mass": np.array(
                     [1000.0, 500.0, 500.0, 500.0, 1000.0]
@@ -747,6 +747,37 @@ def test_section_array_get_azimuth():
     )
     np.testing.assert_equal(
         section_array.get_azimuth(), np.array([10, 15, 25, 40, 62])
+    )
+
+
+def test_section_array_get_azimuth_clockwise():
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": np.array(["1", "2", "three", "4", "5"]),
+                "suspension": np.array([False, True, True, True, False]),
+                "conductor_attachment_altitude": np.array([20, 5, 10, 0, 0]),
+                "crossarm_length": np.array([10, 12.1, 10, 10.1, 5]),
+                "line_angle": np.array([0, 5, 10, 15, 22]),
+                "insulator_length": np.array([0.01, 0.01, 0.01, 0.01, 0.01]),
+                "span_length": np.array([500, 500, 500.0, 500.0, np.nan]),
+                "insulator_mass": np.array(
+                    [1000.0, 500.0, 500.0, 500.0, 1000.0]
+                ),
+            }
+        )
+    )
+    section_array.add_units({"line_angle": "deg"})
+    section_array.angles_sense = "clockwise"
+    section_array.set_starting_gps(
+        latitude_0=48.8566,
+        longitude_0=2.3522,
+        azimuth_0=10,
+        azimuth_sense="clockwise",
+    )
+    np.testing.assert_equal(
+        section_array.get_azimuth(output_sense="clockwise"),
+        np.array([10, 15, 25, 40, 62]),
     )
 
 
