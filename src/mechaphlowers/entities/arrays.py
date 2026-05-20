@@ -392,7 +392,7 @@ class SectionArray(ElementArray):
             latitude_0 (float): Latitude of the first support in decimal degrees.
             longitude_0 (float): Longitude of the first support in decimal degrees.
             azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise by default. 0 means North, 90 means West.
-            azimuth_sense (Literal["clockwise", "anticlockwise"]): default to "anticlockwise"
+            azimuth_sense (Literal["clockwise", "anticlockwise"]): Angle sense for azimuth_0. If set to "clockwise": 90 means East, -90 means West. Default to "anticlockwise"
         """
         if azimuth_sense == "clockwise":
             self.geolocator.set_starting_gps(
@@ -420,6 +420,7 @@ class SectionArray(ElementArray):
             easting (float): Lambert 93 easting coordinate in meters.
             northing (float): Lambert 93 northing coordinate in meters.
             azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+            azimuth_sense (Literal["clockwise", "anticlockwise"]): Angle sense for azimuth_0. If set to "clockwise": 90 means East, -90 means West. Default to "anticlockwise"
         """
 
         if azimuth_sense == "clockwise":
@@ -441,10 +442,11 @@ class SectionArray(ElementArray):
         output_sense: Literal["clockwise", "anticlockwise"] = "anticlockwise",
     ) -> np.ndarray:
         """Compute azimuth angle (or bearing) of the section.
-        0 is toward North. 90 degrees is toward West. (anti-clockwise sense)
+        By default, using anti-clockwise sense : 0 is toward North. 90 degrees is toward West.
 
         Args:
             unit (str, optional): Output unit. Defaults to "deg".
+            output_sense (Literal["clockwise", "anticlockwise"]): Angle sense for output. If set to "clockwise": 90 means East, -90 means West. Default to "anticlockwise"
 
         Returns:
             np.ndarray: array of the azimuth of each span.
