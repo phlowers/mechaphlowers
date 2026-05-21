@@ -21,11 +21,14 @@ class GroupPoints:
         supports: Points | None = None,
         insulators: Points | None = None,
         obstacles: SparsePoints | None = None,
+        distances: dict
+        | None = None,  # dictionary of DistanceResult (result of get_distances_from_obstacles)
     ):
         self.spans = spans
         self.supports = supports
         self.insulators = insulators
         self.obstacles = obstacles
+        self.distances = distances
 
     # TODO: think about what to do for distances
 
@@ -56,6 +59,11 @@ class GroupPoints:
             translation_vector, angle_to_project
         )
         return result_group_points
+
+    def change_frame_distances(self):
+        # called by change_frame
+        # loop on self.distances (dict) and operate and change frame on each DistanceReuslt
+        pass
 
     def project_coords(
         self, translation_vector: np.ndarray, angle_to_project: np.float64

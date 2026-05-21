@@ -520,6 +520,7 @@ class CoordsCalculator:
         )
         return Points.from_coords(insulator_layers)
 
+    # Proposition: call get_points_for_plot and build the dict from this
     def obstacles_dict(self, project=False, frame_index=0) -> dict:
         if hasattr(self, "obstacle_array"):
             self.compute_obstacle_coords()
@@ -539,6 +540,7 @@ class CoordsCalculator:
                 f"frame_index out of range. Expected value between 0 and {len(self.line_angle)}, received {frame_index}"
             )
 
+    # After GroupPoints: should return a GroupPoints object
     def get_points_for_plot(
         self,
         project=False,
@@ -615,7 +617,7 @@ def compute_new_frame(
     Args:
         points (Points): points to transform
         translation_vector (np.ndarray): translation vector to apply
-        angle_to_project (np.float64): angle of the rotation
+        angle_to_project (np.float64): angle of the rotation in radians
 
     Returns:
         Points: new Points object in the new frame

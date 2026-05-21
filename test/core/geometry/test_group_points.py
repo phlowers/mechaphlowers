@@ -8,7 +8,6 @@
 Tests for PositionEngine — standalone geometry computation without Plotly.
 """
 
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -140,4 +139,26 @@ class TestGroupPointsMethods:
         )
         np.testing.assert_allclose(
             result.supports.coords[2, 0], np.array([0, 0, 20])
+        )
+
+    def test_change_frame_with_angle(self, group_points: GroupPoints):
+        result = group_points.change_frame(
+            line_angle=np.array(np.deg2rad([5, 10, 15, 20])), frame_index=2
+        )
+        np.testing.assert_allclose(
+            result.supports.coords[2, 0], np.array([0, 0, 20])
+        )
+
+    def test_change_frame_loop(self, group_points: GroupPoints):
+        group_points_projected_0 = group_points.change_frame(
+            line_angle=np.array(np.deg2rad([5, 10, 15, 20])), frame_index=0
+        )
+        group_points_projected_2 = group_points_projected_0.change_frame(
+            line_angle=np.array(np.deg2rad([5, 10, 15, 20])), frame_index=2
+        )
+        result = group_points_projected_2.change_frame(
+            line_angle=np.array(np.deg2rad([5, 10, 15, 20])), frame_index=0
+        )
+        np.testing.assert_allclose(
+            result.supports.coords, group_points_projected_0.supports.coords
         )
