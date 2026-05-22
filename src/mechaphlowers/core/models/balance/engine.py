@@ -535,7 +535,7 @@ class BalanceEngine(Notifier):
     def get_ruling_span_length(self) -> float:
         """Compute ruling span length:
 
-        if we consider the whole section as a single span, the length would be ruling_span_length
+        if we considered the whole section as a single span, the length would be ruling_span_length
 
         Used for tensions computation when unfolding the cable.
 
