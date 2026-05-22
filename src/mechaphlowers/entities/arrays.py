@@ -21,7 +21,10 @@ from typing_extensions import Literal, Self, Type
 from mechaphlowers.config import options
 from mechaphlowers.data.units import Q_, convert_mass_to_weight
 from mechaphlowers.entities.errors import DataWarning
-from mechaphlowers.entities.geography import GeoLocator
+from mechaphlowers.entities.geography import (
+    GeoLocator,
+    get_azimuth_from_line_angles,
+)
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.cable.cable_strength import ITensileStrength
@@ -190,7 +193,7 @@ class SectionArray(ElementArray):
         self.bundle_number = bundle_number
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
-        self._angles_sense: Literal["clockwise", "anticlockwise"] = (
+        self._angle_direction: Literal["clockwise", "anticlockwise"] = (
             "anticlockwise"
         )
         self.geolocator: GeoLocator = GeoLocator()
@@ -223,24 +226,24 @@ class SectionArray(ElementArray):
         )
 
     @property
-    def angles_sense(self) -> Literal["clockwise", "anticlockwise"]:
+    def angle_direction(self) -> Literal["clockwise", "anticlockwise"]:
         """Affects line_angle, crossarm_length sign
 
         If "anticlockwise", line_angle is anticlockwise and crossarm_length is away from user (left).
         If "clockwise", line_angle is clockwise and crossarm_length is towards user (right).
 
         Defaults to "anticlockwise"."""
-        return self._angles_sense
+        return self._angle_direction
 
-    @angles_sense.setter
-    def angles_sense(
+    @angle_direction.setter
+    def angle_direction(
         self, value: Literal["clockwise", "anticlockwise"]
     ) -> None:
         if value not in ["clockwise", "anticlockwise"]:
             raise ValueError(
-                f"angles_sense should be 'clockwise' or 'anticlockwise', received {value}"
+                f"angle_direction should be 'clockwise' or 'anticlockwise', received {value}"
             )
-        self._angles_sense = value
+        self._angle_direction = value
 
     @property
     def sagging_parameter(self):
@@ -309,7 +312,7 @@ class SectionArray(ElementArray):
         }
         self.create_column_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
-        data_output = self._adjust_angle_sense(data_output)
+        data_output = self._adjust_angle_direction(data_output)
         return data_output.assign(
             elevation_difference=self.compute_elevation_difference(),
             bundle_number=self.bundle_number,
@@ -332,8 +335,10 @@ class SectionArray(ElementArray):
                     df_output[column_mass].to_numpy()
                 )
 
-    def _adjust_angle_sense(self, data_output: pd.DataFrame) -> pd.DataFrame:
-        if self.angles_sense == "clockwise":
+    def _adjust_angle_direction(
+        self, data_output: pd.DataFrame
+    ) -> pd.DataFrame:
+        if self.angle_direction == "clockwise":
             # use data_output instead of self._data to keep eventual unit conversion
             data_output["line_angle"] = -data_output["line_angle"]
             data_output["crossarm_length"] = -data_output["crossarm_length"]
@@ -383,21 +388,39 @@ class SectionArray(ElementArray):
         latitude_0: float,
         longitude_0: float,
         azimuth_0: float,
+        azimuth_direction: Literal[
+            "clockwise", "anticlockwise"
+        ] = "anticlockwise",
     ) -> None:
         """Set the starting GPS point and azimuth for coordinate computation.
 
         Args:
             latitude_0 (float): Latitude of the first support in decimal degrees.
             longitude_0 (float): Longitude of the first support in decimal degrees.
-            azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+            azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise by default. 0 means North, 90 means West.
+            azimuth_direction (Literal["clockwise", "anticlockwise"]): Angle sense for azimuth_0. If set to "clockwise": 90 means East, -90 means West. Default to "anticlockwise"
         """
-        self.geolocator.set_starting_gps(latitude_0, longitude_0, azimuth_0)
+        if azimuth_direction == "clockwise":
+            self.geolocator.set_starting_gps(
+                latitude_0, longitude_0, -azimuth_0
+            )
+        elif azimuth_direction == "anticlockwise":
+            self.geolocator.set_starting_gps(
+                latitude_0, longitude_0, azimuth_0
+            )
+        else:
+            raise ValueError(
+                f"azimuth_direction should be 'clockwise' or 'anticlockwise', received {azimuth_direction}"
+            )
 
     def set_starting_lambert93(
         self,
         easting: float,
         northing: float,
         azimuth_0: float,
+        azimuth_direction: Literal[
+            "clockwise", "anticlockwise"
+        ] = "anticlockwise",
     ) -> None:
         """Set the starting point from Lambert 93 coordinates and azimuth.
 
@@ -405,15 +428,35 @@ class SectionArray(ElementArray):
             easting (float): Lambert 93 easting coordinate in meters.
             northing (float): Lambert 93 northing coordinate in meters.
             azimuth_0 (float): Azimuth of the first span in degrees, anti-clockwise. 0 means North, 90 means West.
+            azimuth_direction (Literal["clockwise", "anticlockwise"]): Angle sense for azimuth_0. If set to "clockwise": 90 means East, -90 means West. Default to "anticlockwise"
         """
-        self.geolocator.set_starting_lambert93(easting, northing, azimuth_0)
 
-    def get_azimuth(self, unit: str = "deg") -> np.ndarray:
+        if azimuth_direction == "clockwise":
+            self.geolocator.set_starting_lambert93(
+                easting, northing, -azimuth_0
+            )
+        elif azimuth_direction == "anticlockwise":
+            self.geolocator.set_starting_lambert93(
+                easting, northing, azimuth_0
+            )
+        else:
+            raise ValueError(
+                f"azimuth_direction should be 'clockwise' or 'anticlockwise', received {azimuth_direction}"
+            )
+
+    def get_azimuth(
+        self,
+        unit: str = "deg",
+        output_direction: Literal[
+            "clockwise", "anticlockwise"
+        ] = "anticlockwise",
+    ) -> np.ndarray:
         """Compute azimuth angle (or bearing) of the section.
-        0 is toward North. 90 degrees is toward West. (anti-clockwise sense)
+        By default, using anti-clockwise sense : 0 is toward North. 90 degrees is toward West.
 
         Args:
             unit (str, optional): Output unit. Defaults to "deg".
+            output_direction (Literal["clockwise", "anticlockwise"]): Angle sense for output. If set to "clockwise": 90 means East, -90 means West. Default to "anticlockwise"
 
         Returns:
             np.ndarray: array of the azimuth of each span.
@@ -422,10 +465,21 @@ class SectionArray(ElementArray):
         line_angles_degrees = (
             Q_(self.data["line_angle"].to_numpy(), "rad").to("deg").m
         )
-        azimuth_deg = (
-            np.cumsum(line_angles_degrees) + self.geolocator._azimuth_0
+        azimuth_anticlockwise = get_azimuth_from_line_angles(
+            line_angles_degrees,
+            self.geolocator._azimuth_0,  # type: ignore[arg-type]
+            input_unit="deg",
+            output_unit=unit,
         )
-        return Q_(azimuth_deg, "deg").to(unit).m
+
+        if output_direction == "anticlockwise":
+            return azimuth_anticlockwise
+        elif output_direction == "clockwise":
+            return -azimuth_anticlockwise
+        else:
+            raise ValueError(
+                f"output_direction should be 'clockwise' or 'anticlockwise', received {output_direction}"
+            )
 
     def get_gps(self) -> tuple[np.ndarray, np.ndarray]:
         """Compute GPS coordinates for all pylons.
