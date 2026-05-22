@@ -345,7 +345,9 @@ class SectionArray(ElementArray):
         return data_output
 
     def equivalent_span(self) -> float:
-        """equivalent_span
+        """Compute equivalent span length.
+
+        Used in the default value of sagging_parameter.
 
         compute equivalent span:
            $L_{eq} = \\sqrt{\\sum(L_i ^ 3)/\\sum L_i}$
