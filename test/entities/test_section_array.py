@@ -768,15 +768,15 @@ def test_section_array_get_azimuth_clockwise():
         )
     )
     section_array.add_units({"line_angle": "deg"})
-    section_array.angles_sense = "clockwise"
+    section_array.angles_direction = "clockwise"
     section_array.set_starting_gps(
         latitude_0=48.8566,
         longitude_0=2.3522,
         azimuth_0=10,
-        azimuth_sense="clockwise",
+        azimuth_direction="clockwise",
     )
     np.testing.assert_equal(
-        section_array.get_azimuth(output_sense="clockwise"),
+        section_array.get_azimuth(output_direction="clockwise"),
         np.array([10, 15, 25, 40, 62]),
     )
 
@@ -844,7 +844,7 @@ def test_section_array__data_with_counterweight(
     )
 
 
-def test_section_array_angle_sense() -> None:
+def test_section_array_angle_direction() -> None:
     section_array = SectionArray(
         pd.DataFrame(
             {
@@ -864,7 +864,7 @@ def test_section_array_angle_sense() -> None:
         sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "deg"})
-    section_array.angles_sense = "clockwise"
+    section_array.angles_direction = "clockwise"
     expected_line_angle = -np.radians([10, 15, -20, 25])
     np.testing.assert_allclose(
         section_array.data.line_angle, expected_line_angle

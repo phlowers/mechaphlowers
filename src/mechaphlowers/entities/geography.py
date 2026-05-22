@@ -217,17 +217,28 @@ def get_gps_from_arrays(
 
 def get_azimuth_from_line_angles(
     line_angle: np.ndarray,
-    azimuth_first: float,
+    first_span_azimuth: float,
     input_unit: str = "deg",
     output_unit: str = "deg",
-):
+) -> np.ndarray:
+    """Compute azimuth of all spans.
+
+    Args:
+        line_angle (np.ndarray): line angle array in anticlockwise direction. Array comes from SectionArray.
+        first_span_azimuth (float): azimuth of the first span. Anticlockwise: 90° towards west
+        input_unit (str, optional): unit of line_angle and line_angle. Defaults to "deg".
+        output_unit (str, optional): unit of the output. Defaults to "deg".
+
+    Returns:
+        np.ndarray: array of azimuth. Length of array is number of supports.
+    """
     if len(line_angle) == 0:
         return np.array([])
     # first value of line_angles is set to 0 to avoid unexpected behaviour.
     # now azimuth is truly the orientation of the first span
     line_angle_copy = line_angle.copy()
     line_angle_copy[0] = 0.0
-    azimuth = np.cumsum(line_angle_copy) + azimuth_first
+    azimuth = np.cumsum(line_angle_copy) + first_span_azimuth
     return Q_(azimuth, input_unit).to(output_unit).m
 
 
