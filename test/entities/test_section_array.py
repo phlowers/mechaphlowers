@@ -768,7 +768,7 @@ def test_section_array_get_azimuth_clockwise():
         )
     )
     section_array.add_units({"line_angle": "deg"})
-    section_array.angles_direction = "clockwise"
+    section_array.angle_direction = "clockwise"
     section_array.set_starting_gps(
         latitude_0=48.8566,
         longitude_0=2.3522,
@@ -864,7 +864,7 @@ def test_section_array_angle_direction() -> None:
         sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "deg"})
-    section_array.angles_direction = "clockwise"
+    section_array.angle_direction = "clockwise"
     expected_line_angle = -np.radians([10, 15, -20, 25])
     np.testing.assert_allclose(
         section_array.data.line_angle, expected_line_angle

@@ -193,7 +193,7 @@ class SectionArray(ElementArray):
         self.bundle_number = bundle_number
         self.input_units = options.input_units.section_array.copy()
         self.correct_insulator_length()
-        self._angles_direction: Literal["clockwise", "anticlockwise"] = (
+        self._angle_direction: Literal["clockwise", "anticlockwise"] = (
             "anticlockwise"
         )
         self.geolocator: GeoLocator = GeoLocator()
@@ -226,24 +226,24 @@ class SectionArray(ElementArray):
         )
 
     @property
-    def angles_direction(self) -> Literal["clockwise", "anticlockwise"]:
+    def angle_direction(self) -> Literal["clockwise", "anticlockwise"]:
         """Affects line_angle, crossarm_length sign
 
         If "anticlockwise", line_angle is anticlockwise and crossarm_length is away from user (left).
         If "clockwise", line_angle is clockwise and crossarm_length is towards user (right).
 
         Defaults to "anticlockwise"."""
-        return self._angles_direction
+        return self._angle_direction
 
-    @angles_direction.setter
-    def angles_direction(
+    @angle_direction.setter
+    def angle_direction(
         self, value: Literal["clockwise", "anticlockwise"]
     ) -> None:
         if value not in ["clockwise", "anticlockwise"]:
             raise ValueError(
-                f"angles_direction should be 'clockwise' or 'anticlockwise', received {value}"
+                f"angle_direction should be 'clockwise' or 'anticlockwise', received {value}"
             )
-        self._angles_direction = value
+        self._angle_direction = value
 
     @property
     def sagging_parameter(self):
@@ -338,7 +338,7 @@ class SectionArray(ElementArray):
     def _adjust_angle_direction(
         self, data_output: pd.DataFrame
     ) -> pd.DataFrame:
-        if self.angles_direction == "clockwise":
+        if self.angle_direction == "clockwise":
             # use data_output instead of self._data to keep eventual unit conversion
             data_output["line_angle"] = -data_output["line_angle"]
             data_output["crossarm_length"] = -data_output["crossarm_length"]
