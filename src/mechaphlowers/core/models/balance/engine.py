@@ -532,6 +532,24 @@ class BalanceEngine(Notifier):
         }
         return result_dict
 
+    def get_ruling_span_length(self) -> float:
+        """Compute ruling span length:
+
+        if we considered the whole section as a single span, the length would be ruling_span_length
+
+        Used for tensions computation when unfolding the cable.
+
+        $L_{R} = \\sqrt{\\frac{\\sum(L_n ^ 4 / C_n)}{\\sum{C_n}}}$
+
+        where $L_n$ are the horizontal length of span n, and $C_n$ the chord length of span n
+
+        Returns:
+            float: span length of ruling span
+        """
+        # proto uses section_array.span_length instead of balance_model.a (called a_chain in proto)
+        chord = np.sqrt(self.balance_model.a**2 + self.balance_model.b**2)
+        return np.sqrt(np.sum(self.balance_model.a**4 / chord) / np.sum(chord))
+
     @property
     def support_number(self) -> int:
         return self.section_array.data.span_length.shape[0]
