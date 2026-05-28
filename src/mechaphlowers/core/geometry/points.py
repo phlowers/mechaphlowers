@@ -648,8 +648,13 @@ def compute_new_frame(
         Points: new Points object in the new frame
     """
     points.coords = points.coords + translation_vector
-    x, y, z = points.vectors
-    x, y = project_coords(x, y, angle_to_project)
 
-    points.coords = np.array([x, y, z]).T
+    points.coords = rotate_vector(points.vectors, angle_to_project).T
     return points
+
+
+def rotate_vector(vector_to_rotate, angle_to_project):
+    x, y, z = vector_to_rotate
+    x, y = project_coords(x, y, angle_to_project)
+    result_vector = np.array([x, y, z])
+    return result_vector

@@ -245,17 +245,32 @@ class TestChangeFrame:
     def test_change_frame_no_angle(self, group_points: GroupPoints):
         result = group_points.change_frame(frame_index=2)
         np.testing.assert_allclose(
-            result.supports.coords[2, 0], np.array([0, 0, 20])
+            result.supports.coords[2, 0],  # type: ignore[union-attr]
+            np.array([0, 0, 20]),
         )
 
     def test_change_frame_with_angle(self, group_points: GroupPoints):
         group_points.line_angle = np.array(np.deg2rad([5, 10, 15, 20]))
         result = group_points.change_frame(frame_index=2)
         np.testing.assert_allclose(
-            result.supports.coords[2, 0], np.array([0, 0, 20])
+            result.supports.coords[2, 0],  # type: ignore[union-attr]
+            np.array([0, 0, 20]),
         )
 
     def test_change_frame_loop(self, group_points: GroupPoints):
+        group_points.line_angle = np.array(np.deg2rad([0, 10, 15, 20]))
+
+        group_points_projected_2 = group_points.change_frame(frame_index=2)
+        result = group_points_projected_2.change_frame(frame_index=0)
+        np.testing.assert_allclose(
+            result.supports.coords,  # type: ignore[union-attr]
+            group_points.supports.coords,  # type: ignore[union-attr]
+            atol=1e-10,
+        )
+
+    def test_change_frame_loop__angle_first_support(
+        self, group_points: GroupPoints
+    ):
         group_points.line_angle = np.array(np.deg2rad([5, 10, 15, 20]))
 
         group_points_projected_0 = group_points.change_frame(frame_index=0)
@@ -264,20 +279,20 @@ class TestChangeFrame:
         )
         result = group_points_projected_2.change_frame(frame_index=0)
         np.testing.assert_allclose(
-            result.supports.coords, group_points_projected_0.supports.coords
+            result.supports.coords,  # type: ignore[union-attr]
+            group_points_projected_0.supports.coords,  # type: ignore[union-attr]
         )
 
-    # def test_change_frame_loop_angle_first_support(self, group_points: GroupPoints):
-    #     group_points.line_angle = np.array(np.deg2rad([5, 10, 15, 20]))
+    def test_change_frame_loop__minus_one(self, group_points: GroupPoints):
+        group_points.line_angle = np.array(np.deg2rad([5, 10, 15, 20]))
 
-    #     group_points_projected_0 = group_points.change_frame(frame_index=0)
-    #     group_points_projected_2 = group_points_projected_0.change_frame(
-    #         frame_index=2
-    #     )
-    #     result = group_points_projected_2.change_frame(frame_index=0)
-    #     np.testing.assert_allclose(
-    #         result.supports.coords, group_points_projected_0.supports.coords
-    #     )
+        group_points_projected_2 = group_points.change_frame(frame_index=2)
+        result = group_points_projected_2.change_frame(frame_index=-1)
+        np.testing.assert_allclose(
+            result.supports.coords,  # type: ignore[union-attr]
+            group_points.supports.coords,  # type: ignore[union-attr]
+            atol=1e-10,
+        )
 
     def test_change_frame_original_unchanged(
         self, group_points_distances: GroupPoints
@@ -307,10 +322,11 @@ class TestChangeFrame:
             ]
         )
         np.testing.assert_equal(
-            group_points_distances.supports.coords, expected_supports_unchanged
+            group_points_distances.supports.coords,  # type: ignore[union-attr]
+            expected_supports_unchanged,
         )
         np.testing.assert_equal(
-            group_points_distances.distances["obs_1"][0].point_base,
+            group_points_distances.distances["obs_1"][0].point_base,  # type: ignore[index]
             np.array([100.0000, 0.0000, 0.0000]),
         )
 

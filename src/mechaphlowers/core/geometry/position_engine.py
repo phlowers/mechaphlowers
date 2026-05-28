@@ -316,7 +316,7 @@ class PositionEngine(Observer, Notifier):
     ) -> dict[str, dict[int, DistanceResult]]:
         """Compute distances for all obstacles to their respective spans.
 
-        Only in absolute coordiantes for now.
+        Only in absolute coordiantes.
 
         {
             'obs_0': {0: DistanceResult, 1: DistanceResult},
@@ -348,7 +348,6 @@ class PositionEngine(Observer, Notifier):
                 loop_index += 1
             distance_dict_result[obstacle_name] = current_distance_result
 
-        # TODO: project in selected frame
         return distance_dict_result
 
     def get_group_points(self) -> GroupPoints:

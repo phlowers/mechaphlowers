@@ -14,7 +14,7 @@ from mechaphlowers.core.geometry.planes import (
     intersection_curve_plane,
     plane_from_line,
 )
-from mechaphlowers.core.geometry.references import project_coords
+from mechaphlowers.core.geometry.points import rotate_vector
 
 
 def points_distance_inside_plane(
@@ -153,27 +153,19 @@ class DistanceResult:
         )
 
     # TODO: inplace option
-    def change_frame(
+    def compute_new_frame(
         self, translation_vector: np.ndarray, angle_to_project: np.float64
     ) -> DistanceResult:
         point_base = self.point_base + translation_vector
-        self.point_base = self.rotate(point_base, angle_to_project)
+        self.point_base = rotate_vector(point_base, angle_to_project)
 
         point_target = self.point_target + translation_vector
-        self.point_target = self.rotate(point_target, angle_to_project)
+        self.point_target = rotate_vector(point_target, angle_to_project)
 
-        self.u_plane = self.rotate(self.u_plane, angle_to_project)
-        self.v_plane = self.rotate(self.v_plane, angle_to_project)
+        self.u_plane = rotate_vector(self.u_plane, angle_to_project)
+        self.v_plane = rotate_vector(self.v_plane, angle_to_project)
 
         return self
-
-    # TODO: Make this a function somewhere (points?) and avoid duplicated code with compute_new_frame
-    def rotate(self, vector_to_rotate, angle_to_project):
-        x, y, z = vector_to_rotate
-        x, y = project_coords(x, y, angle_to_project)
-        # invert y axis to get more natural view
-        result_vector = np.array([x, y, z])
-        return result_vector
 
 
 class DistanceEngine:
