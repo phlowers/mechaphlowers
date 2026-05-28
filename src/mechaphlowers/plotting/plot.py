@@ -795,8 +795,8 @@ class PlotEngine(Observer):
 
     def point_distance(
         self,
-        span_index: int,
-        point: np.ndarray,
+        obstacle_name: str,
+        point_index: int,
         *,
         fig: go.Figure | None = None,
     ) -> DistanceResult:
@@ -807,8 +807,8 @@ class PlotEngine(Observer):
         plots the result on the figure.
 
         Args:
-            span_index: Span index in `[0, num_supports - 2]`.
-            point: Absolute coordinates of shape `(3,)`.
+            obstacle_name: Obstacle name to get the distances of.
+            point_index: point_index of the selected obstacle.
             fig: Optional Plotly figure.  When supplied, the geometry is
                 rendered on it.
 
@@ -819,17 +819,22 @@ class PlotEngine(Observer):
 
             >>> balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
             >>> plt_engine = PlotEngine(balance_engine)
-            >>> point = np.array(
-            ...     [10.0, 5.0, 2.0]
-            ... )  # Absolute coordinates of the point to analyze
+            >>> plt_engine.position_engine.add_obstacle(
+            ...     name="obs_0",
+            ...     span_index=0,
+            ...     coords=np.array([[200, 0, 0]]),
+            ...     support_reference='left',
+            ... )
             >>> fig = figure_factory()
-            >>> distance_result = plt_engine.point_distance(span_index=0, point=point)
+            >>> distance_result = plt_engine.point_distance(
+            ...     obstacle_name="obs_0", point_index=0
+            ... )
             # ...get a distance result object with the distance and closest point coordinates
             >>> fig.show()
         """
-        distance_result = self.position_engine.point_distance(
-            span_index, point
-        )
+        distance_result = self.position_engine.get_distances_from_obstacles()[
+            obstacle_name
+        ][point_index]
 
         if fig is not None:
             plot_distance_engine(
@@ -838,11 +843,11 @@ class PlotEngine(Observer):
                 fig=fig,
                 show_plane=True,
                 show_projections=True,
-                title_addendum=f" - Span {span_index}",
+                title_addendum=f" - Obstacle: {obstacle_name}",
                 force_layout=True,
             )
             fig.update_layout(
-                title=f"Point Distance Analysis - Span {span_index}",
+                title=f"Point Distance Analysis - Obstacle: {obstacle_name}",
                 scene=dict(
                     xaxis_title="X (m)",
                     yaxis_title="Y (m)",

@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from __future__ import annotations
+
 from typing import Callable, Self, TypeVar
 
 import numpy as np
@@ -200,6 +202,9 @@ class Points:
         """
         return cls(coords)
 
+    def __copy__(self) -> Points:
+        return Points(self.coords)
+
 
 class SparsePoints:
     """Class handle set of 3D points grouped by objects, but all objects do not have the same number of points.
@@ -301,8 +306,22 @@ class SparsePoints:
             dict_coords[object_name] = array_coords[i]
         return dict_coords
 
+    def __repr__(self):
+        return f"SparsePoints(coords={self.coords})"
 
-_PointsT = TypeVar("_PointsT", Points, SparsePoints)
+    def __copy__(self) -> SparsePoints:
+        return SparsePoints(
+            self.object_name,
+            self.point_index,
+            self.span_index,
+            self.x,
+            self.y,
+            self.z,
+            self.object_type,
+        )
+
+
+PointsT = TypeVar("PointsT", Points, SparsePoints)
 
 
 class CoordsCalculator:
@@ -396,9 +415,11 @@ class CoordsCalculator:
 
     def refresh_obstacles(self):
         """Need to be called when any modification to obstacle_array occurs"""
+        # obstacle_points are in absolute coordinates here
         self.obstacles_points = SparsePoints.builder_from_obstacle_array(
             self.obstacle_array
         )
+        self.compute_obstacle_coords()
 
     def compute_obstacle_coords(self) -> SparsePoints:
         x, y, z = self.obstacle_array.get_vectors()
@@ -579,19 +600,19 @@ class CoordsCalculator:
     # TODO: remove this -> will eventually be delegated to GroupPoints
     def project_to_selected_frame(
         self,
-        points_array: list[_PointsT],
+        points_array: list[PointsT],
         frame_index: int,
-    ) -> list[_PointsT]:
+    ) -> list[PointsT]:
         """Project points object into a support frame.
 
         Used for 2D plots that need to be projected in a specific frame.
 
         Args:
-            points_array (list[_PointsT]): array of Points of SparsePoints objects
+            points_array (list[PointsT]): array of Points of SparsePoints objects
             frame_index (int): Index of the frame the projection is made.
 
         Returns:
-            list[_PointsT]: array of points object projected in local frame
+            list[PointsT]: array of points object projected in local frame
             projected into the frame of support number `frame_index`.
         """
         translation_vector = -self.get_supports().coords[frame_index, 0]
@@ -603,15 +624,19 @@ class CoordsCalculator:
             new_points = compute_new_frame(
                 original_points, translation_vector, angle_to_project
             )
+            # invert y axis to get more natural view
+            x, y, z = new_points.vectors
+            new_points.coords = np.array([x, -y, z]).T
             result_points.append(new_points)
         return result_points
 
 
+# TODO: add inplace argument
 def compute_new_frame(
-    points: _PointsT,
+    points: PointsT,
     translation_vector: np.ndarray,
     angle_to_project: np.float64,
-) -> _PointsT:
+) -> PointsT:
     """Change the frame of the given Points by applying a translation and a rotation.
 
     Args:
@@ -625,6 +650,6 @@ def compute_new_frame(
     points.coords = points.coords + translation_vector
     x, y, z = points.vectors
     x, y = project_coords(x, y, angle_to_project)
-    # invert y axis to get more natural view
-    points.coords = np.array([x, -y, z]).T
+
+    points.coords = np.array([x, y, z]).T
     return points

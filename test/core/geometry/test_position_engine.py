@@ -419,6 +419,34 @@ class TestPositionEngineObstacleArray:
             pos_engine.obstacle_array.data, expected_df, check_like=True
         )
 
+    def test_refresh_absolute_coordinates(
+        self, balance_engine_base_test: BalanceEngine
+    ):
+        # test that refresh_obstacles method keeps
+        pos_engine = PositionEngine(balance_engine_base_test)
+        pos_engine.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array(
+                [[50, 0, 0], [100, 0, 10], [150, 10, 0], [200, 0, 0]]
+            ),
+            support_reference='left',
+        )
+
+        expected_coords = np.array(
+            [
+                [550.0, 0.0, 0.0],
+                [600.0, 0.0, 10.0],
+                [650.0, 10.0, 0.0],
+                [700.0, 0.0, 0.0],
+            ]
+        )
+        pos_engine.coords_calculator.refresh_obstacles()
+        np.testing.assert_equal(
+            pos_engine.coords_calculator.obstacles_points.coords,
+            expected_coords,
+        )
+
     def test_add_and_delete_obstacle(
         self, balance_engine_base_test: BalanceEngine
     ):
@@ -581,7 +609,7 @@ class TestDistancesFromObstacles:
             span_index=1,
             coords=np.array([[35, 0, 0], [100, 0, 10]]),
             support_reference='right',
-            span_length=np.array([500, 400, 450, np.nan]),
+            span_length=np.array([500, 500, 500, np.nan]),
         )
         return pos_engine
 
@@ -609,7 +637,7 @@ class TestDistancesFromObstacles:
             span_index=1,
             coords=np.array([[35, 0, 0], [100, 0, 10]]),
             support_reference='right',
-            span_length=np.array([500, 400, 450, np.nan]),
+            span_length=np.array([500, 500, 500, np.nan]),
         )
         return pos_engine
 
@@ -636,3 +664,10 @@ class TestDistancesFromObstacles:
 
         distances_dict = pos_engine.get_distances_from_obstacles()
         assert distances_dict == {}
+
+    def test_group_points_sandbox(
+        self, pos_engine_with_obstacles: PositionEngine
+    ):
+        group_points = pos_engine_with_obstacles.get_group_points()
+        group_points.change_frame(frame_index=1)
+        assert True

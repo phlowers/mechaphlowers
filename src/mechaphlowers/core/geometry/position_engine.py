@@ -16,6 +16,7 @@ from mechaphlowers.core.geometry.distances import (
     DistanceEngine,
     DistanceResult,
 )
+from mechaphlowers.core.geometry.group_points import GroupPoints
 from mechaphlowers.core.geometry.planes import change_local_frame
 from mechaphlowers.core.geometry.points import CoordsCalculator, Points
 from mechaphlowers.core.models.balance.engine import BalanceEngine
@@ -308,9 +309,11 @@ class PositionEngine(Observer, Notifier):
                 span_index
             ]
         )
-        return self.distance_engine.plane_distance(point, frame="span")
+        return self.distance_engine.plane_distance(point, frame="section")
 
-    def get_distances_from_obstacles(self):
+    def get_distances_from_obstacles(
+        self,
+    ) -> dict[str, dict[int, DistanceResult]]:
         """Compute distances for all obstacles to their respective spans.
 
         Only in absolute coordiantes for now.
@@ -325,6 +328,7 @@ class PositionEngine(Observer, Notifier):
         """
 
         distance_dict_result = {}
+        # self.coord_calculator.compute_obstacle_coords()?
         obstacle_sparse_points = self.coords_calculator.obstacles_points
         # index of obstacle point among total points
         loop_index = 0
@@ -346,6 +350,30 @@ class PositionEngine(Observer, Notifier):
 
         # TODO: project in selected frame
         return distance_dict_result
+
+    def get_group_points(self) -> GroupPoints:
+        spans_points: Points = self.coords_calculator.get_spans("section")
+        supports_points: Points = self.coords_calculator.get_supports()
+        insulators_points: Points = self.coords_calculator.get_insulators()
+        if not hasattr(self, "obstacle_array"):
+            return GroupPoints(
+                line_angle=self.coords_calculator.line_angle,
+                spans=spans_points,
+                supports=supports_points,
+                insulators=insulators_points,
+            )
+        else:
+            self.coords_calculator.compute_obstacle_coords()
+            obstacles_points = self.coords_calculator.obstacles_points
+            distances_dict = self.get_distances_from_obstacles()
+            return GroupPoints(
+                line_angle=self.coords_calculator.line_angle,
+                spans=spans_points,
+                supports=supports_points,
+                insulators=insulators_points,
+                obstacles=obstacles_points,
+                distances=distances_dict,
+            )
 
     # ── String representations ────────────────────────────────────────────────
 

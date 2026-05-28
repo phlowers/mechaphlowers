@@ -3,7 +3,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
-
+from __future__ import annotations
 
 from typing import Literal
 
@@ -14,6 +14,7 @@ from mechaphlowers.core.geometry.planes import (
     intersection_curve_plane,
     plane_from_line,
 )
+from mechaphlowers.core.geometry.references import project_coords
 
 
 def points_distance_inside_plane(
@@ -129,6 +130,17 @@ class DistanceResult:
     def __repr__(self):
         return "<DistanceResult>\n" + self.__str__()
 
+    def __copy__(self) -> DistanceResult:
+        return DistanceResult(
+            point_base=self.point_base,
+            point_target=self.point_target,
+            u_plane=self.u_plane,
+            v_plane=self.v_plane,
+            distance_3d=self.distance_3d,
+            distance_projection_u=self.distance_projection_u,
+            distance_projection_v=self.distance_projection_v,
+        )
+
     def projection_points(
         self, origin_point: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray]:
@@ -139,6 +151,29 @@ class DistanceResult:
             u_plane=self.u_plane,
             v_plane=self.v_plane,
         )
+
+    # TODO: inplace option
+    def change_frame(
+        self, translation_vector: np.ndarray, angle_to_project: np.float64
+    ) -> DistanceResult:
+        point_base = self.point_base + translation_vector
+        self.point_base = self.rotate(point_base, angle_to_project)
+
+        point_target = self.point_target + translation_vector
+        self.point_target = self.rotate(point_target, angle_to_project)
+
+        self.u_plane = self.rotate(self.u_plane, angle_to_project)
+        self.v_plane = self.rotate(self.v_plane, angle_to_project)
+
+        return self
+
+    # TODO: Make this a function somewhere (points?) and avoid duplicated code with compute_new_frame
+    def rotate(self, vector_to_rotate, angle_to_project):
+        x, y, z = vector_to_rotate
+        x, y = project_coords(x, y, angle_to_project)
+        # invert y axis to get more natural view
+        result_vector = np.array([x, y, z])
+        return result_vector
 
 
 class DistanceEngine:
@@ -210,6 +245,7 @@ class DistanceEngine:
         )
         return self.u_plane, self.v_plane
 
+    # TODO: in the long run, "span" should not be an option: always in absolute coordinates
     def plane_distance(
         self,
         point_base: np.ndarray,

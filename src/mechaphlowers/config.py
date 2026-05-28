@@ -66,6 +66,7 @@ class GraphicsConfig:
             "size": 5.0,
         }
     )
+    aspect_epsilon: float = 1e-4
 
 
 @dataclass
