@@ -152,14 +152,16 @@ def test_steady_intensity(thermal_engine_3_spans: ThermalEngine):
 
     copy_result_without_input = thermal_engine.steady_intensity().data.copy()
 
-    assert thermal_engine.steady_intensity().data.shape[0] == 3
+    assert copy_result_without_input.shape[0] == 3
 
-    np.testing.assert_array_almost_equal(
+    result_with_explicit_target_temperature = thermal_engine.steady_intensity(
+        thermal_engine.target_temperature
+    ).data
+    # TODO: remove?
+    pd.testing.assert_frame_equal(
         copy_result_without_input,
-        thermal_engine.steady_intensity(
-            thermal_engine.target_temperature
-        ).data,
-        decimal=5,
+        result_with_explicit_target_temperature,
+        atol=1e-5,
     )
 
     assert (
