@@ -523,7 +523,9 @@ class ThermalEngine:
         )
 
     def steady_temperature(
-        self, intensity: np.ndarray | None = None
+        self,
+        intensity: np.ndarray | None = None,
+        return_uncertainty: bool = False,
     ) -> ThermalSteadyResults:
         """Compute steady-state temperature results.
 
@@ -534,7 +536,11 @@ class ThermalEngine:
         if intensity is not None:
             self.dict_input["transit"] = intensity
             self.load()
-        return ThermalSteadyResults(self.thermal_model.steady_temperature())
+        return ThermalSteadyResults(
+            self.thermal_model.steady_temperature(
+                return_uncertainty=return_uncertainty
+            )
+        )
 
     def steady_intensity(
         self, target_temperature: np.ndarray | None = None
