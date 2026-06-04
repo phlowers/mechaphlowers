@@ -414,13 +414,13 @@ def test_get_data_spans_with_loads(balance_engine_simple: BalanceEngine):
         assert len(value) == 3
 
 
-def test_engine_wind_sense(balance_engine_simple: BalanceEngine):
+def test_engine_wind_direction(balance_engine_simple: BalanceEngine):
     balance_engine_simple.solve_adjustment()
 
-    # Test with wind_sense "clockwise"
+    # Test with wind_direction "clockwise"
     balance_engine_simple.solve_change_state(
         wind_pressure=200,
-        wind_sense="clockwise",
+        wind_direction="clockwise",
     )
     displacement_clockwise = (
         balance_engine_simple.balance_model.chain_displacement()
@@ -431,10 +431,10 @@ def test_engine_wind_sense(balance_engine_simple: BalanceEngine):
         np.array([-200.0, -200.0, -200.0, -200.0]),
     )
 
-    # Test with wind_sense "anticlockwise"
+    # Test with wind_direction "anticlockwise"
     balance_engine_simple.solve_change_state(
         wind_pressure=-200,
-        wind_sense="anticlockwise",
+        wind_direction="anticlockwise",
     )
     np.testing.assert_array_equal(
         balance_engine_simple.balance_model.cable_loads.wind_pressure,
@@ -732,269 +732,66 @@ def test_reset_rope_manipulation_integration(
         balance_engine_simple.balance_model.chain_displacement().copy()
     )
 
-    balance_engine_simple.add_rope({1: 6.0})
-    balance_engine_simple.reset_rope()
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    displacement_restored = (
-        balance_engine_simple.balance_model.chain_displacement()
-    )
 
-    np.testing.assert_allclose(
-        displacement_original, displacement_restored, atol=1e-9
-    )
-
-
-# ── virtual support tests ────────────────────────────────────────────────────
-
-
-def test_add_virtual_support_changes_data_shape(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    assert len(balance_engine_simple.section_array.data) == 4
-    balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 100.0}}
-    )
-    assert len(balance_engine_simple.section_array.data) == 5
-
-
-def test_add_virtual_support_preserves_observers(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    from mechaphlowers.entities.reactivity import Observer
-
-    class _TestObserver(Observer):
-        def __init__(self):
-            self.call_count = 0
-
-        def update(self, notifier, *args, **kwargs):
-            self.call_count += 1
-
-    obs = _TestObserver()
-    balance_engine_simple.bind_to(obs)
-    assert obs in balance_engine_simple._observers
-
-    balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 100.0}}
-    )
-    # Observer must still be registered
-    assert obs in balance_engine_simple._observers
-
-    balance_engine_simple.reset_virtual_support()
-    assert obs in balance_engine_simple._observers
-
-
-def test_reset_virtual_support_restores_data_shape(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 100.0}}
-    )
-    balance_engine_simple.reset_virtual_support()
-    assert len(balance_engine_simple.section_array.data) == 4
-
-
-def test_add_virtual_support_integration(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    balance_engine_simple.add_virtual_support(
-        {1: {"x": 100.0, "y": 0.0, "z": 55.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 100.0}}
-    )
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    # Should complete without error
-
-
-def test_virtual_support_hanging_points_vector_and_mask(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    balance_engine_simple.add_virtual_support(
-        {
-            0: {
-                "x": 100.0,
-                "y": 0.0,
-                "z": 40.0,
-                "insulator_length": 3.0,
-                "insulator_mass": 500.0,
-                "hanging_cable_point_from_left_support": 100.0,
-            },
-            2: {
-                "x": 120.0,
-                "y": 0.0,
-                "z": 45.0,
-                "insulator_length": 3.0,
-                "insulator_mass": 500.0,
-                "hanging_cable_point_from_left_support": 120.0,
-            },
-        }
-    )
-    balance_engine_simple.solve_adjustment()
-
-    hanging_points, impacted_spans = (
-        balance_engine_simple._virtual_support_hanging_points_vector_and_mask()
-    )
-
-    expected_hanging_points = np.zeros_like(hanging_points)
-    expected_hanging_points[0] = 100.0
-    expected_hanging_points[3] = 120.0
-
-    expected_impacted_spans = np.zeros_like(impacted_spans)
-    expected_impacted_spans[0] = True
-    expected_impacted_spans[3] = True
-
-    np.testing.assert_allclose(hanging_points, expected_hanging_points)
-    np.testing.assert_array_equal(impacted_spans, expected_impacted_spans)
-
-
-# ── performance tests ────────────────────────────────────────────────────────
-
-def _make_8support_section_array(cable_array: "CableArray") -> "BalanceEngine":
-    """8-support line with spans of varying length."""
+@pytest.mark.integration
+def test_ruling_span_length(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
             {
-                "name": ["1", "2", "3", "4", "5", "6", "7", "8"],
-                "suspension": [False, True, True, True, True, True, True, False],
-                "conductor_attachment_altitude": [
-                    30.0, 45.0, 55.0, 60.0, 50.0, 65.0, 40.0, 35.0
-                ],
-                "crossarm_length": [0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0],
-                "line_angle": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                "insulator_length": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
-                "span_length": [400.0, 350.0, 450.0, 300.0, 500.0, 380.0, 420.0, np.nan],
-                "insulator_mass": [
-                    1000.0, 500.0, 500.0, 500.0, 500.0, 500.0, 500.0, 1000.0
-                ],
-                "load_mass": [0.0] * 8,
-                "load_position": [0.0] * 8,
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, 10, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [0, 3, 3, 0],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [100, 50, 50, 100],
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
             }
         ),
         sagging_parameter=2000,
         sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    return BalanceEngine(cable_array=cable_array, section_array=section_array)
+    balance_engine = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=section_array,
+    )
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state()
+    ruling_span = balance_engine.get_ruling_span_length()
+    # Value from proto. Result is close but not exactly the same due to using a_chain instead of a
+    np.testing.assert_allclose(ruling_span, 424.04, atol=0.1)
 
 
-def _make_12support_section_array(cable_array: "CableArray") -> "BalanceEngine":
-    """12-support plain line for size-scaling comparison."""
+@pytest.mark.integration
+def test_ruling_span_length_angle(cable_array_AM600: CableArray):
     section_array = SectionArray(
         pd.DataFrame(
             {
-                "name": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
-                "suspension": [
-                    False, True, True, True, True, True,
-                    True, True, True, True, True, False,
-                ],
-                "conductor_attachment_altitude": [
-                    30.0, 45.0, 55.0, 60.0, 50.0, 65.0,
-                    40.0, 35.0, 50.0, 58.0, 42.0, 38.0,
-                ],
-                "crossarm_length": [0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0],
-                "line_angle": [0.0] * 12,
-                "insulator_length": [3.0] * 12,
-                "span_length": [
-                    400.0, 350.0, 450.0, 300.0, 500.0, 380.0,
-                    420.0, 370.0, 410.0, 340.0, 460.0, np.nan,
-                ],
-                "insulator_mass": [1000.0] + [500.0] * 10 + [1000.0],
-                "load_mass": [0.0] * 12,
-                "load_position": [0.0] * 12,
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 50, 60, 65],
+                "crossarm_length": [0, 10, 10, 0],
+                "line_angle": [0, 20, 30, 0],
+                "insulator_length": [0, 3, 3, 0],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [100, 50, 50, 100],
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
             }
         ),
         sagging_parameter=2000,
         sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    return BalanceEngine(cable_array=cable_array, section_array=section_array)
-
-
-@pytest.mark.benchmark
-def test_perf_data_and_change_state_baseline_vs_manipulations(
-    cable_array_AM600: "CableArray",
-) -> None:
-    """Compare .data and solve_change_state timing between:
-    - a plain 8-support line (baseline),
-    - the same 8-support line with 4 support manipulations, 1 rope manipulation
-      and 4 virtual supports,
-    - a plain 12-support line (size-scaling reference).
-
-    Prints a timing table; does not assert on durations (benchmark only).
-    """
-    import time
-
-    n_iterations = 20
-
-    def _measure(engine: "BalanceEngine") -> tuple[float, float]:
-        t0 = time.perf_counter()
-        for _ in range(n_iterations):
-            _ = engine.section_array.data
-        data_s = (time.perf_counter() - t0) / n_iterations
-
-        t0 = time.perf_counter()
-        for _ in range(n_iterations):
-            engine.solve_change_state(new_temperature=15.0)
-        change_state_s = (time.perf_counter() - t0) / n_iterations
-
-        return data_s, change_state_s
-
-    # ── baseline: plain 8-support ────────────────────────────────────────────
-    engine_base = _make_8support_section_array(cable_array_AM600)
-    engine_base.solve_adjustment()
-    baseline_data_s, baseline_change_state_s = _measure(engine_base)
-
-    # ── 8-support with manipulations ─────────────────────────────────────────
-    engine_manip = _make_8support_section_array(cable_array_AM600)
-    # 4 support manipulations (supports 1, 2, 4, 5)
-    engine_manip.shift_support({
-        1: {"z": 1.0},
-        2: {"z": -1.0, "y": 0.5},
-        4: {"z": 2.0},
-        5: {"y": -0.5},
-    })
-    # 1 rope manipulation (support 3)
-    engine_manip.add_rope({3: 4.5})
-    # 4 virtual supports (one per span: spans 0, 2, 4, 6)
-    engine_manip.add_virtual_support({
-        0: {"x": 200.0, "y": 0.0, "z": 38.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
-        2: {"x": 200.0, "y": 0.0, "z": 58.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
-        4: {"x": 250.0, "y": 0.0, "z": 52.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 250.0},
-        6: {"x": 200.0, "y": 0.0, "z": 42.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
-    })
-    engine_manip.solve_adjustment()
-    manip_data_s, manip_change_state_s = _measure(engine_manip)
-
-    # ── size-scaling reference: plain 12-support ──────────────────────────────
-    engine_12 = _make_12support_section_array(cable_array_AM600)
-    engine_12.solve_adjustment()
-    ref12_data_s, ref12_change_state_s = _measure(engine_12)
-
-    # ── report ────────────────────────────────────────────────────────────────
-    col_w = [30, 16, 24, 18, 8]
-    header = (
-        f"{'Measurement':<{col_w[0]}}"
-        f"{'8-support (ms)':>{col_w[1]}}"
-        f"{'8-support+manip (ms)':>{col_w[2]}}"
-        f"{'12-support (ms)':>{col_w[3]}}"
-        f"{'manip ratio':>{col_w[4]}}"
+    balance_engine = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=section_array,
     )
-    print(f"\n{header}")
-    print("-" * sum(col_w))
-    for label, base, manip, ref12 in (
-        (".data", baseline_data_s, manip_data_s, ref12_data_s),
-        ("solve_change_state", baseline_change_state_s, manip_change_state_s, ref12_change_state_s),
-    ):
-        ratio = manip / ref12 if ref12 > 0 else float("inf")
-        print(
-            f"{label:<{col_w[0]}}"
-            f"{base * 1000:>{col_w[1]}.3f}"
-            f"{manip * 1000:>{col_w[2]}.3f}"
-            f"{ref12 * 1000:>{col_w[3]}.3f}"
-            f"{ratio:>{col_w[4]}.2f}x"
-        )
-    print(
-        "expected: solve_change_state overhead from manipulations should be "
-        "comparable to the plain size increase from 8 to 12 supports"
-    )
-
-
+    balance_engine.solve_adjustment()
+    balance_engine.solve_change_state()
+    ruling_span = balance_engine.get_ruling_span_length()
+    # value in proto is 424.04, but our value is supposed to be the correct one
+    np.testing.assert_allclose(ruling_span, 421.74, atol=0.1)

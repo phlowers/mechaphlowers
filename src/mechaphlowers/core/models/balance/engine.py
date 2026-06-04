@@ -260,7 +260,9 @@ class BalanceEngine(Notifier):
         wind_pressure: np.ndarray | float | None = None,
         ice_thickness: np.ndarray | float | None = None,
         new_temperature: np.ndarray | float | None = None,
-        wind_sense: Literal["clockwise", "anticlockwise"] = "anticlockwise",
+        wind_direction: Literal[
+            "clockwise", "anticlockwise"
+        ] = "anticlockwise",
     ) -> None:
         """Solve the chain positions, for a case of change of state.
         Updates weather conditions and/or sagging temperature if provided.
@@ -270,7 +272,7 @@ class BalanceEngine(Notifier):
             wind_pressure (np.ndarray | float | None): Wind pressure in Pa. Default to None
             ice_thickness (np.ndarray | float | None): Ice thickness in m. Default to None
             new_temperature (np.ndarray | float | None): New temperature in °C. Default to None
-            wind_sense (Literal["clockwise", "anticlockwise"]): Direction of the wind: if "clockwise": towards user (right), if "anticlockwise": away from user (left). Default to "anticlockwise".
+            wind_direction (Literal["clockwise", "anticlockwise"]): Direction of the wind: if "clockwise": towards user (right), if "anticlockwise": away from user (left). Default to "anticlockwise".
 
         After running this method, many attributes are updated.
         Most interesting ones are `L_ref`, `parameter` in Span, and `dxdydz` in Nodes.
@@ -282,12 +284,12 @@ class BalanceEngine(Notifier):
         """
         logger.debug("Starting change state.")
         logger.debug(
-            f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}\nwind_sense {str(wind_sense)}"
+            f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}\nwind_direction {str(wind_direction)}"
         )
 
-        if wind_sense not in ["clockwise", "anticlockwise"]:
+        if wind_direction not in ["clockwise", "anticlockwise"]:
             raise ValueError(
-                f"wind_sense should be 'clockwise' or 'anticlockwise', received {wind_sense}"
+                f"wind_direction should be 'clockwise' or 'anticlockwise', received {wind_direction}"
             )
 
         # check if adjustment has been done before
@@ -324,7 +326,7 @@ class BalanceEngine(Notifier):
         # Set model attributes after potential solve_adjustment (which may
         # rebuild models via reset(full=True)).
         validated_wind = validate_input(wind_pressure, "wind_pressure")
-        if wind_sense == "clockwise":
+        if wind_direction == "clockwise":
             validated_wind = -validated_wind
 
         self.balance_model.cable_loads.wind_pressure = validated_wind
@@ -415,6 +417,24 @@ class BalanceEngine(Notifier):
             "sag_s2": arr.decr(self.span_model.sag_s2()).tolist(),
         }
         return result_dict
+
+    def get_ruling_span_length(self) -> float:
+        """Compute ruling span length:
+
+        if we considered the whole section as a single span, the length would be ruling_span_length
+
+        Used for tensions computation when unfolding the cable.
+
+        $L_{R} = \\sqrt{\\frac{\\sum(L_n ^ 4 / C_n)}{\\sum{C_n}}}$
+
+        where $L_n$ are the horizontal length of span n, and $C_n$ the chord length of span n
+
+        Returns:
+            float: span length of ruling span
+        """
+        # proto uses section_array.span_length instead of balance_model.a (called a_chain in proto)
+        chord = np.sqrt(self.balance_model.a**2 + self.balance_model.b**2)
+        return np.sqrt(np.sum(self.balance_model.a**4 / chord) / np.sum(chord))
 
     @property
     def support_number(self) -> int:

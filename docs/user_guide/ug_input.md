@@ -311,7 +311,7 @@ The following example shows how to add a wind load on the cable.
 
 !!! Wind direction convention
 
-    Another attention point is that the wind load can be negative, which means that the wind is blowing in the opposite direction of the line. The sign convention is parameterized by wind_sense ("clockwise" or "anticlockwise").  
+    Another attention point is that the wind load can be negative, which means that the wind is blowing in the opposite direction of the line. The sign convention is parameterized by wind_direction ("clockwise" or "anticlockwise").  
     If "clockwise": towards user (right), if "anticlockwise": away from user (left). Default to "anticlockwise".
 
 
