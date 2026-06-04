@@ -98,69 +98,69 @@ When creating a SectionArray, you may add a `bundle_number` argument. `bundle_nu
 
 ### Support Manipulation
 
-After creating a `SectionArray`, you can modify the geometry of individual supports using `support_manipulation`. This applies **additive offsets** to `conductor_attachment_altitude` and/or `crossarm_length`.
+After creating a `SectionArray`, you can modify the geometry of individual supports using `shift_support`. This applies **additive offsets** to `conductor_attachment_altitude` and/or `crossarm_length`.
 
 The input is a dictionary where keys are support indices (0-based) and values are dicts with optional keys `"y"` (crossarm length offset) and `"z"` (altitude offset), both in meters.
 
 ```python
 # Raise support 1 by 2 m and shorten its crossarm by 1 m
-section_array.support_manipulation({1: {"z": 2.0, "y": -1.0}})
+section_array.shift_support({1: {"z": 2.0, "y": -1.0}})
 
 # Modify several supports at once
-section_array.support_manipulation({0: {"z": 0.5}, 2: {"y": 3.0}})
+section_array.shift_support({0: {"z": 0.5}, 2: {"y": 3.0}})
 ```
 
 To restore the original geometry:
 
 ```python
-section_array.reset_manipulation()
+section_array.reset_shift_support()
 ```
 
 When using a `BalanceEngine`, the same methods are available and will automatically rebuild internal models while preserving observer bindings (e.g. `PlotEngine`):
 
 ```python
-engine.support_manipulation({1: {"z": 2.0}})
+engine.manipulation.shift_support({1: {"z": 2.0}})
 engine.solve_adjustment()
 engine.solve_change_state(new_temperature=15.0)
 
 # Restore original geometry
-engine.reset_manipulation()
+engine.manipulation.reset_shift_support()
 ```
 
 !!! note
 
-    Manipulations are **additive**: calling `support_manipulation` multiple times stacks the offsets.
-    `reset_manipulation` always restores the values from before the first manipulation.
+    Manipulations are **additive**: calling `shift_support` multiple times stacks the offsets.
+    `reset_shift_support` always restores the values from before the first manipulation.
     For each affected support, `counterweight` is set to 0 in `.data`; unaffected supports keep their original counterweight.
 
 ### Rope Manipulation
 
-`rope_manipulation` replaces the insulator length and mass for specified supports with rope values, **without modifying the underlying data**. The override is only visible through `.data`; `_data` remains unchanged.
+`add_rope` replaces the insulator length and mass for specified supports with rope values, **without modifying the underlying data**. The override is only visible through `.data`; `_data` remains unchanged.
 
 The input is a dictionary where keys are support indices (0-based) and values are the rope length in meters. An optional `rope_lineic_mass` parameter (kg/m, default `0.01`) controls the mass per unit length.
 
 ```python
 # Replace insulator properties for supports 1 and 2 with rope values
-section_array.rope_manipulation({1: 4.5, 2: 3.0})
+section_array.add_rope({1: 4.5, 2: 3.0})
 
 # With a custom linear mass
-section_array.rope_manipulation({0: 2.0}, rope_lineic_mass=0.05)
+section_array.add_rope({0: 2.0}, rope_lineic_mass=0.05)
 ```
 
 To remove the rope overlay:
 
 ```python
-section_array.reset_rope_manipulation()
+section_array.reset_rope()
 ```
 
 The same API is available on `BalanceEngine`:
 
 ```python
-engine.rope_manipulation({1: 4.5})
+engine.manipulation.add_rope({1: 4.5})
 engine.solve_adjustment()
 engine.solve_change_state(new_temperature=15.0)
 
-engine.reset_rope_manipulation()
+engine.manipulation.reset_rope()
 ```
 
 !!! note
@@ -214,7 +214,7 @@ section_array.reset_virtual_support()
 The same API is available on `BalanceEngine`. Because the number of supports changes, the full internal model is rebuilt while preserving observer bindings:
 
 ```python
-engine.add_virtual_support({
+engine.manipulation.add_virtual_support({
     1: {"x": 100.0, "y": 0.0, "z": 55.0,
         "insulator_length": 3.0, "insulator_mass": 500.0,
         "hanging_cable_point_from_left_support": 100.0}
@@ -222,7 +222,7 @@ engine.add_virtual_support({
 engine.solve_adjustment()
 engine.solve_change_state(new_temperature=15.0)
 
-engine.reset_virtual_support()
+engine.manipulation.reset_virtual_support()
 ```
 
 !!! note

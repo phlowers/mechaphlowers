@@ -68,7 +68,7 @@ class Manipulation:
     # ── Cable shifting ────────────────────────────────────────────────────
 
     @property
-    def shift_support(self) -> np.ndarray | None:
+    def shifting_support_distance(self) -> np.ndarray | None:
         """Shifting distance, in meters. ``None`` when no shifting is set."""
         return self._shifting_distance_support
 
@@ -77,10 +77,10 @@ class Manipulation:
         """Shortening distance, in meters. ``None`` when no shifting is set."""
         return self._shortening_distance_span
 
-    def add_cable_shifting(
+    def shift_cable(
         self,
-        shift_support: np.ndarray | list | None = None,
-        shorten_span: np.ndarray | list | None = None,
+        shifting: np.ndarray | list | None = None,
+        shortening: np.ndarray | list | None = None,
     ) -> None:
         """Validate and store cable shifting values.
 
@@ -88,10 +88,10 @@ class Manipulation:
         (after virtual-support insertion, if any).
 
         Args:
-            shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
+            shifting (np.ndarray | list | None): Horizontal shifting of each support, in meters.
                 Array of length ``support_number`` (support based). The first and last values
                 are enforced to 0. If ``None``, an array of zeros is used.
-            shorten_span (np.ndarray | list | None): Span length modification, in meters.
+            shortening (np.ndarray | list | None): Span length modification, in meters.
                 Array of length ``support_number - 1`` (span based), one value per span.
                 Positive values shorten the spans, negative values lengthen them. If ``None``,
                 an array of zeros is used.
@@ -104,55 +104,55 @@ class Manipulation:
             n_supports += len(self._virtual_support_overlay)
 
         # Convert to numpy arrays
-        shift_support = (
-            np.array(shift_support, dtype=np.float64)
-            if shift_support is not None
+        shifting_support = (
+            np.array(shifting, dtype=np.float64)
+            if shifting is not None
             else np.zeros(n_supports)
         )
-        shorten_span = (
-            np.array(shorten_span, dtype=np.float64)
-            if shorten_span is not None
+        shortening_span = (
+            np.array(shortening, dtype=np.float64)
+            if shortening is not None
             else np.zeros(n_supports - 1)
         )
 
         # Check size matches number of supports
-        if shift_support.size != n_supports:
+        if shifting_support.size != n_supports:
             raise ValueError(
-                f"shift_support has incorrect size: {n_supports} is expected, received {shift_support.size}"
+                f"shifting has incorrect size: {n_supports} is expected, received {shifting_support.size}"
             )
         expected_span_size = n_supports - 1
-        if shorten_span.size != expected_span_size:
+        if shortening_span.size != expected_span_size:
             raise ValueError(
-                f"shorten_span has incorrect size: {expected_span_size} is expected, received {shorten_span.size}"
+                f"shortening has incorrect size: {expected_span_size} is expected, received {shortening_span.size}"
             )
 
         # Enforce constraints: shifting_distance first and last are 0
-        if abs(shift_support[0]) > 0.0 or abs(shift_support[-1]) > 0.0:
+        if abs(shifting_support[0]) > 0.0 or abs(shifting_support[-1]) > 0.0:
             logger.warning(
-                "shift_support first and last values must be 0 (support based). "
+                "shifting first and last values must be 0 (support based). "
                 "Enforcing this constraint."
             )
             warnings.warn(
-                "First and last values of shift_support have been reset to 0",
+                "First and last values of shifting have been reset to 0",
                 BalanceEngineWarning,
             )
-        shift_support[0] = 0.0
-        shift_support[-1] = 0.0
+        shifting_support[0] = 0.0
+        shifting_support[-1] = 0.0
 
         # Store in private attributes
-        self._shifting_distance_support = shift_support
-        self._shortening_distance_span = shorten_span
+        self._shifting_distance_support = shifting_support
+        self._shortening_distance_span = shortening_span
 
-        logger.debug(f"Cable shifting stored: shift_support={shift_support}, shorten_span={shorten_span}")
+        logger.debug(f"Cable shifting stored: shifting={shifting_support}, shortening={shortening_span}")
 
-    def reset_cable_shifting(self) -> None:
+    def reset_shift_cable(self) -> None:
         """Remove cable shifting.
 
         Does nothing if no shifting has been applied.
         """
         if self._shifting_distance_support is None:
             logger.debug(
-                "reset_cable_shifting called but no shifting was applied."
+                "reset_shift_cable called but no shifting was applied."
             )
             return
         self._shifting_distance_support = None
@@ -180,13 +180,13 @@ class Manipulation:
 
     # ── Support manipulation ──────────────────────────────────────────────
 
-    def support_manipulation(
+    def shift_support(
         self, manipulation: dict[int, dict[str, float]]
     ) -> None:
         """Apply additive offsets to support geometry.
 
         Stores the offsets as an overlay applied by :meth:`apply`.
-        Use :meth:`reset_manipulation` to remove the overlay.
+        Use :meth:`reset_shift_support` to remove the overlay.
 
         For each affected support, ``counterweight_mass`` is set to 0 in
         the applied copy.
@@ -203,8 +203,8 @@ class Manipulation:
             ValueError: If an inner dict contains keys other than ``"y"`` or ``"z"``.
 
         Examples:
-            >>> manip.support_manipulation({1: {"z": 2.0, "y": -1.0}})
-            >>> manip.support_manipulation({0: {"z": 0.5}, 2: {"y": 3.0}})
+            >>> manip.shift_support({1: {"z": 2.0, "y": -1.0}})
+            >>> manip.shift_support({0: {"z": 0.5}, 2: {"y": 3.0}})
         """
         n_supports = len(self._section_array._data)
         allowed_keys = {"y", "z"}
@@ -232,18 +232,18 @@ class Manipulation:
 
         logger.debug(f"Support manipulation applied: {manipulation}")
 
-    def reset_manipulation(self) -> None:
+    def reset_shift_support(self) -> None:
         """Remove the support manipulation overlay.
 
         Does nothing if no manipulation has been applied.
 
         Examples:
-            >>> manip.support_manipulation({1: {"z": 5.0}})
-            >>> manip.reset_manipulation()
+            >>> manip.shift_support({1: {"z": 5.0}})
+            >>> manip.reset_shift_support()
         """
         if self._support_overlay is None:
             logger.debug(
-                "reset_manipulation called but no manipulation was applied."
+                "reset_shift_support called but no manipulation was applied."
             )
             return
 
@@ -252,7 +252,7 @@ class Manipulation:
 
     # ── Rope manipulation ─────────────────────────────────────────────────
 
-    def rope_manipulation(
+    def add_rope(
         self,
         rope: dict[int, float],
         rope_lineic_mass: float | None = None,
@@ -261,7 +261,7 @@ class Manipulation:
 
         The override is applied by :meth:`apply`; the original ``_data``
         is never modified.
-        Use :meth:`reset_rope_manipulation` to remove the overlay.
+        Use :meth:`reset_rope` to remove the overlay.
 
         For each affected support, ``counterweight_mass`` is set to 0 in
         the applied copy.
@@ -275,8 +275,8 @@ class Manipulation:
             ValueError: If a support index is out of range.
 
         Examples:
-            >>> manip.rope_manipulation({1: 4.5, 2: 3.0})
-            >>> manip.rope_manipulation({0: 2.0}, rope_lineic_mass=0.05)
+            >>> manip.add_rope({1: 4.5, 2: 3.0})
+            >>> manip.add_rope({0: 2.0}, rope_lineic_mass=0.05)
         """
         n_supports = len(self._section_array._data)
         for idx in rope:
@@ -293,18 +293,18 @@ class Manipulation:
         )
         logger.debug(f"Rope manipulation applied: {rope}")
 
-    def reset_rope_manipulation(self) -> None:
+    def reset_rope(self) -> None:
         """Remove the rope overlay.
 
         Does nothing if no rope manipulation has been applied.
 
         Examples:
-            >>> manip.rope_manipulation({1: 4.5})
-            >>> manip.reset_rope_manipulation()
+            >>> manip.add_rope({1: 4.5})
+            >>> manip.reset_rope()
         """
         if self._rope_overlay is None:
             logger.debug(
-                "reset_rope_manipulation called but no rope manipulation was applied."
+                "reset_rope called but no rope manipulation was applied."
             )
             return
         self._rope_overlay = None
@@ -484,8 +484,8 @@ class Manipulation:
         # Create new SectionArray from manipulated data
         sa = SectionArray(
             raw_data,
-            sagging_parameter=original.sagging_parameter,
-            sagging_temperature=original.sagging_temperature,
+            # sagging_parameter=original.sagging_parameter,
+            # sagging_temperature=original.sagging_temperature,
             bundle_number=original.bundle_number,
         )
         sa.input_units = original.input_units.copy()

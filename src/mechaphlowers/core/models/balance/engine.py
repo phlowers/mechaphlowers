@@ -303,7 +303,7 @@ class BalanceEngine(Notifier):
 
         # Use current span_model (potentially rebuilt by solve_adjustment)
         span_shape = (
-            self.span_model.sagging_parameter.shape
+            self.span_model.elevation_difference.shape
         )  # span_model holds n-sized array (same shape as span_length)
 
         def validate_input(input_value, name: str):

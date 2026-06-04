@@ -133,25 +133,25 @@ engine.solve_change_state()
 
 ---
 
-## `add_cable_shifting()` and `shift_shorten_cable()`
+## `shift_cable()` and `shift_shorten_cable()`
 
 These two methods model a cable maintenance operation where cable is physically pulled from one span into another (shifting) and/or additional cable length is introduced (shortening).
 
 ### Concepts
 
-- **`shift_support`** (support-based, size = number of supports): the amount of cable (in metres) pulled through each support. The first and last supports are dead-ends and must always be `0`; this is enforced automatically with a warning.
-- **`shorten_span`** (span-based, size = number of spans = number of supports − 1): additional cable length introduced in each span (in metres). Defaults to zero for all spans.
+- **`shifting`** (support-based, size = number of supports): the amount of cable (in metres) pulled through each support. The first and last supports are dead-ends and must always be `0`; this is enforced automatically with a warning.
+- **`shortening`** (span-based, size = number of spans = number of supports − 1): additional cable length introduced in each span (in metres). Defaults to zero for all spans.
 
 ### Workflow
 
-`add_cable_shifting()` stores the shifting and shortening data. `shift_shorten_cable()` then applies them by updating `engine.L_ref`. You must call `solve_adjustment()` first so that `initial_L_ref` is set.
+`shift_cable()` stores the shifting and shortening data. `shift_shorten_cable()` then applies them by updating `engine.L_ref`. You must call `solve_adjustment()` first so that `initial_L_ref` is set.
 
 ```python
 engine.solve_adjustment()
 engine.solve_change_state()          # baseline state
 
 # Pull 1 m of cable through support B (index 1)
-engine.add_cable_shifting(shift_support=np.array([0.0, 1.0, 0.0, 0.0]))
+engine.manipulation.shift_cable(shifting=np.array([0.0, 1.0, 0.0, 0.0]))
 engine.shift_shorten_cable()
 
 print(engine.L_ref)  # span 0 gets +1 m, span 1 gets −1 m
@@ -163,9 +163,9 @@ engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
 
 ```python
 # Add 2 m of cable to span 1, while also pulling through support B
-engine.add_cable_shifting(
-    shift_support=np.array([0.0, 1.0, 0.0, 0.0]),
-    shorten_span=np.array([0.0, 2.0, 0.0]),
+engine.manipulation.shift_cable(
+    shifting=np.array([0.0, 1.0, 0.0, 0.0]),
+    shortening=np.array([0.0, 2.0, 0.0]),
 )
 engine.shift_shorten_cable()
 engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
@@ -175,15 +175,15 @@ engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
 
 | Constraint | Behaviour |
 |---|---|
-| `shift_support[0]` and `shift_support[-1]` must be `0` | Overwritten to `0.0`, `BalanceEngineWarning` emitted |
+| `shifting[0]` and `shifting[-1]` must be `0` | Overwritten to `0.0`, `BalanceEngineWarning` emitted |
 
 !!! note
-    `add_cable_shifting()` resets the engine state (via `reset(full=False)`). Always call `shift_shorten_cable()` **after** `add_cable_shifting()` and **before** `solve_change_state()`.
+    `shift_cable()` resets the engine state (via `reset(full=False)`). Always call `shift_shorten_cable()` **after** `shift_cable()` and **before** `solve_change_state()`.
 
 **Reading back the stored values:**
 
 ```python
-print(engine.shift_support)    # np.ndarray, size = support_number
+print(engine.shifting_support_distance)    # np.ndarray, size = support_number
 print(engine.shortening_span) # np.ndarray, size = support_number − 1
 ```
 
@@ -261,7 +261,7 @@ engine.solve_adjustment()
 engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
 
 # Pull 1 m through support B to redistribute cable from span 1 to span 0
-engine.add_cable_shifting(shift_support=np.array([0.0, 1.0, 0.0, 0.0]))
+engine.manipulation.shift_cable(shifting=np.array([0.0, 1.0, 0.0, 0.0]))
 engine.shift_shorten_cable()
 engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
 

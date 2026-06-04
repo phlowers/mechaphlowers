@@ -359,3 +359,23 @@ class TestSectionStudyDelegates:
             project=False, frame_index=0
         )
         np.testing.assert_array_equal(result_span.coords, expected_span.coords)
+
+
+def test_manipulation_from_study(solved_study: SectionStudy):
+    """Test that we can manipulate the study from the facade and that it affects the underlying engines."""
+    # change state from facade
+    solved_study.solve_change_state(wind_pressure=300)
+    vhl_after_change = solved_study.vhl_under_chain()
+
+
+    # add rope manipulation
+    solved_study.a
+
+    # change state from balance engine
+    solved_study.balance_engine.solve_change_state(wind_pressure=300)
+    vhl_after_balance_change = solved_study.vhl_under_chain()
+
+    np.testing.assert_array_almost_equal(
+        vhl_after_change.vhl_matrix.value(),
+        vhl_after_balance_change.vhl_matrix.value(),
+    )

@@ -82,7 +82,7 @@ engine.solve_change_state(new_temperature=15.)
 plt.preview_line3d(fig)
 
 # Manipulate support geometry: raise support 2 by 5 m
-engine.support_manipulation({2: {"z": 5.0}})
+engine.manipulation.shift_support({2: {"z": 5.0}})
 engine.solve_adjustment()
 engine.solve_change_state(new_temperature=15.)
 plt.preview_line3d(fig)
