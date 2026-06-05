@@ -451,7 +451,8 @@ class Manipulation:
             for idx, offsets in self._support_overlay.items():
                 if "z" in offsets:
                     raw_data.loc[idx, "conductor_attachment_altitude"] = cast(
-                        float, raw_data.loc[idx, "conductor_attachment_altitude"]
+                        float,
+                        raw_data.loc[idx, "conductor_attachment_altitude"],
                     ) + self._to_input(
                         offsets["z"], "conductor_attachment_altitude"
                     )
@@ -622,9 +623,11 @@ class Manipulation:
         self, raw_data: pd.DataFrame
     ) -> pd.DataFrame:
         """Insert virtual support rows into *raw_data* (in input units)."""
-        
+
         if self._virtual_support_overlay is None:
-            logger.warning("_apply_virtual_support_overlay called but no virtual support overlay is set; returning original data.")
+            logger.warning(
+                "_apply_virtual_support_overlay called but no virtual support overlay is set; returning original data."
+            )
             return raw_data
         sorted_keys = sorted(self._virtual_support_overlay.keys())
         for offset, span_idx in enumerate(sorted_keys):
