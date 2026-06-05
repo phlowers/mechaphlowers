@@ -222,4 +222,3 @@ def test_solve_change_state_wrong_array_shape_raises(
         study_8span.solve_change_state(ice_thickness=wrong)
     with pytest.raises(ValueError, match="new_temperature"):
         study_8span.solve_change_state(new_temperature=wrong)
-

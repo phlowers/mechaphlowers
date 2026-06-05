@@ -351,9 +351,7 @@ def test_adjustment_convergence_error_origin(
 
 
 def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
-    initial_span_param = (
-        balance_engine_simple.span_model.parameter.copy()
-    )
+    initial_span_param = balance_engine_simple.span_model.parameter.copy()
     initial_wind = balance_engine_simple.cable_loads.wind_pressure.copy()
 
     balance_engine_simple.span_model.parameter = np.ones_like(
