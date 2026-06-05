@@ -515,6 +515,7 @@ def test_add_cable_shifting_enforces_shifting_boundaries(
     with pytest.warns(BalanceEngineWarning):
         manipulation.shift_cable(shift_support=np.array([5.0, 1.0, 2.0, 3.0]))
 
+    assert manipulation.shift_support is not None
     assert abs(manipulation.shift_support[0]) < 1e-5
     assert abs(manipulation.shift_support[-1]) < 1e-5
     np.testing.assert_array_equal(

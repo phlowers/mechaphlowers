@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import pandas as pd
@@ -450,25 +450,30 @@ class Manipulation:
         if self._support_overlay is not None:
             for idx, offsets in self._support_overlay.items():
                 if "z" in offsets:
-                    raw_data.loc[idx, "conductor_attachment_altitude"] += (
-                        self._to_input(
-                            offsets["z"], "conductor_attachment_altitude"
-                        )
+                    raw_data.loc[idx, "conductor_attachment_altitude"] = cast(
+                        float, raw_data.loc[idx, "conductor_attachment_altitude"]
+                    ) + self._to_input(
+                        offsets["z"], "conductor_attachment_altitude"
                     )
                 if "y" in offsets:
-                    raw_data.loc[idx, "crossarm_length"] += self._to_input(
-                        offsets["y"], "crossarm_length"
-                    )
+                    raw_data.loc[idx, "crossarm_length"] = cast(
+                        float, raw_data.loc[idx, "crossarm_length"]
+                    ) + self._to_input(offsets["y"], "crossarm_length")
 
         # Apply rope overlay
         if self._rope_overlay is not None:
-            for idx, rope_length in self._rope_overlay.items():
-                raw_data.loc[idx, "insulator_length"] = self._to_input(
-                    rope_length, "insulator_length"
+            if self._rope_lineic_mass is None:
+                logger.warning(
+                    "Rope overlay is set but rope_lineic_mass is None; skipping rope overlay application."
                 )
-                raw_data.loc[idx, "insulator_mass"] = self._to_input(
-                    rope_length * self._rope_lineic_mass, "insulator_mass"
-                )
+            else:
+                for idx, rope_length in self._rope_overlay.items():
+                    raw_data.loc[idx, "insulator_length"] = self._to_input(
+                        rope_length, "insulator_length"
+                    )
+                    raw_data.loc[idx, "insulator_mass"] = self._to_input(
+                        rope_length * self._rope_lineic_mass, "insulator_mass"
+                    )
 
         # Counterweight masking for affected supports
         affected: set[int] = set()
@@ -617,6 +622,10 @@ class Manipulation:
         self, raw_data: pd.DataFrame
     ) -> pd.DataFrame:
         """Insert virtual support rows into *raw_data* (in input units)."""
+        
+        if self._virtual_support_overlay is None:
+            logger.warning("_apply_virtual_support_overlay called but no virtual support overlay is set; returning original data.")
+            return raw_data
         sorted_keys = sorted(self._virtual_support_overlay.keys())
         for offset, span_idx in enumerate(sorted_keys):
             vs = self._virtual_support_overlay[span_idx]
@@ -626,8 +635,8 @@ class Manipulation:
             y = vs["y"]
             angle = np.arctan2(y, x)  # radians
 
-            original_span_input = float(
-                raw_data.loc[effective_idx, "span_length"]
+            original_span_input = cast(
+                float, raw_data.loc[effective_idx, "span_length"]
             )
             x_input = self._to_input(x, "span_length")
 

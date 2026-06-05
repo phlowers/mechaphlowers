@@ -719,7 +719,7 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
     )
     print(f"\n{header}")
     print("-" * sum(col_w))
-    for label, base, manip, ref12 in (
+    for label, base, manip_t, ref12 in (
         (".data", baseline_data_s, manip_data_s, ref12_data_s),
         (
             "solve_change_state",
@@ -728,11 +728,11 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
             ref12_change_state_s,
         ),
     ):
-        ratio = manip / ref12 if ref12 > 0 else float("inf")
+        ratio = manip_t / ref12 if ref12 > 0 else float("inf")
         print(
             f"{label:<{col_w[0]}}"
             f"{base * 1000:>{col_w[1]}.3f}"
-            f"{manip * 1000:>{col_w[2]}.3f}"
+            f"{manip_t * 1000:>{col_w[2]}.3f}"
             f"{ref12 * 1000:>{col_w[3]}.3f}"
             f"{ratio:>{col_w[4]}.2f}x"
         )
