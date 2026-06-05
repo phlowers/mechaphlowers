@@ -584,7 +584,6 @@ class CatenarySpan(ISpan):
             np.sinh(self.compute_x_n() / p) - np.sinh(self.compute_x_m() / p)
         )
 
-
     def compute_partial_L(self, new_a) -> np.ndarray:
         # move in superclass?
         """Total length of the cable."""

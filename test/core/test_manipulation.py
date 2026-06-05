@@ -4,10 +4,11 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import warnings as _warnings
+
 import numpy as np
 import pandas as pd
 import pytest
-import warnings as _warnings
 from numpy.testing import assert_allclose
 
 from mechaphlowers.core.manipulation import Manipulation
@@ -457,9 +458,7 @@ def test_has_manipulations_after_virtual_support(
 def test_has_manipulations_after_shifting(
     manipulation: Manipulation,
 ) -> None:
-    manipulation.shift_cable(
-        shift_support=np.array([0.0, 1.0, 0.0, 0.0])
-    )
+    manipulation.shift_cable(shift_support=np.array([0.0, 1.0, 0.0, 0.0]))
     assert manipulation.has_manipulations
 
 
@@ -471,12 +470,8 @@ def test_add_cable_shifting_default_values(
 ) -> None:
     manipulation.shift_cable()
 
-    np.testing.assert_array_equal(
-        manipulation.shift_support, np.zeros(4)
-    )
-    np.testing.assert_array_equal(
-        manipulation.shortening_span, np.zeros(3)
-    )
+    np.testing.assert_array_equal(manipulation.shift_support, np.zeros(4))
+    np.testing.assert_array_equal(manipulation.shortening_span, np.zeros(3))
 
 
 def test_add_cable_shifting_stores_values(
@@ -490,12 +485,8 @@ def test_add_cable_shifting_stores_values(
         shorten_span=shortening,
     )
 
-    np.testing.assert_array_equal(
-        manipulation.shift_support, shifting
-    )
-    np.testing.assert_array_equal(
-        manipulation.shortening_span, shortening
-    )
+    np.testing.assert_array_equal(manipulation.shift_support, shifting)
+    np.testing.assert_array_equal(manipulation.shortening_span, shortening)
 
 
 def test_add_cable_shifting_wrong_size_shifting(
@@ -522,9 +513,7 @@ def test_add_cable_shifting_enforces_shifting_boundaries(
     manipulation: Manipulation,
 ) -> None:
     with pytest.warns(BalanceEngineWarning):
-        manipulation.shift_cable(
-            shift_support=np.array([5.0, 1.0, 2.0, 3.0])
-        )
+        manipulation.shift_cable(shift_support=np.array([5.0, 1.0, 2.0, 3.0]))
 
     assert abs(manipulation.shift_support[0]) < 1e-5
     assert abs(manipulation.shift_support[-1]) < 1e-5
@@ -554,18 +543,14 @@ def test_has_shifting_false_initially(
 def test_has_shifting_after_add(
     manipulation: Manipulation,
 ) -> None:
-    manipulation.shift_cable(
-        shift_support=np.array([0.0, 1.0, 0.0, 0.0])
-    )
+    manipulation.shift_cable(shift_support=np.array([0.0, 1.0, 0.0, 0.0]))
     assert manipulation.has_shifting
 
 
 def test_reset_cable_shifting(
     manipulation: Manipulation,
 ) -> None:
-    manipulation.shift_cable(
-        shift_support=np.array([0.0, 1.0, 0.0, 0.0])
-    )
+    manipulation.shift_cable(shift_support=np.array([0.0, 1.0, 0.0, 0.0]))
     manipulation.reset_cable_shifting()
     assert not manipulation.has_shifting
     assert manipulation.shift_support is None
@@ -584,13 +569,9 @@ def test_compute_shifted_L_ref(
     initial_L_ref = np.array([500.0, 300.0, 400.0])
 
     # shift support 1 by 1m → span 0 gains 1m, span 1 loses 1m
-    manipulation.shift_cable(
-        shift_support=np.array([0.0, 1.0, 0.0, 0.0])
-    )
+    manipulation.shift_cable(shift_support=np.array([0.0, 1.0, 0.0, 0.0]))
     shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
-    np.testing.assert_allclose(
-        shifted, np.array([501.0, 299.0, 400.0])
-    )
+    np.testing.assert_allclose(shifted, np.array([501.0, 299.0, 400.0]))
 
 
 def test_compute_shifted_L_ref_with_shortening(
@@ -598,13 +579,9 @@ def test_compute_shifted_L_ref_with_shortening(
 ) -> None:
     initial_L_ref = np.array([500.0, 300.0, 400.0])
 
-    manipulation.shift_cable(
-        shorten_span=np.array([0.0, 2.0, 0.0])
-    )
+    manipulation.shift_cable(shorten_span=np.array([0.0, 2.0, 0.0]))
     shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
-    np.testing.assert_allclose(
-        shifted, np.array([500.0, 298.0, 400.0])
-    )
+    np.testing.assert_allclose(shifted, np.array([500.0, 298.0, 400.0]))
 
 
 def test_compute_shifted_L_ref_no_shifting(

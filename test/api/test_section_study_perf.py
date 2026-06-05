@@ -24,16 +24,48 @@ def _make_8support_study(cable_array: CableArray) -> SectionStudy:
         pd.DataFrame(
             {
                 "name": ["1", "2", "3", "4", "5", "6", "7", "8"],
-                "suspension": [False, True, True, True, True, True, True, False],
+                "suspension": [
+                    False,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    False,
+                ],
                 "conductor_attachment_altitude": [
-                    30.0, 45.0, 55.0, 60.0, 50.0, 65.0, 40.0, 35.0
+                    30.0,
+                    45.0,
+                    55.0,
+                    60.0,
+                    50.0,
+                    65.0,
+                    40.0,
+                    35.0,
                 ],
                 "crossarm_length": [0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0],
                 "line_angle": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                 "insulator_length": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
-                "span_length": [400.0, 350.0, 450.0, 300.0, 500.0, 380.0, 420.0, np.nan],
+                "span_length": [
+                    400.0,
+                    350.0,
+                    450.0,
+                    300.0,
+                    500.0,
+                    380.0,
+                    420.0,
+                    np.nan,
+                ],
                 "insulator_mass": [
-                    1000.0, 500.0, 500.0, 500.0, 500.0, 500.0, 500.0, 1000.0
+                    1000.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    1000.0,
                 ],
                 "load_mass": [0.0] * 8,
                 "load_position": [0.0] * 8,
@@ -51,21 +83,77 @@ def _make_12support_study(cable_array: CableArray) -> SectionStudy:
     section_array = SectionArray(
         pd.DataFrame(
             {
-                "name": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+                "name": [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                    "6",
+                    "7",
+                    "8",
+                    "9",
+                    "10",
+                    "11",
+                    "12",
+                ],
                 "suspension": [
-                    False, True, True, True, True, True,
-                    True, True, True, True, True, False,
+                    False,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    False,
                 ],
                 "conductor_attachment_altitude": [
-                    30.0, 45.0, 55.0, 60.0, 50.0, 65.0,
-                    40.0, 35.0, 50.0, 58.0, 42.0, 38.0,
+                    30.0,
+                    45.0,
+                    55.0,
+                    60.0,
+                    50.0,
+                    65.0,
+                    40.0,
+                    35.0,
+                    50.0,
+                    58.0,
+                    42.0,
+                    38.0,
                 ],
-                "crossarm_length": [0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0],
+                "crossarm_length": [
+                    0.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    0.0,
+                ],
                 "line_angle": [0.0] * 12,
                 "insulator_length": [3.0] * 12,
                 "span_length": [
-                    400.0, 350.0, 450.0, 300.0, 500.0, 380.0,
-                    420.0, 370.0, 410.0, 340.0, 460.0, np.nan,
+                    400.0,
+                    350.0,
+                    450.0,
+                    300.0,
+                    500.0,
+                    380.0,
+                    420.0,
+                    370.0,
+                    410.0,
+                    340.0,
+                    460.0,
+                    np.nan,
                 ],
                 "insulator_mass": [1000.0] + [500.0] * 10 + [1000.0],
                 "load_mass": [0.0] * 12,
@@ -114,12 +202,14 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
     # ── 8-support with manipulations ─────────────────────────────────────────
     study_manip = _make_8support_study(cable_array_AM600)
     # 4 support manipulations (supports 1, 2, 4, 5)
-    study_manip.manipulation.shift_support({
-        1: {"z": 1.0},
-        2: {"z": -1.0, "y": 0.5},
-        4: {"z": 2.0},
-        5: {"y": -0.5},
-    })
+    study_manip.manipulation.shift_support(
+        {
+            1: {"z": 1.0},
+            2: {"z": -1.0, "y": 0.5},
+            4: {"z": 2.0},
+            5: {"y": -0.5},
+        }
+    )
     # 1 rope manipulation (support 3)
     study_manip.manipulation.add_rope({3: 4.5})
     study_manip.solve_adjustment()
@@ -143,7 +233,12 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
     print("-" * sum(col_w))
     for label, base, manip, ref12 in (
         (".data", baseline_data_s, manip_data_s, ref12_data_s),
-        ("solve_change_state", baseline_change_state_s, manip_change_state_s, ref12_change_state_s),
+        (
+            "solve_change_state",
+            baseline_change_state_s,
+            manip_change_state_s,
+            ref12_change_state_s,
+        ),
     ):
         ratio = manip / ref12 if ref12 > 0 else float("inf")
         print(

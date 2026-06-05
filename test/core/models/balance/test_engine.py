@@ -287,8 +287,8 @@ def test_load_span__check_node_span_changes(cable_array_AM600: CableArray):
     balance_engine_angles_arm.solve_change_state(new_temperature=75)
 
     assert len(
-        balance_engine_angles_arm.balance_model.nodes_span_model.sagging_parameter
-    ) > len(span_model_1.sagging_parameter)
+        balance_engine_angles_arm.balance_model.nodes_span_model.parameter
+    ) > len(span_model_1.parameter)
 
 
 def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
@@ -296,7 +296,10 @@ def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
         raise ConvergenceError("did not converge", origin="adjustment")
 
     # Patch at class level because solve_adjustment now recreates solver instances
-    from mechaphlowers.core.models.balance.solvers.balance_solver import BalanceSolver
+    from mechaphlowers.core.models.balance.solvers.balance_solver import (
+        BalanceSolver,
+    )
+
     monkeypatch.setattr(BalanceSolver, "solve", fail)
 
     with pytest.raises(ConvergenceError, match="did not converge"):
@@ -314,7 +317,10 @@ def test_adjustment_convergence_error_origin(
         return fail
 
     # Patch at class level because solve_adjustment now recreates solver instances
-    from mechaphlowers.core.models.balance.solvers.balance_solver import BalanceSolver
+    from mechaphlowers.core.models.balance.solvers.balance_solver import (
+        BalanceSolver,
+    )
+
     monkeypatch.setattr(
         BalanceSolver,
         "solve",
@@ -346,11 +352,11 @@ def test_adjustment_convergence_error_origin(
 
 def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
     initial_span_param = (
-        balance_engine_simple.span_model.sagging_parameter.copy()
+        balance_engine_simple.span_model.parameter.copy()
     )
     initial_wind = balance_engine_simple.cable_loads.wind_pressure.copy()
 
-    balance_engine_simple.span_model.sagging_parameter = np.ones_like(
+    balance_engine_simple.span_model.parameter = np.ones_like(
         initial_span_param
     )
     balance_engine_simple.cable_loads.wind_pressure = np.ones_like(
@@ -360,7 +366,7 @@ def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
     balance_engine_simple.reset(True)
 
     np.testing.assert_array_equal(
-        balance_engine_simple.span_model.sagging_parameter, initial_span_param
+        balance_engine_simple.span_model.parameter, initial_span_param
     )
     np.testing.assert_array_equal(
         balance_engine_simple.cable_loads.wind_pressure, initial_wind
@@ -452,22 +458,55 @@ def test_engine_wind_sense(balance_engine_simple: BalanceEngine):
 
 # ── performance tests ────────────────────────────────────────────────────────
 
+
 def _make_8support_section_array(cable_array: "CableArray") -> "BalanceEngine":
     """8-support line with spans of varying length."""
     section_array = SectionArray(
         pd.DataFrame(
             {
                 "name": ["1", "2", "3", "4", "5", "6", "7", "8"],
-                "suspension": [False, True, True, True, True, True, True, False],
+                "suspension": [
+                    False,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    False,
+                ],
                 "conductor_attachment_altitude": [
-                    30.0, 45.0, 55.0, 60.0, 50.0, 65.0, 40.0, 35.0
+                    30.0,
+                    45.0,
+                    55.0,
+                    60.0,
+                    50.0,
+                    65.0,
+                    40.0,
+                    35.0,
                 ],
                 "crossarm_length": [0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0],
                 "line_angle": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                 "insulator_length": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
-                "span_length": [400.0, 350.0, 450.0, 300.0, 500.0, 380.0, 420.0, np.nan],
+                "span_length": [
+                    400.0,
+                    350.0,
+                    450.0,
+                    300.0,
+                    500.0,
+                    380.0,
+                    420.0,
+                    np.nan,
+                ],
                 "insulator_mass": [
-                    1000.0, 500.0, 500.0, 500.0, 500.0, 500.0, 500.0, 1000.0
+                    1000.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    500.0,
+                    1000.0,
                 ],
                 "load_mass": [0.0] * 8,
                 "load_position": [0.0] * 8,
@@ -480,26 +519,84 @@ def _make_8support_section_array(cable_array: "CableArray") -> "BalanceEngine":
     return BalanceEngine(cable_array=cable_array, section_array=section_array)
 
 
-def _make_12support_section_array(cable_array: "CableArray") -> "BalanceEngine":
+def _make_12support_section_array(
+    cable_array: "CableArray",
+) -> "BalanceEngine":
     """12-support plain line for size-scaling comparison."""
     section_array = SectionArray(
         pd.DataFrame(
             {
-                "name": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+                "name": [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                    "6",
+                    "7",
+                    "8",
+                    "9",
+                    "10",
+                    "11",
+                    "12",
+                ],
                 "suspension": [
-                    False, True, True, True, True, True,
-                    True, True, True, True, True, False,
+                    False,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    False,
                 ],
                 "conductor_attachment_altitude": [
-                    30.0, 45.0, 55.0, 60.0, 50.0, 65.0,
-                    40.0, 35.0, 50.0, 58.0, 42.0, 38.0,
+                    30.0,
+                    45.0,
+                    55.0,
+                    60.0,
+                    50.0,
+                    65.0,
+                    40.0,
+                    35.0,
+                    50.0,
+                    58.0,
+                    42.0,
+                    38.0,
                 ],
-                "crossarm_length": [0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0],
+                "crossarm_length": [
+                    0.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    5.0,
+                    0.0,
+                ],
                 "line_angle": [0.0] * 12,
                 "insulator_length": [3.0] * 12,
                 "span_length": [
-                    400.0, 350.0, 450.0, 300.0, 500.0, 380.0,
-                    420.0, 370.0, 410.0, 340.0, 460.0, np.nan,
+                    400.0,
+                    350.0,
+                    450.0,
+                    300.0,
+                    500.0,
+                    380.0,
+                    420.0,
+                    370.0,
+                    410.0,
+                    340.0,
+                    460.0,
+                    np.nan,
                 ],
                 "insulator_mass": [1000.0] + [500.0] * 10 + [1000.0],
                 "load_mass": [0.0] * 12,
@@ -553,24 +650,58 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
 
     manip = Manipulation(engine_manip.section_array)
     # 4 support manipulations (supports 1, 2, 4, 5)
-    manip.support_manipulation({
-        1: {"z": 1.0},
-        2: {"z": -1.0, "y": 0.5},
-        4: {"z": 2.0},
-        5: {"y": -0.5},
-    })
+    manip.support_manipulation(
+        {
+            1: {"z": 1.0},
+            2: {"z": -1.0, "y": 0.5},
+            4: {"z": 2.0},
+            5: {"y": -0.5},
+        }
+    )
     # 1 rope manipulation (support 3)
     manip.rope_manipulation({3: 4.5})
     # 4 virtual supports (one per span: spans 0, 2, 4, 6)
-    manip.add_virtual_support({
-        0: {"x": 200.0, "y": 0.0, "z": 38.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
-        2: {"x": 200.0, "y": 0.0, "z": 58.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
-        4: {"x": 250.0, "y": 0.0, "z": 52.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 250.0},
-        6: {"x": 200.0, "y": 0.0, "z": 42.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
-    })
+    manip.add_virtual_support(
+        {
+            0: {
+                "x": 200.0,
+                "y": 0.0,
+                "z": 38.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 200.0,
+            },
+            2: {
+                "x": 200.0,
+                "y": 0.0,
+                "z": 58.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 200.0,
+            },
+            4: {
+                "x": 250.0,
+                "y": 0.0,
+                "z": 52.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 250.0,
+            },
+            6: {
+                "x": 200.0,
+                "y": 0.0,
+                "z": 42.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 200.0,
+            },
+        }
+    )
     # Apply manipulation and rebuild engine
     manipulated_sa = manip.from_section_array(engine_manip.section_array)
-    engine_manip = BalanceEngine(cable_array=cable_array_AM600, section_array=manipulated_sa)
+    engine_manip = BalanceEngine(
+        cable_array=cable_array_AM600, section_array=manipulated_sa
+    )
     engine_manip.solve_adjustment()
     manip_data_s, manip_change_state_s = _measure(engine_manip)
 
@@ -592,7 +723,12 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
     print("-" * sum(col_w))
     for label, base, manip, ref12 in (
         (".data", baseline_data_s, manip_data_s, ref12_data_s),
-        ("solve_change_state", baseline_change_state_s, manip_change_state_s, ref12_change_state_s),
+        (
+            "solve_change_state",
+            baseline_change_state_s,
+            manip_change_state_s,
+            ref12_change_state_s,
+        ),
     ):
         ratio = manip / ref12 if ref12 > 0 else float("inf")
         print(
@@ -606,5 +742,3 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
         "expected: solve_change_state overhead from manipulations should be "
         "comparable to the plain size increase from 8 to 12 supports"
     )
-
-

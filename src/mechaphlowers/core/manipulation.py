@@ -144,7 +144,9 @@ class Manipulation:
         self._shifting_distance_support = shift_support
         self._shortening_distance_span = shorten_span
 
-        logger.debug(f"Cable shifting stored: shift_support={shift_support}, shorten_span={shorten_span}")
+        logger.debug(
+            f"Cable shifting stored: shift_support={shift_support}, shorten_span={shorten_span}"
+        )
 
     def reset_cable_shifting(self) -> None:
         """Remove cable shifting.
@@ -524,17 +526,19 @@ class Manipulation:
             A configured :class:`BalanceEngine` ready for
             ``solve_change_state`` calls.
         """
-        from mechaphlowers.core.models.balance.engine import BalanceEngine as _BE
+        from mechaphlowers.core.models.balance.engine import (
+            BalanceEngine as _BE,
+        )
 
         L_ref = initial_L_ref.copy()
-
-        # Cable shifting
-        if self.has_shifting:
-            L_ref = self.compute_shifted_L_ref(L_ref)
 
         # Virtual-support L_ref splitting
         if self.has_virtual_support:
             L_ref = self.compute_split_L_ref(L_ref, clean_engine.span_model)
+
+        # Cable shifting
+        if self.has_shifting:
+            L_ref = self.compute_shifted_L_ref(L_ref)
 
         # Build target engine
         target_engine = _BE(
@@ -589,7 +593,9 @@ class Manipulation:
 
         new_L_ref = initial_L_ref.copy()
 
-        new_L_ref_0 = arr.decr(span_model.compute_partial_L(new_a=arr.incr(hanging_points)))[impacted_spans]
+        new_L_ref_0 = arr.decr(
+            span_model.compute_partial_L(new_a=arr.incr(hanging_points))
+        )[impacted_spans]
         new_L_ref_1 = new_L_ref[impacted_spans] - new_L_ref_0
 
         new_L_ref[impacted_spans] = new_L_ref_1
@@ -664,8 +670,14 @@ class Manipulation:
                 ("load_mass", 0.0),
                 ("load_position", 0.0),
                 ("counterweight_mass", 0.0),
-                ("sagging_parameter", raw_data.loc[effective_idx, "sagging_parameter"]),
-                ("sagging_temperature", raw_data.loc[effective_idx, "sagging_temperature"]),
+                (
+                    "sagging_parameter",
+                    raw_data.loc[effective_idx, "sagging_parameter"],
+                ),
+                (
+                    "sagging_temperature",
+                    raw_data.loc[effective_idx, "sagging_temperature"],
+                ),
             ):
                 if optional_col in raw_data.columns:
                     virtual_row[optional_col] = fill
@@ -678,8 +690,6 @@ class Manipulation:
             virtual_df = pd.DataFrame([virtual_row])
             top = raw_data.iloc[: effective_idx + 1]
             bottom = raw_data.iloc[effective_idx + 1 :]
-            raw_data = pd.concat(
-                [top, virtual_df, bottom], ignore_index=True
-            )
+            raw_data = pd.concat([top, virtual_df, bottom], ignore_index=True)
 
         return raw_data

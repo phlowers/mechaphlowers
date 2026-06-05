@@ -318,6 +318,10 @@ class SectionStudy:
                 return np.full(span_shape, default[name])
             if isinstance(val, (int, float)):
                 return np.full(span_shape, val)
+            if isinstance(val, np.ndarray) and val.shape != span_shape:
+                raise ValueError(
+                    f"{name}: expected array of shape {span_shape}, got {val.shape}"
+                )
             return val
 
         target_wind = _to_array(wind_pressure, "wind_pressure")

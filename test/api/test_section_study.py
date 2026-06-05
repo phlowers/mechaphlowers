@@ -394,7 +394,9 @@ class TestSectionStudyManipulation:
         study.solve_change_state(new_temperature=15.0)
         param_before = study.balance_engine.parameter.copy()
 
-        study.manipulation.shift_support({1: {"z": 10.0}, 2: {"z": -10.0}})
+        study.manipulation.support_manipulation(
+            {1: {"z": 10.0}, 2: {"z": -10.0}}
+        )
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
         param_after = study.balance_engine.parameter
@@ -408,8 +410,8 @@ class TestSectionStudyManipulation:
         study.solve_change_state(new_temperature=15.0)
         param_original = study.balance_engine.parameter.copy()
 
-        study.manipulation.shift_support({1: {"z": 10.0}})
-        study.manipulation.reset_shift_support()
+        study.manipulation.support_manipulation({1: {"z": 10.0}})
+        study.manipulation.reset_manipulation()
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
         param_restored = study.balance_engine.parameter
@@ -417,7 +419,7 @@ class TestSectionStudyManipulation:
         np.testing.assert_allclose(param_original, param_restored, rtol=1e-6)
 
     def test_rope_manipulation_integration(self, study: SectionStudy):
-        study.manipulation.add_rope({1: 6.0, 2: 4.0})
+        study.manipulation.rope_manipulation({1: 6.0, 2: 4.0})
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
         # Should complete without error
@@ -427,8 +429,8 @@ class TestSectionStudyManipulation:
         study.solve_change_state(new_temperature=15.0)
         displacement_original = study.chain_displacement().copy()
 
-        study.manipulation.add_rope({1: 6.0})
-        study.manipulation.reset_rope()
+        study.manipulation.rope_manipulation({1: 6.0})
+        study.manipulation.reset_rope_manipulation()
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
         displacement_restored = study.chain_displacement()
