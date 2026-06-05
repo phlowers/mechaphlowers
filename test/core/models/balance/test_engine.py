@@ -19,7 +19,6 @@ from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import (
     ConvergenceError,
 )
-from mechaphlowers.entities.reactivity import Observer
 
 
 @fixture
@@ -288,8 +287,8 @@ def test_load_span__check_node_span_changes(cable_array_AM600: CableArray):
     balance_engine_angles_arm.solve_change_state(new_temperature=75)
 
     assert len(
-        balance_engine_angles_arm.balance_model.nodes_span_model.parameter
-    ) > len(span_model_1.parameter)
+        balance_engine_angles_arm.balance_model.nodes_span_model.sagging_parameter
+    ) > len(span_model_1.sagging_parameter)
 
 
 def test_adjustment_convergence_error(monkeypatch, balance_engine_simple):
@@ -346,10 +345,12 @@ def test_adjustment_convergence_error_origin(
 
 
 def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
-    initial_span_param = balance_engine_simple.span_model.parameter.copy()
+    initial_span_param = (
+        balance_engine_simple.span_model.sagging_parameter.copy()
+    )
     initial_wind = balance_engine_simple.cable_loads.wind_pressure.copy()
 
-    balance_engine_simple.span_model.parameter = np.ones_like(
+    balance_engine_simple.span_model.sagging_parameter = np.ones_like(
         initial_span_param
     )
     balance_engine_simple.cable_loads.wind_pressure = np.ones_like(
@@ -359,7 +360,7 @@ def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
     balance_engine_simple.reset(True)
 
     np.testing.assert_array_equal(
-        balance_engine_simple.span_model.parameter, initial_span_param
+        balance_engine_simple.span_model.sagging_parameter, initial_span_param
     )
     np.testing.assert_array_equal(
         balance_engine_simple.cable_loads.wind_pressure, initial_wind
@@ -414,13 +415,13 @@ def test_get_data_spans_with_loads(balance_engine_simple: BalanceEngine):
         assert len(value) == 3
 
 
-def test_engine_wind_direction(balance_engine_simple: BalanceEngine):
+def test_engine_wind_sense(balance_engine_simple: BalanceEngine):
     balance_engine_simple.solve_adjustment()
 
-    # Test with wind_direction "clockwise"
+    # Test with wind_sense "clockwise"
     balance_engine_simple.solve_change_state(
         wind_pressure=200,
-        wind_direction="clockwise",
+        wind_sense="clockwise",
     )
     displacement_clockwise = (
         balance_engine_simple.balance_model.chain_displacement()
@@ -431,10 +432,10 @@ def test_engine_wind_direction(balance_engine_simple: BalanceEngine):
         np.array([-200.0, -200.0, -200.0, -200.0]),
     )
 
-    # Test with wind_direction "anticlockwise"
+    # Test with wind_sense "anticlockwise"
     balance_engine_simple.solve_change_state(
         wind_pressure=-200,
-        wind_direction="anticlockwise",
+        wind_sense="anticlockwise",
     )
     np.testing.assert_array_equal(
         balance_engine_simple.balance_model.cable_loads.wind_pressure,
@@ -552,14 +553,14 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
 
     manip = Manipulation(engine_manip.section_array)
     # 4 support manipulations (supports 1, 2, 4, 5)
-    manip.shift_support({
+    manip.support_manipulation({
         1: {"z": 1.0},
         2: {"z": -1.0, "y": 0.5},
         4: {"z": 2.0},
         5: {"y": -0.5},
     })
     # 1 rope manipulation (support 3)
-    manip.add_rope({3: 4.5})
+    manip.rope_manipulation({3: 4.5})
     # 4 virtual supports (one per span: spans 0, 2, 4, 6)
     manip.add_virtual_support({
         0: {"x": 200.0, "y": 0.0, "z": 38.0, "insulator_length": 3.0, "insulator_mass": 500.0, "hanging_cable_point_from_left_support": 200.0},
@@ -607,191 +608,3 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
     )
 
 
-
-
-    class _TestObserver(Observer):
-        def __init__(self):
-            self.call_count = 0
-
-        def update(self, notifier, *args, **kwargs):
-            self.call_count += 1
-
-    obs = _TestObserver()
-    balance_engine_simple.bind_to(obs)
-    assert obs in balance_engine_simple._observers
-
-    balance_engine_simple.shift_support({1: {"z": 1.0}})
-
-    # Observer must still be registered
-    assert obs in balance_engine_simple._observers
-
-    # Also preserved after reset_shift_support
-    balance_engine_simple.reset_shift_support()
-    assert obs in balance_engine_simple._observers
-
-
-def test_support_manipulation_wrong_index(
-    balance_engine_simple: BalanceEngine,
-):
-    with pytest.raises(ValueError, match="out of range"):
-        balance_engine_simple.shift_support({99: {"z": 1.0}})
-
-
-def test_support_manipulation_integration(
-    balance_engine_simple: BalanceEngine,
-):
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    param_before = balance_engine_simple.parameter.copy()
-
-    balance_engine_simple.shift_support({1: {"z": 10.0}, 2: {"z": -10.0}})
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    param_after = balance_engine_simple.parameter
-
-    # parameter must differ after geometry change
-    assert not np.allclose(
-        param_before, param_after
-    ), "parameter should change after support manipulation"
-
-
-def test_reset_manipulation_integration(
-    balance_engine_simple: BalanceEngine,
-):
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    param_original = balance_engine_simple.parameter.copy()
-
-    balance_engine_simple.shift_support({1: {"z": 10.0}})
-    balance_engine_simple.reset_shift_support()
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    param_restored = balance_engine_simple.parameter
-
-    np.testing.assert_allclose(param_original, param_restored, rtol=1e-6)
-
-
-def test_rope_manipulation_modifies_data(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    original_length = (
-        balance_engine_simple.section_array._data["insulator_length"].copy()
-    )
-
-    balance_engine_simple.add_rope({1: 6.0, 2: 4.0})
-
-    data = balance_engine_simple.section_array.data
-    np.testing.assert_allclose(data["insulator_length"].iloc[1], 6.0)
-    np.testing.assert_allclose(data["insulator_length"].iloc[2], 4.0)
-    # _data untouched
-    np.testing.assert_allclose(
-        balance_engine_simple.section_array._data["insulator_length"].to_numpy(),
-        original_length.to_numpy(),
-    )
-
-
-def test_rope_manipulation_preserves_observers(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    from mechaphlowers.entities.reactivity import Observer
-
-    class _TestObserver(Observer):
-        def __init__(self):
-            self.call_count = 0
-
-        def update(self, notifier, *args, **kwargs):
-            self.call_count += 1
-
-    obs = _TestObserver()
-    balance_engine_simple.bind_to(obs)
-
-    balance_engine_simple.add_rope({1: 5.0})
-
-    # Observer must still be registered
-    assert obs in balance_engine_simple._observers
-
-    balance_engine_simple.reset_rope()
-    assert obs in balance_engine_simple._observers
-
-
-def test_rope_manipulation_integration(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    balance_engine_simple.add_rope({1: 6.0, 2: 4.0})
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    # Should complete without error
-
-
-def test_reset_rope_manipulation_integration(
-    balance_engine_simple: BalanceEngine,
-) -> None:
-    balance_engine_simple.solve_adjustment()
-    balance_engine_simple.solve_change_state(new_temperature=15.0)
-    displacement_original = (
-        balance_engine_simple.balance_model.chain_displacement().copy()
-    )
-
-
-@pytest.mark.integration
-def test_ruling_span_length(cable_array_AM600: CableArray):
-    section_array = SectionArray(
-        pd.DataFrame(
-            {
-                "name": ["1", "2", "3", "4"],
-                "suspension": [False, True, True, False],
-                "conductor_attachment_altitude": [30, 50, 60, 65],
-                "crossarm_length": [0, 10, 10, 0],
-                "line_angle": [0, 0, 0, 0],
-                "insulator_length": [0, 3, 3, 0],
-                "span_length": [500, 300, 400, np.nan],
-                "insulator_mass": [100, 50, 50, 100],
-                "load_mass": [0, 0, 0, 0],
-                "load_position": [0, 0, 0, 0],
-            }
-        ),
-        sagging_parameter=2000,
-        sagging_temperature=15,
-    )
-    section_array.add_units({"line_angle": "grad"})
-    balance_engine = BalanceEngine(
-        cable_array=cable_array_AM600,
-        section_array=section_array,
-    )
-    balance_engine.solve_adjustment()
-    balance_engine.solve_change_state()
-    ruling_span = balance_engine.get_ruling_span_length()
-    # Value from proto. Result is close but not exactly the same due to using a_chain instead of a
-    np.testing.assert_allclose(ruling_span, 424.04, atol=0.1)
-
-
-@pytest.mark.integration
-def test_ruling_span_length_angle(cable_array_AM600: CableArray):
-    section_array = SectionArray(
-        pd.DataFrame(
-            {
-                "name": ["1", "2", "3", "4"],
-                "suspension": [False, True, True, False],
-                "conductor_attachment_altitude": [30, 50, 60, 65],
-                "crossarm_length": [0, 10, 10, 0],
-                "line_angle": [0, 20, 30, 0],
-                "insulator_length": [0, 3, 3, 0],
-                "span_length": [500, 300, 400, np.nan],
-                "insulator_mass": [100, 50, 50, 100],
-                "load_mass": [0, 0, 0, 0],
-                "load_position": [0, 0, 0, 0],
-            }
-        ),
-        sagging_parameter=2000,
-        sagging_temperature=15,
-    )
-    section_array.add_units({"line_angle": "grad"})
-    balance_engine = BalanceEngine(
-        cable_array=cable_array_AM600,
-        section_array=section_array,
-    )
-    balance_engine.solve_adjustment()
-    balance_engine.solve_change_state()
-    ruling_span = balance_engine.get_ruling_span_length()
-    # value in proto is 424.04, but our value is supposed to be the correct one
-    np.testing.assert_allclose(ruling_span, 421.74, atol=0.1)

@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from mechaphlowers.config import options
+from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.errors import BalanceEngineWarning
@@ -68,7 +69,7 @@ class Manipulation:
     # ── Cable shifting ────────────────────────────────────────────────────
 
     @property
-    def shifting_support_distance(self) -> np.ndarray | None:
+    def shift_support(self) -> np.ndarray | None:
         """Shifting distance, in meters. ``None`` when no shifting is set."""
         return self._shifting_distance_support
 
@@ -79,8 +80,8 @@ class Manipulation:
 
     def shift_cable(
         self,
-        shifting: np.ndarray | list | None = None,
-        shortening: np.ndarray | list | None = None,
+        shift_support: np.ndarray | list | None = None,
+        shorten_span: np.ndarray | list | None = None,
     ) -> None:
         """Validate and store cable shifting values.
 
@@ -88,10 +89,10 @@ class Manipulation:
         (after virtual-support insertion, if any).
 
         Args:
-            shifting (np.ndarray | list | None): Horizontal shifting of each support, in meters.
+            shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
                 Array of length ``support_number`` (support based). The first and last values
                 are enforced to 0. If ``None``, an array of zeros is used.
-            shortening (np.ndarray | list | None): Span length modification, in meters.
+            shorten_span (np.ndarray | list | None): Span length modification, in meters.
                 Array of length ``support_number - 1`` (span based), one value per span.
                 Positive values shorten the spans, negative values lengthen them. If ``None``,
                 an array of zeros is used.
@@ -104,55 +105,55 @@ class Manipulation:
             n_supports += len(self._virtual_support_overlay)
 
         # Convert to numpy arrays
-        shifting_support = (
-            np.array(shifting, dtype=np.float64)
-            if shifting is not None
+        shift_support = (
+            np.array(shift_support, dtype=np.float64)
+            if shift_support is not None
             else np.zeros(n_supports)
         )
-        shortening_span = (
-            np.array(shortening, dtype=np.float64)
-            if shortening is not None
+        shorten_span = (
+            np.array(shorten_span, dtype=np.float64)
+            if shorten_span is not None
             else np.zeros(n_supports - 1)
         )
 
         # Check size matches number of supports
-        if shifting_support.size != n_supports:
+        if shift_support.size != n_supports:
             raise ValueError(
-                f"shifting has incorrect size: {n_supports} is expected, received {shifting_support.size}"
+                f"shift_support has incorrect size: {n_supports} is expected, received {shift_support.size}"
             )
         expected_span_size = n_supports - 1
-        if shortening_span.size != expected_span_size:
+        if shorten_span.size != expected_span_size:
             raise ValueError(
-                f"shortening has incorrect size: {expected_span_size} is expected, received {shortening_span.size}"
+                f"shorten_span has incorrect size: {expected_span_size} is expected, received {shorten_span.size}"
             )
 
         # Enforce constraints: shifting_distance first and last are 0
-        if abs(shifting_support[0]) > 0.0 or abs(shifting_support[-1]) > 0.0:
+        if abs(shift_support[0]) > 0.0 or abs(shift_support[-1]) > 0.0:
             logger.warning(
-                "shifting first and last values must be 0 (support based). "
+                "shift_support first and last values must be 0 (support based). "
                 "Enforcing this constraint."
             )
             warnings.warn(
-                "First and last values of shifting have been reset to 0",
+                "First and last values of shift_support have been reset to 0",
                 BalanceEngineWarning,
             )
-        shifting_support[0] = 0.0
-        shifting_support[-1] = 0.0
+        shift_support[0] = 0.0
+        shift_support[-1] = 0.0
 
         # Store in private attributes
-        self._shifting_distance_support = shifting_support
-        self._shortening_distance_span = shortening_span
+        self._shifting_distance_support = shift_support
+        self._shortening_distance_span = shorten_span
 
-        logger.debug(f"Cable shifting stored: shifting={shifting_support}, shortening={shortening_span}")
+        logger.debug(f"Cable shifting stored: shift_support={shift_support}, shorten_span={shorten_span}")
 
-    def reset_shift_cable(self) -> None:
+    def reset_cable_shifting(self) -> None:
         """Remove cable shifting.
 
         Does nothing if no shifting has been applied.
         """
         if self._shifting_distance_support is None:
             logger.debug(
-                "reset_shift_cable called but no shifting was applied."
+                "reset_cable_shifting called but no shifting was applied."
             )
             return
         self._shifting_distance_support = None
@@ -180,13 +181,13 @@ class Manipulation:
 
     # ── Support manipulation ──────────────────────────────────────────────
 
-    def shift_support(
+    def support_manipulation(
         self, manipulation: dict[int, dict[str, float]]
     ) -> None:
         """Apply additive offsets to support geometry.
 
         Stores the offsets as an overlay applied by :meth:`apply`.
-        Use :meth:`reset_shift_support` to remove the overlay.
+        Use :meth:`reset_manipulation` to remove the overlay.
 
         For each affected support, ``counterweight_mass`` is set to 0 in
         the applied copy.
@@ -203,8 +204,8 @@ class Manipulation:
             ValueError: If an inner dict contains keys other than ``"y"`` or ``"z"``.
 
         Examples:
-            >>> manip.shift_support({1: {"z": 2.0, "y": -1.0}})
-            >>> manip.shift_support({0: {"z": 0.5}, 2: {"y": 3.0}})
+            >>> manip.support_manipulation({1: {"z": 2.0, "y": -1.0}})
+            >>> manip.support_manipulation({0: {"z": 0.5}, 2: {"y": 3.0}})
         """
         n_supports = len(self._section_array._data)
         allowed_keys = {"y", "z"}
@@ -232,18 +233,18 @@ class Manipulation:
 
         logger.debug(f"Support manipulation applied: {manipulation}")
 
-    def reset_shift_support(self) -> None:
+    def reset_manipulation(self) -> None:
         """Remove the support manipulation overlay.
 
         Does nothing if no manipulation has been applied.
 
         Examples:
-            >>> manip.shift_support({1: {"z": 5.0}})
-            >>> manip.reset_shift_support()
+            >>> manip.support_manipulation({1: {"z": 5.0}})
+            >>> manip.reset_manipulation()
         """
         if self._support_overlay is None:
             logger.debug(
-                "reset_shift_support called but no manipulation was applied."
+                "reset_manipulation called but no manipulation was applied."
             )
             return
 
@@ -252,7 +253,7 @@ class Manipulation:
 
     # ── Rope manipulation ─────────────────────────────────────────────────
 
-    def add_rope(
+    def rope_manipulation(
         self,
         rope: dict[int, float],
         rope_lineic_mass: float | None = None,
@@ -261,7 +262,7 @@ class Manipulation:
 
         The override is applied by :meth:`apply`; the original ``_data``
         is never modified.
-        Use :meth:`reset_rope` to remove the overlay.
+        Use :meth:`reset_rope_manipulation` to remove the overlay.
 
         For each affected support, ``counterweight_mass`` is set to 0 in
         the applied copy.
@@ -275,8 +276,8 @@ class Manipulation:
             ValueError: If a support index is out of range.
 
         Examples:
-            >>> manip.add_rope({1: 4.5, 2: 3.0})
-            >>> manip.add_rope({0: 2.0}, rope_lineic_mass=0.05)
+            >>> manip.rope_manipulation({1: 4.5, 2: 3.0})
+            >>> manip.rope_manipulation({0: 2.0}, rope_lineic_mass=0.05)
         """
         n_supports = len(self._section_array._data)
         for idx in rope:
@@ -293,18 +294,18 @@ class Manipulation:
         )
         logger.debug(f"Rope manipulation applied: {rope}")
 
-    def reset_rope(self) -> None:
+    def reset_rope_manipulation(self) -> None:
         """Remove the rope overlay.
 
         Does nothing if no rope manipulation has been applied.
 
         Examples:
-            >>> manip.add_rope({1: 4.5})
-            >>> manip.reset_rope()
+            >>> manip.rope_manipulation({1: 4.5})
+            >>> manip.reset_rope_manipulation()
         """
         if self._rope_overlay is None:
             logger.debug(
-                "reset_rope called but no rope manipulation was applied."
+                "reset_rope_manipulation called but no rope manipulation was applied."
             )
             return
         self._rope_overlay = None
@@ -489,7 +490,7 @@ class Manipulation:
             bundle_number=original.bundle_number,
         )
         sa.input_units = original.input_units.copy()
-        sa._angles_sense = original._angles_sense
+        sa._angle_direction = original._angle_direction
         return sa
 
     def initialize_engine(
@@ -527,13 +528,13 @@ class Manipulation:
 
         L_ref = initial_L_ref.copy()
 
-        # Virtual-support L_ref splitting
-        if self.has_virtual_support:
-            L_ref = self.compute_split_L_ref(L_ref, clean_engine.span_model)
-
         # Cable shifting
         if self.has_shifting:
             L_ref = self.compute_shifted_L_ref(L_ref)
+
+        # Virtual-support L_ref splitting
+        if self.has_virtual_support:
+            L_ref = self.compute_split_L_ref(L_ref, clean_engine.span_model)
 
         # Build target engine
         target_engine = _BE(
@@ -554,7 +555,7 @@ class Manipulation:
     def compute_split_L_ref(
         self,
         initial_L_ref: np.ndarray,
-        span_model: object,
+        span_model: ISpan,
     ) -> np.ndarray:
         """Split ``initial_L_ref`` to account for virtual support insertion.
 
@@ -586,11 +587,9 @@ class Manipulation:
                 )
                 impacted_spans[span_idx] = True
 
-        new_L_ref = arr.incr(initial_L_ref.copy())
+        new_L_ref = initial_L_ref.copy()
 
-        new_L_ref_0 = span_model.compute_partial_L(x=hanging_points)[
-            impacted_spans
-        ]
+        new_L_ref_0 = arr.decr(span_model.compute_partial_L(new_a=arr.incr(hanging_points)))[impacted_spans]
         new_L_ref_1 = new_L_ref[impacted_spans] - new_L_ref_0
 
         new_L_ref[impacted_spans] = new_L_ref_1
@@ -631,6 +630,10 @@ class Manipulation:
             raw_data.loc[effective_idx, "line_angle"] = self._to_input(
                 angle, "line_angle"
             )
+            # no load if adding a virtual support in the middle of the span
+            if "load_mass" in raw_data.columns:
+                raw_data.loc[effective_idx, "load_mass"] = 0.0
+                raw_data.loc[effective_idx, "load_position"] = 0.0
 
             # Build virtual row
             remaining_span = abs(original_span_input - x_input)
@@ -659,8 +662,10 @@ class Manipulation:
 
             for optional_col, fill in (
                 ("load_mass", 0.0),
-                ("load_position", np.nan),
+                ("load_position", 0.0),
                 ("counterweight_mass", 0.0),
+                ("sagging_parameter", raw_data.loc[effective_idx, "sagging_parameter"]),
+                ("sagging_temperature", raw_data.loc[effective_idx, "sagging_temperature"]),
             ):
                 if optional_col in raw_data.columns:
                     virtual_row[optional_col] = fill

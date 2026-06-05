@@ -140,6 +140,93 @@ class SectionStudy:
         """The :class:`Manipulation` object storing geometric overlays."""
         return self._manipulation
 
+    # ── Manipulation methods ──────────────────────────────────────────────
+
+    def support_manipulation(
+        self, manipulation: dict[int, dict[str, float]]
+    ) -> None:
+        """Apply additive offsets to support geometry.
+
+        Delegates to
+        :meth:`Manipulation.support_manipulation`.
+
+        Args:
+            manipulation: Dictionary mapping support index (0-based) to
+                offsets with optional keys ``"y"`` and ``"z"``.
+        """
+        self._manipulation.support_manipulation(manipulation)
+
+    def reset_manipulation(self) -> None:
+        """Remove the support manipulation overlay.
+
+        Delegates to :meth:`Manipulation.reset_manipulation`.
+        """
+        self._manipulation.reset_manipulation()
+
+    def rope_manipulation(
+        self,
+        rope: dict[int, float],
+        rope_lineic_mass: float | None = None,
+    ) -> None:
+        """Override insulator length and mass for specified supports with rope values.
+
+        Delegates to :meth:`Manipulation.rope_manipulation`.
+
+        Args:
+            rope: Dictionary mapping support index (0-based) to rope length (meters).
+            rope_lineic_mass: Linear mass of the rope in kg/m.
+        """
+        self._manipulation.rope_manipulation(rope, rope_lineic_mass)
+
+    def reset_rope_manipulation(self) -> None:
+        """Remove the rope overlay.
+
+        Delegates to :meth:`Manipulation.reset_rope_manipulation`.
+        """
+        self._manipulation.reset_rope_manipulation()
+
+    def add_virtual_support(
+        self, virtual_support: dict[int, dict[str, float]]
+    ) -> None:
+        """Insert virtual supports.
+
+        Delegates to :meth:`Manipulation.add_virtual_support`.
+
+        Args:
+            virtual_support: Dictionary mapping left-support index to virtual
+                support parameters.
+        """
+        self._manipulation.add_virtual_support(virtual_support)
+
+    def reset_virtual_support(self) -> None:
+        """Remove all virtual supports.
+
+        Delegates to :meth:`Manipulation.reset_virtual_support`.
+        """
+        self._manipulation.reset_virtual_support()
+
+    def add_cable_shifting(
+        self,
+        shift_support: np.ndarray | list | None = None,
+        shorten_span: np.ndarray | list | None = None,
+    ) -> None:
+        """Validate and store cable shifting values.
+
+        Delegates to :meth:`Manipulation.add_cable_shifting`.
+
+        Args:
+            shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
+            shorten_span (np.ndarray | list | None): Span length modification, in meters.
+        """
+        self._manipulation.shift_cable(shift_support, shorten_span)
+
+    def reset_cable_shifting(self) -> None:
+        """Remove cable shifting.
+
+        Delegates to :meth:`Manipulation.reset_cable_shifting`.
+        """
+        self._manipulation.reset_cable_shifting()
+
     # ── Solve methods (with rollback + intermediate) ──────────────────────
 
     def solve_adjustment(self) -> None:
@@ -200,9 +287,7 @@ class SectionStudy:
         wind_pressure: np.ndarray | float | None = None,
         ice_thickness: np.ndarray | float | None = None,
         new_temperature: np.ndarray | float | None = None,
-        wind_direction: Literal[
-            "clockwise", "anticlockwise"
-        ] = "anticlockwise",
+        wind_sense: Literal["clockwise", "anticlockwise"] = "anticlockwise",
     ) -> None:
         """Run [`BalanceEngine.solve_change_state`][mechaphlowers.core.models.balance.engine.BalanceEngine.solve_change_state] with automatic rollback.
 
@@ -218,7 +303,7 @@ class SectionStudy:
             wind_pressure (np.ndarray | float | None): Wind pressure in Pa. Defaults to None.
             ice_thickness (np.ndarray | float | None): Ice thickness in m. Defaults to None.
             new_temperature (np.ndarray | float | None): New temperature in °C. Defaults to None.
-            wind_direction (Literal["clockwise", "anticlockwise"]): Direction of the wind. Defaults to "anticlockwise".
+            wind_sense (Literal["clockwise", "anticlockwise"]): Direction of the wind. Defaults to "anticlockwise".
 
         Raises:
             SolverError: If the solver fails to converge.
@@ -254,7 +339,7 @@ class SectionStudy:
                 wind_pressure=wind_pressure,
                 ice_thickness=ice_thickness,
                 new_temperature=new_temperature,
-                wind_direction=wind_direction,
+                wind_sense=wind_sense,
             )
         except SolverError:
             logger.error(
@@ -347,13 +432,13 @@ class SectionStudy:
         return self._position_engine.get_supports_points()
 
     def get_points_for_plot(
-        self, project: bool = False, frame_index: int = 0
+        self, project=False, frame_index=0
     ) -> tuple[Points, Points, Points]:
         """Delegate to [`PositionEngine.get_points_for_plot`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_points_for_plot].
 
         Args:
-            project (bool): `True` to project into a support frame (2-D mode).
-            frame_index (int): Index of the support frame for projection.
+            project: `True` to project into a support frame (2-D mode).
+            frame_index: Index of the support frame for projection.
 
         Returns:
             Tuple of ``(spans, supports, insulators)`` as `Points`.
