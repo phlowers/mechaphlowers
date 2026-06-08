@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import warnings
+from copy import copy
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
@@ -30,7 +31,7 @@ class Manipulation:
     """Stores and applies geometric manipulations to a SectionArray.
 
     A Manipulation collects support offsets, rope replacements, and virtual
-    support insertions.  Calling :meth:`apply` produces a **copy** of the
+    support insertions.  Calling :meth:`from_section_array` produces a **copy** of the
     original :class:`SectionArray` whose ``_data`` incorporates every active
     overlay.  The original array is never modified.
 
@@ -188,7 +189,7 @@ class Manipulation:
     ) -> None:
         """Apply additive offsets to support geometry.
 
-        Stores the offsets as an overlay applied by :meth:`apply`.
+        Stores the offsets as an overlay applied by :meth:`from_section_array`.
         Use :meth:`reset_manipulation` to remove the overlay.
 
         For each affected support, ``counterweight_mass`` is set to 0 in
@@ -262,7 +263,7 @@ class Manipulation:
     ) -> None:
         """Override insulator length and mass for specified supports with rope values.
 
-        The override is applied by :meth:`apply`; the original ``_data``
+        The override is applied by :meth:`from_section_array`; the original ``_data``
         is never modified.
         Use :meth:`reset_rope_manipulation` to remove the overlay.
 
@@ -322,7 +323,7 @@ class Manipulation:
         """Insert virtual supports.
 
         Each virtual support splits the span containing it.
-        The override is applied by :meth:`apply`; the original ``_data``
+        The override is applied by :meth:`from_section_array`; the original ``_data``
         is never modified.
         Use :meth:`reset_virtual_support` to remove all virtual supports.
 
@@ -445,6 +446,7 @@ class Manipulation:
         """
         original = section_array
         raw_data = original._data.copy()
+        input_units = original.input_units
 
         # Apply support overlay
         if self._support_overlay is not None:
@@ -454,12 +456,12 @@ class Manipulation:
                         float,
                         raw_data.loc[idx, "conductor_attachment_altitude"],
                     ) + self._to_input(
-                        offsets["z"], "conductor_attachment_altitude"
+                        offsets["z"], "conductor_attachment_altitude", input_units
                     )
                 if "y" in offsets:
                     raw_data.loc[idx, "crossarm_length"] = cast(
                         float, raw_data.loc[idx, "crossarm_length"]
-                    ) + self._to_input(offsets["y"], "crossarm_length")
+                    ) + self._to_input(offsets["y"], "crossarm_length", input_units)
 
         # Apply rope overlay
         if self._rope_overlay is not None:
@@ -470,10 +472,10 @@ class Manipulation:
             else:
                 for idx, rope_length in self._rope_overlay.items():
                     raw_data.loc[idx, "insulator_length"] = self._to_input(
-                        rope_length, "insulator_length"
+                        rope_length, "insulator_length", input_units
                     )
                     raw_data.loc[idx, "insulator_mass"] = self._to_input(
-                        rope_length * self._rope_lineic_mass, "insulator_mass"
+                        rope_length * self._rope_lineic_mass, "insulator_mass", input_units
                     )
 
         # Counterweight masking for affected supports
@@ -488,7 +490,7 @@ class Manipulation:
 
         # Virtual support insertion
         if self._virtual_support_overlay is not None:
-            raw_data = self._apply_virtual_support_overlay(raw_data)
+            raw_data = self._apply_virtual_support_overlay(raw_data, input_units)
 
         # Create new SectionArray from manipulated data
         sa = SectionArray(
@@ -499,6 +501,7 @@ class Manipulation:
         )
         sa.input_units = original.input_units.copy()
         sa._angle_direction = original._angle_direction
+        sa.geolocator = copy(original.geolocator)
         return sa
 
     def initialize_engine(
@@ -605,22 +608,39 @@ class Manipulation:
         new_L_ref_1 = new_L_ref[impacted_spans] - new_L_ref_0
 
         new_L_ref[impacted_spans] = new_L_ref_1
-        new_L_ref = np.insert(new_L_ref, impacted_spans, new_L_ref_0)
+        new_L_ref = np.insert(new_L_ref, np.where(impacted_spans)[0], new_L_ref_0)
 
         return new_L_ref
 
     # ── Private helpers ───────────────────────────────────────────────────
 
-    def _to_input(self, value: float, column: str) -> float:
-        """Convert *value* from SI (target units) to input units for *column*."""
+    def _to_input(
+        self,
+        value: float,
+        column: str,
+        input_units: dict | None = None,
+    ) -> float:
+        """Convert *value* from SI (target units) to input units for *column*.
+
+        Args:
+            value: Value in SI / target units.
+            column: Column name used to look up the target unit.
+            input_units: Explicit unit mapping to use.  When ``None`` the
+                mapping from ``self._section_array.input_units`` is used as a
+                fallback (only correct when operating on the instance's own
+                section array).
+        """
         target = SectionArray.target_units[column]
-        inp = self._section_array.input_units.get(column, target)
+        units = input_units if input_units is not None else self._section_array.input_units
+        inp = units.get(column, target)
         if inp == target:
             return value
         return float(Q_(value, target).to(inp).magnitude)
 
     def _apply_virtual_support_overlay(
-        self, raw_data: pd.DataFrame
+        self,
+        raw_data: pd.DataFrame,
+        input_units: dict | None = None,
     ) -> pd.DataFrame:
         """Insert virtual support rows into *raw_data* (in input units)."""
 
@@ -641,12 +661,12 @@ class Manipulation:
             original_span_input = cast(
                 float, raw_data.loc[effective_idx, "span_length"]
             )
-            x_input = self._to_input(x, "span_length")
+            x_input = self._to_input(x, "span_length", input_units)
 
             # Modify left support
             raw_data.loc[effective_idx, "span_length"] = x_input
             raw_data.loc[effective_idx, "line_angle"] = self._to_input(
-                angle, "line_angle"
+                angle, "line_angle", input_units
             )
             # no load if adding a virtual support in the middle of the span
             if "load_mass" in raw_data.columns:
@@ -663,17 +683,18 @@ class Manipulation:
                     "name": f"virtual_{span_idx}",
                     "suspension": True,
                     "conductor_attachment_altitude": self._to_input(
-                        float(vs["z"]), "conductor_attachment_altitude"
+                        float(vs["z"]), "conductor_attachment_altitude", input_units
                     ),
-                    "crossarm_length": self._to_input(0.0, "crossarm_length"),
-                    "line_angle": self._to_input(-angle, "line_angle"),
+                    "crossarm_length": self._to_input(0.0, "crossarm_length", input_units),
+                    "line_angle": self._to_input(-angle, "line_angle", input_units),
                     "insulator_length": self._to_input(
                         max(float(vs["insulator_length"]), 0.01),
                         "insulator_length",
+                        input_units,
                     ),
                     "span_length": remaining_span,
                     "insulator_mass": self._to_input(
-                        float(vs["insulator_mass"]), "insulator_mass"
+                        float(vs["insulator_mass"]), "insulator_mass", input_units
                     ),
                 }
             )

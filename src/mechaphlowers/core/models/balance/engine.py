@@ -197,7 +197,7 @@ class BalanceEngine(Notifier):
             >>> load_position_distance = np.array([150, 200, 0, np.nan])  # 4 supports/3 spans
             >>> load_mass = np.array([500, 70, 0, np.nan])
             >>> engine.add_loads(load_position_distance, load_mass)
-            >>> plot_engine.reset()  # necessary if plot_engine already exists
+            >>> plot_engine.reset()  # optional: only needed if cached plots must be discarded
         """
         span_length = self.section_array.data["span_length"].to_numpy()
         load_position_distance = np.array(load_position_distance)
@@ -377,6 +377,8 @@ class BalanceEngine(Notifier):
                     <li>horizontal_distance</li>
                     <li>arc_length</li>
                     <li>T_h</li>
+                    <li>sag</li>
+                    <li>sag_s2</li>
                 </ul>
         """
         T_sup, T_inf = self.span_model.tensions_sup_inf()

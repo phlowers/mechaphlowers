@@ -205,18 +205,20 @@ class SectionStudy:
         """
         self._manipulation.reset_virtual_support()
 
-    def add_cable_shifting(
+    def shift_cable(
         self,
         shift_support: np.ndarray | list | None = None,
         shorten_span: np.ndarray | list | None = None,
     ) -> None:
         """Validate and store cable shifting values.
 
-        Delegates to :meth:`Manipulation.add_cable_shifting`.
+        Delegates to :meth:`Manipulation.shift_cable`.
 
         Args:
             shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
+                Array of length ``support_number``; first and last values are forced to 0.
             shorten_span (np.ndarray | list | None): Span length modification, in meters.
+                Array of length ``support_number - 1``; positive values shorten the span.
         """
         self._manipulation.shift_cable(shift_support, shorten_span)
 
