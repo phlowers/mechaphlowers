@@ -202,7 +202,7 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
     # ── 8-support with manipulations ─────────────────────────────────────────
     study_manip = _make_8support_study(cable_array_AM600)
     # 4 support manipulations (supports 1, 2, 4, 5)
-    study_manip.manipulation.support_manipulation(
+    study_manip.manipulation.modify_support(
         {
             1: {"z": 1.0},
             2: {"z": -1.0, "y": 0.5},
@@ -211,7 +211,7 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
         }
     )
     # 1 rope manipulation (support 3)
-    study_manip.manipulation.rope_manipulation({3: 4.5})
+    study_manip.manipulation.add_rope({3: 4.5})
     study_manip.solve_adjustment()
     manip_data_s, manip_change_state_s = _measure(study_manip)
 

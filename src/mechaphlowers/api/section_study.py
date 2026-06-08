@@ -142,48 +142,48 @@ class SectionStudy:
 
     # ── Manipulation methods ──────────────────────────────────────────────
 
-    def support_manipulation(
+    def modify_support(
         self, manipulation: dict[int, dict[str, float]]
     ) -> None:
         """Apply additive offsets to support geometry.
 
         Delegates to
-        [`Manipulation.support_manipulation`][mechaphlowers.core.manipulation.Manipulation.support_manipulation].
+        [`Manipulation.modify_support`][mechaphlowers.core.manipulation.Manipulation.modify_support].
 
         Args:
             manipulation: Dictionary mapping support index (0-based) to
                 offsets with optional keys ``"y"`` and ``"z"``.
         """
-        self._manipulation.support_manipulation(manipulation)
+        self._manipulation.modify_support(manipulation)
 
-    def reset_manipulation(self) -> None:
+    def reset_support(self) -> None:
         """Remove the support manipulation overlay.
 
-        Delegates to [`Manipulation.reset_manipulation`][mechaphlowers.core.manipulation.Manipulation.reset_manipulation].
+        Delegates to [`Manipulation.reset_support`][mechaphlowers.core.manipulation.Manipulation.reset_support].
         """
-        self._manipulation.reset_manipulation()
+        self._manipulation.reset_support()
 
-    def rope_manipulation(
+    def add_rope(
         self,
         rope: dict[int, float],
         rope_lineic_mass: float | None = None,
     ) -> None:
         """Override insulator length and mass for specified supports with rope values.
 
-        Delegates to [`Manipulation.rope_manipulation`][mechaphlowers.core.manipulation.Manipulation.rope_manipulation].
+        Delegates to [`Manipulation.add_rope`][mechaphlowers.core.manipulation.Manipulation.add_rope].
 
         Args:
             rope: Dictionary mapping support index (0-based) to rope length (meters).
             rope_lineic_mass: Linear mass of the rope in kg/m.
         """
-        self._manipulation.rope_manipulation(rope, rope_lineic_mass)
+        self._manipulation.add_rope(rope, rope_lineic_mass)
 
-    def reset_rope_manipulation(self) -> None:
+    def reset_rope(self) -> None:
         """Remove the rope overlay.
 
-        Delegates to [`Manipulation.reset_rope_manipulation`][mechaphlowers.core.manipulation.Manipulation.reset_rope_manipulation].
+        Delegates to [`Manipulation.reset_rope`][mechaphlowers.core.manipulation.Manipulation.reset_rope].
         """
-        self._manipulation.reset_rope_manipulation()
+        self._manipulation.reset_rope()
 
     def add_virtual_support(
         self, virtual_support: dict[int, dict[str, float]]
@@ -205,14 +205,14 @@ class SectionStudy:
         """
         self._manipulation.reset_virtual_support()
 
-    def shift_cable(
+    def modify_cable(
         self,
         shift_support: np.ndarray | list | None = None,
         shorten_span: np.ndarray | list | None = None,
     ) -> None:
         """Validate and store cable shifting values.
 
-        Delegates to [`Manipulation.shift_cable`][mechaphlowers.core.manipulation.Manipulation.shift_cable].
+        Delegates to [`Manipulation.modify_cable`][mechaphlowers.core.manipulation.Manipulation.modify_cable].
 
         Args:
             shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
@@ -220,14 +220,14 @@ class SectionStudy:
             shorten_span (np.ndarray | list | None): Span length modification, in meters.
                 Array of length ``support_number - 1``; positive values shorten the span.
         """
-        self._manipulation.shift_cable(shift_support, shorten_span)
+        self._manipulation.modify_cable(shift_support, shorten_span)
 
-    def reset_cable_shifting(self) -> None:
+    def reset_cable(self) -> None:
         """Remove cable shifting.
 
-        Delegates to [`Manipulation.reset_cable_shifting`][mechaphlowers.core.manipulation.Manipulation.reset_cable_shifting].
+        Delegates to [`Manipulation.reset_cable`][mechaphlowers.core.manipulation.Manipulation.reset_cable].
         """
-        self._manipulation.reset_cable_shifting()
+        self._manipulation.reset_cable()
 
     # ── Solve methods (with rollback + intermediate) ──────────────────────
 
@@ -250,17 +250,26 @@ class SectionStudy:
             SolverError: If the solver fails to converge.
         """
         if self._manipulation.has_manipulations:
-            # Phase 1 – solve on clean geometry
+            # Phase 1: solve on clean geometry
             clean_engine = BalanceEngine(
                 cable_array=self._cable_array,
                 section_array=self._section_array,
                 span_model_type=self._span_model_type,
                 deformation_model_type=self._deformation_model_type,
             )
-            clean_engine.solve_adjustment()
+
+            try:
+                clean_engine.solve_adjustment()
+            except SolverError as e:
+                logger.error(
+                    "Error during solve_adjustment. No changes on the engine state" \
+"
+                )
+                raise e
+
             initial_L_ref = clean_engine.initial_L_ref.copy()
 
-            # Phase 2 – build manipulated SA and target engine
+            # Phase 2: build manipulated SA and target engine
             manipulated_sa = self._manipulation.from_section_array(
                 self._section_array
             )
@@ -277,12 +286,12 @@ class SectionStudy:
             memento = self._caretaker.save()
             try:
                 self._balance_engine.solve_adjustment()
-            except SolverError:
+            except SolverError as e:
                 logger.error(
                     "Error during solve_adjustment, rolling back state."
                 )
                 self._caretaker.restore(memento)
-                raise
+                raise e
 
     def solve_change_state(
         self,
@@ -347,12 +356,12 @@ class SectionStudy:
                 new_temperature=new_temperature,
                 wind_sense=wind_sense,
             )
-        except SolverError:
+        except SolverError as e:
             logger.error(
                 "Error during solve_change_state, rolling back state."
             )
             self._caretaker.restore(memento)
-            raise
+            raise e
 
     def _solve_intermediate(self) -> None:
         """Solve at default conditions (T=15°C, wind=0, ice=0) as warm-start.

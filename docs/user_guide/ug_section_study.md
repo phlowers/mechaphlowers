@@ -257,47 +257,47 @@ fig.show()
 
 ### Support Manipulation
 
-`support_manipulation` applies **additive offsets** to `conductor_attachment_altitude` and/or `crossarm_length` for specified supports. Internally the `Manipulation` object produces a new `SectionArray` with the offsets baked in; the original section array is never modified.
+`modify_support` applies **additive offsets** to `conductor_attachment_altitude` and/or `crossarm_length` for specified supports. Internally the `Manipulation` object produces a new `SectionArray` with the offsets baked in; the original section array is never modified.
 
 The input is a dictionary where keys are support indices (0-based) and values are dicts with optional keys `"y"` (crossarm length offset) and `"z"` (altitude offset), both in meters.
 
 ```python
 # Raise support 1 by 2 m and shorten its crossarm by 1 m
-study.support_manipulation({1: {"z": 2.0, "y": -1.0}})
+study.modify_support({1: {"z": 2.0, "y": -1.0}})
 
 # Modify several supports at once
-study.support_manipulation({0: {"z": 0.5}, 2: {"y": 3.0}})
+study.modify_support({0: {"z": 0.5}, 2: {"y": 3.0}})
 
 study.solve_adjustment()
 study.solve_change_state(new_temperature=15.0)
 
 # Restore original geometry
-study.reset_manipulation()
+study.reset_support()
 ```
 
 !!! note
-    Manipulations are **additive**: calling `support_manipulation` multiple times stacks the offsets.
-    `reset_manipulation` clears all accumulated offsets and restores the original geometry.
+    Manipulations are **additive**: calling `modify_support` multiple times stacks the offsets.
+    `reset_support` clears all accumulated offsets and restores the original geometry.
     For each affected support, `counterweight_mass` is set to 0; unaffected supports keep their original value.
 
 ### Rope Manipulation
 
-`rope_manipulation` replaces the insulator length and mass for specified supports with rope values. Internally the `Manipulation` object produces a new `SectionArray` with the rope values baked in; the original section array is never modified.
+`add_rope` replaces the insulator length and mass for specified supports with rope values. Internally the `Manipulation` object produces a new `SectionArray` with the rope values baked in; the original section array is never modified.
 
 The input is a dictionary where keys are support indices (0-based) and values are the rope length in meters. An optional `rope_lineic_mass` parameter (kg/m, default `0.01`) controls the mass per unit length.
 
 ```python
 # Replace insulator properties for supports 1 and 2 with rope values
-study.rope_manipulation({1: 4.5, 2: 3.0})
+study.add_rope({1: 4.5, 2: 3.0})
 
 # With a custom linear mass
-study.rope_manipulation({0: 2.0}, rope_lineic_mass=0.05)
+study.add_rope({0: 2.0}, rope_lineic_mass=0.05)
 
 study.solve_adjustment()
 study.solve_change_state(new_temperature=15.0)
 
 # Remove the rope overlay
-study.reset_rope_manipulation()
+study.reset_rope()
 ```
 
 !!! note
@@ -354,7 +354,7 @@ study.add_virtual_support({
 
 ### Cable Shifting
 
-`shift_cable` applies horizontal support shifting and span length modifications to the cable geometry. This is applied at solve time alongside the other manipulations.
+`modify_cable` applies horizontal support shifting and span length modifications to the cable geometry. This is applied at solve time alongside the other manipulations.
 
 - `shift_support`: array of horizontal offsets per support (m), length = number of supports; first and last values are forced to 0.
 - `shorten_span`: array of span length reductions (m), length = number of spans; positive values shorten the span.
@@ -363,7 +363,7 @@ study.add_virtual_support({
 import numpy as np
 
 # Shift support 1 by 0.5 m, shorten the first span by 1 m
-study.shift_cable(
+study.modify_cable(
     shift_support=np.array([0.0, 0.5, 0.0, 0.0]),
     shorten_span=np.array([1.0, 0.0, 0.0]),
 )
@@ -372,7 +372,7 @@ study.solve_adjustment()
 study.solve_change_state(new_temperature=15.0)
 
 # Remove cable shifting
-study.reset_cable_shifting()
+study.reset_cable()
 ```
 
 !!! note

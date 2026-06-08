@@ -79,7 +79,7 @@ class Manipulation:
         """Shortening distance, in meters. ``None`` when no shifting is set."""
         return self._shortening_distance_span
 
-    def shift_cable(
+    def modify_cable(
         self,
         shift_support: np.ndarray | list | None = None,
         shorten_span: np.ndarray | list | None = None,
@@ -149,14 +149,14 @@ class Manipulation:
             f"Cable shifting stored: shift_support={shift_support}, shorten_span={shorten_span}"
         )
 
-    def reset_cable_shifting(self) -> None:
+    def reset_cable(self) -> None:
         """Remove cable shifting.
 
         Does nothing if no shifting has been applied.
         """
         if self._shifting_distance_support is None:
             logger.debug(
-                "reset_cable_shifting called but no shifting was applied."
+                "reset_cable called but no shifting was applied."
             )
             return
         self._shifting_distance_support = None
@@ -184,13 +184,13 @@ class Manipulation:
 
     # ── Support manipulation ──────────────────────────────────────────────
 
-    def support_manipulation(
+    def modify_support(
         self, manipulation: dict[int, dict[str, float]]
     ) -> None:
         """Apply additive offsets to support geometry.
 
         Stores the offsets as an overlay applied by [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array].
-        Use [`reset_manipulation`][mechaphlowers.core.manipulation.Manipulation.reset_manipulation] to remove the overlay.
+        Use [`reset_support`][mechaphlowers.core.manipulation.Manipulation.reset_support] to remove the overlay.
 
         For each affected support, ``counterweight_mass`` is set to 0 in
         the applied copy.
@@ -207,8 +207,8 @@ class Manipulation:
             ValueError: If an inner dict contains keys other than ``"y"`` or ``"z"``.
 
         Examples:
-            >>> manip.support_manipulation({1: {"z": 2.0, "y": -1.0}})
-            >>> manip.support_manipulation({0: {"z": 0.5}, 2: {"y": 3.0}})
+            >>> manip.modify_support({1: {"z": 2.0, "y": -1.0}})
+            >>> manip.modify_support({0: {"z": 0.5}, 2: {"y": 3.0}})
         """
         n_supports = len(self._section_array._data)
         allowed_keys = {"y", "z"}
@@ -236,18 +236,18 @@ class Manipulation:
 
         logger.debug(f"Support manipulation applied: {manipulation}")
 
-    def reset_manipulation(self) -> None:
+    def reset_support(self) -> None:
         """Remove the support manipulation overlay.
 
         Does nothing if no manipulation has been applied.
 
         Examples:
-            >>> manip.support_manipulation({1: {"z": 5.0}})
-            >>> manip.reset_manipulation()
+            >>> manip.modify_support({1: {"z": 5.0}})
+            >>> manip.reset_support()
         """
         if self._support_overlay is None:
             logger.debug(
-                "reset_manipulation called but no manipulation was applied."
+                "reset_support called but no manipulation was applied."
             )
             return
 
@@ -256,7 +256,7 @@ class Manipulation:
 
     # ── Rope manipulation ─────────────────────────────────────────────────
 
-    def rope_manipulation(
+    def add_rope(
         self,
         rope: dict[int, float],
         rope_lineic_mass: float | None = None,
@@ -265,7 +265,7 @@ class Manipulation:
 
         The override is applied by [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array]; the original ``_data``
         is never modified.
-        Use [`reset_rope_manipulation`][mechaphlowers.core.manipulation.Manipulation.reset_rope_manipulation] to remove the overlay.
+        Use [`reset_rope`][mechaphlowers.core.manipulation.Manipulation.reset_rope] to remove the overlay.
 
         For each affected support, ``counterweight_mass`` is set to 0 in
         the applied copy.
@@ -279,8 +279,8 @@ class Manipulation:
             ValueError: If a support index is out of range.
 
         Examples:
-            >>> manip.rope_manipulation({1: 4.5, 2: 3.0})
-            >>> manip.rope_manipulation({0: 2.0}, rope_lineic_mass=0.05)
+            >>> manip.add_rope({1: 4.5, 2: 3.0})
+            >>> manip.add_rope({0: 2.0}, rope_lineic_mass=0.05)
         """
         n_supports = len(self._section_array._data)
         for idx in rope:
@@ -297,18 +297,18 @@ class Manipulation:
         )
         logger.debug(f"Rope manipulation applied: {rope}")
 
-    def reset_rope_manipulation(self) -> None:
+    def reset_rope(self) -> None:
         """Remove the rope overlay.
 
         Does nothing if no rope manipulation has been applied.
 
         Examples:
-            >>> manip.rope_manipulation({1: 4.5})
-            >>> manip.reset_rope_manipulation()
+            >>> manip.add_rope({1: 4.5})
+            >>> manip.reset_rope()
         """
         if self._rope_overlay is None:
             logger.debug(
-                "reset_rope_manipulation called but no rope manipulation was applied."
+                "reset_rope called but no rope manipulation was applied."
             )
             return
         self._rope_overlay = None

@@ -103,7 +103,7 @@ def study_8span(cable_array_AM600: CableArray) -> SectionStudy:
 @pytest.mark.integration
 def test_lengthen(study_8span: SectionStudy) -> None:
     """Negative shortening lengthens spans."""
-    study_8span.manipulation.shift_cable(
+    study_8span.manipulation.modify_cable(
         shift_support=[0.0, -2.0, 0.0, -1.5, 0.0, 0.0, -3.0, 0.0, 0.0],
     )
     study_8span.solve_adjustment()
@@ -114,7 +114,7 @@ def test_lengthen(study_8span: SectionStudy) -> None:
 @pytest.mark.integration
 def test_shorten(study_8span: SectionStudy) -> None:
     """Positive shortening shortens spans."""
-    study_8span.manipulation.shift_cable(
+    study_8span.manipulation.modify_cable(
         shorten_span=[0.0, 2.0, 0.0, 1.5, 0.0, 0.0, 3.0, 0.0],
     )
     study_8span.solve_adjustment()
@@ -125,7 +125,7 @@ def test_shorten(study_8span: SectionStudy) -> None:
 @pytest.mark.integration
 def test_cable_shifting(study_8span: SectionStudy) -> None:
     """Cable shifting with horizontal offsets."""
-    study_8span.manipulation.shift_cable(
+    study_8span.manipulation.modify_cable(
         shift_support=[0.0, 1.0, -0.5, 2.0, 0.0, -1.0, 0.5, 1.5, 0.0],
         shorten_span=[0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     )
@@ -137,7 +137,7 @@ def test_cable_shifting(study_8span: SectionStudy) -> None:
 @pytest.mark.integration
 def test_rope(study_8span: SectionStudy) -> None:
     """Replace insulators with rope on two supports."""
-    study_8span.manipulation.rope_manipulation({2: 5.0, 5: 4.0})
+    study_8span.manipulation.add_rope({2: 5.0, 5: 4.0})
     study_8span.solve_adjustment()
     study_8span.solve_change_state(new_temperature=15.0)
     assert True
@@ -146,7 +146,7 @@ def test_rope(study_8span: SectionStudy) -> None:
 @pytest.mark.integration
 def test_support_shifting(study_8span: SectionStudy) -> None:
     """Shift supports vertically and laterally."""
-    study_8span.manipulation.support_manipulation(
+    study_8span.manipulation.modify_support(
         {
             1: {"z": 2.0},
             3: {"z": -1.5, "y": 1.0},
@@ -200,7 +200,7 @@ def test_virtual_support_and_shifting(study_8span: SectionStudy) -> None:
         }
     )
 
-    study_8span.manipulation.shift_cable(
+    study_8span.manipulation.modify_cable(
         shift_support=[0.0, 1.0, -0.5, 2.0, 0.0, -1.0, 0.5, 1.5, 0.0, 0.0],
     )
     study_8span.solve_adjustment()
