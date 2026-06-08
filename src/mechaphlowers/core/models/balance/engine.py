@@ -229,7 +229,7 @@ class BalanceEngine(Notifier):
         After running this method, many attributes are updated.
         Most interesting ones are `L_ref`, `parameter` in Span, and `dxdydz` in Nodes.
 
-        raises:
+        Raises:
             SolverError: If the solver fails to converge.
             RuntimeError: If adjustment is blocked (engine built from manipulations).
         """
@@ -275,7 +275,7 @@ class BalanceEngine(Notifier):
         After running this method, many attributes are updated.
         Most interesting ones are `L_ref`, `parameter` in Span, and `dxdydz` in Nodes.
 
-        raises:
+        Raises:
             SolverError: If the solver fails to converge.
             TypeError: If input parameters have incorrect type.
             ValueError: If input parameters have incorrect shape.

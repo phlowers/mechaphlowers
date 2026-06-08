@@ -276,7 +276,6 @@ study.reset_manipulation()
 ```
 
 !!! note
-
     Manipulations are **additive**: calling `support_manipulation` multiple times stacks the offsets.
     `reset_manipulation` clears all accumulated offsets and restores the original geometry.
     For each affected support, `counterweight_mass` is set to 0; unaffected supports keep their original value.
@@ -302,7 +301,6 @@ study.reset_rope_manipulation()
 ```
 
 !!! note
-
     The rope overlay only affects `insulator_length` and `insulator_mass` (and the derived `insulator_weight`) for the listed supports.
     Unlisted supports keep their original insulator values.
     For each affected support, `counterweight_mass` is set to 0; unaffected supports keep their original value.
@@ -350,7 +348,6 @@ study.add_virtual_support({
 ```
 
 !!! note
-
     Virtual supports have `crossarm_length = 0` and `suspension = True`.  
     `counterweight_mass` is set to 0 for each virtual row.  
     All changes are reversible with `reset_virtual_support`; the original section array is never modified.
@@ -379,5 +376,4 @@ study.reset_cable_shifting()
 ```
 
 !!! note
-
     Cable shifting modifies the effective $L_{ref}$ passed to the manipulated engine; it does not alter the geometry of supports.

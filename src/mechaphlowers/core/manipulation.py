@@ -31,8 +31,8 @@ class Manipulation:
     """Stores and applies geometric manipulations to a SectionArray.
 
     A Manipulation collects support offsets, rope replacements, and virtual
-    support insertions.  Calling :meth:`from_section_array` produces a **copy** of the
-    original :class:`SectionArray` whose ``_data`` incorporates every active
+    support insertions.  Calling [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array] produces a **copy** of the
+    original [`SectionArray`][mechaphlowers.entities.arrays.SectionArray] whose ``_data`` incorporates every active
     overlay.  The original array is never modified.
 
     Args:
@@ -189,8 +189,8 @@ class Manipulation:
     ) -> None:
         """Apply additive offsets to support geometry.
 
-        Stores the offsets as an overlay applied by :meth:`from_section_array`.
-        Use :meth:`reset_manipulation` to remove the overlay.
+        Stores the offsets as an overlay applied by [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array].
+        Use [`reset_manipulation`][mechaphlowers.core.manipulation.Manipulation.reset_manipulation] to remove the overlay.
 
         For each affected support, ``counterweight_mass`` is set to 0 in
         the applied copy.
@@ -263,9 +263,9 @@ class Manipulation:
     ) -> None:
         """Override insulator length and mass for specified supports with rope values.
 
-        The override is applied by :meth:`from_section_array`; the original ``_data``
+        The override is applied by [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array]; the original ``_data``
         is never modified.
-        Use :meth:`reset_rope_manipulation` to remove the overlay.
+        Use [`reset_rope_manipulation`][mechaphlowers.core.manipulation.Manipulation.reset_rope_manipulation] to remove the overlay.
 
         For each affected support, ``counterweight_mass`` is set to 0 in
         the applied copy.
@@ -323,9 +323,9 @@ class Manipulation:
         """Insert virtual supports.
 
         Each virtual support splits the span containing it.
-        The override is applied by :meth:`from_section_array`; the original ``_data``
+        The override is applied by [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array]; the original ``_data``
         is never modified.
-        Use :meth:`reset_virtual_support` to remove all virtual supports.
+        Use [`reset_virtual_support`][mechaphlowers.core.manipulation.Manipulation.reset_virtual_support] to remove all virtual supports.
 
         Args:
             virtual_support: Dictionary mapping left-support index (0-based,
@@ -441,7 +441,7 @@ class Manipulation:
             section_array: The original (clean) section array.
 
         Returns:
-            A new :class:`SectionArray` whose ``_data`` reflects every
+            A new [`SectionArray`][mechaphlowers.entities.arrays.SectionArray] whose ``_data`` reflects every
             active overlay.
         """
         original = section_array
@@ -510,7 +510,7 @@ class Manipulation:
         section_array: SectionArray,
         initial_L_ref: np.ndarray,
     ) -> BalanceEngine:
-        """Build a target :class:`BalanceEngine` with manipulated geometry.
+        """Build a target [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] with manipulated geometry.
 
         The returned engine has ``L_ref`` / ``initial_L_ref`` injected from
         outside and its adjustment is **blocked** — only ``solve_change_state``
@@ -520,19 +520,19 @@ class Manipulation:
 
         1. Split ``initial_L_ref`` if virtual supports are present.
         2. Apply cable shifting to the (possibly split) ``L_ref``.
-        3. Create a new :class:`BalanceEngine` from *section_array*
-           (the manipulated copy produced by :meth:`from_section_array`).
+        3. Create a new [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] from *section_array*
+           (the manipulated copy produced by [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array]).
         4. Inject ``L_ref`` and block adjustment.
 
         Args:
             clean_engine: The engine that ran the adjustment on clean geometry.
                 Its ``span_model`` is used for virtual-support L_ref splitting.
             section_array: The manipulated section array (output of
-                :meth:`from_section_array`).
+                [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array]).
             initial_L_ref: ``initial_L_ref`` from the clean adjustment solve.
 
         Returns:
-            A configured :class:`BalanceEngine` ready for
+            A configured [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] ready for
             ``solve_change_state`` calls.
         """
         from mechaphlowers.core.models.balance.engine import (

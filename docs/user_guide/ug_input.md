@@ -4,7 +4,7 @@
 
 This paragraph describes the input data and the associated format needed to perform calculations on a line section in mechaphlowers.
 
-!!! Units
+!!! info "Units"
 
     Unless specified otherwise, all units will be those of the International System of Units (SI).
     A list of these units can be found [here](https://en.wikipedia.org/wiki/International_System_of_Units).
@@ -26,14 +26,14 @@ In mechaphlowers a line section is described by the following data:
     - a sagging parameter, denoted later as $p$
     - a sagging temperature (in Celsius degrees).
 
-!!! Warning
+!!! warning
 
     Ground altitude is optional because it is autofilled if not provided.  
     Autofill rule: **ground_altitude = conductor_attachment_altitude - options_paramater**.  
     options_parameter is globally defined in options.ground.default_support_length and can be modified by user.
 
 
-!!! Angle orientation convention
+!!! note "Angle orientation convention"
 
     The angles input in the section 
 
@@ -48,7 +48,7 @@ For example, a line section could be described by the following table:
 |second support |True  |-0.75 |10   |11 |4 |800   |
 |third support  |False |0.5   |11.5 |0  |0 |      |
 
-!!! Altitude
+!!! note "Altitude"
 
     Since the conductor attachment altitude is measured from the sea level, it may be negative.
 
@@ -56,24 +56,26 @@ In this example the span length between the first and second supports is 500 m, 
 
 You may use the following code to define this data and load it so that it can be used by mechaphlowers:
 
-    import pandas as pd
-    import numpy as np
+```python
+import pandas as pd
+import numpy as np
 
-    from mechaphlowers.entities.arrays import SectionArray
+from mechaphlowers.entities.arrays import SectionArray
 
 
-    input_df = pd.DataFrame({
-        "name": ["first support", "second support", "third support"],
-        "suspension": [False, True, False],
-        "conductor_attachment_altitude": [1, -0.75, 0.5],
-        "crossarm_length": [12, 10, 11.5],
-        "line_angle": [0, 11, 0],
-        "insulator_length": [0, 4, 0],
-        "span_length": [500, 800, np.nan],
-        "counterweight_mass": [0, 0, 0],
-    })
-    section_array = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
-    print(section_array)
+input_df = pd.DataFrame({
+    "name": ["first support", "second support", "third support"],
+    "suspension": [False, True, False],
+    "conductor_attachment_altitude": [1, -0.75, 0.5],
+    "crossarm_length": [12, 10, 11.5],
+    "line_angle": [0, 11, 0],
+    "insulator_length": [0, 4, 0],
+    "span_length": [500, 800, np.nan],
+    "counterweight_mass": [0, 0, 0],
+})
+section_array = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15)
+print(section_array)
+```
 
 ### Sagging default values
 
@@ -94,7 +96,9 @@ $$
 When creating a SectionArray, you may add a `bundle_number` argument. `bundle_number` is set by default to 1.
 
 
-    section_array = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15, bundle_number=2)
+```python
+section_array = SectionArray(input_df, sagging_parameter=2_000, sagging_temperature=15, bundle_number=2)
+```
 
 ## Cable
 
@@ -119,7 +123,7 @@ Similarly to line section data, input data should be organized in a table. Howev
 
 You may use the following code to define this data and load it so that it can be used by mechaphlowers:
 
-```
+```python
 import pandas as pd
 import numpy as np
 
@@ -166,14 +170,14 @@ balance_engine_angles.cable_loads.load_angle
 
 The following example shows how to add a wind load on the cable.
 
-!!! Parameters unit
+!!! note "Parameters unit"
 
-	The ice_thickness and wind_pressure are in meters and Pascal respectively.
-	The format of those vectors is span oriented: their size is the same than the section but the last value is not used 
-	That's why we put `np.nan` at the end.
+    The ice_thickness and wind_pressure are in meters and Pascal respectively.
+    The format of those vectors is span oriented: their size is the same than the section but the last value is not used 
+    That's why we put `np.nan` at the end.
 
 
-!!! Wind direction convention
+!!! note "Wind direction convention"
 
     Another attention point is that the wind load can be negative, which means that the wind is blowing in the opposite direction of the line. The sign convention is parameterized by wind_direction ("clockwise" or "anticlockwise").  
     If "clockwise": towards user (right), if "anticlockwise": away from user (left). Default to "anticlockwise".
@@ -201,7 +205,7 @@ Assumption for the representation:
 - base arms are on Y coordinate only, from the trunk  
 - set point are on X coordinate only, from the edge of the base arms  
 
-!!! Warning
+!!! warning
 
     This is a simplified representation to visualize sets positions on the geometry.
 

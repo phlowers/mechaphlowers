@@ -137,7 +137,7 @@ class SectionStudy:
 
     @property
     def manipulation(self) -> Manipulation:
-        """The :class:`Manipulation` object storing geometric overlays."""
+        """The [`Manipulation`][mechaphlowers.core.manipulation.Manipulation] object storing geometric overlays."""
         return self._manipulation
 
     # ── Manipulation methods ──────────────────────────────────────────────
@@ -148,7 +148,7 @@ class SectionStudy:
         """Apply additive offsets to support geometry.
 
         Delegates to
-        :meth:`Manipulation.support_manipulation`.
+        [`Manipulation.support_manipulation`][mechaphlowers.core.manipulation.Manipulation.support_manipulation].
 
         Args:
             manipulation: Dictionary mapping support index (0-based) to
@@ -159,7 +159,7 @@ class SectionStudy:
     def reset_manipulation(self) -> None:
         """Remove the support manipulation overlay.
 
-        Delegates to :meth:`Manipulation.reset_manipulation`.
+        Delegates to [`Manipulation.reset_manipulation`][mechaphlowers.core.manipulation.Manipulation.reset_manipulation].
         """
         self._manipulation.reset_manipulation()
 
@@ -170,7 +170,7 @@ class SectionStudy:
     ) -> None:
         """Override insulator length and mass for specified supports with rope values.
 
-        Delegates to :meth:`Manipulation.rope_manipulation`.
+        Delegates to [`Manipulation.rope_manipulation`][mechaphlowers.core.manipulation.Manipulation.rope_manipulation].
 
         Args:
             rope: Dictionary mapping support index (0-based) to rope length (meters).
@@ -181,7 +181,7 @@ class SectionStudy:
     def reset_rope_manipulation(self) -> None:
         """Remove the rope overlay.
 
-        Delegates to :meth:`Manipulation.reset_rope_manipulation`.
+        Delegates to [`Manipulation.reset_rope_manipulation`][mechaphlowers.core.manipulation.Manipulation.reset_rope_manipulation].
         """
         self._manipulation.reset_rope_manipulation()
 
@@ -190,7 +190,7 @@ class SectionStudy:
     ) -> None:
         """Insert virtual supports.
 
-        Delegates to :meth:`Manipulation.add_virtual_support`.
+        Delegates to [`Manipulation.add_virtual_support`][mechaphlowers.core.manipulation.Manipulation.add_virtual_support].
 
         Args:
             virtual_support: Dictionary mapping left-support index to virtual
@@ -201,7 +201,7 @@ class SectionStudy:
     def reset_virtual_support(self) -> None:
         """Remove all virtual supports.
 
-        Delegates to :meth:`Manipulation.reset_virtual_support`.
+        Delegates to [`Manipulation.reset_virtual_support`][mechaphlowers.core.manipulation.Manipulation.reset_virtual_support].
         """
         self._manipulation.reset_virtual_support()
 
@@ -212,7 +212,7 @@ class SectionStudy:
     ) -> None:
         """Validate and store cable shifting values.
 
-        Delegates to :meth:`Manipulation.shift_cable`.
+        Delegates to [`Manipulation.shift_cable`][mechaphlowers.core.manipulation.Manipulation.shift_cable].
 
         Args:
             shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
@@ -225,7 +225,7 @@ class SectionStudy:
     def reset_cable_shifting(self) -> None:
         """Remove cable shifting.
 
-        Delegates to :meth:`Manipulation.reset_cable_shifting`.
+        Delegates to [`Manipulation.reset_cable_shifting`][mechaphlowers.core.manipulation.Manipulation.reset_cable_shifting].
         """
         self._manipulation.reset_cable_shifting()
 
@@ -237,8 +237,8 @@ class SectionStudy:
         1. Build a clean engine from the original section array and solve
            adjustment to obtain ``initial_L_ref``.
         2. If manipulations are registered, call
-           :meth:`Manipulation.from_section_array` to produce a manipulated
-           copy, then :meth:`Manipulation.initialize_engine` to build the
+           [`Manipulation.from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array] to produce a manipulated
+           copy, then [`Manipulation.initialize_engine`][mechaphlowers.core.manipulation.Manipulation.initialize_engine] to build the
            target engine with injected ``L_ref`` and blocked adjustment.
         3. Rewire downstream engines (caretaker, position, plot, guying).
 
