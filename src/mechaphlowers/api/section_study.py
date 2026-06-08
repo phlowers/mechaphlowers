@@ -262,8 +262,7 @@ class SectionStudy:
                 clean_engine.solve_adjustment()
             except SolverError as e:
                 logger.error(
-                    "Error during solve_adjustment. No changes on the engine state" \
-"
+                    "Error during solve_adjustment. No changes on the engine state"
                 )
                 raise e
 

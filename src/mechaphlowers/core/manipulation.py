@@ -155,9 +155,7 @@ class Manipulation:
         Does nothing if no shifting has been applied.
         """
         if self._shifting_distance_support is None:
-            logger.debug(
-                "reset_cable called but no shifting was applied."
-            )
+            logger.debug("reset_cable called but no shifting was applied.")
             return
         self._shifting_distance_support = None
         self._shortening_distance_span = None

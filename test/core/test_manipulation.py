@@ -74,9 +74,7 @@ def test_support_manipulation_multiple_supports(
 ) -> None:
     original_alt = section_array._data["conductor_attachment_altitude"].copy()
 
-    manipulation.modify_support(
-        {0: {"z": 1.0}, 2: {"z": -0.5, "y": 2.0}}
-    )
+    manipulation.modify_support({0: {"z": 1.0}, 2: {"z": -0.5, "y": 2.0}})
     applied = manipulation.from_section_array(section_array)
 
     assert_allclose(

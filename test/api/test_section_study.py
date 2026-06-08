@@ -394,9 +394,7 @@ class TestSectionStudyManipulation:
         study.solve_change_state(new_temperature=15.0)
         param_before = study.balance_engine.parameter.copy()
 
-        study.manipulation.modify_support(
-            {1: {"z": 10.0}, 2: {"z": -10.0}}
-        )
+        study.manipulation.modify_support({1: {"z": 10.0}, 2: {"z": -10.0}})
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
         param_after = study.balance_engine.parameter
