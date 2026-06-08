@@ -456,12 +456,16 @@ class Manipulation:
                         float,
                         raw_data.loc[idx, "conductor_attachment_altitude"],
                     ) + self._to_input(
-                        offsets["z"], "conductor_attachment_altitude", input_units
+                        offsets["z"],
+                        "conductor_attachment_altitude",
+                        input_units,
                     )
                 if "y" in offsets:
                     raw_data.loc[idx, "crossarm_length"] = cast(
                         float, raw_data.loc[idx, "crossarm_length"]
-                    ) + self._to_input(offsets["y"], "crossarm_length", input_units)
+                    ) + self._to_input(
+                        offsets["y"], "crossarm_length", input_units
+                    )
 
         # Apply rope overlay
         if self._rope_overlay is not None:
@@ -475,7 +479,9 @@ class Manipulation:
                         rope_length, "insulator_length", input_units
                     )
                     raw_data.loc[idx, "insulator_mass"] = self._to_input(
-                        rope_length * self._rope_lineic_mass, "insulator_mass", input_units
+                        rope_length * self._rope_lineic_mass,
+                        "insulator_mass",
+                        input_units,
                     )
 
         # Counterweight masking for affected supports
@@ -490,7 +496,9 @@ class Manipulation:
 
         # Virtual support insertion
         if self._virtual_support_overlay is not None:
-            raw_data = self._apply_virtual_support_overlay(raw_data, input_units)
+            raw_data = self._apply_virtual_support_overlay(
+                raw_data, input_units
+            )
 
         # Create new SectionArray from manipulated data
         sa = SectionArray(
@@ -608,7 +616,9 @@ class Manipulation:
         new_L_ref_1 = new_L_ref[impacted_spans] - new_L_ref_0
 
         new_L_ref[impacted_spans] = new_L_ref_1
-        new_L_ref = np.insert(new_L_ref, np.where(impacted_spans)[0], new_L_ref_0)
+        new_L_ref = np.insert(
+            new_L_ref, np.where(impacted_spans)[0], new_L_ref_0
+        )
 
         return new_L_ref
 
@@ -631,7 +641,11 @@ class Manipulation:
                 section array).
         """
         target = SectionArray.target_units[column]
-        units = input_units if input_units is not None else self._section_array.input_units
+        units = (
+            input_units
+            if input_units is not None
+            else self._section_array.input_units
+        )
         inp = units.get(column, target)
         if inp == target:
             return value
@@ -683,10 +697,16 @@ class Manipulation:
                     "name": f"virtual_{span_idx}",
                     "suspension": True,
                     "conductor_attachment_altitude": self._to_input(
-                        float(vs["z"]), "conductor_attachment_altitude", input_units
+                        float(vs["z"]),
+                        "conductor_attachment_altitude",
+                        input_units,
                     ),
-                    "crossarm_length": self._to_input(0.0, "crossarm_length", input_units),
-                    "line_angle": self._to_input(-angle, "line_angle", input_units),
+                    "crossarm_length": self._to_input(
+                        0.0, "crossarm_length", input_units
+                    ),
+                    "line_angle": self._to_input(
+                        -angle, "line_angle", input_units
+                    ),
                     "insulator_length": self._to_input(
                         max(float(vs["insulator_length"]), 0.01),
                         "insulator_length",
@@ -694,7 +714,9 @@ class Manipulation:
                     ),
                     "span_length": remaining_span,
                     "insulator_mass": self._to_input(
-                        float(vs["insulator_mass"]), "insulator_mass", input_units
+                        float(vs["insulator_mass"]),
+                        "insulator_mass",
+                        input_units,
                     ),
                 }
             )

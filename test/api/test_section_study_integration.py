@@ -163,7 +163,6 @@ def test_virtual_support(study_8span: SectionStudy) -> None:
     """Add a virtual support in span 4 (longest span: 500m)."""
 
     study_8span.solve_adjustment()  # solve before adding virtual support to compute initial L_ref
-    print(study_8span.balance_engine.L_ref)
     study_8span.manipulation.add_virtual_support(
         {
             4: {
@@ -177,7 +176,7 @@ def test_virtual_support(study_8span: SectionStudy) -> None:
         }
     )
     study_8span.solve_adjustment()
-    print(study_8span.balance_engine.L_ref)
+
     study_8span.solve_change_state(new_temperature=15.0)
     assert True
 
@@ -187,7 +186,7 @@ def test_virtual_support_and_shifting(study_8span: SectionStudy) -> None:
     """Add a virtual support in span 4 (longest span: 500m)."""
 
     study_8span.solve_adjustment()  # solve before adding virtual support to compute initial L_ref
-    print(len(study_8span.balance_engine.L_ref))
+
     study_8span.manipulation.add_virtual_support(
         {
             4: {
@@ -200,12 +199,11 @@ def test_virtual_support_and_shifting(study_8span: SectionStudy) -> None:
             },
         }
     )
-    print(len(study_8span.balance_engine.L_ref))
+
     study_8span.manipulation.shift_cable(
         shift_support=[0.0, 1.0, -0.5, 2.0, 0.0, -1.0, 0.5, 1.5, 0.0, 0.0],
     )
     study_8span.solve_adjustment()
-    print(len(study_8span.balance_engine.L_ref))
     study_8span.solve_change_state(new_temperature=15.0)
     assert True
 
