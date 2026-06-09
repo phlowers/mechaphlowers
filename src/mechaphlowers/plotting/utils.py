@@ -11,13 +11,13 @@ from __future__ import annotations
 import numpy as np
 
 from mechaphlowers.config import options
-from mechaphlowers.core.geometry.points import Points
+from mechaphlowers.core.geometry.points import Points, SparsePoints
 
 # Minimum normalized aspect ratio value to avoid zero-sized axes in Plotly
 
 
 def compute_aspect_ratio(
-    *points_objects: Points,
+    *points_objects: Points | SparsePoints,
     x_scale: float = 1.0,
     y_scale: float = 1.0,
     z_scale: float = 1.0,
@@ -83,7 +83,7 @@ def compute_aspect_ratio(
     # Concatenate all points from all Points objects
     all_points_list = []
     for points_obj in points_objects:
-        if not isinstance(points_obj, Points):
+        if not isinstance(points_obj, Points | SparsePoints):
             raise TypeError(
                 f"Expected Points object, got {type(points_obj).__name__}"
             )

@@ -152,7 +152,7 @@ def obstacle_points(obs_array: ObstacleArray) -> SparsePoints:
 @pytest.fixture
 def distance_result() -> DistanceResult:
     return DistanceResult(
-        np.array([100.0000, 0.0000, 0.0000]),
+        np.array([100.0000, 6.7000, 0.0000]),
         np.array([100.0000, 9.9940, 49.9035]),
         np.array([-0.0000, 1.0000, 0.0000]),
         np.array([0.0000, -0.0000, 1.0000]),
@@ -237,8 +237,12 @@ class TestMethods:
     def test_all_coords(self, group_points: GroupPoints):
         group_points._array_all_coords_flattened()
 
-    def test_aspect_ratio(self, group_points: GroupPoints):
-        group_points.get_aspect_ratio()
+    def test_aspect_ratio(self, group_points_obstacles: GroupPoints):
+        group_points_obstacles.get_aspect_ratio()
+
+    def test_all_objects(self, group_points_distances: GroupPoints):
+        reversed_result = group_points_distances.all_objects(True)
+        reversed_result
 
 
 class TestChangeFrame:
@@ -327,7 +331,7 @@ class TestChangeFrame:
         )
         np.testing.assert_equal(
             group_points_distances.distances["obs_1"][0].point_base,  # type: ignore[index]
-            np.array([100.0000, 0.0000, 0.0000]),
+            np.array([100.0000, 6.7000, 0.0000]),
         )
 
 

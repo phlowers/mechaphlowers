@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Literal
 
 import numpy as np
@@ -166,6 +167,16 @@ class DistanceResult:
         self.v_plane = rotate_vector(self.v_plane, angle_to_project)
 
         return self
+
+    def generate_with_reversed_y_axis(self):
+        new_distance_result = deepcopy(self)
+        new_distance_result.point_base[1] = -new_distance_result.point_base[1]
+        new_distance_result.point_target[
+            1
+        ] = -new_distance_result.point_target[1]
+        new_distance_result.u_plane[1] = -new_distance_result.u_plane[1]
+        new_distance_result.v_plane[1] = -new_distance_result.v_plane[1]
+        return new_distance_result
 
 
 class DistanceEngine:

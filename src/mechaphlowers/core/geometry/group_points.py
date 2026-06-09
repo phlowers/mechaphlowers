@@ -10,7 +10,6 @@ from copy import deepcopy
 
 import numpy as np
 
-from mechaphlowers.config import options
 from mechaphlowers.core.geometry.distances import DistanceResult
 from mechaphlowers.core.geometry.points import (
     Points,
@@ -42,6 +41,7 @@ class GroupPoints:
     @property
     def all_points(self) -> dict[str, PointsT]:
         """Dict of Points objects. If an attribute is set to None, it is not included
+        Distances are NOT included in this dict
 
         {
             "spans": self.spans,
@@ -57,72 +57,62 @@ class GroupPoints:
                 result_dict[name] = points
         return result_dict
 
+    # Maybe replace by properties on spans/obstacles/distances attributes?
+    # TODO: test to check that original points are not modified
+    def all_objects(self, reversed_y_axis=False) -> dict:
+        """Dict of all objects. If an attribute is set to None, it is not included
+        Distances are included in this dict
+
+        {
+            "spans": self.spans,
+            "supports": self.supports,
+            "insulators": self.insulators,
+            "obstacles": self.obstacles,
+            "distances": self.distances,
+        }
+        """
+        if reversed_y_axis:
+            result_dict: dict = {}
+            points_objects = ["spans", "supports", "insulators"]
+            for name, points in self.__dict__.items():
+                if points is not None and name in points_objects:
+                    x, y, z = points.vectors
+                    inverted_points = Points.from_vectors(x, -y, z)
+                    result_dict[name] = inverted_points
+            if isinstance(self.obstacles, SparsePoints):
+                reversed_obstacle = deepcopy(self.obstacles)
+                reversed_obstacle.y = -y
+                result_dict["obstacles"] = reversed_obstacle
+
+            if isinstance(self.distances, dict):
+                reversed_distances_dict = deepcopy(self.distances)
+                for obstacle_name, obstacle_dict in self.distances.items():
+                    for point_index, distance_result in obstacle_dict.items():
+                        reversed_distances_dict[obstacle_name][point_index] = (
+                            distance_result.generate_with_reversed_y_axis()
+                        )
+                result_dict["distances"] = reversed_distances_dict
+        else:
+            result_dict = self.all_points
+            result_dict["distances"] = self.distances
+        return result_dict
+
     def get_aspect_ratio(
         self,
         x_scale: float = 1.0,
         y_scale: float = 1.0,
         z_scale: float = 1.0,
     ):
-        all_points = self._array_all_coords_flattened()
-        if all_points.size == 0:
-            raise ValueError(
-                "At least one Points object must contain at least one point to compute aspect ratio"
-            )
+        from mechaphlowers.plotting.utils import compute_aspect_ratio
 
-        # Extract x, y, z coordinates
-        xs = all_points[:, 0]
-        ys = all_points[:, 1]
-        zs = all_points[:, 2]
-
-        # Compute ranges using nanmin/nanmax to handle NaN values
-        x_range = np.nanmax(xs) - np.nanmin(xs)
-        y_range = np.nanmax(ys) - np.nanmin(ys)
-        z_range = np.nanmax(zs) - np.nanmin(zs)
-
-        # Handle edge case where all values in an axis are NaN
-        if np.isnan(x_range) or np.isnan(y_range) or np.isnan(z_range):
-            raise ValueError(
-                "Cannot compute aspect ratio because at least one axis has only NaN values"
-            )
-
-        # Normalize by the maximum range
-        max_range = max(x_range, y_range, z_range)
-        if max_range == 0:
-            raise ValueError(
-                "Data has zero spatial extent; cannot compute aspect ratio"
-            )
-
-        # Compute normalized ranges and clamp zero-extent axes to a small epsilon
-        norm_x = (
-            x_range / max_range
-            if x_range > 0
-            else options.graphics.aspect_epsilon
-        )
-        norm_y = (
-            y_range / max_range
-            if y_range > 0
-            else options.graphics.aspect_epsilon
-        )
-        norm_z = (
-            z_range / max_range
-            if z_range > 0
-            else options.graphics.aspect_epsilon
+        return compute_aspect_ratio(
+            *self.all_points.values(),
+            x_scale=x_scale,
+            y_scale=y_scale,
+            z_scale=z_scale,
         )
 
-        aspect_x = norm_x * x_scale
-        aspect_y = norm_y * y_scale
-        aspect_z = norm_z * z_scale
-
-        return {
-            "x": float(aspect_x),
-            "y": float(aspect_y),
-            "z": float(aspect_z),
-        }
-
-    # TODO:
-    def filter(self, start: int, end: int):
-        pass
-
+    # TODO: remove?
     def _array_all_coords_flattened(self) -> np.ndarray:
         """Returns an array containing all points flattened:
 
