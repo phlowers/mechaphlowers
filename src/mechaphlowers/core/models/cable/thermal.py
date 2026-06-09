@@ -13,11 +13,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from thermohl import solver  # type: ignore
-from thermohl.solver.entities import (  # type: ignore
-    PowerType,
-    TemperatureType,
-    VariableType,
-)
 from typing_extensions import Self
 
 from mechaphlowers.entities.arrays import CableArray
@@ -90,20 +85,16 @@ class ThermalTransientResults(ThermalResults):
             raise TypeError(
                 "DataFrame input not supported for transient results parsing."
             )
-        input_size = data[TemperatureType.AVERAGE].shape
+        input_size = data["average_temperature"].shape
         return pd.DataFrame(
             {
-                "time": np.tile(data[VariableType.TIME], input_size[1]),
+                "time": np.tile(data["time"], input_size[1]),
                 "id": np.tile(
                     np.arange(input_size[1]), (input_size[0], 1)
                 ).T.flatten(),
-                "average_temperature": data[
-                    TemperatureType.AVERAGE
-                ].T.flatten(),
-                "surface_temperature": data[
-                    TemperatureType.SURFACE
-                ].T.flatten(),
-                "core_temperature": data[TemperatureType.CORE].T.flatten(),
+                "average_temperature": data["average_temperature"].T.flatten(),
+                "surface_temperature": data["surface_temperature"].T.flatten(),
+                "core_temperature": data["core_temperature"].T.flatten(),
             }
         )
 
@@ -134,22 +125,9 @@ class ThermalSteadyResults(ThermalResults):
         Returns:
             Parsed results as a pandas DataFrame.
         """
-        column_names = {
-            VariableType.TRANSIT: "transit",
-            TemperatureType.SURFACE: "surface_temperature",
-            TemperatureType.AVERAGE: "average_temperature",
-            TemperatureType.CORE: "core_temperature",
-            PowerType.JOULE: "joule_power",
-            PowerType.SOLAR: "solar_power",
-            PowerType.CONVECTION: "convection_power",
-            PowerType.RADIATION: "radiation_power",
-            PowerType.RAIN: "precipitation_power",
-        }
         if isinstance(data, pd.DataFrame):
-            return data.rename(columns=column_names)
-        return pd.DataFrame(
-            {column_names.get(key, key): value for key, value in data.items()}
-        )
+            return data.copy()
+        return pd.DataFrame(data)
 
 
 class ThermalForecastArray:
