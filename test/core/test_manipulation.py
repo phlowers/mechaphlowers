@@ -13,7 +13,11 @@ from numpy.testing import assert_allclose
 
 from mechaphlowers.core.manipulation import Manipulation
 from mechaphlowers.entities.arrays import SectionArray
-from mechaphlowers.entities.errors import BalanceEngineWarning
+from mechaphlowers.entities.errors import (
+    BalanceEngineWarning,
+    InvalidManipulationIndex,
+    InvalidManipulationKeys,
+)
 
 
 @pytest.fixture
@@ -85,6 +89,10 @@ def test_support_manipulation_multiple_supports(
         applied.data["conductor_attachment_altitude"].iloc[2],
         original_alt.iloc[2] - 0.5,
     )
+    assert_allclose(
+        applied.data["crossarm_length"].iloc[2],
+        section_array._data["crossarm_length"].iloc[2] + 2.0,
+    )
 
 
 def test_support_manipulation_partial_keys(
@@ -120,17 +128,48 @@ def test_support_manipulation_partial_keys(
     )
 
 
+def test_support_manipulation_add_successive_without_reset(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+    original_arm = section_array._data["crossarm_length"].copy()
+
+    manipulation.modify_support({0: {"z": 1.5}})
+    applied = manipulation.from_section_array(section_array)
+
+    assert_allclose(
+        applied.data["conductor_attachment_altitude"].iloc[0],
+        original_alt.iloc[0] + 1.5,
+    )
+    assert_allclose(
+        applied.data["crossarm_length"].iloc[0],
+        original_arm.iloc[0],
+    )
+
+    manipulation.modify_support({0: {"y": -1.0}})
+    applied = manipulation.from_section_array(section_array)
+    assert_allclose(
+        applied.data["conductor_attachment_altitude"].iloc[0],
+        original_alt.iloc[0] + 1.5,
+    )
+    assert_allclose(
+        applied.data["crossarm_length"].iloc[0],
+        original_arm.iloc[0] - 1.0,
+    )
+
+
 def test_support_manipulation_invalid_index(
     manipulation: Manipulation,
 ) -> None:
-    with pytest.raises(ValueError, match="out of range"):
+    with pytest.raises(InvalidManipulationIndex):
         manipulation.modify_support({10: {"z": 1.0}})
 
 
 def test_support_manipulation_invalid_keys(
     manipulation: Manipulation,
 ) -> None:
-    with pytest.raises(ValueError, match="Invalid keys"):
+    with pytest.raises(InvalidManipulationKeys):
         manipulation.modify_support({0: {"x": 1.0}})
 
 
@@ -202,7 +241,7 @@ def test_rope_manipulation_overrides_data(
         original_insulator_mass.iloc[0],
     )
 
-    # Original _data must be untouched
+    # Original _data must be unchanged
     assert_allclose(
         section_array._data["insulator_length"].to_numpy(),
         original_insulator_length.to_numpy(),
@@ -238,7 +277,7 @@ def test_rope_manipulation_insulator_weight_updated(
 
 
 def test_rope_manipulation_invalid_index(manipulation: Manipulation) -> None:
-    with pytest.raises(ValueError, match="out of range"):
+    with pytest.raises(InvalidManipulationIndex, match="out of range"):
         manipulation.add_rope({99: 3.0})
 
 
@@ -456,7 +495,7 @@ def test_has_manipulations_after_virtual_support(
 def test_has_manipulations_after_shifting(
     manipulation: Manipulation,
 ) -> None:
-    manipulation.modify_cable(shift_support=np.array([0.0, 1.0, 0.0, 0.0]))
+    manipulation.modify_cable(shift_support={1: 1.0})
     assert manipulation.has_manipulations
 
 
@@ -468,6 +507,8 @@ def test_add_cable_shifting_default_values(
 ) -> None:
     manipulation.modify_cable()
 
+    assert manipulation.shift_support is not None
+    assert manipulation.shortening_span is not None
     np.testing.assert_array_equal(manipulation.shift_support, np.zeros(4))
     np.testing.assert_array_equal(manipulation.shortening_span, np.zeros(3))
 
@@ -475,35 +516,34 @@ def test_add_cable_shifting_default_values(
 def test_add_cable_shifting_stores_values(
     manipulation: Manipulation,
 ) -> None:
-    shifting = np.array([0.0, 1.5, 2.0, 0.0])
-    shortening = np.array([0.0, 0.5, 1.0])
-
     manipulation.modify_cable(
-        shift_support=shifting,
-        shorten_span=shortening,
+        shift_support={1: 1.5, 2: 2.0},
+        shorten_span={1: 0.5, 2: 1.0},
     )
 
-    np.testing.assert_array_equal(manipulation.shift_support, shifting)
-    np.testing.assert_array_equal(manipulation.shortening_span, shortening)
+    expected_shift = np.array([0.0, 1.5, 2.0, 0.0])
+    expected_shorten = np.array([0.0, 0.5, 1.0])
+    np.testing.assert_array_equal(manipulation.shift_support, expected_shift)
+    np.testing.assert_array_equal(
+        manipulation.shortening_span, expected_shorten
+    )
 
 
 def test_add_cable_shifting_wrong_size_shifting(
     manipulation: Manipulation,
 ) -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidManipulationIndex):
         manipulation.modify_cable(
-            shift_support=np.array([0.0, 1.0, 0.0])  # 3 elements, 4 expected
+            shift_support={99: 1.0}  # index out of range
         )
 
 
 def test_add_cable_shifting_wrong_size_shortening(
     manipulation: Manipulation,
 ) -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidManipulationIndex):
         manipulation.modify_cable(
-            shorten_span=np.array(
-                [0.0, 1.0, 0.0, 0.0]
-            )  # 4 elements, 3 expected
+            shorten_span={99: 1.0}  # index out of range
         )
 
 
@@ -511,7 +551,9 @@ def test_add_cable_shifting_enforces_shifting_boundaries(
     manipulation: Manipulation,
 ) -> None:
     with pytest.warns(BalanceEngineWarning):
-        manipulation.modify_cable(shift_support=np.array([5.0, 1.0, 2.0, 3.0]))
+        manipulation.modify_cable(
+            shift_support={0: 5.0, 1: 1.0, 2: 2.0, 3: 3.0}
+        )
 
     assert manipulation.shift_support is not None
     assert abs(manipulation.shift_support[0]) < 1e-5
@@ -528,8 +570,8 @@ def test_add_cable_shifting_no_warning_when_boundaries_are_compliant(
     with _warnings.catch_warnings():
         _warnings.simplefilter("error", BalanceEngineWarning)
         manipulation.modify_cable(
-            shift_support=np.array([0.0, 1.0, 2.0, 0.0]),
-            shorten_span=np.array([0.0, 1.0, 2.0]),
+            shift_support={1: 1.0, 2: 2.0},
+            shorten_span={0: 0.0, 1: 1.0, 2: 2.0},
         )
 
 
@@ -542,14 +584,14 @@ def test_has_shifting_false_initially(
 def test_has_shifting_after_add(
     manipulation: Manipulation,
 ) -> None:
-    manipulation.modify_cable(shift_support=np.array([0.0, 1.0, 0.0, 0.0]))
+    manipulation.modify_cable(shift_support={1: 1.0})
     assert manipulation.has_shifting
 
 
 def test_reset_cable_shifting(
     manipulation: Manipulation,
 ) -> None:
-    manipulation.modify_cable(shift_support=np.array([0.0, 1.0, 0.0, 0.0]))
+    manipulation.modify_cable(shift_support={1: 1.0})
     manipulation.reset_cable()
     assert not manipulation.has_shifting
     assert manipulation.shift_support is None
@@ -568,7 +610,7 @@ def test_compute_shifted_L_ref(
     initial_L_ref = np.array([500.0, 300.0, 400.0])
 
     # shift support 1 by 1m → span 0 gains 1m, span 1 loses 1m
-    manipulation.modify_cable(shift_support=np.array([0.0, 1.0, 0.0, 0.0]))
+    manipulation.modify_cable(shift_support={1: 1.0})
     shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
     np.testing.assert_allclose(shifted, np.array([501.0, 299.0, 400.0]))
 
@@ -578,7 +620,7 @@ def test_compute_shifted_L_ref_with_shortening(
 ) -> None:
     initial_L_ref = np.array([500.0, 300.0, 400.0])
 
-    manipulation.modify_cable(shorten_span=np.array([0.0, 2.0, 0.0]))
+    manipulation.modify_cable(shorten_span={1: 2.0})
     shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
     np.testing.assert_allclose(shifted, np.array([500.0, 298.0, 400.0]))
 

@@ -356,16 +356,14 @@ study.add_virtual_support({
 
 `modify_cable` applies horizontal support shifting and span length modifications to the cable geometry. This is applied at solve time alongside the other manipulations.
 
-- `shift_support`: array of horizontal offsets per support (m), length = number of supports; first and last values are forced to 0.
-- `shorten_span`: array of span length reductions (m), length = number of spans; positive values shorten the span.
+- `shift_support`: dictionary mapping support index (0-based) to horizontal offset (m); first and last supports are forced to 0. Unspecified supports default to 0.
+- `shorten_span`: dictionary mapping span index (0-based) to span length reduction (m); positive values shorten the span. Unspecified spans default to 0.
 
 ```python
-import numpy as np
-
 # Shift support 1 by 0.5 m, shorten the first span by 1 m
 study.modify_cable(
-    shift_support=np.array([0.0, 0.5, 0.0, 0.0]),
-    shorten_span=np.array([1.0, 0.0, 0.0]),
+    shift_support={1: 0.5},
+    shorten_span={0: 1.0},
 )
 
 study.solve_adjustment()

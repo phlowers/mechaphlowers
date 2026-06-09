@@ -313,7 +313,7 @@ class ISpan(ABC):
 
     @abstractmethod
     def compute_partial_L(self, new_a: np.ndarray) -> np.ndarray:
-        """Cable length from left hanging point to abscissa x."""
+        """Cable length from left hanging point to point corresponding to span length new_a."""
 
     @abstractmethod
     def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
@@ -577,16 +577,14 @@ class CatenarySpan(ISpan):
         return p * np.sinh(self.compute_x_n() / p)
 
     def compute_L(self) -> np.ndarray:
-        # move in superclass?
         """Total length of the cable."""
         p = self.parameter
         return p * (
             np.sinh(self.compute_x_n() / p) - np.sinh(self.compute_x_m() / p)
         )
 
-    def compute_partial_L(self, new_a) -> np.ndarray:
-        # move in superclass?
-        """Total length of the cable."""
+    def compute_partial_L(self, new_a: np.ndarray) -> np.ndarray:
+        """Cable length from left hanging point to point corresponding to span length new_a."""
         p = self.parameter
         x = new_a + self._x_m
         return p * (np.sinh(x / p) - np.sinh(self._x_m / p))

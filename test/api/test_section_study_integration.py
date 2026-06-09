@@ -100,38 +100,118 @@ def study_8span(cable_array_AM600: CableArray) -> SectionStudy:
     )
 
 
+@pytest.fixture
+def study_8span_Lref(study_8span: SectionStudy) -> np.ndarray:
+    """Reference lengths for the 8 spans in the study_8span."""
+
+    study_8span.solve_adjustment()
+    return study_8span._balance_engine.L_ref
+
+
 @pytest.mark.integration
-def test_lengthen(study_8span: SectionStudy) -> None:
+def test_lengthen(
+    study_8span: SectionStudy, study_8span_Lref: np.ndarray
+) -> None:
     """Negative shortening lengthens spans."""
     study_8span.manipulation.modify_cable(
-        shift_support=[0.0, -2.0, 0.0, -1.5, 0.0, 0.0, -3.0, 0.0, 0.0],
+        shift_support={1: 2.0, 3: -1.5, 6: -3.0},
     )
     study_8span.solve_adjustment()
     study_8span.solve_change_state(new_temperature=15.0)
-    assert True
+
+    expected_shift = np.array(
+        [
+            -2.0,
+            2.0,
+            1.5,
+            -1.5,
+            0.0,
+            3.0,
+            -3.0,
+            0.0,
+        ]
+    )
+
+    np.testing.assert_allclose(
+        study_8span._balance_engine.L_ref,
+        study_8span_Lref - expected_shift,
+    )
+
+    np.testing.assert_allclose(
+        study_8span.manipulation.compute_shifted_L_ref(
+            np.zeros_like(study_8span_Lref)
+        ),
+        expected_shift,
+    )
 
 
 @pytest.mark.integration
-def test_shorten(study_8span: SectionStudy) -> None:
+def test_shorten(
+    study_8span: SectionStudy, study_8span_Lref: np.ndarray
+) -> None:
     """Positive shortening shortens spans."""
     study_8span.manipulation.modify_cable(
-        shorten_span=[0.0, 2.0, 0.0, 1.5, 0.0, 0.0, 3.0, 0.0],
+        shorten_span={1: 2.0, 3: -1.5, 6: -3.0},
     )
     study_8span.solve_adjustment()
     study_8span.solve_change_state(new_temperature=15.0)
-    assert True
+
+    expected_shorten = np.array(
+        [
+            0.0,
+            2.0,
+            0.0,
+            -1.5,
+            0.0,
+            0.0,
+            -3.0,
+            0.0,
+        ]
+    )
+    np.testing.assert_allclose(
+        study_8span._balance_engine.L_ref,
+        study_8span_Lref - expected_shorten,
+    )
+
+    np.testing.assert_allclose(
+        study_8span.manipulation.shortening_span,
+        expected_shorten,
+    )
 
 
 @pytest.mark.integration
-def test_cable_shifting(study_8span: SectionStudy) -> None:
+def test_cable_shifting(
+    study_8span: SectionStudy, study_8span_Lref: np.ndarray
+) -> None:
     """Cable shifting with horizontal offsets."""
     study_8span.manipulation.modify_cable(
-        shift_support=[0.0, 1.0, -0.5, 2.0, 0.0, -1.0, 0.5, 1.5, 0.0],
-        shorten_span=[0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        shift_support={
+            1: 1.0,
+            2: -0.5,
+            3: 2.0,
+            5: -1.0,
+        },
+        shorten_span={1: 2.0},
     )
     study_8span.solve_adjustment()
     study_8span.solve_change_state(new_temperature=15.0)
-    assert True
+    print(study_8span._balance_engine.L_ref)
+    expected_shorten_shift = np.array(
+        [
+            -1.0,
+            1.0 + 0.5 + 2,
+            -0.5 - 2,
+            2,
+            1.0,
+            -1.0,
+            0.0,
+            0.0,
+        ]
+    )
+    np.testing.assert_allclose(
+        study_8span._balance_engine.L_ref,
+        study_8span_Lref - expected_shorten_shift,
+    )
 
 
 @pytest.mark.integration
@@ -140,12 +220,22 @@ def test_rope(study_8span: SectionStudy) -> None:
     study_8span.manipulation.add_rope({2: 5.0, 5: 4.0})
     study_8span.solve_adjustment()
     study_8span.solve_change_state(new_temperature=15.0)
-    assert True
+    
+    expected_insulator_length = np.array(
+        [3.0, 3.0, 5.0, 3.0, 3.0, 4.0, 3.0, 3.0, 3.0]
+    )
+    np.testing.assert_allclose(
+        study_8span.balance_engine.section_array.data["insulator_length"],
+        expected_insulator_length,
+    )
+    
+
 
 
 @pytest.mark.integration
 def test_support_shifting(study_8span: SectionStudy) -> None:
     """Shift supports vertically and laterally."""
+    
     study_8span.manipulation.modify_support(
         {
             1: {"z": 2.0},
@@ -182,10 +272,25 @@ def test_virtual_support(study_8span: SectionStudy) -> None:
 
 
 @pytest.mark.integration
-def test_virtual_support_and_shifting(study_8span: SectionStudy) -> None:
+def test_virtual_support_doesnot_change_input_index(study_8span: SectionStudy, study_8span_Lref: np.ndarray) -> None:
     """Add a virtual support in span 4 (longest span: 500m)."""
 
-    study_8span.solve_adjustment()  # solve before adding virtual support to compute initial L_ref
+    study_8span.manipulation.modify_cable(
+        shift_support={
+            1: 1.0,
+            6: 2.0, 7: 1.0,},
+    )
+    study_8span.manipulation.modify_support(
+        {
+            5: {"z": 2.0},
+        }
+    )
+    study_8span.add_rope({5: 4.0})
+    study_8span.solve_adjustment()
+    study_8span.solve_change_state(new_temperature=15.0)
+
+    L_ref_before_support_addition = study_8span._balance_engine.L_ref.copy()
+
 
     study_8span.manipulation.add_virtual_support(
         {
@@ -199,13 +304,96 @@ def test_virtual_support_and_shifting(study_8span: SectionStudy) -> None:
             },
         }
     )
+    study_8span.solve_adjustment()
+    np.testing.assert_allclose(
+        L_ref_before_support_addition[:4],
+        study_8span._balance_engine.L_ref[:4],
+    )
+    np.testing.assert_allclose(
+        L_ref_before_support_addition[5:],
+        study_8span._balance_engine.L_ref[6:],
+    )
+
+    study_8span.reset_all()  # reset manipulations to check that virtual support addition does not change input index   
+    
+    # Check in the inverse affectation order
+    study_8span.manipulation.add_virtual_support(
+        {
+            4: {
+                "x": 250.0,
+                "y": 0.0,
+                "z": 45.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 250.0,
+            },
+        }
+    )
+    study_8span.manipulation.modify_cable(
+        shift_support={
+            1: 1.0,
+            6: 2.0, 7: 1.0,},
+    )
+    study_8span.manipulation.modify_support(
+        {
+            5: {"z": 2.0},
+        }
+    )
+    study_8span.add_rope({5: 4.0})
+    study_8span.solve_adjustment()
+
+
+    study_8span.solve_adjustment()
+    
+    np.testing.assert_allclose(
+        L_ref_before_support_addition[:4],
+        study_8span._balance_engine.L_ref[:4],
+    )
+    np.testing.assert_allclose(
+        L_ref_before_support_addition[5:],
+        study_8span._balance_engine.L_ref[6:],
+    )
+
+
+
+@pytest.mark.integration
+def test_virtual_support_and_manip_same_span(study_8span: SectionStudy, study_8span_Lref: np.ndarray) -> None:
+    """Add a virtual support in span 4 (longest span: 500m)."""
 
     study_8span.manipulation.modify_cable(
-        shift_support=[0.0, 1.0, -0.5, 2.0, 0.0, -1.0, 0.5, 1.5, 0.0, 0.0],
+        shift_support={
+            4: 1.0,
+            },
     )
     study_8span.solve_adjustment()
+
     study_8span.solve_change_state(new_temperature=15.0)
-    assert True
+
+    L_ref_before_support_addition = study_8span._balance_engine.L_ref.copy()
+
+
+    study_8span.manipulation.add_virtual_support(
+        {
+            4: {
+                "x": 250.0,
+                "y": 0.0,
+                "z": 45.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 250.0,
+            },
+        }
+    )
+    study_8span.solve_adjustment()
+    np.testing.assert_allclose(
+        L_ref_before_support_addition[:4],
+        study_8span._balance_engine.L_ref[:4],
+    )
+    np.testing.assert_allclose(
+        L_ref_before_support_addition[5:],
+        study_8span._balance_engine.L_ref[6:],
+    )
+    study_8span.solve_change_state(new_temperature=15.0)
 
 
 @pytest.mark.integration

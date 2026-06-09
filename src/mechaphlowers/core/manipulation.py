@@ -18,7 +18,12 @@ from mechaphlowers.config import options
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import SectionArray
-from mechaphlowers.entities.errors import BalanceEngineWarning
+from mechaphlowers.entities.errors import (
+    BalanceEngineWarning,
+    InvalidManipulationIndex,
+    InvalidManipulationKeys,
+    InvalidManipulationRange,
+)
 from mechaphlowers.utils import arr
 
 if TYPE_CHECKING:
@@ -81,55 +86,56 @@ class Manipulation:
 
     def modify_cable(
         self,
-        shift_support: np.ndarray | list | None = None,
-        shorten_span: np.ndarray | list | None = None,
+        shift_support: dict[int, float] | None = None,
+        shorten_span: dict[int, float] | None = None,
     ) -> None:
         """Validate and store cable shifting values.
 
-        Expected input are arrays whose sizes match the number of supports
-        (after virtual-support insertion, if any).
+        Inputs are sparse dicts mapping indices to values in meters.
+        Unspecified supports/spans default to 0.
 
         Args:
-            shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
-                Array of length ``support_number`` (support based). The first and last values
-                are enforced to 0. If ``None``, an array of zeros is used.
-            shorten_span (np.ndarray | list | None): Span length modification, in meters.
-                Array of length ``support_number - 1`` (span based), one value per span.
-                Positive values shorten the spans, negative values lengthen them. If ``None``,
-                an array of zeros is used.
+            shift_support (dict[int, float] | None): Horizontal shifting of each support, in meters.
+                Dictionary mapping support index (0-based) to shift value. The first and last
+                supports (index 0 and ``support_number - 1``) are enforced to 0. If ``None``,
+                no shifting is applied.
+            shorten_span (dict[int, float] | None): Span length modification, in meters.
+                Dictionary mapping span index (0-based) to shortening value. Positive values
+                shorten the spans, negative values lengthen them. If ``None``, no shortening
+                is applied.
 
         Raises:
-            ValueError: if input arrays don't have correct size.
+            InvalidManipulationIndex: If a support or span index is out of range.
         """
         n_supports = len(self._section_array._data)
-        if self._virtual_support_overlay is not None:
-            n_supports += len(self._virtual_support_overlay)
+        n_spans = n_supports - 1
+
+        shift_support = shift_support or {}
+        shorten_span = shorten_span or {}
+
+        # Validate indices
+        for idx in shift_support:
+            if idx < 0 or idx >= n_supports:
+                raise InvalidManipulationIndex(
+                    f"shift_support index {idx} is out of range (0 to {n_supports - 1})"
+                )
+        for idx in shorten_span:
+            if idx < 0 or idx >= n_spans:
+                raise InvalidManipulationIndex(
+                    f"shorten_span index {idx} is out of range (0 to {n_spans - 1})"
+                )
 
         # Convert to numpy arrays
-        shift_support = (
-            np.array(shift_support, dtype=np.float64)
-            if shift_support is not None
-            else np.zeros(n_supports)
-        )
-        shorten_span = (
-            np.array(shorten_span, dtype=np.float64)
-            if shorten_span is not None
-            else np.zeros(n_supports - 1)
-        )
+        shift_support_arr = np.zeros(n_supports, dtype=np.float64)
+        for idx, val in shift_support.items():
+            shift_support_arr[idx] = val
 
-        # Check size matches number of supports
-        if shift_support.size != n_supports:
-            raise ValueError(
-                f"shift_support has incorrect size: {n_supports} is expected, received {shift_support.size}"
-            )
-        expected_span_size = n_supports - 1
-        if shorten_span.size != expected_span_size:
-            raise ValueError(
-                f"shorten_span has incorrect size: {expected_span_size} is expected, received {shorten_span.size}"
-            )
+        shorten_span_arr = np.zeros(n_spans, dtype=np.float64)
+        for idx, val in shorten_span.items():
+            shorten_span_arr[idx] = val
 
         # Enforce constraints: shifting_distance first and last are 0
-        if abs(shift_support[0]) > 0.0 or abs(shift_support[-1]) > 0.0:
+        if abs(shift_support_arr[0]) > 0.0 or abs(shift_support_arr[-1]) > 0.0:
             logger.warning(
                 "shift_support first and last values must be 0 (support based). "
                 "Enforcing this constraint."
@@ -138,15 +144,15 @@ class Manipulation:
                 "First and last values of shift_support have been reset to 0",
                 BalanceEngineWarning,
             )
-        shift_support[0] = 0.0
-        shift_support[-1] = 0.0
+        shift_support_arr[0] = 0.0
+        shift_support_arr[-1] = 0.0
 
         # Store in private attributes
-        self._shifting_distance_support = shift_support
-        self._shortening_distance_span = shorten_span
+        self._shifting_distance_support = shift_support_arr
+        self._shortening_distance_span = shorten_span_arr
 
         logger.debug(
-            f"Cable shifting stored: shift_support={shift_support}, shorten_span={shorten_span}"
+            f"Cable shifting stored: shift_support={shift_support_arr}, shorten_span={shorten_span_arr}"
         )
 
     def reset_cable(self) -> None:
@@ -201,8 +207,8 @@ class Manipulation:
                 - ``"z"``: added to ``conductor_attachment_altitude`` (meters)
 
         Raises:
-            ValueError: If a support index is out of range.
-            ValueError: If an inner dict contains keys other than ``"y"`` or ``"z"``.
+            InvalidManipulationIndex: If a support index is out of range.
+            InvalidManipulationKeys: If an inner dict contains keys other than ``"y"`` or ``"z"``.
 
         Examples:
             >>> manip.modify_support({1: {"z": 2.0, "y": -1.0}})
@@ -213,12 +219,12 @@ class Manipulation:
 
         for idx, offsets in manipulation.items():
             if idx < 0 or idx >= n_supports:
-                raise ValueError(
+                raise InvalidManipulationIndex(
                     f"Support index {idx} is out of range [0, {n_supports - 1}]"
                 )
             invalid_keys = set(offsets.keys()) - allowed_keys
             if invalid_keys:
-                raise ValueError(
+                raise InvalidManipulationKeys(
                     f"Invalid keys {invalid_keys} for support {idx}. Allowed keys: {allowed_keys}"
                 )
 
@@ -274,7 +280,7 @@ class Manipulation:
                 ``options.data.rope_lineic_mass_default`` (``0.01`` kg/m).
 
         Raises:
-            ValueError: If a support index is out of range.
+            InvalidManipulationIndex: If a support index is out of range.
 
         Examples:
             >>> manip.add_rope({1: 4.5, 2: 3.0})
@@ -283,7 +289,7 @@ class Manipulation:
         n_supports = len(self._section_array._data)
         for idx in rope:
             if idx < 0 or idx >= n_supports:
-                raise ValueError(
+                raise InvalidManipulationIndex(
                     f"Support index {idx} is out of range [0, {n_supports - 1}]"
                 )
 
@@ -339,10 +345,10 @@ class Manipulation:
                   the left support to the cable hanging point in meters.
 
         Raises:
-            ValueError: If a span index is out of range.
-            ValueError: If ``x`` or ``hanging_cable_point_from_left_support`` is
+            InvalidManipulationIndex: If a span index is out of range.
+            InvalidManipulationRange: If ``x`` or ``hanging_cable_point_from_left_support`` is
                 out of the allowed range.
-            ValueError: If required keys are missing.
+            InvalidManipulationKeys: If required keys are missing.
 
         Examples:
             >>> manip.add_virtual_support(
@@ -370,12 +376,12 @@ class Manipulation:
 
         for span_idx, vs in virtual_support.items():
             if span_idx < 0 or span_idx >= n_supports - 1:
-                raise ValueError(
+                raise InvalidManipulationIndex(
                     f"Span index {span_idx} is out of range [0, {n_supports - 2}]"
                 )
             missing_keys = required_keys - set(vs.keys())
             if missing_keys:
-                raise ValueError(
+                raise InvalidManipulationKeys(
                     f"Missing keys {missing_keys} for span {span_idx}. Required: {required_keys}"
                 )
             span_length = float(
@@ -391,12 +397,12 @@ class Manipulation:
             x_lower = -abs(crossarm_left)
             x_upper = abs(span_length) + abs(crossarm_right)
             if x <= x_lower or x >= x_upper:
-                raise ValueError(
+                raise InvalidManipulationRange(
                     f"x={x} is out of range ({x_lower}, {x_upper}) for span {span_idx}"
                 )
             hcp = vs["hanging_cable_point_from_left_support"]
             if hcp <= x_lower or hcp >= x_upper:
-                raise ValueError(
+                raise InvalidManipulationRange(
                     f"hanging_cable_point_from_left_support={hcp} is out of range ({x_lower}, {x_upper}) for span {span_idx}"
                 )
 
@@ -421,6 +427,26 @@ class Manipulation:
             return
         self._virtual_support_overlay = None
         logger.debug("Virtual support overlay cleared.")
+
+    def reset_all(self) -> None:
+        """Remove all active manipulations.
+
+        Calls [`reset_support`][mechaphlowers.core.manipulation.Manipulation.reset_support],
+        [`reset_rope`][mechaphlowers.core.manipulation.Manipulation.reset_rope],
+        [`reset_virtual_support`][mechaphlowers.core.manipulation.Manipulation.reset_virtual_support],
+        and [`reset_cable`][mechaphlowers.core.manipulation.Manipulation.reset_cable] in sequence.
+        Does nothing for each manipulation that was not active.
+
+        Examples:
+            >>> manip.modify_support({1: {"z": 2.0}})
+            >>> manip.add_rope({2: 4.0})
+            >>> manip.reset_all()  # both overlays cleared
+        """
+        self.reset_support()
+        self.reset_rope()
+        self.reset_virtual_support()
+        self.reset_cable()
+        logger.debug("All manipulations reset.")
 
     # ── Apply ─────────────────────────────────────────────────────────────
 
@@ -501,13 +527,29 @@ class Manipulation:
         # Create new SectionArray from manipulated data
         sa = SectionArray(
             raw_data,
-            # sagging_parameter=original.sagging_parameter,
-            # sagging_temperature=original.sagging_temperature,
             bundle_number=original.bundle_number,
         )
         sa.input_units = original.input_units.copy()
         sa._angle_direction = original._angle_direction
         sa.geolocator = copy(original.geolocator)
+
+        applied = []
+        if self._support_overlay is not None:
+            applied.append(f"support_overlay={self._support_overlay}")
+        if self._rope_overlay is not None:
+            applied.append(f"rope_overlay={self._rope_overlay}")
+        if self._virtual_support_overlay is not None:
+            applied.append(
+                f"virtual_support_overlay={list(self._virtual_support_overlay.keys())}"
+            )
+        if self._shifting_distance_support is not None:
+            applied.append(
+                f"cable_shifting={self._shifting_distance_support}, cable_shortening={self._shortening_distance_span}"
+            )
+        logger.debug(
+            "from_section_array applied: %s",
+            ", ".join(applied) if applied else "no overlays",
+        )
         return sa
 
     def initialize_engine(
@@ -547,13 +589,13 @@ class Manipulation:
 
         L_ref = initial_L_ref.copy()
 
-        # Virtual-support L_ref splitting
-        if self.has_virtual_support:
-            L_ref = self.compute_split_L_ref(L_ref, clean_engine.span_model)
-
         # Cable shifting
         if self.has_shifting:
             L_ref = self.compute_shifted_L_ref(L_ref)
+
+        # Virtual-support L_ref splitting
+        if self.has_virtual_support:
+            L_ref = self.compute_split_L_ref(L_ref, clean_engine.span_model)
 
         # Build target engine
         target_engine = _BE(

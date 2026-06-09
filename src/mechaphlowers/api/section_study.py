@@ -207,18 +207,20 @@ class SectionStudy:
 
     def modify_cable(
         self,
-        shift_support: np.ndarray | list | None = None,
-        shorten_span: np.ndarray | list | None = None,
+        shift_support: dict[int, float] | None = None,
+        shorten_span: dict[int, float] | None = None,
     ) -> None:
         """Validate and store cable shifting values.
 
         Delegates to [`Manipulation.modify_cable`][mechaphlowers.core.manipulation.Manipulation.modify_cable].
 
         Args:
-            shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
-                Array of length ``support_number``; first and last values are forced to 0.
-            shorten_span (np.ndarray | list | None): Span length modification, in meters.
-                Array of length ``support_number - 1``; positive values shorten the span.
+            shift_support (dict[int, float] | None): Horizontal shifting per support, in meters.
+                Dictionary mapping support index (0-based) to shift value; first and last
+                supports are forced to 0.
+            shorten_span (dict[int, float] | None): Span length modification per span, in meters.
+                Dictionary mapping span index (0-based) to shortening value; positive values
+                shorten the span.
         """
         self._manipulation.modify_cable(shift_support, shorten_span)
 
@@ -228,6 +230,13 @@ class SectionStudy:
         Delegates to [`Manipulation.reset_cable`][mechaphlowers.core.manipulation.Manipulation.reset_cable].
         """
         self._manipulation.reset_cable()
+
+    def reset_all(self) -> None:
+        """Remove all active manipulations.
+
+        Delegates to [`Manipulation.reset_all`][mechaphlowers.core.manipulation.Manipulation.reset_all].
+        """
+        self._manipulation.reset_all()
 
     # ── Solve methods (with rollback + intermediate) ──────────────────────
 
@@ -446,7 +455,7 @@ class SectionStudy:
         return self._position_engine.get_supports_points()
 
     def get_points_for_plot(
-        self, project=False, frame_index=0
+        self, project: bool = False, frame_index=0
     ) -> tuple[Points, Points, Points]:
         """Delegate to [`PositionEngine.get_points_for_plot`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_points_for_plot].
 
