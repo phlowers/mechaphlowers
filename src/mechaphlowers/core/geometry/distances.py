@@ -131,17 +131,6 @@ class DistanceResult:
     def __repr__(self):
         return "<DistanceResult>\n" + self.__str__()
 
-    def __copy__(self) -> DistanceResult:
-        return DistanceResult(
-            point_base=self.point_base,
-            point_target=self.point_target,
-            u_plane=self.u_plane,
-            v_plane=self.v_plane,
-            distance_3d=self.distance_3d,
-            distance_projection_u=self.distance_projection_u,
-            distance_projection_v=self.distance_projection_v,
-        )
-
     def projection_points(
         self, origin_point: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray]:

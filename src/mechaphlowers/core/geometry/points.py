@@ -202,9 +202,6 @@ class Points:
         """
         return cls(coords)
 
-    def __copy__(self) -> Points:
-        return Points(self.coords)
-
 
 class SparsePoints:
     """Class handle set of 3D points grouped by objects, but all objects do not have the same number of points.
@@ -308,17 +305,6 @@ class SparsePoints:
 
     def __repr__(self):
         return f"SparsePoints(coords={self.coords})"
-
-    def __copy__(self) -> SparsePoints:
-        return SparsePoints(
-            self.object_name,
-            self.point_index,
-            self.span_index,
-            self.x,
-            self.y,
-            self.z,
-            self.object_type,
-        )
 
 
 PointsT = TypeVar("PointsT", Points, SparsePoints)

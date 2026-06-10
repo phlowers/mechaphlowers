@@ -80,15 +80,13 @@ class GroupPoints:
             points_objects = ["spans", "supports", "insulators"]
             for name, points in self.__dict__.items():
                 if points is not None and name in points_objects:
-                    x, y, z = points.vectors
-                    inverted_points = Points.from_vectors(x, -y, z)
-                    result_dict[name] = inverted_points
-            if isinstance(self.obstacles, SparsePoints):
-                reversed_obstacle = deepcopy(self.obstacles)
-                reversed_obstacle.y = -reversed_obstacle.y
-                result_dict["obstacles"] = reversed_obstacle
+                    result_dict[name] = self._reverse_y_axis_points(points)
+            if self.obstacles is not None:
+                result_dict["obstacles"] = self._reverse_y_axis_sparse_points(
+                    self.obstacles
+                )
 
-            if isinstance(self.distances, dict):
+            if self.distances is not None:
                 reversed_distances_dict = deepcopy(self.distances)
                 for obstacle_name, obstacle_dict in self.distances.items():
                     for point_index, distance_result in obstacle_dict.items():
@@ -101,6 +99,16 @@ class GroupPoints:
             if isinstance(self.distances, dict):
                 result_dict["distances"] = self.distances  # type:ignore[assignment]
         return result_dict
+
+    def _reverse_y_axis_sparse_points(self, sparse_points):
+        reversed_obstacle = deepcopy(sparse_points)
+        reversed_obstacle.y = -reversed_obstacle.y
+        return reversed_obstacle
+
+    def _reverse_y_axis_points(self, points):
+        x, y, z = points.vectors
+        inverted_points = Points.from_vectors(x, -y, z)
+        return inverted_points
 
     def get_aspect_ratio(
         self,
@@ -137,7 +145,7 @@ class GroupPoints:
         Returns:
             GroupPoints: new object GroupPoints projected in the selected frame
         """
-        if not isinstance(self.supports, Points):
+        if self.supports is not None:
             raise TypeError(
                 "attribute self.support need to be a Points object"
             )
@@ -194,7 +202,7 @@ class GroupPoints:
             dict: dictionnary of distances: same format as self.distances
         """
         # loop on self.distances (dict) and operate and change frame on each DistanceReuslt
-        if not isinstance(self.distances, dict):
+        if self.distances is not None:
             raise TypeError("self.distances need to be a dictionary")
 
         for obstacle_dict in self.distances.values():
@@ -230,13 +238,3 @@ class GroupPoints:
 
     def obstacle_dict(self):
         return self.obstacles.dict_coords()
-
-    def __copy__(self) -> GroupPoints:
-        return GroupPoints(
-            self.line_angle,
-            self.spans,
-            self.supports,
-            self.insulators,
-            self.obstacles,
-            self.distances,
-        )
