@@ -10,6 +10,7 @@ import pytest
 
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.errors import SolverError
 
 
 @pytest.fixture
@@ -413,3 +414,53 @@ def test_solve_change_state_wrong_array_shape_raises(
         study_8span.solve_change_state(ice_thickness=wrong)
     with pytest.raises(ValueError, match="new_temperature"):
         study_8span.solve_change_state(new_temperature=wrong)
+
+
+@pytest.mark.integration
+def test_rollback_with_manipulation(
+    study_8span: SectionStudy, study_8span_Lref: np.ndarray
+) -> None:
+    """Rollback manipulations with manipulation should restore manipulated balance engine."""
+    expected_L_ref_after_manipulation = study_8span_Lref + np.array(
+        [
+            2.0,
+            -2.0,
+            -1.5,
+            1.5,
+            0.0,
+            -3.0,
+            3.0,
+            0.0,
+        ]
+    )
+
+    study_8span.manipulation.modify_cable(
+        shift_support={1: 2.0, 3: -1.5, 6: -3.0},
+    )
+    study_8span.manipulation.add_virtual_support(
+        {
+            4: {
+                "x": 250.0,
+                "y": 0.0,
+                "z": 45.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 250.0,
+            },
+        }
+    )
+    study_8span.solve_adjustment()
+    # check L_ref size changed after virtual support addition
+    assert len(study_8span._balance_engine.L_ref) == 9
+
+    with pytest.raises(SolverError):
+        study_8span.solve_change_state(wind_pressure=1500)
+
+    study_8span.solve_change_state(wind_pressure=150)
+    # check L_ref size is the same as before virtual support addition, meaning that rollback has taken into account the manipulations
+    assert len(study_8span._balance_engine.L_ref) == 9
+
+    np.testing.assert_allclose(
+        study_8span._balance_engine.L_ref[0:4],
+        expected_L_ref_after_manipulation[0:4],
+    )
