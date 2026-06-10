@@ -79,3 +79,15 @@ class RtsDataNotAvailable(ValueError):
 
 class MeasurementDataNotAvailable(ValueError):
     """Raised when measurement data are not available for computation."""
+
+
+class InvalidManipulationIndex(ValueError):
+    """Raised when an invalid index is used in manipulation."""
+
+
+class InvalidManipulationKeys(ValueError):
+    """Raised when invalid keys are used in manipulation."""
+
+
+class InvalidManipulationRange(ValueError):
+    """Raised when a value is out of the allowed range in manipulation."""

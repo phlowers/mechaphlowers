@@ -359,3 +359,80 @@ class TestSectionStudyDelegates:
             project=False, frame_index=0
         )
         np.testing.assert_array_equal(result_span.coords, expected_span.coords)
+
+
+class TestSectionStudyManipulation:
+    """Integration tests for manipulations triggered through SectionStudy."""
+
+    @pytest.fixture()
+    def study(self, cable_array_AM600: CableArray) -> SectionStudy:
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2", "3", "4"],
+                    "suspension": [False, True, True, False],
+                    "conductor_attachment_altitude": [30, 50, 60, 65],
+                    "crossarm_length": [0, 0, 0, 0],
+                    "line_angle": [0, 0, 0, 0],
+                    "insulator_length": [3, 3, 3, 3],
+                    "span_length": [500, 300, 400, np.nan],
+                    "insulator_mass": [1000, 500, 500, 1000],
+                    "load_mass": [0, 0, 0, 0],
+                    "load_position": [0, 0, 0, 0],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        return SectionStudy(
+            cable_array=cable_array_AM600, section_array=section_array
+        )
+
+    def test_support_manipulation_integration(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        param_before = study.balance_engine.parameter.copy()
+
+        study.manipulation.modify_support({1: {"z": 10.0}, 2: {"z": -10.0}})
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        param_after = study.balance_engine.parameter
+
+        assert not np.allclose(
+            param_before, param_after
+        ), "parameter should change after support manipulation"
+
+    def test_reset_support_manipulation_integration(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        param_original = study.balance_engine.parameter.copy()
+
+        study.manipulation.modify_support({1: {"z": 10.0}})
+        study.manipulation.reset_support()
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        param_restored = study.balance_engine.parameter
+
+        np.testing.assert_allclose(param_original, param_restored, rtol=1e-6)
+
+    def test_rope_manipulation_integration(self, study: SectionStudy):
+        study.manipulation.add_rope({1: 6.0, 2: 4.0})
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        # Should complete without error
+
+    def test_reset_rope_manipulation_integration(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        displacement_original = study.chain_displacement().copy()
+
+        study.manipulation.add_rope({1: 6.0})
+        study.manipulation.reset_rope()
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        displacement_restored = study.chain_displacement()
+
+        np.testing.assert_allclose(
+            displacement_original, displacement_restored, atol=1e-8
+        )
