@@ -153,7 +153,6 @@ class DistanceResult:
             v_plane=self.v_plane,
         )
 
-    # TODO: inplace option
     def compute_new_frame(
         self, translation_vector: np.ndarray, angle_to_project: np.float64
     ) -> DistanceResult:

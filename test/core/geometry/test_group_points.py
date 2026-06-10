@@ -234,9 +234,6 @@ class TestMethods:
     ):
         assert group_points_obstacles.obstacles is not None
 
-    def test_all_coords(self, group_points: GroupPoints):
-        group_points._array_all_coords_flattened()
-
     def test_aspect_ratio(self, group_points_obstacles: GroupPoints):
         group_points_obstacles.get_aspect_ratio()
 

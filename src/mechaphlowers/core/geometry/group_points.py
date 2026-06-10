@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from typing import Any
 
 import numpy as np
 
@@ -75,7 +76,7 @@ class GroupPoints:
             reversed_y_axis (bool): If True: reverse the y axis. Defaults to False
         """
         if reversed_y_axis:
-            result_dict: dict = {}
+            result_dict: dict[str, Any] = {}
             points_objects = ["spans", "supports", "insulators"]
             for name, points in self.__dict__.items():
                 if points is not None and name in points_objects:
@@ -96,8 +97,9 @@ class GroupPoints:
                         )
                 result_dict["distances"] = reversed_distances_dict
         else:
-            result_dict = self.all_points
-            result_dict["distances"] = self.distances
+            if isinstance(self.distances, dict):
+                result_dict = self.all_points
+                result_dict["distances"] = self.distances  # type:ignore[assignment]
         return result_dict
 
     def get_aspect_ratio(

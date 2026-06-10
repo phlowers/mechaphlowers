@@ -631,7 +631,7 @@ class CoordsCalculator:
         return result_points
 
 
-# TODO: add inplace argument
+# TODO: add inplace argument?
 def compute_new_frame(
     points: PointsT,
     translation_vector: np.ndarray,
