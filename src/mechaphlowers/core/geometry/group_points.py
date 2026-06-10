@@ -100,12 +100,12 @@ class GroupPoints:
                 result_dict["distances"] = self.distances  # type:ignore[assignment]
         return result_dict
 
-    def _reverse_y_axis_sparse_points(self, sparse_points):
+    def _reverse_y_axis_sparse_points(self, sparse_points: SparsePoints):
         reversed_obstacle = deepcopy(sparse_points)
         reversed_obstacle.y = -reversed_obstacle.y
         return reversed_obstacle
 
-    def _reverse_y_axis_points(self, points):
+    def _reverse_y_axis_points(self, points: Points):
         x, y, z = points.vectors
         inverted_points = Points.from_vectors(x, -y, z)
         return inverted_points
@@ -145,7 +145,7 @@ class GroupPoints:
         Returns:
             GroupPoints: new object GroupPoints projected in the selected frame
         """
-        if self.supports is not None:
+        if self.supports is None:
             raise TypeError(
                 "attribute self.support need to be a Points object"
             )
@@ -202,7 +202,7 @@ class GroupPoints:
             dict: dictionnary of distances: same format as self.distances
         """
         # loop on self.distances (dict) and operate and change frame on each DistanceReuslt
-        if self.distances is not None:
+        if self.distances is None:
             raise TypeError("self.distances need to be a dictionary")
 
         for obstacle_dict in self.distances.values():
