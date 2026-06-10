@@ -80,19 +80,17 @@ class GroupPoints:
             points_objects = ["spans", "supports", "insulators"]
             for name, points in self.__dict__.items():
                 if points is not None and name in points_objects:
-                    result_dict[name] = self._reverse_y_axis_points(points)
-            if self.obstacles is not None:
-                result_dict["obstacles"] = self._reverse_y_axis_sparse_points(
-                    self.obstacles
-                )
-
+                    x, y, z = points.vectors
+                    inverted_points = Points.from_vectors(x, -y, z)
+                    result_dict[name] = inverted_points
+            if isinstance(self.obstacles, SparsePoints):
+                reversed_obstacle = deepcopy(self.obstacles)
+                reversed_obstacle.y = -reversed_obstacle.y
+                result_dict["obstacles"] = reversed_obstacle
             if self.distances is not None:
-                reversed_distances_dict = deepcopy(self.distances)
-                for obstacle_name, obstacle_dict in self.distances.items():
-                    for point_index, distance_result in obstacle_dict.items():
-                        reversed_distances_dict[obstacle_name][point_index] = (
-                            distance_result.generate_with_reversed_y_axis()
-                        )
+                reversed_distances_dict = self._reverse_y_axis_distances(
+                    deepcopy(self.distances)
+                )
                 result_dict["distances"] = reversed_distances_dict
         else:
             result_dict = self.all_points
@@ -100,15 +98,14 @@ class GroupPoints:
                 result_dict["distances"] = self.distances  # type:ignore[assignment]
         return result_dict
 
-    def _reverse_y_axis_sparse_points(self, sparse_points: SparsePoints):
-        reversed_obstacle = deepcopy(sparse_points)
-        reversed_obstacle.y = -reversed_obstacle.y
-        return reversed_obstacle
+    def _reverse_y_axis_distances(self, distances_dict: dict) -> dict:
+        for obstacle_name, obstacle_dict in distances_dict.items():
+            for point_index, distance_result in obstacle_dict.items():
+                distances_dict[obstacle_name][point_index] = (
+                    distance_result.generate_with_reversed_y_axis()
+                )
 
-    def _reverse_y_axis_points(self, points: Points):
-        x, y, z = points.vectors
-        inverted_points = Points.from_vectors(x, -y, z)
-        return inverted_points
+        return distances_dict
 
     def get_aspect_ratio(
         self,
