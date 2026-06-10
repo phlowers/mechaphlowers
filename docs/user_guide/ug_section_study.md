@@ -92,7 +92,7 @@ study.solve_change_state(
     wind_pressure=200,       # Pa
     ice_thickness=0.01,      # m
     new_temperature=-10,     # °C
-    wind_sense="anticlockwise",
+    wind_direction="anticlockwise",
 )
 ```
 

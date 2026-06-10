@@ -306,7 +306,7 @@ class SectionStudy:
         wind_pressure: np.ndarray | float | None = None,
         ice_thickness: np.ndarray | float | None = None,
         new_temperature: np.ndarray | float | None = None,
-        wind_sense: Literal["clockwise", "anticlockwise"] = "anticlockwise",
+        wind_direction: Literal["clockwise", "anticlockwise"] = "anticlockwise",
     ) -> None:
         """Run [`BalanceEngine.solve_change_state`][mechaphlowers.core.models.balance.engine.BalanceEngine.solve_change_state] with automatic rollback.
 
@@ -322,7 +322,7 @@ class SectionStudy:
             wind_pressure (np.ndarray | float | None): Wind pressure in Pa. Defaults to None.
             ice_thickness (np.ndarray | float | None): Ice thickness in m. Defaults to None.
             new_temperature (np.ndarray | float | None): New temperature in °C. Defaults to None.
-            wind_sense (Literal["clockwise", "anticlockwise"]): Direction of the wind. Defaults to "anticlockwise".
+            wind_direction (Literal["clockwise", "anticlockwise"]): Direction of the wind. Defaults to "anticlockwise".
 
         Raises:
             SolverError: If the solver fails to converge.
@@ -362,7 +362,7 @@ class SectionStudy:
                 wind_pressure=wind_pressure,
                 ice_thickness=ice_thickness,
                 new_temperature=new_temperature,
-                wind_sense=wind_sense,
+                wind_direction=wind_direction,
             )
         except SolverError as e:
             logger.error(

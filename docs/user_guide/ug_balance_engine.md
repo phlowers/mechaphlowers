@@ -81,7 +81,7 @@ Solves the insulator chain positions under new weather conditions and/or a new t
 | `wind_pressure` | `0.0` | Pa |
 | `ice_thickness` | `0.0` | m |
 | `new_temperature` | `15.0` | °C |
-| `wind_sense` | `"anticlockwise"` | — |
+| `wind_direction` | `"anticlockwise"` | — |
 
 ```python
 engine.solve_adjustment()
@@ -90,7 +90,7 @@ engine.solve_change_state(
     wind_pressure=200.0,      # Pa
     ice_thickness=0.01,       # m
     new_temperature=0.0,      # °C
-    wind_sense="anticlockwise",
+    wind_direction="anticlockwise",
 )
 
 # Results
