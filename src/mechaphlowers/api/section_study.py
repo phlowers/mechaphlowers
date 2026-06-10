@@ -306,7 +306,9 @@ class SectionStudy:
         wind_pressure: np.ndarray | float | None = None,
         ice_thickness: np.ndarray | float | None = None,
         new_temperature: np.ndarray | float | None = None,
-        wind_direction: Literal["clockwise", "anticlockwise"] = "anticlockwise",
+        wind_direction: Literal[
+            "clockwise", "anticlockwise"
+        ] = "anticlockwise",
     ) -> None:
         """Run [`BalanceEngine.solve_change_state`][mechaphlowers.core.models.balance.engine.BalanceEngine.solve_change_state] with automatic rollback.
 

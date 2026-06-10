@@ -260,7 +260,9 @@ class BalanceEngine(Notifier):
         wind_pressure: np.ndarray | float | None = None,
         ice_thickness: np.ndarray | float | None = None,
         new_temperature: np.ndarray | float | None = None,
-        wind_direction: Literal["clockwise", "anticlockwise"] = "anticlockwise",
+        wind_direction: Literal[
+            "clockwise", "anticlockwise"
+        ] = "anticlockwise",
     ) -> None:
         """Solve the chain positions, for a case of change of state.
         Updates weather conditions and/or sagging temperature if provided.
