@@ -241,7 +241,7 @@ class TestMethods:
         group_points_obstacles.get_aspect_ratio()
 
     def test_all_objects(self, group_points_distances: GroupPoints):
-        reversed_result = group_points_distances.all_objects(True)
+        reversed_result = group_points_distances.get_all_objects_dict(True)
         reversed_result
 
 

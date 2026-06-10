@@ -57,9 +57,7 @@ class GroupPoints:
                 result_dict[name] = points
         return result_dict
 
-    # Maybe replace by properties on spans/obstacles/distances attributes?
-    # TODO: test to check that original points are not modified
-    def all_objects(self, reversed_y_axis=False) -> dict:
+    def get_all_objects_dict(self, reversed_y_axis=False) -> dict:
         """Dict of all objects. If an attribute is set to None, it is not included
         Distances are included in this dict
 
@@ -70,6 +68,11 @@ class GroupPoints:
             "obstacles": self.obstacles,
             "distances": self.distances,
         }
+
+        Option to reverse the y axis for displaying the line in 2D (may be more intuitive)
+
+        Args:
+            reversed_y_axis (bool): If True: reverse the y axis. Defaults to False
         """
         if reversed_y_axis:
             result_dict: dict = {}
@@ -111,25 +114,6 @@ class GroupPoints:
             y_scale=y_scale,
             z_scale=z_scale,
         )
-
-    # TODO: remove?
-    def _array_all_coords_flattened(self) -> np.ndarray:
-        """Returns an array containing all points flattened:
-
-        [[x0, y0, z0],
-        [x1, y1, z1],
-        [x2, y2, z2],
-        ...
-        ]
-
-        Supports, spans, insulators and obstacles included
-        """
-        array_points = [
-            points_object.points()
-            for points_object in self.all_points.values()
-        ]
-        result = np.concatenate(array_points)
-        return result
 
     # add inplace argument?
     def change_frame(self, frame_index=-1) -> GroupPoints:
@@ -192,20 +176,20 @@ class GroupPoints:
 
     def _change_frame_distances(
         self, translation_vector: np.ndarray, angle_to_project: np.float64
-    ):
+    ) -> dict:
         """Projection for dict of DistanceResult
 
         Directly modify objects
 
         Args:
-            translation_vector (np.ndarray): _description_
-            angle_to_project (np.float64): _description_
+            translation_vector (np.ndarray): translation vector
+            angle_to_project (np.float64): angle of rotation (radians, anti-clockwise)
 
         Raises:
-            TypeError: _description_
+            TypeError: if self.distances does not exist
 
         Returns:
-            _type_: _description_
+            dict: dictionnary of distances: same format as self.distances
         """
         # loop on self.distances (dict) and operate and change frame on each DistanceReuslt
         if not isinstance(self.distances, dict):
@@ -227,11 +211,11 @@ class GroupPoints:
         Directly modify objects
 
         Args:
-            translation_vector (np.ndarray): _description_
-            angle_to_project (np.float64): _description_
+            translation_vector (np.ndarray): translation vector
+            angle_to_project (np.float64): angle of rotation (radians, anti-clockwise)
 
         Returns:
-            dict: _description_
+            dict: same format as self.all_points: contains spans/insulators/supports/obstacles if they exists
         """
         # modify current object
         result_points = {}
