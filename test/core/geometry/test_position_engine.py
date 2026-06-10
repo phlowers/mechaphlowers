@@ -258,6 +258,12 @@ class TestPositionEngineDataRetrieval:
         pos_engine = PositionEngine(balance_engine_base_test)
         assert pos_engine.get_loads_coords() == {}
 
+    def test_get_loads_coords_gropup_points_empty_before_solve(
+        self, balance_engine_base_test: BalanceEngine
+    ):
+        pos_engine = PositionEngine(balance_engine_base_test)
+        assert pos_engine.get_loads_coords_group_points() == {}
+
     def test_get_points_for_plot_returns_three_points_objects(
         self, balance_engine_base_test: BalanceEngine
     ):

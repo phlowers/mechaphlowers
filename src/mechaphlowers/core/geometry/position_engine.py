@@ -216,6 +216,40 @@ class PositionEngine(Observer, Notifier):
             ]
         return result_dict
 
+    def get_loads_coords_group_points(
+        self, project: bool = False, frame_index: int = 0
+    ) -> dict:
+        """Same as get_loads_coords() but uses GroupPoints object
+
+        Return a dictionary of load coordinates indexed by span.
+
+        If loads exist on spans 0 and 2, the result looks like:
+        ``{0: [x0, y0, z0], 2: [x2, y2, z2]}``.
+
+        Args:
+            project: ``True`` to project all objects into a support frame
+                (for 2-D graphs). Defaults to ``False``.
+            frame_index: Index of the support frame used for projection.
+                Must be in ``[0, nb_supports - 1]``.  Unused when
+                `project` is `False`.  Defaults to ``0``.
+
+        Returns:
+            Dict mapping span index (``int``) to coordinate array of shape
+            ``(3,)``.
+        """
+        group_points = self.get_group_points()
+        if project:
+            group_points = group_points.change_frame(frame_index)
+        spans_points = group_points.get_all_objects_dict()["spans"]
+        loads_spans_idx, loads_points_idx = self.span_model.loads_indices
+        result_dict: dict = {}
+        for index_in_small_array, span_index in enumerate(loads_spans_idx):
+            point_index = loads_points_idx[index_in_small_array]
+            result_dict[int(span_index)] = spans_points.coords[
+                span_index, point_index
+            ]
+        return result_dict
+
     def get_points_for_plot(
         self, project: bool = False, frame_index: int = 0
     ) -> tuple[Points, Points, Points]:
