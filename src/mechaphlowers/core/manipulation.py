@@ -167,23 +167,62 @@ class Manipulation:
         self._shortening_distance_span = None
         logger.debug("Cable shifting cleared.")
 
-    def compute_shifted_L_ref(self, initial_L_ref: np.ndarray) -> np.ndarray:
-        """Compute L_ref with cable shifting and shortening applied.
+    def _compute_shift_delta(self) -> np.ndarray:
+        """Per-span cable length delta from shifting and shortening.
 
-        Args:
-            initial_L_ref: Reference cable lengths from the adjustment solve
-                (span-based, ``n_supports - 1`` elements).
+        Must only be called when ``_shifting_distance_support`` is not None.
 
         Returns:
-            Shifted L_ref array.
+            Array of length ``n_spans`` (original indices, before any
+            virtual-support expansion).
         """
-        if self._shifting_distance_support is None:
-            return initial_L_ref
+        assert self._shifting_distance_support is not None
+        assert self._shortening_distance_span is not None
         shift_span = (
             self._shifting_distance_support[:-1]
             - self._shifting_distance_support[1:]
         )
-        shifted_length = -shift_span - self._shortening_distance_span
+        return -shift_span - self._shortening_distance_span
+
+    def compute_shifted_L_ref(
+        self, initial_L_ref: np.ndarray, *, expand: bool | None = None
+    ) -> np.ndarray:
+        """Compute L_ref with cable shifting and shortening applied.
+
+        When virtual supports are present the shift vector is expanded to
+        match the split span count (zeros inserted for new right sub-spans).
+
+        Args:
+            initial_L_ref: Reference cable lengths (span-based).
+            expand: Controls virtual-support expansion of the shift vector.
+
+                - ``None`` (default): auto-detect — expand if virtual supports
+                  are active.
+                - ``True``: force expansion (caller guarantees *initial_L_ref*
+                  is already split).
+                - ``False``: never expand (original span indices only).
+
+        Returns:
+            Shifted L_ref array with same length as *initial_L_ref*.
+        """
+        if self._shifting_distance_support is None:
+            return initial_L_ref
+
+        shifted_length = self._compute_shift_delta()
+
+        should_expand = (
+            expand if expand is not None else self.has_virtual_support
+        )
+        if should_expand and self._virtual_support_overlay is not None:
+            for offset, span_idx in enumerate(
+                sorted(self._virtual_support_overlay.keys())
+            ):
+                # The virtual node splits span_idx into left (same index) and
+                # right (new index at span_idx + offset + 1).  The shift stays
+                # on the left sub-span; insert 0 for the right sub-span.
+                insert_pos = span_idx + offset + 1
+                shifted_length = np.insert(shifted_length, insert_pos, 0.0)
+
         return initial_L_ref + shifted_length
 
     # ── Support manipulation ──────────────────────────────────────────────
@@ -589,13 +628,16 @@ class Manipulation:
 
         L_ref = initial_L_ref.copy()
 
-        # Cable shifting
-        if self.has_shifting:
-            L_ref = self.compute_shifted_L_ref(L_ref)
-
-        # Virtual-support L_ref splitting
+        # Virtual-support L_ref splitting (must happen before shifting so
+        # that the split uses the clean, unshifted L_ref)
         if self.has_virtual_support:
             L_ref = self.compute_split_L_ref(L_ref, clean_engine.span_model)
+
+        # Cable shifting (applied after split so the shift maps to correct
+        # expanded span indices — the shift only affects the left sub-span
+        # adjacent to the shifted support)
+        if self.has_shifting:
+            L_ref = self.compute_shifted_L_ref(L_ref, expand=True)
 
         # Build target engine
         target_engine = _BE(
@@ -604,6 +646,20 @@ class Manipulation:
             span_model_type=clean_engine.span_model_type,
             deformation_model_type=clean_engine.deformation_model_type,
         )
+
+        # Propagate clean engine's solved node state to the target engine so
+        # that span_model effective lengths are consistent with the injected
+        # L_ref. Without this, nodes retain default positions (dx=±insulator_length,
+        # dz=0 for anchors) which inflate effective spans and can lead to
+        # an impossible catenary configuration.
+        clean_state = clean_engine.balance_model.state_vector
+        expanded_state = self._expand_state_vector_for_virtual_supports(
+            clean_state
+        )
+        target_engine.balance_model.state_vector = expanded_state
+        target_engine.balance_model.update()
+
+        # Inject L_ref and block adjustment. The target engine's balance model is already initialized with the manipulated section array
         target_engine.initial_L_ref = initial_L_ref.copy()
         target_engine.L_ref = L_ref
         target_engine.balance_model.L_ref = L_ref
@@ -661,6 +717,38 @@ class Manipulation:
         )
 
         return new_L_ref
+
+    def _expand_state_vector_for_virtual_supports(
+        self, state_vector: np.ndarray
+    ) -> np.ndarray:
+        """Expand a state vector to account for virtual support insertions.
+
+        Each virtual support inserts a new suspension node into the section
+        array.  This method inserts a ``[0.0, 0.0]`` pair (neutral
+        displacement) at the corresponding position in the state vector so
+        that it matches the target engine's node count.
+
+        Args:
+            state_vector: State vector from the clean engine
+                (size ``2 * n_original_nodes``).
+
+        Returns:
+            Expanded state vector (size ``2 * (n_original_nodes + n_virtual)``).
+        """
+        if self._virtual_support_overlay is None:
+            return state_vector
+
+        result = state_vector.copy()
+        for offset, span_idx in enumerate(
+            sorted(self._virtual_support_overlay.keys())
+        ):
+            # Virtual node is inserted at position span_idx + offset + 1 in
+            # the expanded node list (after the left support of that span).
+            insert_node_idx = span_idx + offset + 1
+            insert_pos = insert_node_idx * 2
+            result = np.insert(result, insert_pos, [0.0, 0.0])
+
+        return result
 
     # ── Private helpers ───────────────────────────────────────────────────
 
