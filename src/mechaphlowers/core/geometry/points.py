@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from __future__ import annotations
+
 from typing import Callable, Self, TypeVar
 
 import numpy as np
@@ -301,8 +303,11 @@ class SparsePoints:
             dict_coords[object_name] = array_coords[i]
         return dict_coords
 
+    def __repr__(self):
+        return f"SparsePoints(coords={self.coords})"
 
-_PointsT = TypeVar("_PointsT", Points, SparsePoints)
+
+PointsT = TypeVar("PointsT", Points, SparsePoints)
 
 
 class CoordsCalculator:
@@ -396,9 +401,11 @@ class CoordsCalculator:
 
     def refresh_obstacles(self):
         """Need to be called when any modification to obstacle_array occurs"""
+        # obstacle_points are in absolute coordinates here
         self.obstacles_points = SparsePoints.builder_from_obstacle_array(
             self.obstacle_array
         )
+        self.compute_obstacle_coords()
 
     def compute_obstacle_coords(self) -> SparsePoints:
         x, y, z = self.obstacle_array.get_vectors()
@@ -520,6 +527,7 @@ class CoordsCalculator:
         )
         return Points.from_coords(insulator_layers)
 
+    # Proposition: call get_points_for_plot and build the dict from this
     def obstacles_dict(self, project=False, frame_index=0) -> dict:
         if hasattr(self, "obstacle_array"):
             self.compute_obstacle_coords()
@@ -539,6 +547,7 @@ class CoordsCalculator:
                 f"frame_index out of range. Expected value between 0 and {len(self.line_angle)}, received {frame_index}"
             )
 
+    # After GroupPoints: should return a GroupPoints object
     def get_points_for_plot(
         self,
         project=False,
@@ -563,6 +572,7 @@ class CoordsCalculator:
         spans_points: Points = self.get_spans("section")
         supports_points: Points = self.get_supports()
         insulators_points: Points = self.get_insulators()
+        # TODO: remove this -> will eventually be delegated to GroupPoints
         if project:
             self._validate_frame_index(frame_index)
             spans_points, supports_points, insulators_points = (
@@ -573,21 +583,22 @@ class CoordsCalculator:
             )
         return spans_points, supports_points, insulators_points
 
+    # TODO: remove this -> will eventually be delegated to GroupPoints
     def project_to_selected_frame(
         self,
-        points_array: list[_PointsT],
+        points_array: list[PointsT],
         frame_index: int,
-    ) -> list[_PointsT]:
+    ) -> list[PointsT]:
         """Project points object into a support frame.
 
         Used for 2D plots that need to be projected in a specific frame.
 
         Args:
-            points_array (list[_PointsT]): array of Points of SparsePoints objects
+            points_array (list[PointsT]): array of Points of SparsePoints objects
             frame_index (int): Index of the frame the projection is made.
 
         Returns:
-            list[_PointsT]: array of points object projected in local frame
+            list[PointsT]: array of points object projected in local frame
             projected into the frame of support number `frame_index`.
         """
         translation_vector = -self.get_supports().coords[frame_index, 0]
@@ -596,31 +607,40 @@ class CoordsCalculator:
         angle_to_project = np.cumsum(self.line_angle)[frame_index]
         result_points = []
         for original_points in points_array:
-            new_points = self.change_frame(
+            new_points = compute_new_frame(
                 original_points, translation_vector, angle_to_project
             )
+            # invert y axis to get more natural view
+            x, y, z = new_points.vectors
+            new_points.coords = np.array([x, -y, z]).T
             result_points.append(new_points)
         return result_points
 
-    @staticmethod
-    def change_frame(
-        points: _PointsT,
-        translation_vector: np.ndarray,
-        angle_to_project: np.float64,
-    ) -> _PointsT:
-        """Change the frame of the given Points by applying a translation and a rotation.
 
-        Args:
-            points (Points): points to transform
-            translation_vector (np.ndarray): translation vector to apply
-            angle_to_project (np.float64): angle of the rotation
+# TODO: add inplace argument?
+def compute_new_frame(
+    points: PointsT,
+    translation_vector: np.ndarray,
+    angle_to_project: np.float64,
+) -> PointsT:
+    """Change the frame of the given Points by applying a translation and a rotation.
 
-        Returns:
-            Points: new Points object in the new frame
-        """
-        points.coords = points.coords + translation_vector
-        x, y, z = points.vectors
-        x, y = project_coords(x, y, angle_to_project)
-        # invert y axis to get more natural view
-        points.coords = np.array([x, -y, z]).T
-        return points
+    Args:
+        points (Points): points to transform
+        translation_vector (np.ndarray): translation vector to apply
+        angle_to_project (np.float64): angle of the rotation in radians
+
+    Returns:
+        Points: new Points object in the new frame
+    """
+    points.coords = points.coords + translation_vector
+
+    points.coords = rotate_vector(points.vectors, angle_to_project).T
+    return points
+
+
+def rotate_vector(vector_to_rotate, angle_to_project):
+    x, y, z = vector_to_rotate
+    x, y = project_coords(x, y, angle_to_project)
+    result_vector = np.array([x, y, z])
+    return result_vector
