@@ -85,7 +85,7 @@ class GroupPoints:
                     result_dict[name] = inverted_points
             if isinstance(self.obstacles, SparsePoints):
                 reversed_obstacle = deepcopy(self.obstacles)
-                reversed_obstacle.y = -y
+                reversed_obstacle.y = -reversed_obstacle.y
                 result_dict["obstacles"] = reversed_obstacle
 
             if isinstance(self.distances, dict):
@@ -97,8 +97,8 @@ class GroupPoints:
                         )
                 result_dict["distances"] = reversed_distances_dict
         else:
+            result_dict = self.all_points
             if isinstance(self.distances, dict):
-                result_dict = self.all_points
                 result_dict["distances"] = self.distances  # type:ignore[assignment]
         return result_dict
 

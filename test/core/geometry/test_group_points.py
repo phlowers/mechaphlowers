@@ -4,10 +4,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-"""
-Tests for PositionEngine — standalone geometry computation without Plotly.
-"""
-
 from copy import copy
 
 import numpy as np
@@ -239,7 +235,10 @@ class TestMethods:
 
     def test_all_objects(self, group_points_distances: GroupPoints):
         reversed_result = group_points_distances.get_all_objects_dict(True)
-        reversed_result
+        group_points_distances.spans.coords[0][0][1] == -reversed_result[  # type: ignore[union-attr]
+            "spans"
+        ].coords[0][0][1]
+        group_points_distances.obstacles.y == -reversed_result["obstacles"].y  # type: ignore[union-attr]
 
 
 class TestChangeFrame:
