@@ -24,6 +24,7 @@ projet_dir: Path = Path(__file__).resolve().parents[1]
 source_dir: Path = projet_dir / "src"
 sys.path.append(str(source_dir))
 
+from mechaphlowers.core.models.balance.span_loads import SpanLoads
 from mechaphlowers.entities.arrays import (
     CableArray,
     SectionArray,
@@ -170,6 +171,14 @@ def section_array_complete() -> SectionArray:
 
 
 @pytest.fixture
+def span_loads_for_complete_section_array() -> SpanLoads:
+    load_position_distance = np.array([0, 250, 100])
+    load_mass = np.array([0, 0, 70])
+    span_length = np.array([500, 300, 400, np.nan])
+    return SpanLoads(load_position_distance, load_mass, span_length)
+
+
+@pytest.fixture
 def factory_neutral_weather_array() -> Callable[[int], WeatherArray]:
     def _method_cable_array(nb_span=2):
         return WeatherArray(
@@ -289,8 +298,6 @@ def balance_engine_base_test(cable_array_AM600: CableArray) -> BalanceEngine:
                 "insulator_mass": convert_weight_to_mass(
                     [1000.0, 500.0, 500.0, 1000.0]
                 ),
-                "load_mass": [0, 0, 0, 0],
-                "load_position": [0, 0, 0, 0],
             }
         ),
         sagging_parameter=2000,
