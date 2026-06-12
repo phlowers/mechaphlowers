@@ -60,7 +60,7 @@ def test_load_span_model(cable_array_AM600: CableArray):
 
 def test_solve_twice(cable_array_AM600, default_section_array_three_spans):
     # Test that calling solve_change_state twice
-    # returns that same results twice
+    # returns the same results twice
     balance_engine = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=default_section_array_three_spans,
