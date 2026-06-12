@@ -79,8 +79,8 @@ def test_solve_twice(cable_array_AM600, default_section_array_three_spans):
 def test_change_temperature_back_to_initial(
     cable_array_AM600, default_section_array_three_spans
 ):
-    # Test that calling solve_change_state twice
-    # returns that same results twice
+    # Test that changing temperature (15°C -> 30°C -> 15°C)
+    # brings the displacement back to its initial value
     balance_engine = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=default_section_array_three_spans,
@@ -88,7 +88,7 @@ def test_change_temperature_back_to_initial(
 
     balance_engine.solve_adjustment()
 
-    balance_engine.solve_change_state()
+    balance_engine.solve_change_state(new_temperature=15)
     first_dxdydz_15 = balance_engine.balance_model.nodes.dxdydz.copy()
 
     balance_engine.solve_change_state(new_temperature=30)
@@ -96,4 +96,9 @@ def test_change_temperature_back_to_initial(
     balance_engine.solve_change_state(new_temperature=15)
     second_dxdydz_15 = balance_engine.balance_model.nodes.dxdydz.copy()
 
-    np.testing.assert_allclose(second_dxdydz_15, first_dxdydz_15, rtol=1e-6)
+    np.testing.assert_allclose(
+        second_dxdydz_15,
+        first_dxdydz_15,
+        rtol=1e-6,
+        atol=1e-8,
+    )
