@@ -1,1 +1,1 @@
-::: mechaphlowers.core.models.balance.external_loads
+::: mechaphlowers.core.models.balance.span_loads
