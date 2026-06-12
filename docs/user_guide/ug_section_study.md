@@ -232,8 +232,8 @@ study.set_loads(
     load_mass=np.array([500, 70, 0]),
 )
 ```
-If either load_position_distance[i] or load_mass[i] is zero or nan, it means there is no span load on this span.
-The length of load_position_distance and load_mass is the number of spans.
+If either `load_position_distance[i]` or `load_mass[i]` is zero or nan, it means there is no span load on this span.
+The length of `load_position_distance` and `load_mass` is the number of spans.
 
 The used of deprecated method `SectionStudy.add_loads` is discouraged.
 

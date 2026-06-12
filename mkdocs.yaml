@@ -95,6 +95,7 @@ nav:
                       - Cable Strength: docstring/core/models/cable/cable_strength.md
                       - Guying: docstring/core/models/guying.md
                   - External loads: docstring/core/models/external_loads.md
+                  - Point loads: docstring/core/models/balance/span_loads.md
               - Papoto: docstring/core/papoto/papoto_model.md
           - Data:
               - Catalog: docstring/data/catalog/catalog.md
