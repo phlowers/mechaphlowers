@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from thermohl import solver  # type: ignore
 from thermohl.power.convective_cooling import (  # type: ignore
-    compute_wind_attack_angle,
+    compute_wind_attack_angle as thermohl_compute_wind_angle,
 )
 from typing_extensions import Self
 
@@ -596,7 +596,7 @@ class ThermalEngine:
             Angle in degrees between wind direction and cable azimuth.
         """
         return np.rad2deg(
-            compute_wind_attack_angle(cable_azimuth, wind_azimuth)
+            thermohl_compute_wind_angle(cable_azimuth, wind_azimuth),
         )
 
     @property
