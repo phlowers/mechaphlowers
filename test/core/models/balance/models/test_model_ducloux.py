@@ -73,7 +73,9 @@ def test_solve_twice(cable_array_AM600, default_section_array_three_spans):
     balance_engine.solve_change_state()
     second_dxdydz = balance_engine.balance_model.nodes.dxdydz.copy()
 
-    np.testing.assert_allclose(second_dxdydz, first_dxdydz, rtol=1e-6, atol=1e-8)
+    np.testing.assert_allclose(
+        second_dxdydz, first_dxdydz, rtol=1e-6, atol=1e-8
+    )
 
 
 def test_change_temperature_back_to_initial(
