@@ -132,10 +132,13 @@ class ThermalSteadyResults(ThermalResults):
 
 
 class SteadyIntensityResults(ThermalSteadyResults):
+    """Parser for thermal steady-state intensity computation."""
     pass
 
 
 class SteadyTemperatureResults(ThermalSteadyResults):
+    """Parser for thermal steady-state temperature computation."""
+
     @property
     def uncertainty(self) -> np.ndarray:
         if "uncertainty" in self.data.columns:
