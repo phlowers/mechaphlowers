@@ -141,8 +141,8 @@ class SteadyTemperatureResults(ThermalSteadyResults):
         if "uncertainty" in self.data.columns:
             return self.data["uncertainty"].to_numpy()
         raise UncertaintyNotAvailable(
-            "Uncertainty not available. It is only computed if you pass"
-            " 'return_uncertainty=True' to thermal_engine.steady_temperature."
+            "Uncertainty not available. It hasn't been computed.\n"
+            "To compute it, pass 'return_uncertainty=True' when calling thermal_engine.steady_temperature",
         )
 
 

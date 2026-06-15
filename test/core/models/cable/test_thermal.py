@@ -228,8 +228,9 @@ def test_steady_temperature_without_uncertainty_explicit(
 ) -> None:
     thermal_engine = thermal_engine_3_spans
     results = thermal_engine.steady_temperature(return_uncertainty=False)
-    with pytest.raises(UncertaintyNotAvailable):
+    with pytest.raises(UncertaintyNotAvailable) as e:
         results.uncertainty
+        print(e)
 
 
 def test_wrong_array_length(cable_array_AM600: CableArray):
