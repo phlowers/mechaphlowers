@@ -214,11 +214,20 @@ def test_steady_temperature_with_uncertainty(
     )
 
 
-def test_steady_temperature_without_uncertainty(
+def test_steady_temperature_without_uncertainty_implicit(
     thermal_engine_3_spans: ThermalEngine,
 ) -> None:
     thermal_engine = thermal_engine_3_spans
     results = thermal_engine.steady_temperature()
+    with pytest.raises(UncertaintyNotAvailable):
+        results.uncertainty
+
+
+def test_steady_temperature_without_uncertainty_explicit(
+    thermal_engine_3_spans: ThermalEngine,
+) -> None:
+    thermal_engine = thermal_engine_3_spans
+    results = thermal_engine.steady_temperature(return_uncertainty=False)
     with pytest.raises(UncertaintyNotAvailable):
         results.uncertainty
 
