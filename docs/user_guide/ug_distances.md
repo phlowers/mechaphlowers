@@ -53,6 +53,7 @@ fig.show()
 ### Distance result
 
 The `DistanceResult` class is used to store the results of the distance computation. It contains the following attributes:
+
 - `point_base`: The input point from which the distance is computed.
 - `point_target`: The intersection point on the curve.
 - `u_plane`: The u-axis of the plane.

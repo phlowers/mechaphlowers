@@ -312,6 +312,10 @@ class ISpan(ABC):
         Should be called after calling compute_x_m and compute_x_n if x_n or x_m have changed"""
 
     @abstractmethod
+    def compute_partial_L(self, new_a: np.ndarray) -> np.ndarray:
+        """Cable length from left hanging point to point corresponding to span length new_a."""
+
+    @abstractmethod
     def get_coords(self, resolution: int) -> tuple[np.ndarray, np.ndarray]:
         """Get x and z coordinates for catenary generation in cable frame
 
@@ -573,12 +577,17 @@ class CatenarySpan(ISpan):
         return p * np.sinh(self.compute_x_n() / p)
 
     def compute_L(self) -> np.ndarray:
-        # move in superclass?
         """Total length of the cable."""
         p = self.parameter
         return p * (
             np.sinh(self.compute_x_n() / p) - np.sinh(self.compute_x_m() / p)
         )
+
+    def compute_partial_L(self, new_a: np.ndarray) -> np.ndarray:
+        """Cable length from left hanging point to point corresponding to span length new_a."""
+        p = self.parameter
+        x = new_a + self._x_m
+        return p * (np.sinh(x / p) - np.sinh(self._x_m / p))
 
     def T_h(self) -> np.ndarray:
         if self.linear_weight is None:

@@ -37,6 +37,7 @@ class DataConfig:
     sagging_temperature_default: float = 15.0
     safety_coefficient_default: float = 1.5
     safety_security_factor: float = 1.5
+    rope_lineic_mass_default: float = 0.01
 
 
 @dataclass
@@ -66,6 +67,7 @@ class GraphicsConfig:
             "size": 5.0,
         }
     )
+    aspect_epsilon: float = 1e-4
 
 
 @dataclass

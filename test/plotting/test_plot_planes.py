@@ -106,17 +106,21 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
     )
 
     # Define an obstacle point to analyze
-    obstacle_point = np.array([250.0, 20.0, 35.0])
+    plt_engine.position_engine.add_obstacle(
+        name="obs_0",
+        span_index=0,
+        coords=np.array([[200, 0, 0]]),
+        support_reference='left',
+    )
     fig = go.Figure()
 
     plt_engine.preview_line3d(fig=fig)
 
     # Test: Call point_distance method for span 0
-
     dr = plt_engine.point_distance(
         fig=fig,
-        span_index=0,
-        point=obstacle_point,
+        obstacle_name="obs_0",
+        point_index=0,
     )
 
     # Verify returns
@@ -127,7 +131,9 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
     # Verify figure has traces
 
     # Verify figure layout
-    assert "Span 0" in fig.layout.title.text, "Title should contain span index"
+    assert (
+        "Obstacle: obs_0" in fig.layout.title.text
+    ), "Title should contain obstacle name"
     assert fig.layout.scene.xaxis.title.text == "X (m)"
     assert fig.layout.scene.yaxis.title.text == "Y (m)"
     assert fig.layout.scene.zaxis.title.text == "Z (m)"
@@ -136,29 +142,39 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
     supports = plt_engine.get_supports_points()
     assert len(supports) >= 2, "Should have at least 2 support points"
 
-    # Test different span index (if available)
-    if len(supports) > 2:
+    # Test error handling: point_index out of range
+    with pytest.raises(KeyError):
         plt_engine.point_distance(
-            fig=fig,
-            span_index=1,
-            point=np.array([300.0, -40.0, 40.0]),
+            obstacle_name="obs_0",
+            point_index=2,
         )
-        assert (
-            "Span 1" in fig.layout.title.text
-        ), "Second title should reference span 1"
+    if show_figures:
+        fig.show()  # Display the figure for visual verification (optional)
 
-    # Test error handling: invalid span index
-    with pytest.raises(IndexError):
-        plt_engine.point_distance(
-            span_index=999,  # Out of range
-            point=obstacle_point,
-        )
 
-    # Test error handling: invalid point shape
-    with pytest.raises(ValueError):
-        plt_engine.point_distance(
-            span_index=0,
-            point=np.array([250.0, 20.0]),  # Only 2D
-        )
+@pytest.mark.unit_test
+def test_show_distances_projected(balance_engine_angles):
+    # Setup: Create PlotEngine from balance engine
+    plt_engine = PlotEngine(balance_engine_angles)
+    balance_engine_angles.solve_adjustment()
+    balance_engine_angles.solve_change_state(
+        new_temperature=15 * np.array([1, 1, 1, 1])
+    )
+    plt_engine.position_engine.add_obstacle(
+        name="obs_0",
+        span_index=1,
+        coords=np.array([[100, 0, 0]]),
+        support_reference='left',
+    )
+    fig = go.Figure()
+
+    plt_engine.preview_line3d(fig=fig)
+
+    plt_engine.point_distance(
+        fig=fig,
+        obstacle_name="obs_0",
+        point_index=0,
+    )
+
     if show_figures:
         fig.show()  # Display the figure for visual verification (optional)

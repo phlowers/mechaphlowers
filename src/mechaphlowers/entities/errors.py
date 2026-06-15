@@ -83,3 +83,15 @@ class MeasurementDataNotAvailable(ValueError):
 
 class UncertaintyNotAvailable(AttributeError):
     """Raised when attempting to read uncertainty while it hasn't been computed."""
+
+
+class InvalidManipulationIndex(ValueError):
+    """Raised when an invalid index is used in manipulation."""
+
+
+class InvalidManipulationKeys(ValueError):
+    """Raised when invalid keys are used in manipulation."""
+
+
+class InvalidManipulationRange(ValueError):
+    """Raised when a value is out of the allowed range in manipulation."""

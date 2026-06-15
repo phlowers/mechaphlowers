@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from mechaphlowers.core.geometry.distances import (
+    DistanceResult,
     get_projection_points,
     points_distance_inside_plane,
 )
@@ -63,3 +64,47 @@ def test_get_projection_points():
 
     np.testing.assert_allclose(u_point, np.array([12.0, 20.0, 30.0]))
     np.testing.assert_allclose(v_point, np.array([10.0, 20.0, 27.0]))
+
+
+def test_distance_result_reverse_y_axis():
+    distance_result = DistanceResult(
+        np.array([100.0000, 6.7000, 0.0000]),
+        np.array([100.0000, 9.9940, 49.9035]),
+        np.array([-0.0000, 1.0000, 0.0000]),
+        np.array(
+            [0.0000, 0.1000, 1.0000]
+        ),  # incorrect value, just for testing reversed y
+        50.894348,
+        9.993974,
+        49.903458,
+    )
+    reversed_distance_result = distance_result.generate_with_reversed_y_axis()
+    # Check y axis is correctly reversed
+    np.testing.assert_allclose(
+        reversed_distance_result.point_base,
+        np.array([100.0000, -6.7000, 0.0000]),
+    )
+    np.testing.assert_allclose(
+        reversed_distance_result.point_target,
+        np.array([100.0000, -9.9940, 49.9035]),
+    )
+    np.testing.assert_allclose(
+        reversed_distance_result.u_plane, np.array([-0.0000, -1.0000, 0.0000])
+    )
+    np.testing.assert_allclose(
+        reversed_distance_result.v_plane, np.array([0.0000, -0.1000, 1.0000])
+    )
+
+    # Check y axis is NOT reversed on original object
+    np.testing.assert_allclose(
+        distance_result.point_base, np.array([100.0000, 6.7000, 0.0000])
+    )
+    np.testing.assert_allclose(
+        distance_result.point_target, np.array([100.0000, 9.9940, 49.9035])
+    )
+    np.testing.assert_allclose(
+        distance_result.u_plane, np.array([-0.0000, 1.0000, 0.0000])
+    )
+    np.testing.assert_allclose(
+        distance_result.v_plane, np.array([0.0000, 0.1000, 1.0000])
+    )

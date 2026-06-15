@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from mechaphlowers.core.geometry.points import Points
+from mechaphlowers.config import options
+from mechaphlowers.core.geometry.points import Points, SparsePoints
 
 # Minimum normalized aspect ratio value to avoid zero-sized axes in Plotly
-_ASPECT_EPSILON: float = 1e-4
 
 
 def compute_aspect_ratio(
-    *points_objects: Points,
+    *points_objects: Points | SparsePoints,
     x_scale: float = 1.0,
     y_scale: float = 1.0,
     z_scale: float = 1.0,
@@ -83,7 +83,7 @@ def compute_aspect_ratio(
     # Concatenate all points from all Points objects
     all_points_list = []
     for points_obj in points_objects:
-        if not isinstance(points_obj, Points):
+        if not isinstance(points_obj, Points | SparsePoints):
             raise TypeError(
                 f"Expected Points object, got {type(points_obj).__name__}"
             )
@@ -122,9 +122,15 @@ def compute_aspect_ratio(
         )
 
     # Compute normalized ranges and clamp zero-extent axes to a small epsilon
-    norm_x = x_range / max_range if x_range > 0 else _ASPECT_EPSILON
-    norm_y = y_range / max_range if y_range > 0 else _ASPECT_EPSILON
-    norm_z = z_range / max_range if z_range > 0 else _ASPECT_EPSILON
+    norm_x = (
+        x_range / max_range if x_range > 0 else options.graphics.aspect_epsilon
+    )
+    norm_y = (
+        y_range / max_range if y_range > 0 else options.graphics.aspect_epsilon
+    )
+    norm_z = (
+        z_range / max_range if z_range > 0 else options.graphics.aspect_epsilon
+    )
 
     aspect_x = norm_x * x_scale
     aspect_y = norm_y * y_scale

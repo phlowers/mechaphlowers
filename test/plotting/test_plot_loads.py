@@ -241,6 +241,18 @@ def test_get_loads_coords_4_spans(cable_array_AM600: CableArray):
     assert len(coords_loads) == 2
     assert list(coords_loads.keys()) == [0, 1]
 
+    # also test get_loads_coords_group_points return same result
+    coords_loads_with_group_points = (
+        plt_engine.position_engine.get_loads_coords_group_points()
+    )
+    assert list(coords_loads.keys()) == [0, 1]
+    np.testing.assert_allclose(
+        coords_loads_with_group_points[0], coords_loads[0]
+    )
+    np.testing.assert_allclose(
+        coords_loads_with_group_points[1], coords_loads[1]
+    )
+
     if show_figures:
         fig = go.Figure()
         plt_engine.preview_line3d(fig)

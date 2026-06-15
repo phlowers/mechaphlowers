@@ -14,6 +14,7 @@ from typing_extensions import Literal
 
 from mechaphlowers.core.geometry.points import Points
 from mechaphlowers.core.geometry.position_engine import PositionEngine
+from mechaphlowers.core.manipulation import Manipulation
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.balance.memento import (
     BalanceEngineCaretaker,
@@ -74,6 +75,12 @@ class SectionStudy:
         span_model_type: Type[ISpan] = CatenarySpan,
         deformation_model_type: Type[IDeformation] = DeformationRte,
     ) -> None:
+        self._cable_array = cable_array
+        self._section_array = section_array
+        self._span_model_type = span_model_type
+        self._deformation_model_type = deformation_model_type
+        self._manipulation = Manipulation(section_array)
+
         self._balance_engine = BalanceEngine(
             cable_array=cable_array,
             section_array=section_array,
@@ -128,10 +135,121 @@ class SectionStudy:
         """The memento captured after the intermediate warm-start solve, if any."""
         return self._intermediate_memento
 
+    @property
+    def manipulation(self) -> Manipulation:
+        """The [`Manipulation`][mechaphlowers.core.manipulation.Manipulation] object storing geometric overlays."""
+        return self._manipulation
+
+    # ── Manipulation methods ──────────────────────────────────────────────
+
+    def modify_support(
+        self, manipulation: dict[int, dict[str, float]]
+    ) -> None:
+        """Apply additive offsets to support geometry.
+
+        Delegates to
+        [`Manipulation.modify_support`][mechaphlowers.core.manipulation.Manipulation.modify_support].
+
+        Args:
+            manipulation: Dictionary mapping support index (0-based) to
+                offsets with optional keys ``"y"`` and ``"z"``.
+        """
+        self._manipulation.modify_support(manipulation)
+
+    def reset_support(self) -> None:
+        """Remove the support manipulation overlay.
+
+        Delegates to [`Manipulation.reset_support`][mechaphlowers.core.manipulation.Manipulation.reset_support].
+        """
+        self._manipulation.reset_support()
+
+    def add_rope(
+        self,
+        rope: dict[int, float],
+        rope_lineic_mass: float | None = None,
+    ) -> None:
+        """Override insulator length and mass for specified supports with rope values.
+
+        Delegates to [`Manipulation.add_rope`][mechaphlowers.core.manipulation.Manipulation.add_rope].
+
+        Args:
+            rope: Dictionary mapping support index (0-based) to rope length (meters).
+            rope_lineic_mass: Linear mass of the rope in kg/m.
+        """
+        self._manipulation.add_rope(rope, rope_lineic_mass)
+
+    def reset_rope(self) -> None:
+        """Remove the rope overlay.
+
+        Delegates to [`Manipulation.reset_rope`][mechaphlowers.core.manipulation.Manipulation.reset_rope].
+        """
+        self._manipulation.reset_rope()
+
+    def add_virtual_support(
+        self, virtual_support: dict[int, dict[str, float]]
+    ) -> None:
+        """Insert virtual supports.
+
+        Delegates to [`Manipulation.add_virtual_support`][mechaphlowers.core.manipulation.Manipulation.add_virtual_support].
+
+        Args:
+            virtual_support: Dictionary mapping left-support index to virtual
+                support parameters.
+        """
+        self._manipulation.add_virtual_support(virtual_support)
+
+    def reset_virtual_support(self) -> None:
+        """Remove all virtual supports.
+
+        Delegates to [`Manipulation.reset_virtual_support`][mechaphlowers.core.manipulation.Manipulation.reset_virtual_support].
+        """
+        self._manipulation.reset_virtual_support()
+
+    def modify_cable(
+        self,
+        shift_support: dict[int, float] | None = None,
+        shorten_span: dict[int, float] | None = None,
+    ) -> None:
+        """Validate and store cable shifting values.
+
+        Delegates to [`Manipulation.modify_cable`][mechaphlowers.core.manipulation.Manipulation.modify_cable].
+
+        Args:
+            shift_support (dict[int, float] | None): Horizontal shifting per support, in meters.
+                Dictionary mapping support index (0-based) to shift value; first and last
+                supports are forced to 0.
+            shorten_span (dict[int, float] | None): Span length modification per span, in meters.
+                Dictionary mapping span index (0-based) to shortening value; positive values
+                shorten the span.
+        """
+        self._manipulation.modify_cable(shift_support, shorten_span)
+
+    def reset_cable(self) -> None:
+        """Remove cable shifting.
+
+        Delegates to [`Manipulation.reset_cable`][mechaphlowers.core.manipulation.Manipulation.reset_cable].
+        """
+        self._manipulation.reset_cable()
+
+    def reset_all(self) -> None:
+        """Remove all active manipulations.
+
+        Delegates to [`Manipulation.reset_all`][mechaphlowers.core.manipulation.Manipulation.reset_all].
+        """
+        self._manipulation.reset_all()
+
     # ── Solve methods (with rollback + intermediate) ──────────────────────
 
     def solve_adjustment(self) -> None:
-        """Run [`BalanceEngine.solve_adjustment`][mechaphlowers.core.models.balance.engine.BalanceEngine.solve_adjustment] with automatic rollback.
+        """Run adjustment on clean geometry, then apply manipulations if any.
+
+        1. Build a clean engine from the original section array and solve
+           adjustment to obtain ``initial_L_ref``.
+        2. If manipulations are registered, call
+           [`Manipulation.from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array] to produce a manipulated
+           copy, then [`Manipulation.initialize_engine`][mechaphlowers.core.manipulation.Manipulation.initialize_engine] to build the
+           target engine with injected ``L_ref`` and blocked adjustment.
+        3. Rewire downstream engines (caretaker, position, plot, guying).
 
         On [`SolverError`][mechaphlowers.entities.errors.SolverError], the engine
         state is restored to the snapshot taken before the solve attempt, and the
@@ -140,13 +258,48 @@ class SectionStudy:
         Raises:
             SolverError: If the solver fails to converge.
         """
-        memento = self._caretaker.save()
-        try:
-            self._balance_engine.solve_adjustment()
-        except SolverError:
-            logger.error("Error during solve_adjustment, rolling back state.")
-            self._caretaker.restore(memento)
-            raise
+        if self._manipulation.has_manipulations:
+            # Phase 1: solve on clean geometry
+            clean_engine = BalanceEngine(
+                cable_array=self._cable_array,
+                section_array=self._section_array,
+                span_model_type=self._span_model_type,
+                deformation_model_type=self._deformation_model_type,
+            )
+
+            try:
+                clean_engine.solve_adjustment()
+            except SolverError as e:
+                logger.error(
+                    "Error during solve_adjustment. No changes on the engine state"
+                )
+                raise e
+
+            initial_L_ref = clean_engine.initial_L_ref.copy()
+
+            # Phase 2: build manipulated SA and target engine
+            manipulated_sa = self._manipulation.from_section_array(
+                self._section_array
+            )
+            self._balance_engine = self._manipulation.initialize_engine(
+                clean_engine, manipulated_sa, initial_L_ref
+            )
+
+            # Rewire downstream engines
+            self._caretaker = BalanceEngineCaretaker(self._balance_engine)
+            self._position_engine = PositionEngine(self._balance_engine)
+            self._plot_engine = None
+            self._guying = None
+        else:
+            memento = self._caretaker.save()
+            try:
+                self._balance_engine.solve_adjustment()
+            except SolverError as e:
+                logger.error(
+                    "Error during solve_adjustment, rolling back state."
+                )
+                self._caretaker.restore(memento)
+                raise e
 
     def solve_change_state(
         self,
@@ -186,6 +339,10 @@ class SectionStudy:
                 return np.full(span_shape, default[name])
             if isinstance(val, (int, float)):
                 return np.full(span_shape, val)
+            if isinstance(val, np.ndarray) and val.shape != span_shape:
+                raise ValueError(
+                    f"{name}: expected array of shape {span_shape}, got {val.shape}"
+                )
             return val
 
         target_wind = _to_array(wind_pressure, "wind_pressure")
@@ -209,12 +366,12 @@ class SectionStudy:
                 new_temperature=new_temperature,
                 wind_direction=wind_direction,
             )
-        except SolverError:
+        except SolverError as e:
             logger.error(
                 "Error during solve_change_state, rolling back state."
             )
             self._caretaker.restore(memento)
-            raise
+            raise e
 
     def _solve_intermediate(self) -> None:
         """Solve at default conditions (T=15°C, wind=0, ice=0) as warm-start.
@@ -300,13 +457,13 @@ class SectionStudy:
         return self._position_engine.get_supports_points()
 
     def get_points_for_plot(
-        self, project: bool = False, frame_index: int = 0
+        self, project: bool = False, frame_index=0
     ) -> tuple[Points, Points, Points]:
         """Delegate to [`PositionEngine.get_points_for_plot`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_points_for_plot].
 
         Args:
-            project (bool): `True` to project into a support frame (2-D mode).
-            frame_index (int): Index of the support frame for projection.
+            project: `True` to project into a support frame (2-D mode).
+            frame_index: Index of the support frame for projection.
 
         Returns:
             Tuple of ``(spans, supports, insulators)`` as `Points`.
