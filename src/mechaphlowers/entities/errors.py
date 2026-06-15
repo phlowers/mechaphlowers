@@ -79,3 +79,7 @@ class RtsDataNotAvailable(ValueError):
 
 class MeasurementDataNotAvailable(ValueError):
     """Raised when measurement data are not available for computation."""
+
+
+class UncertaintyNotAvailable(AttributeError):
+    """Raised when attempting to read uncertainty while it hasn't been computed."""
