@@ -133,6 +133,7 @@ class ThermalSteadyResults(ThermalResults):
 
 class SteadyIntensityResults(ThermalSteadyResults):
     """Parser for thermal steady-state intensity computation."""
+
     pass
 
 
