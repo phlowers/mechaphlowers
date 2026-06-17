@@ -5,8 +5,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-from datetime import datetime
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -14,7 +12,6 @@ import pytest
 from mechaphlowers.core.models.cable.thermal import (
     ThermalEngine,
     ThermalTransientResults,
-    to_datetime,
 )
 from mechaphlowers.entities.arrays import CableArray
 from mechaphlowers.entities.errors import UncertaintyNotAvailable
@@ -30,25 +27,11 @@ def thermal_engine_3_spans(cable_array_AM600: CableArray) -> ThermalEngine:
         longitude=np.array([0.0, 0.0, 0.0]),
         altitude=np.array([0.0, 0.0, 0.0]),
         azimuth=np.array([0.0, 0.0, 90.0]),
-        month=np.array(
+        datetime_utc=np.array(
             [
-                3,
-                3,
-                3,
-            ]
-        ),
-        day=np.array(
-            [
-                21,
-                21,
-                21,
-            ]
-        ),
-        hour=np.array(
-            [
-                22,
-                22,
-                12,
+                np.datetime64("2026-03-21T22:00"),
+                np.datetime64("2026-03-21T22:00"),
+                np.datetime64("2026-03-21T12:00"),
             ]
         ),
         intensity=np.array([100.0, 1000.0, 1000.0]),
@@ -76,22 +59,10 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
         longitude=np.array([0.0, 0.0]),
         altitude=np.array([0.0, 0.0]),
         azimuth=np.array([0.0, 0.0]),
-        month=np.array(
+        datetime_utc=np.array(
             [
-                3,
-                3,
-            ]
-        ),
-        day=np.array(
-            [
-                21,
-                21,
-            ]
-        ),
-        hour=np.array(
-            [
-                12,
-                12,
+                np.datetime64("2026-03-21T12:00"),
+                np.datetime64("2026-03-21T12:00"),
             ]
         ),
         intensity=np.array([100.0, 100.0]),
@@ -114,22 +85,10 @@ def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
         longitude=np.array([0.0, 0.0]),
         altitude=np.array([0.0, 0.0]),
         azimuth=np.array([0.0, 0.0]),
-        month=np.array(
+        datetime_utc=np.array(
             [
-                3,
-                3,
-            ]
-        ),
-        day=np.array(
-            [
-                21,
-                21,
-            ]
-        ),
-        hour=np.array(
-            [
-                12,
-                12,
+                np.datetime64("2026-03-21T12:00"),
+                np.datetime64("2026-03-21T12:00"),
             ]
         ),
         intensity=np.array([100.0, 100.0]),
@@ -245,24 +204,11 @@ def test_wrong_array_length(cable_array_AM600: CableArray):
             longitude=np.array([0.0, 0.0]),
             altitude=np.array([0.0, 0.0]),
             azimuth=np.array([0.0, 0.0]),
-            month=np.array(
+            datetime_utc=np.array(
                 [
-                    3,
-                    3,
-                    3,
-                ]
-            ),
-            day=np.array(
-                [
-                    21,
-                    21,
-                ]
-            ),
-            hour=np.array(
-                [
-                    12,
-                    12,
-                    12,
+                    np.datetime64("2026-03-21T12:00"),
+                    np.datetime64("2026-03-21T12:00"),
+                    np.datetime64("2026-03-21T12:00"),
                 ]
             ),
             intensity=np.array([100.0, 100.0]),
@@ -286,53 +232,6 @@ def test_wrong_array_length_at_load(thermal_engine_3_spans: ThermalEngine):
     ):
         thermal_engine.dict_input["latitude"] = np.array([45.0, 45.0])
         thermal_engine.load()
-
-
-def test_wrong_array_length_datetime(
-    thermal_engine_3_spans: ThermalEngine,
-):
-    thermal_engine = thermal_engine_3_spans
-
-    thermal_engine.dict_input["datetime_utc"] = [
-        datetime(2024, 3, 21, 12),
-        datetime(2024, 3, 21, 12),
-    ]
-    with pytest.raises(
-        ValueError,
-        match="All array inputs must have the same length. Expected 3, got 2 for 'datetime_utc'.",
-    ):
-        thermal_engine.load()
-
-
-def test_wrong_type_month(thermal_engine_3_spans: ThermalEngine):
-    thermal_engine = thermal_engine_3_spans
-
-    with pytest.raises(
-        TypeError,
-        match="Expected integer array for 'month', got float64.",
-    ):
-        del thermal_engine.dict_input["datetime_utc"]
-        thermal_engine.dict_input["month"] = np.array([3.0, 3.0, 3.0])
-        thermal_engine.dict_input["day"] = np.array([21, 21, 21])
-        thermal_engine.load()
-
-
-def test_wrong_type_day(thermal_engine_3_spans: ThermalEngine):
-    thermal_engine = thermal_engine_3_spans
-
-    with pytest.raises(
-        TypeError,
-        match="Expected integer array for 'day', got float64.",
-    ):
-        del thermal_engine.dict_input["datetime_utc"]
-        thermal_engine.dict_input["month"] = np.array([3, 3, 3])
-        thermal_engine.dict_input["day"] = np.array([21.0, 21.0, 21.0])
-        thermal_engine.load()
-
-
-def test_to_datetime():
-    result = to_datetime(3, 31, 16 + 42 / 60 + 3.1234567 / 3600)
-    assert result == datetime(1970, 3, 31, 16, 42, 3, 123456)
 
 
 def test_add_manual_value_and_load(thermal_engine_3_spans: ThermalEngine):
@@ -376,25 +275,11 @@ def test_transient_thermal(cable_array_AM600: CableArray):
         longitude=np.array([0.0, 0.0, 0.0]),
         altitude=np.array([0.0, 0.0, 0.0]),
         azimuth=np.array([0.0, 0.0, 20.0]),
-        month=np.array(
+        datetime_utc=np.array(
             [
-                3,
-                3,
-                3,
-            ]
-        ),
-        day=np.array(
-            [
-                21,
-                21,
-                21,
-            ]
-        ),
-        hour=np.array(
-            [
-                12,
-                12,
-                12,
+                np.datetime64("2026-03-21T12:00"),
+                np.datetime64("2026-03-21T12:00"),
+                np.datetime64("2026-03-21T12:00"),
             ]
         ),
         intensity=np.array([100.0, 100.0, 100.0]),
@@ -425,25 +310,11 @@ def test_nebulosity_variation(cable_array_AM600: CableArray):
         longitude=np.array([0.0, 0.0, 0.0]),
         altitude=np.array([0.0, 0.0, 0.0]),
         azimuth=np.array([0.0, 0.0, 0.0]),
-        month=np.array(
+        datetime_utc=np.array(
             [
-                3,
-                3,
-                3,
-            ]
-        ),
-        day=np.array(
-            [
-                21,
-                21,
-                21,
-            ]
-        ),
-        hour=np.array(
-            [
-                12,
-                12,
-                12,
+                np.datetime64("2026-03-21T12:00"),
+                np.datetime64("2026-03-21T12:00"),
+                np.datetime64("2026-03-21T12:00"),
             ]
         ),
         intensity=np.array([100.0, 100.0, 100.0]),
