@@ -173,6 +173,42 @@ def test_steady_intensity(thermal_engine_3_spans: ThermalEngine):
     ).all()
 
 
+def test_steady_intensity_return_inputs(thermal_engine_3_spans) -> None:
+    thermal_engine = thermal_engine_3_spans
+
+    results_with_inputs = thermal_engine.steady_intensity(
+        target_temperature=100, return_inputs=True
+    )
+    results_with_inputs_implicit = thermal_engine.steady_intensity(
+        target_temperature=100
+    )
+    results_without_inputs = thermal_engine.steady_intensity(
+        target_temperature=100, return_inputs=False
+    )
+
+    assert not any(
+        column.startswith("input_")
+        for column in results_with_inputs.data.columns
+    )
+    assert results_with_inputs.inputs is not None
+
+    assert not any(
+        column.startswith("input_")
+        for column in results_with_inputs_implicit.data.columns
+    )
+    assert results_with_inputs_implicit.inputs is not None
+
+    assert not any(
+        column.startswith("input_")
+        for column in results_without_inputs.data.columns
+    )
+    assert results_with_inputs.inputs is not None
+
+    assert len(results_with_inputs.data.columns) == len(
+        results_without_inputs.data.columns
+    )
+
+
 def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
     thermal_engine = thermal_engine_3_spans
 
@@ -198,6 +234,38 @@ def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
         ).data["core_temperature"]
         > copy_result_without_input["core_temperature"]
     ).all()
+
+
+def test_steady_temperature_return_inputs(thermal_engine_3_spans) -> None:
+    thermal_engine = thermal_engine_3_spans
+
+    results_with_inputs = thermal_engine.steady_temperature(return_inputs=True)
+    results_with_inputs_implicit = thermal_engine.steady_temperature()
+    results_without_inputs = thermal_engine.steady_temperature(
+        return_inputs=False
+    )
+
+    assert not any(
+        column.startswith("input_")
+        for column in results_with_inputs.data.columns
+    )
+    assert results_with_inputs.inputs is not None
+
+    assert not any(
+        column.startswith("input_")
+        for column in results_with_inputs_implicit.data.columns
+    )
+    assert results_with_inputs_implicit.inputs is not None
+
+    assert not any(
+        column.startswith("input_")
+        for column in results_without_inputs.data.columns
+    )
+    assert results_with_inputs.inputs is not None
+
+    assert len(results_with_inputs.data.columns) == len(
+        results_without_inputs.data.columns
+    )
 
 
 def test_steady_temperature_with_uncertainty(
@@ -413,6 +481,40 @@ def test_transient_thermal(cable_array_AM600: CableArray):
 
     np.testing.assert_array_almost_equal(
         thermal_engine.wind_cable_angle, np.array([90.0, 80.0, 70.0])
+    )
+
+
+def test_transient_temperature_return_inputs(thermal_engine_3_spans) -> None:
+    thermal_engine = thermal_engine_3_spans
+
+    results_with_inputs = thermal_engine.transient_temperature(
+        return_inputs=True
+    )
+    results_with_inputs_implicit = thermal_engine.transient_temperature()
+    results_without_inputs = thermal_engine.transient_temperature(
+        return_inputs=False
+    )
+
+    assert not any(
+        column.startswith("input_")
+        for column in results_with_inputs.data.columns
+    )
+    assert results_with_inputs.inputs is not None
+
+    assert not any(
+        column.startswith("input_")
+        for column in results_with_inputs_implicit.data.columns
+    )
+    assert results_with_inputs_implicit.inputs is not None
+
+    assert not any(
+        column.startswith("input_")
+        for column in results_without_inputs.data.columns
+    )
+    assert results_with_inputs.inputs is not None
+
+    assert len(results_with_inputs.data.columns) == len(
+        results_without_inputs.data.columns
     )
 
 

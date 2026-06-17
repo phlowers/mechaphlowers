@@ -24,8 +24,17 @@ logger = logging.getLogger(__name__)
 class ThermalResults(ABC):
     """Thermal results base class."""
 
-    def __init__(self, input_data: dict | pd.DataFrame):
-        self.data = self.parse_results(input_data)
+    INPUT_PREFIX = "input_"
+
+    def __init__(
+        self,
+        input_data: dict | pd.DataFrame,
+        return_inputs: bool = True,
+    ):
+        results = self.parse_results(input_data)
+        inputs = self._pop_inputs(results)  # noqa: S2259
+        self.inputs = inputs if return_inputs else None
+        self.data = results
 
     @staticmethod
     @abstractmethod
@@ -53,17 +62,35 @@ class ThermalResults(ABC):
         class_name = type(self).__name__
         return f"{class_name}\n{self.__str__()}"
 
+    @classmethod
+    def _input_columns(cls, df: pd.DataFrame) -> list[str]:
+        return [
+            column
+            for column in df.columns
+            if column.startswith(cls.INPUT_PREFIX)
+        ]
+
+    @classmethod
+    def _pop_inputs(cls, df: pd.DataFrame) -> pd.DataFrame:
+        input_columns = cls._input_columns(df)
+        inputs = df[input_columns]
+        df.drop(columns=input_columns, inplace=True)
+        inputs.rename(
+            columns=lambda s: s.replace(cls.INPUT_PREFIX, ""), inplace=True
+        )
+        return inputs
+
 
 class ThermalTransientResults(ThermalResults):
     """Thermal transient results class for transient temperature calculations."""
 
-    def __init__(self, input_data: dict | pd.DataFrame):
+    def __init__(self, input_data: dict | pd.DataFrame, *args, **kwargs):
         """Initialize transient thermal results.
 
         Args:
             input_data (dict | pd.DataFrame): Raw transient thermal results data.
         """
-        super().__init__(input_data)
+        super().__init__(input_data, *args, **kwargs)
 
     @staticmethod
     def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
@@ -103,13 +130,13 @@ class ThermalTransientResults(ThermalResults):
 class ThermalSteadyResults(ThermalResults):
     """Thermal steady-state results parser."""
 
-    def __init__(self, input_data: dict | pd.DataFrame):
+    def __init__(self, input_data: dict | pd.DataFrame, *args, **kwargs):
         """Initialize steady-state thermal results.
 
         Args:
             input_data (dict | pd.DataFrame): Raw steady-state thermal results data.
         """
-        super().__init__(input_data)
+        super().__init__(input_data, *args, **kwargs)
 
     @staticmethod
     def parse_results(
@@ -546,6 +573,7 @@ class ThermalEngine:
         self,
         intensity: np.ndarray | None = None,
         return_uncertainty: bool = False,
+        return_inputs: bool = True,
     ) -> SteadyTemperatureResults:
         """Compute steady-state temperature results.
 
@@ -558,12 +586,15 @@ class ThermalEngine:
             self.load()
         return SteadyTemperatureResults(
             self.thermal_model.steady_temperature(
-                return_uncertainty=return_uncertainty
-            )
+                return_uncertainty=return_uncertainty,
+            ),
+            return_inputs=return_inputs,
         )
 
     def steady_intensity(
-        self, target_temperature: np.ndarray | None = None
+        self,
+        target_temperature: np.ndarray | None = None,
+        return_inputs: bool = True,
     ) -> SteadyIntensityResults:
         """Compute steady-state intensity results.
 
@@ -574,11 +605,16 @@ class ThermalEngine:
             self.target_temperature = target_temperature
 
         return SteadyIntensityResults(
-            self.thermal_model.steady_intensity(self.target_temperature)
+            self.thermal_model.steady_intensity(
+                self.target_temperature,
+            ),
+            return_inputs=return_inputs,
         )
 
     def transient_temperature(
-        self, forecast_control: ThermalForecastArray | None = None
+        self,
+        forecast_control: ThermalForecastArray | None = None,
+        return_inputs: bool = True,
     ) -> ThermalTransientResults:
         """Compute transient temperature results.
 
@@ -589,7 +625,10 @@ class ThermalEngine:
             self.forecast = forecast_control
 
         return ThermalTransientResults(
-            self.thermal_model.transient_temperature(offset=self.forecast.time)
+            self.thermal_model.transient_temperature(
+                offset=self.forecast.time
+            ),
+            return_inputs=return_inputs,
         )
 
     @property
