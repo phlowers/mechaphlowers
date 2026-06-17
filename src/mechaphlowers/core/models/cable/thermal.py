@@ -179,7 +179,7 @@ def check_inputs(
     """Validate input parameters.
 
     Ensures all inputs are numpy arrays with the same size. Also ensures that
-    nebulositues are in the right range.
+    nebulosities are in the right range.
 
     Args:
         nebulosity(np.array): Nebulosity (array of int between 0 and 8).
@@ -194,8 +194,6 @@ def check_inputs(
         ValueError: If array inputs have incompatible sizes.
         TypeError: If any input is not a numpy array.
     """
-    check_nebulosity_range(nebulosity)
-
     kwargs["nebulosity"] = nebulosity
 
     array_length: int = nebulosity.size
@@ -212,6 +210,8 @@ def check_inputs(
                 f"All array inputs must have the same length. "
                 f"Expected {array_length}, got {value.size} for {key}."
             )
+
+    check_nebulosity_range(nebulosity)
 
     return kwargs, array_length
 
