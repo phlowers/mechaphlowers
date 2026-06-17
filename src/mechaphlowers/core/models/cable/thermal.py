@@ -16,6 +16,7 @@ from thermohl import solver  # type: ignore
 from typing_extensions import Self
 
 from mechaphlowers.entities.arrays import CableArray
+from mechaphlowers.entities.errors import UncertaintyNotAvailable
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +129,25 @@ class ThermalSteadyResults(ThermalResults):
         if isinstance(data, pd.DataFrame):
             return data.copy()
         return pd.DataFrame(data)
+
+
+class SteadyIntensityResults(ThermalSteadyResults):
+    """Parser for thermal steady-state intensity computation."""
+
+    pass
+
+
+class SteadyTemperatureResults(ThermalSteadyResults):
+    """Parser for thermal steady-state temperature computation."""
+
+    @property
+    def uncertainty(self) -> np.ndarray:
+        if "uncertainty" in self.data.columns:
+            return self.data["uncertainty"].to_numpy()
+        raise UncertaintyNotAvailable(
+            "Uncertainty not available. It hasn't been computed.\n"
+            "To compute it, pass 'return_uncertainty=True' when calling thermal_engine.steady_temperature",
+        )
 
 
 class ThermalForecastArray:
@@ -523,31 +543,37 @@ class ThermalEngine:
         )
 
     def steady_temperature(
-        self, intensity: np.ndarray | None = None
-    ) -> ThermalSteadyResults:
+        self,
+        intensity: np.ndarray | None = None,
+        return_uncertainty: bool = False,
+    ) -> SteadyTemperatureResults:
         """Compute steady-state temperature results.
 
         Returns:
-            ThermalSteadyResults: An instance containing steady-state temperature data.
+            SteadyTemperatureResults: An instance containing steady-state temperature data.
         """
         logger.debug("Get steady_temperature()")
         if intensity is not None:
             self.dict_input["transit"] = intensity
             self.load()
-        return ThermalSteadyResults(self.thermal_model.steady_temperature())
+        return SteadyTemperatureResults(
+            self.thermal_model.steady_temperature(
+                return_uncertainty=return_uncertainty
+            )
+        )
 
     def steady_intensity(
         self, target_temperature: np.ndarray | None = None
-    ) -> ThermalSteadyResults:
+    ) -> SteadyIntensityResults:
         """Compute steady-state intensity results.
 
         Returns:
-            ThermalSteadyResults: An instance containing steady-state intensity data.
+            SteadyIntensityResults: An instance containing steady-state intensity data.
         """
         if target_temperature is not None:
             self.target_temperature = target_temperature
 
-        return ThermalSteadyResults(
+        return SteadyIntensityResults(
             self.thermal_model.steady_intensity(self.target_temperature)
         )
 
