@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+from copy import copy
 from datetime import datetime
 
 import numpy as np
@@ -593,3 +594,24 @@ def test_transient_results_raise_for_df_input():
         match="DataFrame input not supported for transient results parsing.",
     ):
         ThermalTransientResults.parse_results(df_input)
+
+
+def test_thermal_results_copy(thermal_engine_3_spans: ThermalEngine):
+    results_with_inputs = thermal_engine_3_spans.steady_temperature(
+        return_inputs=True
+    )
+    results_with_inputs_copy = copy(results_with_inputs)
+    assert (
+        results_with_inputs_copy.inputs.columns  # type: ignore
+        == results_with_inputs.inputs.columns  # type: ignore
+    ).all()
+
+    # Changing the copy's inputs doesn't change the original inputs
+    results_with_inputs_copy.inputs["nebulosity"] = np.array([-1, -1, -1])  # type: ignore
+    assert results_with_inputs.inputs["nebulosity"][0] != -1  # type: ignore
+
+    results_without_inputs = thermal_engine_3_spans.steady_temperature(
+        return_inputs=False
+    )
+    results_without_inputs_copy = copy(results_without_inputs)
+    assert results_without_inputs_copy.inputs is None

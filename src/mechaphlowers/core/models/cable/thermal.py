@@ -32,7 +32,7 @@ class ThermalResults(ABC):
         return_inputs: bool = True,
     ):
         results = self.parse_results(input_data)
-        inputs = self._pop_inputs(results)  # noqa: S2259
+        inputs = self._pop_inputs(results)
         self.inputs = inputs if return_inputs else None
         self.data = results
 
@@ -56,7 +56,9 @@ class ThermalResults(ABC):
         return self.data.to_string()
 
     def __copy__(self) -> Self:
-        return type(self)(self.data)
+        copy = type(self)(self.data, return_inputs=False)
+        copy.inputs = self.inputs.copy() if self.inputs is not None else None
+        return copy
 
     def __repr__(self) -> str:
         class_name = type(self).__name__
@@ -83,14 +85,6 @@ class ThermalResults(ABC):
 
 class ThermalTransientResults(ThermalResults):
     """Thermal transient results class for transient temperature calculations."""
-
-    def __init__(self, input_data: dict | pd.DataFrame, *args, **kwargs):
-        """Initialize transient thermal results.
-
-        Args:
-            input_data (dict | pd.DataFrame): Raw transient thermal results data.
-        """
-        super().__init__(input_data, *args, **kwargs)
 
     @staticmethod
     def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
@@ -129,14 +123,6 @@ class ThermalTransientResults(ThermalResults):
 
 class ThermalSteadyResults(ThermalResults):
     """Thermal steady-state results parser."""
-
-    def __init__(self, input_data: dict | pd.DataFrame, *args, **kwargs):
-        """Initialize steady-state thermal results.
-
-        Args:
-            input_data (dict | pd.DataFrame): Raw steady-state thermal results data.
-        """
-        super().__init__(input_data, *args, **kwargs)
 
     @staticmethod
     def parse_results(
