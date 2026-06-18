@@ -850,6 +850,7 @@ class CableArray(ElementArray):
 
     @property
     def is_bimetallic(self) -> npt.NDArray[np.bool]:
+        """Whether the cable is bimetallic."""
         return ~np.isclose(
             self.data["section_heart"].to_numpy(), 0, atol=0.0001
         )

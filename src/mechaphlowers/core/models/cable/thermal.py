@@ -59,6 +59,11 @@ class ThermalResults(ABC):
         raise NotImplementedError
 
     def cable_temperature(self) -> np.ndarray:
+        """Relevant cable temperature for each span.
+
+        This means core temperature for bimetallic cables and average temperature
+        for homogenous cables.
+        """
         return np.where(
             self.cable_is_bimetallic,
             self.data["core_temperature"],
