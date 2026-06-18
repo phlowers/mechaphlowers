@@ -47,7 +47,7 @@ class ThermalResults(ABC):
         Returns:
             pd.DataFrame: Parsed results as a pandas DataFrame.
         """
-        pass
+        raise NotImplementedError
 
     def __len__(self) -> int:
         return len(self.data)
