@@ -4,6 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import numpy as np
 import pandas as pd
 import pandera as pa
 import pytest
@@ -259,3 +260,10 @@ def test_cable_mecha_thermal_data(cable_array_input_data: dict):
         check_like=True,
         atol=1e-07,
     )
+
+
+def test_cable_array_is_bimetallic(
+    cable_array_AM600, cable_array_NARCISSE600G
+) -> None:
+    assert (cable_array_AM600.is_bimetallic == np.array([False])).all()
+    assert (cable_array_NARCISSE600G.is_bimetallic == np.array([True])).all()

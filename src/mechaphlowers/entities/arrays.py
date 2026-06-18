@@ -848,6 +848,12 @@ class CableArray(ElementArray):
             ]
         )
 
+    @property
+    def is_bimetallic(self) -> npt.NDArray[np.bool]:
+        return ~np.isclose(
+            self.data["section_heart"].to_numpy(), 0, atol=0.0001
+        )
+
 
 class WeatherArray(ElementArray):
     """Weather-related data, such as wind and ice.
