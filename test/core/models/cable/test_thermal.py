@@ -52,6 +52,40 @@ def thermal_engine_3_spans(cable_array_AM600: CableArray) -> ThermalEngine:
     return thermal_engine
 
 
+@pytest.fixture
+def thermal_engine_3_spans_narcisse(
+    cable_array_NARCISSE600G: CableArray,
+) -> ThermalEngine:
+    thermal_engine = ThermalEngine()
+
+    thermal_engine.set(
+        cable_array_NARCISSE600G,
+        latitude=np.array([45.0, 45.0, 45.0]),
+        longitude=np.array([0.0, 0.0, 0.0]),
+        altitude=np.array([0.0, 0.0, 0.0]),
+        azimuth=np.array([0.0, 0.0, 90.0]),
+        datetime_utc=np.array(
+            [
+                np.datetime64("2026-03-21T22:00:00"),
+                np.datetime64("2026-03-21T22:00:00"),
+                np.datetime64("2026-03-21T12:00:00"),
+            ]
+        ),
+        intensity=np.array([100.0, 1000.0, 1000.0]),
+        ambient_temp=np.array([15.0, 15.0, 15.0]),
+        wind_speed=np.array([10.0, 1.0, 1.0]),
+        wind_angle=np.array(
+            [
+                90.0,
+                90.0,
+                90.0,
+            ]
+        ),
+        nebulosity=np.array([0, 0, 0]),
+    )
+    return thermal_engine
+
+
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_thermohl_cable_temp_arrays(cable_array_AM600: CableArray):
     thermal_engine = ThermalEngine()
@@ -135,6 +169,46 @@ def test_steady_intensity(thermal_engine_3_spans: ThermalEngine):
     ).all()
 
 
+def test_steady_intensity_cable_temperature(
+    thermal_engine_3_spans, thermal_engine_3_spans_narcisse
+) -> None:
+    thermal_engine_homogenous = thermal_engine_3_spans
+    results_homogenous = thermal_engine_homogenous.steady_intensity(
+        target_temperature=100
+    )
+    cable_temperature_homogenous = results_homogenous.cable_temperature()
+    np.testing.assert_allclose(
+        cable_temperature_homogenous,
+        results_homogenous.data["average_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_homogenous,
+        results_homogenous.data["surface_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_homogenous,
+        results_homogenous.data["core_temperature"],
+    )
+
+    thermal_engine_bimetallic = thermal_engine_3_spans_narcisse
+    results_bimetallic = thermal_engine_bimetallic.steady_intensity(
+        target_temperature=100
+    )
+    cable_temperature_bimetallic = results_bimetallic.cable_temperature()
+    np.testing.assert_allclose(
+        cable_temperature_bimetallic,
+        results_bimetallic.data["core_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_bimetallic,
+        results_bimetallic.data["surface_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_bimetallic,
+        results_bimetallic.data["average_temperature"],
+    )
+
+
 def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
     thermal_engine = thermal_engine_3_spans
 
@@ -193,6 +267,43 @@ def test_steady_temperature_without_uncertainty_explicit(
     with pytest.raises(UncertaintyNotAvailable) as e:
         results.uncertainty
         print(e)
+
+
+def test_steady_temperature_cable_temperature(
+    thermal_engine_3_spans: ThermalEngine,
+    thermal_engine_3_spans_narcisse: ThermalEngine,
+) -> None:
+    thermal_engine_homogenous = thermal_engine_3_spans
+    results_homogenous = thermal_engine_homogenous.steady_temperature()
+    cable_temperature_homogenous = results_homogenous.cable_temperature()
+    np.testing.assert_allclose(
+        cable_temperature_homogenous,
+        results_homogenous.data["average_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_homogenous,
+        results_homogenous.data["surface_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_homogenous,
+        results_homogenous.data["core_temperature"],
+    )
+
+    thermal_engine_bimetallic = thermal_engine_3_spans_narcisse
+    results_bimetallic = thermal_engine_bimetallic.steady_temperature()
+    cable_temperature_bimetallic = results_bimetallic.cable_temperature()
+    np.testing.assert_allclose(
+        cable_temperature_bimetallic,
+        results_bimetallic.data["core_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_bimetallic,
+        results_bimetallic.data["surface_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_bimetallic,
+        results_bimetallic.data["average_temperature"],
+    )
 
 
 def test_wrong_array_length(cable_array_AM600: CableArray):
@@ -301,6 +412,43 @@ def test_transient_thermal(cable_array_AM600: CableArray):
 
     np.testing.assert_array_almost_equal(
         thermal_engine.wind_cable_angle, np.array([90.0, 80.0, 70.0])
+    )
+
+
+def test_transient_temperature_cable_temperature(
+    thermal_engine_3_spans: ThermalEngine,
+    thermal_engine_3_spans_narcisse: ThermalEngine,
+) -> None:
+    thermal_engine_homogenous = thermal_engine_3_spans
+    results_homogenous = thermal_engine_homogenous.transient_temperature()
+    cable_temperature_homogenous = results_homogenous.cable_temperature()
+    np.testing.assert_allclose(
+        cable_temperature_homogenous,
+        results_homogenous.data["average_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_homogenous,
+        results_homogenous.data["surface_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_homogenous,
+        results_homogenous.data["core_temperature"],
+    )
+
+    thermal_engine_bimetallic = thermal_engine_3_spans_narcisse
+    results_bimetallic = thermal_engine_bimetallic.steady_temperature()
+    cable_temperature_bimetallic = results_bimetallic.cable_temperature()
+    np.testing.assert_allclose(
+        cable_temperature_bimetallic,
+        results_bimetallic.data["core_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_bimetallic,
+        results_bimetallic.data["surface_temperature"],
+    )
+    assert not np.allclose(
+        cable_temperature_bimetallic,
+        results_bimetallic.data["average_temperature"],
     )
 
 

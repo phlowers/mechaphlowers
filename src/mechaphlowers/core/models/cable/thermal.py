@@ -36,12 +36,14 @@ class ThermalResults(ABC):
     def __init__(
         self,
         input_data: dict | pd.DataFrame,
+        cable_is_bimetallic: npt.NDArray[np.bool],
         return_inputs: bool = True,
     ):
         inputs = self._pop_inputs(input_data)
         self.inputs = inputs if return_inputs else None
         results = self.parse_results(input_data)
         self.data = results
+        self.cable_is_bimetallic = cable_is_bimetallic
 
     @staticmethod
     @abstractmethod
@@ -55,6 +57,13 @@ class ThermalResults(ABC):
             pd.DataFrame: Parsed results as a pandas DataFrame.
         """
         raise NotImplementedError
+
+    def cable_temperature(self) -> np.ndarray:
+        return np.where(
+            self.cable_is_bimetallic,
+            self.data["core_temperature"],
+            self.data["average_temperature"],
+        )
 
     def __len__(self) -> int:
         return len(self.data)
@@ -403,6 +412,7 @@ class ThermalEngine:
                 0.016 if cable_array.data.has_magnetic_heart.iloc[0] else 0.0,
             ),
         }
+        self.bimetallic_cable = cable_array.is_bimetallic
         self._load()
         logger.debug("Thermal attribute set")
 
@@ -442,6 +452,7 @@ class ThermalEngine:
             self.thermal_model.steady_temperature(
                 return_uncertainty=return_uncertainty,
             ),
+            cable_is_bimetallic=self.bimetallic_cable,
             return_inputs=return_inputs,
         )
 
@@ -465,6 +476,7 @@ class ThermalEngine:
             self.thermal_model.steady_intensity(
                 self.target_temperature,
             ),
+            cable_is_bimetallic=self.bimetallic_cable,
             return_inputs=return_inputs,
         )
 
@@ -488,6 +500,7 @@ class ThermalEngine:
             self.thermal_model.transient_temperature(
                 offset=self.forecast.time
             ),
+            cable_is_bimetallic=self.bimetallic_cable,
             return_inputs=return_inputs,
         )
 
