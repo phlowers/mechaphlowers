@@ -92,7 +92,7 @@ study.solve_change_state(
     wind_pressure=200,       # Pa
     ice_thickness=0.01,      # m
     new_temperature=-10,     # °C
-    wind_sense="anticlockwise",
+    wind_direction="anticlockwise",
 )
 ```
 
@@ -119,7 +119,7 @@ print(intermediate.nodes_dxdydz)
 
 ### Automatic rollback
 
-If the solver fails during `solve_adjustment()` or `solve_change_state()`, the engine state is automatically restored to the snapshot taken before the solve was attempted. A `SolverError` is still raised so you can handle it:
+If the solver fails during `solve_change_state()`, the engine state is automatically restored to the snapshot taken before the solve was attempted. A `SolverError` is still raised so you can handle it:
 
 ```python
 from mechaphlowers.entities.errors import SolverError
@@ -130,6 +130,8 @@ except SolverError:
     # Engine state is unchanged — safe to retry with different parameters
     study.solve_change_state(wind_pressure=200, new_temperature=-10)
 ```
+
+For `solve_adjustment()` **without** manipulations, the same rollback applies. When manipulations are active, `solve_adjustment()` first runs on a temporary clean engine (leaving the current engine untouched), so the state is naturally safe if the solver fails.
 
 ## State management
 
@@ -245,3 +247,131 @@ fig = go.Figure()
 study.plot_engine.preview_line3d(fig)
 fig.show()
 ```
+
+## Manipulations
+
+`SectionStudy` provides methods to alter the geometry and insulator properties of supports as overlays, without modifying the original `SectionArray`. Manipulations are registered on the `study` object and are applied when `solve_adjustment()` is called: a clean adjustment is first solved on the original geometry, then a new engine is built from the manipulated copy and receives the injected $L_{ref}$.
+
+!!! important
+    Manipulations must be registered **before** calling `solve_adjustment()`. After `solve_adjustment()` with active manipulations, `plot_engine` and `guying` are reset and recreated lazily on next access.
+
+### Support Manipulation
+
+`modify_support` applies **additive offsets** to `conductor_attachment_altitude` and/or `crossarm_length` for specified supports. Internally the `Manipulation` object produces a new `SectionArray` with the offsets baked in; the original section array is never modified.
+
+The input is a dictionary where keys are support indices (0-based) and values are dicts with optional keys `"y"` (crossarm length offset) and `"z"` (altitude offset), both in meters.
+
+```python
+# Raise support 1 by 2 m and shorten its crossarm by 1 m
+study.modify_support({1: {"z": 2.0, "y": -1.0}})
+
+# Modify several supports at once
+study.modify_support({0: {"z": 0.5}, 2: {"y": 3.0}})
+
+study.solve_adjustment()
+study.solve_change_state(new_temperature=15.0)
+
+# Restore original geometry
+study.reset_support()
+```
+
+!!! note
+    Manipulations are **additive**: calling `modify_support` multiple times stacks the offsets.
+    `reset_support` clears all accumulated offsets and restores the original geometry.
+    For each affected support, `counterweight_mass` is set to 0; unaffected supports keep their original value.
+
+### Rope Manipulation
+
+`add_rope` replaces the insulator length and mass for specified supports with rope values. Internally the `Manipulation` object produces a new `SectionArray` with the rope values baked in; the original section array is never modified.
+
+The input is a dictionary where keys are support indices (0-based) and values are the rope length in meters. An optional `rope_lineic_mass` parameter (kg/m, default `0.01`) controls the mass per unit length.
+
+```python
+# Replace insulator properties for supports 1 and 2 with rope values
+study.add_rope({1: 4.5, 2: 3.0})
+
+# With a custom linear mass
+study.add_rope({0: 2.0}, rope_lineic_mass=0.05)
+
+study.solve_adjustment()
+study.solve_change_state(new_temperature=15.0)
+
+# Remove the rope overlay
+study.reset_rope()
+```
+
+!!! note
+    The rope overlay only affects `insulator_length` and `insulator_mass` (and the derived `insulator_weight`) for the listed supports.
+    Unlisted supports keep their original insulator values.
+    For each affected support, `counterweight_mass` is set to 0; unaffected supports keep their original value.
+    The default linear mass can be changed globally via `options.data.rope_lineic_mass_default`.
+
+### Virtual Support
+
+`add_virtual_support` inserts intermediate supports into a line section. Internally the `Manipulation` object produces a new `SectionArray` with the virtual support rows inserted; the original section array is never modified. Each virtual support splits a given span at a specified horizontal distance from the left support. Because the number of supports changes, the full internal model is rebuilt while preserving observer bindings.
+
+The input is a dictionary where keys are left-support indices (0-based, must not be the last support) and values are dicts with the following required keys:
+
+| Key | Description |
+|---|---|
+| `"x"` | Distance from the left support (m) — must be strictly in `(-abs(crossarm_length[left_support]), abs(span_length) + abs(crossarm_length[right_support]))` |
+| `"y"` | Lateral offset (m) — sets `line_angle = atan2(y, x)` on the left support |
+| `"z"` | `conductor_attachment_altitude` of the virtual support (m) |
+| `"insulator_length"` | Insulator length on the virtual support (m) |
+| `"insulator_mass"` | Insulator mass on the virtual support (kg) |
+| `"hanging_cable_point_from_left_support"` | Distance from the left support to the cable hanging point (m) — must be strictly in `(-abs(crossarm_length[left_support]), abs(span_length) + abs(crossarm_length[right_support]))`. Not used for computation currently. |
+
+```python
+# Insert a virtual support at 100 m into span 1
+study.add_virtual_support({
+    1: {"x": 100.0, "y": 0.0, "z": 55.0,
+        "insulator_length": 3.0, "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": 100.0}
+})
+
+study.solve_adjustment()
+study.solve_change_state(new_temperature=15.0)
+
+# Remove all virtual supports
+study.reset_virtual_support()
+```
+
+Multiple spans can be provided in one call, or via successive calls (overlays accumulate):
+
+```python
+study.add_virtual_support({
+    0: {"x": 200.0, "y": 0.0, "z": 40.0, "insulator_length": 3.0, "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": 200.0},
+    2: {"x": 200.0, "y": 10.0, "z": 62.0, "insulator_length": 3.0, "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": 200.0},
+})
+```
+
+!!! note
+    Virtual supports have `crossarm_length = 0` and `suspension = True`.  
+    `counterweight_mass` is set to 0 for each virtual row.  
+    All changes are reversible with `reset_virtual_support`; the original section array is never modified.
+
+### Cable Shifting
+
+`modify_cable` applies horizontal support shifting and span length modifications to the cable geometry. This is applied at solve time alongside the other manipulations.
+
+- `shift_support`: dictionary mapping support index (0-based) to horizontal offset (m); first and last supports are forced to 0. Unspecified supports default to 0.
+- `shorten_span`: dictionary mapping span index (0-based) to span length reduction (m); positive values shorten the span. Unspecified spans default to 0.
+
+```python
+# Shift support 1 by 0.5 m, shorten the first span by 1 m
+study.modify_cable(
+    shift_support={1: 0.5},
+    shorten_span={0: 1.0},
+)
+
+study.solve_adjustment()
+study.solve_change_state(new_temperature=15.0)
+
+# Remove cable shifting
+study.reset_cable()
+```
+
+!!! note
+    Cable shifting modifies the effective $L_{ref}$ passed to the manipulated engine; it does not alter the geometry of supports.

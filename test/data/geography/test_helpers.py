@@ -8,7 +8,7 @@ import numpy as np
 from mechaphlowers.data.geography.helpers import (
     bearing_to_direction,
     distances_to_gps,
-    gps_to_bearing,
+    gps_to_bearing_two_points,
     gps_to_lambert93,
     lambert93_to_gps,
     reverse_haversine,
@@ -218,7 +218,7 @@ def test_gps_to_bearing_cardinal_directions():
     # Test North (should be close to 0 degrees)
     north_lat = np.array([CARDINAL_POINTS['north'][0]], dtype=np.float64)
     north_lon = np.array([CARDINAL_POINTS['north'][1]], dtype=np.float64)
-    bearing = gps_to_bearing(
+    bearing = gps_to_bearing_two_points(
         paris_lat, paris_lon, north_lat, north_lon, unit="deg"
     )
     np.testing.assert_allclose(
@@ -228,7 +228,7 @@ def test_gps_to_bearing_cardinal_directions():
     # Test East (should be close to 90 degrees)
     east_lat = np.array([CARDINAL_POINTS['east'][0]], dtype=np.float64)
     east_lon = np.array([CARDINAL_POINTS['east'][1]], dtype=np.float64)
-    bearing = gps_to_bearing(
+    bearing = gps_to_bearing_two_points(
         paris_lat, paris_lon, east_lat, east_lon, unit="deg"
     )
     # Added minus sign because we want anti-clockwise. Original test was written with clockwise bearings in mind.
@@ -239,7 +239,7 @@ def test_gps_to_bearing_cardinal_directions():
     # Test South (should be close to 180 degrees)
     south_lat = np.array([CARDINAL_POINTS['south'][0]], dtype=np.float64)
     south_lon = np.array([CARDINAL_POINTS['south'][1]], dtype=np.float64)
-    bearing = gps_to_bearing(
+    bearing = gps_to_bearing_two_points(
         paris_lat, paris_lon, south_lat, south_lon, unit="deg"
     )
     np.testing.assert_allclose(
@@ -249,7 +249,7 @@ def test_gps_to_bearing_cardinal_directions():
     # Test West (should be close to 270 degrees)
     west_lat = np.array([CARDINAL_POINTS['west'][0]], dtype=np.float64)
     west_lon = np.array([CARDINAL_POINTS['west'][1]], dtype=np.float64)
-    bearing = gps_to_bearing(
+    bearing = gps_to_bearing_two_points(
         paris_lat, paris_lon, west_lat, west_lon, unit="deg"
     )
     np.testing.assert_allclose(
@@ -272,7 +272,7 @@ def test_gps_to_bearing_cities():
         [FRENCH_CITIES_GPS['Marseille'][1]], dtype=np.float64
     )
 
-    bearing = gps_to_bearing(
+    bearing = gps_to_bearing_two_points(
         paris_lat, paris_lon, marseille_lat, marseille_lon, unit="deg"
     )
     # Paris to Marseille should be roughly southeast (135-180 degrees)
@@ -282,7 +282,7 @@ def test_gps_to_bearing_cities():
     lyon_lat = np.array([FRENCH_CITIES_GPS['Lyon'][0]], dtype=np.float64)
     lyon_lon = np.array([FRENCH_CITIES_GPS['Lyon'][1]], dtype=np.float64)
 
-    bearing = gps_to_bearing(
+    bearing = gps_to_bearing_two_points(
         paris_lat, paris_lon, lyon_lat, lyon_lon, unit="deg"
     )
     # Paris to Lyon should be roughly southeast (135-180 degrees)

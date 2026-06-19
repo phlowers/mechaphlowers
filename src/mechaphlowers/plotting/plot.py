@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import copy
 import logging
 import warnings
 from typing import Literal, Union
@@ -29,6 +30,10 @@ from mechaphlowers.plotting.plot_config import (
 from mechaphlowers.plotting.plot_distances import plot_distance_engine
 
 logger = logging.getLogger(__name__)
+
+
+SUPPORT_LABEL_PREFIX = "support: "
+SPAN_LABEL_PREFIX = "span: "
 
 
 def figure_factory(context=Literal["std", "blank"]) -> go.Figure:
@@ -90,15 +95,28 @@ def plot_text_3d(
     )
 
 
+def _check_hovertext_length(points: np.ndarray, hovertext: list[str]):
+    if len(hovertext) != len(points):
+        raise ValueError(
+            "hovertext length must match number of points: "
+            f"got len(hovertext)={len(hovertext)} and len(points)={len(points)}"
+        )
+
+
 def plot_points_3d(
     fig: go.Figure,
     points: np.ndarray,
     trace_profile: TraceProfile | None = None,
+    hovertext: list[str] | None = None,
 ) -> None:
+    if hovertext is not None:
+        _check_hovertext_length(points, hovertext)
+
     if trace_profile is None:
         trace_profile = TraceProfile()
 
     trace_profile.dimension = "3d"
+
     fig.add_trace(
         go.Scatter3d(
             x=points[:, 0],
@@ -109,6 +127,13 @@ def plot_points_3d(
             line=trace_profile.line,
             opacity=trace_profile.opacity,
             name=trace_profile.name,
+            customdata=hovertext,
+            hovertemplate=(
+                "x: %{x}<br>y: %{y}<br>z: %{z}<br>%{customdata}"
+                f"<extra>{trace_profile.name}</extra>"
+                if hovertext is not None
+                else None
+            ),
         ),
     )
 
@@ -118,7 +143,11 @@ def plot_points_2d(
     points: np.ndarray,
     trace_profile: TraceProfile | None = None,
     view: Literal["profile", "line"] = "profile",
+    hovertext: list[str] | None = None,
 ) -> None:
+    if hovertext is not None:
+        _check_hovertext_length(points, hovertext)
+
     if trace_profile is None:
         trace_profile = TraceProfile()
 
@@ -142,20 +171,139 @@ def plot_points_2d(
             line=trace_profile.line,
             opacity=trace_profile.opacity,
             name=trace_profile.name,
+            customdata=hovertext,  # type: ignore[arg-type]
+            hovertemplate=(
+                "x: %{x}<br>y: %{y}<br>%{customdata}"
+                f"<extra>{trace_profile.name}</extra>"
+                if hovertext is not None
+                else None
+            ),
         )
     )
 
 
-def plot_support_shape(fig: go.Figure, support_shape: SupportShape) -> None:
+def _group_labels_by_position(
+    points: np.ndarray,
+    set_numbers: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Group set-number labels by position, joining coincident points with ", ".
+
+    Args:
+        points: (n, 3) array of point coordinates
+        set_numbers: (n,) or (n, 1) array of set number labels
+
+    Returns:
+        tuple of (grouped_points (m, 3), grouped_labels (m,)) where m <= n
+    """
+    flat_numbers = np.ravel(set_numbers)
+    seen: dict[tuple, int] = {}
+    grouped_coords: list[np.ndarray] = []
+    grouped_labels: list[str] = []
+    for point, set_number in zip(points, flat_numbers):
+        key = tuple(point)
+        if key in seen:
+            idx = seen[key]
+            grouped_labels[idx] = f"{grouped_labels[idx]}, {set_number}"
+        else:
+            seen[key] = len(grouped_coords)
+            grouped_coords.append(point)
+            grouped_labels.append(str(set_number))
+    return np.array(grouped_coords), np.array(grouped_labels)
+
+
+def _check_labels_length(points: Points, labels: list[str]):
+    if len(labels) != len(points):
+        raise ValueError(
+            "labels length must match number of layers in points: "
+            f"got len(labels)={len(labels)} and len(points)={len(points)}"
+        )
+
+
+def _build_hover_text(
+    points: Points, labels: list[str], label_prefix: str = ""
+) -> list[str]:
+    """Build a flat list of hover labels matching the stacked-points layout.
+
+    When ``points.points(stack=True)`` is called, each layer receives an extra
+    NaN row as a separator.  This function produces a parallel list in which
+    each real point in layer *i* maps to ``labels[i]``, and the NaN separator
+    maps to an empty string.
+
+    Args:
+        points: Points object with ``coords`` shape ``(n_layers, n_pts, 3)``.
+        labels: One label per layer; ``len(labels)`` must equal ``n_layers``.
+        label_prefix: Optional prefix prepended to every label (e.g. ``"span: "``).
+
+    Returns:
+        Flat list of length ``n_layers * (n_pts + 1)``.
+    """
+    _check_labels_length(points, labels)
+
+    n_pts = points.coords.shape[1]
+    result: list[str] = []
+    for label in labels:
+        result.extend([f"{label_prefix}{label}"] * n_pts)
+        result.append("")
+    return result
+
+
+def _apply_name_config(
+    trace: TraceProfile,
+    mode: Literal["main", "background"],
+    name: str | None = None,
+    addendum: str = "",
+) -> TraceProfile:
+    """Build a configured copy of a TraceProfile without mutating the original.
+
+    Args:
+        trace: Source TraceProfile to copy.
+        mode: Rendering mode ("main" or "background").
+        name: Full name override. Takes precedence over addendum.
+        addendum: String to append to the existing trace name.
+
+    Returns:
+        A new TraceProfile instance with mode and name applied.
+    """
+    t = copy.copy(trace)
+    original_name = t._name
+    t.mode = mode
+    if name is not None:
+        t.name = name
+    elif addendum:
+        t.name = f"{original_name} {addendum}"
+    return t
+
+
+def plot_support_shape(
+    fig: go.Figure,
+    support_shape: SupportShape,
+    structure_name: str | None = None,
+    points_name: str | None = None,
+) -> None:
     """plot_support_shape enables to plot the support shape on a plotly figure
 
     Args:
         fig (go.Figure): plotly figure
         support_shape (SupportShape): SupportShape object to plot
+        structure_name (str | None, optional): Legend label for the structure trace.
+            Defaults to the support shape name.
+        points_name (str | None, optional): Legend label for the attachment points trace.
+            Defaults to "Attachment points".
     """
-    plot_points_3d(fig, support_shape.support_points)
+    _structure_name = (
+        structure_name if structure_name is not None else support_shape.name
+    )
+    _points_name = (
+        points_name if points_name is not None else "Attachment points"
+    )
+    grouped_points, grouped_labels = _group_labels_by_position(
+        support_shape.labels_points, support_shape.set_number
+    )
+    plot_points_3d(
+        fig, support_shape.support_points, TraceProfile(name=_structure_name)
+    )
     plot_text_3d(
-        fig, points=support_shape.labels_points, text=support_shape.set_number
+        fig, points=grouped_points, text=grouped_labels, name=_points_name
     )
 
 
@@ -251,21 +399,19 @@ def set_layout(
 class PlotEngine(Observer):
     """PlotEngine renders power-line sections on Plotly figures.
 
-    It accepts either a :class:`~mechaphlowers.core.models.balance.engine.BalanceEngine`
-    or an already-constructed :class:`~mechaphlowers.core.geometry.position_engine.PositionEngine`.
-    When a ``BalanceEngine`` is passed, a ``PositionEngine`` is created
-    automatically and exposed via :attr:`position_engine`.
+    It accepts either a [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine]
+    or an already-constructed [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine].
+    When a `BalanceEngine` is passed, a `PositionEngine` is created
+    automatically and exposed via `position_engine`.
 
     Reactivity is preserved through a two-hop observer chain:
 
-    .. code-block:: text
-
-        BalanceEngine  ──notifies──►  PositionEngine  ──notifies──►  PlotEngine
+        BalanceEngine  --notifies-->  PositionEngine  --notifies-->  PlotEngine
 
     Args:
-        engine: A :class:`BalanceEngine` or :class:`PositionEngine` instance.
+        engine: A [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] or [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine] instance.
 
-    Example:
+    Examples:
         >>> import plotly.graph_objects as go
         >>> # Pass a BalanceEngine directly (PositionEngine is auto-created)
         >>> plt_engine = PlotEngine(balance_engine)
@@ -299,9 +445,9 @@ class PlotEngine(Observer):
     # ── Observer callback ─────────────────────────────────────────────────────
 
     def update(self, notifier: Notifier) -> None:
-        """Receive notification from :class:`PositionEngine`.
+        """Receive notification from [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine].
 
-        The ``PositionEngine`` has already refreshed all coordinates before
+        The `PositionEngine` has already refreshed all coordinates before
         calling this method, so no additional state update is required here.
         """
         logger.debug("Plot engine notified from position engine.")
@@ -313,22 +459,22 @@ class PlotEngine(Observer):
 
     @property
     def span_model(self):
-        """Delegating property — see :attr:`PositionEngine.span_model`."""
+        """Delegating property — see [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine]."""
         return self.position_engine.span_model
 
     @property
     def cable_loads(self):
-        """Delegating property — see :attr:`PositionEngine.cable_loads`."""
+        """Delegating property — see [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine]."""
         return self.position_engine.cable_loads
 
     @property
     def section_array(self):
-        """Delegating property — see :attr:`PositionEngine.section_array`."""
+        """Delegating property — see [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine]."""
         return self.position_engine.section_array
 
     @property
     def coords_calculator(self):
-        """Delegating property — see :attr:`PositionEngine.coords_calculator`."""
+        """Delegating property — see [`PositionEngine`][mechaphlowers.core.geometry.position_engine.PositionEngine]."""
         return self.position_engine.coords_calculator
 
     @property
@@ -341,39 +487,53 @@ class PlotEngine(Observer):
 
     @property
     def beta(self) -> np.ndarray:
-        """Delegating property — see :attr:`PositionEngine.beta`."""
+        """Delegating property — see [`PositionEngine.beta`][mechaphlowers.core.geometry.position_engine.PositionEngine.beta]."""
         return self.position_engine.beta
+
+    @property
+    def support_names(self) -> list[str]:
+        """Names of the supports as defined in the section array."""
+        return list(self.section_array.data_original["name"])
+
+    @property
+    def span_names(self) -> list[str]:
+        """Names of the spans, each being the concatenation of the two adjacent support names.
+
+        For supports ``["A", "B", "C"]`` this returns ``["A-B", "B-C"]``.
+        """
+        names = self.support_names
+        return [f"{names[i]}-{names[i + 1]}" for i in range(len(names) - 1)]
 
     # ── Backward-compatible delegating methods ────────────────────────────────
 
     def initialize_engine(self, balance_engine: BalanceEngine) -> None:
-        """Delegate to :meth:`PositionEngine.initialize_engine`."""
+        """Delegate to [`PositionEngine.initialize_engine`][mechaphlowers.core.geometry.position_engine.PositionEngine.initialize_engine]."""
         self.position_engine.initialize_engine(balance_engine)
 
     def reset(self, balance_engine: BalanceEngine) -> None:
-        """Delegate to :meth:`PositionEngine.reset`."""
+        """Delegate to [`PositionEngine.reset`][mechaphlowers.core.geometry.position_engine.PositionEngine.reset]."""
         self.position_engine.reset(balance_engine)
 
-    def add_obstacles(self, obstacles_array: ObstacleArray) -> None:
-        """Delegate to :meth:`PositionEngine.add_obstacles`."""
-        self.position_engine.add_obstacles(obstacles_array)
+    def add_obstacle_array(self, obstacle_array: ObstacleArray) -> None:
+        """Delegate to [`PositionEngine.add_obstacle_array`][mechaphlowers.core.geometry.position_engine.PositionEngine.add_obstacle_array]."""
+        self.position_engine.add_obstacle_array(obstacle_array)
 
     def get_spans_points(
         self, frame: Literal["section", "localsection", "cable"]
     ) -> np.ndarray:
-        """Delegate to :meth:`PositionEngine.get_spans_points`."""
+        """Delegate to [`PositionEngine.get_spans_points`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_spans_points]."""
         return self.position_engine.get_spans_points(frame)
 
     def get_supports_points(self) -> np.ndarray:
-        """Delegate to :meth:`PositionEngine.get_supports_points`."""
+        """Delegate to [`PositionEngine.get_supports_points`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_supports_points]."""
         return self.position_engine.get_supports_points()
 
     def get_insulators_points(self) -> np.ndarray:
-        """Delegate to :meth:`PositionEngine.get_insulators_points`."""
+        """Delegate to [`PositionEngine.get_insulators_points`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_insulators_points]."""
         return self.position_engine.get_insulators_points()
 
     def get_obstacles_points(self) -> np.ndarray:
-        """Delegate to :meth:`PositionEngine.get_obstacles_points`."""
+        """Delegate to [`PositionEngine.get_obstacles_points`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_obstacles_points]."""
         return self.position_engine.get_obstacles_points()
 
     def obstacles_dict(self, project=False, frame_index=0) -> dict:
@@ -388,13 +548,13 @@ class PlotEngine(Observer):
     def get_loads_coords(
         self, project: bool = False, frame_index: int = 0
     ) -> dict:
-        """Delegate to :meth:`PositionEngine.get_loads_coords`."""
+        """Delegate to [`PositionEngine.get_loads_coords`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_loads_coords]."""
         return self.position_engine.get_loads_coords(project, frame_index)
 
     def get_points_for_plot(
         self, project: bool = False, frame_index: int = 0
     ) -> tuple[Points, Points, Points]:
-        """Delegate to :meth:`PositionEngine.get_points_for_plot`."""
+        """Delegate to [`PositionEngine.get_points_for_plot`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_points_for_plot]."""
         return self.position_engine.get_points_for_plot(project, frame_index)
 
     def preview_line3d(
@@ -403,6 +563,13 @@ class PlotEngine(Observer):
         view: Literal["full", "analysis"] = "full",
         mode: Literal["main", "background"] = "main",
         aspect_ratio: dict[str, float] | None = None,
+        name_addendum: str = "",
+        cable_name: str | None = None,
+        cable_name_addendum: str | None = None,
+        support_name: str | None = None,
+        support_name_addendum: str | None = None,
+        insulator_name: str | None = None,
+        insulator_name_addendum: str | None = None,
     ) -> None:
         """Plot 3D of power lines sections
 
@@ -412,6 +579,13 @@ class PlotEngine(Observer):
             mode (Literal['main', 'background'], optional): Style mode for the traces. Defaults to "main".
             aspect_ratio (dict[str, float] | None, optional): Custom aspect ratio dictionary with keys 'x', 'y', 'z'.
                 When provided, overrides the layout aspect ratio. Can be computed using compute_aspect_ratio(). Defaults to None.
+            name_addendum (str, optional): String appended to all trace names. Defaults to "".
+            cable_name (str | None, optional): Full override for the cable trace legend label.
+            cable_name_addendum (str, optional): Addendum for the cable trace name (overrides name_addendum).
+            support_name (str | None, optional): Full override for the support trace legend label.
+            support_name_addendum (str, optional): Addendum for the support trace name (overrides name_addendum).
+            insulator_name (str | None, optional): Full override for the insulator trace legend label.
+            insulator_name_addendum (str, optional): Addendum for the insulator trace name (overrides name_addendum).
 
         Raises:
             ValueError: view is not an expected value
@@ -433,13 +607,56 @@ class PlotEngine(Observer):
 
         span, supports, insulators = self.get_points_for_plot(project=False)
 
-        plot_points_3d(fig, span.points(True), cable_trace(mode=mode))
-        plot_points_3d(fig, supports.points(True), support_trace(mode=mode))
+        _cable = _apply_name_config(
+            cable_trace,
+            mode,
+            cable_name,
+            cable_name_addendum
+            if cable_name_addendum is not None
+            else name_addendum,
+        )
+        _support = _apply_name_config(
+            support_trace,
+            mode,
+            support_name,
+            support_name_addendum
+            if support_name_addendum is not None
+            else name_addendum,
+        )
+        _insulator = _apply_name_config(
+            insulator_trace,
+            mode,
+            insulator_name,
+            insulator_name_addendum
+            if insulator_name_addendum is not None
+            else name_addendum,
+        )
         plot_points_3d(
-            fig, insulators.points(True), insulator_trace(mode=mode)
+            fig,
+            span.points(True),
+            _cable,
+            hovertext=_build_hover_text(
+                span, self.span_names, SPAN_LABEL_PREFIX
+            ),
+        )
+        plot_points_3d(
+            fig,
+            supports.points(True),
+            _support,
+            hovertext=_build_hover_text(
+                supports, self.support_names, SUPPORT_LABEL_PREFIX
+            ),
+        )
+        plot_points_3d(
+            fig,
+            insulators.points(True),
+            _insulator,
+            hovertext=_build_hover_text(
+                insulators, self.support_names, SUPPORT_LABEL_PREFIX
+            ),
         )
 
-        if hasattr(self.coords_calculator, "obstacles_array"):
+        if hasattr(self.coords_calculator, "obstacle_array"):
             obstacles = self.coords_calculator.compute_obstacle_coords()
             plot_points_3d(
                 fig, obstacles.points(True), TraceProfile(name="Obstacles")
@@ -453,12 +670,28 @@ class PlotEngine(Observer):
         view: Literal["profile", "line"] = "profile",
         frame_index: int = 0,
         mode: Literal["main", "background"] = "main",
+        name_addendum: str = "",
+        cable_name: str | None = None,
+        cable_name_addendum: str | None = None,
+        support_name: str | None = None,
+        support_name_addendum: str | None = None,
+        insulator_name: str | None = None,
+        insulator_name_addendum: str | None = None,
     ) -> None:
         """Plot 2D of power lines sections
 
         Args:
             fig (go.Figure): plotly figure where new traces has to be added
-            view (Literal['full', 'analysis'], optional): full for scale respect view, analysis for compact view. Defaults to "full".
+            view (Literal['profile', 'line'], optional): profile or line view. Defaults to "profile".
+            frame_index (int, optional): Index of the frame for projection. Defaults to 0.
+            mode (Literal['main', 'background'], optional): Rendering mode. Defaults to "main".
+            name_addendum (str, optional): String appended to all trace names. Defaults to "".
+            cable_name (str | None, optional): Full override for the cable trace legend label.
+            cable_name_addendum (str, optional): Addendum for the cable trace name (overrides name_addendum).
+            support_name (str | None, optional): Full override for the support trace legend label.
+            support_name_addendum (str, optional): Addendum for the support trace name (overrides name_addendum).
+            insulator_name (str | None, optional): Full override for the insulator trace legend label.
+            insulator_name_addendum (str, optional): Addendum for the insulator trace name (overrides name_addendum).
 
         Raises:
             ValueError: view value is invalid
@@ -487,26 +720,59 @@ class PlotEngine(Observer):
             project=True, frame_index=frame_index
         )
 
+        _cable = _apply_name_config(
+            cable_trace,
+            mode,
+            cable_name,
+            cable_name_addendum
+            if cable_name_addendum is not None
+            else name_addendum,
+        )
+        _support = _apply_name_config(
+            support_trace,
+            mode,
+            support_name,
+            support_name_addendum
+            if support_name_addendum is not None
+            else name_addendum,
+        )
+        _insulator = _apply_name_config(
+            insulator_trace,
+            mode,
+            insulator_name,
+            insulator_name_addendum
+            if insulator_name_addendum is not None
+            else name_addendum,
+        )
         plot_points_2d(
             fig,
             span.points(True),
-            cable_trace(mode=mode),
+            _cable,
             view=view,
+            hovertext=_build_hover_text(
+                span, self.span_names, SPAN_LABEL_PREFIX
+            ),
         )
         plot_points_2d(
             fig,
             supports.points(True),
-            support_trace(mode=mode),
+            _support,
             view=view,
+            hovertext=_build_hover_text(
+                supports, self.support_names, SUPPORT_LABEL_PREFIX
+            ),
         )
         plot_points_2d(
             fig,
             insulators.points(True),
-            insulator_trace(mode=mode),
+            _insulator,
             view=view,
+            hovertext=_build_hover_text(
+                insulators, self.support_names, SUPPORT_LABEL_PREFIX
+            ),
         )
 
-        if hasattr(self.coords_calculator, "obstacles_array"):
+        if hasattr(self.coords_calculator, "obstacle_array"):
             obstacles_dict = self.obstacles_dict(
                 project=True, frame_index=frame_index
             )
@@ -518,51 +784,57 @@ class PlotEngine(Observer):
                     view=view,
                 )
 
+    # unused?
     def point_relative_to_absolute(
         self, span_index: int, point_relative: np.ndarray
     ) -> np.ndarray:
-        """Delegate to :meth:`PositionEngine.point_relative_to_absolute`."""
+        """Delegate to [`PositionEngine.point_relative_to_absolute`][mechaphlowers.core.geometry.position_engine.PositionEngine.point_relative_to_absolute]."""
         return self.position_engine.point_relative_to_absolute(
             span_index, point_relative
         )
 
     def point_distance(
         self,
-        span_index: int,
-        point: np.ndarray,
+        obstacle_name: str,
+        point_index: int,
         *,
         fig: go.Figure | None = None,
     ) -> DistanceResult:
         """Compute the distance from *point* to a span, with optional plotting.
 
         Delegates the geometric computation to
-        :meth:`PositionEngine.point_distance` and, when *fig* is provided,
+        [`PositionEngine.point_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.point_distance] and, when *fig* is provided,
         plots the result on the figure.
 
         Args:
-            span_index: Span index in ``[0, num_supports - 2]``.
-            point: Absolute coordinates of shape ``(3,)``.
+            obstacle_name: Obstacle name to get the distances of.
+            point_index: point_index of the selected obstacle.
             fig: Optional Plotly figure.  When supplied, the geometry is
                 rendered on it.
 
         Returns:
-            :class:`~mechaphlowers.core.geometry.distances.DistanceResult`.
+            [`DistanceResult`][mechaphlowers.core.geometry.distances.DistanceResult].
 
         Examples:
 
             >>> balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
             >>> plt_engine = PlotEngine(balance_engine)
-            >>> point = np.array(
-            ...     [10.0, 5.0, 2.0]
-            ... )  # Absolute coordinates of the point to analyze
+            >>> plt_engine.position_engine.add_obstacle(
+            ...     name="obs_0",
+            ...     span_index=0,
+            ...     coords=np.array([[200, 0, 0]]),
+            ...     support_reference='left',
+            ... )
             >>> fig = figure_factory()
-            >>> distance_result = plt_engine.point_distance(span_index=0, point=point)
+            >>> distance_result = plt_engine.point_distance(
+            ...     obstacle_name="obs_0", point_index=0
+            ... )
             # ...get a distance result object with the distance and closest point coordinates
             >>> fig.show()
         """
-        distance_result = self.position_engine.point_distance(
-            span_index, point
-        )
+        distance_result = self.position_engine.get_distances_from_obstacles()[
+            obstacle_name
+        ][point_index]
 
         if fig is not None:
             plot_distance_engine(
@@ -571,11 +843,11 @@ class PlotEngine(Observer):
                 fig=fig,
                 show_plane=True,
                 show_projections=True,
-                title_addendum=f" - Span {span_index}",
+                title_addendum=f" - Obstacle: {obstacle_name}",
                 force_layout=True,
             )
             fig.update_layout(
-                title=f"Point Distance Analysis - Span {span_index}",
+                title=f"Point Distance Analysis - Obstacle: {obstacle_name}",
                 scene=dict(
                     xaxis_title="X (m)",
                     yaxis_title="Y (m)",

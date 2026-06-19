@@ -57,7 +57,7 @@ class BalanceEngine(Notifier):
 
     * `self.L_ref` for solve_adjustment()
 
-    * `self.balance_model.nodes.dxdydz` and `self.span_model.sagging_parameter` for solve_change_state().
+    * `self.balance_model.nodes.dxdydz` and `self.span_model.parameter` for solve_change_state().
 
     Examples:
 
@@ -98,12 +98,7 @@ class BalanceEngine(Notifier):
         self.balance_model_type = balance_model_type
         self.span_model_type = span_model_type
         self.deformation_model_type = deformation_model_type
-        self._shifting_distance_support: np.ndarray = np.zeros_like(
-            self.section_array.data.conductor_attachment_altitude.to_numpy()
-        )
-        self._shortening_distance_span: np.ndarray = np.zeros(
-            len(self.section_array.data.conductor_attachment_altitude) - 1
-        )
+        self._adjustment_blocked: bool = False
 
         self.reset(full=True)
 
@@ -202,7 +197,7 @@ class BalanceEngine(Notifier):
             >>> load_position_distance = np.array([150, 200, 0, np.nan])  # 4 supports/3 spans
             >>> load_mass = np.array([500, 70, 0, np.nan])
             >>> engine.add_loads(load_position_distance, load_mass)
-            >>> plot_engine.reset()  # necessary if plot_engine already exists
+            >>> plot_engine.reset()  # optional: only needed if cached plots must be discarded
         """
         span_length = self.section_array.data["span_length"].to_numpy()
         load_position_distance = np.array(load_position_distance)
@@ -226,134 +221,23 @@ class BalanceEngine(Notifier):
         )
         logger.debug(debug_loads)
 
-    @property
-    def shift_support(self) -> np.ndarray:
-        """Shifting distance, in meters."""
-        return self._shifting_distance_support
-
-    @property
-    def shortening_span(self) -> np.ndarray:
-        """shortening distance, in meters."""
-        return self._shortening_distance_span
-
-    def add_cable_shifting(
-        self,
-        shift_support: np.ndarray | list | None = None,
-        shorten_span: np.ndarray | list | None = None,
-    ) -> None:
-        """Adds cable shifting to BalanceEngine.
-        Updates internal shifting and span-length modification fields.
-
-        Expected input are arrays whose sizes match the number of supports.
-        Warning: shift shorten the left span and lengthen the right span.
-        So if you want to shorten the right span, you should input a negative value.
-
-        Args:
-            shift_support (np.ndarray | list | None): Horizontal shifting of each support, in meters.
-                Array of length ``support_number`` (support based). The first and last values
-                are enforced to 0. If ``None``, an array of zeros is used.
-            shorten_span (np.ndarray | list | None): Span length modification, in meters.
-                Array of length ``support_number - 1`` (span based), one value per span.
-                Positive values shorten the spans, negative values shorten them. If ``None``,
-                an array of zeros is used.
-
-        Raises:
-            ValueError: if input arrays don't have correct size.
-
-        Examples:
-            >>> balance_engine.add_cable_shifting(
-            ...     shorten_span=np.array([1.5, 0, 0]),
-            ...     shift_support=np.array([0, 1, 0.5, 0]),
-            ... )
-            >>> balance_engine.shift_shorten_cable()
-            >>> balance_engine.L_ref
-            # Output: array of shifted span lengths, in meters.
-            >>> balance_engine.solve_change_state(wind_pressure=0.0, new_temperature=15.0)
-            >>> balance_engine.parameter
-            # Output: array of sagging parameters, updated after shifting and shortening the cable.
-        """
-        # Convert to numpy arrays
-        shift_support = (
-            np.array(shift_support, dtype=np.float64)
-            if shift_support is not None
-            else np.zeros(self.support_number)
-        )
-        shorten_span = (
-            np.array(shorten_span, dtype=np.float64)
-            if shorten_span is not None
-            else np.zeros(self.support_number - 1)
-        )
-
-        # Check size matches number of supports
-        expected_size = self.support_number
-        if shift_support.size != expected_size:
-            raise ValueError(
-                f"shift_support has incorrect size: {expected_size} is expected, received {shift_support.size}"
-            )
-        expected_span_size = self.support_number - 1
-        if shorten_span.size != expected_span_size:
-            raise ValueError(
-                f"shorten_span has incorrect size: {expected_span_size} is expected, received {shorten_span.size}"
-            )
-
-        # Enforce constraints: shifting_distance first and last are 0
-        if abs(shift_support[0]) > 0.0 or abs(shift_support[-1]) > 0.0:
-            logger.warning(
-                "shift_support first and last values must be 0 (support based). "
-                "Enforcing this constraint."
-            )
-            warnings.warn(
-                "First and last values of shift_support have been reset to 0",
-                BalanceEngineWarning,
-            )
-        shift_support[0] = 0.0
-        shift_support[-1] = 0.0
-
-        # Store in private attributes
-        self._shifting_distance_support = shift_support
-        self._shortening_distance_span = shorten_span
-
-        # apply
-        self.shift_shorten_cable()
-
-        # Reset and notify observers
-        self.reset(full=False)
-        debug_msg = (
-            "Cable shifting has been added. PlotEngine will be notified automatically "
-            "via the observer pattern; no manual reset is required."
-        )
-        logger.debug(debug_msg)
-
-    def shift_span_length(self) -> np.ndarray:
-        """Transform shifting distance which is support based into L_ref shift which is span based.
-
-        Returns:
-            np.ndarray: Shifted span length, in meters.
-        """
-        return (
-            self._shifting_distance_support[:-1]
-            - self._shifting_distance_support[1:]
-        )
-
-    def shift_shorten_cable(self) -> None:
-        """Shift the cable length according to the shifting and shortening distances."""
-        shifted_length = (
-            -self.shift_span_length() - self._shortening_distance_span
-        )
-        self.L_ref = self.initial_L_ref + shifted_length
-        self.balance_model.L_ref = self.L_ref
-
     @check_time
     def solve_adjustment(self) -> None:
         """Solve the chain positions in the adjustment case, updating L_ref in the balance model.
         In this case, there is no weather, no loads, and temperature is the sagging temperature.
 
         After running this method, many attributes are updated.
-        Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
+        Most interesting ones are `L_ref`, `parameter` in Span, and `dxdydz` in Nodes.
 
-        raises:
+        Raises:
             SolverError: If the solver fails to converge.
+            RuntimeError: If adjustment is blocked (engine built from manipulations).
         """
+        if self._adjustment_blocked:
+            raise RuntimeError(
+                "solve_adjustment is blocked on this engine. "
+                "L_ref was injected externally from a clean adjustment."
+            )
         logger.debug("Starting adjustment.")
 
         self.balance_model.adjustment = True
@@ -376,7 +260,9 @@ class BalanceEngine(Notifier):
         wind_pressure: np.ndarray | float | None = None,
         ice_thickness: np.ndarray | float | None = None,
         new_temperature: np.ndarray | float | None = None,
-        wind_sense: Literal["clockwise", "anticlockwise"] = "anticlockwise",
+        wind_direction: Literal[
+            "clockwise", "anticlockwise"
+        ] = "anticlockwise",
     ) -> None:
         """Solve the chain positions, for a case of change of state.
         Updates weather conditions and/or sagging temperature if provided.
@@ -386,22 +272,41 @@ class BalanceEngine(Notifier):
             wind_pressure (np.ndarray | float | None): Wind pressure in Pa. Default to None
             ice_thickness (np.ndarray | float | None): Ice thickness in m. Default to None
             new_temperature (np.ndarray | float | None): New temperature in °C. Default to None
-            wind_sense (Literal["clockwise", "anticlockwise"]): Direction of the wind: if "clockwise": towards user (right), if "anticlockwise": away from user (left). Default to "anticlockwise".
+            wind_direction (Literal["clockwise", "anticlockwise"]): Direction of the wind: if "clockwise": towards user (right), if "anticlockwise": away from user (left). Default to "anticlockwise".
 
         After running this method, many attributes are updated.
-        Most interesting ones are `L_ref`, `sagging_parameter` in Span, and `dxdydz` in Nodes.
+        Most interesting ones are `L_ref`, `parameter` in Span, and `dxdydz` in Nodes.
 
-        raises:
+        Raises:
             SolverError: If the solver fails to converge.
             TypeError: If input parameters have incorrect type.
             ValueError: If input parameters have incorrect shape.
         """
         logger.debug("Starting change state.")
         logger.debug(
-            f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}\nwind_sense {str(wind_sense)}"
+            f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}\nwind_direction {str(wind_direction)}"
         )
 
-        span_shape = self.section_array.data.span_length.shape
+        if wind_direction not in ["clockwise", "anticlockwise"]:
+            raise ValueError(
+                f"wind_direction should be 'clockwise' or 'anticlockwise', received {wind_direction}"
+            )
+
+        # check if adjustment has been done before
+        try:
+            _ = self.initial_L_ref
+            logger.debug(
+                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.initial_L_ref)}"
+            )
+        except AttributeError:
+            logger.warning(self._warning_no_L_ref)
+            warnings.warn(self._warning_no_L_ref, BalanceEngineWarning)
+            self.solve_adjustment()
+
+        # Use current span_model (potentially rebuilt by solve_adjustment)
+        span_shape = (
+            self.span_model.parameter.shape
+        )  # span_model holds n-sized array (same shape as span_length)
 
         def validate_input(input_value, name: str):
             if input_value is None:
@@ -418,12 +323,10 @@ class BalanceEngine(Notifier):
 
             return input_value
 
-        if wind_sense not in ["clockwise", "anticlockwise"]:
-            raise ValueError(
-                f"wind_sense should be 'clockwise' or 'anticlockwise', received {wind_sense}"
-            )
+        # Set model attributes after potential solve_adjustment (which may
+        # rebuild models via reset(full=True)).
         validated_wind = validate_input(wind_pressure, "wind_pressure")
-        if wind_sense == "clockwise":
+        if wind_direction == "clockwise":
             validated_wind = -validated_wind
 
         self.balance_model.cable_loads.wind_pressure = validated_wind
@@ -437,24 +340,7 @@ class BalanceEngine(Notifier):
         self.balance_model.sagging_temperature = arr.decr(new_t)
         self.deformation_model.current_temperature = new_t
 
-        # check if adjustment has been done before
-        try:
-            _ = self.initial_L_ref
-            logger.debug(
-                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.initial_L_ref)}"
-            )
-        except AttributeError:
-            logger.warning(self._warning_no_L_ref)
-            warnings.warn(self._warning_no_L_ref, BalanceEngineWarning)
-            self.solve_adjustment()
-
         self.balance_model.adjustment = False
-
-        logger.debug(f"Shifting distance: {str(self.shift_support)}")
-        logger.debug(f"shortening distance: {str(self.shortening_span)}")
-        logger.debug("Taking into account cable shifting and shortening.")
-        self.shift_shorten_cable()
-        logger.debug(f"L_ref after shifting: {str(self.L_ref)}")
 
         self.span_model.load_coefficient = (
             self.balance_model.cable_loads.load_coefficient
@@ -493,6 +379,8 @@ class BalanceEngine(Notifier):
                     <li>horizontal_distance</li>
                     <li>arc_length</li>
                     <li>T_h</li>
+                    <li>sag</li>
+                    <li>sag_s2</li>
                 </ul>
         """
         T_sup, T_inf = self.span_model.tensions_sup_inf()
@@ -532,6 +420,24 @@ class BalanceEngine(Notifier):
         }
         return result_dict
 
+    def get_ruling_span_length(self) -> float:
+        """Compute ruling span length:
+
+        if we considered the whole section as a single span, the length would be ruling_span_length
+
+        Used for tensions computation when unfolding the cable.
+
+        $L_{R} = \\sqrt{\\frac{\\sum(L_n ^ 4 / C_n)}{\\sum{C_n}}}$
+
+        where $L_n$ are the horizontal length of span n, and $C_n$ the chord length of span n
+
+        Returns:
+            float: span length of ruling span
+        """
+        # proto uses section_array.span_length instead of balance_model.a (called a_chain in proto)
+        chord = np.sqrt(self.balance_model.a**2 + self.balance_model.b**2)
+        return np.sqrt(np.sum(self.balance_model.a**4 / chord) / np.sum(chord))
+
     @property
     def support_number(self) -> int:
         return self.section_array.data.span_length.shape[0]
@@ -544,7 +450,7 @@ class BalanceEngine(Notifier):
         dxdydz = self.balance_model.chain_displacement().T
         return_string = (
             f"number of supports: {self.support_number}\n"
-            f"parameter: {self.span_model.sagging_parameter}\n"
+            f"parameter: {self.span_model.parameter}\n"
             f"wind: {self.balance_model.cable_loads.wind_pressure}\n"
             f"ice: {self.balance_model.cable_loads.ice_thickness}\n"
             f"temperature: {self.balance_model.sagging_temperature}\n"
@@ -562,4 +468,4 @@ class BalanceEngine(Notifier):
 
     @property
     def parameter(self) -> np.ndarray:
-        return self.span_model.sagging_parameter
+        return self.span_model.parameter

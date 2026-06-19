@@ -68,6 +68,7 @@ nav:
               - Data container: docstring/entities/data_container.md
               - Support Shapes: docstring/entities/shapes.md
               - Equipment: docstring/entities/equipment.md
+              - Geography: docstring/entities/geography.md
               - Errors: docstring/entities/errors.md
           - Core:
               - Geometry:

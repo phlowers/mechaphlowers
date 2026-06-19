@@ -1,4 +1,4 @@
-# Copyright (c) 2025, RTE (http://www.rte-france.com)
+# Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -37,6 +37,7 @@ class DataConfig:
     sagging_temperature_default: float = 15.0
     safety_coefficient_default: float = 1.5
     safety_security_factor: float = 1.5
+    rope_lineic_mass_default: float = 0.01
 
 
 @dataclass
@@ -66,6 +67,7 @@ class GraphicsConfig:
             "size": 5.0,
         }
     )
+    aspect_epsilon: float = 1e-4
 
 
 @dataclass
@@ -76,6 +78,7 @@ class SolverConfig:
     param_calibration_zeta: float = 1.0
     papoto_zeta: float = 1.0
     deformation_imag_thresh: float = 1e-5
+    cubic_solver: str = "analytical_real"
     balance_solver_change_state_params: dict = field(
         default_factory=lambda: {
             "perturb": 0.0001,
@@ -174,6 +177,8 @@ class InputUnitsConfig:
             "insulator_mass": "kg",
             "x_offset": "m",
             "support_height": "m",
+            "sagging_parameter": "m",
+            "sagging_temperature": "°C",
         }
     )
 

@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from __future__ import annotations
+
 from typing import Callable, Self, TypeVar
 
 import numpy as np
@@ -301,8 +303,11 @@ class SparsePoints:
             dict_coords[object_name] = array_coords[i]
         return dict_coords
 
+    def __repr__(self):
+        return f"SparsePoints(coords={self.coords})"
 
-_PointsT = TypeVar("_PointsT", Points, SparsePoints)
+
+PointsT = TypeVar("PointsT", Points, SparsePoints)
 
 
 class CoordsCalculator:
@@ -312,6 +317,7 @@ class CoordsCalculator:
         span_model: ISpan,
         cable_loads: CableLoads,
         get_displacement: Callable[[], np.ndarray],
+        obstacle_array: ObstacleArray | None = None,
         **_,
     ):
         """Initialize the CoordsCalculator object with section parameters and a span model.
@@ -322,18 +328,30 @@ class CoordsCalculator:
             cable_loads (CableLoads): cable loads, used for beta angle
             get_displacement (Callable): function that returns an array of chain displacement. Usually, comes from BalanceModel.get_displacement()
         """
+        if obstacle_array is None:
+            obstacle_array = ObstacleArray.build_empty_array()
         self.store_references(
-            section_array, span_model, cable_loads, get_displacement
+            section_array,
+            span_model,
+            cable_loads,
+            get_displacement,
+            obstacle_array,
         )
         self.reset()
 
     def store_references(
-        self, section_array, span_model, cable_loads, get_displacement
+        self,
+        section_array: SectionArray,
+        span_model: ISpan,
+        cable_loads: CableLoads,
+        get_displacement: Callable[[], np.ndarray],
+        obstacle_array: ObstacleArray,
     ):
         self.cable_loads = cable_loads
         self.section_array = section_array
         self.span_model = span_model
         self.get_displacement = get_displacement
+        self.obstacle_array = obstacle_array
 
     def reset(self):
         span_length = self.section_array.data.span_length.to_numpy()
@@ -375,21 +393,24 @@ class CoordsCalculator:
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
+        self.refresh_obstacles()
 
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
         self.x_cable, self.z_cable = self.span_model.get_coords(resolution)
 
-    def add_obstacles(self, obstacles_array: ObstacleArray):
-        self.obstacles_array = obstacles_array
+    def refresh_obstacles(self):
+        """Need to be called when any modification to obstacle_array occurs"""
+        # obstacle_points are in absolute coordinates here
         self.obstacles_points = SparsePoints.builder_from_obstacle_array(
-            obstacles_array
+            self.obstacle_array
         )
+        self.compute_obstacle_coords()
 
     def compute_obstacle_coords(self) -> SparsePoints:
-        x, y, z = self.obstacles_array.get_vectors()
+        x, y, z = self.obstacle_array.get_vectors()
         azimuth_line = np.cumsum(self.line_angle)
-        span_index = self.obstacles_array.data["span_index"].to_numpy()
+        span_index = self.obstacle_array.data["span_index"].to_numpy()
         azimuth_line_obstacles = azimuth_line[span_index]
         x_rotated, y_rotated, z_rotated = cable_to_localsection_frame(
             x, y, z, azimuth_line_obstacles
@@ -506,8 +527,9 @@ class CoordsCalculator:
         )
         return Points.from_coords(insulator_layers)
 
+    # Proposition: call get_points_for_plot and build the dict from this
     def obstacles_dict(self, project=False, frame_index=0) -> dict:
-        if hasattr(self, "obstacles_array"):
+        if hasattr(self, "obstacle_array"):
             self.compute_obstacle_coords()
             obstacles_points = self.obstacles_points
             if project:
@@ -525,6 +547,7 @@ class CoordsCalculator:
                 f"frame_index out of range. Expected value between 0 and {len(self.line_angle)}, received {frame_index}"
             )
 
+    # After GroupPoints: should return a GroupPoints object
     def get_points_for_plot(
         self,
         project=False,
@@ -549,6 +572,7 @@ class CoordsCalculator:
         spans_points: Points = self.get_spans("section")
         supports_points: Points = self.get_supports()
         insulators_points: Points = self.get_insulators()
+        # TODO: remove this -> will eventually be delegated to GroupPoints
         if project:
             self._validate_frame_index(frame_index)
             spans_points, supports_points, insulators_points = (
@@ -559,21 +583,22 @@ class CoordsCalculator:
             )
         return spans_points, supports_points, insulators_points
 
+    # TODO: remove this -> will eventually be delegated to GroupPoints
     def project_to_selected_frame(
         self,
-        points_array: list[_PointsT],
+        points_array: list[PointsT],
         frame_index: int,
-    ) -> list[_PointsT]:
+    ) -> list[PointsT]:
         """Project points object into a support frame.
 
         Used for 2D plots that need to be projected in a specific frame.
 
         Args:
-            points_array list[_PointsT]: array of Points of SparsePoints objects
+            points_array (list[PointsT]): array of Points of SparsePoints objects
             frame_index (int): Index of the frame the projection is made.
 
         Returns:
-            list[_PointsT]: array of points object projected in local frame
+            list[PointsT]: array of points object projected in local frame
             projected into the frame of support number `frame_index`.
         """
         translation_vector = -self.get_supports().coords[frame_index, 0]
@@ -582,31 +607,40 @@ class CoordsCalculator:
         angle_to_project = np.cumsum(self.line_angle)[frame_index]
         result_points = []
         for original_points in points_array:
-            new_points = self.change_frame(
+            new_points = compute_new_frame(
                 original_points, translation_vector, angle_to_project
             )
+            # invert y axis to get more natural view
+            x, y, z = new_points.vectors
+            new_points.coords = np.array([x, -y, z]).T
             result_points.append(new_points)
         return result_points
 
-    @staticmethod
-    def change_frame(
-        points: _PointsT,
-        translation_vector: np.ndarray,
-        angle_to_project: np.float64,
-    ) -> _PointsT:
-        """Change the frame of the given Points by applying a translation and a rotation.
 
-        Args:
-            points (Points): points to transform
-            translation_vector (np.ndarray): translation vector to apply
-            angle_to_project (np.float64): angle of the rotation
+# TODO: add inplace argument?
+def compute_new_frame(
+    points: PointsT,
+    translation_vector: np.ndarray,
+    angle_to_project: np.float64,
+) -> PointsT:
+    """Change the frame of the given Points by applying a translation and a rotation.
 
-        Returns:
-            Points: new Points object in the new frame
-        """
-        points.coords = points.coords + translation_vector
-        x, y, z = points.vectors
-        x, y = project_coords(x, y, angle_to_project)
-        # invert y axis to get more natural view
-        points.coords = np.array([x, -y, z]).T
-        return points
+    Args:
+        points (Points): points to transform
+        translation_vector (np.ndarray): translation vector to apply
+        angle_to_project (np.float64): angle of the rotation in radians
+
+    Returns:
+        Points: new Points object in the new frame
+    """
+    points.coords = points.coords + translation_vector
+
+    points.coords = rotate_vector(points.vectors, angle_to_project).T
+    return points
+
+
+def rotate_vector(vector_to_rotate, angle_to_project):
+    x, y, z = vector_to_rotate
+    x, y = project_coords(x, y, angle_to_project)
+    result_vector = np.array([x, y, z])
+    return result_vector

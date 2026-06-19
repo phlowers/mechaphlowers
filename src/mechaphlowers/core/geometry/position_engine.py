@@ -16,6 +16,7 @@ from mechaphlowers.core.geometry.distances import (
     DistanceEngine,
     DistanceResult,
 )
+from mechaphlowers.core.geometry.group_points import GroupPoints
 from mechaphlowers.core.geometry.planes import change_local_frame
 from mechaphlowers.core.geometry.points import CoordsCalculator, Points
 from mechaphlowers.core.models.balance.engine import BalanceEngine
@@ -63,11 +64,13 @@ class PositionEngine(Observer, Notifier):
         self.span_model = balance_engine.balance_model.nodes_span_model
         self.cable_loads = balance_engine.cable_loads
         self.section_array = balance_engine.section_array
+        self.obstacle_array = ObstacleArray.build_empty_array()
         self.coords_calculator = CoordsCalculator(
             section_array=self.section_array,
             span_model=self.span_model,
             cable_loads=self.cable_loads,
             get_displacement=balance_engine.get_displacement,
+            obstacle_array=self.obstacle_array,
         )
 
     @property
@@ -86,7 +89,7 @@ class PositionEngine(Observer, Notifier):
         the section array.
 
         Raises:
-            TypeError: If `balance_engine` is not a [BalanceEngine][].
+            TypeError: If `balance_engine` is not a `BalanceEngine`.
         """
         if not isinstance(balance_engine, BalanceEngine):
             raise TypeError(
@@ -106,10 +109,42 @@ class PositionEngine(Observer, Notifier):
 
     # ── Obstacle management ───────────────────────────────────────────────────
 
-    def add_obstacles(self, obstacles_array: ObstacleArray) -> None:
+    def add_obstacle_array(self, obstacle_array: ObstacleArray) -> None:
         """Attach an `ObstacleArray` for coordinate computation."""
-        self.obstacles_array = obstacles_array
-        self.coords_calculator.add_obstacles(obstacles_array)
+        self.obstacle_array = obstacle_array
+        self.coords_calculator.obstacle_array = self.obstacle_array
+        self.coords_calculator.refresh_obstacles()
+
+    def add_obstacle(
+        self,
+        name: str,
+        span_index: int,
+        coords: np.ndarray,
+        object_type: str = "ground",
+        support_reference: Literal['left', 'right'] = 'left',
+        span_length: np.ndarray | None = None,
+    ):
+        """Delegate to [`ObstacleArray.add_obstacle`][mechaphlowers.entities.arrays.ObstacleArray.add_obstacle]."""
+        self.obstacle_array.add_obstacle(
+            name,
+            span_index,
+            coords,
+            object_type,
+            support_reference,
+            span_length,
+        )
+        # Replace by a Notifier/Observer pattern?
+        self.coords_calculator.refresh_obstacles()
+
+    def delete_obstacle(self, obs_names_to_delete: str | list[str]) -> None:
+        """Delegate to [`ObstacleArray.delete_obstacle`][mechaphlowers.entities.arrays.ObstacleArray.delete_obstacle]."""
+        self.obstacle_array.delete_obstacle(obs_names_to_delete)
+        self.coords_calculator.refresh_obstacles()
+
+    def delete_point(self, obs_name: str, point_index: int) -> None:
+        """Delegate to [`ObstacleArray.delete_point`][mechaphlowers.entities.arrays.ObstacleArray.delete_point]."""
+        self.obstacle_array.delete_point(obs_name, point_index)
+        self.coords_calculator.refresh_obstacles()
 
     # ── Properties ───────────────────────────────────────────────────────────
 
@@ -172,6 +207,40 @@ class PositionEngine(Observer, Notifier):
             ``(3,)``.
         """
         spans_points, _, _ = self.get_points_for_plot(project, frame_index)
+        loads_spans_idx, loads_points_idx = self.span_model.loads_indices
+        result_dict: dict = {}
+        for index_in_small_array, span_index in enumerate(loads_spans_idx):
+            point_index = loads_points_idx[index_in_small_array]
+            result_dict[int(span_index)] = spans_points.coords[
+                span_index, point_index
+            ]
+        return result_dict
+
+    def get_loads_coords_group_points(
+        self, project: bool = False, frame_index: int = 0
+    ) -> dict:
+        """Same as get_loads_coords() but uses GroupPoints object
+
+        Return a dictionary of load coordinates indexed by span.
+
+        If loads exist on spans 0 and 2, the result looks like:
+        ``{0: [x0, y0, z0], 2: [x2, y2, z2]}``.
+
+        Args:
+            project: ``True`` to project all objects into a support frame
+                (for 2-D graphs). Defaults to ``False``.
+            frame_index: Index of the support frame used for projection.
+                Must be in ``[0, nb_supports - 1]``.  Unused when
+                `project` is `False`.  Defaults to ``0``.
+
+        Returns:
+            Dict mapping span index (``int``) to coordinate array of shape
+            ``(3,)``.
+        """
+        group_points = self.get_group_points()
+        if project:
+            group_points = group_points.change_frame(frame_index)
+        spans_points = group_points.get_all_objects_dict()["spans"]
         loads_spans_idx, loads_points_idx = self.span_model.loads_indices
         result_dict: dict = {}
         for index_in_small_array, span_index in enumerate(loads_spans_idx):
@@ -274,14 +343,77 @@ class PositionEngine(Observer, Notifier):
                 span_index
             ]
         )
-        return self.distance_engine.plane_distance(point, frame="span")
+        return self.distance_engine.plane_distance(point, frame="section")
+
+    def get_distances_from_obstacles(
+        self,
+    ) -> dict[str, dict[int, DistanceResult]]:
+        """Compute distances for all obstacles to their respective spans.
+
+        Only in absolute coordiantes.
+
+        {
+            'obs_0': {0: DistanceResult, 1: DistanceResult},
+            'obs_1': {0: DistanceResult}
+        }
+
+        Returns:
+            dict: dictionary of DistanceResult, sorted by obstacles
+        """
+
+        distance_dict_result = {}
+        # self.coord_calculator.compute_obstacle_coords()?
+        obstacle_sparse_points = self.coords_calculator.obstacles_points
+        # index of obstacle point among total points
+        loop_index = 0
+        for (
+            obstacle_name,
+            obstacle_coords_array,
+        ) in obstacle_sparse_points.dict_coords().items():
+            current_distance_result = {}
+            # create dict {0: DistanceResult, 1:: DistanceResult, ...} per obstacle
+            for obstacle_coords in obstacle_coords_array:
+                span_index = obstacle_sparse_points.span_index[loop_index]
+                point_index = obstacle_sparse_points.point_index[loop_index]
+                distance_result = self.point_distance(
+                    span_index, obstacle_coords
+                )
+                current_distance_result[point_index] = distance_result
+                loop_index += 1
+            distance_dict_result[obstacle_name] = current_distance_result
+
+        return distance_dict_result
+
+    def get_group_points(self) -> GroupPoints:
+        spans_points: Points = self.coords_calculator.get_spans("section")
+        supports_points: Points = self.coords_calculator.get_supports()
+        insulators_points: Points = self.coords_calculator.get_insulators()
+        if not hasattr(self, "obstacle_array"):
+            return GroupPoints(
+                line_angle=self.coords_calculator.line_angle,
+                spans=spans_points,
+                supports=supports_points,
+                insulators=insulators_points,
+            )
+        else:
+            self.coords_calculator.compute_obstacle_coords()
+            obstacles_points = self.coords_calculator.obstacles_points
+            distances_dict = self.get_distances_from_obstacles()
+            return GroupPoints(
+                line_angle=self.coords_calculator.line_angle,
+                spans=spans_points,
+                supports=supports_points,
+                insulators=insulators_points,
+                obstacles=obstacles_points,
+                distances=distances_dict,
+            )
 
     # ── String representations ────────────────────────────────────────────────
 
     def __str__(self) -> str:
         return (
             f"number of supports: {self.section_array.data.span_length.shape[0]}\n"
-            f"parameter: {self.span_model.sagging_parameter}\n"
+            f"parameter: {self.span_model.parameter}\n"
             f"wind: {self.cable_loads.wind_pressure}\n"
             f"ice: {self.cable_loads.ice_thickness}\n"
             f"beta: {self.beta}\n"

@@ -47,7 +47,7 @@ class TestCatenarySpanCopy:
         copied = copy(original)
 
         # The arrays should be different objects
-        assert copied.sagging_parameter is not original.sagging_parameter
+        assert copied.parameter is not original.parameter
         assert copied.span_length is not original.span_length
         assert copied.elevation_difference is not original.elevation_difference
 

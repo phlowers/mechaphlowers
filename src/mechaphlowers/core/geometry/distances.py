@@ -3,8 +3,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
+from __future__ import annotations
 
-
+from copy import deepcopy
 from typing import Literal
 
 import numpy as np
@@ -14,6 +15,7 @@ from mechaphlowers.core.geometry.planes import (
     intersection_curve_plane,
     plane_from_line,
 )
+from mechaphlowers.core.geometry.points import rotate_vector
 
 
 def points_distance_inside_plane(
@@ -140,6 +142,30 @@ class DistanceResult:
             v_plane=self.v_plane,
         )
 
+    def compute_new_frame(
+        self, translation_vector: np.ndarray, angle_to_project: np.float64
+    ) -> DistanceResult:
+        point_base = self.point_base + translation_vector
+        self.point_base = rotate_vector(point_base, angle_to_project)
+
+        point_target = self.point_target + translation_vector
+        self.point_target = rotate_vector(point_target, angle_to_project)
+
+        self.u_plane = rotate_vector(self.u_plane, angle_to_project)
+        self.v_plane = rotate_vector(self.v_plane, angle_to_project)
+
+        return self
+
+    def generate_with_reversed_y_axis(self):
+        new_distance_result = deepcopy(self)
+        new_distance_result.point_base[1] = -new_distance_result.point_base[1]
+        new_distance_result.point_target[
+            1
+        ] = -new_distance_result.point_target[1]
+        new_distance_result.u_plane[1] = -new_distance_result.u_plane[1]
+        new_distance_result.v_plane[1] = -new_distance_result.v_plane[1]
+        return new_distance_result
+
 
 class DistanceEngine:
     """DistanceEngine distance computation between a point and a curve in 3D space.
@@ -210,6 +236,7 @@ class DistanceEngine:
         )
         return self.u_plane, self.v_plane
 
+    # TODO: in the long run, "span" should not be an option: always in absolute coordinates
     def plane_distance(
         self,
         point_base: np.ndarray,
