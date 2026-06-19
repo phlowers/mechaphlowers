@@ -905,9 +905,7 @@ def test_section_array__x_offset_and_support_height_in_data(
     section_array_input_data["x_offset"] = [1.5, -2.0, 0.0, 3.0]
     section_array_input_data["support_height"] = [10.0, 20.0, 15.0, 5.0]
     df = pd.DataFrame(section_array_input_data)
-    section_array = SectionArray(
-        data=df, sagging_parameter=2_000, sagging_temperature=15
-    )
+    section_array = SectionArray(data=df)
 
     monkeypatch.setattr(options.ground, "foot_to_ground_clearance", 1.0)
     assert "x_offset" in section_array._data.columns
@@ -937,9 +935,7 @@ def test_section_array__support_height_default(
 ) -> None:
     """When support_height is not provided, data property should contain it with default 30."""
     df = pd.DataFrame(section_array_input_data)
-    section_array = SectionArray(
-        data=df, sagging_parameter=2_000, sagging_temperature=15
-    )
+    section_array = SectionArray(data=df)
 
     assert "support_height" not in section_array._data.columns
     assert "support_height" in section_array.data.columns
@@ -954,9 +950,7 @@ def test_section_array__x_offset_absent_when_not_provided(
 ) -> None:
     """When x_offset is not provided, it should be absent from both _data and data."""
     df = pd.DataFrame(section_array_input_data)
-    section_array = SectionArray(
-        data=df, sagging_parameter=2_000, sagging_temperature=15
-    )
+    section_array = SectionArray(data=df)
 
     assert "x_offset" not in section_array._data.columns
     assert "x_offset" not in section_array.data.columns
@@ -993,9 +987,7 @@ def test_create_section_array__support_height_negative(
 def test_section_array__spacer_default(section_array_input_data: dict) -> None:
     """When spacer is not provided, a default Spacer() is created."""
     df = pd.DataFrame(section_array_input_data)
-    section_array = SectionArray(
-        data=df, sagging_parameter=2_000, sagging_temperature=15
-    )
+    section_array = SectionArray(data=df)
     assert isinstance(section_array.spacer, Spacer)
     assert section_array.spacer.length == 0.2
 
@@ -1006,8 +998,6 @@ def test_section_array__spacer_custom(section_array_input_data: dict) -> None:
     df = pd.DataFrame(section_array_input_data)
     section_array = SectionArray(
         data=df,
-        sagging_parameter=2_000,
-        sagging_temperature=15,
         spacer=custom_spacer,
     )
     assert section_array.spacer is custom_spacer
@@ -1024,15 +1014,11 @@ def test_compute_ground_altitude__spacer_contributes_for_bundle_3(
 
     section_array_bundle1 = SectionArray(
         data=df,
-        sagging_parameter=2_000,
-        sagging_temperature=15,
         bundle_number=1,
         spacer=spacer,
     )
     section_array_bundle3 = SectionArray(
         data=df,
-        sagging_parameter=2_000,
-        sagging_temperature=15,
         bundle_number=3,
         spacer=spacer,
     )
