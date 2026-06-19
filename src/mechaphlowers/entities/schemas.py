@@ -51,7 +51,9 @@ class SectionArrayInput(pa.DataFrameModel):
     )
     x_offset: pdt.Series[float] | None = pa.Field(nullable=True, coerce=True)
     support_height: pdt.Series[float] | None = pa.Field(
-        nullable=True, coerce=True, ge=0,
+        nullable=True,
+        coerce=True,
+        ge=0,
     )
     sagging_parameter: pdt.Series[float] | None = pa.Field(
         nullable=True, coerce=True
