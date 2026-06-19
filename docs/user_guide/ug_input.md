@@ -34,7 +34,7 @@ In mechaphlowers a line section is described by the following data:
     Autofill rule:
 
     $$
-    \text{ground\_altitude} = \text{conductor\_attachment\_altitude} + \text{insulator\_length} - \text{support\_height} + \text{spacer\_height} - \text{foot\_to\_ground\_clearance}
+    \text{ground_altitude} = \text{conductor_attachment_altitude} + \text{insulator_length} - \text{support_height} + \text{spacer_height} - \text{foot_to_ground_clearance}
     $$
 
     Where:
