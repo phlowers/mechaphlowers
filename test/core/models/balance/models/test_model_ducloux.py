@@ -12,11 +12,17 @@ from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.balance.models.model_ducloux import (
     nodes_builder,
 )
+from mechaphlowers.core.models.balance.span_loads import SpanLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
-def test_section_array_to_nodes(section_array_complete: SectionArray):
-    nodes_builder(section_array_complete)
+def test_nodes_builder(
+    section_array_complete: SectionArray,
+    span_loads_for_complete_section_array: SpanLoads,
+):
+    nodes_builder(
+        section_array_complete, span_loads_for_complete_section_array
+    )
 
 
 def test_load_span_model(cable_array_AM600: CableArray):
@@ -31,8 +37,6 @@ def test_load_span_model(cable_array_AM600: CableArray):
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": [100, 50, 500, 0],
-                "load_mass": [0, 500, 0, np.nan],
-                "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         ),
         sagging_parameter=2000,
@@ -44,7 +48,10 @@ def test_load_span_model(cable_array_AM600: CableArray):
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
-
+    balance_engine.set_loads(
+        load_position_distance=[100, 120, 240],
+        load_mass=[0, 500, 0],
+    )
     balance_engine.solve_adjustment()
 
     balance_engine.solve_change_state()

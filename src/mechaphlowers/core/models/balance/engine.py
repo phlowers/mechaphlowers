@@ -20,6 +20,7 @@ from mechaphlowers.core.models.balance.models.model_ducloux import BalanceModel
 from mechaphlowers.core.models.balance.solvers.balance_solver import (
     BalanceSolver,
 )
+from mechaphlowers.core.models.balance.span_loads import SpanLoads
 from mechaphlowers.core.models.cable.deformation import (
     DeformationRte,
     IDeformation,
@@ -105,7 +106,7 @@ class BalanceEngine(Notifier):
     def reset(self, full: bool = False) -> None:
         """Reset the balance engine to initial state.
 
-        This method re-initializes the span model, cable loads, deformation model, balance model, and solvers.
+        This method re-initializes the span model, cable loads, span loads, deformation model, balance model, and solvers.
         This method is useful when an error occurs during solving that may cause an inconsistent state with NaN values.
         """
 
@@ -131,6 +132,11 @@ class BalanceEngine(Notifier):
                 zeros_vector,
                 zeros_vector,
             )
+            self.span_loads = SpanLoads(
+                arr.decr(zeros_vector),
+                arr.decr(zeros_vector),
+                self.section_array.data.span_length.to_numpy(),
+            )
             self.deformation_model = deformation_model_builder(
                 self.cable_array,
                 self.span_model,
@@ -146,6 +152,7 @@ class BalanceEngine(Notifier):
                 self.span_model,
                 self.deformation_model,
                 self.cable_loads,
+                self.span_loads,
             )
         else:
             self.balance_model.reset(
@@ -153,6 +160,7 @@ class BalanceEngine(Notifier):
                 span_model=self.span_model,
                 deformation_model=self.deformation_model,
                 cable_loads=self.cable_loads,
+                span_loads=self.span_loads,
                 full=full,
             )
 
@@ -179,42 +187,62 @@ class BalanceEngine(Notifier):
         load_position_distance: np.ndarray | list,
         load_mass: np.ndarray | list,
     ) -> None:
+        """Calls preferred method [`set_loads`](mechaphlowers.core.models.balance.engine.BalanceEngine.set_loads).
+
+        Kept for compatibility.
+
+        Expected length for load_position_distance and load_mass is the number of pylons.
+        Last array elements should be nan or zero.
+
+        Raises:
+            ValueError: if at least one load_position_distance is not in [0, span_length]
+                or if the arguments don't have the right lengths.
+        """
+        warnings.warn(
+            "add_loads is deprecated, use set_loads instead."
+            "Caution: expected argument length for set_loads is the number of spans.",
+            category=DeprecationWarning,
+        )
+        load_position_distance = np.array(load_position_distance)
+        load_mass = np.array(load_mass)
+        self.set_loads(arr.decr(load_position_distance), arr.decr(load_mass))
+
+    def set_loads(
+        self,
+        load_position_distance: np.ndarray | list,
+        load_mass: np.ndarray | list,
+    ) -> None:
         """Adds loads to BalanceEngine.
-        Updates load_position and load_mass fields in SectionArray.
 
-        Input for position is a distance, and will be converted into ratio to match SectionArray.
+        Input for position is a distance, and will be converted into ratio.
 
-        Expected input are arrays of size matching the number of supports. Each value refers to a span.
+        Expected input are arrays of size matching the number of spans. Each value refers to a span.
+        Last elements should be nan or zero.
+
+        If either load_position_distance[i] or load_mass[i] is 0 or nan, it means there is no load at span i.
 
         Args:
             load_position_distance (np.ndarray | list): Position of the loads, in meters
             load_mass (np.ndarray | list): Mass of the loads
 
         Raises:
-            ValueError: if load_position_distance is not in [0, span_length] for at least one span
+            ValueError: if at least one load_position_distance is not in [0, span_length]
+                or if the arguments don't have the right lengths.
 
         Examples:
-            >>> load_position_distance = np.array([150, 200, 0, np.nan])  # 4 supports/3 spans
-            >>> load_mass = np.array([500, 70, 0, np.nan])
-            >>> engine.add_loads(load_position_distance, load_mass)
+            >>> load_position_distance = np.array([150, 200, 0])  # 3 spans
+            >>> load_mass = np.array([500, 70, 0])
+            >>> engine.set_loads(load_position_distance, load_mass)
             >>> plot_engine.reset()  # optional: only needed if cached plots must be discarded
         """
-        span_length = self.section_array.data["span_length"].to_numpy()
-        load_position_distance = np.array(load_position_distance)
-        if (
-            arr.decr(load_position_distance > span_length).any()
-            or arr.decr(load_position_distance < 0).any()
-        ):
-            raise ValueError(
-                f"{load_position_distance=} should be all between 0 and {span_length=}"
-            )
+        span_length = self.section_array.data.span_length.to_numpy()
 
-        # This formula for load_position_ratio may change later
-        load_position_ratio = load_position_distance / span_length
-        self.section_array._data["load_position"] = load_position_ratio
-        self.section_array._data["load_mass"] = load_mass
+        self.span_loads.set_loads(
+            load_position_distance, load_mass, span_length
+        )
 
         self.reset(full=False)
+
         debug_loads = (
             "Loads have been added. PlotEngine will be notified automatically "
             "via the observer pattern; no manual reset is required."
@@ -454,6 +482,8 @@ class BalanceEngine(Notifier):
             f"wind: {self.balance_model.cable_loads.wind_pressure}\n"
             f"ice: {self.balance_model.cable_loads.ice_thickness}\n"
             f"temperature: {self.balance_model.sagging_temperature}\n"
+            f"load position (ratio): {self.span_loads.load_position}\n"
+            f"load mass: {self.span_loads.load_mass}\n"
             f"dx: {dxdydz[0]}\n"
             f"dy: {dxdydz[1]}\n"
             f"dz: {dxdydz[2]}\n"

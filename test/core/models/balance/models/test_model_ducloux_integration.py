@@ -614,8 +614,6 @@ def test_load_all_spans(cable_array_AM600: CableArray):
                 "insulator_mass": convert_weight_to_mass(
                     [1000, 500, 500, 1000]
                 ),
-                "load_mass": convert_weight_to_mass([500, 1000, 500, np.nan]),
-                "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         ),
         sagging_parameter=2000,
@@ -626,6 +624,10 @@ def test_load_all_spans(cable_array_AM600: CableArray):
     balance_engine_angles_arm = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=section_array,
+    )
+    balance_engine_angles_arm.set_loads(
+        load_position_distance=[100, 120, 240],
+        load_mass=convert_weight_to_mass([500, 1000, 500]),
     )
 
     balance_engine_angles_arm.solve_adjustment()
@@ -703,6 +705,10 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
         section_array=section_array,
     )
 
+    balance_engine_angles_arm.set_loads(
+        load_position_distance=[100, 120, 240],
+        load_mass=convert_weight_to_mass([500, 1000, 500]),
+    )
     balance_engine_angles_arm.solve_adjustment()
     new_temperature = np.array([30] * 4)
     ice_thickness = np.array([1] * 4) * 1e-2
@@ -780,6 +786,10 @@ def test_load_one_span(cable_array_AM600: CableArray):
     balance_engine_angles_arm = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=section_array,
+    )
+    balance_engine_angles_arm.set_loads(
+        load_position_distance=[100, 120, 250],
+        load_mass=convert_weight_to_mass([0, 1000, 0]),
     )
 
     balance_engine_angles_arm.solve_adjustment()

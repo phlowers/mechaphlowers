@@ -17,6 +17,7 @@ from mechaphlowers.core.models.cable.thermal import (
     to_datetime,
 )
 from mechaphlowers.entities.arrays import CableArray
+from mechaphlowers.entities.errors import UncertaintyNotAvailable
 
 
 @pytest.fixture
@@ -197,6 +198,39 @@ def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
         ).data["core_temperature"]
         > copy_result_without_input["core_temperature"]
     ).all()
+
+
+def test_steady_temperature_with_uncertainty(
+    thermal_engine_3_spans: ThermalEngine,
+) -> None:
+    thermal_engine = thermal_engine_3_spans
+
+    expected_uncertainties = np.array([1.1, 12.7, 5.1])
+
+    results = thermal_engine.steady_temperature(return_uncertainty=True)
+
+    np.testing.assert_allclose(
+        results.uncertainty, expected_uncertainties, atol=0.1
+    )
+
+
+def test_steady_temperature_without_uncertainty_implicit(
+    thermal_engine_3_spans: ThermalEngine,
+) -> None:
+    thermal_engine = thermal_engine_3_spans
+    results = thermal_engine.steady_temperature()
+    with pytest.raises(UncertaintyNotAvailable):
+        results.uncertainty
+
+
+def test_steady_temperature_without_uncertainty_explicit(
+    thermal_engine_3_spans: ThermalEngine,
+) -> None:
+    thermal_engine = thermal_engine_3_spans
+    results = thermal_engine.steady_temperature(return_uncertainty=False)
+    with pytest.raises(UncertaintyNotAvailable) as e:
+        results.uncertainty
+        print(e)
 
 
 def test_wrong_array_length(cable_array_AM600: CableArray):

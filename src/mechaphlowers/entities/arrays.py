@@ -134,7 +134,6 @@ class SectionArray(ElementArray):
         "insulator_length": "m",
         "span_length": "m",
         "insulator_mass": "kg",
-        "load_mass": "kg",
         "counterweight_mass": "kg",
         "sagging_parameter": "m",
         "sagging_temperature": "°C",
@@ -307,7 +306,6 @@ class SectionArray(ElementArray):
         data_output = super().data
         mass_weight_conversion = {
             "insulator_mass": "insulator_weight",
-            "load_mass": "load_weight",
             "counterweight_mass": "counterweight",
         }
         self.create_column_weight(data_output, mass_weight_conversion)
