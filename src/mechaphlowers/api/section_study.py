@@ -31,6 +31,7 @@ from mechaphlowers.entities.errors import SolverError
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.cable.thermal import ThermalEngine
+    from mechaphlowers.core.models.estimation import EstimationEngine
     from mechaphlowers.core.models.guying import Guying
     from mechaphlowers.plotting.plot import PlotEngine
 
@@ -92,6 +93,7 @@ class SectionStudy:
         self._plot_engine: PlotEngine | None = None
         self._thermal_engine: ThermalEngine | None = None
         self._guying: Guying | None = None
+        self._estimation_engine: EstimationEngine | None = None
         self._intermediate_memento: BalanceEngineMemento | None = None
 
     # ── Sub-engine properties ─────────────────────────────────────────────
@@ -129,6 +131,21 @@ class SectionStudy:
 
             self._guying = _G(self._balance_engine)
         return self._guying
+
+    @property
+    def estimation_engine(self) -> EstimationEngine:
+        """Lazy-loaded inverse estimation engine.
+
+        Returns an [`EstimationEngine`][mechaphlowers.core.models.estimation.EstimationEngine]
+        bound to this study, using Brent's method by default.
+        """
+        if self._estimation_engine is None:
+            from mechaphlowers.core.models.estimation import (
+                EstimationEngine as _EE,
+            )
+
+            self._estimation_engine = _EE(self)
+        return self._estimation_engine
 
     @property
     def intermediate_memento(self) -> BalanceEngineMemento | None:
