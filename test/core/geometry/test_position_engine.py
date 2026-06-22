@@ -129,16 +129,16 @@ class TestPositionEngineReactivity:
             balance_engine_base_test.solve_change_state(new_temperature=50)
             mock_reset.assert_not_called()
 
-    def test_add_loads_triggers_reset(
+    def test_set_loads_triggers_reset(
         self, balance_engine_base_test: BalanceEngine
     ):
         pos_engine = PositionEngine(balance_engine_base_test)
         with patch.object(
             pos_engine, "reset", wraps=pos_engine.reset
         ) as mock_reset:
-            balance_engine_base_test.add_loads(
-                load_position_distance=np.array([0, 0, 0, np.nan]),
-                load_mass=np.array([0, 0, 0, np.nan]),
+            balance_engine_base_test.set_loads(
+                load_position_distance=np.array([0, 0, 0]),
+                load_mass=np.array([0, 0, 0]),
             )
             mock_reset.assert_called_once_with(
                 balance_engine=balance_engine_base_test
@@ -152,9 +152,9 @@ class TestPositionEngineReactivity:
         downstream = ConcreteObserver()
         pos_engine.bind_to(downstream)
 
-        balance_engine_base_test.add_loads(
-            load_position_distance=np.array([0, 0, 0, np.nan]),
-            load_mass=np.array([0, 0, 0, np.nan]),
+        balance_engine_base_test.set_loads(
+            load_position_distance=np.array([0, 0, 0]),
+            load_mass=np.array([0, 0, 0]),
         )
 
         assert downstream.call_count == 1
@@ -169,9 +169,9 @@ class TestPositionEngineReactivity:
             "reset",
             wraps=pos_engine.coords_calculator.reset,
         ) as mock_reset:
-            balance_engine_base_test.add_loads(
-                load_position_distance=np.array([0, 0, 0, np.nan]),
-                load_mass=np.array([0, 0, 0, np.nan]),
+            balance_engine_base_test.set_loads(
+                load_position_distance=np.array([0, 0, 0]),
+                load_mass=np.array([0, 0, 0]),
             )
             mock_reset.assert_called_once()
 
@@ -195,9 +195,9 @@ class TestPositionEngineReferenceIntegrity:
         pos_engine = PositionEngine(balance_engine_base_test)
         original_id = id(pos_engine.span_model)
 
-        balance_engine_base_test.add_loads(
-            load_position_distance=np.array([0, 0, 0, np.nan]),
-            load_mass=np.array([0, 0, 0, np.nan]),
+        balance_engine_base_test.set_loads(
+            load_position_distance=np.array([0, 0, 0]),
+            load_mass=np.array([0, 0, 0]),
         )
 
         assert id(pos_engine.span_model) == original_id
@@ -211,9 +211,9 @@ class TestPositionEngineReferenceIntegrity:
     ):
         pos_engine = PositionEngine(balance_engine_base_test)
 
-        balance_engine_base_test.add_loads(
-            load_position_distance=np.array([0, 0, 0, np.nan]),
-            load_mass=np.array([0, 0, 0, np.nan]),
+        balance_engine_base_test.set_loads(
+            load_position_distance=np.array([0, 0, 0]),
+            load_mass=np.array([0, 0, 0]),
         )
 
         x_expected, _ = pos_engine.span_model.get_coords(

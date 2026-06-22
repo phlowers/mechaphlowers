@@ -36,8 +36,6 @@ def balance_engine_no_loads(cable_array_AM600: CableArray) -> BalanceEngine:
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": [100, 50, 50, 100],
-                "load_mass": [0, 0, 0, np.nan],
-                "load_position": [0, 0, 0, np.nan],
             }
         ),
         sagging_parameter=2000,
@@ -64,8 +62,6 @@ def balance_engine_with_loads(cable_array_AM600: CableArray) -> BalanceEngine:
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": [100, 50, 50, 100],
-                "load_mass": [500, 0, 1000, np.nan],
-                "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         ),
         sagging_parameter=2000,
@@ -73,10 +69,16 @@ def balance_engine_with_loads(cable_array_AM600: CableArray) -> BalanceEngine:
     )
     section_array.add_units({"line_angle": "grad"})
 
-    return BalanceEngine(
+    balance_engine = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
+    balance_engine.set_loads(
+        load_position_distance=[100, 150, 240],
+        load_mass=[500, 0, 1000],
+    )
+
+    return balance_engine
 
 
 def test_plot_loads(balance_engine_with_loads: BalanceEngine):
@@ -104,21 +106,11 @@ def test_plot_add_loads_later(balance_engine_no_loads: BalanceEngine):
     balance_engine_no_loads.solve_adjustment()
 
     # Modify loads positions and mass
-    balance_engine_no_loads.section_array._data["load_mass"] = [
-        5000,
-        10000,
-        0,
-        np.nan,
-    ]
-    balance_engine_no_loads.section_array._data["load_position"] = [
-        0.2,
-        0.4,
-        0.7,
-        np.nan,
-    ]
-
-    # Reset objects to factor in modifications
-    balance_engine_no_loads.reset(full=False)
+    balance_engine_no_loads.set_loads(
+        load_position_distance=[100, 120, 280],
+        load_mass=[5000, 10000, 0],
+    )
+    # Reset plot engine to factor in modifications
     plt_engine.reset(balance_engine=balance_engine_no_loads)
 
     balance_engine_no_loads.solve_adjustment()
@@ -158,9 +150,9 @@ def test_plot_add_loads(balance_engine_no_loads: BalanceEngine):
     plt_engine = PlotEngine(balance_engine_no_loads)
 
     # Modify loads positions and mass
-    balance_engine_no_loads.add_loads(
-        load_position_distance=np.array([100, 150, 300, np.nan]),
-        load_mass=[5000, 10000, 0, np.nan],
+    balance_engine_no_loads.set_loads(
+        load_position_distance=np.array([100, 150, 300]),
+        load_mass=[5000, 10000, 0],
     )
 
     # Reset objects to factor in modifications
@@ -217,8 +209,6 @@ def test_get_loads_coords_4_spans(cable_array_AM600: CableArray):
                 "insulator_length": [3, 3, 3, 3, 3],
                 "span_length": [500, 300, 400, 400, np.nan],
                 "insulator_mass": [100, 50, 50, 50, 100],
-                "load_mass": [500, 1000, 0, 0, np.nan],
-                "load_position": [0.2, 0.4, 0.6, 0, np.nan],
             }
         ),
         sagging_parameter=2000,
@@ -230,6 +220,11 @@ def test_get_loads_coords_4_spans(cable_array_AM600: CableArray):
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
+    balance_engine.set_loads(
+        load_position_distance=[100, 150, 240, 0],
+        load_mass=[500, 1000, 0, 0],
+    )
+
     plt_engine = PlotEngine(balance_engine)
     coords_loads_before_solve = plt_engine.get_loads_coords()
     assert coords_loads_before_solve == {}
@@ -264,22 +259,12 @@ def test_get_coords_no_loads(balance_engine_no_loads: BalanceEngine):
 
     balance_engine_no_loads.solve_adjustment()
 
-    # Modify loads positions and mass
-    balance_engine_no_loads.section_array._data["load_mass"] = [
-        5000,
-        10000,
-        0,
-        np.nan,
-    ]
-    balance_engine_no_loads.section_array._data["load_position"] = [
-        0.2,
-        0.4,
-        0.7,
-        np.nan,
-    ]
+    balance_engine_no_loads.set_loads(
+        load_position_distance=[100, 150, 280],
+        load_mass=[5000, 10000, 0],
+    )
 
-    # Reset objects to factor in modifications
-    balance_engine_no_loads.reset(full=False)
+    plt_engine.reset(balance_engine_no_loads)
 
     balance_engine_no_loads.solve_adjustment()
     balance_engine_no_loads.solve_change_state(

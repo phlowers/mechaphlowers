@@ -271,8 +271,6 @@ def test_section_array__data_with_optional() -> None:
             "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
-            "load_mass": [500, 1000, 500, np.nan],
-            "load_position": [0.2, 0.4, 0.6, np.nan],
             "ground_altitude": [0.0, 3.0, -1, 0],
         }
     )
@@ -300,9 +298,6 @@ def test_section_array__data_with_optional() -> None:
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "ground_altitude": [0.0, 3.0, -1, 0],
-            "load_mass": [500, 1000, 500, np.nan],
-            "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
-            "load_position": [0.2, 0.4, 0.6, np.nan],
             "bundle_number": [1] * 4,
             "support_height": [30.0, 30.0, 30.0, 30.0],
         },
@@ -327,8 +322,6 @@ def test_section_array__wrong_ground_altitude() -> None:
             "insulator_length": [0.01, 4, 3.2, 0.01],
             "span_length": [1, 500.2, 500.05, np.nan],
             "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
-            "load_mass": [500, 1000, 500, np.nan],
-            "load_position": [0.2, 0.4, 0.6, np.nan],
             "ground_altitude": [0.0, 7.0, -1, 5],
         }
     )
@@ -354,9 +347,6 @@ def test_section_array__wrong_ground_altitude() -> None:
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "ground_altitude": [0.0, -21.2, -1.0, -30.19],
-            "load_mass": [500, 1000, 500, np.nan],
-            "load_weight": [4905.0, 9810.0, 4905.0, np.nan],
-            "load_position": [0.2, 0.4, 0.6, np.nan],
             "bundle_number": [1] * 4,
             "support_height": [30.0, 30.0, 30.0, 30.0],
         },

@@ -14,6 +14,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.core.models.balance.span_loads import SpanLoads
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,10 @@ class BalanceEngineMemento:
     # --- cable_loads ---
     wind_pressure: np.ndarray
     ice_thickness: np.ndarray
+
+    # --- span loads ---
+    load_position: np.ndarray
+    load_mass: np.ndarray
 
     # --- deformation_model ---
     deformation_current_temperature: np.ndarray
@@ -95,6 +100,8 @@ class BalanceEngineCaretaker:
             span_load_coefficient=engine.span_model.load_coefficient.copy(),
             wind_pressure=engine.cable_loads.wind_pressure.copy(),
             ice_thickness=engine.cable_loads.ice_thickness.copy(),
+            load_position=engine.span_loads.load_position.copy(),
+            load_mass=engine.span_loads.load_mass.copy(),
             deformation_current_temperature=engine.deformation_model.current_temperature.copy(),
             deformation_tension_mean=engine.deformation_model.tension_mean.copy(),
             deformation_cable_length=engine.deformation_model.cable_length.copy(),
@@ -117,9 +124,7 @@ class BalanceEngineCaretaker:
         engine = self._engine
         bm = engine.balance_model
 
-        # (a) Restore nodes — in-place write preserves array identity
-
-        # (b) Restore balance_model scalars / arrays
+        # (a) Restore balance_model scalars / arrays
         bm.parameter = memento.parameter.copy()
         bm.sagging_temperature = memento.sagging_temperature.copy()
         bm.adjustment = memento.adjustment
@@ -129,7 +134,7 @@ class BalanceEngineCaretaker:
         bm.a = memento.a.copy()
         bm.b = memento.b.copy()
 
-        # (c) Restore span_model arrays + refresh cached _x_m/_x_n/_L
+        # (b) Restore span_model arrays + refresh cached _x_m/_x_n/_L
         engine.span_model.parameter = memento.span_sagging_parameter.copy()
         engine.span_model.span_length = memento.span_span_length.copy()
         engine.span_model.elevation_difference = (
@@ -140,9 +145,13 @@ class BalanceEngineCaretaker:
         )
         engine.span_model.compute_values()
 
-        # (d) Restore cable_loads
+        # (c) Restore cable_loads
         engine.cable_loads.wind_pressure = memento.wind_pressure.copy()
         engine.cable_loads.ice_thickness = memento.ice_thickness.copy()
+
+        # (d) Restore span loads
+        engine.span_loads.load_position = memento.load_position.copy()
+        engine.span_loads.load_mass = memento.load_mass.copy()
 
         # (e) Restore deformation_model (snapshots, not refs)
         engine.deformation_model.current_temperature = (
@@ -162,7 +171,12 @@ class BalanceEngineCaretaker:
             del engine.L_ref
 
         # (g) Re-sync derived objects
-
+        bm.nodes.load_position = engine.span_loads.load_position.copy()
+        bm.nodes.load_weight = engine.span_loads.load_weight.copy()
+        bm.nodes.has_load_on_span = SpanLoads.compute_has_load_on_span(
+            bm.nodes.load_weight, bm.nodes.load_position
+        )
+        bm.initialize_loadmodel()
         bm.sync_after_memento_restore(engine.span_model, memento.dxdydz)
 
         logger.debug("Balance engine state restored from memento.")

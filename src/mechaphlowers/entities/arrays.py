@@ -135,7 +135,6 @@ class SectionArray(ElementArray):
         "insulator_length": "m",
         "span_length": "m",
         "insulator_mass": "kg",
-        "load_mass": "kg",
         "counterweight_mass": "kg",
         "x_offset": "m",
         "support_height": "m",
@@ -333,7 +332,6 @@ class SectionArray(ElementArray):
         self.correct_insulator_length(data_output)
         mass_weight_conversion = {
             "insulator_mass": "insulator_weight",
-            "load_mass": "load_weight",
             "counterweight_mass": "counterweight",
         }
         self.create_column_weight(data_output, mass_weight_conversion)
