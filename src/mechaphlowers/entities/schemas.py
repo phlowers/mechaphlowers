@@ -36,13 +36,6 @@ class SectionArrayInput(pa.DataFrameModel):
     insulator_length: pdt.Series[float] = pa.Field(coerce=True)
     span_length: pdt.Series[float] = pa.Field(nullable=True, coerce=True)
     insulator_mass: pdt.Series[float] = pa.Field(coerce=True)
-    load_mass: pdt.Series[float] | None = pa.Field(
-        nullable=True,
-        coerce=True,
-    )
-    load_position: pdt.Series[float] | None = pa.Field(
-        nullable=True, coerce=True, ge=0, le=1
-    )
     ground_altitude: pdt.Series[float] | None = pa.Field(
         nullable=True, coerce=True
     )

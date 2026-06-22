@@ -222,8 +222,6 @@ def test_load_span__node_span_coherence_with_balance_model(
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": [100, 50, 50, 100],
-                "load_mass": [0, 1000, 0, np.nan],
-                "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         ),
         sagging_parameter=2000,
@@ -235,7 +233,10 @@ def test_load_span__node_span_coherence_with_balance_model(
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
-
+    balance_engine_angles_arm.set_loads(
+        load_position_distance=[100, 120, 240],
+        load_mass=[0, 1000, 0],
+    )
     balance_engine_angles_arm.solve_adjustment()
 
     balance_engine_angles_arm.solve_change_state()
@@ -264,8 +265,6 @@ def test_load_span__check_node_span_changes(cable_array_AM600: CableArray):
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": [100, 50, 50, 100],
-                "load_mass": [0, 1000, 0, np.nan],
-                "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         ),
         sagging_parameter=2000,
@@ -276,6 +275,10 @@ def test_load_span__check_node_span_changes(cable_array_AM600: CableArray):
     balance_engine_angles_arm = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=section_array,
+    )
+    balance_engine_angles_arm.set_loads(
+        load_position_distance=[100, 120, 240],
+        load_mass=[0, 1000, 0],
     )
 
     span_model_1 = deepcopy(
@@ -375,11 +378,11 @@ def test_reset_restores_initial_state(balance_engine_simple: BalanceEngine):
 def test_add_loads_wrong_values(balance_engine_simple: BalanceEngine):
     load_mass = np.array([500, 70, 0, np.nan])
     with pytest.raises(ValueError):
-        balance_engine_simple.add_loads(
+        balance_engine_simple.set_loads(
             np.array([-1, 200, 0, np.nan]), load_mass
         )
     with pytest.raises(ValueError):
-        balance_engine_simple.add_loads(
+        balance_engine_simple.set_loads(
             np.array([0, 1000, 0, np.nan]), load_mass
         )
 
@@ -408,9 +411,9 @@ def test_get_data_spans(balance_engine_simple: BalanceEngine):
 
 
 def test_get_data_spans_with_loads(balance_engine_simple: BalanceEngine):
-    balance_engine_simple.add_loads(
-        load_position_distance=[150, 200, 0, np.nan],
-        load_mass=[200, 500, 0, np.nan],
+    balance_engine_simple.set_loads(
+        load_position_distance=[150, 200, 0],
+        load_mass=[200, 500, 0],
     )
     balance_engine_simple.solve_adjustment()
     balance_engine_simple.solve_change_state()

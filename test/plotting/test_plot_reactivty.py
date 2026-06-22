@@ -152,9 +152,9 @@ class TestNotificationTriggers:
             "reset",
             wraps=plt_engine.position_engine.reset,
         ) as mock_reset:
-            balance_engine_base_test.add_loads(
-                load_position_distance=np.array([0, 0, 0, np.nan]),
-                load_mass=np.array([0, 0, 0, np.nan]),
+            balance_engine_base_test.set_loads(
+                load_position_distance=np.array([0, 0, 0]),
+                load_mass=np.array([0, 0, 0]),
             )
 
             mock_reset.assert_called_once_with(
@@ -194,9 +194,9 @@ class TestNotificationTriggers:
                 wraps=pe2.position_engine.reset,
             ) as mock2,
         ):
-            balance_engine_base_test.add_loads(
-                load_position_distance=np.array([0, 0, 0, np.nan]),
-                load_mass=np.array([0, 0, 0, np.nan]),
+            balance_engine_base_test.set_loads(
+                load_position_distance=np.array([0, 0, 0]),
+                load_mass=np.array([0, 0, 0]),
             )
 
             mock1.assert_called_once_with(
@@ -216,9 +216,9 @@ class TestNotificationTriggers:
             "reset",
             wraps=plt_engine.coords_calculator.reset,
         ) as mock_reset:
-            balance_engine_base_test.add_loads(
-                load_position_distance=np.array([0, 0, 0, np.nan]),
-                load_mass=np.array([0, 0, 0, np.nan]),
+            balance_engine_base_test.set_loads(
+                load_position_distance=np.array([0, 0, 0]),
+                load_mass=np.array([0, 0, 0]),
             )
 
             mock_reset.assert_called_once()
@@ -280,9 +280,9 @@ class TestReferenceIntegrity:
         plt_engine = PlotEngine(balance_engine_base_test)
         original_id = id(plt_engine.span_model)
 
-        balance_engine_base_test.add_loads(
-            load_position_distance=np.array([0, 0, 0, np.nan]),
-            load_mass=np.array([0, 0, 0, np.nan]),
+        balance_engine_base_test.set_loads(
+            load_position_distance=np.array([0, 0, 0]),
+            load_mass=np.array([0, 0, 0]),
         )
 
         assert id(plt_engine.span_model) == original_id
@@ -381,9 +381,9 @@ class TestCoordCoherence:
         nodes_span_model.get_coords(), proving set_cable_coordinates() was called."""
         plt_engine = PlotEngine(balance_engine_base_test)
 
-        balance_engine_base_test.add_loads(
-            load_position_distance=np.array([0, 0, 0, np.nan]),
-            load_mass=np.array([0, 0, 0, np.nan]),
+        balance_engine_base_test.set_loads(
+            load_position_distance=np.array([0, 0, 0]),
+            load_mass=np.array([0, 0, 0]),
         )
 
         x_expected, _ = plt_engine.span_model.get_coords(
@@ -401,7 +401,7 @@ class TestCoordCoherence:
         1. After construction, x_cable is computed once (initial parameter).
         2. solve_adjustment + solve_change_state update nodes_span_model.parameter
            in-place — but solve does NOT call notify(), so x_cable remains stale.
-        3. add_loads() calls reset(full=False) -> BalanceEngine.notify()
+        3. set_loads() calls reset(full=False) -> BalanceEngine.notify()
            -> PositionEngine.reset() -> coords_calculator.reset() -> set_cable_coordinates()
            recomputes x_cable -> PositionEngine.notify() -> PlotEngine.update().
         4. x_cable now matches the post-solve parameter and differs from
@@ -420,10 +420,10 @@ class TestCoordCoherence:
             plt_engine.coords_calculator.x_cable, x_cable_initial
         )
 
-        # Trigger the observer chain via add_loads.
-        balance_engine_base_test.add_loads(
-            load_position_distance=np.array([0, 0, 0, np.nan]),
-            load_mass=np.array([0, 0, 0, np.nan]),
+        # Trigger the observer chain via set_loads.
+        balance_engine_base_test.set_loads(
+            load_position_distance=np.array([0, 0, 0]),
+            load_mass=np.array([0, 0, 0]),
         )
 
         # x_cable is now consistent with the (post-solve) span model.

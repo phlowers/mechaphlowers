@@ -222,16 +222,20 @@ data = study.get_data_spans()
 # tension_sup, tension_inf, L0, horizontal_distance, arc_length, T_h, sag, sag_s2
 ```
 
-## Adding loads
+## Adding point loads
 
 ```python
 import numpy as np
 
-study.add_loads(
-    load_position_distance=np.array([150, 200, 0, np.nan]),
-    load_mass=np.array([500, 70, 0, np.nan]),
+study.set_loads(
+    load_position_distance=np.array([150, 200, 0]),
+    load_mass=np.array([500, 70, 0]),
 )
 ```
+If either `load_position_distance[i]` or `load_mass[i]` is zero or nan, it means there is no span load on this span.
+The length of `load_position_distance` and `load_mass` is the number of spans.
+
+The used of deprecated method `SectionStudy.add_loads` is discouraged.
 
 ## Plotting
 
