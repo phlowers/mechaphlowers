@@ -900,16 +900,17 @@ def test_create_section_bundle_number(
 
 def test_section_array__x_offset_and_support_height_in_data(
     section_array_input_data: dict,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     section_array_input_data["x_offset"] = [1.5, -2.0, 0.0, 3.0]
     section_array_input_data["support_height"] = [10.0, 20.0, 15.0, 5.0]
     df = pd.DataFrame(section_array_input_data)
     section_array = SectionArray(data=df)
 
-    monkeypatch.setattr(options.ground, "foot_to_ground_clearance", 1.0)
+    options.ground.foot_to_ground_clearance = 1.0
+
     assert "x_offset" in section_array._data.columns
     assert "support_height" in section_array._data.columns
+
     assert_allclose(
         section_array._data["x_offset"].to_numpy(), [1.5, -2.0, 0.0, 3.0]
     )
@@ -917,6 +918,10 @@ def test_section_array__x_offset_and_support_height_in_data(
         section_array._data["support_height"].to_numpy(),
         [10.0, 20.0, 15.0, 5.0],
     )
+
+    assert "x_offset" in section_array.data.columns
+    assert "support_height" in section_array.data.columns
+
     assert_allclose(
         section_array.data["x_offset"].to_numpy(), [1.5, -2.0, 0.0, 3.0]
     )
@@ -942,6 +947,11 @@ def test_section_array__support_height_default(
     assert_allclose(
         section_array.data["support_height"].to_numpy(),
         [30.0, 30.0, 30.0, 30.0],
+    )
+
+    assert_allclose(
+        section_array.data["ground_altitude"].to_numpy(),
+        [-27.8, -25, -30.12, -30],
     )
 
 

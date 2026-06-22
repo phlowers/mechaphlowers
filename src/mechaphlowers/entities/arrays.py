@@ -214,19 +214,28 @@ class SectionArray(ElementArray):
 
     def compute_ground_altitude(self) -> np.ndarray:
         """Generate ground altitude array using attachment altitude, insulator length, support height and spacer."""
-        support_height = (
-            self._data["support_height"]
-            .fillna(options.ground.default_support_length)
-            .to_numpy()
-            if "support_height" in self._data.columns
-            else np.full(
-                len(self._data), options.ground.default_support_length
+        conductor_attachment_altitude = self._data[
+            "conductor_attachment_altitude"
+        ].to_numpy()
+        default_support_length = options.ground.default_support_length
+        if "support_height" not in self._data.columns:
+            foot_to_ground_clearance = np.full(len(self._data), 0)
+            support_height = np.full(len(self._data), default_support_length)
+        else:
+            foot_to_ground_clearance = np.where(
+                np.isnan(self._data["support_height"]),
+                0,
+                options.ground.foot_to_ground_clearance,
             )
+            support_height = np.nan_to_num(
+                self._data["support_height"], nan=default_support_length
+            )
+        insulator_length = np.where(
+            self._data["suspension"], self._data["insulator_length"], 0.0
         )
-        foot_to_ground_clearance = options.ground.foot_to_ground_clearance
         return (
-            self._data["conductor_attachment_altitude"].to_numpy()
-            + self._data["insulator_length"].to_numpy()
+            conductor_attachment_altitude
+            + insulator_length
             - support_height
             + self.spacer.height(self.bundle_number)
             - foot_to_ground_clearance
@@ -331,7 +340,7 @@ class SectionArray(ElementArray):
         self.create_column_weight(data_output, mass_weight_conversion)
         self.validate_ground_altitude(data_output)
         data_output = self._adjust_angle_direction(data_output)
-        if "support_height" not in data_output.columns:
+        if "support_height" not in data_output.columns:  # TODO: fix?
             data_output["support_height"] = (
                 options.ground.default_support_length
             )
