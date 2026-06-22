@@ -13,6 +13,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from thermohl import solver  # type: ignore
+from thermohl.power.convective_cooling import (  # type: ignore
+    compute_wind_attack_angle as thermohl_compute_wind_angle,
+)
 from typing_extensions import Self
 
 from mechaphlowers.entities.arrays import CableArray
@@ -605,7 +608,6 @@ class ThermalEngine:
             self.dict_input["cable_azimuth"], self.dict_input["wind_azimuth"]
         )
 
-    # TODO: move this into thl (formulae in thl.power.convective_cooling line 35)
     @staticmethod
     def compute_wind_attack_angle(
         cable_azimuth: np.ndarray, wind_azimuth: np.ndarray
@@ -620,11 +622,7 @@ class ThermalEngine:
             Angle in degrees between wind direction and cable azimuth.
         """
         return np.rad2deg(
-            np.arcsin(
-                np.sin(
-                    np.deg2rad(np.abs(cable_azimuth - wind_azimuth) % 180.0)
-                )
-            )
+            thermohl_compute_wind_angle(cable_azimuth, wind_azimuth),
         )
 
     @property
