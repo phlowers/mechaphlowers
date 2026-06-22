@@ -186,9 +186,9 @@ You may test your pyodide package using pyodide console in a browser.
 
 #### Download pyodide
 
-Download a version of Pyodide from the [releases page](https://github.com/pyodide/pyodide/releases/), extract it and serve it with a web server:
+Check available versions of Pyodide on the [releases page](https://github.com/pyodide/pyodide/releases/), download one, extract it and serve it with a web server:
 
-    wget https://github.com/pyodide/pyodide/releases/download/0.25.0/pyodide-0.25.0.tar.bz2
+    wget https://github.com/pyodide/pyodide/releases/download/<VERSION>/pyodide-<VERSION>.tar.bz2
     tar -xvf pyodide-0.25.0.tar.bz2
     cd pyodide
     python3 -m http.server
