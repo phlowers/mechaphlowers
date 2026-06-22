@@ -10,6 +10,8 @@ from collections.abc import Callable
 
 import numpy as np
 
+from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
+
 logger = logging.getLogger(__name__)
 
 
@@ -201,7 +203,7 @@ def intersection_curve_plane(
                     intersection_point = p_start + t * segment_dir
                     intersections = np.array([intersection_point])
         else:
-            raise ValueError(
+            raise NoIntersectionPlaneForDistanceError(
                 "Points are on the same side of the plane - no intersection!"
             )
 
