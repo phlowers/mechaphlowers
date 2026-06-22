@@ -18,6 +18,7 @@ from mechaphlowers.core.models.balance.solvers.find_parameter_solver import (
     FindParamSolverForLoop,
     IFindParamSolver,
 )
+from mechaphlowers.core.models.balance.span_loads import SpanLoads
 from mechaphlowers.core.models.cable.deformation import IDeformation
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
@@ -72,6 +73,7 @@ class IBalanceModel(IModelForSolver, ABC):
         span_model: ISpan,
         deformation_model: IDeformation,
         cable_loads: CableLoads,
+        span_loads: SpanLoads,
         find_param_solver_type: Type[
             IFindParamSolver
         ] = FindParamSolverForLoop,
@@ -80,6 +82,7 @@ class IBalanceModel(IModelForSolver, ABC):
         self.sagging_temperature: np.ndarray = sagging_temperature
         self.deformation_model = deformation_model
         self.cable_loads = cable_loads
+        self.span_loads = span_loads
         self.span_model = span_model
         self.nodes_span_model: ISpan = copy(self.span_model)
         self.parameter: np.ndarray = parameter
@@ -188,6 +191,7 @@ class IBalanceModel(IModelForSolver, ABC):
         span_model: ISpan,
         deformation_model: IDeformation,
         cable_loads: CableLoads,
+        span_loads: SpanLoads,
         full: bool = False,
     ) -> None:
         """Reset the model references, optionally performing a full re-initialization.
@@ -197,8 +201,13 @@ class IBalanceModel(IModelForSolver, ABC):
             span_model (ISpan): span model
             deformation_model (IDeformation): deformation model
             cable_loads (CableLoads): cable loads
+            span_loads (SpanLoads): span loads
             full (bool): if True, re-initialize all attributes; otherwise only update model references.
         """
+        pass
+
+    @abstractmethod
+    def initialize_loadmodel(self) -> None:
         pass
 
     @abstractmethod

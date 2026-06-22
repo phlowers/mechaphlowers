@@ -62,7 +62,7 @@ fig.write_json("./docs/user_guide/assets/how_span_engine_work.json")
 
 The configuration can be found in mkdocs.yaml :
 
-- plugins for docstrings generation, jupyter, search, and offline mode
+- plugins for docstrings generation, search, and offline mode
 - markdown extension
     - snippets for including markdown located outside of the docs folder
     - arithmatex for mathjax support. Warning it relies on a small js file in the javascripts folder.
@@ -83,7 +83,6 @@ Mkdocs need some configuration to reach those needs :
 - mkdocs - _principal package_
 - mkdocstrings - _extension to generate docstring_
 - mkdocs-material - _material theme used_
-- mkdocs-jupyter - _extension to include jupyter notebooks_ (not mandatory)
 
 In the future, the package [mike](https://github.com/jimporter/mike) could be used to handle [multiple version of documentation](https://squidfunk.github.io/mkdocs-material/setup/setting-up-versioning/)
 
