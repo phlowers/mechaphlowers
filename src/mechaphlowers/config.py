@@ -122,6 +122,7 @@ class GroundConfig:
 
     default_support_length: float = 30.0
     foot_to_ground_clearance: float = 0.2
+    half_spacer_length: float = 0.2
 
 
 class LogConfig:

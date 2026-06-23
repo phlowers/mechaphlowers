@@ -213,31 +213,29 @@ class SectionArray(ElementArray):
 
     def compute_ground_altitude(self) -> np.ndarray:
         """Generate ground altitude array using attachment altitude, insulator length, support height and spacer."""
-        conductor_attachment_altitude = self._data[
-            "conductor_attachment_altitude"
-        ].to_numpy()
-        default_support_length = options.ground.default_support_length
-        if "support_height" not in self._data.columns:
-            foot_to_ground_clearance = np.full(len(self._data), 0)
-            support_height = np.full(len(self._data), default_support_length)
-        else:
-            foot_to_ground_clearance = np.where(
-                np.isnan(self._data["support_height"]),
-                0,
-                options.ground.foot_to_ground_clearance,
+        if "support_length" not in self._data.columns:
+            return (
+                self._data["conductor_attachment_altitude"].to_numpy()
+                - options.ground.default_support_length
             )
-            support_height = np.nan_to_num(
-                self._data["support_height"], nan=default_support_length
-            )
-        insulator_length = np.where(
-            self._data["suspension"], self._data["insulator_length"], 0.0
-        )
-        return (
-            conductor_attachment_altitude
-            + insulator_length
-            - support_height
+        support_height = self._data["support_height"].to_numpy()
+        altitude_correction = (
+            options.ground.foot_to_ground_clearance
             + self.spacer.height(self.bundle_number)
-            - foot_to_ground_clearance
+            + np.where(
+                self._data["suspension"].to_numpy(),
+                self._data["insulator_length"].to_numpy(),
+                0,
+            )
+        )
+        altitude_correction = np.where(
+            np.isnan(support_height), 0, altitude_correction
+        )
+
+        return (
+            self._data["conductor_attachment_altitude"].to_numpy()
+            - support_height
+            - altitude_correction
         )
 
     @staticmethod

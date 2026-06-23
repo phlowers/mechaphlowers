@@ -928,10 +928,6 @@ def test_section_array__x_offset_and_support_height_in_data(
         section_array.data["support_height"].to_numpy(),
         [10.0, 20.0, 15.0, 5.0],
     )
-    assert_allclose(
-        section_array.data.ground_altitude.to_numpy(),
-        np.array([-8.79, -12.0, -12.92, -5.99]),
-    )
 
 
 def test_section_array__support_height_default(
@@ -946,11 +942,6 @@ def test_section_array__support_height_default(
     assert_allclose(
         section_array.data["support_height"].to_numpy(),
         [30.0, 30.0, 30.0, 30.0],
-    )
-
-    assert_allclose(
-        section_array.data["ground_altitude"].to_numpy(),
-        [-27.8, -25, -30.12, -30],
     )
 
 
@@ -1014,10 +1005,10 @@ def test_section_array__spacer_custom(section_array_input_data: dict) -> None:
 
 def test_compute_ground_altitude__spacer_contributes_for_bundle_3(
     section_array_input_data: dict,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """For bundle_number=3, spacer height is added to ground altitude."""
-    monkeypatch.setattr(options.ground, "foot_to_ground_clearance", 0.0)
+    options.ground.foot_to_ground_clearance = 0.01
+
     spacer = Spacer(length=0.3)
     df = pd.DataFrame(section_array_input_data)
 
@@ -1036,3 +1027,98 @@ def test_compute_ground_altitude__spacer_contributes_for_bundle_3(
     ground_bundle3 = section_array_bundle3.compute_ground_altitude()
 
     assert_allclose(ground_bundle3 - ground_bundle1, 0.3)
+
+
+def test_ground_altitude__without_support_height() -> None:
+    section_array_input_data = {
+        "name": ["support 1", "2", "three", "support 4"],
+        "suspension": [False, True, True, False],
+        "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
+        "crossarm_length": [10, 12.1, 10, 10.1],
+        "line_angle": [0, 360, 90.1, -90.2],
+        "insulator_length": [0.01, 4, 3.2, 0.01],
+        "span_length": [1, 500.2, 500.05, np.nan],
+        "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+    }
+    df = pd.DataFrame(section_array_input_data)
+    section_array_2_cables = SectionArray(
+        data=df,
+        bundle_number=2,
+    )
+
+    section_array_3_cables = SectionArray(
+        data=df,
+        bundle_number=3,
+    )
+
+    options.ground.foot_to_ground_clearance = 0.01
+    options.ground.default_support_length = 30.005
+
+    ground_altitude_2_cables = section_array_2_cables.data["ground_altitude"]
+    ground_altitude_3_cables = section_array_3_cables.data["ground_altitude"]
+
+    expected_ground_altitude = np.array(
+        [
+            -27.805,
+            -25.005,
+            -30.125,
+            -30.005,
+        ]
+    )
+    assert_allclose(ground_altitude_2_cables, expected_ground_altitude)
+    assert_allclose(ground_altitude_3_cables, expected_ground_altitude)
+
+
+def test_ground_altitude__with_support_height() -> None:
+    section_array_input_data = {
+        "name": ["support 1", "2", "three", "support 4"],
+        "suspension": [False, True, True, False],
+        "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
+        "crossarm_length": [10, 12.1, 10, 10.1],
+        "line_angle": [0, 360, 90.1, -90.2],
+        "insulator_length": [0.01, 4, 3.2, 0.01],
+        "span_length": [1, 500.2, 500.05, np.nan],
+        "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+        "support_height": [25.0, 25.0, np.nan, np.nan],
+    }
+    df = pd.DataFrame(section_array_input_data)
+    section_array_2_cables = SectionArray(
+        data=df,
+        bundle_number=2,
+    )
+    section_array_3_cables = SectionArray(
+        data=df,
+        bundle_number=3,
+    )
+
+    options.ground.foot_to_ground_clearance = 0.01
+    options.ground.default_support_length = 30.005
+    options.ground.half_spacer_length = 0.1
+
+    ground_altitude_2_cables = section_array_2_cables.data["ground_altitude"]
+    ground_altitude_3_cables = section_array_3_cables.data["ground_altitude"]
+
+    expected_ground_altitude_2_cables = np.array(
+        [
+            -22.81,
+            -16.01,
+            -30.125,
+            -30.005,
+        ]
+    )
+
+    expected_ground_altitude_3_cables = np.array(
+        [
+            -22.51,
+            -15.81,
+            -30.125,
+            -30.005,
+        ]
+    )
+
+    assert_allclose(
+        ground_altitude_2_cables, expected_ground_altitude_2_cables
+    )
+    assert_allclose(
+        ground_altitude_3_cables, expected_ground_altitude_3_cables
+    )
