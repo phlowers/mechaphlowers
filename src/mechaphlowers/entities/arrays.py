@@ -196,6 +196,7 @@ class SectionArray(ElementArray):
         self.bundle_number = bundle_number
         self.spacer = spacer if spacer is not None else Spacer()
         self.input_units = options.input_units.section_array.copy()
+        self._check_insulator_length(self._data)
         self._angle_direction: Literal["clockwise", "anticlockwise"] = (
             "anticlockwise"
         )
@@ -237,18 +238,23 @@ class SectionArray(ElementArray):
             - altitude_correction
         )
 
-    @staticmethod
-    def correct_insulator_length(data: pd.DataFrame) -> pd.DataFrame:
+    @classmethod
+    def correct_insulator_length(cls, data: pd.DataFrame) -> pd.DataFrame:
         """Correct insulator length to be at least 0.01 m to avoid numerical issues."""
-        if (data["insulator_length"] < 0.01).any():
-            warnings.warn(
-                "Some insulator_length values are less than 0.01 m. They will be set to 0.01 m to avoid numerical issues.",
-                category=DataWarning,
-            )
+        cls._check_insulator_length(data)
         data["insulator_length"] = data["insulator_length"].apply(
             lambda x: max(x, 0.01)
         )
         return data
+
+    @staticmethod
+    def _check_insulator_length(data: pd.DataFrame) -> None:
+        if (data["insulator_length"] < 0.01).any():
+            warnings.warn(
+                "Some insulator_length values are less than 0.01 m. When accessing them through `SectionArray.data`,"
+                " they will be set to 0.01 m to avoid numerical issues.",
+                category=DataWarning,
+            )
 
     @property
     def angle_direction(self) -> Literal["clockwise", "anticlockwise"]:
