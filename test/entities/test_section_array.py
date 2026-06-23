@@ -814,7 +814,6 @@ def test_correct_insulator_length(section_array: SectionArray) -> None:
 
     # nothing to correct
     section_array._data.insulator_length = np.array([0.01, 4.0, 3.2, 0.01])
-    section_array.correct_insulator_length()
     np.testing.assert_allclose(
         section_array.data.insulator_length, expected_lengths
     )
@@ -826,7 +825,7 @@ def test_warning_on_insulator_length_correction(
     # Force invalid lengths and ensure they are corrected with a warning
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
     with pytest.warns(DataWarning):
-        section_array.correct_insulator_length()
+        SectionArray.correct_insulator_length(section_array._data)
 
     section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
     with pytest.warns(DataWarning):

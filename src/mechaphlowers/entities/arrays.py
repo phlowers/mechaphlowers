@@ -197,7 +197,6 @@ class SectionArray(ElementArray):
         self.bundle_number = bundle_number
         self.spacer = spacer if spacer is not None else Spacer()
         self.input_units = options.input_units.section_array.copy()
-        self.correct_insulator_length()
         self._angle_direction: Literal["clockwise", "anticlockwise"] = (
             "anticlockwise"
         )
@@ -241,16 +240,18 @@ class SectionArray(ElementArray):
             - foot_to_ground_clearance
         )
 
-    def correct_insulator_length(self) -> None:
+    @staticmethod
+    def correct_insulator_length(data: pd.DataFrame) -> pd.DataFrame:
         """Correct insulator length to be at least 0.01 m to avoid numerical issues."""
-        if (self._data["insulator_length"] < 0.01).any():
+        if (data["insulator_length"] < 0.01).any():
             warnings.warn(
                 "Some insulator_length values are less than 0.01 m. They will be set to 0.01 m to avoid numerical issues.",
                 category=DataWarning,
             )
-        self._data["insulator_length"] = self._data["insulator_length"].apply(
+        data["insulator_length"] = data["insulator_length"].apply(
             lambda x: max(x, 0.01)
         )
+        return data
 
     @property
     def angle_direction(self) -> Literal["clockwise", "anticlockwise"]:
@@ -330,8 +331,8 @@ class SectionArray(ElementArray):
 
     @property
     def data(self) -> pd.DataFrame:
-        self.correct_insulator_length()
         data_output = super().data
+        self.correct_insulator_length(data_output)
         mass_weight_conversion = {
             "insulator_mass": "insulator_weight",
             "load_mass": "load_weight",
