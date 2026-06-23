@@ -186,11 +186,10 @@ You may test your pyodide package using pyodide console in a browser.
 
 #### Download pyodide
 
-Check available versions of Pyodide on the [releases page](https://github.com/pyodide/pyodide/releases/), download one, extract it and serve it with a web server:
+Check available versions of Pyodide on the [releases page](https://github.com/pyodide/pyodide/releases/). To work with stellar you may wnat to download this one: https://github.com/pyodide/pyodide/releases/download/0.28.3/pyodide-0.28.3.tar.bz2.
+Then, extract it and serve it with a web server:
 
-    export PYODIDE_VERSION=0.28.3
-    wget https://github.com/pyodide/pyodide/releases/download/${PYODIDE_VERSION}/pyodide-${PYODIDE_VERSION}.tar.bz2
-    tar -xvf pyodide-${PYODIDE_VERSION}.tar.bz2
+    tar -xvf pyodide-0.28.3.tar.bz2
     cd pyodide
     python3 -m http.server
 
