@@ -10,6 +10,8 @@ from collections.abc import Callable
 
 import numpy as np
 
+from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,7 +49,9 @@ def change_local_frame(
     delta_norm = np.linalg.norm(delta_xy)
 
     if delta_norm == 0:
-        raise ValueError("Span direction is zero in XY plane")
+        raise NoIntersectionPlaneForDistanceError(
+            "Span direction is zero in XY plane"
+        )
 
     # Construct orthonormal basis for the local frame
     # axis_x: unit vector along span in XY plane
@@ -201,7 +205,7 @@ def intersection_curve_plane(
                     intersection_point = p_start + t * segment_dir
                     intersections = np.array([intersection_point])
         else:
-            raise ValueError(
+            raise NoIntersectionPlaneForDistanceError(
                 "Points are on the same side of the plane - no intersection!"
             )
 

@@ -95,3 +95,7 @@ class InvalidManipulationKeys(ValueError):
 
 class InvalidManipulationRange(ValueError):
     """Raised when a value is out of the allowed range in manipulation."""
+
+
+class NoIntersectionPlaneForDistanceError(ValueError):
+    """Raised when no intersection plane can be found for distance computation."""
