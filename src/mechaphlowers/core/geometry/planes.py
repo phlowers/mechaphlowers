@@ -49,7 +49,9 @@ def change_local_frame(
     delta_norm = np.linalg.norm(delta_xy)
 
     if delta_norm == 0:
-        raise ValueError("Span direction is zero in XY plane")
+        raise NoIntersectionPlaneForDistanceError(
+            "Span direction is zero in XY plane"
+        )
 
     # Construct orthonormal basis for the local frame
     # axis_x: unit vector along span in XY plane
