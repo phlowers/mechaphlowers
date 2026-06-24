@@ -7,7 +7,6 @@
 import numpy as np
 import pytest
 
-from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
 from mechaphlowers.core.geometry.planes import (
     intersection_curve_plane,
     line_function_from_2_points,
@@ -15,6 +14,7 @@ from mechaphlowers.core.geometry.planes import (
     parametric_line_from_2_points,
     plane_from_line,
 )
+from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
 
 
 def test_parametric_line_from_2_points():
@@ -144,7 +144,7 @@ def test_intersection_curve_plane_fine_tuning_same_side_raises():
     point_on_plane = np.array([0.0, 0.0, 0.0])
 
     with pytest.raises(
-        NoIntersectionPlaneForDistanceError, 
+        NoIntersectionPlaneForDistanceError,
     ):
         intersection_curve_plane(
             plane_normal, point_on_plane, spans1, fine_tuning=True
