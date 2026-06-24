@@ -85,6 +85,8 @@ def test_change_values_input_unit__one_value() -> None:
         "insulator_length": "m",
         "span_length": "m",
         "insulator_mass": "kg",
+        "support_height": "m",
+        "x_offset": "m",
         "sagging_parameter": "m",
         "sagging_temperature": "°C",
     }

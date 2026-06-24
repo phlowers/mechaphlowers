@@ -53,6 +53,22 @@ def section_array_input_data() -> dict[str, list]:
 
 
 @pytest.fixture
+def section_array_input_data_5_spans() -> dict[str, list]:
+    return {
+        "name": ["1", "2", "3", "4", "5"],
+        "suspension": [False, True, True, True, False],
+        "conductor_attachment_altitude": [30.0] * 5,
+        "crossarm_length": [10.0] * 5,
+        "line_angle": [0.0] * 5,
+        "insulator_length": [0.01, 0.0, 4, 3.2, 0.01],
+        "span_length": [500.0, 500.0, 500.0, 500.0, np.nan],
+        "insulator_mass": [500.0] * 5,
+        "sagging_parameter": [2000.0, 2000.0, 2000.0, 2000.0, np.nan],
+        "sagging_temperature": [15.0, 15.0, 15.0, 15.0, np.nan],
+    }
+
+
+@pytest.fixture
 def section_array(
     section_array_input_data: dict[str, list],
 ) -> SectionArray:
@@ -245,15 +261,18 @@ def test_section_array__data(
             "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15.0, 15.0, 15.0, np.nan],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
-            "ground_altitude": [-27.8, -25.0, -30.12, -30.0],
+            "ground_altitude": [-27.8, -25, -30.12, -30],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "bundle_number": [1] * 4,
+            "support_height": [30.0, 30.0, 30.0, 30.0],
         },
     )
 
-    assert_frame_equal(exported_data, expected_data, atol=1e-07)
+    assert_frame_equal(
+        exported_data, expected_data, atol=1e-07, check_like=True
+    )
     # section_array inner data shouldn't have been modified
-    assert_frame_equal(section_array._data, inner_data)
+    assert_frame_equal(section_array._data, inner_data, check_like=True)
 
 
 def test_section_array__data_with_optional() -> None:
@@ -295,6 +314,7 @@ def test_section_array__data_with_optional() -> None:
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "ground_altitude": [0.0, 3.0, -1, 0],
             "bundle_number": [1] * 4,
+            "support_height": [30.0, 30.0, 30.0, 30.0],
         },
     )
 
@@ -306,43 +326,90 @@ def test_section_array__data_with_optional() -> None:
 
 
 @pytest.mark.filterwarnings("ignore::UserWarning")
-def test_section_array__wrong_ground_altitude() -> None:
+def test_section_array__wrong_ground_altitude__no_support_height() -> None:
     df = pd.DataFrame(
         {
-            "name": ["support 1", "2", "three", "support 4"],
-            "suspension": [False, True, True, False],
-            "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
-            "crossarm_length": [10, 12.1, 10, 10.1],
-            "line_angle": [0, 360, 90.1, -90.2],
-            "insulator_length": [0.01, 4, 3.2, 0.01],
-            "span_length": [1, 500.2, 500.05, np.nan],
-            "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
-            "ground_altitude": [0.0, 7.0, -1, 5],
+            "name": ["1", "2", "3"],
+            "suspension": [False, True, False],
+            "conductor_attachment_altitude": [25.0, 30.0, 30.0],
+            "crossarm_length": [10.0, 10.0, 10.0],
+            "line_angle": [0.0, 0.0, 0.0],
+            "insulator_length": [0.1, 0.0, 0.1],
+            "span_length": [500.0, 500.0, np.nan],
+            "insulator_mass": [50.0, 50.0, 50.0],
+            "ground_altitude": [0.0, 31.0, np.nan],
         }
     )
     section_array = SectionArray(
-        data=df, sagging_parameter=2_000, sagging_temperature=15
+        data=df, sagging_parameter=2_000.0, sagging_temperature=15.0
     )
-    section_array.add_units({"line_angle": "deg"})
 
     exported_data = section_array.data
 
     expected_data = pd.DataFrame(
         {
-            "name": ["support 1", "2", "three", "support 4"],
+            "name": ["1", "2", "3"],
+            "suspension": [False, True, False],
+            "conductor_attachment_altitude": [25.0, 30.0, 30.0],
+            "crossarm_length": [10.0, 10.0, 10.0],
+            "line_angle": [0.0, 0.0, 0.0],
+            "insulator_length": [0.1, 0.01, 0.1],
+            "span_length": [500.0, 500.0, np.nan],
+            "insulator_mass": [50.0, 50.0, 50.0],
+            "ground_altitude": [0.0, 0.0, 0.0],
+            "sagging_parameter": [2_000.0, 2_000.0, np.nan],
+            "sagging_temperature": [15.0, 15.0, np.nan],
+            "insulator_weight": [490.5, 490.5, 490.5],
+            "elevation_difference": [5.0, 0.0, np.nan],
+            "bundle_number": [1, 1, 1],
+            "support_height": [30.0, 30.0, 30.0],
+        },
+    )
+
+    assert_frame_equal(
+        exported_data, expected_data, atol=1e-07, check_like=True
+    )
+
+
+@pytest.mark.filterwarnings("ignore::UserWarning")
+def test_section_array__wrong_ground_altitude__with_support_height() -> None:
+    df = pd.DataFrame(
+        {
+            "name": ["1", "2", "3", "4"],
             "suspension": [False, True, True, False],
-            "conductor_attachment_altitude": [2.2, 5, -0.12, 0],
-            "crossarm_length": [10, 12.1, 10, 10.1],
-            "line_angle": [0.0, 6.283185, 1.572542, -1.574287],
-            "insulator_length": [0.01, 4, 3.2, 0.01],
-            "span_length": [1, 500.2, 500.05, np.nan],
-            "insulator_mass": [1000.0, 500.0, 500.0, 1000.0],
+            "conductor_attachment_altitude": [-5.0, -5.0, 20.0, 20.0],
+            "crossarm_length": [10.0, 10.0, 10.0, 10.0],
+            "line_angle": [0.0, 0.0, 0.0, 0.0],
+            "insulator_length": [0.1, 0.0, 0.1, 0.0],
+            "span_length": [500.0, 500.0, 500.0, np.nan],
+            "insulator_mass": [50.0, 50.0, 50.0, 50.0],
+            "ground_altitude": [0.0, 0.0, 0.0, np.nan],
+            "support_height": [20.0, np.nan, 30.0, np.nan],
+        }
+    )
+    section_array = SectionArray(
+        data=df, sagging_parameter=2_000.0, sagging_temperature=15.0
+    )
+
+    exported_data = section_array.data
+
+    expected_data = pd.DataFrame(
+        {
+            "name": ["1", "2", "3", "4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [-5.0, -5.0, 20.0, 20.0],
+            "crossarm_length": [10.0, 10.0, 10.0, 10.0],
+            "line_angle": [0.0, 0.0, 0.0, 0.0],
+            "insulator_length": [0.1, 0.01, 0.1, 0.01],
+            "span_length": [500.0, 500.0, 500.0, np.nan],
+            "insulator_mass": [50.0, 50.0, 50.0, 50.0],
+            "ground_altitude": [-25.2, -35.0, 0.0, -10.0],
             "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15.0, 15.0, 15.0, np.nan],
-            "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
-            "elevation_difference": [2.8, -5.12, 0.12, np.nan],
-            "ground_altitude": [0.0, -25.0, -1.0, -30.0],
-            "bundle_number": [1] * 4,
+            "insulator_weight": [490.5, 490.5, 490.5, 490.5],
+            "elevation_difference": [0.0, 25.0, 0.0, np.nan],
+            "bundle_number": [1, 1, 1, 1],
+            "support_height": [20.0, 30.0, 30.0, 30.0],
         },
     )
 
@@ -779,42 +846,31 @@ def test_equivalent_span(section_array) -> None:
     np.testing.assert_allclose(section_array.equivalent_span() ** 2, res)
 
 
-def test_correct_insulator_length(section_array: SectionArray) -> None:
-    expected_lengths = np.array([0.01, 4.0, 3.2, 0.01])
+def test_correct_insulator_length(
+    section_array_input_data: dict["str", list],
+) -> None:
+    original_lengths = [0.00, 4.0, 3.2, 0.00]
+    section_array_input_data["insulator_length"] = original_lengths
+
+    expected_lengths = [0.01, 4.0, 3.2, 0.01]
+
+    section_array = SectionArray(pd.DataFrame(section_array_input_data))
 
     np.testing.assert_allclose(
-        section_array.data.insulator_length, expected_lengths
-    )
-    np.testing.assert_allclose(
-        section_array._data.insulator_length, expected_lengths
+        section_array._data.insulator_length,
+        np.array(original_lengths),
     )
 
-    # test on .data property
-    section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
-    # warning expected in the test
     with pytest.warns(DataWarning):
         insulator_length = section_array.data.insulator_length
-    np.testing.assert_allclose(insulator_length, expected_lengths)
+    np.testing.assert_allclose(insulator_length, np.array(expected_lengths))
 
-    # nothing to correct
-    section_array._data.insulator_length = np.array([0.01, 4.0, 3.2, 0.01])
-    section_array.correct_insulator_length()
+
+def test_correct_insulator_length__nothing_to_correct(section_array) -> None:
+    expected_lengths = np.array([0.01, 4.0, 3.2, 0.01])
     np.testing.assert_allclose(
         section_array.data.insulator_length, expected_lengths
     )
-
-
-def test_warning_on_insulator_length_correction(
-    section_array: SectionArray,
-) -> None:
-    # Force invalid lengths and ensure they are corrected with a warning
-    section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
-    with pytest.warns(DataWarning):
-        section_array.correct_insulator_length()
-
-    section_array._data.insulator_length = np.array([0.0, 4.0, 3.2, 0.0])
-    with pytest.warns(DataWarning):
-        section_array.data
 
 
 def test_section_array__data_with_counterweight(
@@ -880,3 +936,185 @@ def test_create_section_bundle_number(
             pd.DataFrame(section_array_input_data),
             bundle_number=0,
         )
+
+
+def test_section_array__x_offset_and_support_height_in_data(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["x_offset"] = [1.5, -2.0, 0.0, 3.0]
+    section_array_input_data["support_height"] = [10.0, 20.0, 15.0, 5.0]
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(data=df)
+
+    options.ground.foot_to_ground_clearance = 1.0
+
+    assert "x_offset" in section_array._data.columns
+    assert "support_height" in section_array._data.columns
+
+    assert_allclose(
+        section_array._data["x_offset"].to_numpy(), [1.5, -2.0, 0.0, 3.0]
+    )
+    assert_allclose(
+        section_array._data["support_height"].to_numpy(),
+        [10.0, 20.0, 15.0, 5.0],
+    )
+
+    assert "x_offset" in section_array.data.columns
+    assert "support_height" in section_array.data.columns
+
+    assert_allclose(
+        section_array.data["x_offset"].to_numpy(), [1.5, -2.0, 0.0, 3.0]
+    )
+    assert_allclose(
+        section_array.data["support_height"].to_numpy(),
+        [10.0, 20.0, 15.0, 5.0],
+    )
+
+
+def test_section_array__no_support_height(
+    section_array_input_data: dict,
+) -> None:
+    """When support_height is not provided, data property should contain it with default 30."""
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(data=df)
+
+    assert "support_height" not in section_array._data.columns
+    assert "support_height" in section_array.data.columns
+    assert_allclose(
+        section_array.data["support_height"].to_numpy(),
+        [30.0, 30.0, 30.0, 30.0],
+    )
+
+
+def test_section_array__partial_support_height(
+    section_array_input_data: dict,
+) -> None:
+    section_array_input_data["support_height"] = np.array(
+        [np.nan, np.nan, 60, 50]
+    )
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(data=df)
+
+    assert_allclose(
+        section_array.data["support_height"].to_numpy(),
+        [30.0, 30.0, 60.0, 50.0],
+    )
+
+
+def test_section_array__x_offset_absent_when_not_provided(
+    section_array_input_data: dict,
+) -> None:
+    """When x_offset is not provided, it should be absent from both _data and data."""
+    df = pd.DataFrame(section_array_input_data)
+    section_array = SectionArray(data=df)
+
+    assert "x_offset" not in section_array._data.columns
+    assert "x_offset" not in section_array.data.columns
+
+
+def test_create_section_array__support_height_negative(
+    section_array_input_data: dict,
+) -> None:
+    """support_height must be non-negative (ge=0)."""
+    section_array_input_data["support_height"] = [10.0, -5.0, 15.0, 5.0]
+    input_df = pd.DataFrame(section_array_input_data)
+
+    with pytest.raises(pa.errors.SchemaErrors):
+        SectionArray(input_df)
+
+
+def test_ground_altitude__without_support_height(
+    section_array_input_data,
+) -> None:
+    options.ground.foot_to_ground_clearance = 0.01
+    options.ground.default_support_length = 30.005
+
+    df = pd.DataFrame(section_array_input_data)
+
+    section_array_bundle2 = SectionArray(
+        data=df,
+        bundle_number=2,
+    )
+
+    section_array_bundle3 = SectionArray(
+        data=df,
+        bundle_number=3,
+    )
+
+    ground_altitude_2_cables = section_array_bundle2.data["ground_altitude"]
+    ground_altitude_3_cables = section_array_bundle3.data["ground_altitude"]
+
+    expected_ground_altitude = np.array([2.2, 5, -0.12, 0]) - 30.005
+
+    assert_allclose(ground_altitude_2_cables, expected_ground_altitude)
+    assert_allclose(ground_altitude_3_cables, expected_ground_altitude)
+
+
+def test_ground_altitude__with_partial_support_height(
+    section_array_input_data_5_spans,
+) -> None:
+    options.ground.foot_to_ground_clearance = 0.01
+    options.ground.default_support_length = 30.005
+    options.ground.spacer_height = 0.2
+
+    section_array_input_data_5_spans["suspension"] = [
+        False,
+        True,
+        True,
+        True,
+        False,
+    ]
+    section_array_input_data_5_spans["conductor_attachment_altitude"] = [
+        30.0
+    ] * 5
+    section_array_input_data_5_spans["insulator_length"] = [
+        0.2,
+        0.0,
+        0.2,
+        0.2,
+        0.2,
+    ]
+    section_array_input_data_5_spans["support_height"] = [
+        25.0,
+        25.0,
+        25.0,
+        np.nan,
+        np.nan,
+    ]
+
+    df = pd.DataFrame(section_array_input_data_5_spans)
+
+    section_array_bundle2 = SectionArray(
+        data=df,
+        bundle_number=2,
+    )
+    section_array_bundle3 = SectionArray(
+        data=df,
+        bundle_number=3,
+    )
+
+    ground_altitude_2_cables = section_array_bundle2.data["ground_altitude"]
+    ground_altitude_3_cables = section_array_bundle3.data["ground_altitude"]
+
+    expected_ground_altitude_bundle2 = np.array(
+        [
+            4.99,
+            4.99,
+            5.19,
+            -0.005,
+            -0.005,
+        ]
+    )
+
+    expected_ground_altitude_bundle3 = np.array(
+        [
+            5.09,
+            5.09,
+            5.29,
+            -0.005,
+            -0.005,
+        ]
+    )
+
+    assert_allclose(ground_altitude_2_cables, expected_ground_altitude_bundle2)
+    assert_allclose(ground_altitude_3_cables, expected_ground_altitude_bundle3)
