@@ -935,6 +935,15 @@ class ObstacleArray(ElementArray):
             self.data["z"].to_numpy(),
         )
 
+    def get_coords(self) -> np.ndarray:
+        return np.array(
+            [
+                self.data["x"].to_numpy(),
+                self.data["y"].to_numpy(),
+                self.data["z"].to_numpy(),
+            ]
+        ).T
+
     @property
     def data(self) -> pd.DataFrame:
         data_output = super().data
