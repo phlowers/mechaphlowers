@@ -936,12 +936,9 @@ class ObstacleArray(ElementArray):
         )
 
     def get_coords(self) -> np.ndarray:
+        data = self.data
         return np.array(
-            [
-                self.data["x"].to_numpy(),
-                self.data["y"].to_numpy(),
-                self.data["z"].to_numpy(),
-            ]
+            [data["x"].to_numpy(), data["y"].to_numpy(), data["z"].to_numpy()]
         ).T
 
     @property

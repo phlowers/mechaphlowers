@@ -76,20 +76,6 @@ def test_plot_obstacles(balance_engine_angles: BalanceEngine):
             [700.66635742, 11.5331262, 0.0],
         ]
     )
-    # Previous test result before bugfix
-    # expected_result = np.array(
-    #     [
-    #         [np.nan, np.nan, np.nan],
-    #         [100.0, 0.0, 0.0],
-    #         [200.0, 10.0, 0.0],
-    #         [np.nan, np.nan, np.nan],
-    #         [598.76883406, 15.6434465, 0.0],
-    #         [699.10201277, 41.16377641, 0.0],
-    #         [797.87084683, 56.80722292, 50.0],
-    #         [np.nan, np.nan, np.nan],
-    #         [694.40897882, 11.5331262, 0.0],
-    #     ]
-    # )
     np.testing.assert_allclose(points_result, expected_result)
 
 
@@ -153,20 +139,6 @@ def test_plot_obstacles_2d(balance_engine_angles: BalanceEngine):
             [700.66635742, 11.5331262, 0.0],
         ]
     )
-    # Previous test result before bugfix
-    # expected_result = np.array(
-    #     [
-    #         [np.nan, np.nan, np.nan],
-    #         [100.0, 0.0, 0.0],
-    #         [200.0, 10.0, 0.0],
-    #         [np.nan, np.nan, np.nan],
-    #         [598.76883406, 15.6434465, 0.0],
-    #         [699.10201277, 41.16377641, 0.0],
-    #         [797.87084683, 56.80722292, 50.0],
-    #         [np.nan, np.nan, np.nan],
-    #         [694.40897882, 11.5331262, 0.0],
-    #     ]
-    # )
     np.testing.assert_allclose(points_result, expected_result)
 
 

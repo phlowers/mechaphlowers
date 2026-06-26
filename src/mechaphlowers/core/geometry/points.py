@@ -419,11 +419,7 @@ class CoordsCalculator:
             azimuth_line_obstacles,
             rotation_axis=np.array([0, 0, 1]),
         )
-        x_rotated, y_rotated, z_rotated = (
-            rotated_coords[:, 0].T,
-            rotated_coords[:, 1].T,
-            rotated_coords[:, 2].T,
-        )
+        x_rotated, y_rotated, z_rotated = rotated_coords.T
         x_absolute, y_absolute, z_absolute = translate_to_absolute_frame(
             x_rotated,
             y_rotated,
