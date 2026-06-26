@@ -17,6 +17,7 @@ from thermohl.power.convective_cooling import (  # type: ignore
 )
 from thermohl.power.rte.solar_heating import (  # type: ignore
     diffuse_and_beam_radiations,
+    estimate_nebulosity,
 )
 
 from mechaphlowers.entities.arrays import CableArray
@@ -194,6 +195,14 @@ class SolarRadiationResults(ThermalResults):
         if isinstance(data, pd.DataFrame):
             return data.copy()
         return pd.DataFrame(data)
+
+
+class NebulosityResults(ThermalResults):
+    """Nebulosity results."""
+
+    @staticmethod
+    def parse_results(data):
+        return pd.DataFrame({"nebulosity": data})
 
 
 class ThermalForecastArray:
@@ -524,6 +533,18 @@ class ThermalEngine:
             }
         )
         return SolarRadiationResults(df)
+
+    @staticmethod
+    def nebulosity(
+        diffuse_plus_beam_radiation: np.ndarray,
+        datetime_utc: np.ndarray,
+        latitude: np.ndarray,
+        longitude: np.ndarray,
+    ) -> NebulosityResults:
+        result = estimate_nebulosity(
+            diffuse_plus_beam_radiation, datetime_utc, latitude, longitude
+        )
+        return NebulosityResults(result)
 
     @property
     def wind_cable_angle(self) -> np.ndarray:
