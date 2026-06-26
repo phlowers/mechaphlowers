@@ -159,6 +159,8 @@ class SteadyTemperatureResults(ThermalSteadyResults):
 
 
 class SolarRadiationResults(ThermalResults):
+    """Diffuse and beam radiations with their sum."""
+
     @staticmethod
     def parse_results(data):
         if isinstance(data, pd.DataFrame):
@@ -447,6 +449,11 @@ class ThermalEngine:
         longitude: np.ndarray,
         nebulosity: np.ndarray,
     ) -> SolarRadiationResults:
+        """Compute diffuse radiation, beam radiation and their sum.
+
+        Returns:
+            SolarRadiationsResults: An instance containing the results.
+        """
         check_nebulosity_range(nebulosity)
         diffuse_radiation, beam_radiation = diffuse_and_beam_radiations(
             datetime_utc,

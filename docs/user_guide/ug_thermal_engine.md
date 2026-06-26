@@ -20,6 +20,7 @@ The ThermalEngine computes the temperature distribution in power transmission ca
 1. **Steady-State Temperature**: Calculates cable temperature when conditions are constant
 2. **Steady-State Intensity**: Calculates maximum allowable current for a target temperature
 3. **Transient Temperature**: Calculates temperature variations over time with changing conditions
+4. **Solar radiations**: Calculates diffuse and beam radiations (and their sum) according to GPS coordinates, datetime and nebulosity.
 
 ## Installation and Basic Setup
 
@@ -276,6 +277,35 @@ print(repr(thermal_engine))
 # Check engine size
 print(f"Number of conditions: {len(thermal_engine)}")
 ```
+
+### 9. Solar radiations
+
+Compute diffuse radiation, beam radiation and their sum:
+
+```python
+# Calculate temperature variations over 10 time steps
+result = ThermalEngine.diffuse_and_beam_solar_radiations(
+    datetime_utc=np.array(
+        [
+            np.datetime64("2026-03-21T12:00"),
+            np.datetime64("2026-03-21T12:00"),
+        ]
+    ),
+    latitude=np.array([40, 40]),
+    longitude=np.array([0, 0]),
+    nebulosity=np.array([0, 9]),
+)
+print("Solar radiations:")
+print(result.data)
+```
+
+**Output format:**
+
+- `diffuse_radiation`
+- `beam_radiation`
+- `diffuse_plus_beam_radiation`
+
+All these fields are in W/m^2.
 
 ## Technical Notes
 
