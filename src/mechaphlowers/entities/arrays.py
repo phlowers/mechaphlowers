@@ -428,9 +428,10 @@ class SectionArray(ElementArray):
             self.compute_ground_altitude(),
             data_output["ground_altitude"],
         )
+        wrong_idx = np.where(wrong_ground_altitude)[0]
         warning_string = (
-            "ground_altitude is higher than conductor_attachment_altitude. \n"
-            f"ground_altitude being replaced by default value for incorrect supports: \n {data_output['ground_altitude'].to_numpy()}"
+            "ground_altitude is higher than conductor_attachment_altitude for some supports; "
+            f"recomputing ground_altitude for indices {wrong_idx.tolist()}."
         )
         warnings.warn(warning_string, category=DataWarning)
         logger.warning(warning_string)

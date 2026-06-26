@@ -847,7 +847,7 @@ def test_equivalent_span(section_array) -> None:
 
 
 def test_correct_insulator_length(
-    section_array_input_data: dict["str", list],
+    section_array_input_data: dict[str, list],
 ) -> None:
     original_lengths = [0.00, 4.0, 3.2, 0.00]
     section_array_input_data["insulator_length"] = original_lengths

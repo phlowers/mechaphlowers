@@ -56,7 +56,7 @@ In mechaphlowers a line section is described by the following data:
     Where:
 
     - `support_height` is taken from the column if provided, otherwise from `options.ground.default_support_length` (default: 30 m).
-    - `spacer_height` is the height contribution of the `Spacer` equipment: `options.ground.spacer_height / 2` (default 0.4 / 2 = 0.2 m) for bundle numbers 3 and 4, else 0 m.
+    - `spacer_height` is the height contribution of the spacer equipment: `options.ground.spacer_height / 2` (default 0.4 / 2 = 0.2 m) for bundle numbers 3 and 4, else 0 m.
     - `foot_to_ground_clearance` is defined in `options.ground.foot_to_ground_clearance` (default: 0.2 m). It is also called OO' distance.
 
     If ground altitude is provided and its value is heigher than conductor attachment altitude,
