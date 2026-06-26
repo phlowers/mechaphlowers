@@ -14,7 +14,10 @@ from mechaphlowers.core.models.cable.thermal import (
     ThermalTransientResults,
 )
 from mechaphlowers.entities.arrays import CableArray
-from mechaphlowers.entities.errors import UncertaintyNotAvailable
+from mechaphlowers.entities.errors import (
+    InvalidNebulosity,
+    UncertaintyNotAvailable,
+)
 
 
 @pytest.fixture
@@ -362,3 +365,57 @@ def test_transient_results_raise_for_df_input():
         match="DataFrame input not supported for transient results parsing.",
     ):
         ThermalTransientResults.parse_results(df_input)
+
+
+def test_solar_radiations() -> None:
+    results = ThermalEngine.diffuse_and_beam_solar_radiations(
+        datetime_utc=np.array(
+            [
+                np.datetime64("2026-03-21T12:00"),
+                np.datetime64("2026-03-21T12:00"),
+                np.datetime64("2026-03-21T23:59"),
+            ]
+        ),
+        latitude=np.array([40, 40, 40]),
+        longitude=np.array([0, 0, 0]),
+        nebulosity=np.array([0, 8, 0]),
+    )
+    pd.testing.assert_frame_equal(
+        results.data,
+        pd.DataFrame(
+            {
+                "diffuse_radiation": [198.77, 165.64, 0.0],
+                "beam_radiation": [609.41, 0.0, 0.0],
+                "diffuse_plus_beam_radiation": [808.17, 165.64, 0.0],
+            }
+        ),
+        atol=0.01,
+    )
+
+
+def test_solar_radiations_wrong_nebulosity() -> None:
+    with pytest.raises(InvalidNebulosity):
+        ThermalEngine.diffuse_and_beam_solar_radiations(
+            datetime_utc=np.array(
+                [
+                    np.datetime64("2026-03-21T12:00"),
+                    np.datetime64("2026-03-21T12:00"),
+                ]
+            ),
+            latitude=np.array([40, 40]),
+            longitude=np.array([0, 0]),
+            nebulosity=np.array([0, 9]),
+        )
+
+    with pytest.raises(InvalidNebulosity):
+        ThermalEngine.diffuse_and_beam_solar_radiations(
+            datetime_utc=np.array(
+                [
+                    np.datetime64("2026-03-21T12:00"),
+                    np.datetime64("2026-03-21T12:00"),
+                ]
+            ),
+            latitude=np.array([40, 40]),
+            longitude=np.array([0, 0]),
+            nebulosity=np.array([-1, 8]),
+        )

@@ -15,10 +15,16 @@ from thermohl import solver  # type: ignore
 from thermohl.power.convective_cooling import (  # type: ignore
     compute_wind_attack_angle as thermohl_compute_wind_angle,
 )
+from thermohl.power.rte.solar_heating import (  # type: ignore
+    diffuse_and_beam_radiations,
+)
 from typing_extensions import Self
 
 from mechaphlowers.entities.arrays import CableArray
-from mechaphlowers.entities.errors import UncertaintyNotAvailable
+from mechaphlowers.entities.errors import (
+    InvalidNebulosity,
+    UncertaintyNotAvailable,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +158,14 @@ class SteadyTemperatureResults(ThermalSteadyResults):
         )
 
 
+class SolarRadiationResults(ThermalResults):
+    @staticmethod
+    def parse_results(data):
+        if isinstance(data, pd.DataFrame):
+            return data.copy()
+        return pd.DataFrame(data)
+
+
 class ThermalForecastArray:
     """Array for input thermal forecast parameters."""
 
@@ -223,7 +237,7 @@ def check_nebulosity_range(nebulosity: np.ndarray) -> None:
     if not np.all(
         ((0 <= nebulosity) & (nebulosity <= 8)) | np.isnan(nebulosity)
     ):
-        raise ValueError(
+        raise InvalidNebulosity(
             "Nebulosity values must be in the range [0-8]. Invalid values found in 'nebulosity'."
         )
 
@@ -425,6 +439,30 @@ class ThermalEngine:
         return ThermalTransientResults(
             self.thermal_model.transient_temperature(offset=self.forecast.time)
         )
+
+    @staticmethod
+    def diffuse_and_beam_solar_radiations(
+        datetime_utc: npt.NDArray[np.datetime64],
+        latitude: np.ndarray,
+        longitude: np.ndarray,
+        nebulosity: np.ndarray,
+    ) -> SolarRadiationResults:
+        check_nebulosity_range(nebulosity)
+        diffuse_radiation, beam_radiation = diffuse_and_beam_radiations(
+            datetime_utc,
+            latitude,
+            longitude,
+            nebulosity,
+        )
+        df = pd.DataFrame(
+            {
+                "diffuse_radiation": diffuse_radiation,
+                "beam_radiation": beam_radiation,
+                "diffuse_plus_beam_radiation": diffuse_radiation
+                + beam_radiation,
+            }
+        )
+        return SolarRadiationResults(df)
 
     @property
     def wind_cable_angle(self) -> np.ndarray:
