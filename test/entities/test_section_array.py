@@ -4,6 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import logging
 from copy import copy
 
 import numpy as np
@@ -1023,7 +1024,7 @@ def test_create_section_array__support_height_negative(
         SectionArray(input_df)
 
 
-def test_ground_altitude__without_support_height(
+def test_data__without_ground_altitude__without_support_height(
     section_array_input_data,
 ) -> None:
     options.ground.foot_to_ground_clearance = 0.01
@@ -1050,7 +1051,7 @@ def test_ground_altitude__without_support_height(
     assert_allclose(ground_altitude_3_cables, expected_ground_altitude)
 
 
-def test_ground_altitude__with_partial_support_height(
+def test_data__without_ground_altitude__with_partial_support_height(
     section_array_input_data_5_spans,
 ) -> None:
     options.ground.foot_to_ground_clearance = 0.01
@@ -1110,6 +1111,131 @@ def test_ground_altitude__with_partial_support_height(
         [
             5.09,
             5.09,
+            5.29,
+            -0.005,
+            -0.005,
+        ]
+    )
+
+    assert_allclose(ground_altitude_2_cables, expected_ground_altitude_bundle2)
+    assert_allclose(ground_altitude_3_cables, expected_ground_altitude_bundle3)
+
+
+def test_data__with_partial_ground_altitude__without_support_height(
+    section_array_input_data,
+    caplog,
+) -> None:
+    options.ground.foot_to_ground_clearance = 0.01
+    options.ground.default_support_length = 30.005
+
+    section_array_input_data["ground_altitude"] = np.array(
+        [1.0, 6, np.nan, np.nan]
+    )
+
+    df = pd.DataFrame(section_array_input_data)
+
+    section_array_bundle2 = SectionArray(
+        data=df,
+        bundle_number=2,
+    )
+
+    section_array_bundle3 = SectionArray(
+        data=df,
+        bundle_number=3,
+    )
+
+    with caplog.at_level(logging.WARNING):
+        ground_altitude_2_cables = section_array_bundle2.data[
+            "ground_altitude"
+        ]
+        ground_altitude_3_cables = section_array_bundle3.data[
+            "ground_altitude"
+        ]
+        assert "WARNING" in caplog.text
+
+    expected_ground_altitude = np.array([1.0, -25.005, -30.125, -30.005])
+
+    assert_allclose(ground_altitude_2_cables, expected_ground_altitude)
+    assert_allclose(ground_altitude_3_cables, expected_ground_altitude)
+
+
+def test_data__with_partial_ground_altitude__with_partial_support_height(
+    section_array_input_data_5_spans,
+    caplog,
+) -> None:
+    options.ground.foot_to_ground_clearance = 0.01
+    options.ground.default_support_length = 30.005
+    options.ground.spacer_height = 0.2
+
+    section_array_input_data_5_spans["ground_altitude"] = np.array(
+        [
+            25.0,
+            30.0,
+            32.0,
+            np.nan,
+            np.nan,
+        ]
+    )
+
+    section_array_input_data_5_spans["suspension"] = [
+        False,
+        True,
+        True,
+        True,
+        False,
+    ]
+    section_array_input_data_5_spans["conductor_attachment_altitude"] = [
+        30.0
+    ] * 5
+    section_array_input_data_5_spans["insulator_length"] = [
+        0.2,
+        0.0,
+        0.2,
+        0.2,
+        0.2,
+    ]
+    section_array_input_data_5_spans["support_height"] = [
+        25.0,
+        25.0,
+        25.0,
+        np.nan,
+        np.nan,
+    ]
+
+    df = pd.DataFrame(section_array_input_data_5_spans)
+
+    section_array_bundle2 = SectionArray(
+        data=df,
+        bundle_number=2,
+    )
+    section_array_bundle3 = SectionArray(
+        data=df,
+        bundle_number=3,
+    )
+
+    with caplog.at_level(logging.WARNING):
+        ground_altitude_2_cables = section_array_bundle2.data[
+            "ground_altitude"
+        ]
+        ground_altitude_3_cables = section_array_bundle3.data[
+            "ground_altitude"
+        ]
+        assert "WARNING" in caplog.text
+
+    expected_ground_altitude_bundle2 = np.array(
+        [
+            25.0,
+            30.0,
+            5.19,
+            -0.005,
+            -0.005,
+        ]
+    )
+
+    expected_ground_altitude_bundle3 = np.array(
+        [
+            25.0,
+            30.0,
             5.29,
             -0.005,
             -0.005,

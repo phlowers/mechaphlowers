@@ -208,40 +208,67 @@ class SectionArray(ElementArray):
         right_support_height = left_support_height.shift(periods=-1)
         return (right_support_height - left_support_height).to_numpy()
 
-    def compute_ground_altitude_correction(self) -> np.ndarray:
+    @classmethod
+    def compute_ground_altitude_correction(
+        cls,
+        suspension: np.ndarray,
+        insulator_length: np.ndarray,
+        bundle_number: int,
+    ) -> np.ndarray:
         altitude_correction = np.where(
-            self._data["suspension"], self._data["insulator_length"], 0
+            suspension,
+            insulator_length,
+            0,
         )
         return (
             altitude_correction
             - options.ground.foot_to_ground_clearance
-            + self._get_spacer_height_contribution()
+            + cls._get_spacer_height_contribution(bundle_number)
         )
 
-    def _get_spacer_height_contribution(self):
-        if self.bundle_number < 3:
+    @staticmethod
+    def _get_spacer_height_contribution(bundle_number):
+        if bundle_number < 3:
             return 0
         else:
             return options.ground.spacer_height / 2
 
-    def compute_ground_altitude(self) -> np.ndarray:
-        """Generate ground altitude array using attachment altitude, insulator length, support height and spacer."""
+    @classmethod
+    def compute_ground_altitude(
+        cls,
+        suspension: npt.NDArray[np.bool],
+        conductor_attachment_altitude: np.ndarray,
+        insulator_length: np.ndarray,
+        bundle_number: int,
+        support_height: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Generate ground altitude array."""
 
-        if "support_height" not in self._data.columns:
-            altitude_correction = np.zeros(len(self._data))
+        if support_height is None:
+            altitude_correction = np.zeros_like(conductor_attachment_altitude)
+            support_height = np.full_like(
+                conductor_attachment_altitude,
+                options.ground.default_support_length,
+            )
         else:
             altitude_correction = np.where(  # type: ignore
-                np.isnan(self._data["support_height"]),
+                np.isnan(support_height),
                 0.0,
-                self.compute_ground_altitude_correction(),
+                cls.compute_ground_altitude_correction(
+                    suspension,
+                    insulator_length,
+                    bundle_number,
+                ),
+            )
+            support_height = np.where(
+                np.isnan(support_height),
+                options.ground.default_support_length,
+                support_height,
             )
 
-        data = self._data.copy()
-        self._fill_support_height_with_default(data)
-
         return (
-            data["conductor_attachment_altitude"].to_numpy()
-            - data["support_height"].to_numpy()
+            conductor_attachment_altitude
+            - support_height
             + altitude_correction
         )
 
@@ -353,15 +380,15 @@ class SectionArray(ElementArray):
     @property
     def data(self) -> pd.DataFrame:
         data_output = super().data
-        self.correct_insulator_length(data_output)
         mass_weight_conversion = {
             "insulator_mass": "insulator_weight",
             "counterweight_mass": "counterweight",
         }
         self.create_column_weight(data_output, mass_weight_conversion)
-        self._fill_support_height_with_default(data_output)
         self._correct_inconsistent_ground_altitude(data_output)
         self._fill_missing_ground_altitude(data_output)
+        self._fill_support_height_with_default(data_output)
+        self.correct_insulator_length(data_output)
         data_output = self._adjust_angle_direction(data_output)
         return data_output.assign(
             elevation_difference=self.compute_elevation_difference(),
@@ -425,10 +452,18 @@ class SectionArray(ElementArray):
             return
         data_output["ground_altitude"] = np.where(
             wrong_ground_altitude,
-            self.compute_ground_altitude(),
+            self.compute_ground_altitude(
+                data_output["suspension"].to_numpy(),
+                data_output["conductor_attachment_altitude"].to_numpy(),
+                data_output["insulator_length"].to_numpy(),
+                self.bundle_number,
+                data_output["support_height"].to_numpy()
+                if "support_height" in data_output.columns
+                else None,
+            ),
             data_output["ground_altitude"],
         )
-        wrong_idx = np.where(wrong_ground_altitude)[0]
+        wrong_idx = np.nonzero(wrong_ground_altitude)[0]
         warning_string = (
             "ground_altitude is higher than conductor_attachment_altitude for some supports; "
             f"recomputing ground_altitude for indices {wrong_idx.tolist()}."
@@ -438,11 +473,27 @@ class SectionArray(ElementArray):
 
     def _fill_missing_ground_altitude(self, data: pd.DataFrame) -> None:
         if "ground_altitude" not in data.columns:
-            data["ground_altitude"] = self.compute_ground_altitude()
+            data["ground_altitude"] = self.compute_ground_altitude(
+                data["suspension"].to_numpy(),
+                data["conductor_attachment_altitude"].to_numpy(),
+                data["insulator_length"].to_numpy(),
+                self.bundle_number,
+                data["support_height"].to_numpy()
+                if "support_height" in data.columns
+                else None,
+            )
         else:
             data["ground_altitude"] = np.where(
                 np.isnan(data["ground_altitude"]),
-                self.compute_ground_altitude(),
+                self.compute_ground_altitude(
+                    data["suspension"].to_numpy(),
+                    data["conductor_attachment_altitude"].to_numpy(),
+                    data["insulator_length"].to_numpy(),
+                    self.bundle_number,
+                    data["support_height"].to_numpy()
+                    if "support_height" in data.columns
+                    else None,
+                ),
                 data["ground_altitude"],
             )
 
