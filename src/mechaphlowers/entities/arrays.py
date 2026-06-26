@@ -146,7 +146,7 @@ class SectionArray(ElementArray):
         data: pd.DataFrame,
         sagging_parameter: float | None = None,
         sagging_temperature: float | None = None,
-        bundle_number: int = 1,  # TODO: check if same as spacer.bundle_number?
+        bundle_number: int = 1,
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
 
@@ -224,7 +224,7 @@ class SectionArray(ElementArray):
         else:
             return options.ground.spacer_height / 2
 
-    def compute_ground_altitude(self) -> np.ndarray:  # TODO: add mask param?
+    def compute_ground_altitude(self) -> np.ndarray:
         """Generate ground altitude array using attachment altitude, insulator length, support height and spacer."""
 
         if "support_height" not in self._data.columns:
@@ -432,7 +432,7 @@ class SectionArray(ElementArray):
             "ground_altitude is higher than conductor_attachment_altitude. \n"
             f"ground_altitude being replaced by default value for incorrect supports: \n {data_output['ground_altitude'].to_numpy()}"
         )
-        warnings.warn(warning_string)  # TODO: raise DataWarning?
+        warnings.warn(warning_string, category=DataWarning)
         logger.warning(warning_string)
 
     def _fill_missing_ground_altitude(self, data: pd.DataFrame) -> None:
