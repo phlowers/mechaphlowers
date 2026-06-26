@@ -301,6 +301,68 @@ def test_transient_thermal(cable_array_AM600: CableArray):
     )
 
 
+def test_transient_thermal__input_length_2(cable_array_AM600: CableArray):
+    thermal_engine = ThermalEngine()
+    thermal_engine.set(
+        cable_array_AM600,
+        latitude=np.array([45.0, 45.0]),
+        longitude=np.array([0.0, 0.0]),
+        altitude=np.array([0.0, 0.0]),
+        azimuth=np.array([0.0, 0.0]),
+        datetime_utc=np.array(
+            [
+                np.datetime64("2026-03-21T12:00"),
+                np.datetime64("2026-03-21T12:00"),
+            ]
+        ),
+        intensity=np.array([100.0, 100.0]),
+        ambient_temp=np.array([15.0, 15.0]),
+        wind_speed=np.array([10.0, 10.0]),
+        wind_angle=np.array(
+            [
+                90.0,
+                80.0,
+            ]
+        ),
+        nebulosity=np.array([0, 0]),
+    )
+    assert thermal_engine.transient_temperature().data.shape[0] == 2 * 10
+
+    np.testing.assert_array_almost_equal(
+        thermal_engine.wind_cable_angle, np.array([90.0, 80.0])
+    )
+
+
+def test_transient_thermal__input_length_1(cable_array_AM600: CableArray):
+    thermal_engine = ThermalEngine()
+    thermal_engine.set(
+        cable_array_AM600,
+        latitude=np.array([45.0]),
+        longitude=np.array([0.0]),
+        altitude=np.array([0.0]),
+        azimuth=np.array([0.0]),
+        datetime_utc=np.array(
+            [
+                np.datetime64("2026-03-21T12:00"),
+            ]
+        ),
+        intensity=np.array([100.0]),
+        ambient_temp=np.array([15.0]),
+        wind_speed=np.array([10.0]),
+        wind_angle=np.array(
+            [
+                90.0,
+            ]
+        ),
+        nebulosity=np.array([0]),
+    )
+    assert thermal_engine.transient_temperature().data.shape[0] == 1 * 10
+
+    np.testing.assert_array_almost_equal(
+        thermal_engine.wind_cable_angle, np.array([90.0])
+    )
+
+
 def test_nebulosity_variation(cable_array_AM600: CableArray):
     # Checks that nebulosity is taken into account
     thermal_engine = ThermalEngine()
