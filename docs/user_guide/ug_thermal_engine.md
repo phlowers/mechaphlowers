@@ -51,7 +51,7 @@ thermal_engine.set(
     altitude=np.array([0.0]),
     azimuth=np.array([0.0]),  # Cable direction (degrees from north)
     datetime_utc=np.array([
-        np.datetime64(f"2026-3-21T12:00"),
+        np.datetime64("2026-03-21T12:00"),
     ]),
     intensity=np.array([500.0]),  # Current in Amperes
     ambient_temp=np.array([15.0]),  # Ambient temperature in Celsius
@@ -92,7 +92,7 @@ thermal_engine.set(
     longitude=np.array([0.0]),
     altitude=np.array([0.0]),
     azimuth=np.array([0.0]),
-    datetime_utc=np.array([np.datetime64(f"2026-03-21T12:00")]),
+    datetime_utc=np.array([np.datetime64("2026-03-21T12:00")]),
     intensity=np.array([500.0]),
     ambient_temp=np.array([15.0]),
     wind_speed=np.array([10.0]),
@@ -118,14 +118,15 @@ thermal_engine.set(
     altitude=np.array([0.0, 100.0, 200.0]),
     azimuth=np.array([0.0, 0.0, 90.0]),
     datetime_utc=np.array([
-        np.datetime64(f"2026-03-21T12:00"),
-        np.datetime64(f"2026-03-21T12:00"),
-        np.datetime64(f"2026-03-21T12:00"),
+        np.datetime64("2026-03-21T12:00"),
+        np.datetime64("2026-03-21T12:00"),
+        np.datetime64("2026-03-21T12:00"),
     ]),
     intensity=np.array([500.0, 600.0, 700.0]),
     ambient_temp=np.array([15.0, 18.0, 20.0]),
     wind_speed=np.array([10.0, 5.0, 15.0]),
     wind_angle=np.array([90.0, 90.0, 90.0]),
+    nebulosity=np.array([0, 0, 0]),
 )
 
 result = thermal_engine.steady_temperature()
@@ -151,9 +152,14 @@ print(result.data)
 
 **Output columns:**
 
-- `t_avg`: Average cable temperature
-- `t_surf`: Surface temperature
-- `t_core`: Core temperature (highest temperature in the conductor)
+- `average_temperature`: Average cable temperature
+- `surface_temperature`: Surface temperature
+- `core_temperature`: Core temperature (highest temperature in the conductor)
+- `joule_power`
+- `solar_power`
+- `convection_power`
+- `radiation_power`
+- `precipitation_power`
 
 ### 4. Steady-State Intensity Calculation
 
@@ -191,9 +197,9 @@ print(result.data)
 
 - `time`: Time step
 - `id`: Cable/condition ID
-- `t_avg`: Average temperature at that time
-- `t_surf`: Surface temperature at that time
-- `t_core`: Core temperature at that time
+- `average_temperature`: Average temperature at that time
+- `surface_temperature`: Surface temperature at that time
+- `core_temperature`: Core temperature at that time
 
 **Customize the forecast:**
 
@@ -223,8 +229,8 @@ thermal_engine.set(
     altitude=np.array([0.0, 100.0]),
     azimuth=np.array([0.0, 45.0]),
     datetime_utc=np.array([
-        np.datetime64(f"2026-3-21T12:00"),
-        np.datetime64(f"2026-3-21T14:00"),
+        np.datetime64("2026-03-21T12:00"),
+        np.datetime64("2026-03-21T14:00"),
     ]),
     intensity=np.array([500.0, 600.0]),
     ambient_temp=np.array([15.0, 18.0]),
@@ -233,8 +239,8 @@ thermal_engine.set(
 )
 
 # Update specific parameters (must be numpy arrays of same length)
-thermal_engine.dict_input["I"] = np.array([700.0, 800.0])  # Change intensity
-thermal_engine.dict_input["Ta"] = np.array([20.0, 22.0])  # Change ambient temperature
+thermal_engine.dict_input["transit"] = np.array([700.0, 800.0])  # Change intensity
+thermal_engine.dict_input["ambient_temperature"] = np.array([20.0, 22.0])  # Change ambient temperature
 thermal_engine.load()  # Reload with new parameters
 
 # Compute new results
@@ -282,11 +288,11 @@ print(f"Number of conditions: {len(thermal_engine)}")
 
 ### Temperature Output Interpretation
 
-- **t_core**: Highest temperature in the conductor (most critical)
-- **t_surf**: Temperature at cable surface
-- **t_avg**: Average temperature across the conductor
+- **core_temperature**: Highest temperature in the conductor (most critical)
+- **surface_temperature**: Temperature at cable surface
+- **average_temperature**: Average temperature across the conductor
 
-Typically: `t_core > t_avg > t_surf`
+Typically: `core_temperature > average_temperature > surface_temperature`
 
 ### Wind Angle Conventions
 
@@ -316,4 +322,3 @@ Not yet implemented:
 - Visualization tools
 
 See the code comments for planned improvements.
-
