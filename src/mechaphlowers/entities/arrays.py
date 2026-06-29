@@ -472,28 +472,25 @@ class SectionArray(ElementArray):
         logger.warning(warning_string)
 
     def _fill_missing_ground_altitude(self, data: pd.DataFrame) -> None:
+        if "ground_altitude" in data.columns and not (
+            np.isnan(data["ground_altitude"]).any()
+        ):
+            return
+        ground_altitude = self.compute_ground_altitude(
+            data["suspension"].to_numpy(),
+            data["conductor_attachment_altitude"].to_numpy(),
+            data["insulator_length"].to_numpy(),
+            self.bundle_number,
+            data["support_height"].to_numpy()
+            if "support_height" in data.columns
+            else None,
+        )
         if "ground_altitude" not in data.columns:
-            data["ground_altitude"] = self.compute_ground_altitude(
-                data["suspension"].to_numpy(),
-                data["conductor_attachment_altitude"].to_numpy(),
-                data["insulator_length"].to_numpy(),
-                self.bundle_number,
-                data["support_height"].to_numpy()
-                if "support_height" in data.columns
-                else None,
-            )
+            data["ground_altitude"] = ground_altitude
         else:
             data["ground_altitude"] = np.where(
                 np.isnan(data["ground_altitude"]),
-                self.compute_ground_altitude(
-                    data["suspension"].to_numpy(),
-                    data["conductor_attachment_altitude"].to_numpy(),
-                    data["insulator_length"].to_numpy(),
-                    self.bundle_number,
-                    data["support_height"].to_numpy()
-                    if "support_height" in data.columns
-                    else None,
-                ),
+                ground_altitude,
                 data["ground_altitude"],
             )
 
