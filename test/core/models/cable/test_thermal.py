@@ -174,40 +174,38 @@ def test_steady_intensity(thermal_engine_3_spans: ThermalEngine):
     ).all()
 
 
+def assert_no_inputs_in_results(results):
+    assert not any(
+        column.startswith("input_") for column in results.data.columns
+    )
+    assert results.inputs is None
+
+
+def assert_inputs_in_results(results):
+    assert not any(
+        column.startswith("input_") for column in results.data.columns
+    )
+    assert results.inputs is not None
+    assert not results.inputs.empty
+
+
 def test_steady_intensity_return_inputs(thermal_engine_3_spans) -> None:
     thermal_engine = thermal_engine_3_spans
 
     results_with_inputs = thermal_engine.steady_intensity(
-        target_temperature=100, return_inputs=True
+        target_temperature=100
     )
+    assert_inputs_in_results(results_with_inputs)
+
     results_with_inputs_implicit = thermal_engine.steady_intensity(
         target_temperature=100
     )
+    assert_inputs_in_results(results_with_inputs_implicit)
+
     results_without_inputs = thermal_engine.steady_intensity(
-        target_temperature=100, return_inputs=False
+        target_temperature=100
     )
-
-    assert not any(
-        column.startswith("input_")
-        for column in results_with_inputs.data.columns
-    )
-    assert results_with_inputs.inputs is not None
-
-    assert not any(
-        column.startswith("input_")
-        for column in results_with_inputs_implicit.data.columns
-    )
-    assert results_with_inputs_implicit.inputs is not None
-
-    assert not any(
-        column.startswith("input_")
-        for column in results_without_inputs.data.columns
-    )
-    assert results_with_inputs.inputs is not None
-
-    assert len(results_with_inputs.data.columns) == len(
-        results_without_inputs.data.columns
-    )
+    assert_no_inputs_in_results(results_without_inputs)
 
 
 def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
@@ -241,32 +239,15 @@ def test_steady_temperature_return_inputs(thermal_engine_3_spans) -> None:
     thermal_engine = thermal_engine_3_spans
 
     results_with_inputs = thermal_engine.steady_temperature(return_inputs=True)
+    assert_inputs_in_results(results_with_inputs)
+
     results_with_inputs_implicit = thermal_engine.steady_temperature()
+    assert_inputs_in_results(results_with_inputs_implicit)
+
     results_without_inputs = thermal_engine.steady_temperature(
         return_inputs=False
     )
-
-    assert not any(
-        column.startswith("input_")
-        for column in results_with_inputs.data.columns
-    )
-    assert results_with_inputs.inputs is not None
-
-    assert not any(
-        column.startswith("input_")
-        for column in results_with_inputs_implicit.data.columns
-    )
-    assert results_with_inputs_implicit.inputs is not None
-
-    assert not any(
-        column.startswith("input_")
-        for column in results_without_inputs.data.columns
-    )
-    assert results_with_inputs.inputs is not None
-
-    assert len(results_with_inputs.data.columns) == len(
-        results_without_inputs.data.columns
-    )
+    assert_no_inputs_in_results(results_without_inputs)
 
 
 def test_steady_temperature_with_uncertainty(
@@ -491,32 +472,15 @@ def test_transient_temperature_return_inputs(thermal_engine_3_spans) -> None:
     results_with_inputs = thermal_engine.transient_temperature(
         return_inputs=True
     )
+    assert_inputs_in_results(results_with_inputs)
+
     results_with_inputs_implicit = thermal_engine.transient_temperature()
+    assert_inputs_in_results(results_with_inputs_implicit)
+
     results_without_inputs = thermal_engine.transient_temperature(
         return_inputs=False
     )
-
-    assert not any(
-        column.startswith("input_")
-        for column in results_with_inputs.data.columns
-    )
-    assert results_with_inputs.inputs is not None
-
-    assert not any(
-        column.startswith("input_")
-        for column in results_with_inputs_implicit.data.columns
-    )
-    assert results_with_inputs_implicit.inputs is not None
-
-    assert not any(
-        column.startswith("input_")
-        for column in results_without_inputs.data.columns
-    )
-    assert results_with_inputs.inputs is not None
-
-    assert len(results_with_inputs.data.columns) == len(
-        results_without_inputs.data.columns
-    )
+    assert_no_inputs_in_results(results_without_inputs)
 
 
 def test_nebulosity_variation(cable_array_AM600: CableArray):
