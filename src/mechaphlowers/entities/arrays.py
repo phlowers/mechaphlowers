@@ -135,6 +135,8 @@ class SectionArray(ElementArray):
         "span_length": "m",
         "insulator_mass": "kg",
         "counterweight_mass": "kg",
+        "x_offset": "m",
+        "support_height": "m",
         "sagging_parameter": "m",
         "sagging_temperature": "°C",
     }
@@ -191,7 +193,7 @@ class SectionArray(ElementArray):
             )
         self.bundle_number = bundle_number
         self.input_units = options.input_units.section_array.copy()
-        self.correct_insulator_length()
+        self._check_insulator_length(self._data)
         self._angle_direction: Literal["clockwise", "anticlockwise"] = (
             "anticlockwise"
         )
@@ -206,23 +208,86 @@ class SectionArray(ElementArray):
         right_support_height = left_support_height.shift(periods=-1)
         return (right_support_height - left_support_height).to_numpy()
 
-    def compute_ground_altitude(self) -> np.ndarray:
-        """Generate ground altitude array using attachment altitude, and arbitrary a support length."""
+    @classmethod
+    def compute_ground_altitude_correction(
+        cls,
+        suspension: np.ndarray,
+        insulator_length: np.ndarray,
+        bundle_number: int,
+    ) -> np.ndarray:
+        altitude_correction = np.where(
+            suspension,
+            insulator_length,
+            0,
+        )
         return (
-            self._data["conductor_attachment_altitude"].to_numpy()
-            - options.ground.default_support_length
+            altitude_correction
+            - options.ground.foot_to_ground_clearance
+            + cls._get_spacer_height_contribution(bundle_number)
         )
 
-    def correct_insulator_length(self) -> None:
+    @staticmethod
+    def _get_spacer_height_contribution(bundle_number):
+        if bundle_number < 3:
+            return 0
+        else:
+            return options.ground.spacer_height / 2
+
+    @classmethod
+    def compute_ground_altitude(
+        cls,
+        suspension: npt.NDArray[np.bool],
+        conductor_attachment_altitude: np.ndarray,
+        insulator_length: np.ndarray,
+        bundle_number: int,
+        support_height: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Generate ground altitude array."""
+
+        if support_height is None:
+            altitude_correction = np.zeros_like(conductor_attachment_altitude)
+            support_height = np.full_like(
+                conductor_attachment_altitude,
+                options.ground.default_support_length,
+            )
+        else:
+            altitude_correction = np.where(  # type: ignore
+                np.isnan(support_height),
+                0.0,
+                cls.compute_ground_altitude_correction(
+                    suspension,
+                    insulator_length,
+                    bundle_number,
+                ),
+            )
+            support_height = np.where(
+                np.isnan(support_height),
+                options.ground.default_support_length,
+                support_height,
+            )
+
+        return (
+            conductor_attachment_altitude
+            - support_height
+            + altitude_correction
+        )
+
+    @classmethod
+    def correct_insulator_length(cls, data: pd.DataFrame) -> None:
         """Correct insulator length to be at least 0.01 m to avoid numerical issues."""
-        if (self._data["insulator_length"] < 0.01).any():
+        cls._check_insulator_length(data)
+        data["insulator_length"] = np.where(
+            data["insulator_length"] < 0.01, 0.01, data["insulator_length"]
+        )
+
+    @staticmethod
+    def _check_insulator_length(data: pd.DataFrame) -> None:
+        if (data["insulator_length"] < 0.01).any():
             warnings.warn(
-                "Some insulator_length values are less than 0.01 m. They will be set to 0.01 m to avoid numerical issues.",
+                "Some insulator_length values are less than 0.01 m. When accessing them through `SectionArray.data`,"
+                " they will be set to 0.01 m to avoid numerical issues.",
                 category=DataWarning,
             )
-        self._data["insulator_length"] = self._data["insulator_length"].apply(
-            lambda x: max(x, 0.01)
-        )
 
     @property
     def angle_direction(self) -> Literal["clockwise", "anticlockwise"]:
@@ -300,16 +365,30 @@ class SectionArray(ElementArray):
         self._data["sagging_temperature"] = value
         SectionArrayInput.validate(self._data)
 
+    @staticmethod
+    def _fill_support_height_with_default(data) -> None:
+        default_support_height = options.ground.default_support_length
+        if "support_height" not in data.columns:
+            data["support_height"] = default_support_height
+        else:
+            data["support_height"] = np.where(
+                np.isnan(data["support_height"]),
+                default_support_height,
+                data["support_height"],
+            )
+
     @property
     def data(self) -> pd.DataFrame:
-        self.correct_insulator_length()
         data_output = super().data
         mass_weight_conversion = {
             "insulator_mass": "insulator_weight",
             "counterweight_mass": "counterweight",
         }
         self.create_column_weight(data_output, mass_weight_conversion)
-        self.validate_ground_altitude(data_output)
+        self._correct_inconsistent_ground_altitude(data_output)
+        self._fill_missing_ground_altitude(data_output)
+        self._fill_support_height_with_default(data_output)
+        self.correct_insulator_length(data_output)
         data_output = self._adjust_angle_direction(data_output)
         return data_output.assign(
             elevation_difference=self.compute_elevation_difference(),
@@ -359,27 +438,61 @@ class SectionArray(ElementArray):
 
         return np.sqrt(np.nansum(span_length_3) / np.nansum(span_length))
 
-    def validate_ground_altitude(self, data_output: pd.DataFrame):
+    def _correct_inconsistent_ground_altitude(
+        self, data_output: pd.DataFrame
+    ) -> None:
         if "ground_altitude" not in data_output:
-            data_output["ground_altitude"] = self.compute_ground_altitude()
+            return
+        ground_altitude = data_output["ground_altitude"].to_numpy()
+        attachment_altitude = data_output[
+            "conductor_attachment_altitude"
+        ].to_numpy()
+        wrong_ground_altitude = attachment_altitude < ground_altitude
+        if not wrong_ground_altitude.any():
+            return
+        data_output["ground_altitude"] = np.where(
+            wrong_ground_altitude,
+            self.compute_ground_altitude(
+                data_output["suspension"].to_numpy(),
+                data_output["conductor_attachment_altitude"].to_numpy(),
+                data_output["insulator_length"].to_numpy(),
+                self.bundle_number,
+                data_output["support_height"].to_numpy()
+                if "support_height" in data_output.columns
+                else None,
+            ),
+            data_output["ground_altitude"],
+        )
+        wrong_idx = np.nonzero(wrong_ground_altitude)[0]
+        warning_string = (
+            "ground_altitude is higher than conductor_attachment_altitude for some supports; "
+            f"recomputing ground_altitude for indices {wrong_idx.tolist()}."
+        )
+        warnings.warn(warning_string, category=DataWarning)
+        logger.warning(warning_string)
+
+    def _fill_missing_ground_altitude(self, data: pd.DataFrame) -> None:
+        if "ground_altitude" in data.columns and not (
+            np.isnan(data["ground_altitude"]).any()
+        ):
+            return
+        ground_altitude = self.compute_ground_altitude(
+            data["suspension"].to_numpy(),
+            data["conductor_attachment_altitude"].to_numpy(),
+            data["insulator_length"].to_numpy(),
+            self.bundle_number,
+            data["support_height"].to_numpy()
+            if "support_height" in data.columns
+            else None,
+        )
+        if "ground_altitude" not in data.columns:
+            data["ground_altitude"] = ground_altitude
         else:
-            ground_alt = data_output["ground_altitude"].to_numpy()
-            attachment_alt = data_output[
-                "conductor_attachment_altitude"
-            ].to_numpy()
-            wrong_ground_altitude = attachment_alt < ground_alt
-            if wrong_ground_altitude.any():
-                data_output["ground_altitude"] = np.where(
-                    wrong_ground_altitude,
-                    self.compute_ground_altitude(),
-                    ground_alt,
-                )
-                warning_string = (
-                    "ground_altitude is higher than conductor_attachment_altitude. \n"
-                    f"ground_altitude being replaced by default value for incorrect supports: \n {data_output['ground_altitude'].to_numpy()}"
-                )
-                warnings.warn(warning_string)
-                logger.warning(warning_string)
+            data["ground_altitude"] = np.where(
+                np.isnan(data["ground_altitude"]),
+                ground_altitude,
+                data["ground_altitude"],
+            )
 
     def set_starting_gps(
         self,
