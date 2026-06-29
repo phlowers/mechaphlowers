@@ -541,10 +541,18 @@ class ThermalEngine:
         latitude: np.ndarray,
         longitude: np.ndarray,
     ) -> NebulosityResults:
+        """Compute nebulosity which gives the closest (diffuse + beam) radiation
+        to the one given as argument.
+
+        Nebulosities are integers between 0 and 8.
+
+        Returns:
+            NebulosityResults: an instance containing the results.
+        """
         result = estimate_nebulosity(
             diffuse_plus_beam_radiation, datetime_utc, latitude, longitude
         )
-        return NebulosityResults(result)
+        return NebulosityResults(pd.DataFrame({"nebulosity": result}))
 
     @property
     def wind_cable_angle(self) -> np.ndarray:
