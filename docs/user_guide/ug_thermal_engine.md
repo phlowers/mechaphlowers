@@ -283,7 +283,6 @@ print(f"Number of conditions: {len(thermal_engine)}")
 Compute diffuse radiation, beam radiation and their sum:
 
 ```python
-# Calculate temperature variations over 10 time steps
 result = ThermalEngine.diffuse_and_beam_solar_radiations(
     datetime_utc=np.array(
         [
