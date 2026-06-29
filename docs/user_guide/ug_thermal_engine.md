@@ -292,7 +292,7 @@ result = ThermalEngine.diffuse_and_beam_solar_radiations(
     ),
     latitude=np.array([40, 40]),
     longitude=np.array([0, 0]),
-    nebulosity=np.array([0, 9]),
+    nebulosity=np.array([0, 8]),
 )
 print("Solar radiations:")
 print(result.data)
