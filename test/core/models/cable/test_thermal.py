@@ -436,7 +436,7 @@ def test_transient_temperature_cable_temperature(
     )
 
     thermal_engine_bimetallic = thermal_engine_3_spans_narcisse
-    results_bimetallic = thermal_engine_bimetallic.steady_temperature()
+    results_bimetallic = thermal_engine_bimetallic.transient_temperature()
     cable_temperature_bimetallic = results_bimetallic.cable_temperature()
     np.testing.assert_allclose(
         cable_temperature_bimetallic,

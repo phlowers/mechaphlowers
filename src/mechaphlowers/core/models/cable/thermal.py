@@ -62,7 +62,7 @@ class ThermalResults(ABC):
         """Relevant cable temperature for each span.
 
         This means core temperature for bimetallic cables and average temperature
-        for homogenous cables.
+        for homogeneous cables.
         """
         return np.where(
             self.cable_is_bimetallic,
