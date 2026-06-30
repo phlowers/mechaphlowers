@@ -174,40 +174,6 @@ def test_steady_intensity(thermal_engine_3_spans: ThermalEngine):
     ).all()
 
 
-def assert_no_inputs_in_results(results):
-    assert not any(
-        column.startswith("input_") for column in results.data.columns
-    )
-    assert results.inputs is None
-
-
-def assert_inputs_in_results(results):
-    assert not any(
-        column.startswith("input_") for column in results.data.columns
-    )
-    assert results.inputs is not None
-    assert not results.inputs.empty
-
-
-def test_steady_intensity_return_inputs(thermal_engine_3_spans) -> None:
-    thermal_engine = thermal_engine_3_spans
-
-    results_with_inputs = thermal_engine.steady_intensity(
-        target_temperature=100
-    )
-    assert_inputs_in_results(results_with_inputs)
-
-    results_with_inputs_implicit = thermal_engine.steady_intensity(
-        target_temperature=100
-    )
-    assert_inputs_in_results(results_with_inputs_implicit)
-
-    results_without_inputs = thermal_engine.steady_intensity(
-        target_temperature=100
-    )
-    assert_no_inputs_in_results(results_without_inputs)
-
-
 def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
     thermal_engine = thermal_engine_3_spans
 
@@ -233,21 +199,6 @@ def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
         ).data["core_temperature"]
         > copy_result_without_input["core_temperature"]
     ).all()
-
-
-def test_steady_temperature_return_inputs(thermal_engine_3_spans) -> None:
-    thermal_engine = thermal_engine_3_spans
-
-    results_with_inputs = thermal_engine.steady_temperature(return_inputs=True)
-    assert_inputs_in_results(results_with_inputs)
-
-    results_with_inputs_implicit = thermal_engine.steady_temperature()
-    assert_inputs_in_results(results_with_inputs_implicit)
-
-    results_without_inputs = thermal_engine.steady_temperature(
-        return_inputs=False
-    )
-    assert_no_inputs_in_results(results_without_inputs)
 
 
 def test_steady_temperature_with_uncertainty(
@@ -466,23 +417,6 @@ def test_transient_thermal(cable_array_AM600: CableArray):
     )
 
 
-def test_transient_temperature_return_inputs(thermal_engine_3_spans) -> None:
-    thermal_engine = thermal_engine_3_spans
-
-    results_with_inputs = thermal_engine.transient_temperature(
-        return_inputs=True
-    )
-    assert_inputs_in_results(results_with_inputs)
-
-    results_with_inputs_implicit = thermal_engine.transient_temperature()
-    assert_inputs_in_results(results_with_inputs_implicit)
-
-    results_without_inputs = thermal_engine.transient_temperature(
-        return_inputs=False
-    )
-    assert_no_inputs_in_results(results_without_inputs)
-
-
 def test_nebulosity_variation(cable_array_AM600: CableArray):
     # Checks that nebulosity is taken into account
     thermal_engine = ThermalEngine()
@@ -579,3 +513,77 @@ def test_thermal_results_copy(thermal_engine_3_spans: ThermalEngine):
     )
     results_without_inputs_copy = copy(results_without_inputs)
     assert results_without_inputs_copy.inputs is None
+
+
+def assert_no_inputs_in_results(results):
+    assert not any(
+        column.startswith("input_") for column in results.data.columns
+    )
+    assert results.inputs is None
+
+
+def assert_inputs_in_results(results):
+    assert not any(
+        column.startswith("input_") for column in results.data.columns
+    )
+    assert results.inputs is not None
+    assert not results.inputs.empty
+
+
+def test_steady_intensity_return_inputs(
+    thermal_engine_3_spans: ThermalEngine,
+) -> None:
+    target_temperature = np.array([100, 100, 100])
+
+    results_with_inputs = thermal_engine_3_spans.steady_intensity(
+        target_temperature=target_temperature,
+        return_inputs=True,
+    )
+    assert_inputs_in_results(results_with_inputs)
+
+    results_with_inputs_implicit = thermal_engine_3_spans.steady_intensity(
+        target_temperature=target_temperature,
+    )
+    assert_inputs_in_results(results_with_inputs_implicit)
+
+    results_without_inputs = thermal_engine_3_spans.steady_intensity(
+        target_temperature=target_temperature,
+        return_inputs=False,
+    )
+    assert_no_inputs_in_results(results_without_inputs)
+
+
+def test_steady_temperature_return_inputs(
+    thermal_engine_3_spans: ThermalEngine,
+) -> None:
+    results_with_inputs = thermal_engine_3_spans.steady_temperature(
+        return_inputs=True,
+    )
+    assert_inputs_in_results(results_with_inputs)
+
+    results_with_inputs_implicit = thermal_engine_3_spans.steady_temperature()
+    assert_inputs_in_results(results_with_inputs_implicit)
+
+    results_without_inputs = thermal_engine_3_spans.steady_temperature(
+        return_inputs=False,
+    )
+    assert_no_inputs_in_results(results_without_inputs)
+
+
+def test_transient_temperature_return_inputs(
+    thermal_engine_3_spans: ThermalEngine,
+) -> None:
+    results_with_inputs = thermal_engine_3_spans.transient_temperature(
+        return_inputs=True,
+    )
+    assert_inputs_in_results(results_with_inputs)
+
+    results_with_inputs_implicit = (
+        thermal_engine_3_spans.transient_temperature()
+    )
+    assert_inputs_in_results(results_with_inputs_implicit)
+
+    results_without_inputs = thermal_engine_3_spans.transient_temperature(
+        return_inputs=False,
+    )
+    assert_no_inputs_in_results(results_without_inputs)

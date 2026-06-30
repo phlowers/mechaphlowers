@@ -31,9 +31,9 @@ class ThermalResults(ABC):
         input_data: dict | pd.DataFrame,
         return_inputs: bool = True,
     ):
-        results = self.parse_results(input_data)
-        inputs = self._pop_inputs(results)
+        inputs = self._pop_inputs(input_data)
         self.inputs = inputs if return_inputs else None
+        results = self.parse_results(input_data)
         self.data = results
 
     @staticmethod
@@ -73,13 +73,31 @@ class ThermalResults(ABC):
         ]
 
     @classmethod
-    def _pop_inputs(cls, df: pd.DataFrame) -> pd.DataFrame:
-        input_columns = cls._input_columns(df)
-        inputs = df[input_columns]
-        df.drop(columns=input_columns, inplace=True)
-        inputs.rename(
-            columns=lambda s: s.replace(cls.INPUT_PREFIX, ""), inplace=True
-        )
+    def _input_keys(cls, data: dict) -> list[str]:
+        return [key for key in data.keys() if key.startswith(cls.INPUT_PREFIX)]
+
+    @classmethod
+    def _remove_input_prefix(cls, key: str) -> str:
+        return key.replace(cls.INPUT_PREFIX, "")
+
+    @classmethod
+    def _pop_inputs(cls, data: dict | pd.DataFrame) -> pd.DataFrame:
+        if isinstance(data, dict):
+            input_keys = cls._input_keys(data)
+            inputs = pd.DataFrame(
+                {
+                    cls._remove_input_prefix(key): value
+                    for key, value in data.items()
+                    if key in input_keys
+                }
+            )
+            for key in input_keys:
+                data.pop(key)
+        else:
+            input_columns = cls._input_columns(data)
+            inputs = data[input_columns]
+            data.drop(columns=input_columns, inplace=True)
+            inputs.rename(columns=cls._remove_input_prefix, inplace=True)
         return inputs
 
 
