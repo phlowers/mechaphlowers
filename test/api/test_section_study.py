@@ -102,7 +102,6 @@ class TestSectionStudyLifecycle:
             vhl_after_change_state.vhl_matrix.value(),
         )
 
-    @pytest.mark.skip(reason="Fix this later when refacto add_loads")
     def test_save_restore_loads(self, cable_array_AM600: CableArray):
         section_array = SectionArray(
             pd.DataFrame(
@@ -115,8 +114,6 @@ class TestSectionStudyLifecycle:
                     "insulator_length": [3, 3, 3, 3],
                     "span_length": [500, 500, 500, np.nan],
                     "insulator_mass": [100.0, 50.0, 50.0, 100.0],
-                    "load_mass": [0, 0, 0, 0],
-                    "load_position": [0, 0, 0, 0],
                 }
             ),
             sagging_parameter=2000,
@@ -133,9 +130,9 @@ class TestSectionStudyLifecycle:
         memento = study.save_state()
 
         # test that using restore reverts correcty
-        study.add_loads(
-            load_position_distance=np.array([0, 300, 0, 0]),
-            load_mass=np.array([0, 100, 0, 0]),
+        study.set_loads(
+            load_position_distance=np.array([0, 300, 0]),
+            load_mass=np.array([0, 100, 0]),
         )
         study.solve_change_state()
         study.restore_state(memento)

@@ -95,7 +95,6 @@ def study_8span(cable_array_AM600: CableArray) -> SectionStudy:
         sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
-    section_array.compute_ground_altitude()
     return SectionStudy(
         cable_array=cable_array_AM600, section_array=section_array
     )

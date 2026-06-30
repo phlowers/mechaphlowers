@@ -31,6 +31,7 @@ from mechaphlowers.core.models.balance.solvers.find_parameter_solver import (
     FindParamSolverForLoop,
     IFindParamSolver,
 )
+from mechaphlowers.core.models.balance.span_loads import SpanLoads
 from mechaphlowers.core.models.cable.deformation import (
     IDeformation,
     deformation_model_builder,
@@ -84,18 +85,24 @@ class BalanceModel(IBalanceModel):
         span_model: ISpan,
         deformation_model: IDeformation,
         cable_loads: CableLoads,
+        span_loads: SpanLoads,
         find_param_solver_type: Type[
             IFindParamSolver
         ] = FindParamSolverForLoop,
     ) -> None:
-        # tempertaure and parameter size n-1 here
+        # temperature and parameter size n-1 here
         self.sagging_temperature = sagging_temperature
         self.parameter_init = parameter
         self.section_array = section_array
         self.find_param_solver_type = find_param_solver_type
 
         self.reset(
-            cable_array, span_model, deformation_model, cable_loads, full=True
+            cable_array,
+            span_model,
+            deformation_model,
+            cable_loads,
+            span_loads,
+            full=True,
         )
         self.nodes: Nodes
 
@@ -105,6 +112,7 @@ class BalanceModel(IBalanceModel):
         span_model: ISpan,
         deformation_model: IDeformation,
         cable_loads: CableLoads,
+        span_loads: SpanLoads,
         full: bool = False,
     ) -> None:
         """set or reset the model.
@@ -133,10 +141,10 @@ class BalanceModel(IBalanceModel):
         self.parameter = self.parameter_init
         self.initialize_cable(cable_array)
 
-        self.nodes = nodes_builder(self.section_array)
+        self.nodes = nodes_builder(self.section_array, span_loads)
 
         self.initialize_models_references(
-            span_model, deformation_model, cable_loads, full=full
+            span_model, deformation_model, cable_loads, span_loads, full=full
         )
 
         # TODO: during adjustment computation, perhaps set cable_temperature = 0
@@ -161,6 +169,7 @@ class BalanceModel(IBalanceModel):
         span_model: ISpan,
         deformation_model: IDeformation,
         cable_loads: CableLoads,
+        span_loads: SpanLoads,
         full: bool = False,
     ):
         """Initialize or reset models references. Special behavior for nodes_span_model if full is False to avoid breaking references.
@@ -178,8 +187,9 @@ class BalanceModel(IBalanceModel):
             self.nodes_span_model.mirror(self.span_model)
         self.deformation_model = deformation_model
         self.cable_loads = cable_loads
+        self.span_loads = span_loads
 
-    def initialize_loadmodel(self):
+    def initialize_loadmodel(self) -> None:
         """Initialize LoadModel object used in change_state case with loads."""
         self.load_model = LoadModel(
             self.cable_array,
@@ -965,11 +975,12 @@ class Nodes:
         return self.__repr__()
 
 
-def nodes_builder(section_array: SectionArray) -> Nodes:
-    """Builds a Nodes object from a SectionArray by extracting and transforming data.
+def nodes_builder(section_array: SectionArray, span_loads: SpanLoads) -> Nodes:
+    """Builds a Nodes object from a SectionArray and a SpanLoads by extracting and transforming data.
 
     Args:
         section_array (SectionArray): Section Array to extract the data from.
+        span_loads (SpanLoads): SpanLoad representing point loads.
 
     Returns:
         Nodes: An instance of Nodes initialized with data from section array.
@@ -986,16 +997,9 @@ def nodes_builder(section_array: SectionArray) -> Nodes:
     )
     span_length = arr.decr(section_array.data.span_length.to_numpy())
 
-    load_weight = (
-        arr.decr(section_array.data.load_weight.to_numpy())
-        if "load_weight" in section_array.data
-        else np.zeros(span_length.shape)
-    )
-    load_position = (
-        arr.decr(section_array.data.load_position.to_numpy())
-        if "load_position" in section_array.data
-        else np.zeros(span_length.shape)
-    )
+    load_weight = span_loads.load_weight
+    load_position = span_loads.load_position.copy()
+
     counterweight = (
         section_array.data.counterweight.to_numpy()
         if "counterweight" in section_array.data

@@ -6,16 +6,24 @@
 
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
-from math import floor
 from typing import Any
 
 import numpy as np
 import pandas as pd
+from numpy import typing as npt
 from thermohl import solver  # type: ignore
+from thermohl.power.convective_cooling import (  # type: ignore
+    compute_wind_attack_angle as thermohl_compute_wind_angle,
+)
+from thermohl.power.rte.solar_heating import (  # type: ignore
+    diffuse_and_beam_radiations,
+)
 
 from mechaphlowers.entities.arrays import CableArray
-from mechaphlowers.entities.errors import UncertaintyNotAvailable
+from mechaphlowers.entities.errors import (
+    InvalidNebulosity,
+    UncertaintyNotAvailable,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -175,6 +183,16 @@ class SteadyTemperatureResults(ThermalSteadyResults):
         )
 
 
+class SolarRadiationResults(ThermalResults):
+    """Diffuse and beam radiations with their sum."""
+
+    @staticmethod
+    def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
+        if isinstance(data, pd.DataFrame):
+            return data.copy()
+        return pd.DataFrame(data)
+
+
 class ThermalForecastArray:
     """Array for input thermal forecast parameters."""
 
@@ -197,22 +215,18 @@ class ThermalForecastArray:
 
 
 def check_inputs(
-    month: np.ndarray[Any, np.dtype[np.integer]] | None = None,
-    day: np.ndarray[Any, np.dtype[np.integer]] | None = None,
-    hour: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]]
-    | None = None,
-    datetime_utc: list[datetime] | None = None,
-    nebulosity: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]]
-    | None = None,
-    **kwargs: np.ndarray[Any, Any] | list[datetime],
-) -> tuple[dict[str, np.ndarray[Any, Any] | list[datetime]], int]:
+    nebulosity: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]],
+    **kwargs: npt.NDArray[np.integer | np.floating | np.datetime64],
+) -> tuple[
+    dict[str, npt.NDArray[np.integer | np.floating | np.datetime64]], int
+]:
     """Validate input parameters.
 
-    Ensures all inputs are numpy arrays with the same size and that
-    datetime-related inputs have the right type. Also ensures that
-    month, day and hour, if given, are in the right range.
+    Ensures all inputs are numpy arrays with the same size. Also ensures that
+    nebulosities are in the right range.
 
     Args:
+        nebulosity(np.array): Nebulosity (array of int between 0 and 8).
         **kwargs: Input parameters as numpy arrays.
 
     Returns:
@@ -224,11 +238,9 @@ def check_inputs(
         ValueError: If array inputs have incompatible sizes.
         TypeError: If any input is not a numpy array.
     """
+    kwargs["nebulosity"] = nebulosity
 
-    array_length: int | None = None
-
-    if nebulosity is not None:
-        kwargs["nebulosity"] = nebulosity
+    array_length: int = nebulosity.size
 
     for key, value in kwargs.items():
         if not isinstance(value, np.ndarray):
@@ -237,170 +249,24 @@ def check_inputs(
             )
 
         # Track and validate the length of array inputs
-        if array_length is None:
-            array_length = value.size
-        elif value.size != array_length:
+        if value.size != array_length:
             raise ValueError(
                 f"All array inputs must have the same length. "
                 f"Expected {array_length}, got {value.size} for {key}."
             )
 
-    array_length = check_datetime_arguments(
-        array_length,
-        month=month,
-        day=day,
-        hour=hour,
-        datetime_utc=datetime_utc,
-    )
-
     check_nebulosity_range(nebulosity)
-
-    if month is not None:
-        kwargs["month"] = month
-    if day is not None:
-        kwargs["day"] = day
-    if hour is not None:
-        kwargs["hour"] = hour
-    if datetime_utc is not None:
-        kwargs["datetime_utc"] = datetime_utc
 
     return kwargs, array_length
 
 
-def check_nebulosity_range(nebulosity: np.ndarray | None = None) -> None:
-    if nebulosity is not None and not np.all(
+def check_nebulosity_range(nebulosity: np.ndarray) -> None:
+    if not np.all(
         ((0 <= nebulosity) & (nebulosity <= 8)) | np.isnan(nebulosity)
     ):
-        raise ValueError(
+        raise InvalidNebulosity(
             "Nebulosity values must be in the range [0-8]. Invalid values found in 'nebulosity'."
         )
-
-
-def check_datetime_arguments(  # NOSONAR
-    array_length: int | None,
-    month: np.ndarray[Any, np.dtype[np.integer]] | None,
-    day: np.ndarray[Any, np.dtype[np.integer]] | None,
-    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
-    datetime_utc: list[datetime] | None,
-) -> int:
-    if datetime_utc is not None and (
-        month is not None or day is not None or hour is not None
-    ):
-        raise ValueError(
-            "Cannot provide both 'datetime_utc' and individual 'month', 'day', or 'hour' arrays."
-        )
-
-    check_datetime_argument_types(month, day, hour, datetime_utc)
-
-    for arg_name, value in [("month", month), ("day", day), ("hour", hour)]:
-        if value is not None:
-            if not isinstance(value, np.ndarray):
-                raise TypeError(
-                    f"Expected numpy array for '{arg_name}', got {type(value).__name__}."
-                )
-
-            if array_length is None:
-                array_length = value.size
-            elif value.size != array_length:
-                raise ValueError(
-                    f"All array inputs must have the same length. "
-                    f"Expected {array_length}, got {value.size} for {arg_name}."
-                )
-    if datetime_utc is not None:
-        if array_length is None:
-            array_length = len(datetime_utc)
-        elif len(datetime_utc) != array_length:
-            raise ValueError(
-                f"All array inputs must have the same length. "
-                f"Expected {array_length}, got {len(datetime_utc)} for 'datetime_utc'."
-            )
-
-    check_datetime_argument_ranges(
-        month=month,
-        day=day,
-        hour=hour,
-    )
-
-    if array_length is None:
-        array_length = 0
-
-    return array_length
-
-
-def check_datetime_argument_types(
-    month: np.ndarray[Any, np.dtype[np.integer]] | None,
-    day: np.ndarray[Any, np.dtype[np.integer]] | None,
-    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
-    datetime_utc: list[datetime] | None,
-) -> None:
-    for arg_name, value in [("month", month), ("day", day), ("hour", hour)]:
-        if value is not None and not isinstance(value, np.ndarray):
-            raise TypeError(
-                f"Expected numpy array for '{arg_name}', got {type(value).__name__}."
-            )
-    for arg_name, value in [("month", month), ("day", day)]:
-        if value is not None and not np.issubdtype(value.dtype, np.integer):
-            raise TypeError(
-                f"Expected integer array for '{arg_name}', got {value.dtype}."
-            )
-
-    if hour is not None and not (
-        np.issubdtype(hour.dtype, np.integer)
-        or np.issubdtype(hour.dtype, np.floating)
-    ):
-        raise TypeError(
-            f"Expected integer or float array for 'hour', got {hour.dtype}."
-        )
-
-    if datetime_utc is not None and not isinstance(datetime_utc, list):
-        raise TypeError(
-            f"Expected list of datetime objects for 'datetime_utc', got {type(datetime_utc).__name__}."
-        )
-
-
-def check_datetime_argument_ranges(
-    month: np.ndarray[Any, np.dtype[np.integer]] | None,
-    day: np.ndarray[Any, np.dtype[np.integer]] | None,
-    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
-) -> None:
-    if month is not None and not np.all((1 <= month) & (month <= 12)):
-        raise ValueError(
-            "Month values must be in the range 1-12. Invalid values found in 'month'."
-        )
-    if day is not None and not np.all((1 <= day) & (day <= 31)):
-        raise ValueError(
-            "Day values must be in the range 1-31. Invalid values found in 'day'."
-        )
-    if hour is not None and not np.all((0 <= hour) & (hour < 24)):
-        raise ValueError(
-            "Hour values must be in the range [0-24[. Invalid values found in 'hour'."
-        )
-
-
-def to_datetime(
-    month: np.integer,
-    day: np.integer,
-    hour: np.floating,
-) -> datetime:
-    """Convert month, day, hour to a datetime object.
-
-    Args:
-        month (np.integer): Month value ([1-12]).
-        day (np.integer): Day value ([1-31]).
-        hour (np.floating): Hour value ([0-24[). Can include non-integer hours (e.g. 14.5 for 2:30 PM).
-
-    Returns:
-        datetime: A datetime object representing the given month, day, and hour.
-    """
-    return datetime(
-        1970,  # Arbitrary year since it's not used in calculations
-        month,
-        day,
-        hour=floor(hour),
-        minute=floor((hour % 1) * 60),
-        second=floor(((hour % 1) * 60) % 1 * 60),
-        microsecond=floor((((hour % 1) * 60) % 1 * 60) % 1 * 1000000),
-    )
 
 
 class ThermalEngine:
@@ -437,9 +303,7 @@ class ThermalEngine:
         longitude: np.ndarray,
         altitude: np.ndarray,
         azimuth: np.ndarray,
-        month: np.ndarray,
-        day: np.ndarray,
-        hour: np.ndarray,
+        datetime_utc: npt.NDArray[np.datetime64],
         intensity: np.ndarray,
         ambient_temp: np.ndarray,
         wind_speed: np.ndarray,
@@ -455,14 +319,12 @@ class ThermalEngine:
             longitude (np.ndarray): Longitude values.
             altitude (np.ndarray): Altitude values.
             azimuth (np.ndarray): Azimuth values.
-            month (np.ndarray): Month values.
-            day (np.ndarray): Day values.
-            hour (np.ndarray): Hour values.
+            datetime_utc (np.ndarray): Datetime (year is indifferent).
             intensity (np.ndarray): Current intensity values.
             ambient_temp (np.ndarray): Ambient temperature values.
             wind_speed (np.ndarray): Wind speed values in m/s
             wind_angle (np.ndarray): Wind angle values in degrees, clockwise from North.
-            nebulosity (np.ndarray): Nebulosity level (int from 0 to 8).
+            nebulosity (np.ndarray): Nebulosity level (ints from 0 to 8). 8 is the most clouded.
             solar_irradiance (np.ndarray | None): Solar irradiance values (optional). Defaults to None.
         """
         # Handle optional solar_irradiance - create NaN array if not provided
@@ -475,9 +337,7 @@ class ThermalEngine:
             longitude=longitude,
             altitude=altitude,
             azimuth=azimuth,
-            month=month,
-            day=day,
-            hour=hour,
+            datetime_utc=datetime_utc,
             intensity=intensity,
             ambient_temp=ambient_temp,
             wind_speed=wind_speed,
@@ -486,23 +346,13 @@ class ThermalEngine:
             solar_irradiance=solar_irradiance,
         )
 
-        if inputs.get("datetime_utc") is None:
-            datetime_utc = [
-                to_datetime(month, day, hour)
-                for month, day, hour in zip(
-                    inputs["month"], inputs["day"], inputs["hour"]
-                )
-            ]
-        else:
-            datetime_utc = inputs.get("datetime_utc")  # type: ignore
-
         self.dict_input = {
             "measured_global_radiation": inputs["solar_irradiance"],
             "latitude": inputs["latitude"],
             "longitude": inputs["longitude"],
             "altitude": inputs["altitude"],
             "cable_azimuth": inputs["azimuth"],
-            "datetime_utc": datetime_utc,
+            "datetime_utc": inputs["datetime_utc"],
             "ambient_temperature": inputs["ambient_temp"],
             "wind_speed": inputs["wind_speed"],  # wind speed (m.s**-1)
             "wind_azimuth": inputs[
@@ -638,6 +488,40 @@ class ThermalEngine:
             return_inputs=return_inputs,
         )
 
+    @staticmethod
+    def diffuse_and_beam_solar_radiations(
+        datetime_utc: npt.NDArray[np.datetime64],
+        latitude: np.ndarray,
+        longitude: np.ndarray,
+        nebulosity: np.ndarray,
+    ) -> SolarRadiationResults:
+        """Compute diffuse radiation, beam radiation and their sum.
+
+        Returns:
+            SolarRadiationResults: An instance containing the results.
+        """
+        inputs, _ = check_inputs(
+            nebulosity=nebulosity,
+            datetime_utc=datetime_utc,
+            latitude=latitude,
+            longitude=longitude,
+        )
+        diffuse_radiation, beam_radiation = diffuse_and_beam_radiations(
+            inputs["datetime_utc"],
+            inputs["latitude"],
+            inputs["longitude"],
+            inputs["nebulosity"],
+        )
+        df = pd.DataFrame(
+            {
+                "diffuse_radiation": diffuse_radiation,
+                "beam_radiation": beam_radiation,
+                "diffuse_plus_beam_radiation": diffuse_radiation
+                + beam_radiation,
+            }
+        )
+        return SolarRadiationResults(df)
+
     @property
     def wind_cable_angle(self) -> np.ndarray:
         """Compute the angle between wind and cable direction.
@@ -651,7 +535,6 @@ class ThermalEngine:
             self.dict_input["cable_azimuth"], self.dict_input["wind_azimuth"]
         )
 
-    # TODO: move this into thl (formulae in thl.power.convective_cooling line 35)
     @staticmethod
     def compute_wind_attack_angle(
         cable_azimuth: np.ndarray, wind_azimuth: np.ndarray
@@ -666,11 +549,7 @@ class ThermalEngine:
             Angle in degrees between wind direction and cable azimuth.
         """
         return np.rad2deg(
-            np.arcsin(
-                np.sin(
-                    np.deg2rad(np.abs(cable_azimuth - wind_azimuth) % 180.0)
-                )
-            )
+            thermohl_compute_wind_angle(cable_azimuth, wind_azimuth),
         )
 
     @property

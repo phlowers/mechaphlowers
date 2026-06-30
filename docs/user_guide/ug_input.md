@@ -19,8 +19,10 @@ In mechaphlowers a line section is described by the following data:
     - the line angle (in degrees)
     - the insulator length
     - the insulator mass
-    - an optional field ground altitude
+    - an optional field `ground_altitude`
     - an optional counterweight
+    - an optional `support_height` (in meters, non-negative) — height of the support structure
+    - an optional `x_offset` (in meters) — longitudinal offset of the attachment point
 - for each span:
     - the span length, denoted later as $a$
     - a sagging parameter, denoted later as $p$
@@ -29,8 +31,36 @@ In mechaphlowers a line section is described by the following data:
 !!! warning
 
     Ground altitude is optional because it is autofilled if not provided.  
-    Autofill rule: **ground_altitude = conductor_attachment_altitude - options_paramater**.  
-    options_parameter is globally defined in options.ground.default_support_length and can be modified by user.
+    Autofill rule:
+
+    1. If support height is provided:
+
+    1.1 For suspension supports:
+
+    $$
+    \text{ground_altitude} = \text{conductor_attachment_altitude} - \text{support_height} - \text{foot_to_ground_clearance} + \text{insulator_length} + \text{spacer_height} 
+    $$
+
+    1.2 For other supports:
+
+    $$
+    \text{ground_altitude} = \text{conductor_attachment_altitude} - \text{support_height} - \text{foot_to_ground_clearance} + \text{spacer_height} 
+    $$
+
+    2. If support height is not provided:
+
+    $$
+    \text{ground_altitude} = \text{conductor_attachment_altitude} - \text{support_height}
+    $$
+
+    Where:
+
+    - `support_height` is taken from the column if provided, otherwise from `options.ground.default_support_length` (default: 30 m).
+    - `spacer_height` is the height contribution of the spacer equipment: `options.ground.spacer_height / 2` (default 0.4 / 2 = 0.2 m) for bundle numbers 3 and 4, else 0 m.
+    - `foot_to_ground_clearance` is defined in `options.ground.foot_to_ground_clearance` (default: 0.2 m). It is also called OO' distance.
+
+    If ground altitude is provided and its value is heigher than conductor attachment altitude,
+    ground altitude is replaced with a computed value according to the above autofill rule.
 
 
 !!! note "Angle orientation convention"

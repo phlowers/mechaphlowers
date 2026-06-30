@@ -52,8 +52,6 @@ def test_load_all_spans_wind_ice_temp_profiling():
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": [1000, 500, 500, 1000],
-                "load_mass": [500, 1000, 500, np.nan],
-                "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         ),
         sagging_parameter=2000,
@@ -92,8 +90,6 @@ def test_many_spans(cable_array_AM600: CableArray):
                 "insulator_length": [3] * nb_spans,
                 "span_length": [500] * (nb_spans - 1) + [np.nan],
                 "insulator_mass": [500 / 9.81] * nb_spans,
-                "load_mass": [0] * nb_spans,
-                "load_position": [0] * nb_spans,
             }
         ),
         sagging_parameter=2000,
@@ -127,8 +123,6 @@ def test_many_spans_with_load(cable_array_AM600: CableArray):
                 "insulator_length": [3] * nb_spans,
                 "span_length": [500] * (nb_spans - 1) + [np.nan],
                 "insulator_mass": [500 / 9.81] * nb_spans,
-                "load_mass": [500 / 9.81] * nb_spans,
-                "load_position": [0.5] * nb_spans,
             }
         ),
         sagging_parameter=2000,

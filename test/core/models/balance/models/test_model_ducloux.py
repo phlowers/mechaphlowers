@@ -12,11 +12,17 @@ from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.balance.models.model_ducloux import (
     nodes_builder,
 )
+from mechaphlowers.core.models.balance.span_loads import SpanLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
-def test_section_array_to_nodes(section_array_complete: SectionArray):
-    nodes_builder(section_array_complete)
+def test_nodes_builder(
+    section_array_complete: SectionArray,
+    span_loads_for_complete_section_array: SpanLoads,
+):
+    nodes_builder(
+        section_array_complete, span_loads_for_complete_section_array
+    )
 
 
 def test_load_span_model(cable_array_AM600: CableArray):
@@ -31,8 +37,6 @@ def test_load_span_model(cable_array_AM600: CableArray):
                 "insulator_length": [3, 3, 3, 3],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": [100, 50, 500, 0],
-                "load_mass": [0, 500, 0, np.nan],
-                "load_position": [0.2, 0.4, 0.6, np.nan],
             }
         ),
         sagging_parameter=2000,
@@ -44,7 +48,10 @@ def test_load_span_model(cable_array_AM600: CableArray):
         cable_array=cable_array_AM600,
         section_array=section_array,
     )
-
+    balance_engine.set_loads(
+        load_position_distance=[100, 120, 240],
+        load_mass=[0, 500, 0],
+    )
     balance_engine.solve_adjustment()
 
     balance_engine.solve_change_state()
@@ -55,4 +62,102 @@ def test_load_span_model(cable_array_AM600: CableArray):
     )
     np.testing.assert_equal(
         nodes_span_model.span_type, np.array([0, 1, 2, 0, 0])
+    )
+
+
+def test_solve_twice(cable_array_AM600, default_section_array_three_spans):
+    # Test that calling solve_change_state twice
+    # returns the same results twice
+    balance_engine = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=default_section_array_three_spans,
+    )
+
+    balance_engine.solve_adjustment()
+
+    balance_engine.solve_change_state()
+    first_dxdydz = balance_engine.balance_model.nodes.dxdydz.copy()
+    balance_engine.solve_change_state()
+    second_dxdydz = balance_engine.balance_model.nodes.dxdydz.copy()
+
+    np.testing.assert_allclose(
+        second_dxdydz, first_dxdydz, rtol=1e-6, atol=1e-8
+    )
+
+
+def test_solve_twice_after_set_loads(
+    cable_array_AM600, default_section_array_three_spans
+):
+    # Test that calling solve_change_state twice
+    # returns the same results twice
+    balance_engine = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=default_section_array_three_spans,
+    )
+
+    balance_engine.set_loads(np.array([0, 0, 200]), np.array([0, 0, 50]))
+
+    balance_engine.solve_adjustment()
+
+    balance_engine.solve_change_state()
+    first_dxdydz = balance_engine.balance_model.nodes.dxdydz.copy()
+    balance_engine.solve_change_state()
+    second_dxdydz = balance_engine.balance_model.nodes.dxdydz.copy()
+
+    np.testing.assert_allclose(
+        second_dxdydz, first_dxdydz, rtol=1e-6, atol=1e-8
+    )
+
+
+def test_solve_twice_after_add_loads(
+    cable_array_AM600, default_section_array_three_spans
+):
+    # Test that calling solve_change_state twice
+    # returns the same results twice
+    balance_engine = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=default_section_array_three_spans,
+    )
+
+    balance_engine.add_loads(
+        np.array([0, 0, 200, np.nan]), np.array([0, 0, 50, np.nan])
+    )
+
+    balance_engine.solve_adjustment()
+
+    balance_engine.solve_change_state()
+    first_dxdydz = balance_engine.balance_model.nodes.dxdydz.copy()
+    balance_engine.solve_change_state()
+    second_dxdydz = balance_engine.balance_model.nodes.dxdydz.copy()
+
+    np.testing.assert_allclose(
+        second_dxdydz, first_dxdydz, rtol=1e-6, atol=1e-8
+    )
+
+
+def test_change_temperature_back_to_initial(
+    cable_array_AM600, default_section_array_three_spans
+):
+    # Test that changing temperature (15°C -> 30°C -> 15°C)
+    # brings the displacement back to its initial value
+    balance_engine = BalanceEngine(
+        cable_array=cable_array_AM600,
+        section_array=default_section_array_three_spans,
+    )
+
+    balance_engine.solve_adjustment()
+
+    balance_engine.solve_change_state(new_temperature=15)
+    first_dxdydz_15 = balance_engine.balance_model.nodes.dxdydz.copy()
+
+    balance_engine.solve_change_state(new_temperature=30)
+
+    balance_engine.solve_change_state(new_temperature=15)
+    second_dxdydz_15 = balance_engine.balance_model.nodes.dxdydz.copy()
+
+    np.testing.assert_allclose(
+        second_dxdydz_15,
+        first_dxdydz_15,
+        rtol=1e-6,
+        atol=1e-8,
     )

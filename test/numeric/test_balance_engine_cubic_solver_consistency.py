@@ -44,8 +44,6 @@ def _run_balance_engine_with_solver(
                 "insulator_mass": convert_weight_to_mass(
                     [1000, 500, 500, 1000]
                 ),
-                "load_mass": convert_weight_to_mass([0, 1000, 0, np.nan]),
-                "load_position": [0, 0.4, 0, np.nan],
             }
         ),
         sagging_parameter=2000,
@@ -56,6 +54,10 @@ def _run_balance_engine_with_solver(
     engine = BalanceEngine(
         cable_array=cable_array_AM600,
         section_array=section_array,
+    )
+    engine.set_loads(
+        load_position_distance=[0, 120, 0],
+        load_mass=convert_weight_to_mass([0, 1000, 0]),
     )
     engine.solve_adjustment()
     engine.solve_change_state()
