@@ -198,11 +198,21 @@ class SolarRadiationResults(ThermalResults):
 
 
 class NebulosityResults(ThermalResults):
-    """Nebulosity results."""
+    """Nebulosity results.
+
+    .data is a DataFrame with a single column: nebulosity.
+    """
+
+    def __init__(self, input_data: dict | pd.DataFrame):
+        if isinstance(input_data, dict):
+            raise TypeError(
+                "dict input not supported for nebulosity results parsing."
+            )
+        self.data = self.parse_results(input_data)
 
     @staticmethod
     def parse_results(data):
-        return pd.DataFrame({"nebulosity": data})
+        return data
 
 
 class ThermalForecastArray:
@@ -541,7 +551,7 @@ class ThermalEngine:
         latitude: np.ndarray,
         longitude: np.ndarray,
     ) -> NebulosityResults:
-        """Compute nebulosity which gives the closest (diffuse + beam) radiation
+        """Compute the nebulosity which gives the closest diffuse + beam radiation
         to the one given as argument.
 
         Nebulosities are integers between 0 and 8.
