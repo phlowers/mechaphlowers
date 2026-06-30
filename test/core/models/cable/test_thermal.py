@@ -367,6 +367,80 @@ def test_transient_results_raise_for_df_input():
         ThermalTransientResults.parse_results(df_input)
 
 
+def assert_no_inputs_in_results(results):
+    assert not any(
+        column.startswith("input_") for column in results.data.columns
+    )
+    assert results.inputs is None
+
+
+def assert_inputs_in_results(results):
+    assert not any(
+        column.startswith("input_") for column in results.data.columns
+    )
+    assert results.inputs is not None
+    assert not results.inputs.empty
+
+
+def test_steady_intensity_return_inputs(
+    thermal_engine_3_spans: ThermalEngine,
+) -> None:
+    target_temperature = np.array([100, 100, 100])
+
+    results_with_inputs = thermal_engine_3_spans.steady_intensity(
+        target_temperature=target_temperature,
+        return_inputs=True,
+    )
+    assert_inputs_in_results(results_with_inputs)
+
+    results_with_inputs_implicit = thermal_engine_3_spans.steady_intensity(
+        target_temperature=target_temperature,
+    )
+    assert_inputs_in_results(results_with_inputs_implicit)
+
+    results_without_inputs = thermal_engine_3_spans.steady_intensity(
+        target_temperature=target_temperature,
+        return_inputs=False,
+    )
+    assert_no_inputs_in_results(results_without_inputs)
+
+
+def test_steady_temperature_return_inputs(
+    thermal_engine_3_spans: ThermalEngine,
+) -> None:
+    results_with_inputs = thermal_engine_3_spans.steady_temperature(
+        return_inputs=True,
+    )
+    assert_inputs_in_results(results_with_inputs)
+
+    results_with_inputs_implicit = thermal_engine_3_spans.steady_temperature()
+    assert_inputs_in_results(results_with_inputs_implicit)
+
+    results_without_inputs = thermal_engine_3_spans.steady_temperature(
+        return_inputs=False,
+    )
+    assert_no_inputs_in_results(results_without_inputs)
+
+
+def test_transient_temperature_return_inputs(
+    thermal_engine_3_spans: ThermalEngine,
+) -> None:
+    results_with_inputs = thermal_engine_3_spans.transient_temperature(
+        return_inputs=True,
+    )
+    assert_inputs_in_results(results_with_inputs)
+
+    results_with_inputs_implicit = (
+        thermal_engine_3_spans.transient_temperature()
+    )
+    assert_inputs_in_results(results_with_inputs_implicit)
+
+    results_without_inputs = thermal_engine_3_spans.transient_temperature(
+        return_inputs=False,
+    )
+    assert_no_inputs_in_results(results_without_inputs)
+
+
 def test_solar_radiations() -> None:
     results = ThermalEngine.diffuse_and_beam_solar_radiations(
         datetime_utc=np.array(

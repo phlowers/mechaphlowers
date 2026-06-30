@@ -18,7 +18,6 @@ from thermohl.power.convective_cooling import (  # type: ignore
 from thermohl.power.rte.solar_heating import (  # type: ignore
     diffuse_and_beam_radiations,
 )
-from typing_extensions import Self
 
 from mechaphlowers.entities.arrays import CableArray
 from mechaphlowers.entities.errors import (
@@ -32,8 +31,17 @@ logger = logging.getLogger(__name__)
 class ThermalResults(ABC):
     """Thermal results base class."""
 
-    def __init__(self, input_data: dict | pd.DataFrame):
-        self.data = self.parse_results(input_data)
+    INPUT_PREFIX = "input_"
+
+    def __init__(
+        self,
+        input_data: dict | pd.DataFrame,
+        return_inputs: bool = True,
+    ):
+        inputs = self._pop_inputs(input_data)
+        self.inputs = inputs if return_inputs else None
+        results = self.parse_results(input_data)
+        self.data = results
 
     @staticmethod
     @abstractmethod
@@ -46,7 +54,7 @@ class ThermalResults(ABC):
         Returns:
             pd.DataFrame: Parsed results as a pandas DataFrame.
         """
-        pass
+        raise NotImplementedError
 
     def __len__(self) -> int:
         return len(self.data)
@@ -54,24 +62,49 @@ class ThermalResults(ABC):
     def __str__(self) -> str:
         return self.data.to_string()
 
-    def __copy__(self) -> Self:
-        return type(self)(self.data)
-
     def __repr__(self) -> str:
         class_name = type(self).__name__
         return f"{class_name}\n{self.__str__()}"
 
+    @classmethod
+    def _input_columns(cls, df: pd.DataFrame) -> list[str]:
+        return [
+            column
+            for column in df.columns
+            if column.startswith(cls.INPUT_PREFIX)
+        ]
+
+    @classmethod
+    def _input_keys(cls, data: dict) -> list[str]:
+        return [key for key in data.keys() if key.startswith(cls.INPUT_PREFIX)]
+
+    @classmethod
+    def _remove_input_prefix(cls, key: str) -> str:
+        return key.replace(cls.INPUT_PREFIX, "")
+
+    @classmethod
+    def _pop_inputs(cls, data: dict | pd.DataFrame) -> pd.DataFrame:
+        if isinstance(data, dict):
+            input_keys = cls._input_keys(data)
+            inputs = pd.DataFrame(
+                {
+                    cls._remove_input_prefix(key): value
+                    for key, value in data.items()
+                    if key in input_keys
+                }
+            )
+            for key in input_keys:
+                data.pop(key)
+        else:
+            input_columns = cls._input_columns(data)
+            inputs = data[input_columns]
+            data.drop(columns=input_columns, inplace=True)
+            inputs.rename(columns=cls._remove_input_prefix, inplace=True)
+        return inputs
+
 
 class ThermalTransientResults(ThermalResults):
     """Thermal transient results class for transient temperature calculations."""
-
-    def __init__(self, input_data: dict | pd.DataFrame):
-        """Initialize transient thermal results.
-
-        Args:
-            input_data (dict | pd.DataFrame): Raw transient thermal results data.
-        """
-        super().__init__(input_data)
 
     @staticmethod
     def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
@@ -110,14 +143,6 @@ class ThermalTransientResults(ThermalResults):
 
 class ThermalSteadyResults(ThermalResults):
     """Thermal steady-state results parser."""
-
-    def __init__(self, input_data: dict | pd.DataFrame):
-        """Initialize steady-state thermal results.
-
-        Args:
-            input_data (dict | pd.DataFrame): Raw steady-state thermal results data.
-        """
-        super().__init__(input_data)
 
     @staticmethod
     def parse_results(
@@ -160,6 +185,9 @@ class SteadyTemperatureResults(ThermalSteadyResults):
 
 class SolarRadiationResults(ThermalResults):
     """Diffuse and beam radiations with their sum."""
+
+    def __init__(self, input_data):
+        self.data = self.parse_results(input_data)
 
     @staticmethod
     def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
@@ -396,8 +424,12 @@ class ThermalEngine:
         self,
         intensity: np.ndarray | None = None,
         return_uncertainty: bool = False,
+        return_inputs: bool = True,
     ) -> SteadyTemperatureResults:
         """Compute steady-state temperature results.
+
+        If return_inputs=True, input data are returned in
+        result.inputs as a DataFrame.
 
         Returns:
             SteadyTemperatureResults: An instance containing steady-state temperature data.
@@ -408,14 +440,20 @@ class ThermalEngine:
             self.load()
         return SteadyTemperatureResults(
             self.thermal_model.steady_temperature(
-                return_uncertainty=return_uncertainty
-            )
+                return_uncertainty=return_uncertainty,
+            ),
+            return_inputs=return_inputs,
         )
 
     def steady_intensity(
-        self, target_temperature: np.ndarray | None = None
+        self,
+        target_temperature: np.ndarray | None = None,
+        return_inputs: bool = True,
     ) -> SteadyIntensityResults:
         """Compute steady-state intensity results.
+
+        If return_inputs=True, input data are returned in
+        result.inputs as a DataFrame.
 
         Returns:
             SteadyIntensityResults: An instance containing steady-state intensity data.
@@ -424,13 +462,21 @@ class ThermalEngine:
             self.target_temperature = target_temperature
 
         return SteadyIntensityResults(
-            self.thermal_model.steady_intensity(self.target_temperature)
+            self.thermal_model.steady_intensity(
+                self.target_temperature,
+            ),
+            return_inputs=return_inputs,
         )
 
     def transient_temperature(
-        self, forecast_control: ThermalForecastArray | None = None
+        self,
+        forecast_control: ThermalForecastArray | None = None,
+        return_inputs: bool = True,
     ) -> ThermalTransientResults:
         """Compute transient temperature results.
+
+        If return_inputs=True, input data are returned in
+        result.inputs as a DataFrame.
 
         Returns:
             ThermalTransientResults: An instance containing time-varying temperature data.
@@ -439,7 +485,10 @@ class ThermalEngine:
             self.forecast = forecast_control
 
         return ThermalTransientResults(
-            self.thermal_model.transient_temperature(offset=self.forecast.time)
+            self.thermal_model.transient_temperature(
+                offset=self.forecast.time
+            ),
+            return_inputs=return_inputs,
         )
 
     @staticmethod
