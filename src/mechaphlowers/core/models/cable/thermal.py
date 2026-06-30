@@ -186,6 +186,9 @@ class SteadyTemperatureResults(ThermalSteadyResults):
 class SolarRadiationResults(ThermalResults):
     """Diffuse and beam radiations with their sum."""
 
+    def __init__(self, input_data):
+        self.data = self.parse_results(input_data)
+
     @staticmethod
     def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
         if isinstance(data, pd.DataFrame):
