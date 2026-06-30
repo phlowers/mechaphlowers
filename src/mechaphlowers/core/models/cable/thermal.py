@@ -13,7 +13,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from thermohl import solver  # type: ignore
-from typing_extensions import Self
 
 from mechaphlowers.entities.arrays import CableArray
 from mechaphlowers.entities.errors import UncertaintyNotAvailable
@@ -54,11 +53,6 @@ class ThermalResults(ABC):
 
     def __str__(self) -> str:
         return self.data.to_string()
-
-    def __copy__(self) -> Self:
-        copy = type(self)(self.data, return_inputs=False)
-        copy.inputs = self.inputs.copy() if self.inputs is not None else None
-        return copy
 
     def __repr__(self) -> str:
         class_name = type(self).__name__
@@ -581,6 +575,9 @@ class ThermalEngine:
     ) -> SteadyTemperatureResults:
         """Compute steady-state temperature results.
 
+        If return_inputs=True, input data are returned in
+        result.inputs as a DataFrame.
+
         Returns:
             SteadyTemperatureResults: An instance containing steady-state temperature data.
         """
@@ -602,6 +599,9 @@ class ThermalEngine:
     ) -> SteadyIntensityResults:
         """Compute steady-state intensity results.
 
+        If return_inputs=True, input data are returned in
+        result.inputs as a DataFrame.
+
         Returns:
             SteadyIntensityResults: An instance containing steady-state intensity data.
         """
@@ -621,6 +621,9 @@ class ThermalEngine:
         return_inputs: bool = True,
     ) -> ThermalTransientResults:
         """Compute transient temperature results.
+
+        If return_inputs=True, input data are returned in
+        result.inputs as a DataFrame.
 
         Returns:
             ThermalTransientResults: An instance containing time-varying temperature data.
