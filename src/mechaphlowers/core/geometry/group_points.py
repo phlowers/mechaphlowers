@@ -248,6 +248,8 @@ class GroupPoints:
         return result_points
 
     def obstacle_dict(self):
+        if self.obstacles is None:
+            return {}
         return self.obstacles.dict_coords()
 
     def additional_points_dict(self):

@@ -204,6 +204,11 @@ def group_points_obstacles(
 
 
 @pytest.fixture
+def additional_points(obs_array: ObstacleArray) -> SparsePoints:
+    return SparsePoints.builder_from_obstacle_array(obs_array)
+
+
+@pytest.fixture
 def group_points_distances(
     spans_points: Points,
     supports_points: Points,
@@ -217,7 +222,23 @@ def group_points_distances(
         supports_points,
         insulators_points,
         obstacle_points,
-        distance_dict,
+        distances=distance_dict,
+    )
+
+
+@pytest.fixture
+def group_points_additional(
+    spans_points: Points,
+    supports_points: Points,
+    insulators_points: Points,
+    additional_points: SparsePoints,
+) -> GroupPoints:
+    return GroupPoints(
+        np.array([0, 0, 0, 0]),
+        spans_points,
+        supports_points,
+        insulators_points,
+        additional_points=additional_points,
     )
 
 
@@ -239,6 +260,51 @@ class TestMethods:
             "spans"
         ].coords[0][0][1]
         group_points_distances.obstacles.y == -reversed_result["obstacles"].y  # type: ignore[union-attr]
+
+    def test_create_group_points_with_additional_points(
+        self, group_points_additional: GroupPoints
+    ):
+        assert group_points_additional.additional_points is not None
+
+    def test_additional_points_in_all_points(
+        self, group_points_additional: GroupPoints
+    ):
+        assert "additional_points" in group_points_additional.all_points
+
+    def test_additional_points_dict(
+        self, group_points_additional: GroupPoints
+    ):
+        result = group_points_additional.additional_points_dict()
+        assert isinstance(result, dict)
+        assert len(result) > 0
+
+    def test_additional_points_dict_empty_when_none(
+        self, group_points: GroupPoints
+    ):
+        assert group_points.additional_points_dict() == {}
+
+    def test_all_objects_reversed_y_with_additional_points(
+        self, group_points_additional: GroupPoints
+    ):
+        reversed_result = group_points_additional.get_all_objects_dict(
+            reversed_y_axis=True
+        )
+        assert "additional_points" in reversed_result
+        np.testing.assert_array_equal(
+            reversed_result["additional_points"].y,
+            -group_points_additional.additional_points.y,  # type: ignore[union-attr]
+        )
+
+    def test_change_frame_propagates_to_additional_points(
+        self, group_points_additional: GroupPoints
+    ):
+        original_x = group_points_additional.additional_points.x.copy()  # type: ignore[union-attr]
+        result = group_points_additional.change_frame(frame_index=2)
+        # frame change translates by support[2] offset — x must differ from original
+        assert not np.allclose(
+            result.additional_points.x,
+            original_x,  # type: ignore[union-attr]
+        )
 
 
 class TestChangeFrame:

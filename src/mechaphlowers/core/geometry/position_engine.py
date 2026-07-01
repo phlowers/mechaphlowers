@@ -448,19 +448,19 @@ class PositionEngine(Observer, Notifier):
 
         if (
             hasattr(self, "obstacle_array")
-            and len(self.obstacle_array.data) > 0
+            and not self.obstacle_array.data_original.empty
         ):
             self.coords_calculator.compute_obstacle_coords()
             obstacles_points = self.coords_calculator.obstacles_points
 
         if (
             hasattr(self, "additional_points_array")
-            and len(self.additional_points_array.data) > 0
+            and not self.additional_points_array.data_original.empty
         ):
             self.coords_calculator.compute_additional_points_coords()
             additional_points = self.coords_calculator.additional_points
 
-        # Only compute distances if we have obstacles OR additional_points
+        # Only compute distances if we have obstacles
         if obstacles_points is not None or additional_points is not None:
             distances_dict = {}
             if obstacles_points is not None:
