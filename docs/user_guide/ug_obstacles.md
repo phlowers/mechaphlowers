@@ -131,3 +131,40 @@ plt_engine.get_obstacles_points()
 ```
 
 --8<-- "docs/user_guide/assets/obstacle_plot_example.html"
+
+
+## Additional points
+
+In addition to obstacles, you can also add generic "additional points". These points use the exact same underlying structure (`ObstacleArray`) and validation, but they are stored separately so they do not mix with physical obstacles with geometric points or analyses.
+
+You can add and manage additional points directly using the `PositionEngine`:
+
+```python
+# Assuming `study` is an initialized SectionStudy
+study = SectionStudy(...)
+
+# Add additional points
+study.position_engine.add_additional_point(
+    name="pt_0",
+    span_index=0,
+    coords=np.array([[10.0, 0.0, -5.0]])
+)
+
+# You can also use an array built in advance
+# study.position_engine.add_additional_points_array(my_obstacle_array)
+```
+
+Once added, you can extract their coordinates or compute distances from the spans, similar to obstacles:
+
+```python
+# Get coordinates as a single continuous absolute coordinate array
+additional_coords = study.position_engine.get_additional_points()
+
+# Get minimum distances from the spans
+distances = study.position_engine.get_distances_from_additional_points()
+
+# Or get them from the global points topology
+group_points = study.position_engine.get_group_points()
+group_points_dict = group_points.additional_points_dict()
+# {'pt_0': array([[...]])}
+```
