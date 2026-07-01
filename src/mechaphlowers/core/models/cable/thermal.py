@@ -6,7 +6,6 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -17,6 +16,7 @@ from thermohl.power.convective_cooling import (  # type: ignore
 )
 from thermohl.power.rte.solar_heating import (  # type: ignore
     diffuse_and_beam_radiations,
+    estimate_nebulosity,
 )
 
 from mechaphlowers.entities.arrays import CableArray
@@ -31,19 +31,8 @@ logger = logging.getLogger(__name__)
 class ThermalResults(ABC):
     """Thermal results base class."""
 
-    INPUT_PREFIX = "input_"
-
-    def __init__(
-        self,
-        input_data: dict | pd.DataFrame,
-        cable_is_bimetallic: npt.NDArray[np.bool],
-        return_inputs: bool = True,
-    ):
-        inputs = self._pop_inputs(input_data)
-        self.inputs = inputs if return_inputs else None
-        results = self.parse_results(input_data)
-        self.data = results
-        self.cable_is_bimetallic = cable_is_bimetallic
+    def __init__(self, input_data: dict | pd.DataFrame):
+        self.data = self.parse_results(input_data)
 
     @staticmethod
     @abstractmethod
@@ -58,18 +47,6 @@ class ThermalResults(ABC):
         """
         raise NotImplementedError
 
-    def cable_temperature(self) -> np.ndarray:
-        """Relevant cable temperature for each span.
-
-        This means core temperature for bimetallic cables and average temperature
-        for homogeneous cables.
-        """
-        return np.where(
-            self.cable_is_bimetallic,
-            self.data["core_temperature"],
-            self.data["average_temperature"],
-        )
-
     def __len__(self) -> int:
         return len(self.data)
 
@@ -79,6 +56,20 @@ class ThermalResults(ABC):
     def __repr__(self) -> str:
         class_name = type(self).__name__
         return f"{class_name}\n{self.__str__()}"
+
+
+class ThermalResultsWithInputs(ThermalResults):
+    INPUT_PREFIX = "input_"
+
+    def __init__(
+        self,
+        input_data: dict | pd.DataFrame,
+        return_inputs: bool = True,
+    ):
+        inputs = self._pop_inputs(input_data)
+        self.inputs = inputs if return_inputs else None
+        results = self.parse_results(input_data)
+        self.data = results
 
     @classmethod
     def _input_columns(cls, df: pd.DataFrame) -> list[str]:
@@ -117,8 +108,36 @@ class ThermalResults(ABC):
         return inputs
 
 
-class ThermalTransientResults(ThermalResults):
+class CableTemperatureResultsMixin:
+    def __init__(self, cable_is_bimetallic: npt.NDArray[np.bool]):
+        self.cable_is_bimetallic = cable_is_bimetallic
+
+    def cable_temperature(self) -> np.ndarray:
+        """Relevant cable temperature for each span.
+
+        This means core temperature for bimetallic cables and average temperature
+        for homogeneous cables.
+        """
+        return np.where(
+            self.cable_is_bimetallic,
+            self.data["core_temperature"],  # type: ignore
+            self.data["average_temperature"],  # type: ignore
+        )
+
+
+class ThermalTransientResults(
+    ThermalResultsWithInputs, CableTemperatureResultsMixin
+):
     """Thermal transient results class for transient temperature calculations."""
+
+    def __init__(
+        self,
+        input_data: dict | pd.DataFrame,
+        cable_is_bimetallic: npt.NDArray[np.bool],
+        return_inputs=True,
+    ):
+        super().__init__(input_data, return_inputs)
+        CableTemperatureResultsMixin.__init__(self, cable_is_bimetallic)
 
     @staticmethod
     def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
@@ -155,8 +174,19 @@ class ThermalTransientResults(ThermalResults):
         )
 
 
-class ThermalSteadyResults(ThermalResults):
+class ThermalSteadyResults(
+    ThermalResultsWithInputs, CableTemperatureResultsMixin
+):
     """Thermal steady-state results parser."""
+
+    def __init__(
+        self,
+        input_data: dict | pd.DataFrame,
+        cable_is_bimetallic: npt.NDArray[np.bool],
+        return_inputs=True,
+    ):
+        super().__init__(input_data, return_inputs)
+        CableTemperatureResultsMixin.__init__(self, cable_is_bimetallic)
 
     @staticmethod
     def parse_results(
@@ -181,8 +211,6 @@ class ThermalSteadyResults(ThermalResults):
 class SteadyIntensityResults(ThermalSteadyResults):
     """Parser for thermal steady-state intensity computation."""
 
-    pass
-
 
 class SteadyTemperatureResults(ThermalSteadyResults):
     """Parser for thermal steady-state temperature computation."""
@@ -200,14 +228,31 @@ class SteadyTemperatureResults(ThermalSteadyResults):
 class SolarRadiationResults(ThermalResults):
     """Diffuse and beam radiations with their sum."""
 
-    def __init__(self, input_data):
+    @staticmethod
+    def parse_results(data: dict | pd.DataFrame):
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError(
+                "only DataFrame input is supported for solar radiation results parsing."
+            )
+        return data
+
+
+class NebulosityResults(ThermalResults):
+    """Nebulosity results.
+
+    .data is a DataFrame with a single column: nebulosity.
+    """
+
+    def __init__(self, input_data: np.ndarray):
         self.data = self.parse_results(input_data)
 
     @staticmethod
-    def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
-        if isinstance(data, pd.DataFrame):
-            return data.copy()
-        return pd.DataFrame(data)
+    def parse_results(data: dict | pd.DataFrame | np.ndarray) -> pd.DataFrame:
+        if not isinstance(data, np.ndarray):
+            raise TypeError(
+                "only np.array input is supported for nebulosity results parsing."
+            )
+        return pd.DataFrame({"nebulosity": data})
 
 
 class ThermalForecastArray:
@@ -232,7 +277,6 @@ class ThermalForecastArray:
 
 
 def check_inputs(
-    nebulosity: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]],
     **kwargs: npt.NDArray[np.integer | np.floating | np.datetime64],
 ) -> tuple[
     dict[str, npt.NDArray[np.integer | np.floating | np.datetime64]], int
@@ -240,10 +284,9 @@ def check_inputs(
     """Validate input parameters.
 
     Ensures all inputs are numpy arrays with the same size. Also ensures that
-    nebulosities are in the right range.
+    nebulosities (if given) are in the right range.
 
     Args:
-        nebulosity(np.array): Nebulosity (array of int between 0 and 8).
         **kwargs: Input parameters as numpy arrays.
 
     Returns:
@@ -255,9 +298,10 @@ def check_inputs(
         ValueError: If array inputs have incompatible sizes.
         TypeError: If any input is not a numpy array.
     """
-    kwargs["nebulosity"] = nebulosity
+    if len(kwargs) == 0:
+        return kwargs, 0
 
-    array_length: int = nebulosity.size
+    array_length: int | None = None
 
     for key, value in kwargs.items():
         if not isinstance(value, np.ndarray):
@@ -266,15 +310,18 @@ def check_inputs(
             )
 
         # Track and validate the length of array inputs
-        if value.size != array_length:
+        if array_length is None:
+            array_length = value.size
+        elif value.size != array_length:
             raise ValueError(
                 f"All array inputs must have the same length. "
                 f"Expected {array_length}, got {value.size} for {key}."
             )
 
-    check_nebulosity_range(nebulosity)
+    if "nebulosity" in kwargs:
+        check_nebulosity_range(kwargs["nebulosity"])
 
-    return kwargs, array_length
+    return kwargs, array_length  # type: ignore
 
 
 def check_nebulosity_range(nebulosity: np.ndarray) -> None:
@@ -542,6 +589,26 @@ class ThermalEngine:
             }
         )
         return SolarRadiationResults(df)
+
+    @staticmethod
+    def nebulosity(
+        diffuse_plus_beam_radiation: np.ndarray,
+        datetime_utc: npt.NDArray[np.datetime64],
+        latitude: np.ndarray,
+        longitude: np.ndarray,
+    ) -> NebulosityResults:
+        """Compute the nebulosity which gives the closest diffuse + beam radiation
+        to the one given as argument.
+
+        Nebulosities are integers between 0 and 8.
+
+        Returns:
+            NebulosityResults: an instance containing the results.
+        """
+        result = estimate_nebulosity(
+            diffuse_plus_beam_radiation, datetime_utc, latitude, longitude
+        )
+        return NebulosityResults(result)
 
     @property
     def wind_cable_angle(self) -> np.ndarray:
