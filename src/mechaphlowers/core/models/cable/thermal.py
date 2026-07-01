@@ -31,19 +31,8 @@ logger = logging.getLogger(__name__)
 class ThermalResults(ABC):
     """Thermal results base class."""
 
-    INPUT_PREFIX = "input_"
-
-    def __init__(
-        self,
-        input_data: dict | pd.DataFrame,
-        cable_is_bimetallic: npt.NDArray[np.bool],
-        return_inputs: bool = True,
-    ):
-        inputs = self._pop_inputs(input_data)
-        self.inputs = inputs if return_inputs else None
-        results = self.parse_results(input_data)
-        self.data = results
-        self.cable_is_bimetallic = cable_is_bimetallic
+    def __init__(self, input_data: dict | pd.DataFrame):
+        self.data = self.parse_results(input_data)
 
     @staticmethod
     @abstractmethod
@@ -58,18 +47,6 @@ class ThermalResults(ABC):
         """
         raise NotImplementedError
 
-    def cable_temperature(self) -> np.ndarray:
-        """Relevant cable temperature for each span.
-
-        This means core temperature for bimetallic cables and average temperature
-        for homogeneous cables.
-        """
-        return np.where(
-            self.cable_is_bimetallic,
-            self.data["core_temperature"],
-            self.data["average_temperature"],
-        )
-
     def __len__(self) -> int:
         return len(self.data)
 
@@ -79,6 +56,20 @@ class ThermalResults(ABC):
     def __repr__(self) -> str:
         class_name = type(self).__name__
         return f"{class_name}\n{self.__str__()}"
+
+
+class ThermalResultsWithInputs(ThermalResults):
+    INPUT_PREFIX = "input_"
+
+    def __init__(
+        self,
+        input_data: dict | pd.DataFrame,
+        return_inputs: bool = True,
+    ):
+        inputs = self._pop_inputs(input_data)
+        self.inputs = inputs if return_inputs else None
+        results = self.parse_results(input_data)
+        self.data = results
 
     @classmethod
     def _input_columns(cls, df: pd.DataFrame) -> list[str]:
@@ -117,8 +108,36 @@ class ThermalResults(ABC):
         return inputs
 
 
-class ThermalTransientResults(ThermalResults):
+class CableTemperatureResultsMixin:
+    def __init__(self, cable_is_bimetallic: npt.NDArray[np.bool]):
+        self.cable_is_bimetallic = cable_is_bimetallic
+
+    def cable_temperature(self) -> np.ndarray:
+        """Relevant cable temperature for each span.
+
+        This means core temperature for bimetallic cables and average temperature
+        for homogeneous cables.
+        """
+        return np.where(
+            self.cable_is_bimetallic,
+            self.data["core_temperature"],  # type: ignore
+            self.data["average_temperature"],  # type: ignore
+        )
+
+
+class ThermalTransientResults(
+    ThermalResultsWithInputs, CableTemperatureResultsMixin
+):
     """Thermal transient results class for transient temperature calculations."""
+
+    def __init__(
+        self,
+        input_data: dict | pd.DataFrame,
+        cable_is_bimetallic: npt.NDArray[np.bool],
+        return_inputs=True,
+    ):
+        super().__init__(input_data, return_inputs)
+        CableTemperatureResultsMixin.__init__(self, cable_is_bimetallic)
 
     @staticmethod
     def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
@@ -155,8 +174,19 @@ class ThermalTransientResults(ThermalResults):
         )
 
 
-class ThermalSteadyResults(ThermalResults):
+class ThermalSteadyResults(
+    ThermalResultsWithInputs, CableTemperatureResultsMixin
+):
     """Thermal steady-state results parser."""
+
+    def __init__(
+        self,
+        input_data: dict | pd.DataFrame,
+        cable_is_bimetallic: npt.NDArray[np.bool],
+        return_inputs=True,
+    ):
+        super().__init__(input_data, return_inputs)
+        CableTemperatureResultsMixin.__init__(self, cable_is_bimetallic)
 
     @staticmethod
     def parse_results(
@@ -181,8 +211,6 @@ class ThermalSteadyResults(ThermalResults):
 class SteadyIntensityResults(ThermalSteadyResults):
     """Parser for thermal steady-state intensity computation."""
 
-    pass
-
 
 class SteadyTemperatureResults(ThermalSteadyResults):
     """Parser for thermal steady-state temperature computation."""
@@ -200,14 +228,13 @@ class SteadyTemperatureResults(ThermalSteadyResults):
 class SolarRadiationResults(ThermalResults):
     """Diffuse and beam radiations with their sum."""
 
-    def __init__(self, input_data):
-        self.data = self.parse_results(input_data)
-
     @staticmethod
-    def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
-        if isinstance(data, pd.DataFrame):
-            return data.copy()
-        return pd.DataFrame(data)
+    def parse_results(data: dict | pd.DataFrame):
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError(
+                "only DataFrame input is supported for solar radiation results parsing."
+            )
+        return data
 
 
 class NebulosityResults(ThermalResults):
@@ -216,16 +243,16 @@ class NebulosityResults(ThermalResults):
     .data is a DataFrame with a single column: nebulosity.
     """
 
-    def __init__(self, input_data: dict | pd.DataFrame):
+    def __init__(self, input_data: np.ndarray):
         self.data = self.parse_results(input_data)
 
     @staticmethod
-    def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
-        if isinstance(data, dict):
+    def parse_results(data: dict | pd.DataFrame | np.ndarray) -> pd.DataFrame:
+        if not isinstance(data, np.ndarray):
             raise TypeError(
-                "dict input not supported for nebulosity results parsing."
+                "only np.array input is supported for nebulosity results parsing."
             )
-        return data
+        return pd.DataFrame({"nebulosity": data})
 
 
 class ThermalForecastArray:
@@ -581,7 +608,7 @@ class ThermalEngine:
         result = estimate_nebulosity(
             diffuse_plus_beam_radiation, datetime_utc, latitude, longitude
         )
-        return NebulosityResults(pd.DataFrame({"nebulosity": result}))
+        return NebulosityResults(result)
 
     @property
     def wind_cable_angle(self) -> np.ndarray:
