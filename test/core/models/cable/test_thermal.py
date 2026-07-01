@@ -658,3 +658,10 @@ def test_nebulosity() -> None:
     pd.testing.assert_frame_equal(
         results.data, pd.DataFrame({"nebulosity": [4.0, 3.0]})
     )
+
+
+@pytest.mark.skip(
+    reason="This test has been skipped due to a new behavior in the thermohl library v1.9.0. TBD"
+)
+def test_nebulosity__no_solution() -> None:
+    pass
