@@ -6,7 +6,6 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -218,14 +217,14 @@ class NebulosityResults(ThermalResults):
     """
 
     def __init__(self, input_data: dict | pd.DataFrame):
-        if isinstance(input_data, dict):
-            raise TypeError(
-                "dict input not supported for nebulosity results parsing."
-            )
         self.data = self.parse_results(input_data)
 
     @staticmethod
-    def parse_results(data):
+    def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
+        if isinstance(data, dict):
+            raise TypeError(
+                "dict input not supported for nebulosity results parsing."
+            )
         return data
 
 
@@ -251,7 +250,6 @@ class ThermalForecastArray:
 
 
 def check_inputs(
-    nebulosity: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]],
     **kwargs: npt.NDArray[np.integer | np.floating | np.datetime64],
 ) -> tuple[
     dict[str, npt.NDArray[np.integer | np.floating | np.datetime64]], int
@@ -259,10 +257,9 @@ def check_inputs(
     """Validate input parameters.
 
     Ensures all inputs are numpy arrays with the same size. Also ensures that
-    nebulosities are in the right range.
+    nebulosities (if given) are in the right range.
 
     Args:
-        nebulosity(np.array): Nebulosity (array of int between 0 and 8).
         **kwargs: Input parameters as numpy arrays.
 
     Returns:
@@ -274,9 +271,10 @@ def check_inputs(
         ValueError: If array inputs have incompatible sizes.
         TypeError: If any input is not a numpy array.
     """
-    kwargs["nebulosity"] = nebulosity
+    if len(kwargs) == 0:
+        return kwargs, 0
 
-    array_length: int = nebulosity.size
+    array_length: int | None = None
 
     for key, value in kwargs.items():
         if not isinstance(value, np.ndarray):
@@ -285,15 +283,18 @@ def check_inputs(
             )
 
         # Track and validate the length of array inputs
-        if value.size != array_length:
+        if array_length is None:
+            array_length = value.size
+        elif value.size != array_length:
             raise ValueError(
                 f"All array inputs must have the same length. "
                 f"Expected {array_length}, got {value.size} for {key}."
             )
 
-    check_nebulosity_range(nebulosity)
+    if "nebulosity" in kwargs:
+        check_nebulosity_range(kwargs["nebulosity"])
 
-    return kwargs, array_length
+    return kwargs, array_length  # type: ignore
 
 
 def check_nebulosity_range(nebulosity: np.ndarray) -> None:
@@ -565,7 +566,7 @@ class ThermalEngine:
     @staticmethod
     def nebulosity(
         diffuse_plus_beam_radiation: np.ndarray,
-        datetime_utc: np.ndarray,
+        datetime_utc: npt.NDArray[np.datetime64],
         latitude: np.ndarray,
         longitude: np.ndarray,
     ) -> NebulosityResults:
