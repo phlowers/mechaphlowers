@@ -8,6 +8,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from thermohl import errors as thermohl_errors  # type: ignore
 
 from mechaphlowers.core.models.cable.thermal import (
     ThermalEngine,
@@ -640,4 +641,51 @@ def test_solar_radiations_wrong_nebulosity() -> None:
             latitude=np.array([40, 40]),
             longitude=np.array([0, 0]),
             nebulosity=np.array([-1, 8]),
+        )
+
+
+def test_nebulosity() -> None:
+    results = ThermalEngine.nebulosity(
+        np.array([800.0, 850]),
+        np.array(
+            [
+                np.datetime64("2026-06-26T12:00"),
+                np.datetime64("2026-06-26T12:00"),
+            ]
+        ),
+        np.array([40.0, 40.0]),
+        np.array([0.0, 0.0]),
+    )
+    pd.testing.assert_frame_equal(
+        results.data, pd.DataFrame({"nebulosity": [4.0, 3.0]})
+    )
+
+
+def test_nebulosity__no_solution() -> None:
+    with pytest.raises(
+        thermohl_errors.RadiationIncompatibleWithParametersError
+    ):
+        ThermalEngine.nebulosity(
+            np.array([50.0]),
+            np.array(
+                [
+                    np.datetime64("2026-06-26T12:00"),
+                ]
+            ),
+            np.array([40.0]),
+            np.array([0.0]),
+        )
+
+    with pytest.raises(
+        thermohl_errors.RadiationIncompatibleWithParametersError
+    ):
+        ThermalEngine.nebulosity(
+            np.array([2000.0]),
+            np.array(
+                [
+                    np.datetime64("2026-06-26T12:00"),
+                ]
+            ),
+            np.array([40.0]),
+            np.array([0.0]),
         )
