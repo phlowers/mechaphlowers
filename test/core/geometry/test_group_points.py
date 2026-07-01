@@ -302,8 +302,8 @@ class TestMethods:
         result = group_points_additional.change_frame(frame_index=2)
         # frame change translates by support[2] offset — x must differ from original
         assert not np.allclose(
-            result.additional_points.x,
-            original_x,  # type: ignore[union-attr]
+            result.additional_points.x,  # type: ignore[union-attr]
+            original_x,
         )
 
 
