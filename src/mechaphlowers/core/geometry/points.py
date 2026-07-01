@@ -318,6 +318,7 @@ class CoordsCalculator:
         cable_loads: CableLoads,
         get_displacement: Callable[[], np.ndarray],
         obstacle_array: ObstacleArray | None = None,
+        additional_points_array: ObstacleArray | None = None,
         **_,
     ):
         """Initialize the CoordsCalculator object with section parameters and a span model.
@@ -330,12 +331,15 @@ class CoordsCalculator:
         """
         if obstacle_array is None:
             obstacle_array = ObstacleArray.build_empty_array()
+        if additional_points_array is None:
+            additional_points_array = ObstacleArray.build_empty_array()
         self.store_references(
             section_array,
             span_model,
             cable_loads,
             get_displacement,
             obstacle_array,
+            additional_points_array,
         )
         self.reset()
 
@@ -346,12 +350,14 @@ class CoordsCalculator:
         cable_loads: CableLoads,
         get_displacement: Callable[[], np.ndarray],
         obstacle_array: ObstacleArray,
+        additional_points_array: ObstacleArray,
     ):
         self.cable_loads = cable_loads
         self.section_array = section_array
         self.span_model = span_model
         self.get_displacement = get_displacement
         self.obstacle_array = obstacle_array
+        self.additional_points_array = additional_points_array
 
     def reset(self):
         span_length = self.section_array.data.span_length.to_numpy()
@@ -393,27 +399,65 @@ class CoordsCalculator:
         self.crossarm_length = crossarm_length
         self.insulator_length = insulator_length
         self.set_cable_coordinates(resolution=cfg.graphics.resolution)
-        self.refresh_obstacles()
+        self.refresh_sparse_points()
 
     def set_cable_coordinates(self, resolution: int) -> None:
         """Set the span in the cable frame 2D coordinates based on the span model and resolution."""
         self.x_cable, self.z_cable = self.span_model.get_coords(resolution)
 
-    def refresh_obstacles(self):
-        """Need to be called when any modification to obstacle_array occurs"""
-        # obstacle_points are in absolute coordinates here
+    def refresh_sparse_points(self) -> None:
+        """Refresh coordinates for both obstacle_array and additional_points_array."""
         self.obstacles_points = SparsePoints.builder_from_obstacle_array(
             self.obstacle_array
         )
-        self.compute_obstacle_coords()
+        self.compute_sparse_points_coords(
+            self.obstacle_array, self.obstacles_points
+        )
+
+        self.additional_points = SparsePoints.builder_from_obstacle_array(
+            self.additional_points_array
+        )
+        self.compute_sparse_points_coords(
+            self.additional_points_array, self.additional_points
+        )
+
+    def refresh_obstacles(self) -> None:
+        """Need to be called when any modification to obstacle_array occurs"""
+        self.obstacles_points = SparsePoints.builder_from_obstacle_array(
+            self.obstacle_array
+        )
+        self.compute_sparse_points_coords(
+            self.obstacle_array, self.obstacles_points
+        )
+
+    def refresh_additional_points(self) -> None:
+        """Need to be called when any modification to additional_points_array occurs"""
+        self.additional_points = SparsePoints.builder_from_obstacle_array(
+            self.additional_points_array
+        )
+        self.compute_sparse_points_coords(
+            self.additional_points_array, self.additional_points
+        )
 
     def compute_obstacle_coords(self) -> SparsePoints:
-        x, y, z = self.obstacle_array.get_vectors()
+        return self.compute_sparse_points_coords(
+            self.obstacle_array, self.obstacles_points
+        )
+
+    def compute_additional_points_coords(self) -> SparsePoints:
+        return self.compute_sparse_points_coords(
+            self.additional_points_array, self.additional_points
+        )
+
+    def compute_sparse_points_coords(
+        self, array: ObstacleArray, sparse_pts: SparsePoints
+    ) -> SparsePoints:
+        x, y, z = array.get_vectors()
         azimuth_line = np.cumsum(self.line_angle)
-        span_index = self.obstacle_array.data["span_index"].to_numpy()
-        azimuth_line_obstacles = azimuth_line[span_index]
+        span_index = array.data["span_index"].to_numpy()
+        azimuth_line_points = azimuth_line[span_index]
         x_rotated, y_rotated, z_rotated = cable_to_localsection_frame(
-            x, y, z, azimuth_line_obstacles
+            x, y, z, azimuth_line_points
         )
         x_absolute, y_absolute, z_absolute = translate_to_absolute_frame(
             x_rotated,
@@ -421,10 +465,8 @@ class CoordsCalculator:
             z_rotated,
             self.supports_ground_coords[span_index],
         )
-        self.obstacles_points.update_vectors(
-            x_absolute, y_absolute, z_absolute
-        )
-        return self.obstacles_points
+        sparse_pts.update_vectors(x_absolute, y_absolute, z_absolute)
+        return sparse_pts
 
     def get_attachments_coords(self):
         self.attachment_coords = get_attachment_coords(

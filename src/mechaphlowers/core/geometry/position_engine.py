@@ -65,12 +65,14 @@ class PositionEngine(Observer, Notifier):
         self.cable_loads = balance_engine.cable_loads
         self.section_array = balance_engine.section_array
         self.obstacle_array = ObstacleArray.build_empty_array()
+        self.additional_points_array = ObstacleArray.build_empty_array()
         self.coords_calculator = CoordsCalculator(
             section_array=self.section_array,
             span_model=self.span_model,
             cable_loads=self.cable_loads,
             get_displacement=balance_engine.get_displacement,
             obstacle_array=self.obstacle_array,
+            additional_points_array=self.additional_points_array,
         )
 
     @property
@@ -146,6 +148,49 @@ class PositionEngine(Observer, Notifier):
         self.obstacle_array.delete_point(obs_name, point_index)
         self.coords_calculator.refresh_obstacles()
 
+    def add_additional_points_array(
+        self, additional_points_array: ObstacleArray
+    ) -> None:
+        """Attach an `ObstacleArray` for additional points coordinate computation."""
+        self.additional_points_array = additional_points_array
+        self.coords_calculator.additional_points_array = (
+            self.additional_points_array
+        )
+        self.coords_calculator.refresh_additional_points()
+
+    def add_additional_point(
+        self,
+        name: str,
+        span_index: int,
+        coords: np.ndarray,
+        support_reference: Literal['left', 'right'] = 'left',
+        span_length: np.ndarray | None = None,
+    ):
+        """Delegate to [`ObstacleArray.add_obstacle`][mechaphlowers.entities.arrays.ObstacleArray.add_obstacle]."""
+        self.additional_points_array.add_obstacle(
+            name,
+            span_index,
+            coords,
+            object_type="additional",
+            support_reference=support_reference,
+            span_length=span_length,
+        )
+        self.coords_calculator.refresh_additional_points()
+
+    def delete_additional_point(
+        self, names_to_delete: str | list[str]
+    ) -> None:
+        """Delegate to [`ObstacleArray.delete_obstacle`][mechaphlowers.entities.arrays.ObstacleArray.delete_obstacle]."""
+        self.additional_points_array.delete_obstacle(names_to_delete)
+        self.coords_calculator.refresh_additional_points()
+
+    def delete_additional_point_by_index(
+        self, name: str, point_index: int
+    ) -> None:
+        """Delegate to [`ObstacleArray.delete_point`][mechaphlowers.entities.arrays.ObstacleArray.delete_point]."""
+        self.additional_points_array.delete_point(name, point_index)
+        self.coords_calculator.refresh_additional_points()
+
     # ── Properties ───────────────────────────────────────────────────────────
 
     @property
@@ -179,6 +224,14 @@ class PositionEngine(Observer, Notifier):
     def get_obstacles_points(self) -> np.ndarray:
         """Return obstacle coordinates transformed to the section frame."""
         return self.coords_calculator.compute_obstacle_coords().points(True)
+
+    def get_additional_points(self) -> np.ndarray:
+        """Return additional points coordinates transformed to the section frame."""
+        return (
+            self.coords_calculator.compute_additional_points_coords().points(
+                True
+            )
+        )
 
     def obstacles_dict(self, project=False, frame_index=0) -> dict:
         """Return obstacle coordinates keyed by obstacle name.
@@ -388,25 +441,40 @@ class PositionEngine(Observer, Notifier):
         spans_points: Points = self.coords_calculator.get_spans("section")
         supports_points: Points = self.coords_calculator.get_supports()
         insulators_points: Points = self.coords_calculator.get_insulators()
-        if not hasattr(self, "obstacle_array"):
-            return GroupPoints(
-                line_angle=self.coords_calculator.line_angle,
-                spans=spans_points,
-                supports=supports_points,
-                insulators=insulators_points,
-            )
-        else:
+
+        obstacles_points = None
+        additional_points = None
+        distances_dict = None
+
+        if (
+            hasattr(self, "obstacle_array")
+            and len(self.obstacle_array.data) > 0
+        ):
             self.coords_calculator.compute_obstacle_coords()
             obstacles_points = self.coords_calculator.obstacles_points
-            distances_dict = self.get_distances_from_obstacles()
-            return GroupPoints(
-                line_angle=self.coords_calculator.line_angle,
-                spans=spans_points,
-                supports=supports_points,
-                insulators=insulators_points,
-                obstacles=obstacles_points,
-                distances=distances_dict,
-            )
+
+        if (
+            hasattr(self, "additional_points_array")
+            and len(self.additional_points_array.data) > 0
+        ):
+            self.coords_calculator.compute_additional_points_coords()
+            additional_points = self.coords_calculator.additional_points
+
+        # Only compute distances if we have obstacles OR additional_points
+        if obstacles_points is not None or additional_points is not None:
+            distances_dict = {}
+            if obstacles_points is not None:
+                distances_dict.update(self.get_distances_from_obstacles())
+
+        return GroupPoints(
+            line_angle=self.coords_calculator.line_angle,
+            spans=spans_points,
+            supports=supports_points,
+            insulators=insulators_points,
+            obstacles=obstacles_points,
+            additional_points=additional_points,
+            distances=distances_dict,
+        )
 
     # ── String representations ────────────────────────────────────────────────
 

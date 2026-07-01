@@ -28,6 +28,7 @@ class GroupPoints:
         supports: Points | None = None,
         insulators: Points | None = None,
         obstacles: SparsePoints | None = None,
+        additional_points: SparsePoints | None = None,
         distances: dict[str, dict[int, DistanceResult]] | None = None,
     ):
         self.line_angle = line_angle
@@ -35,6 +36,7 @@ class GroupPoints:
         self.supports = supports
         self.insulators = insulators
         self.obstacles = obstacles
+        self.additional_points = additional_points
         # dictionary of DistanceResult (result of get_distances_from_obstacles)
         self.distances = distances
         self.current_frame = -1
@@ -49,10 +51,17 @@ class GroupPoints:
             "supports": self.supports,
             "insulators": self.insulators,
             "obstacles": self.obstacles,
+            "additional_points": self.additional_points,
         }
         """
         result_dict = {}
-        attributes_points = ["spans", "supports", "insulators", "obstacles"]
+        attributes_points = [
+            "spans",
+            "supports",
+            "insulators",
+            "obstacles",
+            "additional_points",
+        ]
         for name, points in self.__dict__.items():
             if points is not None and name in attributes_points:
                 result_dict[name] = points
@@ -67,6 +76,7 @@ class GroupPoints:
             "supports": self.supports,
             "insulators": self.insulators,
             "obstacles": self.obstacles,
+            "additional_points": self.additional_points,
             "distances": self.distances,
         }
 
@@ -87,6 +97,10 @@ class GroupPoints:
                 reversed_obstacle = deepcopy(self.obstacles)
                 reversed_obstacle.y = -reversed_obstacle.y
                 result_dict["obstacles"] = reversed_obstacle
+            if isinstance(self.additional_points, SparsePoints):
+                reversed_additional = deepcopy(self.additional_points)
+                reversed_additional.y = -reversed_additional.y
+                result_dict["additional_points"] = reversed_additional
             if self.distances is not None:
                 reversed_distances_dict = self._reverse_y_axis_distances(
                     deepcopy(self.distances)
@@ -235,3 +249,9 @@ class GroupPoints:
 
     def obstacle_dict(self):
         return self.obstacles.dict_coords()
+
+    def additional_points_dict(self):
+        """Return additional_points as dict keyed by name."""
+        if self.additional_points is None:
+            return {}
+        return self.additional_points.dict_coords()
