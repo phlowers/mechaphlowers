@@ -19,6 +19,7 @@ from mechaphlowers.config import options as cfg
 from mechaphlowers.core.geometry.distances import DistanceResult
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
 from mechaphlowers.entities.reactivity import Notifier, Observer
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -670,6 +671,36 @@ class TestDistancesFromObstacles:
 
         distances_dict = pos_engine.get_distances_from_obstacles()
         assert distances_dict == {}
+
+    def test_no_intersection_skips_point_and_warns(
+        self, pos_engine_with_obstacles: PositionEngine
+    ):
+        original_point_distance = pos_engine_with_obstacles.point_distance
+        failing_point = pos_engine_with_obstacles.coords_calculator.obstacles_points.dict_coords()[
+            "obs_1"
+        ][1]
+
+        def fake_point_distance(span_index, point):
+            # obs_1 has 4 points (indices 0-3); make the 2nd one (index 1) fail.
+            if span_index == 1 and np.array_equal(point, failing_point):
+                raise NoIntersectionPlaneForDistanceError(
+                    "Points are on the same side of the plane - no intersection!"
+                )
+            return original_point_distance(span_index, point)
+
+        with patch.object(
+            pos_engine_with_obstacles,
+            "point_distance",
+            side_effect=fake_point_distance,
+        ):
+            with pytest.warns(UserWarning):
+                distances_dict = (
+                    pos_engine_with_obstacles.get_distances_from_obstacles()
+                )
+
+        assert set(distances_dict.keys()) == {"obs_0", "obs_1", "obs_2"}
+        # Point index 1 for obs_1 was skipped, the others are still present.
+        assert set(distances_dict["obs_1"].keys()) == {0, 2, 3}
 
     def test_group_points_sandbox(
         self, pos_engine_with_obstacles: PositionEngine

@@ -21,6 +21,7 @@ from mechaphlowers.core.geometry.planes import change_local_frame
 from mechaphlowers.core.geometry.points import CoordsCalculator, Points
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import ObstacleArray
+from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
 from mechaphlowers.entities.reactivity import Notifier, Observer
 
 logger = logging.getLogger(__name__)
@@ -428,9 +429,20 @@ class PositionEngine(Observer, Notifier):
             for obstacle_coords in obstacle_coords_array:
                 span_index = obstacle_sparse_points.span_index[loop_index]
                 point_index = obstacle_sparse_points.point_index[loop_index]
-                distance_result = self.point_distance(
-                    span_index, obstacle_coords
-                )
+                try:
+                    distance_result = self.point_distance(
+                        span_index, obstacle_coords
+                    )
+                except NoIntersectionPlaneForDistanceError as error:
+                    message = (
+                        f"No intersection found between obstacle '{obstacle_name}' "
+                        f"(point index {point_index}) and span {span_index} - "
+                        f"skipping distance computation for this point. ({error})"
+                    )
+                    logger.warning(message)
+                    warnings.warn(message, stacklevel=2)
+                    loop_index += 1
+                    continue
                 current_distance_result[point_index] = distance_result
                 loop_index += 1
             distance_dict_result[obstacle_name] = current_distance_result

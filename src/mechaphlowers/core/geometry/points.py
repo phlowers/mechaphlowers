@@ -453,7 +453,6 @@ class CoordsCalculator:
     def compute_sparse_points_coords(
         self, array: ObstacleArray, sparse_pts: SparsePoints
     ) -> SparsePoints:
-        
         local_obstacles_coords = array.get_coords()
         azimuth_line = np.cumsum(self.line_angle)
         span_index = array.data["span_index"].to_numpy()
