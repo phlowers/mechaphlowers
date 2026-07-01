@@ -19,6 +19,7 @@ from mechaphlowers.config import options as cfg
 from mechaphlowers.core.geometry.distances import DistanceResult
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
 from mechaphlowers.entities.reactivity import Notifier, Observer
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -671,9 +672,112 @@ class TestDistancesFromObstacles:
         distances_dict = pos_engine.get_distances_from_obstacles()
         assert distances_dict == {}
 
+    def test_no_intersection_skips_point_and_warns(
+        self, pos_engine_with_obstacles: PositionEngine
+    ):
+        original_point_distance = pos_engine_with_obstacles.point_distance
+        failing_point = pos_engine_with_obstacles.coords_calculator.obstacles_points.dict_coords()[
+            "obs_1"
+        ][1]
+
+        def fake_point_distance(span_index, point):
+            # obs_1 has 4 points (indices 0-3); make the 2nd one (index 1) fail.
+            if span_index == 1 and np.array_equal(point, failing_point):
+                raise NoIntersectionPlaneForDistanceError(
+                    "Points are on the same side of the plane - no intersection!"
+                )
+            return original_point_distance(span_index, point)
+
+        with patch.object(
+            pos_engine_with_obstacles,
+            "point_distance",
+            side_effect=fake_point_distance,
+        ):
+            with pytest.warns(UserWarning):
+                distances_dict = (
+                    pos_engine_with_obstacles.get_distances_from_obstacles()
+                )
+
+        assert set(distances_dict.keys()) == {"obs_0", "obs_1", "obs_2"}
+        # Point index 1 for obs_1 was skipped, the others are still present.
+        assert set(distances_dict["obs_1"].keys()) == {0, 2, 3}
+
     def test_group_points_sandbox(
         self, pos_engine_with_obstacles: PositionEngine
     ):
         group_points = pos_engine_with_obstacles.get_group_points()
         group_points.change_frame(frame_index=1)
         assert True
+
+
+class TestPositionEngineAdditionalPointsArray:
+    @pytest.fixture(autouse=True)
+    def setup(self, balance_engine_base_test):
+        self.pos_engine = PositionEngine(balance_engine_base_test)
+
+    def test_additional_points_array_init(self):
+        assert self.pos_engine.additional_points_array is not None
+        assert self.pos_engine.additional_points_array.data.empty
+
+    def test_create_additional_point(self):
+        point_coords = np.array([[10.0, 0.0, -5.0]])
+        self.pos_engine.add_additional_point(
+            "pt_0", span_index=0, coords=point_coords
+        )
+        assert len(self.pos_engine.additional_points_array.data) == 1
+        assert (
+            self.pos_engine.additional_points_array.data["name"].iloc[0]
+            == "pt_0"
+        )
+
+        # Test coordinate transformation (similar to obstacles)
+        # get_additional_points() uses points(True) which inserts NaN separators before each group,
+        # so the first actual coordinate is at index 1.
+        # translate_to_absolute_frame only translates x and y; z stays as input value.
+        expected_x = (
+            self.pos_engine.coords_calculator.supports_ground_coords[0][0]
+            + 10.0
+        )
+        additional_points_coords = self.pos_engine.get_additional_points()
+
+        np.testing.assert_allclose(additional_points_coords[1, 0], expected_x)
+        np.testing.assert_allclose(additional_points_coords[1, 2], -5.0)
+
+    def test_add_and_delete_additional_point(self):
+        self.pos_engine.add_additional_point(
+            "pt_0", span_index=0, coords=np.array([[10.0, 0.0, -5.0]])
+        )
+        self.pos_engine.add_additional_point(
+            "pt_1", span_index=1, coords=np.array([[10.0, 0.0, -5.0]])
+        )
+        assert len(self.pos_engine.additional_points_array.data) == 2
+
+        self.pos_engine.delete_additional_point("pt_0")
+        assert len(self.pos_engine.additional_points_array.data) == 1
+        assert (
+            self.pos_engine.additional_points_array.data["name"].iloc[0]
+            == "pt_1"
+        )
+
+    def test_delete_point_index(self):
+        self.pos_engine.add_additional_point(
+            "pt_multi",
+            span_index=0,
+            coords=np.array([[10.0, 0.0, -5.0], [20.0, 0.0, -5.0]]),
+        )
+        assert len(self.pos_engine.additional_points_array.data) == 2
+
+        # When creating together, pandas index handles it.
+        # point_index assigned could be sequential per obstacle. Let's delete the first point_index assigned
+        point_idx_to_delete = self.pos_engine.additional_points_array.data[
+            "point_index"
+        ].iloc[0]
+
+        self.pos_engine.delete_additional_point_by_index(
+            "pt_multi", point_idx_to_delete
+        )
+        assert len(self.pos_engine.additional_points_array.data) == 1
+        # delete_point renumbers remaining points, so the second point (x=20) gets index 0
+        assert (
+            self.pos_engine.additional_points_array.data["x"].iloc[0] == 20.0
+        )
