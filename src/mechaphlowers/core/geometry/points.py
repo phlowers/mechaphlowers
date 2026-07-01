@@ -26,6 +26,7 @@ from mechaphlowers.core.geometry.references import (
     translate_cable_to_support_from_attachments,
     translate_to_absolute_frame,
 )
+from mechaphlowers.core.geometry.rotation import rotation_quaternion_same_axis
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import ObstacleArray, SectionArray
@@ -452,13 +453,18 @@ class CoordsCalculator:
     def compute_sparse_points_coords(
         self, array: ObstacleArray, sparse_pts: SparsePoints
     ) -> SparsePoints:
-        x, y, z = array.get_vectors()
+        
+        local_obstacles_coords = array.get_coords()
         azimuth_line = np.cumsum(self.line_angle)
         span_index = array.data["span_index"].to_numpy()
-        azimuth_line_points = azimuth_line[span_index]
-        x_rotated, y_rotated, z_rotated = cable_to_localsection_frame(
-            x, y, z, azimuth_line_points
+        azimuth_line_obstacles = azimuth_line[span_index]
+
+        rotated_coords = rotation_quaternion_same_axis(
+            local_obstacles_coords,
+            azimuth_line_obstacles,
+            rotation_axis=np.array([0, 0, 1]),
         )
+        x_rotated, y_rotated, z_rotated = rotated_coords.T
         x_absolute, y_absolute, z_absolute = translate_to_absolute_frame(
             x_rotated,
             y_rotated,
@@ -467,6 +473,26 @@ class CoordsCalculator:
         )
         sparse_pts.update_vectors(x_absolute, y_absolute, z_absolute)
         return sparse_pts
+
+        # -------OLD VERSION------
+        # Bug when first angle on first support: because of cable_to_localsection_frame()
+        # x, y, z = self.obstacle_array.get_vectors()
+        # azimuth_line = np.cumsum(self.line_angle)
+        # span_index = self.obstacle_array.data["span_index"].to_numpy()
+        # azimuth_line_obstacles = azimuth_line[span_index]
+        # x_rotated, y_rotated, z_rotated = cable_to_localsection_frame(
+        #     x, y, z, azimuth_line_obstacles
+        # )
+        # x_absolute, y_absolute, z_absolute = translate_to_absolute_frame(
+        #     x_rotated,
+        #     y_rotated,
+        #     z_rotated,
+        #     self.supports_ground_coords[span_index],
+        # )
+        # self.obstacles_points.update_vectors(
+        #     x_absolute, y_absolute, z_absolute
+        # )
+        # return self.obstacles_points
 
     def get_attachments_coords(self):
         self.attachment_coords = get_attachment_coords(

@@ -95,3 +95,11 @@ class InvalidManipulationKeys(ValueError):
 
 class InvalidManipulationRange(ValueError):
     """Raised when a value is out of the allowed range in manipulation."""
+
+
+class NoIntersectionPlaneForDistanceError(ValueError):
+    """Raised when no intersection plane can be found for distance computation."""
+
+
+class InvalidNebulosity(ValueError):
+    """Raised when nebulosity is not in the range [0-8]."""

@@ -8,12 +8,14 @@ import numpy as np
 import pytest
 
 from mechaphlowers.core.geometry.planes import (
+    change_local_frame,
     intersection_curve_plane,
     line_function_from_2_points,
     meshgrid_plane,
     parametric_line_from_2_points,
     plane_from_line,
 )
+from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
 
 
 def test_parametric_line_from_2_points():
@@ -143,8 +145,17 @@ def test_intersection_curve_plane_fine_tuning_same_side_raises():
     point_on_plane = np.array([0.0, 0.0, 0.0])
 
     with pytest.raises(
-        ValueError, match="Points are on the same side of the plane"
+        NoIntersectionPlaneForDistanceError,
     ):
         intersection_curve_plane(
             plane_normal, point_on_plane, spans1, fine_tuning=True
         )
+
+
+def test_change_local_frame_zero_span_direction_raises():
+    local_frame_origin = np.array([1.0, 2.0, 3.0])
+    local_frame_x_axis = np.array([1.0, 2.0, 5.0])  # same XY as origin
+    local_point = np.array([0.0, 0.0, 0.0])
+
+    with pytest.raises(NoIntersectionPlaneForDistanceError):
+        change_local_frame(local_frame_origin, local_frame_x_axis, local_point)
