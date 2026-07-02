@@ -295,7 +295,7 @@ class SectionStudy:
         else:
             memento = self._caretaker.save()
             if self._intermediate_memento is not None:
-                # case where change_state already occured: resetting climate state
+                # case where change_state already occurred: resetting climate state
                 self._caretaker.restore(self._intermediate_memento)
             # if not: new case where no change_state was already run
             try:

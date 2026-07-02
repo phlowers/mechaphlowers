@@ -371,6 +371,7 @@ class BalanceEngine(Notifier):
         )
 
         new_t = validate_input(new_temperature, "new_temperature")
+        self.balance_model.current_temperature = arr.decr(new_t)
         self.deformation_model.current_temperature = new_t
 
         self.balance_model.adjustment = False
@@ -486,7 +487,7 @@ class BalanceEngine(Notifier):
             f"parameter: {self.span_model.parameter}\n"
             f"wind: {self.balance_model.cable_loads.wind_pressure}\n"
             f"ice: {self.balance_model.cable_loads.ice_thickness}\n"
-            f"temperature: {self.balance_model.sagging_temperature}\n"
+            f"temperature: {self.balance_model.current_temperature}\n"
             f"load position (ratio): {self.span_loads.load_position}\n"
             f"load mass: {self.span_loads.load_mass}\n"
             f"dx: {dxdydz[0]}\n"
