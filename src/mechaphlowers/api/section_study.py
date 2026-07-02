@@ -149,6 +149,10 @@ class SectionStudy:
             self._estimation_engine = _EE(self)
         return self._estimation_engine
 
+    @estimation_engine.setter
+    def estimation_engine(self, estimation_engine: EstimationEngine):
+        self._estimation_engine = estimation_engine
+
     @property
     def intermediate_memento(self) -> BalanceEngineMemento | None:
         """The memento captured after the intermediate warm-start solve, if any."""
