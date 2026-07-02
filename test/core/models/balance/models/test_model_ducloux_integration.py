@@ -717,49 +717,24 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
         wind_pressure, ice_thickness, new_temperature
     )
 
-    expected_dx = np.array(
-        [
-            2.9639224331351,
-            -0.0492527323586429,
-            0.0230113114082075,
-            -2.97582612580702,
-        ]
-    )
-    expected_dy = np.array(
-        [
-            0.405625632045006,
-            2.36632575817778,
-            2.3905212332461,
-            0.211183442571553,
-        ]
-    )
-    expected_dz = np.array(
-        [
-            -0.225014792817208,
-            -1.84338725571692,
-            -1.8124234364372,
-            -0.316006997625079,
-        ]
-    )
-    
-    # expected_dx = np.array([ 2.966822, -0.022642,  0.027188, -2.977996])
-    # expected_dy = np.array([0.392058, 2.375455, 2.399168, 0.199217])
-    # expected_dz = np.array([-0.21038 , -1.832131, -1.800904, -0.303071])
-    # non regression tests: results only comes from mechaphlowers 
+    expected_dx = np.array([2.966822, -0.022642, 0.027188, -2.977996])
+    expected_dy = np.array([0.392058, 2.375455, 2.399168, 0.199217])
+    expected_dz = np.array([-0.21038, -1.832131, -1.800904, -0.303071])
+    # non regression tests: results only comes from mechaphlowers
     np.testing.assert_allclose(
         balance_engine_angles_arm.balance_model.nodes.dx,
         expected_dx,
-        atol=1e-4,
+        atol=1e-6,
     )
     np.testing.assert_allclose(
         balance_engine_angles_arm.balance_model.nodes.dy,
         expected_dy,
-        atol=1e-4,
+        atol=1e-6,
     )
     np.testing.assert_allclose(
         balance_engine_angles_arm.balance_model.nodes.dz,
         expected_dz,
-        atol=1e-4,
+        atol=1e-6,
     )
 
 
