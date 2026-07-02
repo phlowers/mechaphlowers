@@ -269,7 +269,9 @@ class BalanceEngine(Notifier):
         logger.debug("Starting adjustment.")
 
         self.balance_model.adjustment = True
-        sagging_parameter = self.section_array.data.sagging_parameter.to_numpy()
+        sagging_parameter = (
+            self.section_array.data.sagging_parameter.to_numpy()
+        )
         self.span_model.set_parameter(sagging_parameter)
 
         # print("parameter :", self.span_model.parameter)

@@ -384,7 +384,6 @@ class SectionStudy:
             self._caretaker.restore(self.intermediate_memento)
         else:
             self._solve_intermediate()
-        
 
     def _solve_intermediate(self) -> None:
         """Solve at default conditions (T=15°C, wind=0, ice=0) as warm-start.
