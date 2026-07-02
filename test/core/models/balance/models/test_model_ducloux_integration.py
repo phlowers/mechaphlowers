@@ -741,7 +741,11 @@ def test_load_all_spans_wind_ice_temp(cable_array_AM600: CableArray):
             -0.316006997625079,
         ]
     )
-
+    
+    # expected_dx = np.array([ 2.966822, -0.022642,  0.027188, -2.977996])
+    # expected_dy = np.array([0.392058, 2.375455, 2.399168, 0.199217])
+    # expected_dz = np.array([-0.21038 , -1.832131, -1.800904, -0.303071])
+    # non regression tests: results only comes from mechaphlowers 
     np.testing.assert_allclose(
         balance_engine_angles_arm.balance_model.nodes.dx,
         expected_dx,

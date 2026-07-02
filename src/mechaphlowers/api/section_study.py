@@ -296,7 +296,7 @@ class SectionStudy:
             memento = self._caretaker.save()
             if self._intermediate_memento is not None:
                 # case where change_state already occured: resetting climate state
-                self._caretaker.restore(self.intermediate_memento)
+                self._caretaker.restore(self._intermediate_memento)
             # if not: new case where no change_state was already run
             try:
                 self._balance_engine.solve_adjustment()

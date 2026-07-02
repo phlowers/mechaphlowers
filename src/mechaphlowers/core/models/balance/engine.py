@@ -273,13 +273,8 @@ class BalanceEngine(Notifier):
             self.section_array.data.sagging_parameter.to_numpy()
         )
         self.span_model.set_parameter(sagging_parameter)
-
-        # print("parameter :", self.span_model.parameter)
-        # print("dxdydz :", self.balance_model.nodes.dxdydz[:])
         self.balance_model.nodes.dxdydz[:] = 0
-        # self.balance_model.initialize_state()
-        self.reset(True)
-        # print("dxdydz 0  :", self.balance_model.nodes.dxdydz[:])
+
         try:
             self.solver_adjustment.solve(self.balance_model)
         except SolverError as e:
@@ -370,13 +365,12 @@ class BalanceEngine(Notifier):
 
         self.balance_model.cable_loads.wind_pressure = validated_wind
 
-        # TODO: convert ice thickness from cm to m? Right now, user has to input in m
+        # Ice thickness input in meters
         self.balance_model.cable_loads.ice_thickness = validate_input(
             ice_thickness, "ice_thickness"
         )
 
         new_t = validate_input(new_temperature, "new_temperature")
-        # self.balance_model.sagging_temperature = arr.decr(new_t)
         self.deformation_model.current_temperature = new_t
 
         self.balance_model.adjustment = False
