@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+import logging
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -660,8 +662,35 @@ def test_nebulosity() -> None:
     )
 
 
-@pytest.mark.skip(
-    reason="This test has been skipped due to a new behavior in the thermohl library v1.9.0. TBD"
-)
-def test_nebulosity__no_solution() -> None:
-    pass
+def test_nebulosity__no_solution(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        greatest_nebulosity = ThermalEngine.nebulosity(
+            np.array([50.0]),
+            np.array(
+                [
+                    np.datetime64("2026-06-26T12:00"),
+                ]
+            ),
+            np.array([40.0]),
+            np.array([0.0]),
+        )
+        assert "do not satisfy convergence conditions" in caplog.text
+
+    assert np.allclose(greatest_nebulosity.data, np.array([8]))
+
+    caplog.clear()
+
+    with caplog.at_level(logging.WARNING):
+        smallest_nebulosity = ThermalEngine.nebulosity(
+            np.array([2000.0]),
+            np.array(
+                [
+                    np.datetime64("2026-06-26T12:00"),
+                ]
+            ),
+            np.array([40.0]),
+            np.array([0.0]),
+        )
+        assert "do not satisfy convergence conditions" in caplog.text
+
+    assert np.allclose(smallest_nebulosity.data, np.array([0]))
