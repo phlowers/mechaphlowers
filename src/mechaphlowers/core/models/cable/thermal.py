@@ -602,6 +602,9 @@ class ThermalEngine:
 
         Nebulosities are integers between 0 and 8.
 
+        If no nebulosity can yield given radiation (because it is too high or too low),
+        0 or 8 respectivly is returned.
+
         Returns:
             NebulosityResults: an instance containing the results.
         """
