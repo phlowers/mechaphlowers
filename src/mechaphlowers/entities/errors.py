@@ -43,6 +43,7 @@ class SolverError(Exception):
         super().__init__(f"{prefix} {message} | {details}")
 
 
+# ------------------error classes------------------
 class SuspectedChainReversal(SolverError):
     """Raised in solver when chain is suspected to be reversed
     (above horizontal position)
@@ -59,18 +60,6 @@ class ShapeError(ValueError):
 
 class GpsNoDataAvailable(AttributeError):
     """Raised when GPS coordinates are requested but no starting point has been set."""
-
-
-class DataWarning(UserWarning):
-    """Base class for data-related warnings."""
-
-
-class BalanceEngineWarning(UserWarning):
-    """Base class for balance-related warnings."""
-
-
-class ViewChoiceWarning(UserWarning):
-    """Base class for choice of view (ex: choice of support or span view)."""
 
 
 class RtsDataNotAvailable(ValueError):
@@ -103,3 +92,22 @@ class NoIntersectionPlaneForDistanceError(ValueError):
 
 class InvalidNebulosity(ValueError):
     """Raised when nebulosity is not in the range [0-8]."""
+
+
+# ------------------warning classes------------------
+
+
+class DataWarning(UserWarning):
+    """Base class for data-related warnings."""
+
+
+class BalanceEngineWarning(UserWarning):
+    """Base class for balance-related warnings."""
+
+
+class ViewChoiceWarning(UserWarning):
+    """Base class for choice of view (ex: choice of support or span view)."""
+
+
+class NoIntersectionPlaneWarning(UserWarning):
+    """Raised when no intersection plane can be found for distance computation."""
