@@ -6,16 +6,24 @@
 
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
-from math import floor
-from typing import Any
 
 import numpy as np
 import pandas as pd
+from numpy import typing as npt
 from thermohl import solver  # type: ignore
-from typing_extensions import Self
+from thermohl.power.convective_cooling import (  # type: ignore
+    compute_wind_attack_angle as thermohl_compute_wind_angle,
+)
+from thermohl.power.rte.solar_heating import (  # type: ignore
+    diffuse_and_beam_radiations,
+    estimate_nebulosity,
+)
 
 from mechaphlowers.entities.arrays import CableArray
+from mechaphlowers.entities.errors import (
+    InvalidNebulosity,
+    UncertaintyNotAvailable,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +45,7 @@ class ThermalResults(ABC):
         Returns:
             pd.DataFrame: Parsed results as a pandas DataFrame.
         """
-        pass
+        raise NotImplementedError
 
     def __len__(self) -> int:
         return len(self.data)
@@ -45,24 +53,91 @@ class ThermalResults(ABC):
     def __str__(self) -> str:
         return self.data.to_string()
 
-    def __copy__(self) -> Self:
-        return type(self)(self.data)
-
     def __repr__(self) -> str:
         class_name = type(self).__name__
         return f"{class_name}\n{self.__str__()}"
 
 
-class ThermalTransientResults(ThermalResults):
+class ThermalResultsWithInputs(ThermalResults):
+    INPUT_PREFIX = "input_"
+
+    def __init__(
+        self,
+        input_data: dict | pd.DataFrame,
+        return_inputs: bool = True,
+    ):
+        inputs = self._pop_inputs(input_data)
+        self.inputs = inputs if return_inputs else None
+        results = self.parse_results(input_data)
+        self.data = results
+
+    @classmethod
+    def _input_columns(cls, df: pd.DataFrame) -> list[str]:
+        return [
+            column
+            for column in df.columns
+            if column.startswith(cls.INPUT_PREFIX)
+        ]
+
+    @classmethod
+    def _input_keys(cls, data: dict) -> list[str]:
+        return [key for key in data.keys() if key.startswith(cls.INPUT_PREFIX)]
+
+    @classmethod
+    def _remove_input_prefix(cls, key: str) -> str:
+        return key.replace(cls.INPUT_PREFIX, "")
+
+    @classmethod
+    def _pop_inputs(cls, data: dict | pd.DataFrame) -> pd.DataFrame:
+        if isinstance(data, dict):
+            input_keys = cls._input_keys(data)
+            inputs = pd.DataFrame(
+                {
+                    cls._remove_input_prefix(key): value
+                    for key, value in data.items()
+                    if key in input_keys
+                }
+            )
+            for key in input_keys:
+                data.pop(key)
+        else:
+            input_columns = cls._input_columns(data)
+            inputs = data[input_columns]
+            data.drop(columns=input_columns, inplace=True)
+            inputs.rename(columns=cls._remove_input_prefix, inplace=True)
+        return inputs
+
+
+class CableTemperatureResultsMixin:
+    def __init__(self, cable_is_bimetallic: npt.NDArray[np.bool]):
+        self.cable_is_bimetallic = cable_is_bimetallic
+
+    def cable_temperature(self) -> np.ndarray:
+        """Relevant cable temperature for each span.
+
+        This means core temperature for bimetallic cables and average temperature
+        for homogeneous cables.
+        """
+        return np.where(
+            self.cable_is_bimetallic,
+            self.data["core_temperature"],  # type: ignore
+            self.data["average_temperature"],  # type: ignore
+        )
+
+
+class ThermalTransientResults(
+    ThermalResultsWithInputs, CableTemperatureResultsMixin
+):
     """Thermal transient results class for transient temperature calculations."""
 
-    def __init__(self, input_data: dict | pd.DataFrame):
-        """Initialize transient thermal results.
-
-        Args:
-            input_data (dict | pd.DataFrame): Raw transient thermal results data.
-        """
-        super().__init__(input_data)
+    def __init__(
+        self,
+        input_data: dict | pd.DataFrame,
+        cable_is_bimetallic: npt.NDArray[np.bool],
+        return_inputs=True,
+    ):
+        super().__init__(input_data, return_inputs)
+        CableTemperatureResultsMixin.__init__(self, cable_is_bimetallic)
 
     @staticmethod
     def parse_results(data: dict | pd.DataFrame) -> pd.DataFrame:
@@ -99,16 +174,19 @@ class ThermalTransientResults(ThermalResults):
         )
 
 
-class ThermalSteadyResults(ThermalResults):
+class ThermalSteadyResults(
+    ThermalResultsWithInputs, CableTemperatureResultsMixin
+):
     """Thermal steady-state results parser."""
 
-    def __init__(self, input_data: dict | pd.DataFrame):
-        """Initialize steady-state thermal results.
-
-        Args:
-            input_data (dict | pd.DataFrame): Raw steady-state thermal results data.
-        """
-        super().__init__(input_data)
+    def __init__(
+        self,
+        input_data: dict | pd.DataFrame,
+        cable_is_bimetallic: npt.NDArray[np.bool],
+        return_inputs=True,
+    ):
+        super().__init__(input_data, return_inputs)
+        CableTemperatureResultsMixin.__init__(self, cable_is_bimetallic)
 
     @staticmethod
     def parse_results(
@@ -128,6 +206,53 @@ class ThermalSteadyResults(ThermalResults):
         if isinstance(data, pd.DataFrame):
             return data.copy()
         return pd.DataFrame(data)
+
+
+class SteadyIntensityResults(ThermalSteadyResults):
+    """Parser for thermal steady-state intensity computation."""
+
+
+class SteadyTemperatureResults(ThermalSteadyResults):
+    """Parser for thermal steady-state temperature computation."""
+
+    @property
+    def uncertainty(self) -> np.ndarray:
+        if "uncertainty" in self.data.columns:
+            return self.data["uncertainty"].to_numpy()
+        raise UncertaintyNotAvailable(
+            "Uncertainty not available. It hasn't been computed.\n"
+            "To compute it, pass 'return_uncertainty=True' when calling thermal_engine.steady_temperature",
+        )
+
+
+class SolarRadiationResults(ThermalResults):
+    """Diffuse and beam radiations with their sum."""
+
+    @staticmethod
+    def parse_results(data: dict | pd.DataFrame):
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError(
+                "only DataFrame input is supported for solar radiation results parsing."
+            )
+        return data
+
+
+class NebulosityResults(ThermalResults):
+    """Nebulosity results.
+
+    .data is a DataFrame with a single column: nebulosity.
+    """
+
+    def __init__(self, input_data: np.ndarray):
+        self.data = self.parse_results(input_data)
+
+    @staticmethod
+    def parse_results(data: dict | pd.DataFrame | np.ndarray) -> pd.DataFrame:
+        if not isinstance(data, np.ndarray):
+            raise TypeError(
+                "only np.array input is supported for nebulosity results parsing."
+            )
+        return pd.DataFrame({"nebulosity": data})
 
 
 class ThermalForecastArray:
@@ -152,20 +277,14 @@ class ThermalForecastArray:
 
 
 def check_inputs(
-    month: np.ndarray[Any, np.dtype[np.integer]] | None = None,
-    day: np.ndarray[Any, np.dtype[np.integer]] | None = None,
-    hour: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]]
-    | None = None,
-    datetime_utc: list[datetime] | None = None,
-    nebulosity: np.ndarray[Any, np.dtype[np.integer] | np.dtype[np.floating]]
-    | None = None,
-    **kwargs: np.ndarray[Any, Any] | list[datetime],
-) -> tuple[dict[str, np.ndarray[Any, Any] | list[datetime]], int]:
+    **kwargs: npt.NDArray[np.integer | np.floating | np.datetime64],
+) -> tuple[
+    dict[str, npt.NDArray[np.integer | np.floating | np.datetime64]], int
+]:
     """Validate input parameters.
 
-    Ensures all inputs are numpy arrays with the same size and that
-    datetime-related inputs have the right type. Also ensures that
-    month, day and hour, if given, are in the right range.
+    Ensures all inputs are numpy arrays with the same size. Also ensures that
+    nebulosities (if given) are in the right range.
 
     Args:
         **kwargs: Input parameters as numpy arrays.
@@ -179,11 +298,10 @@ def check_inputs(
         ValueError: If array inputs have incompatible sizes.
         TypeError: If any input is not a numpy array.
     """
+    if len(kwargs) == 0:
+        return kwargs, 0
 
     array_length: int | None = None
-
-    if nebulosity is not None:
-        kwargs["nebulosity"] = nebulosity
 
     for key, value in kwargs.items():
         if not isinstance(value, np.ndarray):
@@ -200,162 +318,19 @@ def check_inputs(
                 f"Expected {array_length}, got {value.size} for {key}."
             )
 
-    array_length = check_datetime_arguments(
-        array_length,
-        month=month,
-        day=day,
-        hour=hour,
-        datetime_utc=datetime_utc,
-    )
+    if "nebulosity" in kwargs:
+        check_nebulosity_range(kwargs["nebulosity"])
 
-    check_nebulosity_range(nebulosity)
-
-    if month is not None:
-        kwargs["month"] = month
-    if day is not None:
-        kwargs["day"] = day
-    if hour is not None:
-        kwargs["hour"] = hour
-    if datetime_utc is not None:
-        kwargs["datetime_utc"] = datetime_utc
-
-    return kwargs, array_length
+    return kwargs, array_length  # type: ignore
 
 
-def check_nebulosity_range(nebulosity: np.ndarray | None = None) -> None:
-    if nebulosity is not None and not np.all(
+def check_nebulosity_range(nebulosity: np.ndarray) -> None:
+    if not np.all(
         ((0 <= nebulosity) & (nebulosity <= 8)) | np.isnan(nebulosity)
     ):
-        raise ValueError(
+        raise InvalidNebulosity(
             "Nebulosity values must be in the range [0-8]. Invalid values found in 'nebulosity'."
         )
-
-
-def check_datetime_arguments(  # NOSONAR
-    array_length: int | None,
-    month: np.ndarray[Any, np.dtype[np.integer]] | None,
-    day: np.ndarray[Any, np.dtype[np.integer]] | None,
-    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
-    datetime_utc: list[datetime] | None,
-) -> int:
-    if datetime_utc is not None and (
-        month is not None or day is not None or hour is not None
-    ):
-        raise ValueError(
-            "Cannot provide both 'datetime_utc' and individual 'month', 'day', or 'hour' arrays."
-        )
-
-    check_datetime_argument_types(month, day, hour, datetime_utc)
-
-    for arg_name, value in [("month", month), ("day", day), ("hour", hour)]:
-        if value is not None:
-            if not isinstance(value, np.ndarray):
-                raise TypeError(
-                    f"Expected numpy array for '{arg_name}', got {type(value).__name__}."
-                )
-
-            if array_length is None:
-                array_length = value.size
-            elif value.size != array_length:
-                raise ValueError(
-                    f"All array inputs must have the same length. "
-                    f"Expected {array_length}, got {value.size} for {arg_name}."
-                )
-    if datetime_utc is not None:
-        if array_length is None:
-            array_length = len(datetime_utc)
-        elif len(datetime_utc) != array_length:
-            raise ValueError(
-                f"All array inputs must have the same length. "
-                f"Expected {array_length}, got {len(datetime_utc)} for 'datetime_utc'."
-            )
-
-    check_datetime_argument_ranges(
-        month=month,
-        day=day,
-        hour=hour,
-    )
-
-    if array_length is None:
-        array_length = 0
-
-    return array_length
-
-
-def check_datetime_argument_types(
-    month: np.ndarray[Any, np.dtype[np.integer]] | None,
-    day: np.ndarray[Any, np.dtype[np.integer]] | None,
-    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
-    datetime_utc: list[datetime] | None,
-) -> None:
-    for arg_name, value in [("month", month), ("day", day), ("hour", hour)]:
-        if value is not None and not isinstance(value, np.ndarray):
-            raise TypeError(
-                f"Expected numpy array for '{arg_name}', got {type(value).__name__}."
-            )
-    for arg_name, value in [("month", month), ("day", day)]:
-        if value is not None and not np.issubdtype(value.dtype, np.integer):
-            raise TypeError(
-                f"Expected integer array for '{arg_name}', got {value.dtype}."
-            )
-
-    if hour is not None and not (
-        np.issubdtype(hour.dtype, np.integer)
-        or np.issubdtype(hour.dtype, np.floating)
-    ):
-        raise TypeError(
-            f"Expected integer or float array for 'hour', got {hour.dtype}."
-        )
-
-    if datetime_utc is not None and not isinstance(datetime_utc, list):
-        raise TypeError(
-            f"Expected list of datetime objects for 'datetime_utc', got {type(datetime_utc).__name__}."
-        )
-
-
-def check_datetime_argument_ranges(
-    month: np.ndarray[Any, np.dtype[np.integer]] | None,
-    day: np.ndarray[Any, np.dtype[np.integer]] | None,
-    hour: np.ndarray[Any, np.dtype[np.integer | np.floating]] | None,
-) -> None:
-    if month is not None and not np.all((1 <= month) & (month <= 12)):
-        raise ValueError(
-            "Month values must be in the range 1-12. Invalid values found in 'month'."
-        )
-    if day is not None and not np.all((1 <= day) & (day <= 31)):
-        raise ValueError(
-            "Day values must be in the range 1-31. Invalid values found in 'day'."
-        )
-    if hour is not None and not np.all((0 <= hour) & (hour < 24)):
-        raise ValueError(
-            "Hour values must be in the range [0-24[. Invalid values found in 'hour'."
-        )
-
-
-def to_datetime(
-    month: np.integer,
-    day: np.integer,
-    hour: np.floating,
-) -> datetime:
-    """Convert month, day, hour to a datetime object.
-
-    Args:
-        month (np.integer): Month value ([1-12]).
-        day (np.integer): Day value ([1-31]).
-        hour (np.floating): Hour value ([0-24[). Can include non-integer hours (e.g. 14.5 for 2:30 PM).
-
-    Returns:
-        datetime: A datetime object representing the given month, day, and hour.
-    """
-    return datetime(
-        1970,  # Arbitrary year since it's not used in calculations
-        month,
-        day,
-        hour=floor(hour),
-        minute=floor((hour % 1) * 60),
-        second=floor(((hour % 1) * 60) % 1 * 60),
-        microsecond=floor((((hour % 1) * 60) % 1 * 60) % 1 * 1000000),
-    )
 
 
 class ThermalEngine:
@@ -392,9 +367,7 @@ class ThermalEngine:
         longitude: np.ndarray,
         altitude: np.ndarray,
         azimuth: np.ndarray,
-        month: np.ndarray,
-        day: np.ndarray,
-        hour: np.ndarray,
+        datetime_utc: npt.NDArray[np.datetime64],
         intensity: np.ndarray,
         ambient_temp: np.ndarray,
         wind_speed: np.ndarray,
@@ -410,14 +383,12 @@ class ThermalEngine:
             longitude (np.ndarray): Longitude values.
             altitude (np.ndarray): Altitude values.
             azimuth (np.ndarray): Azimuth values.
-            month (np.ndarray): Month values.
-            day (np.ndarray): Day values.
-            hour (np.ndarray): Hour values.
+            datetime_utc (np.ndarray): Datetime (year is indifferent).
             intensity (np.ndarray): Current intensity values.
             ambient_temp (np.ndarray): Ambient temperature values.
             wind_speed (np.ndarray): Wind speed values in m/s
             wind_angle (np.ndarray): Wind angle values in degrees, clockwise from North.
-            nebulosity (np.ndarray): Nebulosity level (int from 0 to 8).
+            nebulosity (np.ndarray): Nebulosity level (ints from 0 to 8). 8 is the most clouded.
             solar_irradiance (np.ndarray | None): Solar irradiance values (optional). Defaults to None.
         """
         # Handle optional solar_irradiance - create NaN array if not provided
@@ -430,9 +401,7 @@ class ThermalEngine:
             longitude=longitude,
             altitude=altitude,
             azimuth=azimuth,
-            month=month,
-            day=day,
-            hour=hour,
+            datetime_utc=datetime_utc,
             intensity=intensity,
             ambient_temp=ambient_temp,
             wind_speed=wind_speed,
@@ -441,23 +410,13 @@ class ThermalEngine:
             solar_irradiance=solar_irradiance,
         )
 
-        if inputs.get("datetime_utc") is None:
-            datetime_utc = [
-                to_datetime(month, day, hour)
-                for month, day, hour in zip(
-                    inputs["month"], inputs["day"], inputs["hour"]
-                )
-            ]
-        else:
-            datetime_utc = inputs.get("datetime_utc")  # type: ignore
-
         self.dict_input = {
             "measured_global_radiation": inputs["solar_irradiance"],
             "latitude": inputs["latitude"],
             "longitude": inputs["longitude"],
             "altitude": inputs["altitude"],
             "cable_azimuth": inputs["azimuth"],
-            "datetime_utc": datetime_utc,
+            "datetime_utc": inputs["datetime_utc"],
             "ambient_temperature": inputs["ambient_temp"],
             "wind_speed": inputs["wind_speed"],  # wind speed (m.s**-1)
             "wind_azimuth": inputs[
@@ -505,6 +464,7 @@ class ThermalEngine:
                 0.016 if cable_array.data.has_magnetic_heart.iloc[0] else 0.0,
             ),
         }
+        self.bimetallic_cable = cable_array.is_bimetallic
         self._load()
         logger.debug("Thermal attribute set")
 
@@ -523,38 +483,64 @@ class ThermalEngine:
         )
 
     def steady_temperature(
-        self, intensity: np.ndarray | None = None
-    ) -> ThermalSteadyResults:
+        self,
+        intensity: np.ndarray | None = None,
+        return_uncertainty: bool = False,
+        return_inputs: bool = True,
+    ) -> SteadyTemperatureResults:
         """Compute steady-state temperature results.
 
+        If return_inputs=True, input data are returned in
+        result.inputs as a DataFrame.
+
         Returns:
-            ThermalSteadyResults: An instance containing steady-state temperature data.
+            SteadyTemperatureResults: An instance containing steady-state temperature data.
         """
         logger.debug("Get steady_temperature()")
         if intensity is not None:
             self.dict_input["transit"] = intensity
             self.load()
-        return ThermalSteadyResults(self.thermal_model.steady_temperature())
+        return SteadyTemperatureResults(
+            self.thermal_model.steady_temperature(
+                return_uncertainty=return_uncertainty,
+            ),
+            cable_is_bimetallic=self.bimetallic_cable,
+            return_inputs=return_inputs,
+        )
 
     def steady_intensity(
-        self, target_temperature: np.ndarray | None = None
-    ) -> ThermalSteadyResults:
+        self,
+        target_temperature: np.ndarray | None = None,
+        return_inputs: bool = True,
+    ) -> SteadyIntensityResults:
         """Compute steady-state intensity results.
 
+        If return_inputs=True, input data are returned in
+        result.inputs as a DataFrame.
+
         Returns:
-            ThermalSteadyResults: An instance containing steady-state intensity data.
+            SteadyIntensityResults: An instance containing steady-state intensity data.
         """
         if target_temperature is not None:
             self.target_temperature = target_temperature
 
-        return ThermalSteadyResults(
-            self.thermal_model.steady_intensity(self.target_temperature)
+        return SteadyIntensityResults(
+            self.thermal_model.steady_intensity(
+                self.target_temperature,
+            ),
+            cable_is_bimetallic=self.bimetallic_cable,
+            return_inputs=return_inputs,
         )
 
     def transient_temperature(
-        self, forecast_control: ThermalForecastArray | None = None
+        self,
+        forecast_control: ThermalForecastArray | None = None,
+        return_inputs: bool = True,
     ) -> ThermalTransientResults:
         """Compute transient temperature results.
+
+        If return_inputs=True, input data are returned in
+        result.inputs as a DataFrame.
 
         Returns:
             ThermalTransientResults: An instance containing time-varying temperature data.
@@ -563,8 +549,66 @@ class ThermalEngine:
             self.forecast = forecast_control
 
         return ThermalTransientResults(
-            self.thermal_model.transient_temperature(offset=self.forecast.time)
+            self.thermal_model.transient_temperature(
+                offset=self.forecast.time
+            ),
+            cable_is_bimetallic=self.bimetallic_cable,
+            return_inputs=return_inputs,
         )
+
+    @staticmethod
+    def diffuse_and_beam_solar_radiations(
+        datetime_utc: npt.NDArray[np.datetime64],
+        latitude: np.ndarray,
+        longitude: np.ndarray,
+        nebulosity: np.ndarray,
+    ) -> SolarRadiationResults:
+        """Compute diffuse radiation, beam radiation and their sum.
+
+        Returns:
+            SolarRadiationResults: An instance containing the results.
+        """
+        inputs, _ = check_inputs(
+            nebulosity=nebulosity,
+            datetime_utc=datetime_utc,
+            latitude=latitude,
+            longitude=longitude,
+        )
+        diffuse_radiation, beam_radiation = diffuse_and_beam_radiations(
+            inputs["datetime_utc"],
+            inputs["latitude"],
+            inputs["longitude"],
+            inputs["nebulosity"],
+        )
+        df = pd.DataFrame(
+            {
+                "diffuse_radiation": diffuse_radiation,
+                "beam_radiation": beam_radiation,
+                "diffuse_plus_beam_radiation": diffuse_radiation
+                + beam_radiation,
+            }
+        )
+        return SolarRadiationResults(df)
+
+    @staticmethod
+    def nebulosity(
+        diffuse_plus_beam_radiation: np.ndarray,
+        datetime_utc: npt.NDArray[np.datetime64],
+        latitude: np.ndarray,
+        longitude: np.ndarray,
+    ) -> NebulosityResults:
+        """Compute the nebulosity which gives the closest diffuse + beam radiation
+        to the one given as argument.
+
+        Nebulosities are integers between 0 and 8.
+
+        Returns:
+            NebulosityResults: an instance containing the results.
+        """
+        result = estimate_nebulosity(
+            diffuse_plus_beam_radiation, datetime_utc, latitude, longitude
+        )
+        return NebulosityResults(result)
 
     @property
     def wind_cable_angle(self) -> np.ndarray:
@@ -579,7 +623,6 @@ class ThermalEngine:
             self.dict_input["cable_azimuth"], self.dict_input["wind_azimuth"]
         )
 
-    # TODO: move this into thl (formulae in thl.power.convective_cooling line 35)
     @staticmethod
     def compute_wind_attack_angle(
         cable_azimuth: np.ndarray, wind_azimuth: np.ndarray
@@ -594,11 +637,7 @@ class ThermalEngine:
             Angle in degrees between wind direction and cable azimuth.
         """
         return np.rad2deg(
-            np.arcsin(
-                np.sin(
-                    np.deg2rad(np.abs(cable_azimuth - wind_azimuth) % 180.0)
-                )
-            )
+            thermohl_compute_wind_angle(cable_azimuth, wind_azimuth),
         )
 
     @property

@@ -81,6 +81,10 @@ class MeasurementDataNotAvailable(ValueError):
     """Raised when measurement data are not available for computation."""
 
 
+class UncertaintyNotAvailable(AttributeError):
+    """Raised when attempting to read uncertainty while it hasn't been computed."""
+
+
 class InvalidManipulationIndex(ValueError):
     """Raised when an invalid index is used in manipulation."""
 
@@ -91,3 +95,11 @@ class InvalidManipulationKeys(ValueError):
 
 class InvalidManipulationRange(ValueError):
     """Raised when a value is out of the allowed range in manipulation."""
+
+
+class NoIntersectionPlaneForDistanceError(ValueError):
+    """Raised when no intersection plane can be found for distance computation."""
+
+
+class InvalidNebulosity(ValueError):
+    """Raised when nebulosity is not in the range [0-8]."""

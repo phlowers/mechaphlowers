@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import TYPE_CHECKING, Type
 
 import numpy as np
@@ -34,6 +35,7 @@ if TYPE_CHECKING:
     from mechaphlowers.core.models.estimation import EstimationEngine
     from mechaphlowers.core.models.guying import Guying
     from mechaphlowers.plotting.plot import PlotEngine
+from mechaphlowers.utils import arr
 
 logger = logging.getLogger(__name__)
 
@@ -414,13 +416,44 @@ class SectionStudy:
         load_position_distance: np.ndarray | list,
         load_mass: np.ndarray | list,
     ) -> None:
-        """Delegate to [`BalanceEngine.add_loads`][mechaphlowers.core.models.balance.engine.BalanceEngine.add_loads].
+        """Calls preferred method [`set_loads`](mechaphlowers.api.section_study.SectionStudy.set_loads).
+
+        This method is kept for compatibility.
+
+        Expected length for load_position_distance and load_mass is the number of pylons. Last array elements should be nan
+        or zero.
+
+        Raises:
+            ValueError: if at least one load_position_distance is not in [0, span_length]
+                or if the arguments don't have the right lengths.
+        """
+        warnings.warn(
+            "add_loads is deprecated, use set_loads instead."
+            "Caution: expected argument length for set_loads is the number of spans.",
+            category=DeprecationWarning,
+        )
+        load_position_distance = np.array(load_position_distance)
+        load_mass = np.array(load_mass)
+        self.set_loads(arr.decr(load_position_distance), arr.decr(load_mass))
+
+    def set_loads(
+        self,
+        load_position_distance: np.ndarray | list,
+        load_mass: np.ndarray | list,
+    ) -> None:
+        """Delegate to [`BalanceEngine.set_loads`][mechaphlowers.core.models.balance.engine.BalanceEngine.set_loads].
+
+        If either load_position_distance[i] or load_mass[i] is 0 or nan, it means there is no load at span i.
 
         Args:
-            load_position_distance (np.ndarray | list): Position of the loads, in meters.
-            load_mass (np.ndarray | list): Mass of the loads.
+            load_position_distance (np.ndarray | list): Position of the loads, in meters. Its size must be the number of spans.
+            load_mass (np.ndarray | list): Mass of the loads. Its size must be the number of spans.
+
+        Raises:
+            ValueError: if at least one load_position_distance is not in [0, span_length]
+                or if the arguments don't have the right lengths.
         """
-        self._balance_engine.add_loads(load_position_distance, load_mass)
+        self._balance_engine.set_loads(load_position_distance, load_mass)
 
     # ── State management ──────────────────────────────────────────────────
 
