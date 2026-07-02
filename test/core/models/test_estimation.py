@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from mechaphlowers.api.section_study import SectionStudy
@@ -17,7 +16,6 @@ from mechaphlowers.core.models.estimation import (
     EstimationResult,
     NewtonMethod,
 )
-from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 @pytest.fixture
@@ -33,12 +31,16 @@ def solved_study(balance_engine_base_test: BalanceEngine) -> SectionStudy:
 
 class TestEstimationResult:
     def test_repr_converged(self):
-        r = EstimationResult(value=42.5, residual=1e-5, iterations=10, converged=True)
+        r = EstimationResult(
+            value=42.5, residual=1e-5, iterations=10, converged=True
+        )
         assert "converged" in repr(r)
         assert "42.5" in repr(r)
 
     def test_repr_not_converged(self):
-        r = EstimationResult(value=10.0, residual=5.0, iterations=50, converged=False)
+        r = EstimationResult(
+            value=10.0, residual=5.0, iterations=50, converged=False
+        )
         assert "NOT converged" in repr(r)
 
 
@@ -72,7 +74,8 @@ class TestOptimizationMethods:
         method = BisectionMethod(tol=1e-6, maxiter=50)
         # f(3)=5, f(5)=21, both positive
         result = method.solve(self._simple_objective, bounds=(3.0, 5.0))
-        assert not result.converged or result.residual > 1e-6
+        assert not result.converged
+        assert result.value == 3.0
 
 
 class TestEstimationEngine:
@@ -85,7 +88,9 @@ class TestEstimationEngine:
 
     def test_estimate_generic(self, solved_study: SectionStudy):
         """Generic estimate() works with a simple function."""
-        engine = EstimationEngine(solved_study, method=BisectionMethod(tol=1e-4))
+        engine = EstimationEngine(
+            solved_study, method=BisectionMethod(tol=1e-4)
+        )
         result = engine.estimate(
             objective=lambda x: x**2 - 9,
             bounds=(0.0, 10.0),
@@ -103,7 +108,8 @@ class TestEstimationEngine:
         """Estimate temperature: solve at known temp, use that distance as target."""
         # First, solve at a known temperature to get a reference distance
         study = solved_study
-        study.solve_change_state(new_temperature=60.0)
+        temperature = 60.0
+        study.solve_change_state(new_temperature=temperature)
         ref_distance = study.position_engine.point_distance(
             span_index=0, point=np.array([250.0, 10.0, 20.0])
         ).distance_3d
@@ -120,12 +126,13 @@ class TestEstimationEngine:
             bounds=(0.0, 120.0),
         )
         assert result.converged
-        assert abs(result.value - 60.0) < 1.0
+        assert abs(result.value - temperature) < 0.1
 
     def test_estimate_wind(self, solved_study: SectionStudy):
         """Estimate wind pressure using a known reference."""
         study = solved_study
-        study.solve_change_state(wind_pressure=400.0)
+        wind_pressure = 400.0
+        study.solve_change_state(wind_pressure=wind_pressure)
         ref_distance = study.position_engine.point_distance(
             span_index=0, point=np.array([250.0, 10.0, 20.0])
         ).distance_3d
@@ -141,14 +148,18 @@ class TestEstimationEngine:
             bounds=(0.0, 1000.0),
         )
         assert result.converged
-        assert abs(result.value - 400.0) < 5.0
+        assert abs(result.value - wind_pressure) < 0.1
 
-    def test_state_preserved_after_estimation(self, solved_study: SectionStudy):
+    def test_state_preserved_after_estimation(
+        self, solved_study: SectionStudy
+    ):
         """Engine state is unchanged after estimation."""
         study = solved_study
         memento_before = study.save_state()
 
-        engine = EstimationEngine(study, method=BisectionMethod(tol=1.0, maxiter=5))
+        engine = EstimationEngine(
+            study, method=BisectionMethod(tol=1.0, maxiter=5)
+        )
         engine.estimate_temperature(
             span_index=0,
             obstacle_point=np.array([250.0, 10.0, 20.0]),

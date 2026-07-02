@@ -83,7 +83,6 @@ class BisectionMethod:
                 b = mid
             else:
                 a = mid
-                fa = fmid
 
         mid = (a + b) / 2.0
         return EstimationResult(
@@ -115,7 +114,7 @@ class BrentMethod:
         bounds: tuple[float, float],
     ) -> EstimationResult:
         try:
-            from scipy.optimize import brentq
+            from scipy.optimize import brentq  # type: ignore
         except ImportError:
             logger.warning(
                 "scipy not available, falling back to BisectionMethod."
@@ -124,16 +123,10 @@ class BrentMethod:
             return fallback.solve(objective, bounds)
 
         a, b = bounds
-        iterations = 0
-
-        def counted_objective(x: float) -> float:
-            nonlocal iterations
-            iterations += 1
-            return objective(x)
 
         try:
             root, result_info = brentq(
-                counted_objective,
+                objective,
                 a,
                 b,
                 xtol=self.tol,
@@ -142,7 +135,9 @@ class BrentMethod:
             )
             return EstimationResult(
                 value=root,
-                residual=abs(result_info.function_calls and objective(root) or 0.0),
+                residual=abs(
+                    result_info.function_calls and abs(objective(root)) or 0.0
+                ),
                 iterations=result_info.iterations,
                 converged=result_info.converged,
             )
@@ -165,7 +160,10 @@ class NewtonMethod:
     """
 
     def __init__(
-        self, tol: float = 1e-3, maxiter: int = 20, dx: float = 1.0
+        self,
+        tol: float = 1e-3,
+        maxiter: int = 20,
+        dx: float = 1.0,
     ) -> None:
         self.tol = tol
         self.maxiter = maxiter

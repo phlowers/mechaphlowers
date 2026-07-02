@@ -262,8 +262,8 @@ class EstimationEngine:
             n_spans = len(
                 self._study.balance_engine.section_array.data.span_length
             )
-            load_positions = [[] for _ in range(n_spans)]
-            load_masses = [[] for _ in range(n_spans)]
+            load_positions: list[list[float]] = [[] for _ in range(n_spans)]
+            load_masses: list[list[float]] = [[] for _ in range(n_spans)]
             load_positions[span_index] = [load_position_distance]
             load_masses[span_index] = [load_mass]
 
