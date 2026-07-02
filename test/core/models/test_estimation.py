@@ -79,13 +79,6 @@ class TestOptimizationMethods:
 
 
 class TestEstimationEngine:
-    def test_lazy_property_access(self, solved_study: SectionStudy):
-        """estimation_engine property creates the engine lazily."""
-        engine = solved_study.estimation_engine
-        assert isinstance(engine, EstimationEngine)
-        # Second access returns same instance
-        assert solved_study.estimation_engine is engine
-
     def test_estimate_generic(self, solved_study: SectionStudy):
         """Generic estimate() works with a simple function."""
         engine = EstimationEngine(

@@ -176,6 +176,7 @@ class TestSectionStudyLazyEngines:
         assert study._plot_engine is None
         assert study._thermal_engine is None
         assert study._guying is None
+        assert study._estimation_engine is None
 
     def test_plot_engine_created_on_access(
         self, balance_engine_base_test: BalanceEngine
@@ -215,6 +216,19 @@ class TestSectionStudyLazyEngines:
 
         # Second access returns same instance
         assert study.guying is guying
+
+    def test_estimation_engine_created_on_access(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        estimation_engine = study.estimation_engine
+        assert study._estimation_engine is not None
+
+        # Second access returns same instance
+        assert study.estimation_engine is estimation_engine
 
 
 class TestSectionStudySubEngines:
