@@ -294,6 +294,10 @@ class SectionStudy:
             self._guying = None
         else:
             memento = self._caretaker.save()
+            if self._intermediate_memento is not None:
+                # case where change_state already occurred: resetting climate state
+                self._caretaker.restore(self._intermediate_memento)
+            # if not: new case where no change_state was already run
             try:
                 self._balance_engine.solve_adjustment()
             except SolverError as e:
@@ -360,7 +364,7 @@ class SectionStudy:
         memento = self._caretaker.save()
         try:
             if not is_default:
-                self._solve_intermediate()
+                self._get_intermediate_state()
 
             engine.solve_change_state(
                 wind_pressure=wind_pressure,
@@ -374,6 +378,12 @@ class SectionStudy:
             )
             self._caretaker.restore(memento)
             raise e
+
+    def _get_intermediate_state(self):
+        if self._intermediate_memento is not None:
+            self._caretaker.restore(self.intermediate_memento)
+        else:
+            self._solve_intermediate()
 
     def _solve_intermediate(self) -> None:
         """Solve at default conditions (T=15°C, wind=0, ice=0) as warm-start.

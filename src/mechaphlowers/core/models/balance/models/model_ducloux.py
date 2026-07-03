@@ -91,7 +91,7 @@ class BalanceModel(IBalanceModel):
         ] = FindParamSolverForLoop,
     ) -> None:
         # temperature and parameter size n-1 here
-        self.sagging_temperature = sagging_temperature
+        self.current_temperature = sagging_temperature
         self.parameter_init = parameter
         self.section_array = section_array
         self.find_param_solver_type = find_param_solver_type
@@ -200,7 +200,7 @@ class BalanceModel(IBalanceModel):
                 self.nodes.has_load_on_span
             ],
             self.k_load[self.nodes.has_load_on_span],
-            self.sagging_temperature[self.nodes.has_load_on_span],
+            self.current_temperature[self.nodes.has_load_on_span],
             self.parameter[self.nodes.has_load_on_span],
             self.nodes.bundle_number,
         )
@@ -312,7 +312,7 @@ class BalanceModel(IBalanceModel):
         self.deformation_model.tension_mean = self.span_model.T_mean()
         self.deformation_model.cable_length = self.span_model.L
         self.deformation_model.current_temperature = arr.incr(
-            self.sagging_temperature
+            self.current_temperature
         )
 
         L_0 = arr.decr(self.deformation_model.L_0())
@@ -348,7 +348,7 @@ class BalanceModel(IBalanceModel):
             self.linear_weight,
             self.young_modulus,
             self.dilatation_coefficient,
-            self.sagging_temperature,
+            self.current_temperature,
         )
         parameter_parabola = arr.incr(parameter_parabola)
         self.find_param_model.set_attributes(
@@ -432,7 +432,7 @@ class BalanceModel(IBalanceModel):
             self.a_prime[self.nodes.has_load_on_span],
             self.b_prime[self.nodes.has_load_on_span],
             self.k_load[self.nodes.has_load_on_span],
-            self.sagging_temperature[self.nodes.has_load_on_span],
+            self.current_temperature[self.nodes.has_load_on_span],
         )
 
         self.load_solver.solve(self.load_model)
@@ -668,7 +668,7 @@ class BalanceModel(IBalanceModel):
     def __repr__(self) -> str:
         data = {
             'parameter': self.parameter,
-            'cable_temperature': self.sagging_temperature,
+            'cable_temperature': self.current_temperature,
             'Th': self.Th,
             'Tv_d': self.Tv_d,
             'Tv_g': self.Tv_g,

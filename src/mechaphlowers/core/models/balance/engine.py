@@ -269,6 +269,14 @@ class BalanceEngine(Notifier):
         logger.debug("Starting adjustment.")
 
         self.balance_model.adjustment = True
+        # reset parameter to sagging parameter
+        sagging_parameter = (
+            self.section_array.data.sagging_parameter.to_numpy()
+        )
+        self.span_model.set_parameter(sagging_parameter)
+        # reset displacements to zero (hypothesis of adjustment)
+        self.balance_model.nodes.dxdydz[:] = 0
+
         try:
             self.solver_adjustment.solve(self.balance_model)
         except SolverError as e:
@@ -359,13 +367,13 @@ class BalanceEngine(Notifier):
 
         self.balance_model.cable_loads.wind_pressure = validated_wind
 
-        # TODO: convert ice thickness from cm to m? Right now, user has to input in m
+        # Ice thickness input in meters
         self.balance_model.cable_loads.ice_thickness = validate_input(
             ice_thickness, "ice_thickness"
         )
 
         new_t = validate_input(new_temperature, "new_temperature")
-        self.balance_model.sagging_temperature = arr.decr(new_t)
+        self.balance_model.current_temperature = arr.decr(new_t)
         self.deformation_model.current_temperature = new_t
 
         self.balance_model.adjustment = False
@@ -481,7 +489,7 @@ class BalanceEngine(Notifier):
             f"parameter: {self.span_model.parameter}\n"
             f"wind: {self.balance_model.cable_loads.wind_pressure}\n"
             f"ice: {self.balance_model.cable_loads.ice_thickness}\n"
-            f"temperature: {self.balance_model.sagging_temperature}\n"
+            f"temperature: {self.balance_model.current_temperature}\n"
             f"load position (ratio): {self.span_loads.load_position}\n"
             f"load mass: {self.span_loads.load_mass}\n"
             f"dx: {dxdydz[0]}\n"
