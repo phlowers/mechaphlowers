@@ -269,10 +269,12 @@ class BalanceEngine(Notifier):
         logger.debug("Starting adjustment.")
 
         self.balance_model.adjustment = True
+        # reset parameter to sagging parameter
         sagging_parameter = (
             self.section_array.data.sagging_parameter.to_numpy()
         )
         self.span_model.set_parameter(sagging_parameter)
+        # reset displacements to zero (hypothesis of adjustment)
         self.balance_model.nodes.dxdydz[:] = 0
 
         try:

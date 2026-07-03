@@ -278,8 +278,8 @@ class TestMultipleAdjustmentsSameL0:
 
         # Second cycle: 2 loaded spans — stale cache expects 1 slot, crashes in build_merged
         study_4span_no_load.set_loads(
-            load_position_distance=[300.0, 0.0, 0.0, 0.0],
-            load_mass=[1500.0, 0.0, 0.0, 0.0],
+            load_position_distance=[200.0, 200.0, 0.0, 0.0],
+            load_mass=[500.0, 300.0, 0.0, 0.0],
         )
 
         study_4span_no_load.solve_adjustment()
