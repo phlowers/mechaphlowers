@@ -604,3 +604,43 @@ def test_climate_only_repeated_solve_change_state_moves_geometry(
     assert not np.allclose(
         geometry_wind, geometry_temp
     ), "Repeated climate-only solve_change_state calls should change geometry"
+
+
+@pytest.mark.integration
+def test_manipulation_registration_resets_stale_intermediate_memento(
+    study_8span: SectionStudy,
+) -> None:
+    """Optional follow-up regression: registering a manipulation rewires the
+    balance engine and caretaker in ``solve_adjustment``, but must also
+    invalidate any previously stored ``_intermediate_memento``. Otherwise a
+    later ``solve_change_state`` restores a memento snapshot taken from the
+    old (pre-manipulation) engine, whose arrays no longer match the shape of
+    the newly rewired (manipulated) engine.
+    """
+    # 1. Solve on the clean geometry and run a non-default climate solve so
+    #    that an intermediate warm-start memento gets stored for the
+    #    *pre-manipulation* engine.
+    study_8span.solve_adjustment()
+    study_8span.solve_change_state(new_temperature=90.0)
+    assert study_8span.intermediate_memento is not None
+
+    # 2. Register a manipulation that changes the engine shape (adds a
+    #    virtual support, growing the number of nodes from 9 to 10) and
+    #    re-run solve_adjustment: this rewires _balance_engine/_caretaker.
+    study_8span.manipulation.add_virtual_support(
+        {
+            4: {
+                "x": 250.0,
+                "y": 0.0,
+                "z": 45.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 500.0,
+                "hanging_cable_point_from_left_support": 250.0,
+            },
+        }
+    )
+    study_8span.solve_adjustment()
+
+    # 3. A subsequent non-default solve_change_state must not attempt to
+    #    restore the stale, wrong-shaped memento from step 1.
+    study_8span.solve_change_state(wind_pressure=150.0)

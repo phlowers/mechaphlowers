@@ -292,6 +292,10 @@ class SectionStudy:
             self._position_engine = PositionEngine(self._balance_engine)
             self._plot_engine = None
             self._guying = None
+            # The warm-start memento was captured for the previous engine
+            # instance; it is now stale (possibly wrong-shaped) and must be
+            # dropped so it gets recomputed for the rewired engine.
+            self._intermediate_memento = None
         else:
             memento = self._caretaker.save()
             if self._intermediate_memento is not None:
@@ -364,7 +368,7 @@ class SectionStudy:
         memento = self._caretaker.save()
         try:
             if not is_default:
-                self._get_intermediate_state()
+                self._solve_intermediate() # self._get_intermediate_state()
 
             engine.solve_change_state(
                 wind_pressure=wind_pressure,
