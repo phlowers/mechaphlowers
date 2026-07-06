@@ -110,7 +110,7 @@ class EstimationEngine:
         """
 
         def objective(temperature: float) -> float:
-            return self._distance_residual(
+            return self._distance_difference(
                 span_index=span_index,
                 obstacle_point=obstacle_point,
                 target_distance=target_distance,
@@ -150,7 +150,7 @@ class EstimationEngine:
         """
 
         def objective(wind: float) -> float:
-            return self._distance_residual(
+            return self._distance_difference(
                 span_index=span_index,
                 obstacle_point=obstacle_point,
                 target_distance=target_distance,
@@ -194,7 +194,7 @@ class EstimationEngine:
         """
 
         def objective(load_mass: float) -> float:
-            return self._load_distance_residual(
+            return self._distance_difference_with_load(
                 span_index=span_index,
                 obstacle_point=obstacle_point,
                 target_distance=target_distance,
@@ -214,7 +214,7 @@ class EstimationEngine:
 
     # ── Private helpers ───────────────────────────────────────────────────
 
-    def _distance_residual(
+    def _distance_difference(
         self,
         span_index: int,
         obstacle_point: np.ndarray,
@@ -244,7 +244,7 @@ class EstimationEngine:
 
         return distance - target_distance
 
-    def _load_distance_residual(
+    def _distance_difference_with_load(
         self,
         span_index: int,
         obstacle_point: np.ndarray,
@@ -255,7 +255,9 @@ class EstimationEngine:
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
     ) -> float:
-        """Compute distance residual for a given load mass with state save/restore."""
+        """Compute distance difference between target distance and distance with a given load mass.
+
+        Saves state before computiong and restores it afterwards."""
         memento = self._study.save_state()
         try:
             # Build load arrays for single point load
