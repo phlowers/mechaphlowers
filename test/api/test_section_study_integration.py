@@ -463,3 +463,144 @@ def test_rollback_with_manipulation(
         study_8span._balance_engine.L_ref[0:4],
         expected_L_ref_after_manipulation[0:4],
     )
+
+
+def _dxdydz(study: SectionStudy) -> np.ndarray:
+    return study._balance_engine.balance_model.nodes.dxdydz.copy()
+
+
+@pytest.mark.integration
+def test_move_load_between_spans_reflects_change(
+    study_8span: SectionStudy,
+) -> None:
+    """Bug A regression: moving a load to a different span (same load count)
+    must change node geometry, not be masked by a stale warm-start memento.
+    """
+    n_spans = len(study_8span._section_array.data.span_length) - 1
+    study_8span.solve_adjustment()
+
+    load_position = np.zeros(n_spans)
+    load_mass = np.zeros(n_spans)
+    load_position[1] = 100.0
+    load_mass[1] = 500.0
+
+    study_8span.set_loads(load_position, load_mass)
+    study_8span.solve_change_state(new_temperature=30.0)
+    geometry_load_on_span_1 = _dxdydz(study_8span)
+
+    # move the load from span index 1 to span index 4
+    load_position_moved = np.zeros(n_spans)
+    load_mass_moved = np.zeros(n_spans)
+    load_position_moved[4] = 100.0
+    load_mass_moved[4] = 500.0
+
+    study_8span.set_loads(load_position_moved, load_mass_moved)
+    study_8span.solve_change_state(new_temperature=30.0)
+    geometry_load_on_span_4 = _dxdydz(study_8span)
+
+    assert not np.allclose(
+        geometry_load_on_span_1, geometry_load_on_span_4
+    ), "Moving the load between spans should change node geometry"
+
+
+@pytest.mark.integration
+def test_load_count_transition_1_to_2_matches_fresh_build(
+    study_8span: SectionStudy, cable_array_AM600: CableArray
+) -> None:
+    """Bug B regression: going from 1 loaded span to 2 must not crash and
+    must match a fresh SectionStudy built directly with 2 loaded spans.
+    """
+    n_spans = len(study_8span._section_array.data.span_length) - 1
+    study_8span.solve_adjustment()
+
+    load_position = np.zeros(n_spans)
+    load_mass = np.zeros(n_spans)
+    load_position[1] = 100.0
+    load_mass[1] = 500.0
+    study_8span.set_loads(load_position, load_mass)
+    study_8span.solve_change_state(new_temperature=30.0)
+
+    # transition to 2 loaded spans: must not crash
+    load_position_2 = load_position.copy()
+    load_mass_2 = load_mass.copy()
+    load_position_2[5] = 150.0
+    load_mass_2[5] = 300.0
+    study_8span.set_loads(load_position_2, load_mass_2)
+    study_8span.solve_change_state(new_temperature=30.0)
+    geometry_after_transition = _dxdydz(study_8span)
+
+    # fresh build directly with the 2-load layout
+    fresh_study = SectionStudy(
+        cable_array=cable_array_AM600,
+        section_array=study_8span._section_array,
+    )
+    fresh_study.solve_adjustment()
+    fresh_study.set_loads(load_position_2, load_mass_2)
+    fresh_study.solve_change_state(new_temperature=30.0)
+    geometry_fresh = _dxdydz(fresh_study)
+
+    np.testing.assert_allclose(
+        geometry_after_transition, geometry_fresh, atol=1e-6
+    )
+
+
+@pytest.mark.integration
+def test_load_count_transition_2_to_1_matches_fresh_build(
+    study_8span: SectionStudy, cable_array_AM600: CableArray
+) -> None:
+    """Bug B regression: going from 2 loaded spans to 1 must not crash and
+    must match a fresh SectionStudy built directly with 1 loaded span.
+    """
+    n_spans = len(study_8span._section_array.data.span_length) - 1
+    study_8span.solve_adjustment()
+
+    load_position_2 = np.zeros(n_spans)
+    load_mass_2 = np.zeros(n_spans)
+    load_position_2[1] = 100.0
+    load_mass_2[1] = 500.0
+    load_position_2[5] = 150.0
+    load_mass_2[5] = 300.0
+    study_8span.set_loads(load_position_2, load_mass_2)
+    study_8span.solve_change_state(new_temperature=30.0)
+
+    # transition to 1 loaded span: must not crash
+    load_position_1 = np.zeros(n_spans)
+    load_mass_1 = np.zeros(n_spans)
+    load_position_1[1] = 100.0
+    load_mass_1[1] = 500.0
+    study_8span.set_loads(load_position_1, load_mass_1)
+    study_8span.solve_change_state(new_temperature=30.0)
+    geometry_after_transition = _dxdydz(study_8span)
+
+    fresh_study = SectionStudy(
+        cable_array=cable_array_AM600,
+        section_array=study_8span._section_array,
+    )
+    fresh_study.solve_adjustment()
+    fresh_study.set_loads(load_position_1, load_mass_1)
+    fresh_study.solve_change_state(new_temperature=30.0)
+    geometry_fresh = _dxdydz(fresh_study)
+
+    np.testing.assert_allclose(
+        geometry_after_transition, geometry_fresh, atol=1e-6
+    )
+
+
+@pytest.mark.integration
+def test_climate_only_repeated_solve_change_state_moves_geometry(
+    study_8span: SectionStudy,
+) -> None:
+    """Climate-only repeated solve_change_state calls (no load changes)
+    should still move geometry each time (no regression on warm-start reuse).
+    """
+    study_8span.solve_adjustment()
+
+    study_8span.solve_change_state(wind_pressure=200.0)
+    geometry_wind = _dxdydz(study_8span)
+
+    study_8span.solve_change_state(new_temperature=60.0)
+    geometry_temp = _dxdydz(study_8span)
+
+    assert not np.allclose(
+        geometry_wind, geometry_temp
+    ), "Repeated climate-only solve_change_state calls should change geometry"

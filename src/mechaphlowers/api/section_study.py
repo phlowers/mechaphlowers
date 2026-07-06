@@ -447,6 +447,9 @@ class SectionStudy:
                 or if the arguments don't have the right lengths.
         """
         self._balance_engine.set_loads(load_position_distance, load_mass)
+        # Invalidate the warm-start memento: it was computed for the previous
+        # load layout and must not be reused after a load change.
+        self._intermediate_memento = None
 
     # ── State management ──────────────────────────────────────────────────
 

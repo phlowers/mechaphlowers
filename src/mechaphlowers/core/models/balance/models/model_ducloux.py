@@ -155,6 +155,20 @@ class BalanceModel(IBalanceModel):
         self.initialize_solvers()
         self.initialize_state()
 
+        # Invalidate memoized merge indices: they depend on the load layout
+        # (nodes were rebuilt above) and must be recomputed on next use.
+        for attr in (
+            "_merge_normal_idx",
+            "_merge_left_idx",
+            "_merge_right_idx",
+            "_merge_not_load_mask",
+            "_merge_n_total",
+            "_merge_span_index",
+            "_merge_span_type",
+        ):
+            if hasattr(self, attr):
+                delattr(self, attr)
+
     def initialize_state(self):
         """Initialize the state of the model. Mainly used as a preprocess before a computation."""
         self.update()
