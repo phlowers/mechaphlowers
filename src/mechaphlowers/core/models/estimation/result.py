@@ -16,7 +16,7 @@ class EstimationResult:
     Attributes:
         value: The estimated variable value that satisfies the target.
         residual: Final residual ``|f(value) - target|``.
-        iterations: Number of objective function evaluations performed.
+        iterations: Number of algorithm iterations.
         converged: Whether the algorithm converged within tolerance.
     """
 

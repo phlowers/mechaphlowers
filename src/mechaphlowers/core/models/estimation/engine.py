@@ -264,12 +264,12 @@ class EstimationEngine:
             n_spans = len(
                 self._study.balance_engine.section_array.data.span_length
             )
-            load_positions: list[list[float]] = [[] for _ in range(n_spans)]
-            load_masses: list[list[float]] = [[] for _ in range(n_spans)]
-            load_positions[span_index] = [load_position_distance]
-            load_masses[span_index] = [load_mass]
+            load_positions = np.zeros(n_spans)
+            load_masses = np.zeros(n_spans)
+            load_positions[span_index] = load_position_distance
+            load_masses[span_index] = load_mass
 
-            self._study.add_loads(load_positions, load_masses)
+            self._study.set_loads(load_positions, load_masses)
             self._study.solve_change_state(
                 wind_pressure=wind_pressure,
                 ice_thickness=ice_thickness,
