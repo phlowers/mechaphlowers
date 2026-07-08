@@ -679,7 +679,7 @@ class CoordsCalculator:
             )
             # invert y axis to get more natural view
             x, y, z = new_points.vectors
-            new_points.coords = np.array([x, y, z]).T
+            new_points.coords = np.array([x, -y, z]).T
             result_points.append(new_points)
         return result_points
 
