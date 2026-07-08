@@ -447,6 +447,7 @@ class SectionStudy:
                 or if the arguments don't have the right lengths.
         """
         self._balance_engine.set_loads(load_position_distance, load_mass)
+        self._solve_intermediate()
 
     # ── State management ──────────────────────────────────────────────────
 
