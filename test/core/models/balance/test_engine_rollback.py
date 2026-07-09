@@ -90,7 +90,7 @@ class TestIntermediateState:
         study.solve_change_state(wind_pressure=200, new_temperature=90)
         assert study.intermediate_memento is not None
 
-    def test_default_params_skip_intermediate(
+    def test_default_params_trigger_intermediate(
         self, balance_engine_base_test: BalanceEngine
     ):
         study = SectionStudy(
@@ -99,6 +99,15 @@ class TestIntermediateState:
         )
         study.solve_adjustment()
 
-        # Solve with defaults — no intermediate
+        # Solve with defaults — intermediate
         study.solve_change_state()
-        assert study.intermediate_memento is None
+        memento_0 = study.intermediate_memento
+        assert study.intermediate_memento is not None
+
+        # change state with non-default params — intermediate
+        study.solve_change_state(wind_pressure=200, new_temperature=90)
+        assert id(study.intermediate_memento) is not id(memento_0)
+
+        # revert to default params — intermediate
+        study.solve_change_state()
+        assert id(study.intermediate_memento) is not id(memento_0)

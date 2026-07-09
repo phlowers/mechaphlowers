@@ -4,6 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import copy
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -229,6 +231,78 @@ def test_rope(study_8span: SectionStudy) -> None:
         study_8span.balance_engine.section_array.data["insulator_length"],
         expected_insulator_length,
     )
+
+
+@pytest.mark.integration
+def test_intermediate_state_should_refresh_after_load_addition(
+    study_8span: SectionStudy,
+) -> None:
+    """Add a load on support 5 and check that the intermediate state is refreshed."""
+    study_8span.solve_adjustment()
+    study_8span.solve_change_state(new_temperature=15.0)
+
+    # intermediate_memento_0 = copy.copy(study_8span._intermediate_memento)
+
+    expected_load_mass = np.array([0.0, 0.0, 0.0, 0.0, 100.0, 0.0, 0.0, 0.0])
+    expected_load_position = np.array(
+        [0.0, 0.0, 0.0, 0.0, 250.0, 0.0, 0.0, 0.0]
+    )
+
+    study_8span.set_loads(
+        load_position_distance=expected_load_position,
+        load_mass=expected_load_mass,
+    )
+    intermediate_memento_1 = copy.copy(study_8span._intermediate_memento)
+    assert intermediate_memento_1 is not None
+    np.testing.assert_allclose(
+        intermediate_memento_1.load_mass, expected_load_mass
+    )
+
+
+@pytest.mark.integration
+def test_reset_engine_breaks_reactivity_on_position_engine_after_climate_load_addition(
+    study_8span: SectionStudy,
+) -> None:
+    """Add a load on support 5 and check that the intermediate state is refreshed."""
+
+    # very important: full reset
+    study_8span.balance_engine.reset(True)
+
+    # 0. solve adjustment and change state to initialize the intermediate state
+    study_8span.solve_adjustment()
+    study_8span.solve_change_state(new_temperature=15.0)
+    group_0 = study_8span.position_engine.get_group_points()
+
+    # 1. change state to a new temperature and wind pressure, which will break the intermediate state
+    study_8span.solve_change_state(new_temperature=15.0, wind_pressure=300)
+    group_1 = study_8span.position_engine.get_group_points()
+
+    # 2. add a load
+    expected_load_mass = np.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    expected_load_position = np.array(
+        [250.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    )
+
+    study_8span.set_loads(
+        load_position_distance=expected_load_position,
+        load_mass=expected_load_mass,
+    )
+    group_2 = study_8span.position_engine.get_group_points()
+
+    # should be different because the intermediate state is not refreshed after load addition
+    assert group_0 is not None
+    assert group_1 is not None
+    assert group_2 is not None
+    assert group_0.spans is not None
+    assert group_1.spans is not None
+    assert group_2.spans is not None
+    group_0_coords = group_0.spans.coords[0]
+    group_1_coords = group_1.spans.coords[0]
+    group_2_coords = group_2.spans.coords[0]
+    with pytest.raises(AssertionError):
+        np.testing.assert_allclose(group_0_coords, group_1_coords)
+        np.testing.assert_allclose(group_1_coords, group_2_coords)
+        np.testing.assert_allclose(group_0_coords, group_2_coords)
 
 
 @pytest.mark.integration

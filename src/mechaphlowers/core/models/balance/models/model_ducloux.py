@@ -154,6 +154,28 @@ class BalanceModel(IBalanceModel):
         self.initialize_loadmodel()
         self.initialize_solvers()
         self.initialize_state()
+        # Invalidate memoized merge indices: they depend on the load layout
+        # (nodes were rebuilt above) and must be recomputed on next use.
+        self._invalidate_merge_cache()
+
+    def _invalidate_merge_cache(self) -> None:
+        """Drop the memoized merge indices used by merge_loads_to_span_model.
+
+        They depend on the load layout (``nodes.has_load_on_span``) and become
+        stale whenever that layout changes (reset, or memento restore). They
+        must be recomputed lazily on the next merge call.
+        """
+        for attr in (
+            "_merge_normal_idx",
+            "_merge_left_idx",
+            "_merge_right_idx",
+            "_merge_not_load_mask",
+            "_merge_n_total",
+            "_merge_span_index",
+            "_merge_span_type",
+        ):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     def initialize_state(self):
         """Initialize the state of the model. Mainly used as a preprocess before a computation."""
@@ -647,6 +669,10 @@ class BalanceModel(IBalanceModel):
     def sync_after_memento_restore(
         self, span_model_to_mirror: ISpan, dxdydz: np.ndarray
     ):
+        # The restored memento may carry a different load layout than the one
+        # for which the merge indices were last computed. Invalidate the cache
+        # so merge_loads_to_span_model rebuilds it for the restored layout.
+        self._invalidate_merge_cache()
         self.nodes.dxdydz[:] = dxdydz
         self.nodes_span_model.mirror(span_model_to_mirror)
         self.nodes.compute_dx_dy_dz()

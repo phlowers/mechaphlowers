@@ -363,15 +363,17 @@ class SectionStudy:
 
         memento = self._caretaker.save()
         try:
-            if not is_default:
+            if is_default:
+                self._solve_intermediate()
+            else:
                 self._get_intermediate_state()
 
-            engine.solve_change_state(
-                wind_pressure=wind_pressure,
-                ice_thickness=ice_thickness,
-                new_temperature=new_temperature,
-                wind_direction=wind_direction,
-            )
+                engine.solve_change_state(
+                    wind_pressure=wind_pressure,
+                    ice_thickness=ice_thickness,
+                    new_temperature=new_temperature,
+                    wind_direction=wind_direction,
+                )
         except SolverError as e:
             logger.error(
                 "Error during solve_change_state, rolling back state."
@@ -397,11 +399,19 @@ class SectionStudy:
         engine = self._balance_engine
         default = engine.default_value
 
-        engine.solve_change_state(
-            wind_pressure=default["wind_pressure"],
-            ice_thickness=default["ice_thickness"],
-            new_temperature=default["new_temperature"],
-        )
+        memento = self._caretaker.save()
+        try:
+            engine.solve_change_state(
+                wind_pressure=default["wind_pressure"],
+                ice_thickness=default["ice_thickness"],
+                new_temperature=default["new_temperature"],
+            )
+        except SolverError as e:
+            logger.error(
+                "Error during solve_change_state, rolling back state."
+            )
+            self._caretaker.restore(memento)
+            raise e
         self._intermediate_memento = self._caretaker.save()
 
     def add_loads(
@@ -447,6 +457,7 @@ class SectionStudy:
                 or if the arguments don't have the right lengths.
         """
         self._balance_engine.set_loads(load_position_distance, load_mass)
+        self._solve_intermediate()
 
     # ── State management ──────────────────────────────────────────────────
 
