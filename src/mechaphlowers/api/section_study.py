@@ -398,7 +398,7 @@ class SectionStudy:
         logger.debug("Intermediate warm-start solve at default conditions.")
         engine = self._balance_engine
         default = engine.default_value
-        
+
         memento = self._caretaker.save()
         try:
             engine.solve_change_state(

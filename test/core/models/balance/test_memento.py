@@ -217,15 +217,11 @@ class TestCaretakerRestore:
         engine.set_loads([250, 0, 0], [70, 0, 0])
         engine.solve_change_state(new_temperature=60)
 
-        span_index_scratch = (
-            engine.balance_model.nodes_span_model.span_index
-        )
+        span_index_scratch = engine.balance_model.nodes_span_model.span_index
         span_type_scratch = engine.balance_model.nodes_span_model.span_type
         parameter_scratch = engine.balance_model.nodes_span_model.parameter
 
-        np.testing.assert_array_equal(
-            span_index_restore, span_index_scratch
-        )
+        np.testing.assert_array_equal(span_index_restore, span_index_scratch)
         np.testing.assert_array_equal(span_type_restore, span_type_scratch)
         np.testing.assert_array_almost_equal(
             parameter_restore, parameter_scratch
