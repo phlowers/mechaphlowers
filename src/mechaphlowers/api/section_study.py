@@ -398,12 +398,20 @@ class SectionStudy:
         logger.debug("Intermediate warm-start solve at default conditions.")
         engine = self._balance_engine
         default = engine.default_value
-
-        engine.solve_change_state(
-            wind_pressure=default["wind_pressure"],
-            ice_thickness=default["ice_thickness"],
-            new_temperature=default["new_temperature"],
-        )
+        
+        memento = self._caretaker.save()
+        try:
+            engine.solve_change_state(
+                wind_pressure=default["wind_pressure"],
+                ice_thickness=default["ice_thickness"],
+                new_temperature=default["new_temperature"],
+            )
+        except SolverError as e:
+            logger.error(
+                "Error during solve_change_state, rolling back state."
+            )
+            self._caretaker.restore(memento)
+            raise e
         self._intermediate_memento = self._caretaker.save()
 
     def add_loads(
