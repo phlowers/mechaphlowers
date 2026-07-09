@@ -300,15 +300,9 @@ def test_reset_engine_breaks_reactivity_on_position_engine_after_climate_load_ad
     group_1_coords = group_1.spans.coords[0]
     group_2_coords = group_2.spans.coords[0]
     with pytest.raises(AssertionError):
-        np.testing.assert_allclose(
-            group_0_coords, group_1_coords
-        )
-        np.testing.assert_allclose(
-            group_1_coords, group_2_coords
-        )
-        np.testing.assert_allclose(
-            group_0_coords, group_2_coords
-        )
+        np.testing.assert_allclose(group_0_coords, group_1_coords)
+        np.testing.assert_allclose(group_1_coords, group_2_coords)
+        np.testing.assert_allclose(group_0_coords, group_2_coords)
 
 
 @pytest.mark.integration
