@@ -107,7 +107,7 @@ class TestIntermediateState:
         # change state with non-default params — intermediate
         study.solve_change_state(wind_pressure=200, new_temperature=90)
         assert id(study.intermediate_memento) is not id(memento_0)
-        
-        #revert to default params — intermediate
+
+        # revert to default params — intermediate
         study.solve_change_state()
         assert id(study.intermediate_memento) is not id(memento_0)

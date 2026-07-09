@@ -232,19 +232,18 @@ def test_rope(study_8span: SectionStudy) -> None:
         expected_insulator_length,
     )
 
+
 @pytest.mark.integration
 def test_intermediate_state_should_refresh_after_load_addition(
-    study_8span: SectionStudy, study_8span_Lref: np.ndarray
+    study_8span: SectionStudy,
 ) -> None:
     """Add a load on support 5 and check that the intermediate state is refreshed."""
     study_8span.solve_adjustment()
     study_8span.solve_change_state(new_temperature=15.0)
 
-    intermediate_memento_0 = copy.copy(study_8span._intermediate_memento)
+    # intermediate_memento_0 = copy.copy(study_8span._intermediate_memento)
 
-    expected_load_mass = np.array(
-        [0.0, 0.0, 0.0, 0.0, 100.0, 0.0, 0.0, 0.0]
-    )
+    expected_load_mass = np.array([0.0, 0.0, 0.0, 0.0, 100.0, 0.0, 0.0, 0.0])
     expected_load_position = np.array(
         [0.0, 0.0, 0.0, 0.0, 250.0, 0.0, 0.0, 0.0]
     )
@@ -254,9 +253,9 @@ def test_intermediate_state_should_refresh_after_load_addition(
         load_mass=expected_load_mass,
     )
     intermediate_memento_1 = copy.copy(study_8span._intermediate_memento)
-    np.testing.assert_allclose(intermediate_memento_1.load_mass, expected_load_mass)
-
-
+    np.testing.assert_allclose(
+        intermediate_memento_1.load_mass, expected_load_mass
+    )
 
 
 @pytest.mark.integration
@@ -264,7 +263,7 @@ def test_reset_engine_breaks_reactivity_on_position_engine_after_climate_load_ad
     study_8span: SectionStudy,
 ) -> None:
     """Add a load on support 5 and check that the intermediate state is refreshed."""
-    
+
     # very important: full reset
     study_8span.balance_engine.reset(True)
 
@@ -272,15 +271,13 @@ def test_reset_engine_breaks_reactivity_on_position_engine_after_climate_load_ad
     study_8span.solve_adjustment()
     study_8span.solve_change_state(new_temperature=15.0)
     group_0 = study_8span.position_engine.get_group_points()
-    
+
     # 1. change state to a new temperature and wind pressure, which will break the intermediate state
     study_8span.solve_change_state(new_temperature=15.0, wind_pressure=300)
     group_1 = study_8span.position_engine.get_group_points()
 
-    # 2. add a load 
-    expected_load_mass = np.array(
-        [100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    )
+    # 2. add a load
+    expected_load_mass = np.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     expected_load_position = np.array(
         [250.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     )
@@ -293,13 +290,15 @@ def test_reset_engine_breaks_reactivity_on_position_engine_after_climate_load_ad
 
     # should be different because the intermediate state is not refreshed after load addition
     with pytest.raises(AssertionError):
-        np.testing.assert_allclose(group_0.spans.coords[0], group_1.spans.coords[0])
-        np.testing.assert_allclose(group_1.spans.coords[0], group_2.spans.coords[0])
-        np.testing.assert_allclose(group_0.spans.coords[0], group_2.spans.coords[0])
-        
-
-
-
+        np.testing.assert_allclose(
+            group_0.spans.coords[0], group_1.spans.coords[0]
+        )
+        np.testing.assert_allclose(
+            group_1.spans.coords[0], group_2.spans.coords[0]
+        )
+        np.testing.assert_allclose(
+            group_0.spans.coords[0], group_2.spans.coords[0]
+        )
 
 
 @pytest.mark.integration
