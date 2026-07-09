@@ -233,7 +233,7 @@ def test_rope(study_8span: SectionStudy) -> None:
     )
 
 @pytest.mark.integration
-def test_intermediate_state_refresh_after_load_addition(
+def test_intermediate_state_should_refresh_after_load_addition(
     study_8span: SectionStudy, study_8span_Lref: np.ndarray
 ) -> None:
     """Add a load on support 5 and check that the intermediate state is refreshed."""
