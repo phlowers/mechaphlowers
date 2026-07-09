@@ -143,7 +143,8 @@ class BalanceEngine(Notifier):
                 sagging_temperature,
                 self.deformation_model_type,
             )
-            super().__init__()
+            if not hasattr(self, "_observers"):
+                super().__init__()
             self.balance_model = self.balance_model_type(
                 sagging_temperature,
                 parameter,
