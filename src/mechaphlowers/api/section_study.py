@@ -363,15 +363,17 @@ class SectionStudy:
 
         memento = self._caretaker.save()
         try:
-            if not is_default:
+            if is_default:
+                self._solve_intermediate()
+            else:
                 self._get_intermediate_state()
 
-            engine.solve_change_state(
-                wind_pressure=wind_pressure,
-                ice_thickness=ice_thickness,
-                new_temperature=new_temperature,
-                wind_direction=wind_direction,
-            )
+                engine.solve_change_state(
+                    wind_pressure=wind_pressure,
+                    ice_thickness=ice_thickness,
+                    new_temperature=new_temperature,
+                    wind_direction=wind_direction,
+                )
         except SolverError as e:
             logger.error(
                 "Error during solve_change_state, rolling back state."
