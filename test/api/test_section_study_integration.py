@@ -253,6 +253,7 @@ def test_intermediate_state_should_refresh_after_load_addition(
         load_mass=expected_load_mass,
     )
     intermediate_memento_1 = copy.copy(study_8span._intermediate_memento)
+    assert intermediate_memento_1 is not None
     np.testing.assert_allclose(
         intermediate_memento_1.load_mass, expected_load_mass
     )
@@ -289,15 +290,24 @@ def test_reset_engine_breaks_reactivity_on_position_engine_after_climate_load_ad
     group_2 = study_8span.position_engine.get_group_points()
 
     # should be different because the intermediate state is not refreshed after load addition
+    assert group_0 is not None
+    assert group_1 is not None
+    assert group_2 is not None
+    assert group_0.spans is not None
+    assert group_1.spans is not None
+    assert group_2.spans is not None
+    group_0_coords = group_0.spans.coords[0]
+    group_1_coords = group_1.spans.coords[0]
+    group_2_coords = group_2.spans.coords[0]
     with pytest.raises(AssertionError):
         np.testing.assert_allclose(
-            group_0.spans.coords[0], group_1.spans.coords[0]
+            group_0_coords, group_1_coords
         )
         np.testing.assert_allclose(
-            group_1.spans.coords[0], group_2.spans.coords[0]
+            group_1_coords, group_2_coords
         )
         np.testing.assert_allclose(
-            group_0.spans.coords[0], group_2.spans.coords[0]
+            group_0_coords, group_2_coords
         )
 
 
