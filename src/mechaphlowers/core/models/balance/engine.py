@@ -218,7 +218,6 @@ class BalanceEngine(Notifier):
         Input for position is a distance, and will be converted into ratio.
 
         Expected input are arrays of size matching the number of spans. Each value refers to a span.
-        Last elements should be nan or zero.
 
         If either load_position_distance[i] or load_mass[i] is 0 or nan, it means there is no load at span i.
 
