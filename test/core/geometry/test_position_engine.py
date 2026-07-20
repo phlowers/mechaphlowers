@@ -19,7 +19,10 @@ from mechaphlowers.config import options as cfg
 from mechaphlowers.core.geometry.distances import DistanceResult
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
+from mechaphlowers.entities.errors import (
+    NoIntersectionPlaneForDistanceError,
+    NoIntersectionPlaneWarning,
+)
 from mechaphlowers.entities.reactivity import Notifier, Observer
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -693,7 +696,7 @@ class TestDistancesFromObstacles:
             "point_distance",
             side_effect=fake_point_distance,
         ):
-            with pytest.warns(UserWarning):
+            with pytest.warns(NoIntersectionPlaneWarning):
                 distances_dict = (
                     pos_engine_with_obstacles.get_distances_from_obstacles()
                 )

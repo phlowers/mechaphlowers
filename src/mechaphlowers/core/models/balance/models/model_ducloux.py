@@ -91,7 +91,7 @@ class BalanceModel(IBalanceModel):
         ] = FindParamSolverForLoop,
     ) -> None:
         # temperature and parameter size n-1 here
-        self.sagging_temperature = sagging_temperature
+        self.current_temperature = sagging_temperature
         self.parameter_init = parameter
         self.section_array = section_array
         self.find_param_solver_type = find_param_solver_type
@@ -154,6 +154,28 @@ class BalanceModel(IBalanceModel):
         self.initialize_loadmodel()
         self.initialize_solvers()
         self.initialize_state()
+        # Invalidate memoized merge indices: they depend on the load layout
+        # (nodes were rebuilt above) and must be recomputed on next use.
+        self._invalidate_merge_cache()
+
+    def _invalidate_merge_cache(self) -> None:
+        """Drop the memoized merge indices used by merge_loads_to_span_model.
+
+        They depend on the load layout (``nodes.has_load_on_span``) and become
+        stale whenever that layout changes (reset, or memento restore). They
+        must be recomputed lazily on the next merge call.
+        """
+        for attr in (
+            "_merge_normal_idx",
+            "_merge_left_idx",
+            "_merge_right_idx",
+            "_merge_not_load_mask",
+            "_merge_n_total",
+            "_merge_span_index",
+            "_merge_span_type",
+        ):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     def initialize_state(self):
         """Initialize the state of the model. Mainly used as a preprocess before a computation."""
@@ -200,7 +222,7 @@ class BalanceModel(IBalanceModel):
                 self.nodes.has_load_on_span
             ],
             self.k_load[self.nodes.has_load_on_span],
-            self.sagging_temperature[self.nodes.has_load_on_span],
+            self.current_temperature[self.nodes.has_load_on_span],
             self.parameter[self.nodes.has_load_on_span],
             self.nodes.bundle_number,
         )
@@ -312,7 +334,7 @@ class BalanceModel(IBalanceModel):
         self.deformation_model.tension_mean = self.span_model.T_mean()
         self.deformation_model.cable_length = self.span_model.L
         self.deformation_model.current_temperature = arr.incr(
-            self.sagging_temperature
+            self.current_temperature
         )
 
         L_0 = arr.decr(self.deformation_model.L_0())
@@ -348,7 +370,7 @@ class BalanceModel(IBalanceModel):
             self.linear_weight,
             self.young_modulus,
             self.dilatation_coefficient,
-            self.sagging_temperature,
+            self.current_temperature,
         )
         parameter_parabola = arr.incr(parameter_parabola)
         self.find_param_model.set_attributes(
@@ -432,7 +454,7 @@ class BalanceModel(IBalanceModel):
             self.a_prime[self.nodes.has_load_on_span],
             self.b_prime[self.nodes.has_load_on_span],
             self.k_load[self.nodes.has_load_on_span],
-            self.sagging_temperature[self.nodes.has_load_on_span],
+            self.current_temperature[self.nodes.has_load_on_span],
         )
 
         self.load_solver.solve(self.load_model)
@@ -647,6 +669,10 @@ class BalanceModel(IBalanceModel):
     def sync_after_memento_restore(
         self, span_model_to_mirror: ISpan, dxdydz: np.ndarray
     ):
+        # The restored memento may carry a different load layout than the one
+        # for which the merge indices were last computed. Invalidate the cache
+        # so merge_loads_to_span_model rebuilds it for the restored layout.
+        self._invalidate_merge_cache()
         self.nodes.dxdydz[:] = dxdydz
         self.nodes_span_model.mirror(span_model_to_mirror)
         self.nodes.compute_dx_dy_dz()
@@ -668,7 +694,7 @@ class BalanceModel(IBalanceModel):
     def __repr__(self) -> str:
         data = {
             'parameter': self.parameter,
-            'cable_temperature': self.sagging_temperature,
+            'cable_temperature': self.current_temperature,
             'Th': self.Th,
             'Tv_d': self.Tv_d,
             'Tv_g': self.Tv_g,

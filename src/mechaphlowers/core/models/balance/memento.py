@@ -87,7 +87,7 @@ class BalanceEngineCaretaker:
         return BalanceEngineMemento(
             dxdydz=bm.get_dxdydz().copy(),
             parameter=bm.parameter.copy(),
-            sagging_temperature=bm.sagging_temperature.copy(),
+            sagging_temperature=bm.current_temperature.copy(),
             adjustment=bm.adjustment,
             Th=bm.Th.copy(),
             Tv_d=bm.Tv_d.copy(),
@@ -126,7 +126,7 @@ class BalanceEngineCaretaker:
 
         # (a) Restore balance_model scalars / arrays
         bm.parameter = memento.parameter.copy()
-        bm.sagging_temperature = memento.sagging_temperature.copy()
+        bm.current_temperature = memento.sagging_temperature.copy()
         bm.adjustment = memento.adjustment
         bm.Th = memento.Th.copy()
         bm.Tv_d = memento.Tv_d.copy()

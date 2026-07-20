@@ -79,7 +79,7 @@ class IBalanceModel(IModelForSolver, ABC):
         ] = FindParamSolverForLoop,
     ):
         self.adjustment: bool = NotImplemented
-        self.sagging_temperature: np.ndarray = sagging_temperature
+        self.current_temperature: np.ndarray = sagging_temperature
         self.deformation_model = deformation_model
         self.cable_loads = cable_loads
         self.span_loads = span_loads

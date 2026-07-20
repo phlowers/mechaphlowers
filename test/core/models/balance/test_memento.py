@@ -167,3 +167,62 @@ class TestCaretakerRestore:
             engine.balance_model.nodes_span_model.parameter,
             engine.span_model.parameter,
         )
+
+    def test_restore_invalidates_merge_index_cache(
+        self, balance_engine_base_test: BalanceEngine
+    ):
+        """Restoring a memento with a different load layout must invalidate the
+        memoized merge-index cache (``_merge_*``).
+
+        The cache is only cleared on ``reset()``. When a memento captured with
+        one load layout is restored on top of a state whose cache was computed
+        for a *different* layout, ``merge_loads_to_span_model()`` would reuse
+        stale indices and produce a wrong ``span_index`` / ``span_type`` /
+        merged geometry. This test reproduces that behavior by comparing the
+        restore path against an independent from-scratch solve of the same
+        layout.
+        """
+        engine = balance_engine_base_test
+        engine.solve_adjustment()
+
+        # Layout A: a single load on the first span (span index 0).
+        engine.set_loads([250, 0, 0], [70, 0, 0])
+        memento_layout_a = BalanceEngineCaretaker(engine).save()
+
+        # Layout B: a single load on the last span (span index 2).
+        # Solving here populates the merge-index cache for layout B.
+        engine.set_loads([0, 0, 250], [0, 0, 70])
+        engine.solve_change_state(new_temperature=60)
+
+        # Restore layout A (updates has_load_on_span) then solve again.
+        # If the merge cache is not invalidated, the stale layout-B indices are
+        # reused and the merged span metadata is wrong.
+        caretaker = BalanceEngineCaretaker(engine)
+        caretaker.restore(memento_layout_a)
+        engine.solve_change_state(new_temperature=60)
+
+        span_index_restore = (
+            engine.balance_model.nodes_span_model.span_index.copy()
+        )
+        span_type_restore = (
+            engine.balance_model.nodes_span_model.span_type.copy()
+        )
+        parameter_restore = (
+            engine.balance_model.nodes_span_model.parameter.copy()
+        )
+
+        # Golden reference: solve layout A from scratch on a clean engine.
+        engine.reset(full=True)
+        engine.solve_adjustment()
+        engine.set_loads([250, 0, 0], [70, 0, 0])
+        engine.solve_change_state(new_temperature=60)
+
+        span_index_scratch = engine.balance_model.nodes_span_model.span_index
+        span_type_scratch = engine.balance_model.nodes_span_model.span_type
+        parameter_scratch = engine.balance_model.nodes_span_model.parameter
+
+        np.testing.assert_array_equal(span_index_restore, span_index_scratch)
+        np.testing.assert_array_equal(span_type_restore, span_type_scratch)
+        np.testing.assert_array_almost_equal(
+            parameter_restore, parameter_scratch
+        )

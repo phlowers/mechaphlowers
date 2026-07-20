@@ -7,7 +7,10 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 
+from mechaphlowers import sample_cable_catalog
+from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.balance.models.model_ducloux import (
     nodes_builder,
@@ -161,3 +164,178 @@ def test_change_temperature_back_to_initial(
         rtol=1e-6,
         atol=1e-8,
     )
+
+
+class TestMultipleAdjustmentsSameL0:
+    """Series of test to ensure that successive calls of solve_adjustment() and solve_change_state() gives the same L0"""
+
+    @pytest.fixture
+    def study_4span_no_load(self) -> SectionStudy:
+        cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2", "3", "4", "5"],
+                    "suspension": [False, True, True, True, False],
+                    "conductor_attachment_altitude": [
+                        50.0,
+                        50.0,
+                        50.0,
+                        50.0,
+                        50.0,
+                    ],
+                    "crossarm_length": [0.0, 5.0, 5.0, 5.0, 0.0],
+                    "line_angle": [0.0, 0.0, 0.0, 0.0, 0.0],
+                    "insulator_length": [3.0, 3.0, 3.0, 3.0, 3.0],
+                    "span_length": [400.0, 400.0, 400.0, 400.0, np.nan],
+                    "insulator_mass": [1000.0, 500.0, 500.0, 500.0, 1000.0],
+                    "load_mass": [0.0, 0.0, 0.0, 0.0, 0.0],
+                    "load_position": [0.0, 0.0, 0.0, 0.0, 0.0],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        study = SectionStudy(
+            cable_array=cable_array, section_array=section_array
+        )
+        return study
+
+    def test_ice_change_state_same_L0(
+        self, study_4span_no_load: SectionStudy
+    ) -> None:
+        study_4span_no_load.solve_adjustment()
+        study_4span_no_load.solve_change_state()
+        data = study_4span_no_load.get_data_spans()
+        initial_L0 = data["L0"]
+
+        study_4span_no_load.solve_adjustment()
+        data = study_4span_no_load.get_data_spans()
+        L0_1 = data["L0"]
+        study_4span_no_load.solve_change_state(ice_thickness=0.1)
+        np.testing.assert_allclose(initial_L0, L0_1)
+
+        study_4span_no_load.solve_adjustment()
+        data = study_4span_no_load.get_data_spans()
+        L0_2 = data["L0"]
+        np.testing.assert_allclose(initial_L0, L0_2)
+        study_4span_no_load.solve_change_state(ice_thickness=0.1)
+
+    def test_wind_change_state_same_L0(
+        self, study_4span_no_load: SectionStudy
+    ) -> None:
+        study_4span_no_load.solve_adjustment()
+        study_4span_no_load.solve_change_state()
+        data = study_4span_no_load.get_data_spans()
+        initial_L0 = data["L0"]
+
+        study_4span_no_load.solve_adjustment()
+        data = study_4span_no_load.get_data_spans()
+        L0_1 = data["L0"]
+        study_4span_no_load.solve_change_state(wind_pressure=500)
+        np.testing.assert_allclose(initial_L0, L0_1)
+
+        study_4span_no_load.solve_adjustment()
+        data = study_4span_no_load.get_data_spans()
+        L0_2 = data["L0"]
+        np.testing.assert_allclose(initial_L0, L0_2)
+        study_4span_no_load.solve_change_state(wind_pressure=500)
+
+    def test_temperature_change_state_same_L0(
+        self, study_4span_no_load: SectionStudy
+    ) -> None:
+        study_4span_no_load.solve_adjustment()
+        study_4span_no_load.solve_change_state()
+        data = study_4span_no_load.get_data_spans()
+        initial_L0 = data["L0"]
+
+        study_4span_no_load.solve_adjustment()
+        data = study_4span_no_load.get_data_spans()
+        L0_1 = data["L0"]
+        study_4span_no_load.solve_change_state(new_temperature=60)
+        np.testing.assert_allclose(initial_L0, L0_1)
+
+        study_4span_no_load.solve_adjustment()
+        data = study_4span_no_load.get_data_spans()
+        L0_2 = data["L0"]
+        np.testing.assert_allclose(initial_L0, L0_2)
+        study_4span_no_load.solve_change_state(new_temperature=60)
+
+    def test_add_successive_loads(self, study_4span_no_load: SectionStudy):
+        study_4span_no_load.solve_adjustment()
+        data = study_4span_no_load.get_data_spans()
+        initial_L0 = data["L0"]
+
+        study_4span_no_load.set_loads(
+            load_position_distance=[200.0, 0.0, 0.0, 0.0],
+            load_mass=[500.0, 0.0, 0.0, 0.0],
+        )
+        study_4span_no_load.solve_adjustment()
+        data = study_4span_no_load.get_data_spans()
+        L0_first_load = data["L0"]
+        np.testing.assert_allclose(initial_L0, L0_first_load)
+
+        # Second cycle: 2 loaded spans — stale cache expects 1 slot, crashes in build_merged
+        study_4span_no_load.set_loads(
+            load_position_distance=[200.0, 200.0, 0.0, 0.0],
+            load_mass=[500.0, 300.0, 0.0, 0.0],
+        )
+
+        study_4span_no_load.solve_adjustment()
+        data = study_4span_no_load.get_data_spans()
+        L0_second_load = data["L0"]
+        np.testing.assert_allclose(initial_L0, L0_second_load)
+
+
+@pytest.fixture
+def study_4span_with_load() -> SectionStudy:
+    cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4", "5"],
+                "suspension": [False, True, True, True, False],
+                "conductor_attachment_altitude": [
+                    50.0,
+                    50.0,
+                    50.0,
+                    50.0,
+                    50.0,
+                ],
+                "crossarm_length": [0.0, 5.0, 5.0, 5.0, 0.0],
+                "line_angle": [0.0, 0.0, 0.0, 0.0, 0.0],
+                "insulator_length": [3.0, 3.0, 3.0, 3.0, 3.0],
+                "span_length": [400.0, 400.0, 400.0, 400.0, np.nan],
+                "insulator_mass": [1000.0, 500.0, 500.0, 500.0, 1000.0],
+                "load_mass": [0.0, 0.0, 0.0, 0.0, 0.0],
+                "load_position": [0.0, 0.0, 0.0, 0.0, 0.0],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "grad"})
+    study = SectionStudy(cable_array=cable_array, section_array=section_array)
+    study.set_loads(
+        load_position_distance=[200.0, 0.0, 0.0, 0.0],
+        load_mass=[500.0, 0.0, 0.0, 0.0],
+    )
+    return study
+
+
+def test_repeated_solve_idempotent_loads(
+    study_4span_with_load: SectionStudy,
+) -> None:
+    study_4span_with_load.solve_adjustment()
+    study_4span_with_load.solve_change_state(new_temperature=15)
+    data_first = study_4span_with_load.get_data_spans()
+    L0_first = data_first["L0"]
+    for i in range(4):
+        study_4span_with_load.solve_adjustment()
+        study_4span_with_load.solve_change_state(new_temperature=60)
+        data = study_4span_with_load.get_data_spans()
+        current_L0 = data["L0"]
+        np.testing.assert_allclose(
+            current_L0, L0_first, err_msg=f"L0 drifted at iteration {i + 2}"
+        )

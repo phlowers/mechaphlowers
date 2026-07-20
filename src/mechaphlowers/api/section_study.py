@@ -315,6 +315,10 @@ class SectionStudy:
             self._guying = None
         else:
             memento = self._caretaker.save()
+            if self._intermediate_memento is not None:
+                # case where change_state already occurred: resetting climate state
+                self._caretaker.restore(self._intermediate_memento)
+            # if not: new case where no change_state was already run
             try:
                 self._balance_engine.solve_adjustment()
             except SolverError as e:
@@ -380,21 +384,29 @@ class SectionStudy:
 
         memento = self._caretaker.save()
         try:
-            if not is_default:
+            if is_default:
                 self._solve_intermediate()
+            else:
+                self._get_intermediate_state()
 
-            engine.solve_change_state(
-                wind_pressure=wind_pressure,
-                ice_thickness=ice_thickness,
-                new_temperature=new_temperature,
-                wind_direction=wind_direction,
-            )
+                engine.solve_change_state(
+                    wind_pressure=wind_pressure,
+                    ice_thickness=ice_thickness,
+                    new_temperature=new_temperature,
+                    wind_direction=wind_direction,
+                )
         except SolverError as e:
             logger.error(
                 "Error during solve_change_state, rolling back state."
             )
             self._caretaker.restore(memento)
             raise e
+
+    def _get_intermediate_state(self):
+        if self._intermediate_memento is not None:
+            self._caretaker.restore(self.intermediate_memento)
+        else:
+            self._solve_intermediate()
 
     def _solve_intermediate(self) -> None:
         """Solve at default conditions (T=15°C, wind=0, ice=0) as warm-start.
@@ -408,11 +420,19 @@ class SectionStudy:
         engine = self._balance_engine
         default = engine.default_value
 
-        engine.solve_change_state(
-            wind_pressure=default["wind_pressure"],
-            ice_thickness=default["ice_thickness"],
-            new_temperature=default["new_temperature"],
-        )
+        memento = self._caretaker.save()
+        try:
+            engine.solve_change_state(
+                wind_pressure=default["wind_pressure"],
+                ice_thickness=default["ice_thickness"],
+                new_temperature=default["new_temperature"],
+            )
+        except SolverError as e:
+            logger.error(
+                "Error during solve_change_state, rolling back state."
+            )
+            self._caretaker.restore(memento)
+            raise e
         self._intermediate_memento = self._caretaker.save()
 
     def add_loads(
@@ -458,6 +478,7 @@ class SectionStudy:
                 or if the arguments don't have the right lengths.
         """
         self._balance_engine.set_loads(load_position_distance, load_mass)
+        self._solve_intermediate()
 
     # ── State management ──────────────────────────────────────────────────
 
