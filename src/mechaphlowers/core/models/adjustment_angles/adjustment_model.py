@@ -1,6 +1,6 @@
 # Copyright (c) 2026, RTE (http://www.rte-france.com)
 # This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. if a copy of the MPL was not distributed with this
+# License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
@@ -60,7 +60,7 @@ def compute_adjustment_angles(
         VR (float | np.ndarray): vertical angle with right support, in rad
         dist_support (float | np.ndarray): distance between the station and the studied support, in meters
         parameter (float | np.ndarray): wanted sagging parameter
-        side (Literal["right", "left"], optional): specify which support dist_support is refering to. Defaults to "left".
+        side (Literal["right", "left"], optional): specify which support dist_support is referring to. Defaults to "left".
 
     Returns:
         tuple[float | np.ndarray, float | np.ndarray]: horizontal angle, vertical angle, in rad
@@ -71,9 +71,15 @@ def compute_adjustment_angles(
 
     alpha = HR - HL
 
-    alpha_opposite_side = np.arcsin(np.sin(alpha) * dist_support / a)
+    sin_alpha = np.sin(alpha)
+    if np.any(np.isclose(sin_alpha, 0.0, atol=1e-12)):
+        raise ValueError(
+            "Invalid geometry: HL and HR must define a non-zero horizontal angle difference."
+        )
+
+    alpha_opposite_side = np.arcsin(sin_alpha * dist_support / a)
     alpha_same_side = np.pi - alpha - alpha_opposite_side
-    dist_opposite_support = a / np.sin(alpha) * np.sin(alpha_same_side)
+    dist_opposite_support = a / sin_alpha * np.sin(alpha_same_side)
 
     expected_alpha_opposite_value = np.arccos(
         -(dist_support**2 - dist_opposite_support**2 - a**2)
@@ -96,6 +102,10 @@ def compute_adjustment_angles(
     elif side == "right":
         alpha_right, alpha_left = alpha_same_side, alpha_opposite_side
         dist_right, dist_left = dist_support, dist_opposite_support
+    else:
+        raise ValueError(
+            f"Invalid side: {side!r}. Expected 'left' or 'right'."
+        )
 
     d = (
         (a / 2) ** 2
@@ -114,10 +124,7 @@ def compute_adjustment_angles(
     ):
         h = expected_h_value
 
-    # ' *************************************************
-    # ' test bon fonctionnement
-    # ' si le if précédent est positif, au final H = HHH
-
+    # Test: HHH should be equal to h
     # HHH = HL + np.arcsin(np.sin(alpha_left) / d * (a / 2))
 
     deniv = np.tan(VR) * dist_right - np.tan(VL) * dist_left

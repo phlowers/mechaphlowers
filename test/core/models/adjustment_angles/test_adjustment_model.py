@@ -6,6 +6,7 @@
 
 
 import numpy as np
+import pytest
 
 from mechaphlowers.core.models.adjustment_angles.adjustment_model import (
     compute_adjustment_angles,
@@ -59,6 +60,26 @@ class TestAdjustmentAnglesResults:
         result_vertical_angle = Q_(result[1], "rad").to("grad").magnitude
         np.testing.assert_allclose(result_horizontal_angle, 23.035, atol=1e-3)
         np.testing.assert_allclose(result_vertical_angle, 29.75, atol=1e-3)
+
+    def test_compute_adjustment_angles_bad_input_0(self):
+        a = 500
+        HG = 90
+        VG = 30
+        HD = 90
+        VD = 50
+        horizontal_distance_support = 200
+        parameter = 2000
+        with pytest.raises(ValueError):
+            compute_adjustment_angles(
+                a,
+                Q_(HG, "grad").to("rad").magnitude,
+                Q_(VG, "grad").to("rad").magnitude,
+                Q_(HD, "grad").to("rad").magnitude,
+                Q_(VD, "grad").to("rad").magnitude,
+                horizontal_distance_support,
+                parameter,
+                "right",
+            )
 
     def test_compute_adjustment_array_0(self):
         a = np.array([500])
