@@ -5,103 +5,122 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-from typing import Literal
+from typing import Literal, overload
 
 import numpy as np
 
 
+@overload
 def compute_adjustment_angles(
-    a,
-    HG,
-    VG,
-    HD,
-    VD,
-    horizontal_distance_support,
-    parameter,
+    a: float,
+    HL: float,
+    VL: float,
+    HR: float,
+    VR: float,
+    dist_support: float,
+    parameter: float,
     side: Literal["right", "left"] = "left",
-):
-    # Dim l, p, h, HG, HD, V, VG, VD, d, dG, DD, alpha, alphaG, alphaD, deniv, x1, z1, x, z As Double
+) -> tuple[float, float]: ...
 
-    VG = np.pi / 2 - VG
-    VD = np.pi / 2 - VD
 
-    alpha = HD - HG
+@overload
+def compute_adjustment_angles(
+    a: np.ndarray,
+    HL: np.ndarray,
+    VL: np.ndarray,
+    HR: np.ndarray,
+    VR: np.ndarray,
+    dist_support: np.ndarray,
+    parameter: np.ndarray,
+    side: Literal["right", "left"] = "left",
+) -> tuple[np.ndarray, np.ndarray]: ...
+
+
+def compute_adjustment_angles(
+    a: float | np.ndarray,
+    HL: float | np.ndarray,
+    VL: float | np.ndarray,
+    HR: float | np.ndarray,
+    VR: float | np.ndarray,
+    dist_support: float | np.ndarray,
+    parameter: float | np.ndarray,
+    side: Literal["right", "left"] = "left",
+) -> tuple[float | np.ndarray, float | np.ndarray]:
+    """Computation of the horizontal and vertical angles of the pointing station for adjustment cables.
+
+    The station is at `dist_support` of the left or right support. Which support is specified with `side` argument
+
+    All angles are in rad, distances are in meters
+
+    Args:
+        a (float | np.ndarray): length of the span
+        HL (float | np.ndarray): horizontal angle with left support, in rad
+        VL (float | np.ndarray): vertical angle with left support, in rad
+        HR (float | np.ndarray): horizontal angle with right support, in rad
+        VR (float | np.ndarray): vertical angle with right support, in rad
+        dist_support (float | np.ndarray): distance between the station and the studied support, in meters
+        parameter (float | np.ndarray): wanted sagging parameter
+        side (Literal["right", "left"], optional): specify which support dist_support is refering to. Defaults to "left".
+
+    Returns:
+        tuple[float | np.ndarray, float | np.ndarray]: horizontal angle, vertical angle, in rad
+    """
+
+    VL = np.pi / 2 - VL
+    VR = np.pi / 2 - VR
+
+    alpha = HR - HL
+
+    alpha_opposite_side = np.arcsin(np.sin(alpha) * dist_support / a)
+    alpha_same_side = np.pi - alpha - alpha_opposite_side
+    dist_opposite_support = a / np.sin(alpha) * np.sin(alpha_same_side)
+
+    expected_alpha_opposite_value = np.arccos(
+        -(dist_support**2 - dist_opposite_support**2 - a**2)
+        / 2
+        / dist_opposite_support
+        / a
+    )
+    if not np.allclose(
+        alpha_opposite_side,
+        expected_alpha_opposite_value,
+        atol=1e-6,
+    ):
+        alpha_opposite_side = expected_alpha_opposite_value
+        alpha_same_side = np.pi - alpha - alpha_opposite_side
+        dist_opposite_support = a / np.sin(alpha) * np.sin(alpha_same_side)
 
     if side == "left":
-        dist_left = horizontal_distance_support
-        alpha_right = np.arcsin(np.sin(alpha) * dist_left / a)
-        alpha_left = np.pi - alpha - alpha_right
-        dist_right = a / np.sin(alpha) * np.sin(alpha_left)
-
-        if (
-            round(
-                alpha_right
-                - np.arccos(
-                    -(dist_left**2 - dist_right**2 - a**2) / 2 / dist_right / a
-                ),
-                6,
-            )
-            != 0
-        ):
-            alpha_right = np.arccos(
-                -(dist_left**2 - dist_right**2 - a**2) / 2 / dist_right / a
-            )
-            alpha_left = np.pi - alpha - alpha_right
-            dist_right = a / np.sin(alpha) * np.sin(alpha_left)
-
-    # if DD != 0 And dG = 0:
+        alpha_left, alpha_right = alpha_same_side, alpha_opposite_side
+        dist_left, dist_right = dist_support, dist_opposite_support
     elif side == "right":
-        dist_right = horizontal_distance_support
-        alpha_left = np.arcsin(np.sin(alpha) * dist_right / a)
-        alpha_right = np.pi - alpha - alpha_left
-        dist_left = a / np.sin(alpha) * np.sin(alpha_right)
-
-        if (
-            round(
-                alpha_left
-                - np.arccos(
-                    -(dist_right**2 - dist_left**2 - a**2) / 2 / dist_left / a
-                ),
-                6,
-            )
-            != 0
-        ):
-            alpha_left = np.arccos(
-                -(dist_right**2 - dist_left**2 - a**2) / 2 / dist_left / a
-            )
-            alpha_right = np.pi - alpha - alpha_left
-            dist_left = a / np.sin(alpha) * np.sin(alpha_right)
+        alpha_right, alpha_left = alpha_same_side, alpha_opposite_side
+        dist_right, dist_left = dist_support, dist_opposite_support
 
     d = (
         (a / 2) ** 2
         + dist_left**2
         - 2 * dist_left * (a / 2) * np.cos(alpha_left)
     ) ** 0.5
-    h = HD - np.arcsin(np.sin(alpha_right) / d * (a / 2))
+    h = HR - np.arcsin(np.sin(alpha_right) / d * (a / 2))
 
-    if (
-        round(
-            (HD - h)
-            - np.arccos(
-                -((a / 2) ** 2 - dist_right**2 - d**2) / d / dist_right / 2
-            ),
-            6,
-        )
-        != 0
+    expected_h_value = HR - np.arccos(
+        -((a / 2) ** 2 - dist_right**2 - d**2) / d / dist_right / 2
+    )
+    if not np.allclose(
+        h,
+        expected_h_value,
+        atol=1e-6,
     ):
-        h = HD - np.arccos(
-            -((a / 2) ** 2 - dist_right**2 - d**2) / d / dist_right / 2
-        )
+        h = expected_h_value
 
     # ' *************************************************
     # ' test bon fonctionnement
     # ' si le if précédent est positif, au final H = HHH
 
-    # HHH = HG + np.arcsin(np.sin(alpha_left) / d * (a / 2))
+    # HHH = HL + np.arcsin(np.sin(alpha_left) / d * (a / 2))
 
-    result_horizontal_angle = h / np.pi * 200
-
-    deniv = np.tan(VD) * dist_right - np.tan(VG) * dist_left
+    deniv = np.tan(VR) * dist_right - np.tan(VL) * dist_left
 
     x1 = -a / 2 + parameter * np.arcsinh(
         (deniv) / (2 * parameter * np.sinh(a / 2 / parameter))
@@ -110,8 +129,8 @@ def compute_adjustment_angles(
     x = a / 2 + x1
     z = parameter * (np.cosh(x / parameter) - 1)
 
-    V = np.arctan((dist_left * np.tan(VG) - z1 + z) / d)
+    V = np.arctan((dist_left * np.tan(VL) - z1 + z) / d)
 
-    result_vertical_angle = 100 - V / np.pi * 200
+    result_vertical_angle = np.pi / 2 - V
 
-    return result_horizontal_angle, result_vertical_angle
+    return h, result_vertical_angle

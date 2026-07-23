@@ -32,8 +32,10 @@ class TestAdjustmentAnglesResults:
             parameter,
             "left",
         )
-        np.testing.assert_allclose(result[0], 55.752, atol=1e-3)
-        np.testing.assert_allclose(result[1], 33.214, atol=1e-3)
+        result_horizontal_angle = Q_(result[0], "rad").to("grad").magnitude
+        result_vertical_angle = Q_(result[1], "rad").to("grad").magnitude
+        np.testing.assert_allclose(result_horizontal_angle, 55.752, atol=1e-3)
+        np.testing.assert_allclose(result_vertical_angle, 33.214, atol=1e-3)
 
     def test_compute_adjustment_angles_1(self):
         a = 500
@@ -53,5 +55,49 @@ class TestAdjustmentAnglesResults:
             parameter,
             "right",
         )
-        np.testing.assert_allclose(result[0], 23.035, atol=1e-3)
-        np.testing.assert_allclose(result[1], 29.75, atol=1e-3)
+        result_horizontal_angle = Q_(result[0], "rad").to("grad").magnitude
+        result_vertical_angle = Q_(result[1], "rad").to("grad").magnitude
+        np.testing.assert_allclose(result_horizontal_angle, 23.035, atol=1e-3)
+        np.testing.assert_allclose(result_vertical_angle, 29.75, atol=1e-3)
+
+    def test_compute_adjustment_array_0(self):
+        a = np.array([500])
+        HG = np.array([0])
+        VG = np.array([30])
+        HD = np.array([90])
+        VD = np.array([50])
+        horizontal_distance_support = np.array([200])
+        parameter = np.array([2000])
+        result = compute_adjustment_angles(
+            a,
+            Q_(HG, "grad").to("rad").magnitude,
+            Q_(VG, "grad").to("rad").magnitude,
+            Q_(HD, "grad").to("rad").magnitude,
+            Q_(VD, "grad").to("rad").magnitude,
+            horizontal_distance_support,
+            parameter,
+            "right",
+        )
+        assert len(result[0]) == 1
+        assert len(result[1]) == 1
+
+    def test_compute_adjustment_array_1(self):
+        a = np.array([500, 500])
+        HG = np.array([0, 0])
+        VG = np.array([30, 30])
+        HD = np.array([90, 90])
+        VD = np.array([50, 50])
+        horizontal_distance_support = np.array([200, 200])
+        parameter = np.array([2000, 2000])
+        result = compute_adjustment_angles(
+            a,
+            Q_(HG, "grad").to("rad").magnitude,
+            Q_(VG, "grad").to("rad").magnitude,
+            Q_(HD, "grad").to("rad").magnitude,
+            Q_(VD, "grad").to("rad").magnitude,
+            horizontal_distance_support,
+            parameter,
+            "right",
+        )
+        assert len(result[0]) == 2
+        assert len(result[1]) == 2

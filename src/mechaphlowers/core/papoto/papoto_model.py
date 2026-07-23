@@ -69,16 +69,16 @@ def papoto_3_points(
 
     Args:
         a (np.ndarray): Length of the span
-        HL (np.ndarray): horizontal distance of the left part of the span
-        VL (np.ndarray): vertical distance of the left part of the span
-        HR (np.ndarray): horizontal distance of the right part of the span
-        VR (np.ndarray): vertical distance of the right part of the span
-        H1 (np.ndarray): horizontal distance of point 1
-        V1 (np.ndarray): vertical distance of point 1
-        H2 (np.ndarray): horizontal distance of point 2
-        V2 (np.ndarray): vertical distance of point 2
-        H3 (np.ndarray): horizontal distance of point 3
-        V3 (np.ndarray): vertical distance of point 3
+        HL (np.ndarray): horizontal angle of the left part of the span
+        VL (np.ndarray): vertical angle of the left part of the span
+        HR (np.ndarray): horizontal angle of the right part of the span
+        VR (np.ndarray): vertical angle of the right part of the span
+        H1 (np.ndarray): horizontal angle of point 1
+        V1 (np.ndarray): vertical angle of point 1
+        H2 (np.ndarray): horizontal angle of point 2
+        V2 (np.ndarray): vertical angle of point 2
+        H3 (np.ndarray): horizontal angle of point 3
+        V3 (np.ndarray): vertical angle of point 3
     Returns:
         parameter_mean (np.ndarray): mean of the 3 computed parameters
     """
