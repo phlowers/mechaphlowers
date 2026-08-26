@@ -34,9 +34,9 @@ class SpanLoads:
 
         Input for position is a distance, and will be converted into ratio.
 
-        Expected length of load_position_distance and load_mass is the number of spans. Each value refers to a span.
-        Last elements should be nan or zero. Expected length of span_length is the number of pylons (same as
-        SectionArray.data.span_length).
+        Warning: expected lengths for the arguments are different. Expected length of load_position_distance and
+        load_mass is the number of spans. Each value refers to a span. Expected length of span_length is the number
+        of pylons (same as SectionArray.data.span_length). Last element of span_length should be nan or zero.
 
         If either load_position_distance[i] or load_mass[i] is 0 or nan, it means there is no load at span i.
 

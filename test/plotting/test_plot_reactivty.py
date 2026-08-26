@@ -309,8 +309,9 @@ class TestFullResetBehavior:
     def test_full_reset_clears_balance_engine_observer_registry(
         self, balance_engine_base_test: BalanceEngine
     ):
-        """reset(full=True) calls super().__init__() which resets _observers=[].
-        PositionEngine is no longer registered; callers must re-create PlotEngine."""
+        """reset(full=True) should NOT clear the observers registry.
+        PositionEngine must remain registered so PlotEngine continues
+        receiving notifications after a full reset."""
         plt_engine = PlotEngine(balance_engine_base_test)
         assert (
             plt_engine.position_engine in balance_engine_base_test._observers
@@ -318,10 +319,9 @@ class TestFullResetBehavior:
 
         balance_engine_base_test.reset(full=True)
 
-        assert balance_engine_base_test._observers == []
+        # Full reset must preserve observer registrations.
         assert (
-            plt_engine.position_engine
-            not in balance_engine_base_test._observers
+            plt_engine.position_engine in balance_engine_base_test._observers
         )
 
     def test_position_engine_reset_calls_initialize_engine_when_not_initialized(

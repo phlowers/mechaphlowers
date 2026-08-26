@@ -21,7 +21,10 @@ from mechaphlowers.core.geometry.planes import change_local_frame
 from mechaphlowers.core.geometry.points import CoordsCalculator, Points
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import ObstacleArray
-from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
+from mechaphlowers.entities.errors import (
+    NoIntersectionPlaneForDistanceError,
+    NoIntersectionPlaneWarning,
+)
 from mechaphlowers.entities.reactivity import Notifier, Observer
 
 logger = logging.getLogger(__name__)
@@ -440,7 +443,9 @@ class PositionEngine(Observer, Notifier):
                         f"skipping distance computation for this point. ({error})"
                     )
                     logger.warning(message)
-                    warnings.warn(message, stacklevel=2)
+                    warnings.warn(
+                        message, NoIntersectionPlaneWarning, stacklevel=2
+                    )
                     loop_index += 1
                     continue
                 current_distance_result[point_index] = distance_result

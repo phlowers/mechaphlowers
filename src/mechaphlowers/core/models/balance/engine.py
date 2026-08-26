@@ -143,7 +143,8 @@ class BalanceEngine(Notifier):
                 sagging_temperature,
                 self.deformation_model_type,
             )
-            super().__init__()
+            if not hasattr(self, "_observers"):
+                super().__init__()
             self.balance_model = self.balance_model_type(
                 sagging_temperature,
                 parameter,
@@ -217,7 +218,6 @@ class BalanceEngine(Notifier):
         Input for position is a distance, and will be converted into ratio.
 
         Expected input are arrays of size matching the number of spans. Each value refers to a span.
-        Last elements should be nan or zero.
 
         If either load_position_distance[i] or load_mass[i] is 0 or nan, it means there is no load at span i.
 
@@ -269,6 +269,14 @@ class BalanceEngine(Notifier):
         logger.debug("Starting adjustment.")
 
         self.balance_model.adjustment = True
+        # reset parameter to sagging parameter
+        sagging_parameter = (
+            self.section_array.data.sagging_parameter.to_numpy()
+        )
+        self.span_model.set_parameter(sagging_parameter)
+        # reset displacements to zero (hypothesis of adjustment)
+        self.balance_model.nodes.dxdydz[:] = 0
+
         try:
             self.solver_adjustment.solve(self.balance_model)
         except SolverError as e:
@@ -359,13 +367,13 @@ class BalanceEngine(Notifier):
 
         self.balance_model.cable_loads.wind_pressure = validated_wind
 
-        # TODO: convert ice thickness from cm to m? Right now, user has to input in m
+        # Ice thickness input in meters
         self.balance_model.cable_loads.ice_thickness = validate_input(
             ice_thickness, "ice_thickness"
         )
 
         new_t = validate_input(new_temperature, "new_temperature")
-        self.balance_model.sagging_temperature = arr.decr(new_t)
+        self.balance_model.current_temperature = arr.decr(new_t)
         self.deformation_model.current_temperature = new_t
 
         self.balance_model.adjustment = False
@@ -481,7 +489,7 @@ class BalanceEngine(Notifier):
             f"parameter: {self.span_model.parameter}\n"
             f"wind: {self.balance_model.cable_loads.wind_pressure}\n"
             f"ice: {self.balance_model.cable_loads.ice_thickness}\n"
-            f"temperature: {self.balance_model.sagging_temperature}\n"
+            f"temperature: {self.balance_model.current_temperature}\n"
             f"load position (ratio): {self.span_loads.load_position}\n"
             f"load mass: {self.span_loads.load_mass}\n"
             f"dx: {dxdydz[0]}\n"
