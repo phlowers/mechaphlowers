@@ -673,8 +673,10 @@ def test_nebulosity__no_solution(caplog: pytest.LogCaptureFixture) -> None:
             ),
             np.array([40.0]),
             np.array([0.0]),
+        )
         assert any(
-            "convergence" in record.getMessage().lower() and record.levelno == logging.WARNING
+            "convergence" in record.getMessage().lower()
+            and record.levelno == logging.WARNING
             for record in caplog.records
         )
 
@@ -694,8 +696,10 @@ def test_nebulosity__no_solution(caplog: pytest.LogCaptureFixture) -> None:
             ),
             np.array([40.0]),
             np.array([0.0]),
+        )
         assert any(
-            "convergence" in record.getMessage().lower() and record.levelno == logging.WARNING
+            "convergence" in record.getMessage().lower()
+            and record.levelno == logging.WARNING
             for record in caplog.records
         )
 
