@@ -240,7 +240,7 @@ class SolarRadiationResults(ThermalResults):
 class NebulosityResults(ThermalResults):
     """Nebulosity results.
 
-    .data is a DataFrame with a single column: nebulosity.
+    .data is a DataFrame with two columns: nebulosity and converged.
     """
 
     def __init__(self, input_data: np.ndarray, converged: bool):
@@ -606,8 +606,30 @@ class ThermalEngine:
         If no nebulosity can yield the given radiation (because it is too high or too low),
         0 or 8 respectively are returned.
 
+        If datetime_utc shows it's the night, np.nan is returned.
+
         Returns:
             NebulosityResults: an instance containing the results.
+
+        Examples:
+
+        ```python
+        >>> results = ThermalEngine.nebulosity(
+            np.array([850, 850]),
+            np.array(
+                [
+                    np.datetime64("2026-06-26T12:00"),
+                    np.datetime64("2026-06-26T00:00"),  # night
+                ]
+            ),
+            np.array([40.0, 40.0]),
+            np.array([0.0, 0.0]),
+        )
+        >>> results
+          nebulosity  converged
+        0        3.0       True
+        1        NaN      False
+        ```
         """
         results = estimate_nebulosity(
             diffuse_plus_beam_radiation,
