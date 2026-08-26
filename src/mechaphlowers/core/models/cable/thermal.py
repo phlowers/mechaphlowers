@@ -243,8 +243,9 @@ class NebulosityResults(ThermalResults):
     .data is a DataFrame with a single column: nebulosity.
     """
 
-    def __init__(self, input_data: np.ndarray):
+    def __init__(self, input_data: np.ndarray, converged: bool):
         self.data = self.parse_results(input_data)
+        self.data["converged"] = converged
 
     @staticmethod
     def parse_results(data: dict | pd.DataFrame | np.ndarray) -> pd.DataFrame:
@@ -608,10 +609,14 @@ class ThermalEngine:
         Returns:
             NebulosityResults: an instance containing the results.
         """
-        result = estimate_nebulosity(
-            diffuse_plus_beam_radiation, datetime_utc, latitude, longitude
+        results = estimate_nebulosity(
+            diffuse_plus_beam_radiation,
+            datetime_utc,
+            latitude,
+            longitude,
+            return_converged=True,
         )
-        return NebulosityResults(result)
+        return NebulosityResults(*results)
 
     @property
     def wind_cable_angle(self) -> np.ndarray:
