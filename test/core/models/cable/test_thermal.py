@@ -673,10 +673,14 @@ def test_nebulosity__no_solution(caplog: pytest.LogCaptureFixture) -> None:
             ),
             np.array([40.0]),
             np.array([0.0]),
+        assert any(
+            "convergence" in record.getMessage().lower() and record.levelno == logging.WARNING
+            for record in caplog.records
         )
-        assert "do not satisfy convergence conditions" in caplog.text
 
-    assert np.allclose(greatest_nebulosity.data, np.array([8]))
+    pd.testing.assert_frame_equal(
+        greatest_nebulosity.data, pd.DataFrame({"nebulosity": [8.0]})
+    )
 
     caplog.clear()
 
@@ -690,7 +694,11 @@ def test_nebulosity__no_solution(caplog: pytest.LogCaptureFixture) -> None:
             ),
             np.array([40.0]),
             np.array([0.0]),
+        assert any(
+            "convergence" in record.getMessage().lower() and record.levelno == logging.WARNING
+            for record in caplog.records
         )
-        assert "do not satisfy convergence conditions" in caplog.text
 
-    assert np.allclose(smallest_nebulosity.data, np.array([0]))
+    pd.testing.assert_frame_equal(
+        smallest_nebulosity.data, pd.DataFrame({"nebulosity": [0.0]})
+    )
