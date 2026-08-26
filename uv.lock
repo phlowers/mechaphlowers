@@ -757,7 +757,7 @@ requires-dist = [
     { name = "pyyaml", specifier = "==6.0.2" },
     { name = "requests", marker = "extra == 'full'", specifier = "==2.33.1" },
     { name = "scipy", marker = "extra == 'full'", specifier = "<=1.14.1" },
-    { name = "thermohl", specifier = "==1.9.0" },
+    { name = "thermohl", specifier = "==1.9.1" },
     { name = "xxhash", specifier = "==3.5.0" },
 ]
 provides-extras = ["full"]
@@ -1787,16 +1787,16 @@ wheels = [
 
 [[package]]
 name = "thermohl"
-version = "1.9.0"
+version = "1.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ac/d8/4c575e57630fdd99ffc4a8b8b9cbfdbb417cc82fcf22d9f966f2a2446811/thermohl-1.9.0.tar.gz", hash = "sha256:4cbecf879654348a24d8596ea71db7abc9d245355ff77d471990d9c0f17233df", size = 1075892, upload-time = "2026-07-01T07:39:20.409Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ba/09/13e043d6b4dce967e7e2ca927648c4f4df6f79eac994b8e63f52f3759b96/thermohl-1.9.1.tar.gz", hash = "sha256:86fbacd71e469ec2fe3a00a46dcd6456adc87daaad65cf240bdeaec693ce71a4", size = 1077437, upload-time = "2026-08-26T11:56:40.786Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5a/ca/026ab95c81993749bf9dfcf8decee567c25812f6f812f8b7939d478ea79e/thermohl-1.9.0-py3-none-any.whl", hash = "sha256:5ef52099766961734a3d746dd7eced6c998361061e2c5b101480a57c711a387e", size = 80205, upload-time = "2026-07-01T07:39:18.653Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/88/79fea923f206a793e31bd597093f2579632cc882b07763988f497bcbea77/thermohl-1.9.1-py3-none-any.whl", hash = "sha256:c6571a4c8b8a9be0229556782220ce12a9622955d76123ffe25c3848d9e8a8c3", size = 79492, upload-time = "2026-08-26T11:56:39.422Z" },
 ]
 
 [[package]]
