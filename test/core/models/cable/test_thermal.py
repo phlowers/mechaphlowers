@@ -702,7 +702,7 @@ def test_nebulosity__radiation_too_low(
         greatest_nebulosity.data,
         pd.DataFrame(
             {
-                "nebulosity": [np.nan, 4.0],
+                "nebulosity": [8.0, 4.0],
                 "converged": [False, True],
             }
         ),
