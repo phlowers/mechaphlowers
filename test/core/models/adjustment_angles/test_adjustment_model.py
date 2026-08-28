@@ -81,6 +81,26 @@ class TestAdjustmentAnglesResults:
                 "right",
             )
 
+    def test_compute_adjustment_angles_bad_input_side(self):
+        a = 500
+        HG = 0
+        VG = 30
+        HD = 90
+        VD = 50
+        horizontal_distance_support = 300
+        parameter = 2000
+        with pytest.raises(ValueError):
+            compute_adjustment_angles(
+                a,
+                Q_(HG, "grad").to("rad").magnitude,
+                Q_(VG, "grad").to("rad").magnitude,
+                Q_(HD, "grad").to("rad").magnitude,
+                Q_(VD, "grad").to("rad").magnitude,
+                horizontal_distance_support,
+                parameter,
+                "wrong_side",
+            )
+
     def test_compute_adjustment_array_0(self):
         a = np.array([500])
         HG = np.array([0])

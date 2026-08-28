@@ -12,7 +12,7 @@ import numpy as np
 
 @overload
 def compute_adjustment_angles(
-    a: float,
+    span_length: float,
     HL: float,
     VL: float,
     HR: float,
@@ -25,7 +25,7 @@ def compute_adjustment_angles(
 
 @overload
 def compute_adjustment_angles(
-    a: np.ndarray,
+    span_length: np.ndarray,
     HL: np.ndarray,
     VL: np.ndarray,
     HR: np.ndarray,
@@ -37,7 +37,7 @@ def compute_adjustment_angles(
 
 
 def compute_adjustment_angles(
-    a: float | np.ndarray,
+    span_length: float | np.ndarray,
     HL: float | np.ndarray,
     VL: float | np.ndarray,
     HR: float | np.ndarray,
@@ -52,20 +52,25 @@ def compute_adjustment_angles(
 
     All angles are in rad, distances are in meters
 
+    Currently, both input and output angles are in clockwise direction.
+
     Args:
-        a (float | np.ndarray): length of the span
+        span_length (float | np.ndarray): length of the span
         HL (float | np.ndarray): horizontal angle with left support, in rad
         VL (float | np.ndarray): vertical angle with left support, in rad
         HR (float | np.ndarray): horizontal angle with right support, in rad
         VR (float | np.ndarray): vertical angle with right support, in rad
         dist_support (float | np.ndarray): distance between the station and the studied support, in meters
-        parameter (float | np.ndarray): wanted sagging parameter
+        parameter (float | np.ndarray): target sagging parameter
         side (Literal["right", "left"], optional): specify which support dist_support is referring to. Defaults to "left".
 
     Returns:
         tuple[float | np.ndarray, float | np.ndarray]: horizontal angle, vertical angle, in rad
     """
-
+    if side != "right" and side != "left":
+        raise ValueError(
+            f"Invalid side: {side!r}. Expected 'left' or 'right'."
+        )
     VL = np.pi / 2 - VL
     VR = np.pi / 2 - VR
 
@@ -77,15 +82,15 @@ def compute_adjustment_angles(
             "Invalid geometry: HL and HR must define a non-zero horizontal angle difference."
         )
 
-    alpha_opposite_side = np.arcsin(sin_alpha * dist_support / a)
+    alpha_opposite_side = np.arcsin(sin_alpha * dist_support / span_length)
     alpha_same_side = np.pi - alpha - alpha_opposite_side
-    dist_opposite_support = a / sin_alpha * np.sin(alpha_same_side)
+    dist_opposite_support = span_length / sin_alpha * np.sin(alpha_same_side)
 
     expected_alpha_opposite_value = np.arccos(
-        -(dist_support**2 - dist_opposite_support**2 - a**2)
+        -(dist_support**2 - dist_opposite_support**2 - span_length**2)
         / 2
         / dist_opposite_support
-        / a
+        / span_length
     )
     if not np.allclose(
         alpha_opposite_side,
@@ -94,7 +99,9 @@ def compute_adjustment_angles(
     ):
         alpha_opposite_side = expected_alpha_opposite_value
         alpha_same_side = np.pi - alpha - alpha_opposite_side
-        dist_opposite_support = a / np.sin(alpha) * np.sin(alpha_same_side)
+        dist_opposite_support = (
+            span_length / np.sin(alpha) * np.sin(alpha_same_side)
+        )
 
     if side == "left":
         alpha_left, alpha_right = alpha_same_side, alpha_opposite_side
@@ -102,20 +109,16 @@ def compute_adjustment_angles(
     elif side == "right":
         alpha_right, alpha_left = alpha_same_side, alpha_opposite_side
         dist_right, dist_left = dist_support, dist_opposite_support
-    else:
-        raise ValueError(
-            f"Invalid side: {side!r}. Expected 'left' or 'right'."
-        )
 
     d = (
-        (a / 2) ** 2
+        (span_length / 2) ** 2
         + dist_left**2
-        - 2 * dist_left * (a / 2) * np.cos(alpha_left)
+        - 2 * dist_left * (span_length / 2) * np.cos(alpha_left)
     ) ** 0.5
-    h = HR - np.arcsin(np.sin(alpha_right) / d * (a / 2))
+    h = HR - np.arcsin(np.sin(alpha_right) / d * (span_length / 2))
 
     expected_h_value = HR - np.arccos(
-        -((a / 2) ** 2 - dist_right**2 - d**2) / d / dist_right / 2
+        -((span_length / 2) ** 2 - dist_right**2 - d**2) / d / dist_right / 2
     )
     if not np.allclose(
         h,
@@ -127,13 +130,13 @@ def compute_adjustment_angles(
     # Test: HHH should be equal to h
     # HHH = HL + np.arcsin(np.sin(alpha_left) / d * (a / 2))
 
-    deniv = np.tan(VR) * dist_right - np.tan(VL) * dist_left
+    slope = np.tan(VR) * dist_right - np.tan(VL) * dist_left
 
-    x1 = -a / 2 + parameter * np.arcsinh(
-        (deniv) / (2 * parameter * np.sinh(a / 2 / parameter))
+    x1 = -span_length / 2 + parameter * np.arcsinh(
+        (slope) / (2 * parameter * np.sinh(span_length / 2 / parameter))
     )
     z1 = parameter * (np.cosh(x1 / parameter) - 1)
-    x = a / 2 + x1
+    x = span_length / 2 + x1
     z = parameter * (np.cosh(x / parameter) - 1)
 
     V = np.arctan((dist_left * np.tan(VL) - z1 + z) / d)
