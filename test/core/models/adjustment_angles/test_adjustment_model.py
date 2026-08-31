@@ -17,18 +17,18 @@ from mechaphlowers.data.units import Q_
 class TestAdjustmentAnglesResults:
     def test_compute_adjustment_angles_0(self):
         a = 500
-        HG = 0
-        VG = 30
-        HD = 90
-        VD = 50
+        HL = 0
+        VL = 30
+        HR = 90
+        VR = 50
         horizontal_distance_support = 300
         parameter = 2000
         result = compute_adjustment_angles(
             a,
-            Q_(HG, "grad").to("rad").magnitude,
-            Q_(VG, "grad").to("rad").magnitude,
-            Q_(HD, "grad").to("rad").magnitude,
-            Q_(VD, "grad").to("rad").magnitude,
+            Q_(HL, "grad").to("rad").magnitude,
+            Q_(VL, "grad").to("rad").magnitude,
+            Q_(HR, "grad").to("rad").magnitude,
+            Q_(VR, "grad").to("rad").magnitude,
             horizontal_distance_support,
             parameter,
             "left",
@@ -40,18 +40,18 @@ class TestAdjustmentAnglesResults:
 
     def test_compute_adjustment_angles_1(self):
         a = 500
-        HG = 0
-        VG = 30
-        HD = 90
-        VD = 50
+        HL = 0
+        VL = 30
+        HR = 90
+        VR = 50
         horizontal_distance_support = 200
         parameter = 2000
         result = compute_adjustment_angles(
             a,
-            Q_(HG, "grad").to("rad").magnitude,
-            Q_(VG, "grad").to("rad").magnitude,
-            Q_(HD, "grad").to("rad").magnitude,
-            Q_(VD, "grad").to("rad").magnitude,
+            Q_(HL, "grad").to("rad").magnitude,
+            Q_(VL, "grad").to("rad").magnitude,
+            Q_(HR, "grad").to("rad").magnitude,
+            Q_(VR, "grad").to("rad").magnitude,
             horizontal_distance_support,
             parameter,
             "right",
@@ -63,19 +63,19 @@ class TestAdjustmentAnglesResults:
 
     def test_compute_adjustment_angles_bad_input_0(self):
         a = 500
-        HG = 90
-        VG = 30
-        HD = 90
-        VD = 50
+        HL = 90
+        VL = 30
+        HR = 90
+        VR = 50
         horizontal_distance_support = 200
         parameter = 2000
         with pytest.raises(ValueError):
             compute_adjustment_angles(
                 a,
-                Q_(HG, "grad").to("rad").magnitude,
-                Q_(VG, "grad").to("rad").magnitude,
-                Q_(HD, "grad").to("rad").magnitude,
-                Q_(VD, "grad").to("rad").magnitude,
+                Q_(HL, "grad").to("rad").magnitude,
+                Q_(VL, "grad").to("rad").magnitude,
+                Q_(HR, "grad").to("rad").magnitude,
+                Q_(VR, "grad").to("rad").magnitude,
                 horizontal_distance_support,
                 parameter,
                 "right",
@@ -83,19 +83,19 @@ class TestAdjustmentAnglesResults:
 
     def test_compute_adjustment_angles_bad_input_side(self):
         a = 500
-        HG = 0
-        VG = 30
-        HD = 90
-        VD = 50
+        HL = 0
+        VL = 30
+        HR = 90
+        VR = 50
         horizontal_distance_support = 300
         parameter = 2000
         with pytest.raises(ValueError):
             compute_adjustment_angles(
                 a,
-                Q_(HG, "grad").to("rad").magnitude,
-                Q_(VG, "grad").to("rad").magnitude,
-                Q_(HD, "grad").to("rad").magnitude,
-                Q_(VD, "grad").to("rad").magnitude,
+                Q_(HL, "grad").to("rad").magnitude,
+                Q_(VL, "grad").to("rad").magnitude,
+                Q_(HR, "grad").to("rad").magnitude,
+                Q_(VR, "grad").to("rad").magnitude,
                 horizontal_distance_support,
                 parameter,
                 "wrong_side",
@@ -103,18 +103,18 @@ class TestAdjustmentAnglesResults:
 
     def test_compute_adjustment_array_0(self):
         a = np.array([500])
-        HG = np.array([0])
-        VG = np.array([30])
-        HD = np.array([90])
-        VD = np.array([50])
+        HL = np.array([0])
+        VL = np.array([30])
+        HR = np.array([90])
+        VR = np.array([50])
         horizontal_distance_support = np.array([200])
         parameter = np.array([2000])
         result = compute_adjustment_angles(
             a,
-            Q_(HG, "grad").to("rad").magnitude,
-            Q_(VG, "grad").to("rad").magnitude,
-            Q_(HD, "grad").to("rad").magnitude,
-            Q_(VD, "grad").to("rad").magnitude,
+            Q_(HL, "grad").to("rad").magnitude,
+            Q_(VL, "grad").to("rad").magnitude,
+            Q_(HR, "grad").to("rad").magnitude,
+            Q_(VR, "grad").to("rad").magnitude,
             horizontal_distance_support,
             parameter,
             "right",
@@ -124,18 +124,18 @@ class TestAdjustmentAnglesResults:
 
     def test_compute_adjustment_array_1(self):
         a = np.array([500, 500])
-        HG = np.array([0, 0])
-        VG = np.array([30, 30])
-        HD = np.array([90, 90])
-        VD = np.array([50, 50])
+        HL = np.array([0, 0])
+        VL = np.array([30, 30])
+        HR = np.array([90, 90])
+        VR = np.array([50, 50])
         horizontal_distance_support = np.array([200, 200])
         parameter = np.array([2000, 2000])
         result = compute_adjustment_angles(
             a,
-            Q_(HG, "grad").to("rad").magnitude,
-            Q_(VG, "grad").to("rad").magnitude,
-            Q_(HD, "grad").to("rad").magnitude,
-            Q_(VD, "grad").to("rad").magnitude,
+            Q_(HL, "grad").to("rad").magnitude,
+            Q_(VL, "grad").to("rad").magnitude,
+            Q_(HR, "grad").to("rad").magnitude,
+            Q_(VR, "grad").to("rad").magnitude,
             horizontal_distance_support,
             parameter,
             "right",

@@ -21,18 +21,18 @@ Currently all the angles (input and output) are clockwise-oriented
 
 ```py
 a = 500
-HG = 0
-VG = 30
-HD = 90
-VD = 50
+HL = 0
+VL = 30
+HR = 90
+VR = 50
 horizontal_distance_support = 300
 parameter = 2000
 result = compute_adjustment_angles(
     a,
-    Q_(HG, "grad").to("rad").magnitude,
-    Q_(VG, "grad").to("rad").magnitude,
-    Q_(HD, "grad").to("rad").magnitude,
-    Q_(VD, "grad").to("rad").magnitude,
+    Q_(HL, "grad").to("rad").magnitude,
+    Q_(VL, "grad").to("rad").magnitude,
+    Q_(HR, "grad").to("rad").magnitude,
+    Q_(VR, "grad").to("rad").magnitude,
     horizontal_distance_support,
     parameter,
     "left",
