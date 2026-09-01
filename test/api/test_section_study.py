@@ -166,44 +166,69 @@ class TestSectionStudyLifecycle:
 
 
 class TestSectionStudyLazyEngines:
-    def test_plot_engine_not_created_eagerly(
+    def test_engines_not_created_eagerly(
         self, balance_engine_base_test: BalanceEngine
-    ):
+    ) -> None:
         study = SectionStudy(
             cable_array=balance_engine_base_test.cable_array,
             section_array=balance_engine_base_test.section_array,
         )
         assert study._plot_engine is None
+        assert study._thermal_engine is None
+        assert study._guying is None
+        assert study._estimation_engine is None
 
     def test_plot_engine_created_on_access(
         self, balance_engine_base_test: BalanceEngine
-    ):
+    ) -> None:
         study = SectionStudy(
             cable_array=balance_engine_base_test.cable_array,
             section_array=balance_engine_base_test.section_array,
         )
-        _ = study.plot_engine
+        engine = study.plot_engine
         assert study._plot_engine is not None
+
+        # Second access returns same instance
+        assert study.plot_engine is engine
 
     def test_thermal_engine_created_on_access(
         self, balance_engine_base_test: BalanceEngine
-    ):
+    ) -> None:
         study = SectionStudy(
             cable_array=balance_engine_base_test.cable_array,
             section_array=balance_engine_base_test.section_array,
         )
-        _ = study.thermal_engine
+        engine = study.thermal_engine
         assert study._thermal_engine is not None
+
+        # Second access returns same instance
+        assert study.thermal_engine is engine
 
     def test_guying_created_on_access(
         self, balance_engine_base_test: BalanceEngine
-    ):
+    ) -> None:
         study = SectionStudy(
             cable_array=balance_engine_base_test.cable_array,
             section_array=balance_engine_base_test.section_array,
         )
-        _ = study.guying
+        guying = study.guying
         assert study._guying is not None
+
+        # Second access returns same instance
+        assert study.guying is guying
+
+    def test_estimation_engine_created_on_access(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        estimation_engine = study.estimation_engine
+        assert study._estimation_engine is not None
+
+        # Second access returns same instance
+        assert study.estimation_engine is estimation_engine
 
 
 class TestSectionStudySubEngines:
