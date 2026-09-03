@@ -13,7 +13,7 @@ from warnings import warn
 
 import numpy as np
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from numpy import typing as npt
 from numpy.polynomial import Polynomial as Poly
 from typing_extensions import Literal, Self, Type
