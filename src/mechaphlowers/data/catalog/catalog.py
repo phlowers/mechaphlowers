@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Literal, Set, get_args
 
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 import yaml  # type: ignore[import-untyped]
 
 from mechaphlowers.entities.arrays import (

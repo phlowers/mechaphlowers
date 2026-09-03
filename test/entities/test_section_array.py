@@ -9,7 +9,7 @@ from copy import copy
 
 import numpy as np
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 import pytest
 from numpy.testing import assert_allclose, assert_equal
 from pandas.testing import assert_frame_equal
