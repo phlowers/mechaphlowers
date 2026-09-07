@@ -240,11 +240,12 @@ class SolarRadiationResults(ThermalResults):
 class NebulosityResults(ThermalResults):
     """Nebulosity results.
 
-    .data is a DataFrame with a single column: nebulosity.
+    .data is a DataFrame with two columns: nebulosity and converged.
     """
 
-    def __init__(self, input_data: np.ndarray):
+    def __init__(self, input_data: np.ndarray, converged: bool):
         self.data = self.parse_results(input_data)
+        self.data["converged"] = converged
 
     @staticmethod
     def parse_results(data: dict | pd.DataFrame | np.ndarray) -> pd.DataFrame:
@@ -602,13 +603,42 @@ class ThermalEngine:
 
         Nebulosities are integers between 0 and 8.
 
+        If no nebulosity can yield the given radiation (because it is too high or too low),
+        0 or 8 respectively are returned.
+
+        If datetime_utc shows it's the night, np.nan is returned.
+
         Returns:
             NebulosityResults: an instance containing the results.
-        """
-        result = estimate_nebulosity(
-            diffuse_plus_beam_radiation, datetime_utc, latitude, longitude
+
+        Examples:
+
+        ```python
+        >>> results = ThermalEngine.nebulosity(
+            np.array([850, 850]),
+            np.array(
+                [
+                    np.datetime64("2026-06-26T12:00"),
+                    np.datetime64("2026-06-26T00:00"),  # night
+                ]
+            ),
+            np.array([40.0, 40.0]),
+            np.array([0.0, 0.0]),
         )
-        return NebulosityResults(result)
+        >>> results
+          nebulosity  converged
+        0        3.0       True
+        1        NaN      False
+        ```
+        """
+        results = estimate_nebulosity(
+            diffuse_plus_beam_radiation,
+            datetime_utc,
+            latitude,
+            longitude,
+            return_converged=True,
+        )
+        return NebulosityResults(*results)
 
     @property
     def wind_cable_angle(self) -> np.ndarray:
