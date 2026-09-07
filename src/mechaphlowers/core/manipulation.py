@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import logging
 import warnings
-from copy import copy
+from copy import copy, deepcopy
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import pandas as pd
 
 from mechaphlowers.config import options
+from mechaphlowers.core.models.balance.span_loads import SpanLoads
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import SectionArray
@@ -591,11 +592,42 @@ class Manipulation:
         )
         return sa
 
+    def build_new_span_loads_virtual_support(
+        self, span_loads: SpanLoads
+    ) -> SpanLoads:
+        """Return a span loads object to inject back to BalanceEngine
+        If virtual support, will adjust to match the new array lengths
+        If no virtual support, will simlply return a copy of SpanLoads
+
+        Args:
+            span_loads (SpanLoads): SpanLoads object to operate on
+
+        Returns:
+            SpanLoads: modified (or not modified) copy of the input
+        """
+        new_span_loads = deepcopy(span_loads)
+        if self._virtual_support_overlay is not None:
+            sorted_span_indices = sorted(self._virtual_support_overlay.keys())
+            for offset, span_idx in enumerate(sorted_span_indices):
+                effective_idx = span_idx + offset
+                # no load if adding a virtual support in the middle of the span
+                new_span_loads.load_position[effective_idx] = 0.0
+                new_span_loads.load_mass[effective_idx] = 0.0
+                # insert a value into the array for the new virtual support
+                new_span_loads.load_position = np.insert(
+                    new_span_loads.load_position, effective_idx, 0.0
+                )
+                new_span_loads.load_mass = np.insert(
+                    new_span_loads.load_mass, effective_idx, 0.0
+                )
+        return new_span_loads
+
     def initialize_engine(
         self,
         clean_engine: BalanceEngine,
         section_array: SectionArray,
         initial_L_ref: np.ndarray,
+        span_loads: SpanLoads,
     ) -> BalanceEngine:
         """Build a target [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] with manipulated geometry.
 
@@ -617,6 +649,7 @@ class Manipulation:
             section_array: The manipulated section array (output of
                 [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array]).
             initial_L_ref: ``initial_L_ref`` from the clean adjustment solve.
+            span_loads: SpanLoads object to inject (usually output of `build_new_span_loads`)
 
         Returns:
             A configured [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] ready for
@@ -658,6 +691,9 @@ class Manipulation:
         )
         target_engine.balance_model.state_vector = expanded_state
         target_engine.balance_model.update()
+
+        # Re inject span loads
+        target_engine.span_loads = span_loads
 
         # Inject L_ref and block adjustment. The target engine's balance model is already initialized with the manipulated section array
         target_engine.initial_L_ref = initial_L_ref.copy()
@@ -791,13 +827,13 @@ class Manipulation:
                 "_apply_virtual_support_overlay called but no virtual support overlay is set; returning original data."
             )
             return raw_data
-        sorted_keys = sorted(self._virtual_support_overlay.keys())
-        for offset, span_idx in enumerate(sorted_keys):
-            vs = self._virtual_support_overlay[span_idx]
+        sorted_span_indices = sorted(self._virtual_support_overlay.keys())
+        for offset, span_idx in enumerate(sorted_span_indices):
+            virutal_support = self._virtual_support_overlay[span_idx]
             effective_idx = span_idx + offset
 
-            x = vs["x"]
-            y = vs["y"]
+            x = virutal_support["x"]
+            y = virutal_support["y"]
             angle = np.arctan2(y, x)  # radians
 
             original_span_input = cast(
@@ -810,10 +846,6 @@ class Manipulation:
             raw_data.loc[effective_idx, "line_angle"] = self._to_input(
                 angle, "line_angle", input_units
             )
-            # no load if adding a virtual support in the middle of the span
-            if "load_mass" in raw_data.columns:
-                raw_data.loc[effective_idx, "load_mass"] = 0.0
-                raw_data.loc[effective_idx, "load_position"] = 0.0
 
             # Build virtual row
             remaining_span = abs(original_span_input - x_input)
@@ -825,7 +857,7 @@ class Manipulation:
                     "name": f"virtual_{span_idx}",
                     "suspension": True,
                     "conductor_attachment_altitude": self._to_input(
-                        float(vs["z"]),
+                        float(virutal_support["z"]),
                         "conductor_attachment_altitude",
                         input_units,
                     ),
@@ -836,13 +868,13 @@ class Manipulation:
                         -angle, "line_angle", input_units
                     ),
                     "insulator_length": self._to_input(
-                        max(float(vs["insulator_length"]), 0.01),
+                        max(float(virutal_support["insulator_length"]), 0.01),
                         "insulator_length",
                         input_units,
                     ),
                     "span_length": remaining_span,
                     "insulator_mass": self._to_input(
-                        float(vs["insulator_mass"]),
+                        float(virutal_support["insulator_mass"]),
                         "insulator_mass",
                         input_units,
                     ),
@@ -850,8 +882,6 @@ class Manipulation:
             )
 
             for optional_col, fill in (
-                ("load_mass", 0.0),
-                ("load_position", 0.0),
                 ("counterweight_mass", 0.0),
                 (
                     "sagging_parameter",
@@ -867,7 +897,8 @@ class Manipulation:
 
             if "ground_altitude" in raw_data.columns:
                 virtual_row["ground_altitude"] = (
-                    float(vs["z"]) - options.ground.default_support_length
+                    float(virutal_support["z"])
+                    - options.ground.default_support_length
                 )
 
             virtual_df = pd.DataFrame([virtual_row])
