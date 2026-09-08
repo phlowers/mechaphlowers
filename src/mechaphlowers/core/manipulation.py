@@ -699,6 +699,8 @@ class Manipulation:
 
         # Re inject span loads
         target_engine.span_loads = span_loads
+        # Reset to transport modifications to Nodes
+        target_engine.reset(full=False)
 
         # Inject L_ref and block adjustment. The target engine's balance model is already initialized with the manipulated section array
         target_engine.initial_L_ref = initial_L_ref.copy()
