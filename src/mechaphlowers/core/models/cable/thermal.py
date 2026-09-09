@@ -6,6 +6,8 @@
 
 import logging
 from abc import ABC, abstractmethod
+from numbers import Real
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -334,6 +336,16 @@ def check_nebulosity_range(nebulosity: np.ndarray) -> None:
         )
 
 
+def check_inputs_are_numbers(**kwargs) -> None:  # TODO: remove or add tests
+    for key, value in kwargs.items():
+        if not isinstance(value, Real) or isinstance(
+            value, bool
+        ):  # booleans are "Real" but we don't want them
+            raise TypeError(
+                f"Argument {key} should be a number, but got {type(value).__name__}"
+            )
+
+
 class ThermalEngine:
     """Thermal engine is a wrapper for cable thermal modeling."""
 
@@ -531,6 +543,81 @@ class ThermalEngine:
             ),
             cable_is_bimetallic=self.bimetallic_cable,
             return_inputs=return_inputs,
+        )
+
+    @classmethod
+    def reduced_intensity(
+        cls,
+        measured_temperature_difference: float,
+        measured_intensity: float,
+        ambient_temp: float,
+        wind_speed: float,
+        solar_irradiance: float,
+        max_conductor_temperature: float,
+        cable_array: CableArray,
+    ) -> float:
+        """Compute reduced intensity limit from measurements around a faulty sleeve.
+
+        This method is scalar-only (it does not accept numpy arrays).
+
+        Args:
+            measured_temperature_difference (float): The measured temperature difference
+                between the sound cable surface and a hotspot on the junction between a cable
+                and a faulty sleeve.
+            measured_intensity (float): The measured intensity at which the temperature difference was measured.
+            ambient_temp (float): The ambient temperature.
+            wind_speed (float): The wind speed (more precisely, speed of the wind component perpendicular to the cable).
+            solar_irradiance (float): The measured solar irradiance.
+            max_conductor_temperature (float): The maximum conductor temperature.
+            cable_array (CableArray): The description of the cable physical properties.
+        """
+        check_inputs_are_numbers(
+            measured_temperature_difference=measured_temperature_difference,
+            measured_intensity=measured_intensity,
+            ambient_temp=ambient_temp,
+            wind_speed=wind_speed,
+            solar_irradiance=solar_irradiance,
+            max_conductor_temperature=max_conductor_temperature,
+        )
+
+        dict_input = {
+            "linear_mass": cable_array.data.linear_mass.iloc[0],
+            "core_diameter": cable_array.data.diameter_heart.iloc[0],
+            "outer_diameter": cable_array.data.diameter.iloc[0],
+            "core_area": cable_array.data.section_heart.iloc[0],
+            "outer_area": cable_array.data.section_conductor.iloc[0],
+            "radial_thermal_conductivity": cable_array.data.radial_thermal_conductivity.iloc[
+                0
+            ],
+            "solar_absorptivity": cable_array.data.solar_absorption.iloc[0],
+            "emissivity": cable_array.data.emissivity.iloc[0],
+            "linear_resistance_dc_20c": cable_array.data.electric_resistance_20.iloc[
+                0
+            ],
+            "temperature_coeff_linear": cable_array.data.linear_resistance_temperature_coef.iloc[
+                0
+            ],
+            "magnetic_coeff": 1.006
+            if cable_array.data.has_magnetic_heart.iloc[0]
+            else 1.0,
+            "magnetic_coeff_per_a": 0.016
+            if cable_array.data.has_magnetic_heart.iloc[0]
+            else 0.0,
+        }
+
+        power_model: Callable = cls.available_power_model.get("rte")  # type: ignore
+        solver_1t = power_model(
+            dic=dict_input,
+            # reduced intensity is only available with 1 temperature heat equation type
+            heat_equation=solver.HeatEquationType.ONE_TEMPERATURE,
+        )
+        return solver_1t.reduced_intensity(
+            measured_temperature_difference,
+            measured_intensity,
+            ambient_temp,
+            wind_speed,
+            solar_irradiance,
+            max_conductor_temperature,
         )
 
     def transient_temperature(
