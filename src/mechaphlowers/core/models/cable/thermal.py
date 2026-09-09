@@ -30,6 +30,12 @@ from mechaphlowers.entities.errors import (
 logger = logging.getLogger(__name__)
 
 
+MAGNETIC_COEFF_WITH_MAGNETIC_HEART = 1.006
+MAGNETIC_COEFF_WITHOUT_MAGNETIC_HEART = 1.0
+MAGNETIC_COEFF_PER_A_WITH_MAGNETIC_HEART = 0.016
+MAGNETIC_COEFF_PER_A_WITHOUT_MAGNETIC_HEART = 0.0
+
+
 class ThermalResults(ABC):
     """Thermal results base class."""
 
@@ -470,11 +476,15 @@ class ThermalEngine:
             ),
             "magnetic_coeff": np.full(
                 self._len,
-                1.006 if cable_array.data.has_magnetic_heart.iloc[0] else 1.0,
+                MAGNETIC_COEFF_WITH_MAGNETIC_HEART
+                if cable_array.data.has_magnetic_heart.iloc[0]
+                else MAGNETIC_COEFF_WITHOUT_MAGNETIC_HEART,
             ),
             "magnetic_coeff_per_a": np.full(
                 self._len,
-                0.016 if cable_array.data.has_magnetic_heart.iloc[0] else 0.0,
+                MAGNETIC_COEFF_PER_A_WITH_MAGNETIC_HEART
+                if cable_array.data.has_magnetic_heart.iloc[0]
+                else MAGNETIC_COEFF_PER_A_WITHOUT_MAGNETIC_HEART,
             ),
         }
         self.bimetallic_cable = cable_array.is_bimetallic
@@ -570,6 +580,9 @@ class ThermalEngine:
             solar_irradiance (float): The measured solar irradiance.
             max_conductor_temperature (float): The maximum conductor temperature.
             cable_array (CableArray): The description of the cable physical properties.
+
+
+
         """
         check_inputs_are_numbers(
             measured_temperature_difference=measured_temperature_difference,
@@ -597,12 +610,12 @@ class ThermalEngine:
             "temperature_coeff_linear": cable_array.data.linear_resistance_temperature_coef.iloc[
                 0
             ],
-            "magnetic_coeff": 1.006
+            "magnetic_coeff": MAGNETIC_COEFF_WITH_MAGNETIC_HEART
             if cable_array.data.has_magnetic_heart.iloc[0]
-            else 1.0,
-            "magnetic_coeff_per_a": 0.016
+            else MAGNETIC_COEFF_WITHOUT_MAGNETIC_HEART,
+            "magnetic_coeff_per_a": MAGNETIC_COEFF_PER_A_WITH_MAGNETIC_HEART
             if cable_array.data.has_magnetic_heart.iloc[0]
-            else 0.0,
+            else MAGNETIC_COEFF_PER_A_WITHOUT_MAGNETIC_HEART,
         }
 
         power_model: Callable = cls.available_power_model.get("rte")  # type: ignore
