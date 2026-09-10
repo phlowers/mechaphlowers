@@ -443,53 +443,80 @@ class ThermalEngine:
             ],  # wind angle (deg, 0 means north)
             "nebulosity": inputs["nebulosity"],
             "transit": inputs["intensity"],
-            "linear_mass": np.full(
-                self._len, cable_array.data.linear_mass.iloc[0]
+        }
+        self.dict_input.update(
+            self._build_cable_dict_input(cable_array, self._len),
+        )
+        self.bimetallic_cable = cable_array.is_bimetallic
+        self._load()
+        logger.debug("Thermal attribute set")
+
+    @classmethod
+    def _build_cable_dict_input(
+        cls, cable_array: CableArray, target_input_length: int
+    ) -> dict[str, np.ndarray | float]:
+        return {
+            "linear_mass": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.linear_mass.iloc[0],
             ),
-            "core_diameter": np.full(
-                self._len, cable_array.data.diameter_heart.iloc[0]
+            "core_diameter": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.diameter_heart.iloc[0],
             ),
-            "outer_diameter": np.full(
-                self._len, cable_array.data.diameter.iloc[0]
+            "outer_diameter": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.diameter.iloc[0],
             ),
-            "core_area": np.full(
-                self._len, cable_array.data.section_heart.iloc[0]
+            "core_area": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.section_heart.iloc[0],
             ),
-            "outer_area": np.full(
-                self._len, cable_array.data.section_conductor.iloc[0]
+            "outer_area": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.section_conductor.iloc[0],
             ),
-            "radial_thermal_conductivity": np.full(
-                self._len, cable_array.data.radial_thermal_conductivity.iloc[0]
+            "radial_thermal_conductivity": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.radial_thermal_conductivity.iloc[0],
             ),
-            "solar_absorptivity": np.full(
-                self._len, cable_array.data.solar_absorption.iloc[0]
+            "solar_absorptivity": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.solar_absorption.iloc[0],
             ),
-            "emissivity": np.full(
-                self._len, cable_array.data.emissivity.iloc[0]
+            "emissivity": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.emissivity.iloc[0],
             ),
-            "linear_resistance_dc_20c": np.full(
-                self._len, cable_array.data.electric_resistance_20.iloc[0]
+            "linear_resistance_dc_20c": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.electric_resistance_20.iloc[0],
             ),
-            "temperature_coeff_linear": np.full(
-                self._len,
+            "temperature_coeff_linear": cls._make_array_or_scalar(
+                target_input_length,
                 cable_array.data.linear_resistance_temperature_coef.iloc[0],
             ),
-            "magnetic_coeff": np.full(
-                self._len,
+            "magnetic_coeff": cls._make_array_or_scalar(
+                target_input_length,
                 MAGNETIC_COEFF_WITH_MAGNETIC_HEART
                 if cable_array.data.has_magnetic_heart.iloc[0]
                 else MAGNETIC_COEFF_WITHOUT_MAGNETIC_HEART,
             ),
-            "magnetic_coeff_per_a": np.full(
-                self._len,
+            "magnetic_coeff_per_a": cls._make_array_or_scalar(
+                target_input_length,
                 MAGNETIC_COEFF_PER_A_WITH_MAGNETIC_HEART
                 if cable_array.data.has_magnetic_heart.iloc[0]
                 else MAGNETIC_COEFF_PER_A_WITHOUT_MAGNETIC_HEART,
             ),
         }
-        self.bimetallic_cable = cable_array.is_bimetallic
-        self._load()
-        logger.debug("Thermal attribute set")
+
+    @staticmethod
+    def _make_array_or_scalar(target_length: int, value: float):
+        if target_length <= 0:
+            raise ValueError(f"target_length must be > 0, got {target_length}")
+        if target_length == 1:
+            return value
+        return np.full(target_length, value)
 
     def load(self):
         """Load or reload the thermal model, and checks the shape of the input parameters.
@@ -593,31 +620,7 @@ class ThermalEngine:
             max_conductor_temperature=max_conductor_temperature,
         )
 
-        dict_input = {
-            "linear_mass": cable_array.data.linear_mass.iloc[0],
-            "core_diameter": cable_array.data.diameter_heart.iloc[0],
-            "outer_diameter": cable_array.data.diameter.iloc[0],
-            "core_area": cable_array.data.section_heart.iloc[0],
-            "outer_area": cable_array.data.section_conductor.iloc[0],
-            "radial_thermal_conductivity": cable_array.data.radial_thermal_conductivity.iloc[
-                0
-            ],
-            "solar_absorptivity": cable_array.data.solar_absorption.iloc[0],
-            "emissivity": cable_array.data.emissivity.iloc[0],
-            "linear_resistance_dc_20c": cable_array.data.electric_resistance_20.iloc[
-                0
-            ],
-            "temperature_coeff_linear": cable_array.data.linear_resistance_temperature_coef.iloc[
-                0
-            ],
-            "magnetic_coeff": MAGNETIC_COEFF_WITH_MAGNETIC_HEART
-            if cable_array.data.has_magnetic_heart.iloc[0]
-            else MAGNETIC_COEFF_WITHOUT_MAGNETIC_HEART,
-            "magnetic_coeff_per_a": MAGNETIC_COEFF_PER_A_WITH_MAGNETIC_HEART
-            if cable_array.data.has_magnetic_heart.iloc[0]
-            else MAGNETIC_COEFF_PER_A_WITHOUT_MAGNETIC_HEART,
-        }
-
+        dict_input = cls._build_cable_dict_input(cable_array, 1)
         power_model: Callable = cls.available_power_model.get("rte")  # type: ignore
         solver_1t = power_model(
             dic=dict_input,
