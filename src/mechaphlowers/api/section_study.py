@@ -283,8 +283,13 @@ class SectionStudy:
             manipulated_sa = self._manipulation.from_section_array(
                 self._section_array
             )
+            built_span_loads = (
+                self._manipulation.build_new_span_loads_virtual_support(
+                    self._balance_engine.span_loads
+                )
+            )
             self._balance_engine = self._manipulation.initialize_engine(
-                clean_engine, manipulated_sa, initial_L_ref
+                clean_engine, manipulated_sa, initial_L_ref, built_span_loads
             )
 
             # Rewire downstream engines
