@@ -374,8 +374,6 @@ class TestSectionStudyManipulation:
                     "insulator_length": [3, 3, 3, 3],
                     "span_length": [500, 300, 400, np.nan],
                     "insulator_mass": [1000, 500, 500, 1000],
-                    "load_mass": [0, 0, 0, 0],
-                    "load_position": [0, 0, 0, 0],
                 }
             ),
             sagging_parameter=2000,
@@ -432,4 +430,195 @@ class TestSectionStudyManipulation:
 
         np.testing.assert_allclose(
             displacement_original, displacement_restored, atol=1e-8
+        )
+
+
+class TestSectionStudyUpdateLoads:
+    """Testing if loads are registered correctly within SectionStudy."""
+
+    @pytest.fixture()
+    def study(self, cable_array_AM600: CableArray) -> SectionStudy:
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2", "3", "4"],
+                    "suspension": [False, True, True, False],
+                    "conductor_attachment_altitude": [30, 50, 60, 65],
+                    "crossarm_length": [0, 0, 0, 0],
+                    "line_angle": [0, 0, 0, 0],
+                    "insulator_length": [3, 3, 3, 3],
+                    "span_length": [500, 500, 500, np.nan],
+                    "insulator_mass": [1000, 500, 500, 1000],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        return SectionStudy(
+            cable_array=cable_array_AM600, section_array=section_array
+        )
+
+    def test_loads_and_adjustment(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
+        study.solve_adjustment()
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, np.array([500, 0, 0])
+        )
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_position,
+            np.array([0.4, 0, 0]),
+        )
+
+    def test_empty_modify_cable_and_loads(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
+        study.manipulation.modify_cable()
+        study.solve_adjustment()
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, np.array([500, 0, 0])
+        )
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_position,
+            np.array([0.4, 0, 0]),
+        )
+
+    def test_modify_cable_and_loads(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
+        study.manipulation.modify_cable({1: 0.5, 2: 1})
+        study.solve_adjustment()
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, np.array([500, 0, 0])
+        )
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_position,
+            np.array([0.4, 0, 0]),
+        )
+
+    def test_modify_cable_and_loads_update_nodes(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
+        study.manipulation.modify_cable({1: 0.5, 2: 1})
+        study.solve_adjustment()
+        np.testing.assert_array_equal(
+            study.balance_engine.balance_model.nodes.load_position,
+            np.array([0.4, 0, 0]),
+        )
+
+    def test_virtual_support_and_loads(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
+        study.manipulation.add_virtual_support(
+            (
+                {
+                    1: {
+                        "x": 100.0,
+                        "y": 0.0,
+                        "z": 55.0,
+                        "insulator_length": 3.0,
+                        "insulator_mass": 500.0,
+                        "hanging_cable_point_from_left_support": 100.0,
+                    }
+                }
+            )
+        )
+        study.solve_adjustment()
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, np.array([500, 0, 0, 0])
+        )
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_position,
+            np.array([0.4, 0, 0, 0]),
+        )
+
+    def test_virtual_support_multiple_adjustments(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
+        study.manipulation.add_virtual_support(
+            (
+                {
+                    1: {
+                        "x": 100.0,
+                        "y": 0.0,
+                        "z": 55.0,
+                        "insulator_length": 3.0,
+                        "insulator_mass": 500.0,
+                        "hanging_cable_point_from_left_support": 100.0,
+                    }
+                }
+            )
+        )
+        study.solve_adjustment()
+        study.solve_adjustment()
+        study.solve_adjustment()
+        study.solve_adjustment()
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, np.array([500, 0, 0, 0])
+        )
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_position,
+            np.array([0.4, 0, 0, 0]),
+        )
+
+    def test_virtual_support_and_loads_same_span(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.set_loads(np.array([0, 200, 0]), np.array([0, 500, 0]))
+        study.manipulation.add_virtual_support(
+            (
+                {
+                    1: {
+                        "x": 100.0,
+                        "y": 0.0,
+                        "z": 55.0,
+                        "insulator_length": 3.0,
+                        "insulator_mass": 500.0,
+                        "hanging_cable_point_from_left_support": 100.0,
+                    }
+                }
+            )
+        )
+        study.solve_adjustment()
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, np.array([0, 0, 0, 0])
+        )
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_position,
+            np.array([0, 0, 0, 0]),
+        )
+
+    def test_multiple_virtual_support_and_loads(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.set_loads(np.array([0, 200, 0]), np.array([0, 500, 0]))
+        study.manipulation.add_virtual_support(
+            (
+                {
+                    0: {
+                        "x": 100.0,
+                        "y": 0.0,
+                        "z": 55.0,
+                        "insulator_length": 3.0,
+                        "insulator_mass": 500.0,
+                        "hanging_cable_point_from_left_support": 100.0,
+                    },
+                    2: {
+                        "x": 100.0,
+                        "y": 0.0,
+                        "z": 55.0,
+                        "insulator_length": 3.0,
+                        "insulator_mass": 500.0,
+                        "hanging_cable_point_from_left_support": 100.0,
+                    },
+                }
+            )
+        )
+        study.solve_adjustment()
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass,
+            np.array([0, 0, 500, 0, 0]),
+        )
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_position,
+            np.array([0, 0, 0.4, 0, 0]),
         )
