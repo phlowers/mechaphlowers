@@ -6,6 +6,8 @@
 
 import logging
 from abc import ABC, abstractmethod
+from numbers import Real
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -26,6 +28,12 @@ from mechaphlowers.entities.errors import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+MAGNETIC_COEFF_WITH_MAGNETIC_HEART = 1.006
+MAGNETIC_COEFF_WITHOUT_MAGNETIC_HEART = 1.0
+MAGNETIC_COEFF_PER_A_WITH_MAGNETIC_HEART = 0.016
+MAGNETIC_COEFF_PER_A_WITHOUT_MAGNETIC_HEART = 0.0
 
 
 class ThermalResults(ABC):
@@ -334,6 +342,16 @@ def check_nebulosity_range(nebulosity: np.ndarray) -> None:
         )
 
 
+def check_inputs_are_numbers(**kwargs) -> None:  # TODO: remove or add tests
+    for key, value in kwargs.items():
+        if not isinstance(value, Real) or isinstance(
+            value, bool
+        ):  # booleans are "Real" but we don't want them
+            raise TypeError(
+                f"Argument {key} should be a number, but got {type(value).__name__}"
+            )
+
+
 class ThermalEngine:
     """Thermal engine is a wrapper for cable thermal modeling."""
 
@@ -425,49 +443,80 @@ class ThermalEngine:
             ],  # wind angle (deg, 0 means north)
             "nebulosity": inputs["nebulosity"],
             "transit": inputs["intensity"],
-            "linear_mass": np.full(
-                self._len, cable_array.data.linear_mass.iloc[0]
-            ),
-            "core_diameter": np.full(
-                self._len, cable_array.data.diameter_heart.iloc[0]
-            ),
-            "outer_diameter": np.full(
-                self._len, cable_array.data.diameter.iloc[0]
-            ),
-            "core_area": np.full(
-                self._len, cable_array.data.section_heart.iloc[0]
-            ),
-            "outer_area": np.full(
-                self._len, cable_array.data.section_conductor.iloc[0]
-            ),
-            "radial_thermal_conductivity": np.full(
-                self._len, cable_array.data.radial_thermal_conductivity.iloc[0]
-            ),
-            "solar_absorptivity": np.full(
-                self._len, cable_array.data.solar_absorption.iloc[0]
-            ),
-            "emissivity": np.full(
-                self._len, cable_array.data.emissivity.iloc[0]
-            ),
-            "linear_resistance_dc_20c": np.full(
-                self._len, cable_array.data.electric_resistance_20.iloc[0]
-            ),
-            "temperature_coeff_linear": np.full(
-                self._len,
-                cable_array.data.linear_resistance_temperature_coef.iloc[0],
-            ),
-            "magnetic_coeff": np.full(
-                self._len,
-                1.006 if cable_array.data.has_magnetic_heart.iloc[0] else 1.0,
-            ),
-            "magnetic_coeff_per_a": np.full(
-                self._len,
-                0.016 if cable_array.data.has_magnetic_heart.iloc[0] else 0.0,
-            ),
         }
+        self.dict_input.update(
+            self._build_cable_dict_input(cable_array, self._len),
+        )
         self.bimetallic_cable = cable_array.is_bimetallic
         self._load()
         logger.debug("Thermal attribute set")
+
+    @classmethod
+    def _build_cable_dict_input(
+        cls, cable_array: CableArray, target_input_length: int
+    ) -> dict[str, np.ndarray | float]:
+        return {
+            "linear_mass": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.linear_mass.iloc[0],
+            ),
+            "core_diameter": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.diameter_heart.iloc[0],
+            ),
+            "outer_diameter": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.diameter.iloc[0],
+            ),
+            "core_area": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.section_heart.iloc[0],
+            ),
+            "outer_area": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.section_conductor.iloc[0],
+            ),
+            "radial_thermal_conductivity": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.radial_thermal_conductivity.iloc[0],
+            ),
+            "solar_absorptivity": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.solar_absorption.iloc[0],
+            ),
+            "emissivity": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.emissivity.iloc[0],
+            ),
+            "linear_resistance_dc_20c": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.electric_resistance_20.iloc[0],
+            ),
+            "temperature_coeff_linear": cls._make_array_or_scalar(
+                target_input_length,
+                cable_array.data.linear_resistance_temperature_coef.iloc[0],
+            ),
+            "magnetic_coeff": cls._make_array_or_scalar(
+                target_input_length,
+                MAGNETIC_COEFF_WITH_MAGNETIC_HEART
+                if cable_array.data.has_magnetic_heart.iloc[0]
+                else MAGNETIC_COEFF_WITHOUT_MAGNETIC_HEART,
+            ),
+            "magnetic_coeff_per_a": cls._make_array_or_scalar(
+                target_input_length,
+                MAGNETIC_COEFF_PER_A_WITH_MAGNETIC_HEART
+                if cable_array.data.has_magnetic_heart.iloc[0]
+                else MAGNETIC_COEFF_PER_A_WITHOUT_MAGNETIC_HEART,
+            ),
+        }
+
+    @staticmethod
+    def _make_array_or_scalar(target_length: int, value: float):
+        if target_length <= 0:
+            raise ValueError(f"target_length must be > 0, got {target_length}")
+        if target_length == 1:
+            return value
+        return np.full(target_length, value)
 
     def load(self):
         """Load or reload the thermal model, and checks the shape of the input parameters.
@@ -531,6 +580,60 @@ class ThermalEngine:
             ),
             cable_is_bimetallic=self.bimetallic_cable,
             return_inputs=return_inputs,
+        )
+
+    @classmethod
+    def reduced_intensity(
+        cls,
+        measured_temperature_difference: float,
+        measured_intensity: float,
+        ambient_temp: float,
+        wind_speed: float,
+        solar_irradiance: float,
+        max_conductor_temperature: float,
+        cable_array: CableArray,
+    ) -> float:
+        """Compute reduced intensity limit from measurements around a faulty sleeve.
+
+        This method is scalar-only (it does not accept numpy arrays).
+
+        Args:
+            measured_temperature_difference (float): The measured temperature difference
+                between the sound cable surface and a hotspot on the junction between a cable
+                and a faulty sleeve.
+            measured_intensity (float): The measured intensity at which the temperature difference was measured.
+            ambient_temp (float): The ambient temperature.
+            wind_speed (float): The wind speed (more precisely, speed of the wind component perpendicular to the cable).
+            solar_irradiance (float): The measured solar irradiance.
+            max_conductor_temperature (float): The maximum conductor temperature.
+            cable_array (CableArray): The description of the cable physical properties.
+
+
+
+        """
+        check_inputs_are_numbers(
+            measured_temperature_difference=measured_temperature_difference,
+            measured_intensity=measured_intensity,
+            ambient_temp=ambient_temp,
+            wind_speed=wind_speed,
+            solar_irradiance=solar_irradiance,
+            max_conductor_temperature=max_conductor_temperature,
+        )
+
+        dict_input = cls._build_cable_dict_input(cable_array, 1)
+        power_model: Callable = cls.available_power_model.get("rte")  # type: ignore
+        solver_1t = power_model(
+            dic=dict_input,
+            # reduced intensity is only available with 1 temperature heat equation type
+            heat_equation=solver.HeatEquationType.ONE_TEMPERATURE,
+        )
+        return solver_1t.reduced_intensity(
+            measured_temperature_difference,
+            measured_intensity,
+            ambient_temp,
+            wind_speed,
+            solar_irradiance,
+            max_conductor_temperature,
         )
 
     def transient_temperature(
