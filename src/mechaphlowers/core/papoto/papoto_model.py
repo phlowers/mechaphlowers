@@ -7,14 +7,8 @@
 
 import numpy as np
 
-from mechaphlowers.entities.errors import ConvergenceError
-
-try:
-    from scipy import optimize  # type: ignore
-except ImportError:
-    import mechaphlowers.numeric.scipy as optimize
-
 from mechaphlowers.config import options
+from mechaphlowers.numeric.newton import newton_solver_wrapper
 
 
 def papoto_validity(
@@ -159,7 +153,12 @@ def papoto_2_points(
 
         # first approximation of parameter using parabola model
         p0 = a1 * (a - a1) / (2 * ((zL - z1) + h * a1 / a))
-        p = parameter_solver(a, h, zL - z1, a1, p0)
+        p = newton_solver_wrapper(
+            function_f,
+            p0,
+            function_f_prime,
+            (a, h, zL - z1, a1),
+        )
 
         # computing an elevation difference using newly found parameter, and comparing with zG - z2
         # val: distance between lowest point with left support
@@ -180,49 +179,6 @@ def papoto_2_points(
             break
 
     return p
-
-
-def parameter_solver(
-    a: np.ndarray,
-    h: np.ndarray,
-    delta: np.ndarray,
-    x: np.ndarray,
-    p0: np.ndarray,
-    solver: str = "newton",
-) -> np.ndarray:
-    solver_dict = {"newton": optimize.newton}
-    try:
-        solver_method = solver_dict[solver]
-    except KeyError:
-        raise ValueError(f"Incorrect solver name: {solver}")
-
-    solver_result = solver_method(
-        function_f,
-        p0,
-        fprime=function_f_prime,
-        args=(a, h, delta, x),
-        maxiter=10,
-        tol=1e-5,
-        full_output=True,
-    )
-
-    # Solver result format depends on input length:
-    # for 1-element array inputs, scipy.optimize.newton takes the scipy's scalar code path.
-    if not hasattr(solver_result, "converged"):
-        root, root_result = solver_result
-        if not root_result.converged:
-            raise ConvergenceError(
-                "Solver did not converge",
-                origin="papoto_model",
-            )
-    else:
-        if not solver_result.converged.all():
-            raise ConvergenceError(
-                "Solver did not converge",
-                origin="papoto_model",
-            )
-        root = solver_result.root
-    return root
 
 
 def function_f(

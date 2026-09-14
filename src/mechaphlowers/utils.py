@@ -343,3 +343,14 @@ def convert_angle_unsigned_to_signed(angle: np.ndarray) -> np.ndarray:
         np.ndarray: Array of angles in signed format.
     """
     return (angle + np.pi) % (2 * np.pi) - np.pi
+
+
+# Trigonometry
+def cotan(x: np.ndarray) -> np.ndarray:
+    # x must be different from 0, pi etc.
+    # TODO: raise ValueError?
+    return 1 / np.tan(x)
+
+
+def acotan(x: np.ndarray) -> np.ndarray:
+    return np.pi / 2 - np.atan(x)
