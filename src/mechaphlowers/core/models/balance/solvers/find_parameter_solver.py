@@ -146,6 +146,9 @@ class FindParamSolverScipy(IFindParamSolver):
             tol=self.stop_condition,
             full_output=True,
         )
+        # FIXME: fails if len(p0) == 1
+        # because optimize.newton then takes the scalar path
+        # and the output has a different format.
         if not np.all(solver_result.converged):
             raise ConvergenceError("Solver did not converge")
         return solver_result.root
