@@ -205,11 +205,24 @@ def parameter_solver(
         tol=1e-5,
         full_output=True,
     )
-    if not solver_result.converged.all():
-        raise ConvergenceError(
-            "Solver did not converge", origin="papoto_model"
-        )
-    return solver_result.root
+
+    # Solver result format depends on input length:
+    # for 1-element array inputs, scipy.optimize.newton takes the scipy's scalar code path.
+    if not hasattr(solver_result, "converged"):
+        root, root_result = solver_result
+        if not root_result.converged:
+            raise ConvergenceError(
+                "Solver did not converge",
+                origin="papoto_model",
+            )
+    else:
+        if not solver_result.converged.all():
+            raise ConvergenceError(
+                "Solver did not converge",
+                origin="papoto_model",
+            )
+        root = solver_result.root
+    return root
 
 
 def function_f(
