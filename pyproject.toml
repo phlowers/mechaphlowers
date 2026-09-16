@@ -109,6 +109,7 @@ quote-style = "preserve"
 [tool.ruff.lint]
 # Enable the isort rules.
 extend-select = ["I"]
+exclude = ["*.ipynb"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402"]
