@@ -6,7 +6,6 @@
 
 import logging
 from abc import ABC, abstractmethod
-from numbers import Real
 from typing import Callable
 
 import numpy as np
@@ -26,6 +25,7 @@ from mechaphlowers.entities.errors import (
     InvalidNebulosity,
     UncertaintyNotAvailable,
 )
+from mechaphlowers.utils import Number, check_inputs_are_numbers
 
 logger = logging.getLogger(__name__)
 
@@ -342,16 +342,6 @@ def check_nebulosity_range(nebulosity: np.ndarray) -> None:
         )
 
 
-def check_inputs_are_numbers(**kwargs) -> None:  # TODO: remove or add tests
-    for key, value in kwargs.items():
-        if not isinstance(value, Real) or isinstance(
-            value, bool
-        ):  # booleans are "Real" but we don't want them
-            raise TypeError(
-                f"Argument {key} should be a number, but got {type(value).__name__}"
-            )
-
-
 class ThermalEngine:
     """Thermal engine is a wrapper for cable thermal modeling."""
 
@@ -585,27 +575,27 @@ class ThermalEngine:
     @classmethod
     def reduced_intensity(
         cls,
-        measured_temperature_difference: float,
-        measured_intensity: float,
-        ambient_temp: float,
-        wind_speed: float,
-        solar_irradiance: float,
-        max_conductor_temperature: float,
+        measured_temperature_difference: Number,
+        measured_intensity: Number,
+        ambient_temp: Number,
+        wind_speed: Number,
+        solar_irradiance: Number,
+        max_conductor_temperature: Number,
         cable_array: CableArray,
-    ) -> float:
+    ) -> Number:
         """Compute reduced intensity limit from measurements around a faulty sleeve.
 
         This method is scalar-only (it does not accept numpy arrays).
 
         Args:
-            measured_temperature_difference (float): The measured temperature difference
+            measured_temperature_difference (Number): The measured temperature difference
                 between the sound cable surface and a hotspot on the junction between a cable
                 and a faulty sleeve.
-            measured_intensity (float): The measured intensity at which the temperature difference was measured.
-            ambient_temp (float): The ambient temperature.
-            wind_speed (float): The wind speed (more precisely, speed of the wind component perpendicular to the cable).
-            solar_irradiance (float): The measured solar irradiance.
-            max_conductor_temperature (float): The maximum conductor temperature.
+            measured_intensity (Number): The measured intensity at which the temperature difference was measured.
+            ambient_temp (Number): The ambient temperature.
+            wind_speed (Number): The wind speed (more precisely, speed of the wind component perpendicular to the cable).
+            solar_irradiance (Number): The measured solar irradiance.
+            max_conductor_temperature (Number): The maximum conductor temperature.
             cable_array (CableArray): The description of the cable physical properties.
 
 
