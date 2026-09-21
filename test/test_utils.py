@@ -15,6 +15,7 @@ from xxhash import xxh3_64
 from mechaphlowers.config import options
 from mechaphlowers.utils import (
     CachedAccessor,
+    check_inputs_are_numbers,
     check_time,
     hash_numpy_xxhash,
     numpy_cache,
@@ -215,3 +216,58 @@ def test_change_view_guying() -> None:
     assert span_to_support_view_guying(
         span_index=1, selected_support="right"
     ) == (2, "right")
+
+
+@pytest.mark.parametrize(
+    "valid_input",
+    [
+        0,
+        42,
+        3.14,
+        -2.5,
+        1e-5,
+        float("-inf"),
+        float("nan"),
+        np.int32(10),
+        np.float64(2.5),
+    ],
+)
+def test_check_inputs_are_numbers_valid(valid_input) -> None:
+    # Single and multiple valid numeric arguments should not raise
+    check_inputs_are_numbers(a=valid_input)
+    check_inputs_are_numbers(x=valid_input, y=10, z=2.5)
+
+
+def test_check_inputs_are_numbers_empty() -> None:
+    # Calling with no kwargs should succeed without error
+    check_inputs_are_numbers()
+
+
+@pytest.mark.parametrize(
+    ("invalid_input", "type_name"),
+    [
+        (True, "bool"),
+        (False, "bool"),
+        ("123", "str"),
+        (None, "NoneType"),
+        ([1, 2], "list"),
+        ({"a": 1}, "dict"),
+        ((1, 2), "tuple"),
+        (complex(1, 2), "complex"),
+        (np.array([1, 2]), "ndarray"),
+    ],
+)
+def test_check_inputs_are_numbers_invalid(invalid_input, type_name) -> None:
+    with pytest.raises(
+        TypeError,
+        match=f"Argument val should be a number, but got {type_name}",
+    ):
+        check_inputs_are_numbers(val=invalid_input)
+
+
+def test_check_inputs_are_numbers_mixed_valid_and_invalid() -> None:
+    with pytest.raises(
+        TypeError,
+        match="Argument bad should be a number, but got str",
+    ):
+        check_inputs_are_numbers(good1=1, good2=2.5, bad="not a number")

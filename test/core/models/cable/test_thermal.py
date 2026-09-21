@@ -211,6 +211,40 @@ def test_steady_intensity_cable_temperature(
     )
 
 
+@pytest.mark.parametrize(
+    "measured_temperature_difference,measured_intensity,ambient_temp,wind_speed,solar_irradiance,max_conductor_temperature,expected_result",
+    [
+        (0.1, 300, 30, 0.6, 600, 100, 1334.4),
+        (10, 300, 30, 0.6, 600, 100, 656.7),
+        (10, 150, 30, 0.6, 600, 100, 359.3),
+        (10, 150, 20, 0.6, 600, 100, 387.0),
+        (10, 150, 20, 1.0, 600, 100, 394.0),
+        (10, 150, 20, 1.0, 750, 100, 389.1),
+        (10, 150, 20, 1.0, 750, 75, 313.2),
+    ],
+)
+def test_reduced_intensity(
+    measured_temperature_difference,
+    measured_intensity,
+    ambient_temp,
+    wind_speed,
+    solar_irradiance,
+    max_conductor_temperature,
+    expected_result,
+    cable_array_AM600: CableArray,
+) -> None:
+    result = ThermalEngine.reduced_intensity(
+        measured_temperature_difference=measured_temperature_difference,
+        measured_intensity=measured_intensity,
+        ambient_temp=ambient_temp,
+        wind_speed=wind_speed,
+        solar_irradiance=solar_irradiance,
+        max_conductor_temperature=max_conductor_temperature,
+        cable_array=cable_array_AM600,
+    )
+    np.testing.assert_allclose(result, expected_result, atol=0.1)
+
+
 def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
     thermal_engine = thermal_engine_3_spans
 

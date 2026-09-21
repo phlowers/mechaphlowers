@@ -7,6 +7,7 @@
 import logging
 import warnings
 from functools import wraps
+from numbers import Real
 from time import time
 from typing import Any, Callable, Literal, Protocol, TypeVar, cast
 
@@ -250,6 +251,19 @@ def hash_numpy_xxhash(array: np.ndarray) -> bytes:
 
 
 T = TypeVar("T", bound=Callable[..., Any])
+
+
+Number = float | int
+
+
+def check_inputs_are_numbers(**kwargs) -> None:
+    for key, value in kwargs.items():
+        if not isinstance(value, Real) or isinstance(
+            value, bool
+        ):  # booleans are "Real" but we don't want them
+            raise TypeError(
+                f"Argument {key} should be a number, but got {type(value).__name__}"
+            )
 
 
 class CachedCallable(Protocol):
