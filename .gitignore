@@ -1,3 +1,8 @@
+# Folder to locally store python draft scripts or draft jupyter notebookx.
+# They won't be committed and ruff won't analyze them nor complain about formatting or linting errors in them,
+# for it ignores git-ignored files by default.
+.draft/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -112,3 +117,4 @@ input_data
 .llm_cache
 
 .github
+
