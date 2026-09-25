@@ -15,8 +15,10 @@ from xxhash import xxh3_64
 from mechaphlowers.config import options
 from mechaphlowers.utils import (
     CachedAccessor,
+    acotan,
     check_inputs_are_numbers,
     check_time,
+    cotan,
     hash_numpy_xxhash,
     numpy_cache,
     ppnp,
@@ -271,3 +273,49 @@ def test_check_inputs_are_numbers_mixed_valid_and_invalid() -> None:
         match="Argument bad should be a number, but got str",
     ):
         check_inputs_are_numbers(good1=1, good2=2.5, bad="not a number")
+
+
+def test_cotan_passing_cases() -> None:
+    assert cotan(np.pi / 2) == pytest.approx(0.0, abs=1e-12)
+
+    assert cotan(3 * np.pi / 4) == pytest.approx(-1.0, rel=1e-7)
+
+    # Test with numpy array input
+    angles = np.array([np.pi / 4, np.pi / 2, 3 * np.pi / 4])
+    expected = np.array([1.0, 0.0, -1.0])
+    np.testing.assert_allclose(cotan(angles), expected, atol=1e-12)
+
+
+@pytest.mark.parametrize(
+    "invalid_input",
+    [
+        0,
+        np.pi,
+        -np.pi,
+        np.array([np.pi / 4, np.pi]),
+        np.array([0.0, np.pi / 2]),
+    ],
+)
+def test_cotan_error_cases(invalid_input) -> None:
+    with pytest.raises(
+        ValueError, match="x must be different from 0, pi etc."
+    ):
+        cotan(invalid_input)
+
+
+def test_acotan() -> None:
+    # Scalar inputs
+    assert acotan(0) == pytest.approx(np.pi / 2, abs=1e-12)
+    assert acotan(1.0) == pytest.approx(np.pi / 4, abs=1e-12)
+    assert acotan(np.sqrt(3)) == pytest.approx(np.pi / 6, abs=1e-12)
+    assert acotan(float("-inf")) == pytest.approx(np.pi, abs=1e-12)
+
+    # Array input
+    inputs = np.array([0.0, 1 / np.sqrt(3)])
+    expected = np.array(
+        [
+            np.pi / 2,
+            np.pi / 3,
+        ]
+    )
+    np.testing.assert_allclose(acotan(inputs), expected, atol=1e-12)

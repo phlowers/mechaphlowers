@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-"""Measurung module
+"""Measuring module
 
 This module provides functions to compute various measures on sections and spans.
 """
