@@ -14,7 +14,7 @@ def _check_inputs(
     span_length: np.ndarray,
     input_height: np.ndarray,
     distance: np.ndarray,
-):
+) -> None:
     """Radians"""
     for angle, variable_name in zip(
         [
@@ -28,7 +28,7 @@ def _check_inputs(
             "angle_to_right_support",
         ],
     ):
-        if (angle < 0 or angle > np.pi).any():
+        if np.logical_or(angle < 0, angle > np.pi).any():
             raise ValueError(
                 f"All input angles must be between 0 and pi radians, got {variable_name}={angle} rad."
             )
@@ -42,9 +42,11 @@ def _check_inputs(
         raise ValueError(
             f"input_height must be strictly positive, got {input_height}."
         )
-    if (input_height == 0 and distance == 0).any():
+    if np.logical_and(input_height == 0, distance == 0).any():
         raise ValueError("input_height and distance can't both be zero")
-    if (distance != 0 and angle_to_left_support == 0).any():
+    if np.logical_and(input_height != 0, distance != 0).any():
+        raise ValueError("input_height and distance can't be both provided")
+    if np.logical_and(distance != 0, angle_to_left_support == 0).any():
         raise ValueError(
             "angle to left support can't be zero if distance isn't zero"
         )
@@ -54,11 +56,11 @@ def _prepare_angle_to_left_support_input(
     angle_to_left_support: np.ndarray, distance: np.ndarray
 ) -> np.ndarray:
     return np.where(
-        distance < 0, 2 * np.pi - angle_to_left_support, angle_to_left_support
+        distance > 0, 2 * np.pi - angle_to_left_support, angle_to_left_support
     )
 
 
-def compute_parameter(
+def compute_parameter__array(
     angle_to_cable_tangent: np.ndarray,
     angle_to_left_support: np.ndarray,
     angle_to_right_support: np.ndarray,
@@ -145,7 +147,7 @@ def _sighted_slope(x, y, corrected_height, distance):
 
 def _compute_corrected_height(angle_to_left_support, input_height, distance):
     corrected_height = input_height.copy()
-    corrected_height[input_height == 0] = distance * cotan(
+    corrected_height[input_height == 0] = -distance * cotan(
         angle_to_left_support
     )
     return corrected_height
@@ -179,11 +181,15 @@ def _lowest_point_coordinates(
     parameter,
     span_length: np.ndarray,
     elevation_difference: np.ndarray,
-):  # TODO: reuse existing code?
+):
     """Relative to the left hanging point"""
-    x = span_length / 2 - np.asinh(
-        elevation_difference
-        / (2 * parameter * np.sinh(span_length / (2 * parameter)))
+    x = (
+        span_length / 2
+        - np.asinh(
+            elevation_difference
+            / (2 * parameter * np.sinh(span_length / (2 * parameter)))
+        )
+        * parameter
     )
     y = -parameter * (np.cosh(x / parameter) - 1)
     return x, y
