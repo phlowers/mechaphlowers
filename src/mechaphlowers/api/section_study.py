@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import warnings
+from copy import deepcopy
 from typing import TYPE_CHECKING, Type
 
 import numpy as np
@@ -98,7 +99,12 @@ class SectionStudy:
         self._guying: Guying | None = None
         self._intermediate_memento: BalanceEngineMemento | None = None
         # Clean verison of BalanceEngine: will be initialized in solve_adjustment
-        self._clean_engine: BalanceEngine
+        self._clean_engine = BalanceEngine(
+            cable_array=self._cable_array,
+            section_array=self._section_array,
+            span_model_type=self._span_model_type,
+            deformation_model_type=self._deformation_model_type,
+        )
 
     # ── Sub-engine properties ─────────────────────────────────────────────
 
@@ -192,7 +198,6 @@ class SectionStudy:
         # check if adjustment has been done before
         try:
             _ = self.balance_engine.L_ref
-            _ = self._clean_engine
             logger.debug(
                 f"Adjustment has been done before, initial_L_ref before shifting: {str(self.balance_engine.L_ref)}"
             )
@@ -206,16 +211,14 @@ class SectionStudy:
         manipulated_sa = self._manipulation.from_section_array(
             self._section_array
         )
-        built_span_loads = (
-            self._manipulation.build_new_span_loads_virtual_support(
-                self._balance_engine.span_loads
-            )
-        )
+
         # TODO: check if adding manip multiple times
         initial_L_ref = self._clean_engine.initial_L_ref.copy()
         self._balance_engine = self._manipulation.initialize_engine(
-            self._clean_engine, manipulated_sa, initial_L_ref, built_span_loads
+            self._clean_engine, manipulated_sa, initial_L_ref
         )
+        self._build_span_loads()
+        self._balance_engine.reset(full=False)
 
     def reset_rope(self) -> None:
         """Remove the rope overlay.
@@ -236,7 +239,7 @@ class SectionStudy:
             virtual_support: Dictionary mapping left-support index to virtual
                 support parameters.
         """
-        # self.reset_virtual_support()
+        self.reset_virtual_support()
         self._manipulation.add_virtual_support(virtual_support)
         self.apply_manipulations()
 
@@ -304,16 +307,8 @@ class SectionStudy:
         Raises:
             SolverError: If the solver fails to converge.
         """
-        # Phase 1: solve on clean geometry
-        clean_engine = BalanceEngine(
-            cable_array=self._cable_array,
-            section_array=self._section_array,
-            span_model_type=self._span_model_type,
-            deformation_model_type=self._deformation_model_type,
-        )
         try:
-            clean_engine.solve_adjustment()
-            self._clean_engine = clean_engine
+            self._clean_engine.solve_adjustment()
         except SolverError as e:
             logger.error(
                 "Error during solve_adjustment. No changes on the engine state"
@@ -321,7 +316,7 @@ class SectionStudy:
             raise e
         # TODO: check not same pointer than self.clean_engine
         span_loads = self._balance_engine.span_loads
-        self._balance_engine = clean_engine
+        self._balance_engine = deepcopy(self._clean_engine)
         self._balance_engine.span_loads = span_loads
         self.apply_manipulations()
         # Rewire downstream engines
@@ -358,6 +353,7 @@ class SectionStudy:
         Raises:
             SolverError: If the solver fails to converge.
         """
+        self._build_span_loads()
         engine = self._balance_engine
         default = engine.default_value
 
@@ -479,8 +475,20 @@ class SectionStudy:
             ValueError: if at least one load_position_distance is not in [0, span_length]
                 or if the arguments don't have the right lengths.
         """
-        self._balance_engine.set_loads(load_position_distance, load_mass)
+        self._clean_engine.set_loads(load_position_distance, load_mass)
+        self._build_span_loads()
         self._solve_intermediate()
+
+    def _build_span_loads(self):
+        self._balance_engine.span_loads = (
+            self._manipulation.build_new_span_loads_virtual_support(
+                self._clean_engine.span_loads
+            )
+        )
+        # TODO: add test for reset nodes
+        # Reset to transport modifications to Nodes
+
+        # self._balance_engine.reset(full=False)
 
     # ── State management ──────────────────────────────────────────────────
 

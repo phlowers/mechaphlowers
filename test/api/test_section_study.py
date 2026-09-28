@@ -636,6 +636,43 @@ class TestSectionStudyManipulation:
         # last call should override the first one: only two support are added in total
         assert len(study._balance_engine.section_array.data["name"]) == 6
 
+    def test_multiple_virtual_support_integration_0(self, study: SectionStudy):
+        study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
+        study.solve_adjustment()
+        study.add_virtual_support(
+            {
+                0: {
+                    "x": 100.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                },
+            }
+        )
+
+        study.add_virtual_support(
+            {
+                1: {
+                    "x": 100.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                },
+            }
+        )
+        study.solve_change_state()
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, np.array([500, 0, 0, 0])
+        )
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_position,
+            np.array([0.4, 0, 0, 0]),
+        )
+
 
 class TestSectionStudyUpdateLoads:
     """Testing if loads are registered correctly within SectionStudy."""
@@ -753,8 +790,8 @@ class TestSectionStudyUpdateLoads:
                 }
             )
         )
-        study.set_loads(np.array([200, 0, 0, 0]), np.array([500, 0, 0, 0]))
-        study.solve_adjustment()
+        study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
+        study.solve_change_state()
         np.testing.assert_array_equal(
             study.balance_engine.span_loads.load_mass, np.array([500, 0, 0, 0])
         )

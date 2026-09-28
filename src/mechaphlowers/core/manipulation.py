@@ -612,19 +612,6 @@ class Manipulation:
             len(span_loads.load_position) == len(self._section_array.data) - 1
         )
         if self._virtual_support_overlay is not None and has_default_length:
-        # if self._virtual_support_overlay is not None:
-        #     # check if span_loads has the length before manipulation
-        #     # if not: means that span_loads already has the correct length (probably)
-        #     has_incorrect_length = (
-        #         len(span_loads.load_position)
-        #         != len(self._section_array.data)
-        #         + len(self._virtual_support_overlay)
-        #         - 1
-        #     )
-        #     if has_incorrect_length:
-        #         sorted_span_indices = sorted(
-        #             self._virtual_support_overlay.keys()
-        #         )
             sorted_span_indices = sorted(self._virtual_support_overlay.keys())
             for offset, span_idx in enumerate(sorted_span_indices):
                 effective_idx = span_idx + offset
@@ -645,7 +632,6 @@ class Manipulation:
         clean_engine: BalanceEngine,
         section_array: SectionArray,
         initial_L_ref: np.ndarray,
-        span_loads: SpanLoads,
     ) -> BalanceEngine:
         """Build a target [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] with manipulated geometry.
 
@@ -709,11 +695,6 @@ class Manipulation:
         )
         target_engine.balance_model.state_vector = expanded_state
         target_engine.balance_model.update()
-
-        # Re inject span loads
-        target_engine.span_loads = span_loads
-        # Reset to transport modifications to Nodes
-        target_engine.reset(full=False)
 
         # Inject L_ref and block adjustment. The target engine's balance model is already initialized with the manipulated section array
         target_engine.initial_L_ref = initial_L_ref.copy()
