@@ -606,31 +606,38 @@ class Manipulation:
             SpanLoads: modified (or not modified) copy of the input
         """
         new_span_loads = deepcopy(span_loads)
-        if self._virtual_support_overlay is not None:
-            # check if span_loads has the length before manipulation
-            # if not: means that span_loads already has the correct length (probably)
-            has_incorrect_length = (
-                len(span_loads.load_position)
-                != len(self._section_array.data)
-                + len(self._virtual_support_overlay)
-                - 1
-            )
-            if has_incorrect_length:
-                sorted_span_indices = sorted(
-                    self._virtual_support_overlay.keys()
+        # check if span_loads has the length before manipulation
+        # if not: means that span_loads already has the correct length (probably)
+        has_default_length = (
+            len(span_loads.load_position) == len(self._section_array.data) - 1
+        )
+        if self._virtual_support_overlay is not None and has_default_length:
+        # if self._virtual_support_overlay is not None:
+        #     # check if span_loads has the length before manipulation
+        #     # if not: means that span_loads already has the correct length (probably)
+        #     has_incorrect_length = (
+        #         len(span_loads.load_position)
+        #         != len(self._section_array.data)
+        #         + len(self._virtual_support_overlay)
+        #         - 1
+        #     )
+        #     if has_incorrect_length:
+        #         sorted_span_indices = sorted(
+        #             self._virtual_support_overlay.keys()
+        #         )
+            sorted_span_indices = sorted(self._virtual_support_overlay.keys())
+            for offset, span_idx in enumerate(sorted_span_indices):
+                effective_idx = span_idx + offset
+                # no load if adding a virtual support in the middle of the span
+                new_span_loads.load_position[effective_idx] = 0.0
+                new_span_loads.load_mass[effective_idx] = 0.0
+                # insert a value into the array for the new virtual support
+                new_span_loads.load_position = np.insert(
+                    new_span_loads.load_position, effective_idx, 0.0
                 )
-                for offset, span_idx in enumerate(sorted_span_indices):
-                    effective_idx = span_idx + offset
-                    # no load if adding a virtual support in the middle of the span
-                    new_span_loads.load_position[effective_idx] = 0.0
-                    new_span_loads.load_mass[effective_idx] = 0.0
-                    # insert a value into the array for the new virtual support
-                    new_span_loads.load_position = np.insert(
-                        new_span_loads.load_position, effective_idx, 0.0
-                    )
-                    new_span_loads.load_mass = np.insert(
-                        new_span_loads.load_mass, effective_idx, 0.0
-                    )
+                new_span_loads.load_mass = np.insert(
+                    new_span_loads.load_mass, effective_idx, 0.0
+                )
         return new_span_loads
 
     def initialize_engine(
@@ -842,11 +849,11 @@ class Manipulation:
             return raw_data
         sorted_span_indices = sorted(self._virtual_support_overlay.keys())
         for offset, span_idx in enumerate(sorted_span_indices):
-            virutal_support = self._virtual_support_overlay[span_idx]
+            virtual_support = self._virtual_support_overlay[span_idx]
             effective_idx = span_idx + offset
 
-            x = virutal_support["x"]
-            y = virutal_support["y"]
+            x = virtual_support["x"]
+            y = virtual_support["y"]
             angle = np.arctan2(y, x)  # radians
 
             original_span_input = cast(
@@ -870,7 +877,7 @@ class Manipulation:
                     "name": f"virtual_{span_idx}",
                     "suspension": True,
                     "conductor_attachment_altitude": self._to_input(
-                        float(virutal_support["z"]),
+                        float(virtual_support["z"]),
                         "conductor_attachment_altitude",
                         input_units,
                     ),
@@ -881,13 +888,13 @@ class Manipulation:
                         -angle, "line_angle", input_units
                     ),
                     "insulator_length": self._to_input(
-                        max(float(virutal_support["insulator_length"]), 0.01),
+                        max(float(virtual_support["insulator_length"]), 0.01),
                         "insulator_length",
                         input_units,
                     ),
                     "span_length": remaining_span,
                     "insulator_mass": self._to_input(
-                        float(virutal_support["insulator_mass"]),
+                        float(virtual_support["insulator_mass"]),
                         "insulator_mass",
                         input_units,
                     ),
@@ -910,7 +917,7 @@ class Manipulation:
 
             if "ground_altitude" in raw_data.columns:
                 virtual_row["ground_altitude"] = (
-                    float(virutal_support["z"])
+                    float(virtual_support["z"])
                     - options.ground.default_support_length
                 )
 
