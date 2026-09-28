@@ -436,35 +436,52 @@ class TestSectionStudyManipulation:
     #     param_current = study.balance_engine.parameter
     #     np.testing.assert_allclose(param_original, param_current, rtol=1e-6)
 
-    # TODO
     def test_modify_cable_shift_integration(self, study: SectionStudy):
         study.solve_adjustment()
-        previous_L_ref = 1
+        previous_L_ref = study.balance_engine.L_ref
         study.modify_cable(
             shift_support={
                 1: 1.0,
             }
         )
-
-        # assert L_ref
+        expected_L_ref = previous_L_ref + np.array([1, -1, 0])
+        np.testing.assert_allclose(
+            study.balance_engine.L_ref, expected_L_ref, rtol=1e-6
+        )
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
         # Should complete without error
 
     def test_modify_cable_shorten_integration(self, study: SectionStudy):
+        study.solve_adjustment()
+        previous_L_ref = study.balance_engine.L_ref
         study.modify_cable(
             shorten_span={
                 1: 1.0,
             }
         )
-
-        # assert L_ref
-
+        expected_L_ref = previous_L_ref + np.array([0, -1, 0])
+        np.testing.assert_allclose(
+            study.balance_engine.L_ref, expected_L_ref, rtol=1e-6
+        )
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
-        # Should complete without error
 
-    # TODO: add reset
+    def test_reset_modify_cable_integration(self, study: SectionStudy):
+        study.solve_adjustment()
+        previous_L_ref = study.balance_engine.L_ref
+        study.modify_cable(
+            shorten_span={
+                1: 1.0,
+            }
+        )
+        study.reset_cable()
+
+        np.testing.assert_allclose(
+            study.balance_engine.L_ref, previous_L_ref, rtol=1e-6
+        )
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
 
     def test_rope_manipulation_integration(self, study: SectionStudy):
         study.solve_adjustment()
