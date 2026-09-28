@@ -52,3 +52,15 @@ def convert_mass_to_weight(mass: np.ndarray | list) -> np.ndarray:
         np.ndarray: weight value in N
     """
     return Q_(np.array(mass), "kg").to("N").magnitude
+
+
+def convert_grad_to_rad(angle_in_grad: np.ndarray) -> np.ndarray:
+    """Converts an angle in grad to radians.
+
+    Args:
+        angle_in_grad (np.ndarray): array of angles in grad
+
+    Returns:
+        np.ndarray: array of angles in radians
+    """
+    return Q_(np.array(angle_in_grad), "grad").to("rad").magnitude

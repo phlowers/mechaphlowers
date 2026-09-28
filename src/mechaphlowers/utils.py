@@ -9,7 +9,7 @@ import warnings
 from functools import wraps
 from numbers import Real
 from time import time
-from typing import Any, Callable, Literal, Protocol, TypeVar, cast
+from typing import Any, Callable, Literal, Protocol, TypeVar, cast, overload
 
 import numpy as np
 import pandas as pd
@@ -254,6 +254,7 @@ T = TypeVar("T", bound=Callable[..., Any])
 
 
 Number = float | int
+NumerOrNumberArray = TypeVar("NumerOrNumberArray", Number, np.ndarray)
 
 
 def check_inputs_are_numbers(**kwargs) -> None:
@@ -346,11 +347,19 @@ def convert_angle_unsigned_to_signed(angle: np.ndarray) -> np.ndarray:
 
 
 # Trigonometry
-def cotan(x: np.ndarray) -> np.ndarray:
-    # x must be different from 0, pi etc.
-    # TODO: raise ValueError?
+@overload
+def cotan(x: np.ndarray) -> np.ndarray: ...
+
+
+@overload
+def cotan(x: Number) -> Number: ...
+
+
+def cotan(x: np.ndarray | Number) -> np.ndarray | Number:  # TODO: check
+    if np.any(np.isclose(np.sin(x), 0.0, atol=1e-12)):
+        raise ValueError("x must be different from 0, pi etc.")
     return 1 / np.tan(x)
 
 
-def acotan(x: np.ndarray) -> np.ndarray:
+def acotan(x: np.ndarray | Number) -> np.ndarray | Number:
     return np.pi / 2 - np.atan(x)

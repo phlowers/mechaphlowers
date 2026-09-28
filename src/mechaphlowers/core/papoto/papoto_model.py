@@ -233,15 +233,3 @@ def function_f_prime(
     return (
         function_f(p + _ZETA, a, h, delta, x) - function_f(p, a, h, delta, x)
     ) / _ZETA
-
-
-def convert_grad_to_rad(angle_in_grad: np.ndarray) -> np.ndarray:
-    """Converts an angle in grad to radians.
-
-    Args:
-        angle_in_grad (np.ndarray): array of angles in grad
-
-    Returns:
-        np.ndarray: array of angles in radians
-    """
-    return angle_in_grad / 200 * np.pi

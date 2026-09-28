@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 
 from mechaphlowers.entities.errors import ConvergenceError
@@ -7,14 +9,16 @@ from mechaphlowers.utils import acotan, cotan
 # TODO: complete typing and docs
 
 
-def _check_inputs(
+def _validate_inputs(
     angle_to_cable_tangent: np.ndarray,
     angle_to_left_support: np.ndarray,
     angle_to_right_support: np.ndarray,
     span_length: np.ndarray,
     input_height: np.ndarray,
     distance: np.ndarray,
-):
+) -> Tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+]:
     """Radians"""
     for angle, variable_name in zip(
         [
@@ -28,7 +32,7 @@ def _check_inputs(
             "angle_to_right_support",
         ],
     ):
-        if (angle < 0 or angle > np.pi).any():
+        if np.logical_or(angle < 0, angle > np.pi).any():
             raise ValueError(
                 f"All input angles must be between 0 and pi radians, got {variable_name}={angle} rad."
             )
@@ -42,23 +46,45 @@ def _check_inputs(
         raise ValueError(
             f"input_height must be strictly positive, got {input_height}."
         )
-    if (input_height == 0 and distance == 0).any():
+    if np.logical_and(input_height == 0, distance == 0).any():
         raise ValueError("input_height and distance can't both be zero")
-    if (distance != 0 and angle_to_left_support == 0).any():
+    if np.logical_and(input_height != 0, distance != 0).any():
+        raise ValueError("input_height and distance can't be both provided")
+    if np.logical_and(distance != 0, angle_to_left_support == 0).any():
         raise ValueError(
             "angle to left support can't be zero if distance isn't zero"
         )
+
+    # Ensure all inputs are float arrays, because if they are integer arrays,
+    # computation results may be truncated to integers.
+    return (
+        _convert_to_float_array(angle_to_cable_tangent),
+        _convert_to_float_array(angle_to_left_support),
+        _convert_to_float_array(angle_to_right_support),
+        _convert_to_float_array(span_length),
+        _convert_to_float_array(input_height),
+        _convert_to_float_array(distance),
+    )
+
+
+def _convert_to_float_array(
+    array: np.ndarray,
+) -> np.ndarray:
+    return np.array(array, dtype=np.float64)
 
 
 def _prepare_angle_to_left_support_input(
     angle_to_left_support: np.ndarray, distance: np.ndarray
 ) -> np.ndarray:
     return np.where(
-        distance < 0, 2 * np.pi - angle_to_left_support, angle_to_left_support
+        distance > 0,
+        2 * np.pi - angle_to_left_support,
+        angle_to_left_support,
     )
 
 
-def compute_parameter(
+# TODO: return partial results if only some inputs are invalid?
+def compute_parameter__array(
     angle_to_cable_tangent: np.ndarray,
     angle_to_left_support: np.ndarray,
     angle_to_right_support: np.ndarray,
@@ -68,7 +94,14 @@ def compute_parameter(
 ) -> np.ndarray:
     """Radians"""
     # TODO: accept nans ? None ? for distance or input_height
-    _check_inputs(
+    (
+        angle_to_cable_tangent,
+        angle_to_left_support,
+        angle_to_right_support,
+        span_length,
+        input_height,
+        distance,
+    ) = _validate_inputs(
         angle_to_cable_tangent,
         angle_to_left_support,
         angle_to_right_support,
@@ -78,7 +111,8 @@ def compute_parameter(
     )
 
     angle_to_left_support = _prepare_angle_to_left_support_input(
-        angle_to_left_support, distance
+        angle_to_left_support,
+        distance,
     )
 
     corrected_height = _compute_corrected_height(
@@ -139,21 +173,35 @@ def compute_parameter(
     return result
 
 
-def _sighted_slope(x, y, corrected_height, distance):
+def _sighted_slope(
+    x: np.ndarray,
+    y: np.ndarray,
+    corrected_height: np.ndarray,
+    distance: np.ndarray,
+) -> np.ndarray:
     return (y + corrected_height) / (x - distance)
 
 
-def _compute_corrected_height(angle_to_left_support, input_height, distance):
+def _compute_corrected_height(
+    angle_to_left_support: np.ndarray,
+    input_height: np.ndarray,
+    distance: np.ndarray,
+) -> np.ndarray:
     corrected_height = input_height.copy()
-    corrected_height[input_height == 0] = distance * cotan(
-        angle_to_left_support
-    )
+    mask = input_height == 0
+    if np.any(mask):
+        corrected_height[mask] = -distance[mask] * cotan(
+            angle_to_left_support[mask]
+        )
     return corrected_height
 
 
 def _compute_elevation_difference(
-    angle_to_right_support, span_length, corrected_height, distance
-):
+    angle_to_right_support: np.ndarray,
+    span_length: np.ndarray,
+    corrected_height: np.ndarray,
+    distance: np.ndarray,
+) -> np.ndarray:
     return (span_length - distance) * cotan(
         angle_to_right_support
     ) - corrected_height
@@ -176,24 +224,28 @@ def approx_parameter_using_parabola(
 
 
 def _lowest_point_coordinates(
-    parameter,
+    parameter: np.ndarray,
     span_length: np.ndarray,
     elevation_difference: np.ndarray,
-):  # TODO: reuse existing code?
+) -> tuple[np.ndarray, np.ndarray]:
     """Relative to the left hanging point"""
-    x = span_length / 2 - np.asinh(
-        elevation_difference
-        / (2 * parameter * np.sinh(span_length / (2 * parameter)))
+    x = (
+        span_length / 2
+        - np.asinh(
+            elevation_difference
+            / (2 * parameter * np.sinh(span_length / (2 * parameter)))
+        )
+        * parameter
     )
     y = -parameter * (np.cosh(x / parameter) - 1)
     return x, y
 
 
 def _tangent_point_coordinates(
-    parameter,
-    span_length,
-    elevation_difference,
-    slope,
+    parameter: np.ndarray,
+    span_length: np.ndarray,
+    elevation_difference: np.ndarray,
+    slope: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Relative to the left hanging point"""
     x_lowest, y_lowest = _lowest_point_coordinates(
@@ -205,24 +257,26 @@ def _tangent_point_coordinates(
 
 
 def _check_result(
-    computed_parameter,
-    span_length,
-    distance,
-    corrected_height,
-    elevation_difference,
-    slope,
+    computed_parameter: np.ndarray,
+    span_length: np.ndarray,
+    distance: np.ndarray,
+    corrected_height: np.ndarray,
+    elevation_difference: np.ndarray,
+    slope: np.ndarray,
 ) -> None:
     x, y = _tangent_point_coordinates(
         computed_parameter, span_length, elevation_difference, slope
     )
-    if x <= 0 or x >= span_length:
-        raise ConvergenceError(
+    if np.logical_or(x <= 0, x >= span_length).any():
+        raise ConvergenceError(  # FIXME?
             "Found aberrant x - no solution",
             origin="tangential_sighting",
         )
     computed_slope = _sighted_slope(x, y, corrected_height, distance)
     computed_angle_tangent = acotan(computed_slope)
-    if (computed_angle_tangent < 0 or computed_angle_tangent > np.pi).any():
+    if np.logical_or(
+        computed_angle_tangent < 0, computed_angle_tangent > np.pi
+    ).any():
         raise ConvergenceError(
             "Found aberrant angle tangent - no solution",
             origin="tangential_sighting",
