@@ -6,8 +6,6 @@ from mechaphlowers.entities.errors import ConvergenceError
 from mechaphlowers.numeric.newton import newton_solver_wrapper
 from mechaphlowers.utils import acotan, cotan
 
-# TODO: complete typing and docs
-
 
 def _validate_inputs(
     angle_to_cable_tangent: np.ndarray,
@@ -17,7 +15,12 @@ def _validate_inputs(
     input_height: np.ndarray,
     distance: np.ndarray,
 ) -> Tuple[
-    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
 ]:
     """NB: input angles are assumed to be in radians."""
     for angle, variable_name in zip(
@@ -46,13 +49,33 @@ def _validate_inputs(
         raise ValueError(
             f"input_height must be strictly positive, got {input_height}."
         )
-    if np.logical_and(input_height == 0, distance == 0).any():
-        raise ValueError("input_height and distance can't both be zero")
-    if np.logical_and(input_height != 0, distance != 0).any():
-        raise ValueError("input_height and distance can't be both provided")
-    if np.logical_and(distance != 0, angle_to_left_support == 0).any():
+    if (
+        ((input_height == 0) | np.isnan(input_height))
+        & (distance == 0 | np.isnan(distance))
+    ).any():
         raise ValueError(
-            "angle to left support can't be zero if distance isn't zero"
+            "input_height or distance must be provided (not zero, not nan)"
+        )
+    if (
+        (input_height != 0)
+        & ~np.isnan(input_height)
+        & (distance != 0)
+        & ~np.isnan(distance)
+    ).any():
+        raise ValueError(
+            "input_height and distance can't be both provided (not zero, not nan)"
+        )
+    if (
+        (angle_to_left_support == 0) & (distance != 0) & ~np.isnan(distance)
+    ).any():
+        raise ValueError(
+            "If the angle to the left support is zero, the distance must be zero or nan."
+        )
+    if (
+        ((distance == 0) | np.isnan(distance)) & (angle_to_left_support != 0)
+    ).any():
+        raise ValueError(
+            "If the distance is zero or nan, the angle to the left support must be zero."
         )
 
     # Ensure all inputs are float arrays, because if they are integer arrays,
@@ -92,7 +115,37 @@ def compute_parameter__array(
     input_height: np.ndarray,
     distance: np.ndarray,
 ) -> np.ndarray:
-    """NB: input angles are assumed to be in radians."""
+    """Compute parameter using the tangential sighting method.
+
+    Args:
+        angle_to_cable_tangent: angle between the vertical and the tangent to the cable.
+        angle_to_left_support: angle between the vertical and the left hanging point (very roughly the top of the left
+            support).
+        angle_to_right_support: angle between the vertical and the right hanging point (very roughly the top of the
+            right support).
+        span_length: length of the span.
+        input_height: should only be provided if the sighting device is right below (or in rare cases above) the left
+            support. This is the distance between the sighting device and the left hanging point. Else it should be
+            zero.
+        distance: distance between the left support and the sighting device (horizontal projection). Positive if the
+            sighting device is between the supports, negative if it is left of the left support.
+
+    All angles are in radians and are not oriented. They must be comprised between 0 and Pi.
+
+    Returns:
+        Computed parameters (as an array).
+
+    Raises:
+        ValueError: if any of the angles is not comprised between 0 and Pi;
+            if angle_to_cable_tangent is zero,
+            if span_length is negative or zero,
+            if input_height is strictly negative,
+            if both distance and input_height are zero (in which case we don't have enough information to compute
+            the parameter),
+            if both distance and input_height are provided and non-zero,
+            if distance isn't zero, and angle_to_left_support is zero (geometrically impossible).
+
+    """
     # TODO: accept nans ? None ? for distance or input_height
     (
         angle_to_cable_tangent,
@@ -188,7 +241,7 @@ def _compute_corrected_height(
     distance: np.ndarray,
 ) -> np.ndarray:
     corrected_height = input_height.copy()
-    mask = input_height == 0
+    mask = (input_height == 0) | np.isnan(input_height)
     if np.any(mask):
         corrected_height[mask] = -distance[mask] * cotan(
             angle_to_left_support[mask]
@@ -202,6 +255,8 @@ def _compute_elevation_difference(
     corrected_height: np.ndarray,
     distance: np.ndarray,
 ) -> np.ndarray:
+    """Elevation difference between left and right hanging points.
+    Positive if the right hanging point is higher than the left hanging point, negative otherwise."""
     return (span_length - distance) * cotan(
         angle_to_right_support
     ) - corrected_height

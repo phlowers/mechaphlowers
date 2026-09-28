@@ -254,7 +254,6 @@ T = TypeVar("T", bound=Callable[..., Any])
 
 
 Number = float | int
-NumerOrNumberArray = TypeVar("NumerOrNumberArray", Number, np.ndarray)
 
 
 def check_inputs_are_numbers(**kwargs) -> None:

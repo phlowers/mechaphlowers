@@ -23,7 +23,7 @@ def test_negative_angle_to_cable_tangent_raises() -> None:
         )
 
 
-def test_angle_to_cable_tangent_zero_raises_value_error() -> None:
+def test_angle_to_cable_tangent_zero_raises() -> None:
     with pytest.raises(ValueError, match="angle_to_cable_tangent == 0"):
         compute_parameter__array(
             np.array([0.0]),
@@ -141,14 +141,14 @@ def test_negative_input_height_raises() -> None:
 
 def test_input_height_and_distance_both_zero_raises() -> None:
     """
-    input_height and distance can't both be zero.
+    input_height or distance must be provided (not zero, not nan).
 
-    Indeed, distance = 0 means the sighting device is directly under (or in some
-    rare cases above) the left hanging point, in which case input_height is
-    required.
+    Indeed, distance = 0 means the sighting device is directly below
+    the left hanging point, in which case input_height is required.
     """
     with pytest.raises(
-        ValueError, match="input_height and distance can't both be zero"
+        ValueError,
+        match="input_height .* distance",
     ):
         compute_parameter__array(
             angle_to_cable_tangent=np.array([np.pi / 3]),
@@ -160,11 +160,11 @@ def test_input_height_and_distance_both_zero_raises() -> None:
         )
 
 
-def test_distance_nonzero_and_angle_to_left_support_zero_raises() -> None:
-    """angle_to_left_support can't be zero if the distance is strictly positive."""
+def test_distance_and_angle_to_left_support_checks_raises() -> None:
+    # If the angle to the left support is zero, the distance must be zero or nan.
     with pytest.raises(
         ValueError,
-        match="angle to left support can't be zero if distance isn't zero",
+        match="angle to the left support .* distance",
     ):
         compute_parameter__array(
             angle_to_cable_tangent=np.array([np.pi / 3]),
@@ -174,6 +174,49 @@ def test_distance_nonzero_and_angle_to_left_support_zero_raises() -> None:
             input_height=np.array([0.0]),
             distance=np.array([20]),
         )
+
+    # If the distance is zero or nan, the angle to the left support must be zero.
+    with pytest.raises(
+        ValueError,
+        match="distance .* angle to the left support",
+    ):
+        compute_parameter__array(
+            angle_to_cable_tangent=convert_grad_to_rad(np.array([98.999])),
+            angle_to_left_support=convert_grad_to_rad(np.array([12.000])),
+            angle_to_right_support=convert_grad_to_rad(np.array([96.820])),
+            span_length=np.array([400]),
+            input_height=np.array([20]),
+            distance=np.array([0]),
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="distance .* angle to the left support",
+    ):
+        compute_parameter__array(
+            angle_to_cable_tangent=convert_grad_to_rad(np.array([98.999])),
+            angle_to_left_support=convert_grad_to_rad(np.array([12.000])),
+            angle_to_right_support=convert_grad_to_rad(np.array([96.820])),
+            span_length=np.array([400]),
+            input_height=np.array([20]),
+            distance=np.array([np.nan]),
+        )
+
+
+def test_input_height_nan_ok_if_distance_provided() -> None:
+    result = compute_parameter__array(
+        angle_to_cable_tangent=convert_grad_to_rad(np.array([95.622])),
+        angle_to_left_support=convert_grad_to_rad(np.array([75.776])),
+        angle_to_right_support=convert_grad_to_rad(np.array([94.228])),
+        span_length=np.array([500]),
+        input_height=np.array([np.nan]),
+        distance=np.array([-50]),
+    )
+    np.testing.assert_allclose(
+        result,
+        2199.3,
+        atol=1e-1,
+    )
 
 
 # Test passing cases: check results with results from prototype
@@ -217,12 +260,22 @@ def test_distance_nonzero_and_angle_to_left_support_zero_raises() -> None:
             np.array([150]),
             np.array([1000.4]),
         ),
+        (
+            convert_grad_to_rad(np.array([101.607, 91.631])),
+            convert_grad_to_rad(np.array([50, 91.562])),
+            convert_grad_to_rad(np.array([100, 91.562])),
+            np.array([800, 300]),
+            np.array([0, 0]),
+            np.array([50, 150]),
+            np.array([2500.1, 1000.4]),
+        ),
     ],
     ids=[
-        "left of left support",
-        "at support",
-        "between supports-1",
-        "between supports-2",
+        "left of left support - 1st test case of prototype doc",
+        "at support - 2nd test case of prototype doc",
+        "between supports - 3rd test case of prototype doc",
+        "between supports - 4th test case of prototype doc",
+        "between supports - 3th and 4th test cases of prototype doc together",
     ],
 )
 def test_compute_parameter_ok(
