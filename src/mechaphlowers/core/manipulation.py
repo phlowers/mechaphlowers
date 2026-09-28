@@ -606,25 +606,31 @@ class Manipulation:
             SpanLoads: modified (or not modified) copy of the input
         """
         new_span_loads = deepcopy(span_loads)
-        # check if span_loads has the length before manipulation
-        # if not: means that span_loads already has the correct length (probably)
-        has_default_length = (
-            len(span_loads.load_position) == len(self._section_array.data) - 1
-        )
-        if self._virtual_support_overlay is not None and has_default_length:
-            sorted_span_indices = sorted(self._virtual_support_overlay.keys())
-            for offset, span_idx in enumerate(sorted_span_indices):
-                effective_idx = span_idx + offset
-                # no load if adding a virtual support in the middle of the span
-                new_span_loads.load_position[effective_idx] = 0.0
-                new_span_loads.load_mass[effective_idx] = 0.0
-                # insert a value into the array for the new virtual support
-                new_span_loads.load_position = np.insert(
-                    new_span_loads.load_position, effective_idx, 0.0
+        if self._virtual_support_overlay is not None:
+            # check if span_loads has the length before manipulation
+            # if not: means that span_loads already has the correct length (probably)
+            has_incorrect_length = (
+                len(span_loads.load_position)
+                != len(self._section_array.data)
+                + len(self._virtual_support_overlay)
+                - 1
+            )
+            if has_incorrect_length:
+                sorted_span_indices = sorted(
+                    self._virtual_support_overlay.keys()
                 )
-                new_span_loads.load_mass = np.insert(
-                    new_span_loads.load_mass, effective_idx, 0.0
-                )
+                for offset, span_idx in enumerate(sorted_span_indices):
+                    effective_idx = span_idx + offset
+                    # no load if adding a virtual support in the middle of the span
+                    new_span_loads.load_position[effective_idx] = 0.0
+                    new_span_loads.load_mass[effective_idx] = 0.0
+                    # insert a value into the array for the new virtual support
+                    new_span_loads.load_position = np.insert(
+                        new_span_loads.load_position, effective_idx, 0.0
+                    )
+                    new_span_loads.load_mass = np.insert(
+                        new_span_loads.load_mass, effective_idx, 0.0
+                    )
         return new_span_loads
 
     def initialize_engine(

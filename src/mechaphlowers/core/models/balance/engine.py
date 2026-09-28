@@ -261,11 +261,11 @@ class BalanceEngine(Notifier):
             SolverError: If the solver fails to converge.
             RuntimeError: If adjustment is blocked (engine built from manipulations).
         """
-        if self._adjustment_blocked:
-            raise RuntimeError(
-                "solve_adjustment is blocked on this engine. "
-                "L_ref was injected externally from a clean adjustment."
-            )
+        # if self._adjustment_blocked:
+        #     raise RuntimeError(
+        #         "solve_adjustment is blocked on this engine. "
+        #         "L_ref was injected externally from a clean adjustment."
+        #     )
         logger.debug("Starting adjustment.")
 
         self.balance_model.adjustment = True
