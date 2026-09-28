@@ -17,9 +17,9 @@ def _validate_inputs(
     input_height: np.ndarray,
     distance: np.ndarray,
 ) -> Tuple[
-    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
 ]:
-    """Radians"""
+    """NB: input angles are assumed to be in radians."""
     for angle, variable_name in zip(
         [
             angle_to_cable_tangent,
@@ -92,7 +92,7 @@ def compute_parameter__array(
     input_height: np.ndarray,
     distance: np.ndarray,
 ) -> np.ndarray:
-    """Radians"""
+    """NB: input angles are assumed to be in radians."""
     # TODO: accept nans ? None ? for distance or input_height
     (
         angle_to_cable_tangent,
@@ -268,7 +268,7 @@ def _check_result(
         computed_parameter, span_length, elevation_difference, slope
     )
     if np.logical_or(x <= 0, x >= span_length).any():
-        raise ConvergenceError(  # FIXME?
+        raise ConvergenceError(
             "Found aberrant x - no solution",
             origin="tangential_sighting",
         )
