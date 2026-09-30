@@ -386,11 +386,8 @@ class TestSectionStudyManipulation:
 
     # Support manipulation: checks section array is correctly modified before adjustment
     def test_support_manipulation_integration(self, study: SectionStudy):
-        study.solve_adjustment()
-
         study.modify_support({1: {"z": 10.0}, 2: {"z": -10.0}})
 
-        # currently not working: need adjustment
         new_altitude = study._balance_engine.section_array.data[
             "conductor_attachment_altitude"
         ].to_numpy()
@@ -759,7 +756,6 @@ class TestSectionStudyUpdateLoads:
         study.solve_adjustment()
         study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
         study.modify_cable({1: 0.5, 2: 1})
-        study.solve_adjustment()
         np.testing.assert_array_equal(
             study.balance_engine.balance_model.nodes.load_position,
             np.array([0.4, 0, 0]),
@@ -838,8 +834,6 @@ class TestSectionStudyUpdateLoads:
         )
         study.solve_adjustment()
         study.solve_adjustment()
-        study.solve_adjustment()
-        study.solve_adjustment()
         np.testing.assert_array_equal(
             study.balance_engine.span_loads.load_mass, np.array([500, 0, 0, 0])
         )
@@ -903,4 +897,12 @@ class TestSectionStudyUpdateLoads:
         np.testing.assert_array_equal(
             study.balance_engine.span_loads.load_position,
             np.array([0, 0, 0.4, 0, 0]),
+        )
+
+    def test_loads_update_nodes(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
+        np.testing.assert_array_equal(
+            study.balance_engine.balance_model.nodes.load_position,
+            np.array([0.4, 0, 0]),
         )

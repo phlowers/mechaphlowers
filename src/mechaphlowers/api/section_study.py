@@ -71,8 +71,6 @@ class SectionStudy:
         >>> points = study.get_supports_points()
     """
 
-    _warning_no_L_ref = "L_ref or clean_engine is not defined. You must run solve_adjustment() before applying manipulation. Running solve_adjustment() now."
-
     def __init__(
         self,
         cable_array: CableArray,
@@ -98,7 +96,7 @@ class SectionStudy:
         self._thermal_engine: ThermalEngine | None = None
         self._guying: Guying | None = None
         self._intermediate_memento: BalanceEngineMemento | None = None
-        # Clean verison of BalanceEngine: will be initialized in solve_adjustment
+        # Clean verison of BalanceEngine: used for applying loads and manipulations
         self._clean_engine = BalanceEngine(
             cable_array=self._cable_array,
             section_array=self._section_array,
@@ -202,8 +200,10 @@ class SectionStudy:
                 f"Adjustment has been done before, initial_L_ref before shifting: {str(self.balance_engine.L_ref)}"
             )
         except AttributeError:
-            logger.warning(self._warning_no_L_ref)
-            warnings.warn(self._warning_no_L_ref, BalanceEngineWarning)
+            logger.warning(BalanceEngine._warning_no_L_ref)
+            warnings.warn(
+                BalanceEngine._warning_no_L_ref, BalanceEngineWarning
+            )
             # careful: is not exactly the same code than in BalanceEngine:
             # calls SectionStudy.solve_adjustment() instead of BalanceEngine.solve_adjustment()
             self.solve_adjustment()
@@ -353,7 +353,7 @@ class SectionStudy:
         Raises:
             SolverError: If the solver fails to converge.
         """
-        self._build_span_loads()
+        # self._build_span_loads()
         engine = self._balance_engine
         default = engine.default_value
 
@@ -488,7 +488,7 @@ class SectionStudy:
         # TODO: add test for reset nodes
         # Reset to transport modifications to Nodes
 
-        # self._balance_engine.reset(full=False)
+        self._balance_engine.reset(full=False)
 
     # ── State management ──────────────────────────────────────────────────
 
