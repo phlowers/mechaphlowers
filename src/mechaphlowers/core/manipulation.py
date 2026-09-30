@@ -300,6 +300,18 @@ class Manipulation:
 
     # ── Rope manipulation ─────────────────────────────────────────────────
 
+    def add_rope(
+        self,
+        rope: dict[int, float],
+        rope_lineic_mass: float | None = None,
+    ) -> None:
+        """Deprecated name for set_virtual_support"""
+        warnings.warn(
+            "add_rope is deprecated, use set_rope instead.",
+            category=DeprecationWarning,
+        )
+        self.set_rope(rope, rope_lineic_mass)
+
     def set_rope(
         self,
         rope: dict[int, float],
@@ -360,6 +372,16 @@ class Manipulation:
         logger.debug("Rope manipulation cleared.")
 
     # ── Virtual support ───────────────────────────────────────────────────
+
+    def add_virtual_support(
+        self, virtual_support: dict[int, dict[str, float]]
+    ) -> None:
+        """Deprecated name for set_virtual_support"""
+        warnings.warn(
+            "add_virtual_support is deprecated, use set_virtual_support instead.",
+            category=DeprecationWarning,
+        )
+        self.set_virtual_support(virtual_support)
 
     def set_virtual_support(
         self, virtual_support: dict[int, dict[str, float]]
@@ -446,9 +468,7 @@ class Manipulation:
                     f"hanging_cable_point_from_left_support={hcp} is out of range ({x_lower}, {x_upper}) for span {span_idx}"
                 )
 
-        if self._virtual_support_overlay is None:
-            self._virtual_support_overlay = {}
-        self._virtual_support_overlay.update(virtual_support)
+        self._virtual_support_overlay = virtual_support
         logger.debug(f"Virtual support overlay updated: {virtual_support}")
 
     def reset_virtual_support(self) -> None:
