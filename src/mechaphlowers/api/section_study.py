@@ -175,29 +175,29 @@ class SectionStudy:
         self._manipulation.reset_support()
         self.apply_manipulations()
 
-    def add_rope(
+    def set_rope(
         self,
         rope: dict[int, float],
         rope_lineic_mass: float | None = None,
     ) -> None:
         """Override insulator length and mass for specified supports with rope values.
 
-        Delegates to [`Manipulation.add_rope`][mechaphlowers.core.manipulation.Manipulation.add_rope].
+        Delegates to [`Manipulation.set_rope`][mechaphlowers.core.manipulation.Manipulation.set_rope].
 
         Args:
             rope: Dictionary mapping support index (0-based) to rope length (meters).
             rope_lineic_mass: Linear mass of the rope in kg/m.
         """
-        self._manipulation.add_rope(rope, rope_lineic_mass)
+        self._manipulation.set_rope(rope, rope_lineic_mass)
 
         self.apply_manipulations()
 
     def apply_manipulations(self):
         # check if adjustment has been done before
         try:
-            _ = self.balance_engine.L_ref
+            _ = self.balance_engine.initial_L_ref
             logger.debug(
-                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.balance_engine.L_ref)}"
+                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.balance_engine.initial_L_ref)}"
             )
         except AttributeError:
             logger.warning(BalanceEngine._warning_no_L_ref)
@@ -235,19 +235,21 @@ class SectionStudy:
         self._manipulation.reset_rope()
         self.apply_manipulations()
 
-    def add_virtual_support(
+    def set_virtual_support(
         self, virtual_support: dict[int, dict[str, float]]
     ) -> None:
         """Insert virtual supports.
 
-        Delegates to [`Manipulation.add_virtual_support`][mechaphlowers.core.manipulation.Manipulation.add_virtual_support].
+        Delegates to [`Manipulation.set_virtual_support`][mechaphlowers.core.manipulation.Manipulation.set_virtual_support].
+
+        If called multiple times: will only register the last call.
 
         Args:
             virtual_support: Dictionary mapping left-support index to virtual
                 support parameters.
         """
         self.reset_virtual_support()
-        self._manipulation.add_virtual_support(virtual_support)
+        self._manipulation.set_virtual_support(virtual_support)
         self.apply_manipulations()
 
     def reset_virtual_support(self) -> None:

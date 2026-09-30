@@ -280,6 +280,7 @@ class BalanceEngine(Notifier):
             e.origin = "solve_adjustment"
             raise e
 
+        # Do we really still need this now that clean_engine exists?
         self.initial_L_ref = self.L_ref = self.balance_model.update_L_ref()
 
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")

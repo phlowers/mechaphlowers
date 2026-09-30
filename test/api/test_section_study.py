@@ -417,23 +417,6 @@ class TestSectionStudyManipulation:
             previous_altitude, np.array([30, 50, 60, 65])
         )
 
-    # def test_reset_support_manipulation_integration_sandbox(self, study: SectionStudy):
-    #     study.solve_adjustment()
-    #     study.solve_change_state(new_temperature=15.0)
-    #     param_original = study.balance_engine.parameter.copy()
-
-    #     study.modify_support({1: {"z": 10.0}})
-    #     study.solve_adjustment()
-    #     study.solve_change_state()
-    #     param_current = study.balance_engine.parameter
-    #     assert not np.allclose(param_original, param_current, rtol=1e-6)
-
-    #     study.reset_support()
-    #     study.solve_adjustment()
-    #     study.solve_change_state()
-    #     param_current = study.balance_engine.parameter
-    #     np.testing.assert_allclose(param_original, param_current, rtol=1e-6)
-
     def test_modify_cable_shift_integration(self, study: SectionStudy):
         study.solve_adjustment()
         previous_L_ref = study.balance_engine.L_ref
@@ -483,7 +466,7 @@ class TestSectionStudyManipulation:
 
     def test_rope_manipulation_integration(self, study: SectionStudy):
         study.solve_adjustment()
-        study.add_rope({1: 6.0, 2: 4.0})
+        study.set_rope({1: 6.0, 2: 4.0})
 
         new_insulator_length = study._balance_engine.section_array.data[
             "insulator_length"
@@ -505,7 +488,7 @@ class TestSectionStudyManipulation:
 
     def test_reset_rope_manipulation_integration(self, study: SectionStudy):
         study.solve_adjustment()
-        study.add_rope({1: 6.0, 2: 4.0})
+        study.set_rope({1: 6.0, 2: 4.0})
 
         study.reset_rope()
 
@@ -526,9 +509,32 @@ class TestSectionStudyManipulation:
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
 
+    def test_rope_multiple(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.set_rope({0: 3.0})
+        study.set_rope({1: 6.0, 2: 4.0})
+
+        new_insulator_length = study._balance_engine.section_array.data[
+            "insulator_length"
+        ].to_numpy()
+        np.testing.assert_array_equal(
+            new_insulator_length, np.array([3, 6, 4, 3])
+        )
+
+        new_insulator_mass = study._balance_engine.section_array.data[
+            "insulator_mass"
+        ].to_numpy()
+        np.testing.assert_array_equal(
+            new_insulator_mass, np.array([1000, 0.06, 0.04, 1000])
+        )
+
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        # Should complete without error
+
     def test_virtual_support_integration(self, study: SectionStudy):
         study.solve_adjustment()
-        study.add_virtual_support(
+        study.set_virtual_support(
             {
                 0: {
                     "x": 100.0,
@@ -549,7 +555,7 @@ class TestSectionStudyManipulation:
 
     def test_reset_virtual_support_integration(self, study: SectionStudy):
         study.solve_adjustment()
-        study.add_virtual_support(
+        study.set_virtual_support(
             {
                 0: {
                     "x": 100.0,
@@ -574,7 +580,7 @@ class TestSectionStudyManipulation:
         study.solve_change_state(new_temperature=15.0)
         displacement_original = study.chain_displacement().copy()
 
-        study.add_rope({1: 6.0})
+        study.set_rope({1: 6.0})
         study.reset_rope()
         study.solve_change_state(new_temperature=15.0)
         displacement_restored = study.chain_displacement()
@@ -585,7 +591,7 @@ class TestSectionStudyManipulation:
 
     def test_virtual_support_and_modify_support(self, study: SectionStudy):
         study.solve_adjustment()
-        study.add_virtual_support(
+        study.set_virtual_support(
             {
                 0: {
                     "x": 100.0,
@@ -615,7 +621,7 @@ class TestSectionStudyManipulation:
 
     def test_multiple_virtual_support_integration(self, study: SectionStudy):
         study.solve_adjustment()
-        study.add_virtual_support(
+        study.set_virtual_support(
             {
                 0: {
                     "x": 100.0,
@@ -628,7 +634,7 @@ class TestSectionStudyManipulation:
             }
         )
 
-        study.add_virtual_support(
+        study.set_virtual_support(
             {
                 0: {
                     "x": 100.0,
@@ -654,7 +660,7 @@ class TestSectionStudyManipulation:
     def test_multiple_virtual_support_integration_0(self, study: SectionStudy):
         study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
         study.solve_adjustment()
-        study.add_virtual_support(
+        study.set_virtual_support(
             {
                 0: {
                     "x": 100.0,
@@ -667,7 +673,7 @@ class TestSectionStudyManipulation:
             }
         )
 
-        study.add_virtual_support(
+        study.set_virtual_support(
             {
                 1: {
                     "x": 100.0,
@@ -765,7 +771,7 @@ class TestSectionStudyUpdateLoads:
     def test_loads_and_virtual_support(self, study: SectionStudy):
         study.solve_adjustment()
         study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
-        study.add_virtual_support(
+        study.set_virtual_support(
             (
                 {
                     1: {
@@ -790,7 +796,7 @@ class TestSectionStudyUpdateLoads:
 
     def test_virtual_support_then_loads(self, study: SectionStudy):
         study.solve_adjustment()
-        study.add_virtual_support(
+        study.set_virtual_support(
             (
                 {
                     1: {
@@ -819,7 +825,7 @@ class TestSectionStudyUpdateLoads:
     ):
         study.solve_adjustment()
         study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
-        study.add_virtual_support(
+        study.set_virtual_support(
             (
                 {
                     1: {
@@ -846,7 +852,7 @@ class TestSectionStudyUpdateLoads:
     def test_loads_and_virtual_support_same_span(self, study: SectionStudy):
         study.solve_adjustment()
         study.set_loads(np.array([0, 200, 0]), np.array([0, 500, 0]))
-        study.add_virtual_support(
+        study.set_virtual_support(
             {
                 1: {
                     "x": 100.0,
@@ -870,7 +876,7 @@ class TestSectionStudyUpdateLoads:
     def test_multiple_virtual_support_and_loads(self, study: SectionStudy):
         study.solve_adjustment()
         study.set_loads(np.array([0, 200, 0]), np.array([0, 500, 0]))
-        study.add_virtual_support(
+        study.set_virtual_support(
             {
                 0: {
                     "x": 100.0,
@@ -935,7 +941,7 @@ class TestSectionStudyRestoreState:
 
     def test_position_engine_link_manipulations(self, study: SectionStudy):
         study.solve_adjustment()
-        study.add_rope({1: 6.0, 2: 4.0})
+        study.set_rope({1: 6.0, 2: 4.0})
 
         new_insulator_mass = study.position_engine.section_array.data[
             "insulator_mass"
@@ -946,7 +952,7 @@ class TestSectionStudyRestoreState:
 
     def test_restore_manipulations_after_error(self, study: SectionStudy):
         study.solve_adjustment()
-        study.add_rope({1: 6.0, 2: 4.0})
+        study.set_rope({1: 6.0, 2: 4.0})
 
         with pytest.raises(SuspectedChainReversal):
             study.solve_change_state(wind_pressure=20000)

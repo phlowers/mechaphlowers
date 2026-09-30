@@ -300,7 +300,7 @@ class Manipulation:
 
     # ── Rope manipulation ─────────────────────────────────────────────────
 
-    def add_rope(
+    def set_rope(
         self,
         rope: dict[int, float],
         rope_lineic_mass: float | None = None,
@@ -323,8 +323,8 @@ class Manipulation:
             InvalidManipulationIndex: If a support index is out of range.
 
         Examples:
-            >>> manip.add_rope({1: 4.5, 2: 3.0})
-            >>> manip.add_rope({0: 2.0}, rope_lineic_mass=0.05)
+            >>> manip.set_rope({1: 4.5, 2: 3.0})
+            >>> manip.set_rope({0: 2.0}, rope_lineic_mass=0.05)
         """
         n_supports = len(self._section_array._data)
         for idx in rope:
@@ -347,7 +347,7 @@ class Manipulation:
         Does nothing if no rope manipulation has been applied.
 
         Examples:
-            >>> manip.add_rope({1: 4.5})
+            >>> manip.set_rope({1: 4.5})
             >>> manip.reset_rope()
         """
         if self._rope_overlay is None:
@@ -361,7 +361,7 @@ class Manipulation:
 
     # ── Virtual support ───────────────────────────────────────────────────
 
-    def add_virtual_support(
+    def set_virtual_support(
         self, virtual_support: dict[int, dict[str, float]]
     ) -> None:
         """Insert virtual supports.
@@ -391,7 +391,7 @@ class Manipulation:
             InvalidManipulationKeys: If required keys are missing.
 
         Examples:
-            >>> manip.add_virtual_support(
+            >>> manip.set_virtual_support(
             ...     {
             ...         1: {
             ...             "x": 200.0,
@@ -457,7 +457,7 @@ class Manipulation:
         Does nothing if no virtual supports have been added.
 
         Examples:
-            >>> manip.add_virtual_support({...})
+            >>> manip.set_virtual_support({...})
             >>> manip.reset_virtual_support()
         """
         if self._virtual_support_overlay is None:
@@ -479,7 +479,7 @@ class Manipulation:
 
         Examples:
             >>> manip.modify_support({1: {"z": 2.0}})
-            >>> manip.add_rope({2: 4.0})
+            >>> manip.set_rope({2: 4.0})
             >>> manip.reset_all()  # both overlays cleared
         """
         self.reset_support()
