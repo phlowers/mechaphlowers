@@ -99,7 +99,6 @@ class BalanceEngine(Notifier):
         self.balance_model_type = balance_model_type
         self.span_model_type = span_model_type
         self.deformation_model_type = deformation_model_type
-        self._adjustment_blocked: bool = False
 
         self.reset(full=True)
 

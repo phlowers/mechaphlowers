@@ -12,6 +12,7 @@ from plotly import graph_objects as go
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import CableArray, SectionArray
+from mechaphlowers.entities.errors import SuspectedChainReversal
 from mechaphlowers.plotting.plot import PlotEngine
 from test.conftest import show_figures
 
@@ -906,3 +907,64 @@ class TestSectionStudyUpdateLoads:
             study.balance_engine.balance_model.nodes.load_position,
             np.array([0.4, 0, 0]),
         )
+
+
+class TestSectionStudyRestoreState:
+    @pytest.fixture()
+    def study(self, cable_array_AM600: CableArray) -> SectionStudy:
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2", "3", "4"],
+                    "suspension": [False, True, True, False],
+                    "conductor_attachment_altitude": [30, 50, 60, 65],
+                    "crossarm_length": [0, 0, 0, 0],
+                    "line_angle": [0, 0, 0, 0],
+                    "insulator_length": [3, 3, 3, 3],
+                    "span_length": [500, 500, 500, np.nan],
+                    "insulator_mass": [1000, 500, 500, 1000],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        return SectionStudy(
+            cable_array=cable_array_AM600, section_array=section_array
+        )
+
+    def test_position_engine_link_manipulations(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.add_rope({1: 6.0, 2: 4.0})
+
+        new_insulator_mass = study.position_engine.section_array.data[
+            "insulator_mass"
+        ].to_numpy()
+        np.testing.assert_array_equal(
+            new_insulator_mass, np.array([1000, 0.06, 0.04, 1000])
+        )
+
+    def test_restore_manipulations_after_error(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.add_rope({1: 6.0, 2: 4.0})
+
+        with pytest.raises(SuspectedChainReversal):
+            study.solve_change_state(wind_pressure=20000)
+
+        new_insulator_mass = study.balance_engine.section_array.data[
+            "insulator_mass"
+        ].to_numpy()
+        np.testing.assert_array_equal(
+            new_insulator_mass, np.array([1000, 0.06, 0.04, 1000])
+        )
+
+    def test_manipulations_warm_state(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.solve_change_state()
+        param_original = study.balance_engine.parameter.copy()
+        study.modify_cable(shorten_span={1: 2.0})
+
+        study.solve_change_state()
+        param_current = study.balance_engine.parameter.copy()
+        # the two states should be different
+        assert not np.allclose(param_current, param_original, rtol=1e-6)

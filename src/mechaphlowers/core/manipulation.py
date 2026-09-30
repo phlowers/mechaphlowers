@@ -653,7 +653,6 @@ class Manipulation:
             section_array: The manipulated section array (output of
                 [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array]).
             initial_L_ref: ``initial_L_ref`` from the clean adjustment solve.
-            span_loads: SpanLoads object to inject (usually output of `build_new_span_loads_virtual_support`)
 
         Returns:
             A configured [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] ready for
@@ -700,7 +699,6 @@ class Manipulation:
         target_engine.initial_L_ref = initial_L_ref.copy()
         target_engine.L_ref = L_ref
         target_engine.balance_model.L_ref = L_ref
-        target_engine._adjustment_blocked = True
 
         return target_engine
 

@@ -96,7 +96,7 @@ class SectionStudy:
         self._thermal_engine: ThermalEngine | None = None
         self._guying: Guying | None = None
         self._intermediate_memento: BalanceEngineMemento | None = None
-        # Clean verison of BalanceEngine: used for applying loads and manipulations
+        # Clean version of BalanceEngine: used for applying loads and manipulations
         self._clean_engine = BalanceEngine(
             cable_array=self._cable_array,
             section_array=self._section_array,
@@ -219,6 +219,13 @@ class SectionStudy:
         )
         self._build_span_loads()
         self._balance_engine.reset(full=False)
+        # Rewire downstream engines
+        self._caretaker = BalanceEngineCaretaker(self._balance_engine)
+        self._position_engine = PositionEngine(self._balance_engine)
+        self._plot_engine = None
+        self._guying = None
+        # _intermediate_memento should be reset after changing manipulations
+        self._intermediate_memento = None
 
     def reset_rope(self) -> None:
         """Remove the rope overlay.
@@ -314,16 +321,15 @@ class SectionStudy:
                 "Error during solve_adjustment. No changes on the engine state"
             )
             raise e
-        # TODO: check not same pointer than self.clean_engine
         span_loads = self._balance_engine.span_loads
         self._balance_engine = deepcopy(self._clean_engine)
         self._balance_engine.span_loads = span_loads
         self.apply_manipulations()
-        # Rewire downstream engines
-        self._caretaker = BalanceEngineCaretaker(self._balance_engine)
-        self._position_engine = PositionEngine(self._balance_engine)
-        self._plot_engine = None
-        self._guying = None
+        # # Rewire downstream engines
+        # self._caretaker = BalanceEngineCaretaker(self._balance_engine)
+        # self._position_engine = PositionEngine(self._balance_engine)
+        # self._plot_engine = None
+        # self._guying = None
 
     def solve_change_state(
         self,
@@ -353,7 +359,6 @@ class SectionStudy:
         Raises:
             SolverError: If the solver fails to converge.
         """
-        # self._build_span_loads()
         engine = self._balance_engine
         default = engine.default_value
 
@@ -485,9 +490,6 @@ class SectionStudy:
                 self._clean_engine.span_loads
             )
         )
-        # TODO: add test for reset nodes
-        # Reset to transport modifications to Nodes
-
         self._balance_engine.reset(full=False)
 
     # ── State management ──────────────────────────────────────────────────
