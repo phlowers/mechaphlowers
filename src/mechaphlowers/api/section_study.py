@@ -275,7 +275,6 @@ class SectionStudy:
             virtual_support: Dictionary mapping left-support index to virtual
                 support parameters.
         """
-        self.reset_virtual_support()
         self._manipulation.set_virtual_support(virtual_support)
         self.apply_manipulations()
 
@@ -351,10 +350,9 @@ class SectionStudy:
             )
             raise e
 
-        span_loads = self._balance_engine.span_loads
         self._balance_engine = deepcopy(self._clean_engine)
-        # Optional because apply_manipulation will update _balance_engine.span_loads too
-        self._balance_engine.span_loads = span_loads
+        # warning: state of _balance_engine before calling apply_manipulations() is incomplete:
+        # need to update span_loads, and to rewire downstream engines
         self.apply_manipulations()
 
     def solve_change_state(
