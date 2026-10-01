@@ -97,6 +97,7 @@ class SectionStudy:
         self._guying: Guying | None = None
         self._intermediate_memento: BalanceEngineMemento | None = None
         # Clean version of BalanceEngine: used for applying loads and manipulations
+        # Will not be affected by change states or manipulations
         self._clean_engine = BalanceEngine(
             cable_array=self._cable_array,
             section_array=self._section_array,
@@ -205,6 +206,11 @@ class SectionStudy:
         self.apply_manipulations()
 
     def apply_manipulations(self):
+        """Update balance_engine in order to take into account manipulations.
+        All manipulations are re updated.
+
+        This method should be run after any modification to manipulations.
+        """
         # check if adjustment has been done before
         try:
             _ = self.balance_engine.initial_L_ref
@@ -229,7 +235,7 @@ class SectionStudy:
             self._clean_engine, manipulated_sa, initial_L_ref
         )
         self._build_span_loads()
-        self._balance_engine.reset(full=False)
+
         # Rewire downstream engines
         self._caretaker = BalanceEngineCaretaker(self._balance_engine)
         self._position_engine = PositionEngine(self._balance_engine)
@@ -324,11 +330,11 @@ class SectionStudy:
 
         1. Build a clean engine from the original section array and solve
            adjustment to obtain ``initial_L_ref``.
-        2. If manipulations are registered, call
-           [`Manipulation.from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array] to produce a manipulated
-           copy, then [`Manipulation.initialize_engine`][mechaphlowers.core.manipulation.Manipulation.initialize_engine] to build the
-           target engine with injected ``L_ref`` and blocked adjustment.
-        3. Rewire downstream engines (caretaker, position, plot, guying).
+        2. Reaffect newly computed clean engine to balance_engine, and link the span_loads
+        3. Call
+           [`SectionStudy.apply_manipulations`][mechaphlowers.api.section_study.SectionStudy.apply_manipulations]
+           to update balance_engine, in order to take into account manipulations.
+           `apply_manipulations` will rewire downstream engines (caretaker, position, plot, guying).
 
         On [`SolverError`][mechaphlowers.entities.errors.SolverError], the engine
         state is restored to the snapshot taken before the solve attempt, and the
@@ -344,15 +350,12 @@ class SectionStudy:
                 "Error during solve_adjustment. No changes on the engine state"
             )
             raise e
+
         span_loads = self._balance_engine.span_loads
         self._balance_engine = deepcopy(self._clean_engine)
+        # Optional because apply_manipulation will update _balance_engine.span_loads too
         self._balance_engine.span_loads = span_loads
         self.apply_manipulations()
-        # # Rewire downstream engines
-        # self._caretaker = BalanceEngineCaretaker(self._balance_engine)
-        # self._position_engine = PositionEngine(self._balance_engine)
-        # self._plot_engine = None
-        # self._guying = None
 
     def solve_change_state(
         self,
@@ -495,6 +498,8 @@ class SectionStudy:
 
         If either load_position_distance[i] or load_mass[i] is 0 or nan, it means there is no load at span i.
 
+        If there are virtual supports, do not take into account in the length of the arrays.
+
         Args:
             load_position_distance (np.ndarray | list): Position of the loads, in meters. Its size must be the number of spans.
             load_mass (np.ndarray | list): Mass of the loads. Its size must be the number of spans.
@@ -508,11 +513,16 @@ class SectionStudy:
         self._solve_intermediate()
 
     def _build_span_loads(self):
+        """Build span_loads for balance_engine, using _clean_engine.span_loads
+
+        The span loads should be different only if there are virtual supports.
+        """
         self._balance_engine.span_loads = (
             self._manipulation.build_new_span_loads_virtual_support(
                 self._clean_engine.span_loads
             )
         )
+        # required in order to update loads stored in Nodes
         self._balance_engine.reset(full=False)
 
     # ── State management ──────────────────────────────────────────────────
