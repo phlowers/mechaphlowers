@@ -49,9 +49,12 @@ dev = [
     "mypy>=1.11.2",
     "ipython>=8.26.0",
     "ipykernel>=7.3.0",
-    # Force use of a recent version to avoid CVE
-    # See https://github.com/phlowers/mechaphlowers/security/dependabot/34
-    "tornado>=6.5.7",
+    # Force use of a recent version of this dependency, which used to be
+    # a transitive dependency, in order to avoid CVEs. See the following alerts:
+    # - https://github.com/phlowers/mechaphlowers/security/dependabot/34
+    # - https://github.com/phlowers/mechaphlowers/security/dependabot/43
+    # - https://github.com/phlowers/mechaphlowers/security/dependabot/44
+    "tornado>=6.5.8",
     "pytest>=9.0.3",
     "pytest-cov>=5.0.0",
     "unittest-xml-reporting>=3.2.0",
@@ -66,7 +69,12 @@ test = ["pytest>=9.0.3", "pytest-cov>=5.0.0", "requests>=2.33.1"]
 docs = [
     "mkdocs>=1.6.1",
     "mkdocstrings[python]>=0.26.2",
-    "mkdocs-material>=9.5.43",
+    "mkdocs-material>=9.7.7",
+    # Force use of a recent version of this dependency, which used to be
+    # a transitive dependency, in order to avoid a CVE. See the following alerts:
+    # - https://github.com/phlowers/mechaphlowers/security/dependabot/40
+    # - https://github.com/phlowers/mechaphlowers/security/dependabot/41
+    "pymdown-extensions>=11.0.1",
 ]
 
 all = [
