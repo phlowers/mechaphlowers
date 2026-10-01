@@ -12,7 +12,10 @@ from plotly import graph_objects as go
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.errors import SuspectedChainReversal
+from mechaphlowers.entities.errors import (
+    BalanceEngineWarning,
+    SuspectedChainReversal,
+)
 from mechaphlowers.plotting.plot import PlotEngine
 from test.conftest import show_figures
 
@@ -463,6 +466,28 @@ class TestSectionStudyManipulation:
     def test_rope_manipulation(self, study: SectionStudy):
         study.solve_adjustment()
         study.set_rope({1: 6.0, 2: 4.0})
+
+        new_insulator_length = study._balance_engine.section_array.data[
+            "insulator_length"
+        ].to_numpy()
+        np.testing.assert_array_equal(
+            new_insulator_length, np.array([3, 6, 4, 3])
+        )
+
+        new_insulator_mass = study._balance_engine.section_array.data[
+            "insulator_mass"
+        ].to_numpy()
+        np.testing.assert_array_equal(
+            new_insulator_mass, np.array([1000, 0.06, 0.04, 1000])
+        )
+
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        # Should complete without error
+
+    def test_rope_manipulation_no_adjustment(self, study: SectionStudy):
+        with pytest.warns(BalanceEngineWarning):
+            study.set_rope({1: 6.0, 2: 4.0})
 
         new_insulator_length = study._balance_engine.section_array.data[
             "insulator_length"

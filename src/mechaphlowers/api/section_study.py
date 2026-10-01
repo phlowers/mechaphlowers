@@ -224,7 +224,6 @@ class SectionStudy:
             self._section_array
         )
 
-        # TODO: check if adding manip multiple times
         initial_L_ref = self._clean_engine.initial_L_ref.copy()
         self._balance_engine = self._manipulation.initialize_engine(
             self._clean_engine, manipulated_sa, initial_L_ref

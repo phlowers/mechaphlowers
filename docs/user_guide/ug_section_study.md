@@ -257,7 +257,7 @@ fig.show()
 `SectionStudy` provides methods to alter the geometry and insulator properties of supports as overlays, without modifying the original `SectionArray`. Manipulations are registered on the `study` object and are applied when a manipulation method (`modify_cable()` for example) is called.
 
 !!! important
-    Manipulations must be registered **after** calling `solve_adjustment()`. If is has not been already run `solve_adjustment()` will be run automatically
+    Manipulations must be registered **after** calling `solve_adjustment()`. If it has not been already run, `solve_adjustment()` will be run automatically
 
 ### Support Manipulation
 
@@ -340,7 +340,7 @@ study.solve_change_state(new_temperature=15.0)
 study.reset_virtual_support()
 ```
 
-Multiple spans can be provided in one call, or via successive calls (overlays accumulate):
+Multiple spans must be provided in one call:
 
 ```python
 study.set_virtual_support({
