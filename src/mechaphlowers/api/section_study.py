@@ -329,7 +329,7 @@ class SectionStudy:
 
         1. Build a clean engine from the original section array and solve
            adjustment to obtain ``initial_L_ref``.
-        2. Reaffect newly computed clean engine to balance_engine, and link the span_loads
+        2. Reaffect newly computed clean engine to balance_engine
         3. Call
            [`SectionStudy.apply_manipulations`][mechaphlowers.api.section_study.SectionStudy.apply_manipulations]
            to update balance_engine, in order to take into account manipulations.
