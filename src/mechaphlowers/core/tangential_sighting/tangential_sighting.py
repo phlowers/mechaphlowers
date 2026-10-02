@@ -4,7 +4,7 @@ import numpy as np
 
 from mechaphlowers.entities.errors import ConvergenceError
 from mechaphlowers.numeric.newton import newton_solver_wrapper
-from mechaphlowers.utils import acotan, cotan
+from mechaphlowers.utils import cotan
 
 
 def _validate_inputs(
@@ -142,11 +142,10 @@ def compute_parameter__array(
             if input_height is strictly negative,
             if both distance and input_height are zero (in which case we don't have enough information to compute
             the parameter),
-            if both distance and input_height are provided and non-zero,
+            if both distance and input_height are provided, non-zero and not nan,
             if distance isn't zero, and angle_to_left_support is zero (geometrically impossible).
 
     """
-    # TODO: accept nans ? None ? for distance or input_height
     (
         angle_to_cable_tangent,
         angle_to_left_support,
@@ -214,14 +213,7 @@ def compute_parameter__array(
         caller_name="tangential_sighting",
     )
 
-    _check_result(
-        result,
-        span_length,
-        distance,
-        corrected_height,
-        elevation_difference,
-        slope,
-    )
+    _check_result(result, span_length, elevation_difference, slope)
 
     return result
 
@@ -314,8 +306,6 @@ def _tangent_point_coordinates(
 def _check_result(
     computed_parameter: np.ndarray,
     span_length: np.ndarray,
-    distance: np.ndarray,
-    corrected_height: np.ndarray,
     elevation_difference: np.ndarray,
     slope: np.ndarray,
 ) -> None:
@@ -325,14 +315,5 @@ def _check_result(
     if np.logical_or(x <= 0, x >= span_length).any():
         raise ConvergenceError(
             "Found aberrant x - no solution",
-            origin="tangential_sighting",
-        )
-    computed_slope = _sighted_slope(x, y, corrected_height, distance)
-    computed_angle_tangent = acotan(computed_slope)
-    if np.logical_or(
-        computed_angle_tangent < 0, computed_angle_tangent > np.pi
-    ).any():
-        raise ConvergenceError(
-            "Found aberrant angle tangent - no solution",
             origin="tangential_sighting",
         )

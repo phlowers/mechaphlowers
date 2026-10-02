@@ -160,7 +160,7 @@ def test_input_height_and_distance_both_zero_raises() -> None:
         )
 
 
-def test_distance_and_angle_to_left_support_checks_raises() -> None:
+def test_zero_angle_to_left_support_and_positive_distance_raises() -> None:
     # If the angle to the left support is zero, the distance must be zero or nan.
     with pytest.raises(
         ValueError,
@@ -175,7 +175,9 @@ def test_distance_and_angle_to_left_support_checks_raises() -> None:
             distance=np.array([20]),
         )
 
-    # If the distance is zero or nan, the angle to the left support must be zero.
+
+def test_zero_distance_and_positive_angle_to_left_support_raises() -> None:
+    # If the distance is zero, the angle to the left support must be zero.
     with pytest.raises(
         ValueError,
         match="distance .* angle to the left support",
@@ -189,6 +191,9 @@ def test_distance_and_angle_to_left_support_checks_raises() -> None:
             distance=np.array([0]),
         )
 
+
+def test_nan_distance_and_positive_angle_to_left_support_raises() -> None:
+    # If the distance is nan, the angle to the left support must be zero.
     with pytest.raises(
         ValueError,
         match="distance .* angle to the left support",
@@ -304,7 +309,7 @@ def test_compute_parameter_ok(
 
 def test_non_convergent_case_raises() -> None:
     """Test case adapted from tests cases provided by H. Ducloux"""
-    with pytest.raises((RuntimeError, ConvergenceError)):
+    with pytest.raises(ConvergenceError):
         compute_parameter__array(
             convert_grad_to_rad(np.array([91.631])),
             convert_grad_to_rad(np.array([124.224])),
