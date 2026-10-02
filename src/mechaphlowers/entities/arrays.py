@@ -624,8 +624,8 @@ class SectionArray(ElementArray):
 
     def __copy__(self) -> Self:
         copy_obj = super().__copy__()
-        copy_obj.sagging_parameter = self.sagging_parameter
-        copy_obj.sagging_temperature = self.sagging_temperature
+        copy_obj.set_sagging_parameter(self.sagging_parameter)
+        copy_obj.set_sagging_temperature(self.sagging_temperature)
         copy_obj.bundle_number = self.bundle_number
         copy_obj.geolocator = copy(self.geolocator)
         return copy_obj

@@ -360,8 +360,8 @@ def param_calibration(
         sagging_temperature: float,
         new_temperature: float,
     ):
-        section_array.sagging_parameter = sagging_parameter
-        section_array.sagging_temperature = sagging_temperature
+        section_array.set_sagging_parameter(sagging_parameter)
+        section_array.set_sagging_temperature(sagging_temperature)
         balance_engine = BalanceEngine(
             cable_array=cable_array, section_array=section_array
         )
