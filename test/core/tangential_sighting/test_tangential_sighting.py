@@ -183,9 +183,9 @@ def test_zero_distance_and_positive_angle_to_left_support_raises() -> None:
         match="distance .* angle to the left support",
     ):
         compute_parameter__array(
-            angle_to_cable_tangent=convert_grad_to_rad(np.array([98.999])),
-            angle_to_left_support=convert_grad_to_rad(np.array([12.000])),
-            angle_to_right_support=convert_grad_to_rad(np.array([96.820])),
+            angle_to_cable_tangent=np.array([1.6]),
+            angle_to_left_support=np.array([0.2]),
+            angle_to_right_support=np.array([1.5]),
             span_length=np.array([400]),
             input_height=np.array([20]),
             distance=np.array([0]),
@@ -199,9 +199,9 @@ def test_nan_distance_and_positive_angle_to_left_support_raises() -> None:
         match="distance .* angle to the left support",
     ):
         compute_parameter__array(
-            angle_to_cable_tangent=convert_grad_to_rad(np.array([98.999])),
-            angle_to_left_support=convert_grad_to_rad(np.array([12.000])),
-            angle_to_right_support=convert_grad_to_rad(np.array([96.820])),
+            angle_to_cable_tangent=np.array([1.6]),
+            angle_to_left_support=np.array([0.2]),
+            angle_to_right_support=np.array([1.5]),
             span_length=np.array([400]),
             input_height=np.array([20]),
             distance=np.array([np.nan]),
@@ -309,11 +309,15 @@ def test_compute_parameter_ok(
 
 def test_non_convergent_case_raises() -> None:
     """Test case adapted from tests cases provided by H. Ducloux"""
+    angle_to_cable_tangent = convert_grad_to_rad(np.array([91.631]))
+    angle_to_left_support = convert_grad_to_rad(np.array([124.224]))
+    angle_to_right_support = convert_grad_to_rad(np.array([106.345]))
+
     with pytest.raises(ConvergenceError):
         compute_parameter__array(
-            convert_grad_to_rad(np.array([91.631])),
-            convert_grad_to_rad(np.array([124.224])),
-            convert_grad_to_rad(np.array([106.345])),
+            angle_to_cable_tangent,
+            angle_to_left_support,
+            angle_to_right_support,
             np.array([250]),
             np.array([0]),
             np.array([-50]),

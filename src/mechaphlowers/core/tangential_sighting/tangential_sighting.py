@@ -309,7 +309,7 @@ def _check_result(
     elevation_difference: np.ndarray,
     slope: np.ndarray,
 ) -> None:
-    x, y = _tangent_point_coordinates(
+    x, _ = _tangent_point_coordinates(
         computed_parameter, span_length, elevation_difference, slope
     )
     if np.logical_or(x <= 0, x >= span_length).any():
