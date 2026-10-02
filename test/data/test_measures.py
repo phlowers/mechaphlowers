@@ -10,6 +10,7 @@ import pytest
 
 from mechaphlowers.data.measures import (
     PapotoParameterMeasure,
+    TangentialSightingParameterMeasure,
     param_calibration,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
@@ -269,3 +270,20 @@ def test_uncertainty_invalid_angle_error(bad_angle_error):
     papoto(**PAPOTO_INPUTS)
     with pytest.raises(ValueError, match="angle_error"):
         papoto.uncertainty(angle_error=bad_angle_error)
+
+
+def test_tangential_sighting_parameter_measure():
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=np.array([101.607]),
+        angle_to_left_support=np.array([50]),
+        angle_to_right_support=np.array([100]),
+        span_length=np.array([800]),
+        input_height=np.array([0]),
+        distance=np.array([50]),
+        angle_unit="grad",
+    )
+
+    np.testing.assert_allclose(
+        tangential_sighting.parameter, np.array([2500.1]), atol=1.0
+    )
