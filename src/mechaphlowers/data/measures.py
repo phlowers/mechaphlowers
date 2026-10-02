@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-"""Measurung module
+"""Measuring module
 
 This module provides functions to compute various measures on sections and spans.
 """
@@ -21,10 +21,14 @@ from mechaphlowers.core.papoto.papoto_model import (
     papoto_2_points,
     papoto_validity,
 )
-from mechaphlowers.data.units import Q_
+from mechaphlowers.core.tangential_sighting.tangential_sighting import (
+    compute_parameter__array,
+    compute_parameter__scalar,
+)
+from mechaphlowers.data.units import convert_angle_to_rad
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import MeasurementDataNotAvailable
-from mechaphlowers.utils import float_to_array
+from mechaphlowers.utils import Number, float_to_array
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +37,7 @@ class ParameterMeasure(ABC):
     """Class to compute measures on parameters."""
 
     @abstractmethod
-    def measure_method(self, *args, **kwargs):
+    def measure_method(self, *args, **kwargs) -> None:
         """Abstract method to be implemented by subclasses."""
         pass
 
@@ -52,9 +56,12 @@ class ParameterMeasure(ABC):
 
     @property
     @abstractmethod
-    def parameter(self):
+    def parameter(self) -> np.ndarray | Number:
         """Property to get the computed parameter."""
         pass
+
+    def __call__(self, *args, **kwargs):
+        self.measure_method(*args, **kwargs)
 
 
 class PapotoParameterMeasure(ParameterMeasure):
@@ -64,33 +71,35 @@ class PapotoParameterMeasure(ParameterMeasure):
 
     def measure_method(
         self,
-        a: np.ndarray | float | int,
-        HL: np.ndarray | float | int,
-        VL: np.ndarray | float | int,
-        HR: np.ndarray | float | int,
-        VR: np.ndarray | float | int,
-        H1: np.ndarray | float | int,
-        V1: np.ndarray | float | int,
-        H2: np.ndarray | float | int,
-        V2: np.ndarray | float | int,
-        H3: np.ndarray | float | int,
-        V3: np.ndarray | float | int,
+        a: np.ndarray | Number,
+        HL: np.ndarray | Number,
+        VL: np.ndarray | Number,
+        HR: np.ndarray | Number,
+        VR: np.ndarray | Number,
+        H1: np.ndarray | Number,
+        V1: np.ndarray | Number,
+        H2: np.ndarray | Number,
+        V2: np.ndarray | Number,
+        H3: np.ndarray | Number,
+        V3: np.ndarray | Number,
         angle_unit: str = "grad",
-    ):
+    ) -> None:
         """Compute the PAPOTO measure.
 
         Args:
-            a (np.ndarray): Length of the span
-            HL (np.ndarray): horizontal angle of the left part of the span
-            VL (np.ndarray): vertical angle of the left part of the span
-            HR (np.ndarray): horizontal angle of the right part of the span
-            VR (np.ndarray): vertical angle of the right part of the span
-            H1 (np.ndarray): horizontal angle of point 1
-            V1 (np.ndarray): vertical angle of point 1
-            H2 (np.ndarray): horizontal angle of point 2
-            V2 (np.ndarray): vertical angle of point 2
-            H3 (np.ndarray): horizontal angle of point 3
-            V3 (np.ndarray): vertical angle of point 3
+            a (np.ndarray | float | int): Length of the span
+            HL (np.ndarray | float | int): horizontal angle of the left part of the span
+            VL (np.ndarray | float | int): vertical angle of the left part of the span
+            HR (np.ndarray | float | int): horizontal angle of the right part of the span
+            VR (np.ndarray | float | int): vertical angle of the right part of the span
+            H1 (np.ndarray | float | int): horizontal angle of point 1
+            V1 (np.ndarray | float | int): vertical angle of point 1
+            H2 (np.ndarray | float | int): horizontal angle of point 2
+            V2 (np.ndarray | float | int): vertical angle of point 2
+            H3 (np.ndarray | float | int): horizontal angle of point 3
+            V3 (np.ndarray | float | int): vertical angle of point 3
+            angle_unit (str): unit of the angles. Default is "grad".
+
         Returns:
             None
         """
@@ -185,7 +194,7 @@ class PapotoParameterMeasure(ParameterMeasure):
     def input_conversion(self, data: dict) -> dict:
         """Convert inputs to the required format."""
         for key, value in data.items():
-            data[key] = Q_(value, self.angle_unit).to("rad").magnitude
+            data[key] = convert_angle_to_rad(value, self.angle_unit)
         return data
 
     @property
@@ -197,7 +206,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         return self._validity < self.validity_criteria
 
     @property
-    def parameter(self):
+    def parameter(self) -> np.ndarray | Number:
         return self._parameter
 
     def uncertainty(
@@ -326,8 +335,86 @@ class PapotoParameterMeasure(ParameterMeasure):
         ):
             raise ValueError("angle_error must be a non-negative real number.")
 
-    def __call__(self, *args, **kwds):
-        return self.measure_method(*args, **kwds)
+
+class TangentialSightingParameterMeasure(ParameterMeasure):
+    """Class to compute a parameter using the tangential sighting method."""
+
+    def measure_method(
+        self,
+        angle_to_cable_tangent: np.ndarray | Number,
+        angle_to_left_support: np.ndarray | Number,
+        angle_to_right_support: np.ndarray | Number,
+        span_length: np.ndarray | Number,
+        input_height: np.ndarray | Number,
+        distance: np.ndarray | Number,
+        angle_unit: str = "grad",
+    ) -> None:
+        """Compute a parameter using the tangential sighting method.
+
+        Args:
+            angle_to_cable_tangent (np.ndarray | float | int): angle between the vertical and the tangent to the cable.
+            angle_to_left_support (np.ndarray | float | int): angle between the vertical and the left hanging point (very roughly the top of the left
+                support).
+            angle_to_right_support (np.ndarray | float | int): angle between the vertical and the right hanging point (very roughly the top of the
+                right support).
+            span_length (np.ndarray | float | int): length of the span.
+            input_height (np.ndarray | float | int): should only be provided if the sighting device is right below (or in rare cases above) the left
+                support. This is the distance between the sighting device and the left hanging point. Else it should be
+                zero.
+            distance (np.ndarray | float | int): distance between the left support and the sighting device (horizontal projection). Positive if the
+                sighting device is between the supports, negative if it is left of the left support.
+            angle_unit (str): unit of the angles. Default is "grad".
+
+        All angles are not oriented. They must be comprised between 0 and Pi rad (0 and 200 grad).
+
+        Returns:
+            None. The computed parameter is available through the `parameter` property.
+
+        Raises:
+            ValueError: if any of the angles is not comprised between 0 and Pi rad;
+                if angle_to_cable_tangent is zero,
+                if span_length is negative or zero,
+                if input_height is strictly negative,
+                if both distance and input_height are zero (in which case we don't have enough information to compute
+                the parameter),
+                if both distance and input_height are provided, non-zero and not nan,
+                if distance isn't zero, and angle_to_left_support is zero (geometrically impossible).
+        """
+        angle_to_cable_tangent = convert_angle_to_rad(  # type: ignore
+            angle_to_cable_tangent,
+            angle_unit,
+        )
+        angle_to_left_support = convert_angle_to_rad(  # type: ignore
+            angle_to_left_support,
+            angle_unit,
+        )
+        angle_to_right_support = convert_angle_to_rad(  # type: ignore
+            angle_to_right_support,
+            angle_unit,
+        )
+
+        if isinstance(angle_to_cable_tangent, np.ndarray):
+            self._parameter = compute_parameter__array(
+                angle_to_cable_tangent,
+                angle_to_left_support,  # type: ignore
+                angle_to_right_support,  # type: ignore
+                span_length,  # type: ignore
+                input_height,  # type: ignore
+                distance,  # type: ignore
+            )
+        else:
+            self._parameter = compute_parameter__scalar(
+                angle_to_cable_tangent,  # type: ignore
+                angle_to_left_support,  # type: ignore
+                angle_to_right_support,  # type: ignore
+                span_length,  # type: ignore
+                input_height,  # type: ignore
+                distance,  # type: ignore
+            )
+
+    @property
+    def parameter(self) -> np.ndarray | Number:
+        return self._parameter
 
 
 def param_calibration(
