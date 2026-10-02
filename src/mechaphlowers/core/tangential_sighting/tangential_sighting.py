@@ -51,7 +51,7 @@ def _validate_inputs(
         )
     if (
         ((input_height == 0) | np.isnan(input_height))
-        & (distance == 0 | np.isnan(distance))
+        & ((distance == 0) | np.isnan(distance))
     ).any():
         raise ValueError(
             "input_height or distance must be provided (not zero, not nan)"
