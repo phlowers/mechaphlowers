@@ -12,6 +12,7 @@ This module provides functions to compute various measures on sections and spans
 
 import logging
 from abc import ABC, abstractmethod
+from typing import Literal, overload
 
 import numpy as np
 
@@ -27,9 +28,26 @@ from mechaphlowers.core.tangential_sighting.tangential_sighting import (
 from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import MeasurementDataNotAvailable
-from mechaphlowers.utils import float_to_array
+from mechaphlowers.utils import Number, float_to_array
 
 logger = logging.getLogger(__name__)
+
+
+@overload
+def _convert_angle_to_rad(
+    angle: np.ndarray, input_angle_unit: str
+) -> np.ndarray: ...
+
+
+@overload
+def _convert_angle_to_rad(angle: Number, input_angle_unit: str) -> Number: ...
+
+
+def _convert_angle_to_rad(
+    angle: np.ndarray | Number,
+    input_angle_unit: str,
+) -> np.ndarray | Number:
+    return Q_(angle, input_angle_unit).to("rad").magnitude
 
 
 class ParameterMeasure(ABC):
@@ -61,12 +79,6 @@ class ParameterMeasure(ABC):
 
     def __call__(self, *args, **kwargs):
         self.measure_method(*args, **kwargs)
-
-    @staticmethod
-    def _convert_angle_to_rad(
-        angle: np.ndarray, input_angle_unit: str
-    ) -> np.ndarray:
-        return Q_(angle, input_angle_unit).to("rad").magnitude
 
 
 class PapotoParameterMeasure(ParameterMeasure):
@@ -197,7 +209,7 @@ class PapotoParameterMeasure(ParameterMeasure):
     def input_conversion(self, data: dict) -> dict:
         """Convert inputs to the required format."""
         for key, value in data.items():
-            data[key] = self._convert_angle_to_rad(value, self.angle_unit)
+            data[key] = _convert_angle_to_rad(value, self.angle_unit)
         return data
 
     @property
@@ -339,6 +351,9 @@ class PapotoParameterMeasure(ParameterMeasure):
             raise ValueError("angle_error must be a non-negative real number.")
 
 
+DEFAULT_ANGLE_UNCERTAINTY = _convert_angle_to_rad(0.01, "grad")
+
+
 class TangentialSightingParameterMeasure(ParameterMeasure):
     """Class to compute a parameter using the tangential sighting method."""
 
@@ -383,18 +398,27 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
                 if both distance and input_height are provided, non-zero and not nan,
                 if distance isn't zero, and angle_to_left_support is zero (geometrically impossible).
         """
-        angle_to_cable_tangent = self._convert_angle_to_rad(
+        angle_to_cable_tangent = _convert_angle_to_rad(
             angle_to_cable_tangent,
             angle_unit,
         )
-        angle_to_left_support = self._convert_angle_to_rad(
+        angle_to_left_support = _convert_angle_to_rad(
             angle_to_left_support,
             angle_unit,
         )
-        angle_to_right_support = self._convert_angle_to_rad(
+        angle_to_right_support = _convert_angle_to_rad(
             angle_to_right_support,
             angle_unit,
         )
+
+        self.measures_converted = {
+            "angle_to_cable_tangent": angle_to_cable_tangent,
+            "angle_to_left_support": angle_to_left_support,
+            "angle_to_right_support": angle_to_right_support,
+            "span_length": span_length,
+            "input_height": input_height,
+            "distance": distance,
+        }
 
         self._parameter = compute_parameter__array(
             angle_to_cable_tangent,
@@ -404,6 +428,109 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             input_height,
             distance,
         )
+
+    def uncertainty(self) -> np.ndarray:
+        """Compute the relative uncertainty of the parameter using the GUM method."""
+
+        if not hasattr(self, 'measures_converted'):
+            raise MeasurementDataNotAvailable(
+                "measure_method() must be called before uncertainty()."
+            )
+
+        # TODO: what happens if an error occurred during measure_method()?
+
+        d_parameter_d_tangent_angle = (
+            self._approx_parameter_partial_derivative(
+                "angle_to_cable_tangent",
+                0.00015707963267948968,
+            )
+        )
+        d_parameter_d_right_angle = self._approx_parameter_partial_derivative(
+            "angle_to_right_support",
+            0.00015707963267948968,
+        )
+        d_parameter_d_span_length = self._approx_parameter_partial_derivative(
+            "span_length",
+            1,
+        )
+
+        sighting_device_at_support_mask = (
+            self.measures_converted["distance"] == 0
+        )
+
+        d_parameter_d_left_angle = np.zeros_like(
+            self.measures_converted["angle_to_left_support"]
+        )
+        d_parameter_d_input_height = np.zeros_like(
+            self.measures_converted["input_height"]
+        )
+        d_parameter_d_distance = np.zeros_like(
+            self.measures_converted["distance"]
+        )
+
+        if sighting_device_at_support_mask.any():
+            d_parameter_d_input_height[sighting_device_at_support_mask] = (
+                self._approx_parameter_partial_derivative(
+                    "input_height",
+                    0.1,
+                    sighting_device_at_support_mask,
+                )
+            )
+
+        if not sighting_device_at_support_mask.all():
+            d_parameter_d_left_angle[~sighting_device_at_support_mask] = (
+                self._approx_parameter_partial_derivative(
+                    "angle_to_left_support",
+                    0.00015707963267948968,
+                    ~sighting_device_at_support_mask,
+                )
+            )
+            d_parameter_d_distance[~sighting_device_at_support_mask] = (
+                self._approx_parameter_partial_derivative(
+                    "distance",
+                    1,
+                    ~sighting_device_at_support_mask,
+                )
+            )
+
+        uncertainty = np.sqrt(
+            (d_parameter_d_tangent_angle * DEFAULT_ANGLE_UNCERTAINTY) ** 2
+            * +((d_parameter_d_left_angle * DEFAULT_ANGLE_UNCERTAINTY) ** 2)
+            + (d_parameter_d_right_angle * DEFAULT_ANGLE_UNCERTAINTY) ** 2
+            + (d_parameter_d_span_length * 0.5) ** 2
+            + (d_parameter_d_input_height * 0.1) ** 2
+            + (d_parameter_d_distance * 0.5) ** 2
+        )
+
+        return uncertainty / self.parameter
+
+    def _approx_parameter_partial_derivative(
+        self,
+        variable_name: Literal[
+            "angle_to_cable_tangent",
+            "angle_to_left_support",
+            "angle_to_right_support",
+            "span_length",
+            "input_height",
+            "distance",
+        ],
+        h: Number,
+        mask=None,
+    ) -> np.ndarray:
+        if mask is None:
+            mask = np.ones_like(
+                self.measures_converted[variable_name], dtype=bool
+            )
+        if mask.any():
+            kwargs = {
+                key: value[mask]
+                for key, value in self.measures_converted.items()
+            }
+            kwargs[variable_name] = kwargs[variable_name] + h
+            return (
+                compute_parameter__array(**kwargs) - self.parameter[mask]
+            ) / h
+        return np.array([])
 
     @property
     def parameter(self) -> np.ndarray:

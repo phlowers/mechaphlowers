@@ -13,6 +13,7 @@ from mechaphlowers.data.measures import (
     TangentialSightingParameterMeasure,
     param_calibration,
 )
+from mechaphlowers.data.units import convert_grad_to_rad
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import MeasurementDataNotAvailable
 
@@ -286,4 +287,64 @@ def test_tangential_sighting_parameter_measure():
 
     np.testing.assert_allclose(
         tangential_sighting.parameter, np.array([2500.1]), atol=1.0
+    )
+
+
+def test_tangential_sighting_parameter_uncertainty_left_of_span():
+    """Test case adapted from tests cases provided by H. Ducloux"""
+
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        convert_grad_to_rad(np.array([95.622])),
+        convert_grad_to_rad(np.array([75.776])),
+        convert_grad_to_rad(np.array([94.228])),
+        np.array([500]),
+        np.array([0]),
+        np.array([-50]),
+    )
+
+    np.testing.assert_allclose(
+        tangential_sighting.uncertainty(),
+        np.array([0.78]),
+        atol=0.01,
+    )
+
+
+def test_tangential_sighting_parameter_uncertainty_at_support():
+    """Test case adapted from tests cases provided by H. Ducloux"""
+
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        convert_grad_to_rad(np.array([98.999])),
+        convert_grad_to_rad(np.array([0])),
+        convert_grad_to_rad(np.array([96.82])),
+        np.array([400]),
+        np.array([20]),
+        np.array([0]),
+    )
+
+    np.testing.assert_allclose(
+        tangential_sighting.uncertainty(),
+        np.array([0.44]),
+        atol=0.01,
+    )
+
+
+def test_tangential_sighting_parameter_uncertainty_between_supports_1():
+    """Test case adapted from tests cases provided by H. Ducloux"""
+
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        convert_grad_to_rad(np.array([101.607])),
+        convert_grad_to_rad(np.array([50])),
+        convert_grad_to_rad(np.array([100])),
+        np.array([800]),
+        np.array([0]),
+        np.array([50]),
+    )
+
+    np.testing.assert_allclose(
+        tangential_sighting.uncertainty(),
+        np.array([0.44]),
+        atol=0.01,
     )
