@@ -339,3 +339,248 @@ def test_tangential_sighting_parameter_measure__scalar__error() -> None:
             distance=-50,
             angle_unit="grad",
         )
+
+
+def test_tangential_sighting_uncertainty__left_of_support() -> None:
+    # First test case of H. Ducloux
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=95.622,
+        angle_to_left_support=75.776,
+        angle_to_right_support=94.228,
+        span_length=500,
+        input_height=0,
+        distance=-50,
+        angle_unit="grad",
+    )
+    parameter = tangential_sighting.parameter
+    np.testing.assert_allclose(parameter, 2199.3, atol=0.1)
+    uncertainty = tangential_sighting.uncertainty()
+    np.testing.assert_allclose(uncertainty, 0.0078, atol=0.0001)
+
+
+def test_tangential_sighting_uncertainty__at_support() -> None:
+    # 2nd test case of H. Ducloux
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=98.999,
+        angle_to_left_support=0.0,
+        angle_to_right_support=96.820,
+        span_length=400,
+        input_height=20,
+        distance=0,
+        angle_unit="grad",
+    )
+    parameter = tangential_sighting.parameter
+    np.testing.assert_allclose(parameter, 1200.0, atol=0.1)
+    uncertainty = tangential_sighting.uncertainty()
+    np.testing.assert_allclose(uncertainty, 0.0044, atol=0.0001)
+
+
+def test_tangential_sighting_uncertainty__between_supports_1() -> None:
+    # 3nd test case of H. Ducloux
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=101.607,
+        angle_to_left_support=50,
+        angle_to_right_support=100,
+        span_length=800,
+        input_height=0,
+        distance=50,
+        angle_unit="grad",
+    )
+    parameter = tangential_sighting.parameter
+    np.testing.assert_allclose(parameter, 2500.1, atol=0.1)
+    uncertainty = tangential_sighting.uncertainty()
+    np.testing.assert_allclose(uncertainty, 0.0067, atol=0.0001)
+
+
+def test_tangential_sighting_uncertainty__between_supports_2() -> None:
+    # 4nd test case of H. Ducloux
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=91.631,
+        angle_to_left_support=91.562,
+        angle_to_right_support=91.562,
+        span_length=300,
+        input_height=0,
+        distance=150,
+        angle_unit="grad",
+    )
+    parameter = tangential_sighting.parameter
+    np.testing.assert_allclose(parameter, 1000.4, atol=0.1)
+    uncertainty = tangential_sighting.uncertainty()
+    np.testing.assert_allclose(uncertainty, 0.0127, atol=0.0001)
+
+
+# TODO? or not
+# def test_tangential_sighting_uncertainty_single_element_array_inputs_ok() -> None:
+#     tangential_sighting = TangentialSightingParameterMeasure()
+#     tangential_sighting(
+#         angle_to_cable_tangent=np.array([101.607]),
+#         angle_to_left_support=np.array([50]),
+#         angle_to_right_support=np.array([100]),
+#         span_length=np.array([800]),
+#         input_height=np.array([0]),
+#         distance=np.array([50]),
+#         angle_unit="grad",
+#     )
+#     uncertainty = tangential_sighting.uncertainty()
+#     np.testing.assert_allclose(uncertainty, 0.0067, atol=0.0001)
+
+
+def test_tangential_sighting_uncertainty_before_measure_method_error() -> None:
+    tangential_sighting = TangentialSightingParameterMeasure()
+    with pytest.raises(MeasurementDataNotAvailable):
+        tangential_sighting.uncertainty()
+
+
+def test_tangential_sighting_uncertainty_multi_element_array_inputs_error() -> (
+    None
+):
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=np.array([101.607, 101.607]),
+        angle_to_left_support=np.array([50, 50]),
+        angle_to_right_support=np.array([100, 100]),
+        span_length=np.array([800, 800]),
+        input_height=np.array([0, 0]),
+        distance=np.array([50, 50]),
+        angle_unit="grad",
+    )
+    with pytest.raises(ValueError, match="scalar"):
+        tangential_sighting.uncertainty()
+
+
+def test_tangential_sighting_check_validity__left_of_support() -> None:
+    # 1st test case of H. Ducloux (uncertainty 0.0078)
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=95.622,
+        angle_to_left_support=75.776,
+        angle_to_right_support=94.228,
+        span_length=500,
+        input_height=0,
+        distance=-50,
+        angle_unit="grad",
+    )
+    assert tangential_sighting.check_validity()
+
+
+def test_tangential_sighting_check_validity__at_support() -> None:
+    # 2nd test case of H. Ducloux (uncertainty 0.0044)
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=98.999,
+        angle_to_left_support=0.0,
+        angle_to_right_support=96.820,
+        span_length=400,
+        input_height=20,
+        distance=0,
+        angle_unit="grad",
+    )
+    assert tangential_sighting.check_validity()
+
+
+def test_tangential_sighting_check_validity__between_supports() -> None:
+    # 3rd test case of H. Ducloux (uncertainty 0.0067)
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=101.607,
+        angle_to_left_support=50,
+        angle_to_right_support=100,
+        span_length=800,
+        input_height=0,
+        distance=50,
+        angle_unit="grad",
+    )
+    assert tangential_sighting.check_validity()
+
+
+def test_tangential_sighting_check_validity__not_valid() -> None:
+    # 4th test case of H. Ducloux (uncertainty 0.0127 > 0.01)
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=91.631,
+        angle_to_left_support=91.562,
+        angle_to_right_support=91.562,
+        span_length=300,
+        input_height=0,
+        distance=150,
+        angle_unit="grad",
+    )
+    assert not tangential_sighting.check_validity()
+
+
+def test_tangential_sighting_check_validity__nan_distance() -> None:
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=98.999,
+        angle_to_left_support=0.0,
+        angle_to_right_support=96.820,
+        span_length=400,
+        input_height=20,
+        distance=np.nan,
+        angle_unit="grad",
+    )
+    assert tangential_sighting.check_validity()
+
+
+def test_tangential_sighting_check_validity__threshold_edge(
+    monkeypatch,
+) -> None:
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=101.607,
+        angle_to_left_support=50,
+        angle_to_right_support=100,
+        span_length=800,
+        input_height=0,
+        distance=50,
+        angle_unit="grad",
+    )
+    uncertainty = tangential_sighting.uncertainty()
+    # strict comparison: uncertainty equal to the threshold is not valid
+    monkeypatch.setattr(
+        TangentialSightingParameterMeasure,
+        "MAX_ACCEPTED_UNCERTAINTY",
+        uncertainty,
+    )
+    assert not tangential_sighting.check_validity()
+    monkeypatch.setattr(
+        TangentialSightingParameterMeasure,
+        "MAX_ACCEPTED_UNCERTAINTY",
+        uncertainty * 1.001,
+    )
+    assert tangential_sighting.check_validity()
+    monkeypatch.setattr(
+        TangentialSightingParameterMeasure,
+        "MAX_ACCEPTED_UNCERTAINTY",
+        uncertainty * 0.999,
+    )
+    assert not tangential_sighting.check_validity()
+
+
+def test_tangential_sighting_check_validity__before_measure_method_error() -> (
+    None
+):
+    tangential_sighting = TangentialSightingParameterMeasure()
+    with pytest.raises(MeasurementDataNotAvailable):
+        tangential_sighting.check_validity()
+
+
+def test_tangential_sighting_check_validity__multi_element_array_error() -> (
+    None
+):
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=np.array([101.607, 101.607]),
+        angle_to_left_support=np.array([50, 50]),
+        angle_to_right_support=np.array([100, 100]),
+        span_length=np.array([800, 800]),
+        input_height=np.array([0, 0]),
+        distance=np.array([50, 50]),
+        angle_unit="grad",
+    )
+    with pytest.raises(ValueError, match="scalar"):
+        tangential_sighting.check_validity()
