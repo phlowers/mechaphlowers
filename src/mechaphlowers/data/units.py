@@ -74,9 +74,9 @@ def convert_grad_to_rad(
     """Converts an angle in grad to radians.
 
     Args:
-        angle_in_grad (np.ndarray): array of angles in grad
+        angle_in_grad (np.ndarray | Number): angle or array of angles in grad
 
     Returns:
-        np.ndarray: array of angles in radians
+        np.ndarray | Number: angle or array of angles in radians
     """
     return Q_(angle_in_grad, "grad").to("rad").magnitude

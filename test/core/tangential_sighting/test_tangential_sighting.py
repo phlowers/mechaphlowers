@@ -225,6 +225,22 @@ def test_input_height_nan_ok_if_distance_provided() -> None:
     )
 
 
+def test_distance_nan_ok_if_input_height_provided() -> None:
+    result = compute_parameter__array(
+        angle_to_cable_tangent=convert_grad_to_rad(np.array([98.999])),
+        angle_to_left_support=convert_grad_to_rad(np.array([0.000])),
+        angle_to_right_support=convert_grad_to_rad(np.array([96.820])),
+        span_length=np.array([400]),
+        input_height=np.array([20]),
+        distance=np.array([np.nan]),
+    )
+    np.testing.assert_allclose(
+        result,
+        1200.0,
+        atol=1e-1,
+    )
+
+
 # Test passing cases: check results with results from prototype
 @pytest.mark.parametrize(
     "angle_to_cable_tangent, angle_to_left_support, angle_to_right_support, "
@@ -338,11 +354,15 @@ def test_compute_parameter__scalar_ok() -> None:
 
 
 def test_compute_parameter__scalar_non_convergent_case_raises() -> None:
+    angle_to_cable_tangent = convert_grad_to_rad(91.631)
+    angle_to_left_support = convert_grad_to_rad(124.224)
+    angle_to_right_support = convert_grad_to_rad(106.345)
+
     with pytest.raises(ConvergenceError):
         compute_parameter__scalar(
-            convert_grad_to_rad(91.631),
-            convert_grad_to_rad(124.224),
-            convert_grad_to_rad(106.345),
+            angle_to_cable_tangent,
+            angle_to_left_support,
+            angle_to_right_support,
             250,
             0,
             -50,

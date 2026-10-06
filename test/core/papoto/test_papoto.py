@@ -125,7 +125,7 @@ def test_papoto_2_points_single_element_array() -> None:
         H2=Q_(H2, "grad").to("rad").magnitude,
         V2=Q_(V2, "grad").to("rad").magnitude,
     )
-    assert len(result) == 1
+    np.testing.assert_allclose(result, np.array([2000]), atol=1.0)
 
 
 def test_papoto_3_points_single_element_array_returns_array() -> None:
@@ -153,4 +153,4 @@ def test_papoto_3_points_single_element_array_returns_array() -> None:
         H3=Q_(H3, "grad").to("rad").magnitude,
         V3=Q_(V3, "grad").to("rad").magnitude,
     )
-    assert len(result) == 1
+    np.testing.assert_allclose(result, np.array([2000]), atol=1.0)

@@ -86,7 +86,7 @@ def _validate_inputs(
         _convert_to_float_array(angle_to_right_support),
         _convert_to_float_array(span_length),
         _convert_to_float_array(input_height),
-        _convert_to_float_array(distance),
+        _convert_to_float_array(np.where(np.isnan(distance), 0.0, distance)),
     )
 
 
