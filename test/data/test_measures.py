@@ -275,7 +275,7 @@ def test_uncertainty_invalid_angle_error(bad_angle_error):
         papoto.uncertainty(angle_error=bad_angle_error)
 
 
-def test_tangential_sighting_parameter_measure__array__ok():
+def test_tangential_sighting_parameter_measure__array__ok() -> None:
     tangential_sighting = TangentialSightingParameterMeasure()
     tangential_sighting(
         angle_to_cable_tangent=np.array([101.607]),
@@ -294,7 +294,7 @@ def test_tangential_sighting_parameter_measure__array__ok():
     )
 
 
-def test_tangential_sighting_parameter_measure__scalar__ok():
+def test_tangential_sighting_parameter_measure__scalar__ok() -> None:
     tangential_sighting = TangentialSightingParameterMeasure()
     tangential_sighting(
         angle_to_cable_tangent=101.607,
@@ -313,7 +313,7 @@ def test_tangential_sighting_parameter_measure__scalar__ok():
     )
 
 
-def test_tangential_sighting_parameter_measure__array__error():
+def test_tangential_sighting_parameter_measure__array__error() -> None:
     tangential_sighting = TangentialSightingParameterMeasure()
     with pytest.raises(ConvergenceError):
         tangential_sighting(
@@ -327,7 +327,7 @@ def test_tangential_sighting_parameter_measure__array__error():
         )
 
 
-def test_tangential_sighting_parameter_measure__scalar__error():
+def test_tangential_sighting_parameter_measure__scalar__error() -> None:
     tangential_sighting = TangentialSightingParameterMeasure()
     with pytest.raises(ConvergenceError):
         tangential_sighting(
