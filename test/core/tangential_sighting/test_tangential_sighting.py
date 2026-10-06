@@ -3,6 +3,7 @@ import pytest
 
 from mechaphlowers.core.tangential_sighting.tangential_sighting import (
     compute_parameter__array,
+    compute_parameter__scalar,
 )
 from mechaphlowers.data.units import convert_grad_to_rad
 from mechaphlowers.entities.errors import ConvergenceError
@@ -321,4 +322,28 @@ def test_non_convergent_case_raises() -> None:
             np.array([250]),
             np.array([0]),
             np.array([-50]),
+        )
+
+
+def test_compute_parameter__scalar_ok() -> None:
+    result = compute_parameter__scalar(
+        convert_grad_to_rad(95.622),
+        convert_grad_to_rad(75.776),
+        convert_grad_to_rad(94.228),
+        500,
+        0,
+        -50,
+    )
+    np.testing.assert_allclose(result, 2199.3, atol=1e-1)
+
+
+def test_compute_parameter__scalar_non_convergent_case_raises() -> None:
+    with pytest.raises(ConvergenceError):
+        compute_parameter__scalar(
+            convert_grad_to_rad(91.631),
+            convert_grad_to_rad(124.224),
+            convert_grad_to_rad(106.345),
+            250,
+            0,
+            -50,
         )
