@@ -300,18 +300,6 @@ class Manipulation:
 
     # ── Rope manipulation ─────────────────────────────────────────────────
 
-    def add_rope(
-        self,
-        rope: dict[int, float],
-        rope_lineic_mass: float | None = None,
-    ) -> None:
-        """Deprecated name for set_virtual_support"""
-        warnings.warn(
-            "add_rope is deprecated, use set_rope instead.",
-            category=DeprecationWarning,
-        )
-        self.set_rope(rope, rope_lineic_mass)
-
     def set_rope(
         self,
         rope: dict[int, float],
@@ -372,16 +360,6 @@ class Manipulation:
         logger.debug("Rope manipulation cleared.")
 
     # ── Virtual support ───────────────────────────────────────────────────
-
-    def add_virtual_support(
-        self, virtual_support: dict[int, dict[str, float]]
-    ) -> None:
-        """Deprecated name for set_virtual_support"""
-        warnings.warn(
-            "add_virtual_support is deprecated, use set_virtual_support instead.",
-            category=DeprecationWarning,
-        )
-        self.set_virtual_support(virtual_support)
 
     def set_virtual_support(
         self, virtual_support: dict[int, dict[str, float]]
