@@ -399,10 +399,11 @@ class TestSectionStudyManipulation:
         expected_altitude = np.array([30, 60, 50, 65])
         np.testing.assert_array_equal(new_altitude, expected_altitude)
 
+        # Run adjustment and change state to ensure that no error is raised
+        # but adjustment actually not needed
+
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
-
-        # no error
 
     # Support manipulation: checks section array is correctly modified after a reset (no need to adjustment)
     def test_reset_support_manipulation(self, study: SectionStudy):
@@ -475,7 +476,7 @@ class TestSectionStudyManipulation:
 
     def test_rope_manipulation(self, study: SectionStudy):
         study.solve_adjustment()
-        study.set_rope({1: 6.0, 2: 4.0})
+        study.set_rope({1: 6.0, 2: 4.0}, 0.01)
 
         new_insulator_length = study._balance_engine.section_array.data[
             "insulator_length"
@@ -786,7 +787,7 @@ class TestSectionStudyUpdateLoads:
             np.array([0.4, 0, 0]),
         )
 
-    def test_empty_modify_cable_and_loads(self, study: SectionStudy):
+    def test_empty_loads_and_modify_cable(self, study: SectionStudy):
         study.solve_adjustment()
         study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
         study.modify_cable()
@@ -799,7 +800,7 @@ class TestSectionStudyUpdateLoads:
             np.array([0.4, 0, 0]),
         )
 
-    def test_modify_cable_and_loads(self, study: SectionStudy):
+    def test_loads_and_modify_cable(self, study: SectionStudy):
         study.solve_adjustment()
         study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
         study.modify_cable({1: 0.5, 2: 1})
@@ -811,14 +812,21 @@ class TestSectionStudyUpdateLoads:
             study.balance_engine.span_loads.load_position,
             np.array([0.4, 0, 0]),
         )
-
-    def test_modify_cable_and_loads_update_nodes(self, study: SectionStudy):
-        study.solve_adjustment()
-        study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
-        study.modify_cable({1: 0.5, 2: 1})
-        # nodes updated correctly after manipulation
         np.testing.assert_array_equal(
             study.balance_engine.balance_model.nodes.load_position,
+            np.array([0.4, 0, 0]),
+        )
+
+    def test_modify_cable_and_loads(self, study: SectionStudy):
+        study.solve_adjustment()
+        # reverse order compared to previous test
+        study.modify_cable({1: 0.5, 2: 1})
+        study.set_loads(np.array([200, 0, 0]), np.array([500, 0, 0]))
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, np.array([500, 0, 0])
+        )
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_position,
             np.array([0.4, 0, 0]),
         )
 
@@ -875,6 +883,28 @@ class TestSectionStudyUpdateLoads:
             study.balance_engine.span_loads.load_position,
             np.array([0.4, 0, 0, 0]),
         )
+
+    def test_virtual_support_then_loads_error_length(
+        self, study: SectionStudy
+    ):
+        study.solve_adjustment()
+        study.set_virtual_support(
+            (
+                {
+                    1: {
+                        "x": 100.0,
+                        "y": 0.0,
+                        "z": 55.0,
+                        "insulator_length": 3.0,
+                        "insulator_mass": 500.0,
+                        "hanging_cable_point_from_left_support": 100.0,
+                    }
+                }
+            )
+        )
+        with pytest.raises(ValueError):
+            # Arrays lengths should not change because of virtual support
+            study.set_loads(np.array([200, 0, 0, 0]), np.array([500, 0, 0, 0]))
 
     def test_multiple_virtual_support_and_loads(self, study: SectionStudy):
         study.solve_adjustment()
@@ -953,6 +983,33 @@ class TestSectionStudyUpdateLoads:
                 }
             }
         )
+        # test that loads are set to 0 if virutal support is set on the loaded span
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, np.array([0, 0, 0, 0])
+        )
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_position,
+            np.array([0, 0, 0, 0]),
+        )
+
+    def test_virtual_support_and_loads_same_span_order(
+        self, study: SectionStudy
+    ):
+        study.solve_adjustment()
+        # different order than previous test
+        study.set_virtual_support(
+            {
+                1: {
+                    "x": 100.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                }
+            }
+        )
+        study.set_loads(np.array([0, 200, 0]), np.array([0, 500, 0]))
         # test that loads are set to 0 if virutal support is set on the loaded span
         np.testing.assert_array_equal(
             study.balance_engine.span_loads.load_mass, np.array([0, 0, 0, 0])
