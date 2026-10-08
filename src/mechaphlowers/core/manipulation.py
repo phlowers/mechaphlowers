@@ -694,7 +694,6 @@ class Manipulation:
         target_engine.balance_model.update()
 
         # Inject L_ref and block adjustment. The target engine's balance model is already initialized with the manipulated section array
-        target_engine.initial_L_ref = initial_L_ref.copy()
         target_engine.L_ref = L_ref
         target_engine.balance_model.L_ref = L_ref
 

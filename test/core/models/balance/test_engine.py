@@ -344,7 +344,6 @@ def test_adjustment_convergence_error_origin(
     # mocking L_ref and initial_L_ref to avoid launching adjustment solver first
     dummy_L_ref = np.zeros(balance_engine_simple.support_number - 1)
     balance_engine_simple.L_ref = dummy_L_ref
-    balance_engine_simple.initial_L_ref = dummy_L_ref
 
     with pytest.raises(ConvergenceError) as excinfo:
         balance_engine_simple.solve_change_state()

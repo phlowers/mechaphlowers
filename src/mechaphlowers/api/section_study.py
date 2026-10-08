@@ -201,9 +201,9 @@ class SectionStudy:
         """
         # check if adjustment has been done before
         try:
-            _ = self.balance_engine.initial_L_ref
+            _ = self._clean_engine.L_ref
             logger.debug(
-                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.balance_engine.initial_L_ref)}"
+                f"Adjustment has been done before, initial_L_ref before shifting: {str(self._clean_engine.L_ref)}"
             )
         except AttributeError:
             logger.warning(BalanceEngine._warning_no_L_ref)
@@ -218,7 +218,7 @@ class SectionStudy:
             self._section_array
         )
 
-        initial_L_ref = self._clean_engine.initial_L_ref.copy()
+        initial_L_ref = self._clean_engine.L_ref.copy()
         self._balance_engine = self._manipulation.initialize_engine(
             self._clean_engine, manipulated_sa, initial_L_ref
         )

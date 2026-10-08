@@ -281,7 +281,7 @@ class BalanceEngine(Notifier):
             raise e
 
         # Do we really still need this now that clean_engine exists?
-        self.initial_L_ref = self.L_ref = self.balance_model.update_L_ref()
+        self.L_ref = self.balance_model.update_L_ref()
 
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")
 
@@ -325,9 +325,9 @@ class BalanceEngine(Notifier):
 
         # check if adjustment has been done before
         try:
-            _ = self.initial_L_ref
+            _ = self.L_ref
             logger.debug(
-                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.initial_L_ref)}"
+                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.L_ref)}"
             )
         except AttributeError:
             logger.warning(self._warning_no_L_ref)
