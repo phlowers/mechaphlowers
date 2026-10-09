@@ -360,5 +360,13 @@ def cotan(x: np.ndarray | Number) -> np.ndarray | Number:
     return 1 / np.tan(x)
 
 
+@overload
+def acotan(x: np.ndarray) -> np.ndarray: ...
+
+
+@overload
+def acotan(x: Number) -> Number: ...
+
+
 def acotan(x: np.ndarray | Number) -> np.ndarray | Number:
     return np.pi / 2 - np.atan(x)

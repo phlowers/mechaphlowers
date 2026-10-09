@@ -1,13 +1,14 @@
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
+from numpy import ndarray
 
 from mechaphlowers.entities.errors import ConvergenceError
 from mechaphlowers.numeric.newton import newton_solver_wrapper
-from mechaphlowers.utils import Number, cotan
+from mechaphlowers.utils import Number, acotan, cotan
 
 
-def _validate_inputs(
+def _validate_compute_parameter__array_inputs(
     angle_to_cable_tangent: np.ndarray,
     angle_to_left_support: np.ndarray,
     angle_to_right_support: np.ndarray,
@@ -23,26 +24,50 @@ def _validate_inputs(
     np.ndarray,
 ]:
     """NB: input angles are assumed to be in radians."""
-    for angle, variable_name in zip(
-        [
-            angle_to_cable_tangent,
-            angle_to_left_support,
-            angle_to_right_support,
-        ],
-        [
-            "angle_to_cable_tangent",
-            "angle_to_left_support",
-            "angle_to_right_support",
-        ],
-    ):
-        if np.logical_or(angle < 0, angle > np.pi).any():
-            raise ValueError(
-                f"All input angles must be between 0 and pi radians, got {variable_name}={angle} rad."
-            )
-    if (angle_to_cable_tangent == 0).any():
-        raise ValueError(
-            f"Can't compute a parameter if angle_to_cable_tangent == 0. Got {angle_to_cable_tangent=}"
-        )
+    _validate_is_angle_between_0_and_pi(
+        angle_to_cable_tangent, "angle_to_cable_tangent"
+    )
+    # Ensure angle_to_cable_tangent is a float array because if it's an integer array,
+    # computation results may be truncated to integers.
+    angle_to_cable_tangent = _convert_to_float_array(angle_to_cable_tangent)
+
+    (
+        angle_to_left_support,
+        angle_to_right_support,
+        span_length,
+        input_height,
+        distance,
+    ) = _validate_common__array_inputs(
+        angle_to_left_support,
+        angle_to_right_support,
+        span_length,
+        input_height,
+        distance,
+    )
+    return (
+        angle_to_cable_tangent,
+        angle_to_left_support,
+        angle_to_right_support,
+        span_length,
+        input_height,
+        distance,
+    )
+
+
+def _validate_common__array_inputs(
+    angle_to_left_support: np.ndarray,
+    angle_to_right_support: np.ndarray,
+    span_length: np.ndarray,
+    input_height: np.ndarray,
+    distance: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """NB: input angles are assumed to be in radians."""
+    _validate_is_angle_between_0_and_pi(
+        angle_to_left_support, "angle_to_left_support"
+    )
+    _validate_is_angle_between_0_and_pi(
+        angle_to_right_support, "angle_to_right_support"
+    )
     if (span_length <= 0).any():
         raise ValueError(f"span_length must be positive, got {span_length}.")
     if (input_height < 0).any():
@@ -78,16 +103,30 @@ def _validate_inputs(
             "If the distance is zero or nan, the angle to the left support must be zero."
         )
 
+    distance = np.where(np.isnan(distance), 0.0, distance)
+
     # Ensure all inputs are float arrays, because if they are integer arrays,
     # computation results may be truncated to integers.
     return (
-        _convert_to_float_array(angle_to_cable_tangent),
         _convert_to_float_array(angle_to_left_support),
         _convert_to_float_array(angle_to_right_support),
         _convert_to_float_array(span_length),
         _convert_to_float_array(input_height),
-        _convert_to_float_array(np.where(np.isnan(distance), 0.0, distance)),
+        _convert_to_float_array(distance),
     )
+
+
+def _validate_is_angle_between_0_and_pi(
+    angle: ndarray[Any, Any], variable_name: str
+) -> None:
+    if not _is_angle_between_0_and_pi(angle).all():
+        raise ValueError(
+            f"All input angles must be between 0 and pi radians, got {variable_name}={angle} rad."
+        )
+
+
+def _is_angle_between_0_and_pi(angle: np.ndarray) -> np.ndarray:
+    return np.logical_or(angle < 0, angle > np.pi)
 
 
 def _convert_to_float_array(
@@ -153,7 +192,7 @@ def compute_parameter__array(
         span_length,
         input_height,
         distance,
-    ) = _validate_inputs(
+    ) = _validate_compute_parameter__array_inputs(
         angle_to_cable_tangent,
         angle_to_left_support,
         angle_to_right_support,
@@ -213,7 +252,7 @@ def compute_parameter__array(
         caller_name="tangential_sighting",
     )
 
-    _check_result(result, span_length, elevation_difference, slope)
+    _check_computed_parameter(result, span_length, elevation_difference, slope)
 
     return result
 
@@ -303,7 +342,7 @@ def _tangent_point_coordinates(
     return x, y
 
 
-def _check_result(
+def _check_computed_parameter(
     computed_parameter: np.ndarray,
     span_length: np.ndarray,
     elevation_difference: np.ndarray,
@@ -312,6 +351,10 @@ def _check_result(
     x, _ = _tangent_point_coordinates(
         computed_parameter, span_length, elevation_difference, slope
     )
+    _check_x_in_span(x, span_length)
+
+
+def _check_x_in_span(x: np.ndarray, span_length: np.ndarray) -> None:
     if np.logical_or(x <= 0, x >= span_length).any():
         raise ConvergenceError(
             "Found aberrant x - no solution",
@@ -366,3 +409,141 @@ def compute_parameter__scalar(
         np.array([input_height]),
         np.array([distance]),
     )[0]
+
+
+def _validate_compute_angle__array_inputs(
+    parameter: np.ndarray,
+    angle_to_left_support: np.ndarray,
+    angle_to_right_support: np.ndarray,
+    span_length: np.ndarray,
+    input_height: np.ndarray,
+    distance: np.ndarray,
+) -> Tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+]:
+    (
+        angle_to_left_support,
+        angle_to_right_support,
+        span_length,
+        input_height,
+        distance,
+    ) = _validate_common__array_inputs(
+        angle_to_left_support,
+        angle_to_right_support,
+        span_length,
+        input_height,
+        distance,
+    )
+    if (parameter < 0).any():
+        raise ValueError("Parameter must be positive.")
+    # Ensure parameter is a float array because if it's an integer array,
+    # computation results may be truncated to integers.
+    parameter = _convert_to_float_array(parameter)
+    return (
+        parameter,
+        angle_to_left_support,
+        angle_to_right_support,
+        span_length,
+        input_height,
+        distance,
+    )
+
+
+def compute_tangent_angle(
+    parameter: np.ndarray,
+    angle_to_left_support: np.ndarray,
+    angle_to_right_support: np.ndarray,
+    span_length: np.ndarray,
+    input_height: np.ndarray,
+    distance: np.ndarray,
+) -> np.ndarray:
+    """Compute the angle between the vertical and the tangent to the cable, seen from the sighting device.
+
+    All angles, including the result, are in radians and are not oriented.
+    Input angles must be comprised between 0 and Pi.
+
+    Raises:
+        ValueError: if any of the input angles is not comprised between 0 and Pi;
+            if span_length is negative or zero,
+            if input_height is strictly negative,
+            if both distance and input_height are zero,
+            if both distance and input_height are provided, non-zero and not nan,
+            if distance isn't zero, and angle_to_left_support is zero (geometrically impossible).
+    """
+    (
+        parameter,
+        angle_to_left_support,
+        angle_to_right_support,
+        span_length,
+        input_height,
+        distance,
+    ) = _validate_compute_angle__array_inputs(
+        parameter,
+        angle_to_left_support,
+        angle_to_right_support,
+        span_length,
+        input_height,
+        distance,
+    )
+
+    angle_to_left_support = _prepare_angle_to_left_support_input(
+        angle_to_left_support,
+        distance,
+    )
+
+    corrected_height = _compute_corrected_height(
+        angle_to_left_support,
+        input_height,
+        distance,
+    )
+
+    elevation_difference = _compute_elevation_difference(
+        angle_to_right_support,
+        span_length,
+        corrected_height,
+        distance,
+    )
+
+    # Relative to the left hanging point
+    x_lowest, y_lowest = _lowest_point_coordinates(
+        parameter, span_length, elevation_difference
+    )
+
+    # Coordinates of the left hanging point
+    # in the cable frame.
+    # Same notation as in H. Ducloux's paper
+    x_m = -x_lowest
+
+    # x and y relative to the left hanging point
+
+    def slope(x: np.ndarray) -> np.ndarray:
+        return np.sinh((x + x_m) / parameter)
+
+    def f(x: np.ndarray) -> np.ndarray:
+        y = y_lowest + parameter * (np.cosh((x - x_lowest) / parameter) - 1)
+        return slope(x) - _sighted_slope(x, y, corrected_height, distance)
+
+    def f_prime_approx(x: np.ndarray) -> np.ndarray:
+        return f(x + 1) - f(x)
+
+    # TODO: Ajouter une méthode de relaxation?
+    # x_tangent relative to the left hanging point
+    x_tangent = newton_solver_wrapper(
+        f,
+        x0=span_length,
+        fprime=f_prime_approx,
+        args=(),
+        caller_name="tangential_sighting",
+    )
+
+    _check_x_in_span(x_tangent, span_length)
+
+    tangent_angle = acotan(slope(x_tangent))
+
+    if not _is_angle_between_0_and_pi(tangent_angle).all():
+        raise ConvergenceError(
+            "Found aberrant tangle angle - no solution",
+            origin="tangential_sighting",
+        )
+
+    return tangent_angle
