@@ -99,7 +99,6 @@ class BalanceEngine(Notifier):
         self.balance_model_type = balance_model_type
         self.span_model_type = span_model_type
         self.deformation_model_type = deformation_model_type
-        self._adjustment_blocked: bool = False
 
         self.reset(full=True)
 
@@ -261,11 +260,6 @@ class BalanceEngine(Notifier):
             SolverError: If the solver fails to converge.
             RuntimeError: If adjustment is blocked (engine built from manipulations).
         """
-        if self._adjustment_blocked:
-            raise RuntimeError(
-                "solve_adjustment is blocked on this engine. "
-                "L_ref was injected externally from a clean adjustment."
-            )
         logger.debug("Starting adjustment.")
 
         self.balance_model.adjustment = True
@@ -286,7 +280,8 @@ class BalanceEngine(Notifier):
             e.origin = "solve_adjustment"
             raise e
 
-        self.initial_L_ref = self.L_ref = self.balance_model.update_L_ref()
+        # Do we really still need this now that clean_engine exists?
+        self.L_ref = self.balance_model.update_L_ref()
 
         logger.debug(f"Output : L_ref = {str(self.L_ref)}")
 
@@ -330,9 +325,9 @@ class BalanceEngine(Notifier):
 
         # check if adjustment has been done before
         try:
-            _ = self.initial_L_ref
+            _ = self.L_ref
             logger.debug(
-                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.initial_L_ref)}"
+                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.L_ref)}"
             )
         except AttributeError:
             logger.warning(self._warning_no_L_ref)

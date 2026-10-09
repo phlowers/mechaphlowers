@@ -300,7 +300,7 @@ class Manipulation:
 
     # ── Rope manipulation ─────────────────────────────────────────────────
 
-    def add_rope(
+    def set_rope(
         self,
         rope: dict[int, float],
         rope_lineic_mass: float | None = None,
@@ -323,8 +323,8 @@ class Manipulation:
             InvalidManipulationIndex: If a support index is out of range.
 
         Examples:
-            >>> manip.add_rope({1: 4.5, 2: 3.0})
-            >>> manip.add_rope({0: 2.0}, rope_lineic_mass=0.05)
+            >>> manip.set_rope({1: 4.5, 2: 3.0})
+            >>> manip.set_rope({0: 2.0}, rope_lineic_mass=0.05)
         """
         n_supports = len(self._section_array._data)
         for idx in rope:
@@ -347,7 +347,7 @@ class Manipulation:
         Does nothing if no rope manipulation has been applied.
 
         Examples:
-            >>> manip.add_rope({1: 4.5})
+            >>> manip.set_rope({1: 4.5})
             >>> manip.reset_rope()
         """
         if self._rope_overlay is None:
@@ -361,7 +361,7 @@ class Manipulation:
 
     # ── Virtual support ───────────────────────────────────────────────────
 
-    def add_virtual_support(
+    def set_virtual_support(
         self, virtual_support: dict[int, dict[str, float]]
     ) -> None:
         """Insert virtual supports.
@@ -391,7 +391,7 @@ class Manipulation:
             InvalidManipulationKeys: If required keys are missing.
 
         Examples:
-            >>> manip.add_virtual_support(
+            >>> manip.set_virtual_support(
             ...     {
             ...         1: {
             ...             "x": 200.0,
@@ -446,9 +446,7 @@ class Manipulation:
                     f"hanging_cable_point_from_left_support={hcp} is out of range ({x_lower}, {x_upper}) for span {span_idx}"
                 )
 
-        if self._virtual_support_overlay is None:
-            self._virtual_support_overlay = {}
-        self._virtual_support_overlay.update(virtual_support)
+        self._virtual_support_overlay = virtual_support
         logger.debug(f"Virtual support overlay updated: {virtual_support}")
 
     def reset_virtual_support(self) -> None:
@@ -457,7 +455,7 @@ class Manipulation:
         Does nothing if no virtual supports have been added.
 
         Examples:
-            >>> manip.add_virtual_support({...})
+            >>> manip.set_virtual_support({...})
             >>> manip.reset_virtual_support()
         """
         if self._virtual_support_overlay is None:
@@ -479,7 +477,7 @@ class Manipulation:
 
         Examples:
             >>> manip.modify_support({1: {"z": 2.0}})
-            >>> manip.add_rope({2: 4.0})
+            >>> manip.set_rope({2: 4.0})
             >>> manip.reset_all()  # both overlays cleared
         """
         self.reset_support()
@@ -632,7 +630,6 @@ class Manipulation:
         clean_engine: BalanceEngine,
         section_array: SectionArray,
         initial_L_ref: np.ndarray,
-        span_loads: SpanLoads,
     ) -> BalanceEngine:
         """Build a target [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] with manipulated geometry.
 
@@ -654,7 +651,6 @@ class Manipulation:
             section_array: The manipulated section array (output of
                 [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array]).
             initial_L_ref: ``initial_L_ref`` from the clean adjustment solve.
-            span_loads: SpanLoads object to inject (usually output of `build_new_span_loads_virtual_support`)
 
         Returns:
             A configured [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] ready for
@@ -697,16 +693,9 @@ class Manipulation:
         target_engine.balance_model.state_vector = expanded_state
         target_engine.balance_model.update()
 
-        # Re inject span loads
-        target_engine.span_loads = span_loads
-        # Reset to transport modifications to Nodes
-        target_engine.reset(full=False)
-
         # Inject L_ref and block adjustment. The target engine's balance model is already initialized with the manipulated section array
-        target_engine.initial_L_ref = initial_L_ref.copy()
         target_engine.L_ref = L_ref
         target_engine.balance_model.L_ref = L_ref
-        target_engine._adjustment_blocked = True
 
         return target_engine
 

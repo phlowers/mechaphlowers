@@ -22,12 +22,11 @@ class TestSolveAdjustmentRollback:
             cable_array=balance_engine_base_test.cable_array,
             section_array=balance_engine_base_test.section_array,
         )
-        engine = study.balance_engine
-        dxdydz_before = engine.balance_model.nodes.dxdydz.copy()
-        param_before = engine.span_model.parameter.copy()
+        dxdydz_before = study.balance_engine.balance_model.nodes.dxdydz.copy()
+        param_before = study.balance_engine.span_model.parameter.copy()
 
         with patch.object(
-            engine.solver_adjustment,
+            study._clean_engine.solver_adjustment,
             "solve",
             side_effect=SolverError("mock failure"),
         ):
@@ -36,10 +35,10 @@ class TestSolveAdjustmentRollback:
 
         # State must be unchanged
         np.testing.assert_array_equal(
-            engine.balance_model.nodes.dxdydz, dxdydz_before
+            study.balance_engine.balance_model.nodes.dxdydz, dxdydz_before
         )
         np.testing.assert_array_equal(
-            engine.span_model.parameter, param_before
+            study.balance_engine.span_model.parameter, param_before
         )
 
 
@@ -51,15 +50,14 @@ class TestSolveChangeStateRollback:
             cable_array=balance_engine_base_test.cable_array,
             section_array=balance_engine_base_test.section_array,
         )
-        engine = study.balance_engine
         study.solve_adjustment()
 
-        dxdydz_before = engine.balance_model.nodes.dxdydz.copy()
-        param_before = engine.span_model.parameter.copy()
-        L_ref_before = engine.L_ref.copy()
+        dxdydz_before = study.balance_engine.balance_model.nodes.dxdydz.copy()
+        param_before = study.balance_engine.span_model.parameter.copy()
+        L_ref_before = study.balance_engine.L_ref.copy()
 
         with patch.object(
-            engine.solver_change_state,
+            study.balance_engine.solver_change_state,
             "solve",
             side_effect=SolverError("mock failure"),
         ):
@@ -68,12 +66,12 @@ class TestSolveChangeStateRollback:
 
         # State must be unchanged
         np.testing.assert_array_equal(
-            engine.balance_model.nodes.dxdydz, dxdydz_before
+            study.balance_engine.balance_model.nodes.dxdydz, dxdydz_before
         )
         np.testing.assert_array_equal(
-            engine.span_model.parameter, param_before
+            study.balance_engine.span_model.parameter, param_before
         )
-        np.testing.assert_array_equal(engine.L_ref, L_ref_before)
+        np.testing.assert_array_equal(study.balance_engine.L_ref, L_ref_before)
 
 
 class TestIntermediateState:
