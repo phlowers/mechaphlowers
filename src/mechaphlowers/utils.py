@@ -7,8 +7,9 @@
 import logging
 import warnings
 from functools import wraps
+from numbers import Real
 from time import time
-from typing import Any, Callable, Literal, Protocol, TypeVar, cast
+from typing import Any, Callable, Literal, Protocol, TypeVar, cast, overload
 
 import numpy as np
 import pandas as pd
@@ -252,6 +253,19 @@ def hash_numpy_xxhash(array: np.ndarray) -> bytes:
 T = TypeVar("T", bound=Callable[..., Any])
 
 
+Number = float | int
+
+
+def check_inputs_are_numbers(**kwargs) -> None:
+    for key, value in kwargs.items():
+        if not isinstance(value, Real) or isinstance(
+            value, bool
+        ):  # booleans are "Real" but we don't want them
+            raise TypeError(
+                f"Argument {key} should be a number, but got {type(value).__name__}"
+            )
+
+
 class CachedCallable(Protocol):
     def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
 
@@ -329,3 +343,22 @@ def convert_angle_unsigned_to_signed(angle: np.ndarray) -> np.ndarray:
         np.ndarray: Array of angles in signed format.
     """
     return (angle + np.pi) % (2 * np.pi) - np.pi
+
+
+# Trigonometry
+@overload
+def cotan(x: np.ndarray) -> np.ndarray: ...
+
+
+@overload
+def cotan(x: Number) -> Number: ...
+
+
+def cotan(x: np.ndarray | Number) -> np.ndarray | Number:
+    if np.any(np.isclose(np.sin(x), 0.0, atol=1e-12)):
+        raise ValueError("x must be different from 0, pi etc.")
+    return 1 / np.tan(x)
+
+
+def acotan(x: np.ndarray | Number) -> np.ndarray | Number:
+    return np.pi / 2 - np.atan(x)

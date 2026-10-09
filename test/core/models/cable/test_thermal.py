@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+import logging
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -207,6 +209,40 @@ def test_steady_intensity_cable_temperature(
         cable_temperature_bimetallic,
         results_bimetallic.data["average_temperature"],
     )
+
+
+@pytest.mark.parametrize(
+    "measured_temperature_difference,measured_intensity,ambient_temp,wind_speed,solar_irradiance,max_conductor_temperature,expected_result",
+    [
+        (0.1, 300, 30, 0.6, 600, 100, 1334.4),
+        (10, 300, 30, 0.6, 600, 100, 656.7),
+        (10, 150, 30, 0.6, 600, 100, 359.3),
+        (10, 150, 20, 0.6, 600, 100, 387.0),
+        (10, 150, 20, 1.0, 600, 100, 394.0),
+        (10, 150, 20, 1.0, 750, 100, 389.1),
+        (10, 150, 20, 1.0, 750, 75, 313.2),
+    ],
+)
+def test_reduced_intensity(
+    measured_temperature_difference,
+    measured_intensity,
+    ambient_temp,
+    wind_speed,
+    solar_irradiance,
+    max_conductor_temperature,
+    expected_result,
+    cable_array_AM600: CableArray,
+) -> None:
+    result = ThermalEngine.reduced_intensity(
+        measured_temperature_difference=measured_temperature_difference,
+        measured_intensity=measured_intensity,
+        ambient_temp=ambient_temp,
+        wind_speed=wind_speed,
+        solar_irradiance=solar_irradiance,
+        max_conductor_temperature=max_conductor_temperature,
+        cable_array=cable_array_AM600,
+    )
+    np.testing.assert_allclose(result, expected_result, atol=0.1)
 
 
 def test_steady_temperature(thermal_engine_3_spans: ThermalEngine):
@@ -643,25 +679,96 @@ def test_solar_radiations_wrong_nebulosity() -> None:
         )
 
 
-def test_nebulosity() -> None:
-    results = ThermalEngine.nebulosity(
-        np.array([800.0, 850]),
-        np.array(
-            [
-                np.datetime64("2026-06-26T12:00"),
-                np.datetime64("2026-06-26T12:00"),
-            ]
-        ),
-        np.array([40.0, 40.0]),
-        np.array([0.0, 0.0]),
-    )
+def test_nebulosity(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        results = ThermalEngine.nebulosity(
+            np.array([800, 850, 850]),
+            np.array(
+                [
+                    np.datetime64("2026-06-26T12:00"),
+                    np.datetime64("2026-06-26T12:00"),
+                    np.datetime64("2026-06-26T00:00"),  # night
+                ]
+            ),
+            np.array([40.0, 40.0, 40.0]),
+            np.array([0.0, 0.0, 0.0]),
+        )
+        # Computation for third row didn't "converge" because
+        # it is absurd in the night.
+        assert any(
+            "convergence" in record.getMessage().lower()
+            and record.levelno == logging.WARNING
+            for record in caplog.records
+        )
     pd.testing.assert_frame_equal(
-        results.data, pd.DataFrame({"nebulosity": [4.0, 3.0]})
+        results.data,
+        pd.DataFrame(
+            {
+                "nebulosity": [4.0, 3.0, np.nan],
+                "converged": [True, True, False],
+            }
+        ),
     )
 
 
-@pytest.mark.skip(
-    reason="This test has been skipped due to a new behavior in the thermohl library v1.9.0. TBD"
-)
-def test_nebulosity__no_solution() -> None:
-    pass
+def test_nebulosity__radiation_too_low(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.WARNING):
+        greatest_nebulosity = ThermalEngine.nebulosity(
+            np.array([50, 800]),
+            np.array(
+                [
+                    np.datetime64("2026-06-26T12:00"),
+                    np.datetime64("2026-06-26T12:00"),
+                ]
+            ),
+            np.array([40, 40]),
+            np.array([0, 0]),
+        )
+        assert any(
+            "convergence" in record.getMessage().lower()
+            and record.levelno == logging.WARNING
+            for record in caplog.records
+        )
+
+    pd.testing.assert_frame_equal(
+        greatest_nebulosity.data,
+        pd.DataFrame(
+            {
+                "nebulosity": [8.0, 4.0],
+                "converged": [False, True],
+            }
+        ),
+    )
+
+
+def test_nebulosity__radiation_too_high(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.WARNING):
+        smallest_nebulosity = ThermalEngine.nebulosity(
+            np.array([2000, 800]),
+            np.array(
+                [
+                    np.datetime64("2026-06-26T12:00"),
+                ]
+            ),
+            np.array([40, 40]),
+            np.array([0, 0]),
+        )
+        assert any(
+            "convergence" in record.getMessage().lower()
+            and record.levelno == logging.WARNING
+            for record in caplog.records
+        )
+
+    pd.testing.assert_frame_equal(
+        smallest_nebulosity.data,
+        pd.DataFrame(
+            {
+                "nebulosity": [0.0, 4.0],
+                "converged": [False, True],
+            }
+        ),
+    )

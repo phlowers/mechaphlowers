@@ -49,6 +49,7 @@ nav:
       - Balance Engine: user_guide/ug_balance_engine.md
       - Deformation: user_guide/ug_deformation.md
       - Wind speed conversion: user_guide/ug_wind_speed_conversion.md
+      - Cable Adjustment: user_guide/ug_cable_adjustment.md
       - Data catalog : user_guide/ug_catalog.md
       - Measures : user_guide/ug_measures.md
       - Guying: user_guide/ug_guying.md
@@ -97,6 +98,7 @@ nav:
                   - External loads: docstring/core/models/external_loads.md
                   - Point loads: docstring/core/models/balance/span_loads.md
               - Papoto: docstring/core/papoto/papoto_model.md
+              - Tangential Sighting Method: docstring/core/tangential_sighting/tangential_sighting.md
           - Data:
               - Catalog: docstring/data/catalog/catalog.md
               - Geography: docstring/data/geography/helpers.md

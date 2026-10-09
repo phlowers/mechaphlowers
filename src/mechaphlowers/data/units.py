@@ -3,11 +3,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
-
+from typing import overload
 
 import numpy as np
 import pint
 from pint import Quantity, UnitRegistry
+
+from mechaphlowers.utils import Number
 
 unit = UnitRegistry()
 
@@ -27,7 +29,7 @@ unit.enable_contexts("mecha")
 
 Q_ = unit.Quantity
 
-__all__ = ["unit", "Q_", "Quantity"]
+__all__ = ["unit", "Q_", "Quantity", "convert_grad_to_rad"]
 
 
 def convert_weight_to_mass(weight: np.ndarray | list) -> np.ndarray:
@@ -52,3 +54,29 @@ def convert_mass_to_weight(mass: np.ndarray | list) -> np.ndarray:
         np.ndarray: weight value in N
     """
     return Q_(np.array(mass), "kg").to("N").magnitude
+
+
+@overload
+def convert_grad_to_rad(
+    angle_in_grad: Number,
+) -> Number: ...
+
+
+@overload
+def convert_grad_to_rad(
+    angle_in_grad: np.ndarray,
+) -> np.ndarray: ...
+
+
+def convert_grad_to_rad(
+    angle_in_grad: np.ndarray | Number,
+) -> np.ndarray | Number:
+    """Converts an angle in grad to radians.
+
+    Args:
+        angle_in_grad (np.ndarray | Number): angle or array of angles in grad
+
+    Returns:
+        np.ndarray | Number: angle or array of angles in radians
+    """
+    return Q_(angle_in_grad, "grad").to("rad").magnitude

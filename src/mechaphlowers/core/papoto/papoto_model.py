@@ -7,14 +7,8 @@
 
 import numpy as np
 
-from mechaphlowers.entities.errors import ConvergenceError
-
-try:
-    from scipy import optimize  # type: ignore
-except ImportError:
-    import mechaphlowers.numeric.scipy as optimize
-
 from mechaphlowers.config import options
+from mechaphlowers.numeric.newton import newton_solver_wrapper
 
 
 def papoto_validity(
@@ -69,16 +63,16 @@ def papoto_3_points(
 
     Args:
         a (np.ndarray): Length of the span
-        HL (np.ndarray): horizontal distance of the left part of the span
-        VL (np.ndarray): vertical distance of the left part of the span
-        HR (np.ndarray): horizontal distance of the right part of the span
-        VR (np.ndarray): vertical distance of the right part of the span
-        H1 (np.ndarray): horizontal distance of point 1
-        V1 (np.ndarray): vertical distance of point 1
-        H2 (np.ndarray): horizontal distance of point 2
-        V2 (np.ndarray): vertical distance of point 2
-        H3 (np.ndarray): horizontal distance of point 3
-        V3 (np.ndarray): vertical distance of point 3
+        HL (np.ndarray): horizontal angle of the left part of the span
+        VL (np.ndarray): vertical angle of the left part of the span
+        HR (np.ndarray): horizontal angle of the right part of the span
+        VR (np.ndarray): vertical angle of the right part of the span
+        H1 (np.ndarray): horizontal angle of point 1
+        V1 (np.ndarray): vertical angle of point 1
+        H2 (np.ndarray): horizontal angle of point 2
+        V2 (np.ndarray): vertical angle of point 2
+        H3 (np.ndarray): horizontal angle of point 3
+        V3 (np.ndarray): vertical angle of point 3
     Returns:
         parameter_mean (np.ndarray): mean of the 3 computed parameters
     """
@@ -159,7 +153,12 @@ def papoto_2_points(
 
         # first approximation of parameter using parabola model
         p0 = a1 * (a - a1) / (2 * ((zL - z1) + h * a1 / a))
-        p = parameter_solver(a, h, zL - z1, a1, p0)
+        p = newton_solver_wrapper(
+            function_f,
+            p0,
+            function_f_prime,
+            (a, h, zL - z1, a1),
+        )
 
         # computing an elevation difference using newly found parameter, and comparing with zG - z2
         # val: distance between lowest point with left support
@@ -180,36 +179,6 @@ def papoto_2_points(
             break
 
     return p
-
-
-def parameter_solver(
-    a: np.ndarray,
-    h: np.ndarray,
-    delta: np.ndarray,
-    x: np.ndarray,
-    p0: np.ndarray,
-    solver: str = "newton",
-) -> np.ndarray:
-    solver_dict = {"newton": optimize.newton}
-    try:
-        solver_method = solver_dict[solver]
-    except KeyError:
-        raise ValueError(f"Incorrect solver name: {solver}")
-
-    solver_result = solver_method(
-        function_f,
-        p0,
-        fprime=function_f_prime,
-        args=(a, h, delta, x),
-        maxiter=10,
-        tol=1e-5,
-        full_output=True,
-    )
-    if not solver_result.converged.all():
-        raise ConvergenceError(
-            "Solver did not converge", origin="papoto_model"
-        )
-    return solver_result.root
 
 
 def function_f(
@@ -264,15 +233,3 @@ def function_f_prime(
     return (
         function_f(p + _ZETA, a, h, delta, x) - function_f(p, a, h, delta, x)
     ) / _ZETA
-
-
-def convert_grad_to_rad(angle_in_grad: np.ndarray) -> np.ndarray:
-    """Converts an angle in grad to radians.
-
-    Args:
-        angle_in_grad (np.ndarray): array of angles in grad
-
-    Returns:
-        np.ndarray: array of angles in radians
-    """
-    return angle_in_grad / 200 * np.pi
