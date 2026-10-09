@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import warnings
+from copy import deepcopy
 from typing import TYPE_CHECKING, Type
 
 import numpy as np
@@ -28,7 +29,7 @@ from mechaphlowers.core.models.cable.deformation import (
 from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.core import VhlResult
-from mechaphlowers.entities.errors import SolverError
+from mechaphlowers.entities.errors import BalanceEngineWarning, SolverError
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.cable.thermal import ThermalEngine
@@ -95,6 +96,14 @@ class SectionStudy:
         self._thermal_engine: ThermalEngine | None = None
         self._guying: Guying | None = None
         self._intermediate_memento: BalanceEngineMemento | None = None
+        # Clean version of BalanceEngine: used for applying loads and manipulations
+        # Will not be affected by change states or manipulations
+        self._clean_engine = BalanceEngine(
+            cable_array=self._cable_array,
+            section_array=self._section_array,
+            span_model_type=self._span_model_type,
+            deformation_model_type=self._deformation_model_type,
+        )
 
     # ── Sub-engine properties ─────────────────────────────────────────────
 
@@ -157,6 +166,7 @@ class SectionStudy:
                 offsets with optional keys ``"y"`` and ``"z"``.
         """
         self._manipulation.modify_support(manipulation)
+        self.apply_manipulations()
 
     def reset_support(self) -> None:
         """Remove the support manipulation overlay.
@@ -164,21 +174,63 @@ class SectionStudy:
         Delegates to [`Manipulation.reset_support`][mechaphlowers.core.manipulation.Manipulation.reset_support].
         """
         self._manipulation.reset_support()
+        self.apply_manipulations()
 
-    def add_rope(
+    def set_rope(
         self,
         rope: dict[int, float],
         rope_lineic_mass: float | None = None,
     ) -> None:
         """Override insulator length and mass for specified supports with rope values.
 
-        Delegates to [`Manipulation.add_rope`][mechaphlowers.core.manipulation.Manipulation.add_rope].
+        Delegates to [`Manipulation.set_rope`][mechaphlowers.core.manipulation.Manipulation.set_rope].
 
         Args:
             rope: Dictionary mapping support index (0-based) to rope length (meters).
             rope_lineic_mass: Linear mass of the rope in kg/m.
         """
-        self._manipulation.add_rope(rope, rope_lineic_mass)
+        self._manipulation.set_rope(rope, rope_lineic_mass)
+
+        self.apply_manipulations()
+
+    def apply_manipulations(self):
+        """Update balance_engine in order to take into account manipulations.
+        All manipulations are re updated.
+
+        This method should be run after any modification to manipulations.
+        """
+        # check if adjustment has been done before
+        try:
+            _ = self._clean_engine.L_ref
+            logger.debug(
+                f"Adjustment has been done before, initial_L_ref before shifting: {str(self._clean_engine.L_ref)}"
+            )
+        except AttributeError:
+            logger.warning(BalanceEngine._warning_no_L_ref)
+            warnings.warn(
+                BalanceEngine._warning_no_L_ref, BalanceEngineWarning
+            )
+            # careful: is not exactly the same code than in BalanceEngine:
+            # calls SectionStudy.solve_adjustment() instead of BalanceEngine.solve_adjustment()
+            self.solve_adjustment()
+
+        manipulated_sa = self._manipulation.from_section_array(
+            self._section_array
+        )
+
+        initial_L_ref = self._clean_engine.L_ref.copy()
+        self._balance_engine = self._manipulation.initialize_engine(
+            self._clean_engine, manipulated_sa, initial_L_ref
+        )
+        self._build_span_loads()
+
+        # Rewire downstream engines
+        self._caretaker = BalanceEngineCaretaker(self._balance_engine)
+        self._position_engine = PositionEngine(self._balance_engine)
+        self._plot_engine = None
+        self._guying = None
+        # _intermediate_memento should be reset after changing manipulations
+        self._intermediate_memento = None
 
     def reset_rope(self) -> None:
         """Remove the rope overlay.
@@ -186,19 +238,23 @@ class SectionStudy:
         Delegates to [`Manipulation.reset_rope`][mechaphlowers.core.manipulation.Manipulation.reset_rope].
         """
         self._manipulation.reset_rope()
+        self.apply_manipulations()
 
-    def add_virtual_support(
+    def set_virtual_support(
         self, virtual_support: dict[int, dict[str, float]]
     ) -> None:
         """Insert virtual supports.
 
-        Delegates to [`Manipulation.add_virtual_support`][mechaphlowers.core.manipulation.Manipulation.add_virtual_support].
+        Delegates to [`Manipulation.set_virtual_support`][mechaphlowers.core.manipulation.Manipulation.set_virtual_support].
+
+        If called multiple times: will only register the last call.
 
         Args:
             virtual_support: Dictionary mapping left-support index to virtual
                 support parameters.
         """
-        self._manipulation.add_virtual_support(virtual_support)
+        self._manipulation.set_virtual_support(virtual_support)
+        self.apply_manipulations()
 
     def reset_virtual_support(self) -> None:
         """Remove all virtual supports.
@@ -206,6 +262,7 @@ class SectionStudy:
         Delegates to [`Manipulation.reset_virtual_support`][mechaphlowers.core.manipulation.Manipulation.reset_virtual_support].
         """
         self._manipulation.reset_virtual_support()
+        self.apply_manipulations()
 
     def modify_cable(
         self,
@@ -225,6 +282,7 @@ class SectionStudy:
                 shorten the span.
         """
         self._manipulation.modify_cable(shift_support, shorten_span)
+        self.apply_manipulations()
 
     def reset_cable(self) -> None:
         """Remove cable shifting.
@@ -232,6 +290,7 @@ class SectionStudy:
         Delegates to [`Manipulation.reset_cable`][mechaphlowers.core.manipulation.Manipulation.reset_cable].
         """
         self._manipulation.reset_cable()
+        self.apply_manipulations()
 
     def reset_all(self) -> None:
         """Remove all active manipulations.
@@ -239,6 +298,7 @@ class SectionStudy:
         Delegates to [`Manipulation.reset_all`][mechaphlowers.core.manipulation.Manipulation.reset_all].
         """
         self._manipulation.reset_all()
+        self.apply_manipulations()
 
     # ── Solve methods (with rollback + intermediate) ──────────────────────
 
@@ -247,11 +307,11 @@ class SectionStudy:
 
         1. Build a clean engine from the original section array and solve
            adjustment to obtain ``initial_L_ref``.
-        2. If manipulations are registered, call
-           [`Manipulation.from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array] to produce a manipulated
-           copy, then [`Manipulation.initialize_engine`][mechaphlowers.core.manipulation.Manipulation.initialize_engine] to build the
-           target engine with injected ``L_ref`` and blocked adjustment.
-        3. Rewire downstream engines (caretaker, position, plot, guying).
+        2. Reaffect newly computed clean engine to balance_engine
+        3. Call
+           [`SectionStudy.apply_manipulations`][mechaphlowers.api.section_study.SectionStudy.apply_manipulations]
+           to update balance_engine, in order to take into account manipulations.
+           `apply_manipulations` will rewire downstream engines (caretaker, position, plot, guying).
 
         On [`SolverError`][mechaphlowers.entities.errors.SolverError], the engine
         state is restored to the snapshot taken before the solve attempt, and the
@@ -260,57 +320,18 @@ class SectionStudy:
         Raises:
             SolverError: If the solver fails to converge.
         """
-        if self._manipulation.has_manipulations:
-            # Phase 1: solve on clean geometry
-            clean_engine = BalanceEngine(
-                cable_array=self._cable_array,
-                section_array=self._section_array,
-                span_model_type=self._span_model_type,
-                deformation_model_type=self._deformation_model_type,
+        try:
+            self._clean_engine.solve_adjustment()
+        except SolverError as e:
+            logger.error(
+                "Error during solve_adjustment. No changes on the engine state"
             )
+            raise e
 
-            try:
-                clean_engine.solve_adjustment()
-            except SolverError as e:
-                logger.error(
-                    "Error during solve_adjustment. No changes on the engine state"
-                )
-                raise e
-
-            initial_L_ref = clean_engine.initial_L_ref.copy()
-
-            # Phase 2: build manipulated SA and target engine
-            manipulated_sa = self._manipulation.from_section_array(
-                self._section_array
-            )
-            built_span_loads = (
-                self._manipulation.build_new_span_loads_virtual_support(
-                    self._balance_engine.span_loads
-                )
-            )
-            self._balance_engine = self._manipulation.initialize_engine(
-                clean_engine, manipulated_sa, initial_L_ref, built_span_loads
-            )
-
-            # Rewire downstream engines
-            self._caretaker = BalanceEngineCaretaker(self._balance_engine)
-            self._position_engine = PositionEngine(self._balance_engine)
-            self._plot_engine = None
-            self._guying = None
-        else:
-            memento = self._caretaker.save()
-            if self._intermediate_memento is not None:
-                # case where change_state already occurred: resetting climate state
-                self._caretaker.restore(self._intermediate_memento)
-            # if not: new case where no change_state was already run
-            try:
-                self._balance_engine.solve_adjustment()
-            except SolverError as e:
-                logger.error(
-                    "Error during solve_adjustment, rolling back state."
-                )
-                self._caretaker.restore(memento)
-                raise e
+        self._balance_engine = deepcopy(self._clean_engine)
+        # warning: state of _balance_engine before calling apply_manipulations() is incomplete:
+        # need to update span_loads, and to rewire downstream engines
+        self.apply_manipulations()
 
     def solve_change_state(
         self,
@@ -453,6 +474,8 @@ class SectionStudy:
 
         If either load_position_distance[i] or load_mass[i] is 0 or nan, it means there is no load at span i.
 
+        If there are virtual supports, do not take into account in the length of the arrays.
+
         Args:
             load_position_distance (np.ndarray | list): Position of the loads, in meters. Its size must be the number of spans.
             load_mass (np.ndarray | list): Mass of the loads. Its size must be the number of spans.
@@ -461,8 +484,22 @@ class SectionStudy:
             ValueError: if at least one load_position_distance is not in [0, span_length]
                 or if the arguments don't have the right lengths.
         """
-        self._balance_engine.set_loads(load_position_distance, load_mass)
+        self._clean_engine.set_loads(load_position_distance, load_mass)
+        self._build_span_loads()
         self._solve_intermediate()
+
+    def _build_span_loads(self):
+        """Build span_loads for balance_engine, using _clean_engine.span_loads
+
+        The span loads should be different only if there are virtual supports.
+        """
+        self._balance_engine.span_loads = (
+            self._manipulation.build_new_span_loads_virtual_support(
+                self._clean_engine.span_loads
+            )
+        )
+        # required in order to update loads stored in Nodes
+        self._balance_engine.reset(full=False)
 
     # ── State management ──────────────────────────────────────────────────
 

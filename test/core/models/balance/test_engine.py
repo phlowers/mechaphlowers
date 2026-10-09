@@ -344,7 +344,6 @@ def test_adjustment_convergence_error_origin(
     # mocking L_ref and initial_L_ref to avoid launching adjustment solver first
     dummy_L_ref = np.zeros(balance_engine_simple.support_number - 1)
     balance_engine_simple.L_ref = dummy_L_ref
-    balance_engine_simple.initial_L_ref = dummy_L_ref
 
     with pytest.raises(ConvergenceError) as excinfo:
         balance_engine_simple.solve_change_state()
@@ -660,9 +659,9 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
         }
     )
     # 1 rope manipulation (support 3)
-    manip.add_rope({3: 4.5})
+    manip.set_rope({3: 4.5})
     # 4 virtual supports (one per span: spans 0, 2, 4, 6)
-    manip.add_virtual_support(
+    manip.set_virtual_support(
         {
             0: {
                 "x": 200.0,
