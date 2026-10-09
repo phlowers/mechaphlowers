@@ -5,7 +5,7 @@ from mechaphlowers.core.tangential_sighting.tangential_sighting import (
     compute_parameter__array,
     compute_parameter__scalar,
 )
-from mechaphlowers.data.units import convert_grad_to_rad
+from mechaphlowers.data.units import convert_angle_to_rad
 from mechaphlowers.entities.errors import ConvergenceError
 
 # Test input validation
@@ -211,9 +211,9 @@ def test_nan_distance_and_positive_angle_to_left_support_raises() -> None:
 
 def test_input_height_nan_ok_if_distance_provided() -> None:
     result = compute_parameter__array(
-        angle_to_cable_tangent=convert_grad_to_rad(np.array([95.622])),
-        angle_to_left_support=convert_grad_to_rad(np.array([75.776])),
-        angle_to_right_support=convert_grad_to_rad(np.array([94.228])),
+        angle_to_cable_tangent=convert_angle_to_rad(np.array([95.622])),
+        angle_to_left_support=convert_angle_to_rad(np.array([75.776])),
+        angle_to_right_support=convert_angle_to_rad(np.array([94.228])),
         span_length=np.array([500]),
         input_height=np.array([np.nan]),
         distance=np.array([-50]),
@@ -227,9 +227,9 @@ def test_input_height_nan_ok_if_distance_provided() -> None:
 
 def test_distance_nan_ok_if_input_height_provided() -> None:
     result = compute_parameter__array(
-        angle_to_cable_tangent=convert_grad_to_rad(np.array([98.999])),
-        angle_to_left_support=convert_grad_to_rad(np.array([0.000])),
-        angle_to_right_support=convert_grad_to_rad(np.array([96.820])),
+        angle_to_cable_tangent=convert_angle_to_rad(np.array([98.999])),
+        angle_to_left_support=convert_angle_to_rad(np.array([0.000])),
+        angle_to_right_support=convert_angle_to_rad(np.array([96.820])),
         span_length=np.array([400]),
         input_height=np.array([20]),
         distance=np.array([np.nan]),
@@ -247,45 +247,45 @@ def test_distance_nan_ok_if_input_height_provided() -> None:
     "span_length, input_height, distance, expected_result",
     [
         (
-            convert_grad_to_rad(np.array([95.622])),
-            convert_grad_to_rad(np.array([75.776])),
-            convert_grad_to_rad(np.array([94.228])),
+            convert_angle_to_rad(np.array([95.622])),
+            convert_angle_to_rad(np.array([75.776])),
+            convert_angle_to_rad(np.array([94.228])),
             np.array([500]),
             np.array([0]),
             np.array([-50]),
             np.array([2199.3]),
         ),
         (
-            convert_grad_to_rad(np.array([98.999])),
-            convert_grad_to_rad(np.array([0.000])),
-            convert_grad_to_rad(np.array([96.820])),
+            convert_angle_to_rad(np.array([98.999])),
+            convert_angle_to_rad(np.array([0.000])),
+            convert_angle_to_rad(np.array([96.820])),
             np.array([400]),
             np.array([20]),
             np.array([0]),
             np.array([1200.0]),
         ),
         (
-            convert_grad_to_rad(np.array([101.607])),
-            convert_grad_to_rad(np.array([50])),
-            convert_grad_to_rad(np.array([100])),
+            convert_angle_to_rad(np.array([101.607])),
+            convert_angle_to_rad(np.array([50])),
+            convert_angle_to_rad(np.array([100])),
             np.array([800]),
             np.array([0]),
             np.array([50]),
             np.array([2500.1]),
         ),
         (
-            convert_grad_to_rad(np.array([91.631])),
-            convert_grad_to_rad(np.array([91.562])),
-            convert_grad_to_rad(np.array([91.562])),
+            convert_angle_to_rad(np.array([91.631])),
+            convert_angle_to_rad(np.array([91.562])),
+            convert_angle_to_rad(np.array([91.562])),
             np.array([300]),
             np.array([0]),
             np.array([150]),
             np.array([1000.4]),
         ),
         (
-            convert_grad_to_rad(np.array([101.607, 91.631])),
-            convert_grad_to_rad(np.array([50, 91.562])),
-            convert_grad_to_rad(np.array([100, 91.562])),
+            convert_angle_to_rad(np.array([101.607, 91.631])),
+            convert_angle_to_rad(np.array([50, 91.562])),
+            convert_angle_to_rad(np.array([100, 91.562])),
             np.array([800, 300]),
             np.array([0, 0]),
             np.array([50, 150]),
@@ -326,9 +326,9 @@ def test_compute_parameter_ok(
 
 def test_non_convergent_case_raises() -> None:
     """Test case adapted from tests cases provided by H. Ducloux"""
-    angle_to_cable_tangent = convert_grad_to_rad(np.array([91.631]))
-    angle_to_left_support = convert_grad_to_rad(np.array([124.224]))
-    angle_to_right_support = convert_grad_to_rad(np.array([106.345]))
+    angle_to_cable_tangent = convert_angle_to_rad(np.array([91.631]))
+    angle_to_left_support = convert_angle_to_rad(np.array([124.224]))
+    angle_to_right_support = convert_angle_to_rad(np.array([106.345]))
 
     with pytest.raises(ConvergenceError):
         compute_parameter__array(
@@ -343,9 +343,9 @@ def test_non_convergent_case_raises() -> None:
 
 def test_compute_parameter__scalar_ok() -> None:
     result = compute_parameter__scalar(
-        convert_grad_to_rad(95.622),
-        convert_grad_to_rad(75.776),
-        convert_grad_to_rad(94.228),
+        convert_angle_to_rad(95.622),
+        convert_angle_to_rad(75.776),
+        convert_angle_to_rad(94.228),
         500,
         0,
         -50,
@@ -354,9 +354,9 @@ def test_compute_parameter__scalar_ok() -> None:
 
 
 def test_compute_parameter__scalar_non_convergent_case_raises() -> None:
-    angle_to_cable_tangent = convert_grad_to_rad(91.631)
-    angle_to_left_support = convert_grad_to_rad(124.224)
-    angle_to_right_support = convert_grad_to_rad(106.345)
+    angle_to_cable_tangent = convert_angle_to_rad(91.631)
+    angle_to_left_support = convert_angle_to_rad(124.224)
+    angle_to_right_support = convert_angle_to_rad(106.345)
 
     with pytest.raises(ConvergenceError):
         compute_parameter__scalar(

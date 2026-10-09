@@ -19,6 +19,7 @@ from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.data.geography.helpers import lambert93_to_gps
 from mechaphlowers.data.measures import (
     PapotoParameterMeasure,
+    TangentialSightingParameterMeasure,
     param_calibration,
 )
 from mechaphlowers.data.units import Q_ as units
@@ -56,6 +57,7 @@ __all__ = [
     "sample_cable_catalog",
     "units",
     "PapotoParameterMeasure",
+    "TangentialSightingParameterMeasure",
     "param_calibration",
     "ThermalEngine",
     "Guying",
