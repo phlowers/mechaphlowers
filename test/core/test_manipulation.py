@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 from numpy.testing import assert_allclose
 
+from mechaphlowers.core.geometry.line_angles import get_edge_arm_coords
 from mechaphlowers.core.manipulation import Manipulation
 from mechaphlowers.core.models.balance.span_loads import SpanLoads
 from mechaphlowers.entities.arrays import SectionArray
@@ -306,6 +307,50 @@ def test_reset_rope_manipulation_no_prior(
     manipulation: Manipulation,
 ) -> None:
     manipulation.reset_rope()  # should not raise
+
+
+def _arm_altitude(sa: SectionArray) -> np.ndarray:
+    data = sa.data
+    center_arm_coords, _ = get_edge_arm_coords(
+        np.zeros((len(data), 3)),
+        data["conductor_attachment_altitude"].to_numpy(),
+        data["crossarm_length"].to_numpy(),
+        data["line_angle"].to_numpy(),
+        data["insulator_length"].to_numpy(),
+    )
+    return center_arm_coords[:, 2]
+
+
+def test_set_rope_keeps_arm_attachment_fixed(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_arm_altitude = _arm_altitude(section_array)
+
+    manipulation.set_rope({1: 5.0, 2: 1.0})
+    applied = manipulation.from_section_array(section_array)
+
+    assert_allclose(_arm_altitude(applied), original_arm_altitude)
+
+
+def test_set_rope_moves_cable_attachment(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_alt = section_array.data["conductor_attachment_altitude"]
+    original_length = section_array.data["insulator_length"]
+
+    manipulation.set_rope({1: 5.0, 2: 1.0})
+    applied = manipulation.from_section_array(section_array)
+
+    # arm stays, so the cable hangs at arm_altitude - rope_length
+    assert_allclose(
+        applied.data["conductor_attachment_altitude"].to_numpy()[1:3],
+        [
+            original_alt.iloc[1] + original_length.iloc[1] - 5.0,
+            original_alt.iloc[2] + original_length.iloc[2] - 1.0,
+        ],
+    )
 
 
 # ── counterweight masking ─────────────────────────────────────────────────

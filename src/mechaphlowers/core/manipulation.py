@@ -312,7 +312,9 @@ class Manipulation:
         Use [`reset_rope`][mechaphlowers.core.manipulation.Manipulation.reset_rope] to remove the overlay.
 
         For each affected support, ``counterweight_mass`` is set to 0 in
-        the applied copy.
+        the applied copy. The arm attachment stays fixed: on intermediate
+        supports, ``conductor_attachment_altitude`` is shifted by
+        ``insulator_length - rope_length``.
 
         Args:
             rope: Dictionary mapping support index (0-based) to rope length (meters).
@@ -495,7 +497,8 @@ class Manipulation:
         The returned copy has:
 
         * Support offsets applied to ``conductor_attachment_altitude`` / ``crossarm_length``
-        * Rope values replacing ``insulator_length`` / ``insulator_mass``
+        * Rope values replacing ``insulator_length`` / ``insulator_mass``,
+          with ``conductor_attachment_altitude`` shifted to keep the arm fixed
         * ``counterweight_mass`` set to 0 for affected supports
         * Virtual support rows inserted
 
@@ -536,7 +539,29 @@ class Manipulation:
                     "Rope overlay is set but rope_lineic_mass is None; skipping rope overlay application."
                 )
             else:
+                original_insulator_length = original.data["insulator_length"]
+                last_idx = len(raw_data) - 1
                 for idx, rope_length in self._rope_overlay.items():
+                    # Arm is fixed: the cable attachment absorbs the length change
+                    # (only on intermediate supports, see get_edge_arm_coords).
+                    if 0 < idx < last_idx:
+                        delta = (
+                            float(original_insulator_length.iloc[idx])
+                            - rope_length
+                        )
+                        raw_data.loc[idx, "conductor_attachment_altitude"] = (
+                            cast(
+                                float,
+                                raw_data.loc[
+                                    idx, "conductor_attachment_altitude"
+                                ],
+                            )
+                            + self._to_input(
+                                delta,
+                                "conductor_attachment_altitude",
+                                input_units,
+                            )
+                        )
                     raw_data.loc[idx, "insulator_length"] = self._to_input(
                         rope_length, "insulator_length", input_units
                     )
