@@ -220,7 +220,7 @@ def test_rope_manipulation_overrides_data(
     original_insulator_length = section_array._data["insulator_length"].copy()
     original_insulator_mass = section_array._data["insulator_mass"].copy()
 
-    manipulation.add_rope({1: 5.0, 2: 3.0})
+    manipulation.set_rope({1: 5.0, 2: 3.0})
     applied = manipulation.from_section_array(section_array)
 
     # Modified supports
@@ -256,7 +256,7 @@ def test_rope_manipulation_custom_lineic_mass(
     section_array: SectionArray,
     manipulation: Manipulation,
 ) -> None:
-    manipulation.add_rope({0: 2.0}, rope_lineic_mass=0.5)
+    manipulation.set_rope({0: 2.0}, rope_lineic_mass=0.5)
     applied = manipulation.from_section_array(section_array)
 
     assert_allclose(applied.data["insulator_mass"].iloc[0], 2.0 * 0.5)
@@ -267,7 +267,7 @@ def test_rope_manipulation_insulator_weight_updated(
     manipulation: Manipulation,
 ) -> None:
     """insulator_weight in .data must reflect the rope mass."""
-    manipulation.add_rope({1: 4.0}, rope_lineic_mass=0.1)
+    manipulation.set_rope({1: 4.0}, rope_lineic_mass=0.1)
     applied = manipulation.from_section_array(section_array)
 
     expected_weight = 4.0 * 0.1 * 9.81  # approx N
@@ -278,7 +278,7 @@ def test_rope_manipulation_insulator_weight_updated(
 
 def test_rope_manipulation_invalid_index(manipulation: Manipulation) -> None:
     with pytest.raises(InvalidManipulationIndex, match="out of range"):
-        manipulation.add_rope({99: 3.0})
+        manipulation.set_rope({99: 3.0})
 
 
 def test_reset_rope_manipulation(
@@ -288,7 +288,7 @@ def test_reset_rope_manipulation(
     original_length = section_array.data["insulator_length"].copy()
     original_mass = section_array.data["insulator_mass"].copy()
 
-    manipulation.add_rope({1: 5.0, 2: 3.0})
+    manipulation.set_rope({1: 5.0, 2: 3.0})
     manipulation.reset_rope()
     applied = manipulation.from_section_array(section_array)
 
@@ -363,7 +363,7 @@ def test_counterweight_masked_during_rope_manipulation() -> None:
     assert (original_counterweight > 0).any()
 
     manip = Manipulation(sa)
-    manip.add_rope({1: 4.5})
+    manip.set_rope({1: 4.5})
     applied = manip.from_section_array(sa)
     data = applied.data
 
@@ -385,12 +385,12 @@ def test_counterweight_masked_during_rope_manipulation() -> None:
 # ── virtual support ──────────────────────────────────────────────────────
 
 
-def test_add_virtual_support_changes_data_shape(
+def test_set_virtual_support_changes_data_shape(
     section_array: SectionArray,
 ) -> None:
     manip = Manipulation(section_array)
     assert len(section_array.data) == 4
-    manip.add_virtual_support(
+    manip.set_virtual_support(
         {
             1: {
                 "x": 100.0,
@@ -410,7 +410,7 @@ def test_reset_virtual_support_restores_data_shape(
     section_array: SectionArray,
 ) -> None:
     manip = Manipulation(section_array)
-    manip.add_virtual_support(
+    manip.set_virtual_support(
         {
             1: {
                 "x": 100.0,
@@ -437,7 +437,7 @@ def test_apply_does_not_modify_original(
     original_data = section_array._data.copy()
 
     manipulation.modify_support({0: {"z": 10.0}})
-    manipulation.add_rope({1: 6.0})
+    manipulation.set_rope({1: 6.0})
     _ = manipulation.from_section_array(section_array)
 
     # Original section array must be untouched
@@ -470,14 +470,14 @@ def test_has_manipulations_after_support(
 def test_has_manipulations_after_rope(
     manipulation: Manipulation,
 ) -> None:
-    manipulation.add_rope({0: 2.0})
+    manipulation.set_rope({0: 2.0})
     assert manipulation.has_manipulations
 
 
 def test_has_manipulations_after_virtual_support(
     manipulation: Manipulation,
 ) -> None:
-    manipulation.add_virtual_support(
+    manipulation.set_virtual_support(
         {
             1: {
                 "x": 100.0,
