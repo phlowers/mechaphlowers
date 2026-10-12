@@ -5,13 +5,13 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from mechaphlowers.core.models.estimation.engine import EstimationEngine
-from mechaphlowers.core.models.estimation.methods import (
+from mechaphlowers.core.numeric import (
     BisectionMethod,
     BrentMethod,
+    EstimationResult,
     NewtonMethod,
     OptimizationMethod,
 )
-from mechaphlowers.core.models.estimation.result import EstimationResult
 
 __all__ = [
     "EstimationEngine",

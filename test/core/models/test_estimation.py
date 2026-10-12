@@ -10,12 +10,15 @@ import pytest
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.estimation import (
-    BisectionMethod,
-    BrentMethod,
     EstimationEngine,
     EstimationResult,
+)
+from mechaphlowers.core.numeric import (
+    BisectionMethod,
+    BrentMethod,
     NewtonMethod,
 )
+from mechaphlowers.entities.errors import EstimateOnSplitSupportError
 
 
 @pytest.fixture
@@ -165,3 +168,114 @@ class TestEstimationEngine:
             study.balance_engine.balance_model.nodes.dxdydz,
             memento_before.dxdydz,
         )
+
+
+class TestEstimationSandbox:
+    obstacle = np.array([250.0, 10.0, 20.0])
+
+    def test_estimate_load_converges(self, solved_study: SectionStudy):
+        study = solved_study
+        n_spans = len(study._clean_engine.section_array.data) - 1
+        positions = np.zeros(n_spans)
+        masses = np.zeros(n_spans)
+        positions[0] = 100.0
+        masses[0] = 50.0
+        study.set_loads(positions, masses)
+        ref_distance = study.position_engine.point_distance(
+            span_index=0, point=self.obstacle
+        ).distance_3d
+        study.set_loads(np.zeros(n_spans), np.zeros(n_spans))
+
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
+        result = engine.estimate_load(
+            span_index=0,
+            obstacle_point=self.obstacle,
+            target_distance=ref_distance,
+            load_position_distance=100.0,
+            bounds=(0.0, 100.0),
+        )
+        assert result.converged
+        assert abs(result.value - 50.0) < 1.0
+
+    def test_study_untouched_after_estimate_load(
+        self, solved_study: SectionStudy
+    ):
+        study = solved_study
+        memento_before = study.intermediate_memento
+        masses_before = np.copy(study._clean_engine.span_loads.load_mass)
+        engine_masses_before = np.copy(
+            study.balance_engine.span_loads.load_mass
+        )
+        engine = EstimationEngine(
+            study, method=BisectionMethod(tol=1.0, maxiter=3)
+        )
+        engine.estimate_load(
+            span_index=0,
+            obstacle_point=self.obstacle,
+            target_distance=50.0,
+            load_position_distance=100.0,
+            bounds=(0.0, 100.0),
+        )
+        assert study.intermediate_memento is memento_before
+        np.testing.assert_array_equal(
+            study._clean_engine.span_loads.load_mass, masses_before
+        )
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, engine_masses_before
+        )
+
+    virtual_support = {
+        0: {
+            "x": 100.0,
+            "y": 0.0,
+            "z": 60.0,
+            "insulator_length": 3.0,
+            "insulator_mass": 500.0,
+            "hanging_cable_point_from_left_support": 100.0,
+        },
+    }
+
+    @pytest.mark.parametrize("fixed", [{}, {"new_temperature": 40.0}])
+    def test_estimate_load_with_virtual_support_and_existing_load(
+        self, solved_study: SectionStudy, fixed: dict
+    ):
+        study = solved_study
+        study.set_virtual_support(self.virtual_support)
+        obstacle = np.array([750.0, 10.0, 20.0])
+        positions = np.array([0.0, 100.0, 200.0])
+        study.set_loads(positions, np.array([0.0, 50.0, 30.0]))
+        study.solve_change_state(**fixed)
+        # Clean span 1 is span 2 after the virtual support insertion
+        ref_distance = study.position_engine.point_distance(
+            span_index=2, point=obstacle
+        ).distance_3d
+        study.set_loads(positions, np.array([0.0, 0.0, 30.0]))
+
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
+        result = engine.estimate_load(
+            span_index=1,
+            obstacle_point=obstacle,
+            target_distance=ref_distance,
+            load_position_distance=100.0,
+            bounds=(0.0, 100.0),
+            **fixed,
+        )
+        assert result.converged
+        assert abs(result.value - 50.0) < 1.0
+
+    def test_estimate_load_on_split_span_raises(
+        self, solved_study: SectionStudy
+    ):
+        study = solved_study
+        study.set_virtual_support(self.virtual_support)
+        engine = EstimationEngine(study)
+        with pytest.raises(
+            EstimateOnSplitSupportError,
+            match="split by a virtual support",
+        ):
+            engine.estimate_load(
+                span_index=0,
+                obstacle_point=self.obstacle,
+                target_distance=30.0,
+                load_position_distance=50.0,
+            )

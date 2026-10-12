@@ -7,15 +7,19 @@
 from __future__ import annotations
 
 import logging
+import warnings
+from copy import deepcopy
 from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 
-from mechaphlowers.core.models.estimation.methods import (
-    BrentMethod,
-    OptimizationMethod,
+from mechaphlowers.core.geometry.position_engine import PositionEngine
+from mechaphlowers.core.numeric import BrentMethod, EstimationResult, OptimizationMethod
+from mechaphlowers.entities.errors import (
+    EstimateOnSplitSupportError,
+    EstimationWarning,
 )
-from mechaphlowers.core.models.estimation.result import EstimationResult
+from mechaphlowers.utils import arr
 
 if TYPE_CHECKING:
     from mechaphlowers.api.section_study import SectionStudy
@@ -30,8 +34,8 @@ class EstimationEngine:
     a physical variable (temperature, wind, load) that produces a target
     distance to an obstacle.
 
-    The engine saves/restores the balance-engine state around every objective
-    evaluation so that the study is left unchanged after estimation.
+    Every `estimate_*` call evaluates the objective on a deep copy of the
+    study's balance engine, so the study is left untouched.
 
     Args:
         study: The `SectionStudy` instance (must have been solved via
@@ -48,6 +52,10 @@ class EstimationEngine:
         ... )
         >>> print(result.value, result.converged)
     """
+
+    _warning_existing_load = (
+        "Existing load on estimation span target: load is ignored"
+    )
 
     def __init__(
         self,
@@ -109,15 +117,13 @@ class EstimationEngine:
             EstimationResult with the temperature value.
         """
 
-        def objective(temperature: float) -> float:
-            return self._distance_difference(
-                span_index=span_index,
-                obstacle_point=obstacle_point,
-                target_distance=target_distance,
-                new_temperature=temperature,
-                wind_pressure=wind_pressure,
-                ice_thickness=ice_thickness,
-            )
+        objective = self._build_distance_objective__climatic_case(
+            span_index,
+            obstacle_point,
+            target_distance,
+            "new_temperature",
+            {"wind_pressure": wind_pressure, "ice_thickness": ice_thickness},
+        )
 
         logger.info(
             "Estimating temperature for target distance %.3f m on span %d",
@@ -149,15 +155,16 @@ class EstimationEngine:
             EstimationResult with the wind pressure value.
         """
 
-        def objective(wind: float) -> float:
-            return self._distance_difference(
-                span_index=span_index,
-                obstacle_point=obstacle_point,
-                target_distance=target_distance,
-                wind_pressure=wind,
-                new_temperature=new_temperature,
-                ice_thickness=ice_thickness,
-            )
+        objective = self._build_distance_objective__climatic_case(
+            span_index,
+            obstacle_point,
+            target_distance,
+            "wind_pressure",
+            {
+                "new_temperature": new_temperature,
+                "ice_thickness": ice_thickness,
+            },
+        )
 
         logger.info(
             "Estimating wind pressure for target distance %.3f m on span %d",
@@ -179,8 +186,12 @@ class EstimationEngine:
     ) -> EstimationResult:
         """Find the load mass that yields a target distance to an obstacle.
 
+        Existing loads on other spans are kept. The load replaces any existing
+        load on ``span_index``.
+
         Args:
-            span_index: Index of the span where the obstacle is located.
+            span_index: Index of the span (before manipulation) holding the load
+                and the obstacle. Must not be split by a virtual support.
             obstacle_point: 3D coordinates of the obstacle point (shape ``(3,)``).
             target_distance: Desired distance between cable and obstacle (meters).
             load_position_distance: Position of the load along the span (meters).
@@ -191,19 +202,22 @@ class EstimationEngine:
 
         Returns:
             EstimationResult with the load mass value.
+
+        Raises:
+            EstimateOnSplitSupportError: If ``span_index`` is split by a virtual support.
         """
 
-        def objective(load_mass: float) -> float:
-            return self._distance_difference_with_load(
-                span_index=span_index,
-                obstacle_point=obstacle_point,
-                target_distance=target_distance,
-                load_position_distance=load_position_distance,
-                load_mass=load_mass,
-                new_temperature=new_temperature,
-                wind_pressure=wind_pressure,
-                ice_thickness=ice_thickness,
-            )
+        objective = self._build_distance_objective__load_case(
+            span_index,
+            obstacle_point,
+            target_distance,
+            load_position_distance,
+            {
+                "new_temperature": new_temperature,
+                "wind_pressure": wind_pressure,
+                "ice_thickness": ice_thickness,
+            },
+        )
 
         logger.info(
             "Estimating load mass for target distance %.3f m on span %d",
@@ -212,74 +226,164 @@ class EstimationEngine:
         )
         return self._method.solve(objective, bounds)
 
+    def estimate_rope(
+        self,
+        support_index: int,
+        span_index: int,
+        obstacle_point: np.ndarray,
+        target_vertical_distance: float,
+        bounds: tuple[float, float] = (0.1, 10.0),
+        rope_lineic_mass: float | None = None,
+        new_temperature: float | None = None,
+        wind_pressure: float | None = None,
+        ice_thickness: float | None = None,
+    ) -> EstimationResult:
+        """Find the rope length that yields a target vertical distance above an obstacle.
+
+        The vertical distance is ``z_cable - z_obstacle``, where ``z_cable`` is
+        the altitude of the cable point lying in the vertical plane that
+        contains the obstacle and is orthogonal to the span.
+
+        Existing manipulations are kept. Ropes already set on other supports
+        are kept; the rope on ``support_index`` is replaced.
+
+        Args:
+            support_index: Index of the support (before manipulation) where
+                the rope is set.
+            span_index: Index of the span where the obstacle is located
+                (after manipulation, as in the study's balance engine).
+            obstacle_point: 3D coordinates of the obstacle point (shape ``(3,)``).
+            target_vertical_distance: Desired vertical distance between cable
+                and obstacle (meters).
+            bounds: Search interval for the rope length in meters.
+            rope_lineic_mass: Linear mass of the rope in kg/m. Defaults to the
+                rope lineic mass already set on the study, or to
+                ``options.data.rope_lineic_mass_default``.
+            new_temperature: Fixed temperature in °C (optional).
+            wind_pressure: Fixed wind pressure in Pa (optional).
+            ice_thickness: Fixed ice thickness in m (optional).
+
+        Returns:
+            EstimationResult with the rope length value.
+        """
+
+        objective = self._build_vertical_distance_objective__rope_case(
+            support_index,
+            span_index,
+            obstacle_point,
+            target_vertical_distance,
+            rope_lineic_mass,
+            {
+                "new_temperature": new_temperature,
+                "wind_pressure": wind_pressure,
+                "ice_thickness": ice_thickness,
+            },
+        )
+
+        logger.info(
+            "Estimating rope length on support %d for target vertical distance %.3f m on span %d",
+            support_index,
+            target_vertical_distance,
+            span_index,
+        )
+        return self._method.solve(objective, bounds)
+
     # ── Private helpers ───────────────────────────────────────────────────
 
-    def _distance_difference(
+    def _build_distance_objective__climatic_case(
         self,
         span_index: int,
         obstacle_point: np.ndarray,
         target_distance: float,
-        wind_pressure: float | None = None,
-        ice_thickness: float | None = None,
-        new_temperature: float | None = None,
-    ) -> float:
-        """Compute ``distance(x) - target`` with state save/restore.
+        variable_name: str,
+        fixed_conditions: dict[str, float | None],
+    ) -> Callable[[float], float]:
+        """Build ``f(x) = distance(x) - target`` on a deep copy of the balance engine."""
+        source_engine = self._study.balance_engine
+        # Drop observers so the study's downstream engines are not copied
+        engine = deepcopy(source_engine, {id(source_engine._observers): []})
+        position_engine = PositionEngine(engine)
 
-        Solves change-state with the given parameters, computes the distance
-        to the obstacle, then restores the engine to its original state.
-        """
-        memento = self._study.save_state()
-        try:
-            self._study.solve_change_state(
-                wind_pressure=wind_pressure,
-                ice_thickness=ice_thickness,
-                new_temperature=new_temperature,
-            )
-            distance_result = self._study.position_engine.point_distance(
+        def objective(x: float) -> float:
+            engine.solve_change_state(**fixed_conditions, **{variable_name: x})
+            result = position_engine.point_distance(span_index, obstacle_point)
+            return result.distance_3d - target_distance
+
+        return objective
+
+    def _build_vertical_distance_objective__rope_case(
+        self,
+        support_index: int,
+        span_index: int,
+        obstacle_point: np.ndarray,
+        target_vertical_distance: float,
+        rope_lineic_mass: float | None,
+        fixed_conditions: dict[str, float | None],
+    ) -> Callable[[float], float]:
+        """Build ``f(rope_length) = vertical_distance - target`` on a copy of the study."""
+        study = self._study.copy()
+        manipulation = study.manipulation
+        ropes = dict(manipulation._rope_overlay or {})
+        if rope_lineic_mass is None:
+            rope_lineic_mass = manipulation._rope_lineic_mass
+
+        def objective(rope_length: float) -> float:
+            ropes[support_index] = rope_length
+            study.set_rope(ropes, rope_lineic_mass)
+            study.solve_change_state(**fixed_conditions)
+            result = study.position_engine.point_distance(
                 span_index, obstacle_point
             )
-            distance = distance_result.distance_3d
-        finally:
-            self._study.restore_state(memento)
+            vertical_distance = result.point_target[2] - result.point_base[2]
+            return vertical_distance - target_vertical_distance
 
-        return distance - target_distance
+        return objective
 
-    def _distance_difference_with_load(
+    def _build_distance_objective__load_case(
         self,
         span_index: int,
         obstacle_point: np.ndarray,
         target_distance: float,
         load_position_distance: float,
-        load_mass: float,
-        new_temperature: float | None = None,
-        wind_pressure: float | None = None,
-        ice_thickness: float | None = None,
-    ) -> float:
-        """Compute distance difference between target distance and distance with a given load mass.
+        fixed_conditions: dict[str, float | None],
+    ) -> Callable[[float], float]:
+        """Build ``f(load_mass) = distance - target`` on a deep copy of the balance engine.
 
-        Saves state before computiong and restores it afterwards."""
-        memento = self._study.save_state()
-        try:
-            # Build load arrays for single point load
-            n_spans = len(
-                self._study.balance_engine.section_array.data.span_length
+        Manipulations and existing loads are kept; only the load on ``span_index``
+        (index before manipulation) is replaced.
+        """
+        engine_span_index = (
+            self._study.manipulation.span_index_after_virtual_support(
+                span_index
             )
-            load_positions = np.zeros(n_spans)
-            load_masses = np.zeros(n_spans)
-            load_positions[span_index] = load_position_distance
-            load_masses[span_index] = load_mass
+        )
+        if engine_span_index is None:
+            raise EstimateOnSplitSupportError(
+                f"Span {span_index} is split by a virtual support: "
+                "load estimation is not possible on this span."
+            )
+        source_engine = self._study.balance_engine
+        # Drop observers so the study's downstream engines are not copied
+        engine = deepcopy(source_engine, {id(source_engine._observers): []})
+        position_engine = PositionEngine(engine)
+        span_length = arr.decr(
+            engine.section_array.data.span_length.to_numpy()
+        )
+        load_positions = engine.span_loads.load_position * span_length
+        load_masses = engine.span_loads.load_mass.copy()
+        load_positions[engine_span_index] = load_position_distance
 
-            self._study.set_loads(load_positions, load_masses)
-            self._study.solve_change_state(
-                wind_pressure=wind_pressure,
-                ice_thickness=ice_thickness,
-                new_temperature=new_temperature,
-            )
-            distance_result = self._study.position_engine.point_distance(
-                span_index, obstacle_point
-            )
-            distance = distance_result.distance_3d
-        finally:
-            self._study.restore_state(memento)
+        if np.nan_to_num(load_masses[engine_span_index]) != 0.0:
+            logger.warning(self._warning_existing_load)
+            warnings.warn(self._warning_existing_load, EstimationWarning)
 
-        return distance - target_distance
+        def objective(load_mass: float) -> float:
+            load_masses[engine_span_index] = load_mass
+            engine.set_loads(load_positions, load_masses)
+            engine.solve_change_state(**fixed_conditions)
+            result = position_engine.point_distance(
+                engine_span_index, obstacle_point
+            )
+            return result.distance_3d - target_distance
+
+        return objective

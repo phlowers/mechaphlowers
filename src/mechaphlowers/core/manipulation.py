@@ -625,6 +625,34 @@ class Manipulation:
                 )
         return new_span_loads
 
+    def span_index_after_virtual_support(self, span_index: int) -> int | None:
+        """Map a span index before manipulation to its index in the span loads built by
+        [`build_new_span_loads_virtual_support`][mechaphlowers.core.manipulation.Manipulation.build_new_span_loads_virtual_support].
+
+        Args:
+            span_index: Span index (0-based) before manipulation.
+
+        Returns:
+            The span index after virtual support insertion, or ``None`` if the
+            span is split by a virtual support (its load is dropped).
+
+        Raises:
+            InvalidManipulationIndex: If ``span_index`` is out of range.
+        """
+        n_spans = len(self._section_array.data) - 1
+        if span_index < 0 or span_index >= n_spans:
+            raise InvalidManipulationIndex(
+                f"Span index {span_index} is out of range [0, {n_spans - 1}]"
+            )
+        if self._virtual_support_overlay is None:
+            return span_index
+        if span_index in self._virtual_support_overlay:
+            return None
+        n_inserted_before = sum(
+            1 for idx in self._virtual_support_overlay if idx < span_index
+        )
+        return span_index + n_inserted_before
+
     def initialize_engine(
         self,
         clean_engine: BalanceEngine,

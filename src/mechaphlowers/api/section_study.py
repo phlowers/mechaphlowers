@@ -524,6 +524,34 @@ class SectionStudy:
 
     # ── State management ──────────────────────────────────────────────────
 
+    def copy(self) -> SectionStudy:
+        """Return an independent copy of the study (manipulations, loads and state included).
+
+        Lazy engines (plot, thermal, guying, estimation) are not copied.
+        """
+        # Bypass __init__: building BalanceEngines is far costlier than deepcopy
+        clone = SectionStudy.__new__(SectionStudy)
+        clone._cable_array = self._cable_array
+        clone._section_array = self._section_array
+        clone._span_model_type = self._span_model_type
+        clone._deformation_model_type = self._deformation_model_type
+        clone._manipulation = deepcopy(self._manipulation)
+        clone._clean_engine = deepcopy(self._clean_engine)
+        # Drop observers so the original's downstream engines are not copied
+        clone._balance_engine = deepcopy(
+            self._balance_engine,
+            {id(self._balance_engine._observers): []},
+        )
+        clone._caretaker = BalanceEngineCaretaker(clone._balance_engine)
+        clone._position_engine = PositionEngine(clone._balance_engine)
+        clone._plot_engine = None
+        clone._thermal_engine = None
+        clone._guying = None
+        clone._estimation_engine = None
+        # Mementos are frozen and restore copies arrays: sharing is safe
+        clone._intermediate_memento = self._intermediate_memento
+        return clone
+
     def save_state(self) -> BalanceEngineMemento:
         """Create an immutable snapshot of the current engine state.
 

@@ -1112,3 +1112,105 @@ class TestSectionStudyRestoreState:
         param_current = study.balance_engine.parameter.copy()
         # the two states should be different
         assert not np.allclose(param_current, param_original, rtol=1e-6)
+
+
+class TestSectionStudyCopy:
+    point = np.array([250.0, 10.0, 20.0])
+    virtual_support = {
+        0: {
+            "x": 100.0,
+            "y": 0.0,
+            "z": 55.0,
+            "insulator_length": 3.0,
+            "insulator_mass": 500.0,
+            "hanging_cable_point_from_left_support": 100.0,
+        },
+    }
+
+    @pytest.fixture()
+    def study(self, cable_array_AM600: CableArray) -> SectionStudy:
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2", "3", "4"],
+                    "suspension": [False, True, True, False],
+                    "conductor_attachment_altitude": [30, 50, 60, 65],
+                    "crossarm_length": [0, 0, 0, 0],
+                    "line_angle": [0, 0, 0, 0],
+                    "insulator_length": [3, 3, 3, 3],
+                    "span_length": [500, 300, 400, np.nan],
+                    "insulator_mass": [1000, 500, 500, 1000],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        study = SectionStudy(
+            cable_array=cable_array_AM600, section_array=section_array
+        )
+        study.solve_adjustment()
+        return study
+
+    def _distance(self, study: SectionStudy, x: float = 250.0) -> float:
+        point = np.array([x, 10.0, 20.0])
+        return study.position_engine.point_distance(0, point).distance_3d
+
+    def test_copy_independence(self, study: SectionStudy):
+        memento = study.intermediate_memento
+        dxdydz = study.balance_engine.balance_model.nodes.dxdydz.copy()
+        masses = np.copy(study._clean_engine.span_loads.load_mass)
+
+        clone = study.copy()
+        clone.set_loads(np.array([100.0, 0.0, 0.0]), np.array([50.0, 0.0, 0.0]))
+        clone.solve_change_state(new_temperature=80.0, wind_pressure=300.0)
+
+        assert study.intermediate_memento is memento
+        np.testing.assert_array_equal(
+            study.balance_engine.balance_model.nodes.dxdydz, dxdydz
+        )
+        np.testing.assert_array_equal(
+            study._clean_engine.span_loads.load_mass, masses
+        )
+
+    def test_copy_equivalence(self, study: SectionStudy):
+        clone = study.copy()
+        study.solve_change_state(new_temperature=80.0)
+        clone.solve_change_state(new_temperature=80.0)
+        assert self._distance(clone) == pytest.approx(self._distance(study))
+
+    def test_copy_with_manipulations(self, study: SectionStudy):
+        study.modify_support({1: {"z": 5.0}})
+        study.set_virtual_support(self.virtual_support)
+        clone = study.copy()
+        assert len(clone.balance_engine.section_array.data) == len(
+            study.balance_engine.section_array.data
+        )
+        study.solve_change_state(new_temperature=80.0)
+        clone.solve_change_state(new_temperature=80.0)
+        assert self._distance(clone, 50.0) == pytest.approx(
+            self._distance(study, 50.0)
+        )
+
+    def test_copy_unsolved(self, cable_array_AM600: CableArray):
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2"],
+                    "suspension": [False, False],
+                    "conductor_attachment_altitude": [30, 40],
+                    "crossarm_length": [0, 0],
+                    "line_angle": [0, 0],
+                    "insulator_length": [3, 3],
+                    "span_length": [500, np.nan],
+                    "insulator_mass": [1000, 1000],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        study = SectionStudy(cable_array_AM600, section_array)
+        clone = study.copy()
+        clone.solve_adjustment()
+        assert not hasattr(study._clean_engine, "L_ref")

@@ -4,31 +4,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from __future__ import annotations
+"""Compatibility exports for the legacy estimation result module."""
 
-from dataclasses import dataclass
+from mechaphlowers.core.numeric.result import EstimationResult
 
-
-@dataclass(frozen=True)
-class EstimationResult:
-    """Result of an inverse estimation solve.
-
-    Attributes:
-        value: The estimated variable value that satisfies the target.
-        residual: Final residual ``|f(value) - target|``.
-        iterations: Number of algorithm iterations.
-        converged: Whether the algorithm converged within tolerance.
-    """
-
-    value: float
-    residual: float
-    iterations: int
-    converged: bool
-
-    def __repr__(self) -> str:
-        status = "converged" if self.converged else "NOT converged"
-        return (
-            f"EstimationResult(value={self.value:.6g}, "
-            f"residual={self.residual:.3e}, "
-            f"iterations={self.iterations}, {status})"
-        )
+__all__ = ["EstimationResult"]

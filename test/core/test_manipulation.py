@@ -12,6 +12,7 @@ import pytest
 from numpy.testing import assert_allclose
 
 from mechaphlowers.core.manipulation import Manipulation
+from mechaphlowers.core.models.balance.span_loads import SpanLoads
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.errors import (
     BalanceEngineWarning,
@@ -404,6 +405,63 @@ def test_set_virtual_support_changes_data_shape(
     )
     applied = manip.from_section_array(section_array)
     assert len(applied.data) == 5
+
+
+def _virtual_support(x: float) -> dict[str, float]:
+    return {
+        "x": x,
+        "y": 0.0,
+        "z": 55.0,
+        "insulator_length": 3.0,
+        "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": x,
+    }
+
+
+def test_span_index_after_virtual_support_no_overlay(
+    manipulation: Manipulation,
+) -> None:
+    assert [
+        manipulation.span_index_after_virtual_support(i) for i in range(3)
+    ] == [0, 1, 2]
+
+
+def test_span_index_after_virtual_support_matches_span_loads(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.set_virtual_support({1: _virtual_support(100.0)})
+    span_length = manipulation._section_array.data.span_length.to_numpy()
+    for i in (0, 2):
+        positions = np.zeros(3)
+        masses = np.zeros(3)
+        positions[i] = 0.5
+        masses[i] = 10.0
+        new_loads = manipulation.build_new_span_loads_virtual_support(
+            SpanLoads(positions, masses, span_length)
+        )
+        j = manipulation.span_index_after_virtual_support(i)
+        assert j is not None
+        assert new_loads.load_mass[j] == 10.0
+        assert np.count_nonzero(new_loads.load_mass) == 1
+    assert manipulation.span_index_after_virtual_support(1) is None
+
+
+def test_span_index_after_virtual_support_multiple(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.set_virtual_support(
+        {0: _virtual_support(0.5), 2: _virtual_support(100.0)}
+    )
+    assert manipulation.span_index_after_virtual_support(0) is None
+    assert manipulation.span_index_after_virtual_support(1) == 2
+    assert manipulation.span_index_after_virtual_support(2) is None
+
+
+def test_span_index_after_virtual_support_invalid_index(
+    manipulation: Manipulation,
+) -> None:
+    with pytest.raises(InvalidManipulationIndex):
+        manipulation.span_index_after_virtual_support(3)
 
 
 def test_reset_virtual_support_restores_data_shape(
