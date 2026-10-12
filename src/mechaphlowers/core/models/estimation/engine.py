@@ -13,11 +13,13 @@ from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 
+from mechaphlowers.config import options
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.numeric import BrentMethod, EstimationResult, OptimizationMethod
 from mechaphlowers.entities.errors import (
     EstimateOnSplitSupportError,
     EstimationWarning,
+    InvalidManipulationIndex,
 )
 from mechaphlowers.utils import arr
 
@@ -244,27 +246,33 @@ class EstimationEngine:
         the altitude of the cable point lying in the vertical plane that
         contains the obstacle and is orthogonal to the span.
 
-        Existing manipulations are kept. Ropes already set on other supports
-        are kept; the rope on ``support_index`` is replaced.
+        Existing manipulations, loads and ropes on other supports are kept.
+        The chain on ``support_index`` is replaced by the rope with
+        `SectionStudy.set_rope`: the arm stays fixed, the cable attachment moves.
 
         Args:
             support_index: Index of the support (before manipulation) where
                 the rope is set.
-            span_index: Index of the span where the obstacle is located
-                (after manipulation, as in the study's balance engine).
+            span_index: Index of the span (before manipulation) where the
+                obstacle is located. Must not be split by a virtual support.
             obstacle_point: 3D coordinates of the obstacle point (shape ``(3,)``).
             target_vertical_distance: Desired vertical distance between cable
                 and obstacle (meters).
             bounds: Search interval for the rope length in meters.
             rope_lineic_mass: Linear mass of the rope in kg/m. Defaults to the
                 rope lineic mass already set on the study, or to
-                ``options.data.rope_lineic_mass_default``.
+                ``options.data.rope_lineic_mass_default``. A single value
+                applies to all ropes, including those on other supports.
             new_temperature: Fixed temperature in °C (optional).
             wind_pressure: Fixed wind pressure in Pa (optional).
             ice_thickness: Fixed ice thickness in m (optional).
 
         Returns:
             EstimationResult with the rope length value.
+
+        Raises:
+            EstimateOnSplitSupportError: If ``span_index`` is split by a virtual support.
+            InvalidManipulationIndex: If ``support_index`` is out of range.
         """
 
         objective = self._build_vertical_distance_objective__rope_case(
@@ -320,19 +328,47 @@ class EstimationEngine:
         rope_lineic_mass: float | None,
         fixed_conditions: dict[str, float | None],
     ) -> Callable[[float], float]:
-        """Build ``f(rope_length) = vertical_distance - target`` on a copy of the study."""
-        study = self._study.copy()
-        manipulation = study.manipulation
-        ropes = dict(manipulation._rope_overlay or {})
+        """Build ``f(rope_length) = vertical_distance - target`` on a copy of the study.
+
+        Each evaluation applies the rope with `SectionStudy.set_rope`, then runs
+        `SectionStudy.solve_change_state` with the fixed conditions.
+        """
+        manipulation = self._study.manipulation
+        engine_span_index = manipulation.span_index_after_virtual_support(
+            span_index
+        )
+        if engine_span_index is None:
+            raise EstimateOnSplitSupportError(
+                f"Span {span_index} is split by a virtual support: "
+                "rope estimation is not possible on this span."
+            )
+        n_supports = len(manipulation._section_array._data)
+        if support_index < 0 or support_index >= n_supports:
+            raise InvalidManipulationIndex(
+                f"Support index {support_index} is out of range [0, {n_supports - 1}]"
+            )
         if rope_lineic_mass is None:
-            rope_lineic_mass = manipulation._rope_lineic_mass
+            rope_lineic_mass = (
+                manipulation._rope_lineic_mass
+                or options.data.rope_lineic_mass_default
+            )
+        # set_rope replaces the whole overlay: keep the ropes on other supports
+        other_ropes = {
+            idx: length
+            for idx, length in (manipulation._rope_overlay or {}).items()
+            if idx != support_index
+        }
+
+        study = self._study.copy()
 
         def objective(rope_length: float) -> float:
-            ropes[support_index] = rope_length
-            study.set_rope(ropes, rope_lineic_mass)
+            study.set_rope(
+                {**other_ropes, support_index: rope_length}, rope_lineic_mass
+            )
             study.solve_change_state(**fixed_conditions)
+            # apply_manipulations rebuilds the position engine: do not cache it
             result = study.position_engine.point_distance(
-                span_index, obstacle_point
+                engine_span_index, obstacle_point
             )
             vertical_distance = result.point_target[2] - result.point_base[2]
             return vertical_distance - target_vertical_distance
@@ -377,9 +413,16 @@ class EstimationEngine:
             logger.warning(self._warning_existing_load)
             warnings.warn(self._warning_existing_load, EstimationWarning)
 
+        has_fixed_conditions = any(
+            value is not None for value in fixed_conditions.values()
+        )
+
         def objective(load_mass: float) -> float:
             load_masses[engine_span_index] = load_mass
             engine.set_loads(load_positions, load_masses)
+            if has_fixed_conditions:
+                # set_loads resets the nodes: a cold solve with ice or wind may diverge
+                engine.solve_change_state()
             engine.solve_change_state(**fixed_conditions)
             result = position_engine.point_distance(
                 engine_span_index, obstacle_point
