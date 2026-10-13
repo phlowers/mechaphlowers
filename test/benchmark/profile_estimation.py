@@ -160,7 +160,7 @@ def estimate(study: SectionStudy, scenario: dict, target_distance: float):
 def profile_entry(stats: pstats.Stats, filename: str, function: str):
     entries = [
         values
-        for (path, _line, name), values in stats.stats.items()
+        for (path, _line, name), values in stats.stats.items()  # type: ignore[attr-defined]
         if Path(path).name == filename and name == function
     ]
     calls = sum(values[1] for values in entries)
@@ -233,7 +233,7 @@ def run_scenario(scenario: dict) -> None:
         top_entries = sorted(
             (
                 (values[3], values[1], key)
-                for key, values in stats.stats.items()
+                for key, values in stats.stats.items()  # type: ignore[attr-defined]
             ),
             reverse=True,
         )[:15]

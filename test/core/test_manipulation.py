@@ -5,20 +5,24 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import warnings as _warnings
+from typing import cast
 
 import numpy as np
 import pandas as pd
 import pytest
 from numpy.testing import assert_allclose
 
+from mechaphlowers.config import options
 from mechaphlowers.core.geometry.line_angles import get_edge_arm_coords
 from mechaphlowers.core.manipulation import Manipulation
 from mechaphlowers.core.models.balance.span_loads import SpanLoads
+from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.errors import (
     BalanceEngineWarning,
     InvalidManipulationIndex,
     InvalidManipulationKeys,
+    InvalidManipulationRange,
 )
 
 
@@ -283,6 +287,18 @@ def test_rope_manipulation_invalid_index(manipulation: Manipulation) -> None:
         manipulation.set_rope({99: 3.0})
 
 
+def test_rope_overlay_without_lineic_mass_is_skipped(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    manipulation._rope_overlay = {1: 5.0}
+    applied = manipulation.from_section_array(section_array)
+    assert_allclose(
+        applied.data["insulator_length"].to_numpy(),
+        section_array.data["insulator_length"].to_numpy(),
+    )
+
+
 def test_reset_rope_manipulation(
     section_array: SectionArray,
     manipulation: Manipulation,
@@ -461,6 +477,82 @@ def _virtual_support(x: float) -> dict[str, float]:
         "insulator_mass": 500.0,
         "hanging_cable_point_from_left_support": x,
     }
+
+
+@pytest.mark.parametrize("span_index", [-1, 3])
+def test_set_virtual_support_invalid_index(
+    manipulation: Manipulation, span_index: int
+) -> None:
+    with pytest.raises(InvalidManipulationIndex, match="out of range"):
+        manipulation.set_virtual_support({span_index: _virtual_support(100.0)})
+
+
+def test_set_virtual_support_missing_keys(
+    manipulation: Manipulation,
+) -> None:
+    virtual_support = _virtual_support(100.0)
+    del virtual_support["z"]
+    with pytest.raises(InvalidManipulationKeys, match="Missing keys"):
+        manipulation.set_virtual_support({1: virtual_support})
+
+
+def test_set_virtual_support_x_out_of_range(
+    manipulation: Manipulation,
+) -> None:
+    with pytest.raises(InvalidManipulationRange, match="x=.*out of range"):
+        manipulation.set_virtual_support({1: _virtual_support(600.0)})
+
+
+def test_set_virtual_support_hanging_point_out_of_range(
+    manipulation: Manipulation,
+) -> None:
+    virtual_support = _virtual_support(100.0)
+    virtual_support["hanging_cable_point_from_left_support"] = 600.0
+    with pytest.raises(
+        InvalidManipulationRange,
+        match="hanging_cable_point_from_left_support=.*out of range",
+    ):
+        manipulation.set_virtual_support({1: virtual_support})
+
+
+def test_reset_virtual_support_no_prior(manipulation: Manipulation) -> None:
+    manipulation.reset_virtual_support()
+    assert manipulation._virtual_support_overlay is None
+
+
+def test_compute_split_l_ref_without_virtual_support(
+    manipulation: Manipulation,
+) -> None:
+    initial_l_ref = np.array([10.0, 20.0, 30.0])
+    result = manipulation.compute_split_L_ref(
+        initial_l_ref, cast(ISpan, object())
+    )
+    assert result is initial_l_ref
+
+
+def test_apply_virtual_support_overlay_without_overlay(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    raw_data = section_array._data.copy()
+    assert manipulation._apply_virtual_support_overlay(raw_data) is raw_data
+
+
+def test_apply_virtual_support_overlay_sets_ground_altitude(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    raw_data = section_array._data.copy()
+    raw_data["ground_altitude"] = [0.0, 0.0, 0.0, 0.0]
+    manipulation._virtual_support_overlay = {1: _virtual_support(100.0)}
+
+    applied = manipulation._apply_virtual_support_overlay(raw_data)
+
+    assert len(applied) == 5
+    assert applied.loc[2, "name"] == "virtual_1"
+    assert applied.loc[2, "ground_altitude"] == (
+        55.0 - options.ground.default_support_length
+    )
 
 
 def test_span_index_after_virtual_support_no_overlay(

@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import warnings
 from copy import deepcopy
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 
@@ -330,7 +330,7 @@ class EstimationEngine:
         obstacle_point: np.ndarray,
         target_vertical_distance: float,
         rope_lineic_mass: float | None,
-        fixed_conditions: dict[str, float | None],
+        fixed_conditions: dict[str, Any],
     ) -> Callable[[float], float]:
         """Build ``f(rope_length) = vertical_distance - target`` on a copy of the study.
 

@@ -4,9 +4,11 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import sys
 import warnings
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -90,6 +92,58 @@ class TestOptimizationMethods:
         result = method.solve(self._simple_objective, bounds=(3.0, 5.0))
         assert not result.converged
         assert result.value == 3.0
+
+    def test_bisection_maxiter_exhausted(self):
+        method = BisectionMethod(tol=1e-6, maxiter=0)
+        result = method.solve(self._simple_objective, bounds=(0.0, 5.0))
+        assert not result.converged
+        assert result.value == 2.5
+
+    def test_brent_falls_back_without_scipy(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setitem(sys.modules, "scipy.optimize", None)
+        method = BrentMethod(tol=1e-6, maxiter=100)
+        result = method.solve(self._simple_objective, bounds=(0.0, 5.0))
+        assert result.converged
+        assert abs(result.value - 2.0) < 1e-5
+
+    def test_brent_falls_back_without_sign_change(self):
+        method = BrentMethod(tol=1e-6, maxiter=50)
+        result = method.solve(self._simple_objective, bounds=(3.0, 5.0))
+        assert not result.converged
+        assert result.value == 3.0
+
+    def test_newton_near_zero_derivative(self):
+        method = NewtonMethod(tol=1e-6)
+        result = method.solve(lambda _x: 1.0, bounds=(0.0, 5.0))
+        assert not result.converged
+        assert result.residual == 1.0
+
+    def test_newton_maxiter_exhausted(self):
+        method = NewtonMethod(tol=1e-6, maxiter=2)
+        result = method.solve(lambda x: x + 10.0, bounds=(0.0, 1.0))
+        assert not result.converged
+        assert result.value == 0.0
+
+    def test_legacy_estimation_exports(self):
+        from mechaphlowers.core.models.estimation.methods import (
+            BisectionMethod as LegacyBisectionMethod,
+        )
+        from mechaphlowers.core.models.estimation.methods import (
+            BrentMethod as LegacyBrentMethod,
+        )
+        from mechaphlowers.core.models.estimation.methods import (
+            NewtonMethod as LegacyNewtonMethod,
+        )
+        from mechaphlowers.core.models.estimation.result import (
+            EstimationResult as LegacyEstimationResult,
+        )
+
+        assert LegacyBisectionMethod is BisectionMethod
+        assert LegacyBrentMethod is BrentMethod
+        assert LegacyNewtonMethod is NewtonMethod
+        assert LegacyEstimationResult is EstimationResult
 
 
 class TestEstimationEngine:
@@ -417,7 +471,7 @@ def reference_distance(
     study: SectionStudy,
     scenario: Scenario,
     loads: dict[int, tuple[float, float]] | None = None,
-    **conditions: float,
+    **conditions: Any,
 ) -> float:
     """Distance to the obstacle once solved on a copy, with the true value applied."""
     reference = study.copy()
@@ -435,7 +489,7 @@ def engine_span_index(study: SectionStudy, scenario: Scenario) -> int:
     return index
 
 
-@pytest.fixture(params=SCENARIOS.values(), ids=SCENARIOS.keys())
+@pytest.fixture(params=list(SCENARIOS.values()), ids=list(SCENARIOS))
 def scenario(request) -> Scenario:
     return request.param
 
@@ -508,11 +562,13 @@ class TestEstimationScenarios:
             scenario_study._clean_engine.span_loads.load_mass.copy()
         )
         engine = EstimationEngine(scenario_study, method=NewtonMethod(tol=5))
-        expected_warning = (
-            pytest.warns(EstimationWarning, match=IGNORED_LOAD_WARNING)
-            if scenario.has_load_on_span
-            else no_estimation_warning()
-        )
+        expected_warning: AbstractContextManager[Any]
+        if scenario.has_load_on_span:
+            expected_warning = pytest.warns(
+                EstimationWarning, match=IGNORED_LOAD_WARNING
+            )
+        else:
+            expected_warning = no_estimation_warning()
         with expected_warning:
             result = engine.estimate_load(
                 span_index=scenario.span,

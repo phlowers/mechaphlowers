@@ -11,6 +11,7 @@ from plotly import graph_objects as go
 
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.core.models.estimation import EstimationEngine
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import (
     BalanceEngineWarning,
@@ -167,6 +168,85 @@ class TestSectionStudyLifecycle:
         points_restored = study.get_supports_points()
 
         np.testing.assert_array_almost_equal(points_adj, points_restored)
+
+    def test_estimation_engine_setter(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        estimation_engine = EstimationEngine(study)
+        study.estimation_engine = estimation_engine
+        assert study.estimation_engine is estimation_engine
+
+    def test_repr_and_str(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        assert repr(study).startswith("SectionStudy(")
+        assert str(study) == repr(study)
+
+    def test_change_state_wrong_array_shape(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        with pytest.raises(ValueError, match="expected array of shape"):
+            study.solve_change_state(wind_pressure=np.array([1.0]))
+
+    def test_change_state_accepts_array_conditions(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        study.solve_adjustment()
+        span_shape = study.balance_engine.section_array.data.span_length.shape
+        wind_pressure = np.full(span_shape, 200.0)
+
+        study.solve_change_state(wind_pressure=wind_pressure)
+
+        np.testing.assert_array_equal(
+            study.balance_engine.balance_model.cable_loads.wind_pressure,
+            wind_pressure,
+        )
+
+    def test_add_loads_deprecated_adapter(
+        self,
+        balance_engine_base_test: BalanceEngine,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        captured: tuple[np.ndarray, np.ndarray] | None = None
+
+        def set_loads(
+            self: SectionStudy,
+            load_position_distance: np.ndarray | list[float],
+            load_mass: np.ndarray | list[float],
+        ) -> None:
+            nonlocal captured
+            captured = (
+                np.asarray(load_position_distance),
+                np.asarray(load_mass),
+            )
+
+        monkeypatch.setattr(SectionStudy, "set_loads", set_loads)
+        with pytest.warns(DeprecationWarning, match="add_loads is deprecated"):
+            study.add_loads([0.0, 100.0, 0.0, 0.0], [0.0, 50.0, 0.0, 0.0])
+
+        assert captured is not None
+        np.testing.assert_array_equal(captured[0], [0.0, 100.0, 0.0])
+        np.testing.assert_array_equal(captured[1], [0.0, 50.0, 0.0])
 
 
 class TestSectionStudyLazyEngines:
@@ -378,6 +458,11 @@ class TestSectionStudyDelegates:
         result = solved_study.supports_number()
         expected = solved_study.balance_engine.support_number
         assert result == expected
+
+    def test_get_spans_points(self, solved_study: SectionStudy):
+        result = solved_study.get_spans_points("section")
+        expected = solved_study.position_engine.get_spans_points("section")
+        np.testing.assert_array_equal(result, expected)
 
     def test_get_points_for_plot(self, solved_study: SectionStudy):
         result_span, _, _ = solved_study.get_points_for_plot()
