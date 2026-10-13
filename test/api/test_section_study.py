@@ -414,7 +414,7 @@ class TestSectionStudyDelegates:
     """Verify that SectionStudy delegate methods return the same values as
     the underlying BalanceEngine / PositionEngine."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def solved_study(
         self, balance_engine_base_test: BalanceEngine
     ) -> SectionStudy:
@@ -475,7 +475,7 @@ class TestSectionStudyDelegates:
 class TestSectionStudyManipulation:
     """Integration tests for manipulations triggered through SectionStudy."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def study(self, cable_array_AM600: CableArray) -> SectionStudy:
         section_array = SectionArray(
             pd.DataFrame(
@@ -861,7 +861,7 @@ class TestSectionStudyManipulation:
 class TestSectionStudyUpdateLoads:
     """Testing if loads are registered correctly within SectionStudy."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def study(self, cable_array_AM600: CableArray) -> SectionStudy:
         section_array = SectionArray(
             pd.DataFrame(
@@ -1139,7 +1139,7 @@ class TestSectionStudyUpdateLoads:
 
 
 class TestSectionStudyRestoreState:
-    @pytest.fixture()
+    @pytest.fixture
     def study(self, cable_array_AM600: CableArray) -> SectionStudy:
         section_array = SectionArray(
             pd.DataFrame(
@@ -1212,7 +1212,7 @@ class TestSectionStudyCopy:
         },
     }
 
-    @pytest.fixture()
+    @pytest.fixture
     def study(self, cable_array_AM600: CableArray) -> SectionStudy:
         section_array = SectionArray(
             pd.DataFrame(

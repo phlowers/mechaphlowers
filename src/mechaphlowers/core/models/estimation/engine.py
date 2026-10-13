@@ -413,7 +413,11 @@ class EstimationEngine:
         load_masses = engine.span_loads.load_mass.copy()
         load_positions[engine_span_index] = load_position_distance
 
-        if np.nan_to_num(load_masses[engine_span_index]) != 0.0:
+        if not np.isclose(
+            np.nan_to_num(load_masses[engine_span_index]),
+            0.0,
+            atol=1e-6,
+        ):
             logger.warning(self._warning_existing_load)
             warnings.warn(self._warning_existing_load, EstimationWarning)
 

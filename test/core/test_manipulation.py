@@ -483,8 +483,9 @@ def _virtual_support(x: float) -> dict[str, float]:
 def test_set_virtual_support_invalid_index(
     manipulation: Manipulation, span_index: int
 ) -> None:
+    virtual_support = _virtual_support(100.0)
     with pytest.raises(InvalidManipulationIndex, match="out of range"):
-        manipulation.set_virtual_support({span_index: _virtual_support(100.0)})
+        manipulation.set_virtual_support({span_index: virtual_support})
 
 
 def test_set_virtual_support_missing_keys(
@@ -499,8 +500,9 @@ def test_set_virtual_support_missing_keys(
 def test_set_virtual_support_x_out_of_range(
     manipulation: Manipulation,
 ) -> None:
+    virtual_support = _virtual_support(600.0)
     with pytest.raises(InvalidManipulationRange, match="x=.*out of range"):
-        manipulation.set_virtual_support({1: _virtual_support(600.0)})
+        manipulation.set_virtual_support({1: virtual_support})
 
 
 def test_set_virtual_support_hanging_point_out_of_range(
