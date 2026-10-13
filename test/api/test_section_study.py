@@ -1162,7 +1162,9 @@ class TestSectionStudyCopy:
         masses = np.copy(study._clean_engine.span_loads.load_mass)
 
         clone = study.copy()
-        clone.set_loads(np.array([100.0, 0.0, 0.0]), np.array([50.0, 0.0, 0.0]))
+        clone.set_loads(
+            np.array([100.0, 0.0, 0.0]), np.array([50.0, 0.0, 0.0])
+        )
         clone.solve_change_state(new_temperature=80.0, wind_pressure=300.0)
 
         assert study.intermediate_memento is memento

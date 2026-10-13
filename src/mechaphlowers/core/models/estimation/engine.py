@@ -15,7 +15,11 @@ import numpy as np
 
 from mechaphlowers.config import options
 from mechaphlowers.core.geometry.position_engine import PositionEngine
-from mechaphlowers.core.numeric import BrentMethod, EstimationResult, OptimizationMethod
+from mechaphlowers.core.numeric import (
+    BrentMethod,
+    EstimationResult,
+    OptimizationMethod,
+)
 from mechaphlowers.entities.errors import (
     EstimateOnSplitSupportError,
     EstimationWarning,

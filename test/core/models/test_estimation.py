@@ -404,9 +404,7 @@ def build_study(cable_array: CableArray, scenario: Scenario) -> SectionStudy:
         study.modify_support(scenario.modify_support)
     if scenario.shift_support:
         study.modify_cable(shift_support=scenario.shift_support)
-    set_study_loads(
-        study, scenario.loads
-    )
+    set_study_loads(study, scenario.loads)
     return study
 
 
@@ -506,7 +504,9 @@ class TestEstimationScenarios:
             loads={**scenario.loads, scenario.span: scenario.target_load},
             **scenario.conditions,
         )
-        masses_before = scenario_study._clean_engine.span_loads.load_mass.copy()
+        masses_before = (
+            scenario_study._clean_engine.span_loads.load_mass.copy()
+        )
         engine = EstimationEngine(scenario_study, method=NewtonMethod(tol=5))
         expected_warning = (
             pytest.warns(EstimationWarning, match=IGNORED_LOAD_WARNING)

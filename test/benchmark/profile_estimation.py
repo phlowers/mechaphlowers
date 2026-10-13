@@ -28,7 +28,11 @@ SUPPORT_MANIPULATION = {1: {"z": 1.0}}
 
 PROFILE_TARGETS = [
     ("BalanceEngine.solve_change_state", "engine.py", "solve_change_state"),
-    ("SectionStudy.solve_change_state", "section_study.py", "solve_change_state"),
+    (
+        "SectionStudy.solve_change_state",
+        "section_study.py",
+        "solve_change_state",
+    ),
     ("SectionStudy.save_state", "section_study.py", "save_state"),
     ("SectionStudy.restore_state", "section_study.py", "restore_state"),
     ("BalanceEngineCaretaker.save", "memento.py", "save"),
@@ -36,9 +40,17 @@ PROFILE_TARGETS = [
     ("PositionEngine.update", "position_engine.py", "update"),
     ("PositionEngine.reset", "position_engine.py", "reset"),
     ("CoordsCalculator.reset", "points.py", "reset"),
-    ("SectionStudy._solve_intermediate", "section_study.py", "_solve_intermediate"),
+    (
+        "SectionStudy._solve_intermediate",
+        "section_study.py",
+        "_solve_intermediate",
+    ),
     ("SectionStudy.set_loads", "section_study.py", "set_loads"),
-    ("SectionStudy._build_span_loads", "section_study.py", "_build_span_loads"),
+    (
+        "SectionStudy._build_span_loads",
+        "section_study.py",
+        "_build_span_loads",
+    ),
     ("BalanceEngine.reset", "engine.py", "reset"),
     ("PositionEngine.point_distance", "position_engine.py", "point_distance"),
 ]
@@ -63,7 +75,10 @@ SCENARIOS = [
         "known_value": 50.0,
         "bounds": (0.0, 100.0),
         "estimate_kwargs": {"load_position_distance": 100.0},
-        "reference_kwargs": {"load_position_distance": 100.0, "load_mass": 50.0},
+        "reference_kwargs": {
+            "load_position_distance": 100.0,
+            "load_mass": 50.0,
+        },
     },
     {
         "name": "estimate_temperature_manipulated",
@@ -172,9 +187,7 @@ def run_scenario(scenario: dict) -> None:
     stats = pstats.Stats(profiler)
 
     estimate_name = scenario["name"].split("_manipulated")[0]
-    _, total_cumulative = profile_entry(
-        stats, "engine.py", estimate_name
-    )
+    _, total_cumulative = profile_entry(stats, "engine.py", estimate_name)
     evaluation_count, _ = profile_entry(stats, "engine.py", "objective")
 
     print(f"\n=== {scenario['name']} ===")
@@ -188,11 +201,17 @@ def run_scenario(scenario: dict) -> None:
     print(f"{'Function':37} {'Calls':>6} {'Cum ms':>9} {'% est.':>8}")
     for label, filename, function in PROFILE_TARGETS:
         calls, cumulative = profile_entry(stats, filename, function)
-        percent = cumulative / total_cumulative * 100 if total_cumulative else 0.0
-        print(f"{label:37} {calls:6d} {cumulative * 1000:9.3f} {percent:7.2f}%")
+        percent = (
+            cumulative / total_cumulative * 100 if total_cumulative else 0.0
+        )
+        print(
+            f"{label:37} {calls:6d} {cumulative * 1000:9.3f} {percent:7.2f}%"
+        )
 
     save_cumulative = profile_entry(stats, "section_study.py", "save_state")[1]
-    restore_cumulative = profile_entry(stats, "section_study.py", "restore_state")[1]
+    restore_cumulative = profile_entry(
+        stats, "section_study.py", "restore_state"
+    )[1]
     overhead_share = (
         (save_cumulative + restore_cumulative) / total_cumulative * 100
         if total_cumulative
@@ -202,7 +221,11 @@ def run_scenario(scenario: dict) -> None:
     if estimate_name == "estimate_load":
         for function in ("_solve_intermediate", "set_loads"):
             cumulative = profile_entry(stats, "section_study.py", function)[1]
-            share = cumulative / total_cumulative * 100 if total_cumulative else 0.0
+            share = (
+                cumulative / total_cumulative * 100
+                if total_cumulative
+                else 0.0
+            )
             print(f"{function} share: {share:.2f}%")
 
     if scenario is SCENARIOS[0]:
@@ -217,8 +240,14 @@ def run_scenario(scenario: dict) -> None:
         print(f"{'Function':42} {'Calls':>6} {'Cum ms':>9} {'% est.':>8}")
         for cumulative, calls, (path, line, function) in top_entries:
             label = f"{Path(path).stem}.{function}"
-            percent = cumulative / total_cumulative * 100 if total_cumulative else 0.0
-            print(f"{label:42} {calls:6d} {cumulative * 1000:9.3f} {percent:7.2f}%")
+            percent = (
+                cumulative / total_cumulative * 100
+                if total_cumulative
+                else 0.0
+            )
+            print(
+                f"{label:42} {calls:6d} {cumulative * 1000:9.3f} {percent:7.2f}%"
+            )
 
 
 def main() -> None:
