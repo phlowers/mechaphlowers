@@ -12,6 +12,7 @@ This module provides functions to compute various measures on sections and spans
 
 import logging
 from abc import ABC, abstractmethod
+from typing import Any, overload
 
 import numpy as np
 
@@ -28,7 +29,11 @@ from mechaphlowers.core.tangential_sighting.tangential_sighting import (
 from mechaphlowers.data.units import convert_angle_to_rad
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import MeasurementDataNotAvailable
-from mechaphlowers.utils import Number, float_to_array
+from mechaphlowers.utils import (
+    Number,
+    float_to_array,
+    is_number,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -339,6 +344,30 @@ class PapotoParameterMeasure(ParameterMeasure):
 class TangentialSightingParameterMeasure(ParameterMeasure):
     """Class to compute a parameter using the tangential sighting method."""
 
+    @overload
+    def measure_method(
+        self,
+        angle_to_cable_tangent: Number,
+        angle_to_left_support: Number,
+        angle_to_right_support: Number,
+        span_length: Number,
+        input_height: Number,
+        distance: Number,
+        angle_unit: str = "grad",
+    ) -> None: ...
+
+    @overload
+    def measure_method(
+        self,
+        angle_to_cable_tangent: np.ndarray,
+        angle_to_left_support: np.ndarray,
+        angle_to_right_support: np.ndarray,
+        span_length: np.ndarray,
+        input_height: np.ndarray,
+        distance: np.ndarray,
+        angle_unit: str = "grad",
+    ) -> None: ...
+
     def measure_method(
         self,
         angle_to_cable_tangent: np.ndarray | Number,
@@ -371,7 +400,11 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             None. The computed parameter is available through the `parameter` property.
 
         Raises:
-            ValueError: if any of the angles is not comprised between 0 and Pi rad;
+            TypeError:
+                if an argument isn't a Number (int or float) nor an array, or if Number and array arguments are mixed.
+            ValueError:
+                if arguments are arrays of different shapes,
+                if any of the angles is not comprised between 0 and Pi rad,
                 if angle_to_cable_tangent is zero,
                 if span_length is negative or zero,
                 if input_height is strictly negative,
@@ -380,6 +413,15 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
                 if both distance and input_height are provided, non-zero and not nan,
                 if distance isn't zero, and angle_to_left_support is zero (geometrically impossible).
         """
+        self._check_arguments_are_either_all_scalars_or_all_arrays(
+            angle_to_cable_tangent,
+            angle_to_left_support,
+            angle_to_right_support,
+            distance,
+            input_height,
+            span_length,
+        )
+
         angle_to_cable_tangent = convert_angle_to_rad(  # type: ignore
             angle_to_cable_tangent,
             angle_unit,
@@ -410,6 +452,44 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
                 span_length,  # type: ignore
                 input_height,  # type: ignore
                 distance,  # type: ignore
+            )
+
+    @staticmethod
+    def _check_arguments_are_either_all_scalars_or_all_arrays(
+        angle_to_cable_tangent: np.ndarray[Any, Any] | float | int,
+        angle_to_left_support: np.ndarray[Any, Any] | float | int,
+        angle_to_right_support: np.ndarray[Any, Any] | float | int,
+        distance: np.ndarray[Any, Any] | float | int,
+        input_height: np.ndarray[Any, Any] | float | int,
+        span_length: np.ndarray[Any, Any] | float | int,
+    ):
+        kwargs = {
+            "angle_to_cable_tangent": angle_to_cable_tangent,
+            "angle_to_left_support": angle_to_left_support,
+            "angle_to_right_support": angle_to_right_support,
+            "span_length": span_length,
+            "input_height": input_height,
+            "distance": distance,
+        }
+
+        if isinstance(angle_to_cable_tangent, np.ndarray):
+            for key, value in kwargs.items():
+                if not isinstance(value, np.ndarray):
+                    raise TypeError(
+                        f"Arguments of TangentialSightingParameterMeasure.measure_method must either all be scalars or all be arrays.\n"
+                        f"Got 'angle_to_cable_tangent' of type {type(angle_to_cable_tangent).__name__} and '{key}' of type {type(value).__name__}."
+                    )
+        elif is_number(angle_to_cable_tangent):
+            for key, value in kwargs.items():
+                if not is_number(value):
+                    raise TypeError(
+                        f"Arguments of TangentialSightingParameterMeasure.measure_method must either all be scalars or all be arrays.\n"
+                        f"Got 'angle_to_cable_tangent' of type {type(angle_to_cable_tangent).__name__} and '{key}' of type {type(value).__name__}."
+                    )
+        else:
+            raise TypeError(
+                "Arguments of TangentialSightingParameterMeasure.measure_method must be scalars or arrays.\n"
+                "Got 'angle_to_cable_tangent' of type {type(angle_to_cable_tangent).__name__}"
             )
 
     @property
