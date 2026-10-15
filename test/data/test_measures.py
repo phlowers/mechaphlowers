@@ -604,7 +604,7 @@ def test_tangential_sighting_check_validity__nan_distance() -> None:
     assert tangential_sighting.check_validity()
 
 
-def test_tangential_sighting_check_validity__threshold_edge(
+def test_tangential_sighting_check_validity__threshold(
     monkeypatch,
 ) -> None:
     tangential_sighting = TangentialSightingParameterMeasure()
@@ -618,13 +618,12 @@ def test_tangential_sighting_check_validity__threshold_edge(
         angle_unit="grad",
     )
     uncertainty = tangential_sighting.uncertainty()
-    # strict comparison: uncertainty equal to the threshold is not valid
     monkeypatch.setattr(
         TangentialSightingParameterMeasure,
         "MAX_ACCEPTED_UNCERTAINTY",
         uncertainty,
     )
-    assert not tangential_sighting.check_validity()
+    assert tangential_sighting.check_validity()
     monkeypatch.setattr(
         TangentialSightingParameterMeasure,
         "MAX_ACCEPTED_UNCERTAINTY",

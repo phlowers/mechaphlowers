@@ -719,9 +719,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
 
         The parameter is considered valid if its relative uncertainty is below a certain threshold.
         """
-        return (
-            self.relative_uncertainty() < self.MAX_ACCEPTED_UNCERTAINTY
-        )  # TODO: check: < or <=?
+        return self.relative_uncertainty() <= self.MAX_ACCEPTED_UNCERTAINTY
 
 
 def param_calibration(
