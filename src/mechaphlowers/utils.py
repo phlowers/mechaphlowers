@@ -256,13 +256,34 @@ T = TypeVar("T", bound=Callable[..., Any])
 Number = float | int
 
 
+def is_number(value: Any) -> bool:
+    return isinstance(value, Real) and not isinstance(
+        value, bool
+    )  # booleans are "Real" but we don't want them
+
+
 def check_inputs_are_numbers(**kwargs) -> None:
     for key, value in kwargs.items():
-        if not isinstance(value, Real) or isinstance(
-            value, bool
-        ):  # booleans are "Real" but we don't want them
+        if not is_number(value):
             raise TypeError(
                 f"Argument {key} should be a number, but got {type(value).__name__}"
+            )
+
+
+def check_all_arrays_have_the_same_shape(
+    caller_name: str,
+    **kwargs: np.ndarray,
+) -> None:
+    if not kwargs:
+        return
+
+    first_parameter_name, first_value = next(iter(kwargs.items()))
+    first_shape = first_value.shape
+
+    for parameter_name, value in kwargs.items():
+        if value.shape != first_shape:
+            raise ValueError(
+                f"All array arguments of {caller_name} should have the same shape, but got shape {first_shape} for {first_parameter_name} and shape {value.shape} for {parameter_name}"
             )
 
 
