@@ -533,8 +533,8 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
     def parameter(self) -> np.ndarray | Number:
         return self._parameter
 
-    def uncertainty(self) -> Number:
-        """Returns the relative uncertainty of the parameter, computed using the GUM method.
+    def absolute_uncertainty(self) -> Number:
+        """Returns the absolute uncertainty of the parameter, computed using the GUM method.
 
         Raises ValueError if the input measures are not scalar.  TODO
         Raises MeasurementDataNotAvailable if measure_method() has not been called before.
@@ -555,19 +555,29 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             np.isnan(scalar_measures["distance"])
             or scalar_measures["distance"] == 0
         ):
-            absolute_uncertainty = (
-                self._absolute_uncertainty__sighting_device_at_support(
-                    scalar_measures,
-                )
+            return self._absolute_uncertainty__sighting_device_at_support(
+                scalar_measures,
             )
         else:
-            absolute_uncertainty = (
-                self._absolute_uncertainty__sighting_device_not_at_support(
-                    scalar_measures,
-                )
+            return self._absolute_uncertainty__sighting_device_not_at_support(
+                scalar_measures,
             )
 
-        return absolute_uncertainty / self.parameter  # type:ignore
+    def relative_uncertainty(self) -> Number:
+        """Returns the relative uncertainty of the parameter, computed using the GUM method.
+
+        Raises ValueError if the input measures are not scalar.  TODO
+        Raises MeasurementDataNotAvailable if measure_method() has not been called before.
+        """
+        return self.absolute_uncertainty() / self.parameter  # type:ignore
+
+    def uncertainty(self) -> Number:
+        """Returns the relative uncertainty of the parameter, computed using the GUM method.
+
+        Raises ValueError if the input measures are not scalar.  TODO
+        Raises MeasurementDataNotAvailable if measure_method() has not been called before.
+        """
+        return self.relative_uncertainty()
 
     def _absolute_uncertainty__sighting_device_at_support(
         self, scalar_measures: dict[str, Number]
@@ -707,10 +717,10 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
     def check_validity(self) -> bool:
         """Returns True if the parameter is valid, False otherwise.
 
-        The parameter is considered valid if its uncertainty is below a certain threshold.
+        The parameter is considered valid if its relative uncertainty is below a certain threshold.
         """
         return (
-            self.uncertainty() < self.MAX_ACCEPTED_UNCERTAINTY
+            self.relative_uncertainty() < self.MAX_ACCEPTED_UNCERTAINTY
         )  # TODO: check: < or <=?
 
 
