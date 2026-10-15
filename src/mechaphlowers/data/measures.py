@@ -12,7 +12,7 @@ This module provides functions to compute various measures on sections and spans
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, overload
+from typing import Any, Literal, overload
 
 import numpy as np
 
@@ -28,7 +28,12 @@ from mechaphlowers.core.tangential_sighting.tangential_sighting import (
 )
 from mechaphlowers.data.units import convert_angle_to_rad
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.errors import MeasurementDataNotAvailable
+from mechaphlowers.entities.errors import (
+    MeasurementDataNotAvailable,
+    MechaphlowersTypeError,
+    MechaphlowersValueError,
+    MixedScalarAndArrayInputsError,
+)
 from mechaphlowers.utils import (
     Number,
     float_to_array,
@@ -36,6 +41,9 @@ from mechaphlowers.utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+DEFAULT_ANGLE_UNCERTAINTY = convert_angle_to_rad(0.01, "grad")
 
 
 class ParameterMeasure(ABC):
@@ -67,6 +75,25 @@ class ParameterMeasure(ABC):
 
     def __call__(self, *args, **kwargs):
         self.measure_method(*args, **kwargs)
+
+    @staticmethod
+    def _check_input_measures_are_scalar_or_scalar_like(
+        measures: dict[str, np.ndarray | Number],
+    ) -> dict[str, Number]:
+        output = {}
+        for key, value in measures.items():
+            if isinstance(value, np.ndarray) and value.ndim > 0:
+                raise MechaphlowersValueError(
+                    "uncertainty() only supports scalar inputs or scalar-like inputs. "
+                    "Call measure_method() with proper inputs."
+                )
+            if isinstance(
+                value, np.ndarray
+            ):  # TODO: remove? (Do we want to support single-element arrays?)
+                output[key] = value[0]
+            else:
+                output[key] = value
+        return output
 
 
 class PapotoParameterMeasure(ParameterMeasure):
@@ -318,12 +345,9 @@ class PapotoParameterMeasure(ParameterMeasure):
         }
 
     def _validate_inputs_uncertainty(self, draw_number, angle_error):
-        for value in self._base_measures.values():
-            if isinstance(value, np.ndarray) and value.ndim > 0:
-                raise ValueError(
-                    "uncertainty() only supports scalar inputs. "
-                    "Call measure_method() with scalar angle values."
-                )
+        self._check_input_measures_are_scalar_or_scalar_like(
+            self._base_measures
+        )
         if (
             isinstance(draw_number, bool)
             or not isinstance(draw_number, (int, np.integer))
@@ -343,6 +367,15 @@ class PapotoParameterMeasure(ParameterMeasure):
 
 class TangentialSightingParameterMeasure(ParameterMeasure):
     """Class to compute a parameter using the tangential sighting method."""
+
+    STEP_FOR_APPROX_DERIVATIVE = 1e-6
+
+    ANGLE_UNCERTAINTY = convert_angle_to_rad(0.01, "grad")
+    SPAN_LENGTH_UNCERTAINTY = 0.5
+    INPUT_LENGTH_UNCERTAINTY = 0.1
+    DISTANCE_UNCERTAINTY = 0.5
+
+    MAX_ACCEPTED_UNCERTAINTY = 0.01
 
     @overload
     def measure_method(
@@ -400,11 +433,15 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             None. The computed parameter is available through the `parameter` property.
 
         Raises:
-            TypeError:
-                if an argument isn't a Number (int or float) nor an array, or if Number and array arguments are mixed.
-            ValueError:
-                if arguments are arrays of different shapes,
-                if any of the angles is not comprised between 0 and Pi rad,
+            ShapeError:
+                if arguments (other than angle_unit) are arrays with different shapes,
+            MechaphlowersTypeError:
+                if an argument (other than angle_unit) is neither a Number (int or float) nor an array,
+            MixedScalarAndArrayInputsError:
+                if arguments (other than angle_unit) mix scalars and arrays,
+            InputAngleNotInRangeError:
+                if any of the angles is not between 0 and Pi,
+            MechaphlowersValueError:
                 if angle_to_cable_tangent is zero,
                 if span_length is negative or zero,
                 if input_height is strictly negative,
@@ -412,6 +449,8 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
                 the parameter),
                 if both distance and input_height are provided, non-zero and not nan,
                 if distance isn't zero, and angle_to_left_support is zero (geometrically impossible).
+            ConvergenceError:
+                if the computation of the parameter fails to converge.
         """
         self._check_arguments_are_either_all_scalars_or_all_arrays(
             angle_to_cable_tangent,
@@ -434,6 +473,15 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             angle_to_right_support,
             angle_unit,
         )
+
+        self.measures_converted = {
+            "angle_to_cable_tangent": angle_to_cable_tangent,
+            "angle_to_left_support": angle_to_left_support,
+            "angle_to_right_support": angle_to_right_support,
+            "span_length": span_length,
+            "input_height": input_height,
+            "distance": distance,
+        }
 
         if isinstance(angle_to_cable_tangent, np.ndarray):
             self._parameter = compute_parameter__array(
@@ -475,19 +523,19 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
         if isinstance(angle_to_cable_tangent, np.ndarray):
             for key, value in kwargs.items():
                 if not isinstance(value, np.ndarray):
-                    raise TypeError(
+                    raise MixedScalarAndArrayInputsError(
                         f"Arguments of TangentialSightingParameterMeasure.measure_method must either all be scalars or all be arrays.\n"
                         f"Got 'angle_to_cable_tangent' of type {type(angle_to_cable_tangent).__name__} and '{key}' of type {type(value).__name__}."
                     )
         elif is_number(angle_to_cable_tangent):
             for key, value in kwargs.items():
                 if not is_number(value):
-                    raise TypeError(
+                    raise MixedScalarAndArrayInputsError(
                         f"Arguments of TangentialSightingParameterMeasure.measure_method must either all be scalars or all be arrays.\n"
                         f"Got 'angle_to_cable_tangent' of type {type(angle_to_cable_tangent).__name__} and '{key}' of type {type(value).__name__}."
                     )
         else:
-            raise TypeError(
+            raise MechaphlowersTypeError(
                 "Arguments of TangentialSightingParameterMeasure.measure_method must be scalars or arrays.\n"
                 "Got 'angle_to_cable_tangent' of type {type(angle_to_cable_tangent).__name__}"
             )
@@ -495,6 +543,194 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
     @property
     def parameter(self) -> np.ndarray | Number:
         return self._parameter
+
+    def absolute_uncertainty(self) -> Number:
+        """Returns the absolute uncertainty of the parameter, computed using the GUM method.
+
+        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.  TODO
+        Raises MeasurementDataNotAvailable if measure_method() has not been called before.
+        """
+        # TODO: store result so as not to recompute it if this method (or check_validity) is called by the user
+        #  after this call?
+        if not hasattr(self, 'measures_converted'):
+            raise MeasurementDataNotAvailable(
+                "measure_method() must be called before uncertainty()."
+            )
+
+        # We only support uncertainty computation for scalar inputs
+        scalar_measures = self._check_input_measures_are_scalar_or_scalar_like(
+            self.measures_converted,
+        )
+
+        if (
+            np.isnan(scalar_measures["distance"])
+            or scalar_measures["distance"] == 0
+        ):
+            return self._absolute_uncertainty__sighting_device_at_support(
+                scalar_measures,
+            )
+        else:
+            return self._absolute_uncertainty__sighting_device_not_at_support(
+                scalar_measures,
+            )
+
+    def relative_uncertainty(self) -> Number:
+        """Returns the relative uncertainty of the parameter, computed using the GUM method.
+
+        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.  TODO
+        Raises MeasurementDataNotAvailable if measure_method() has not been called before.
+        """
+        return self.absolute_uncertainty() / self.parameter  # type:ignore
+
+    def uncertainty(self) -> Number:
+        """Returns the relative uncertainty of the parameter, computed using the GUM method.
+
+        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.  TODO
+        Raises MeasurementDataNotAvailable if measure_method() has not been called before.
+        """
+        return self.relative_uncertainty()
+
+    def _absolute_uncertainty__sighting_device_at_support(
+        self, scalar_measures: dict[str, Number]
+    ) -> Number:
+        # Uncertainty comes only from uncertainties on angle_to_cable_tangent, angle_to_right_support,
+        # span_length and input_height.
+        square_uncertainty = (
+            (
+                self._approx_parameter_partial_derivative(
+                    "angle_to_cable_tangent",
+                    **scalar_measures,
+                )
+                * self.ANGLE_UNCERTAINTY
+            )
+            ** 2
+            + (
+                self._approx_parameter_partial_derivative(
+                    "angle_to_right_support",
+                    **scalar_measures,
+                )
+                * self.ANGLE_UNCERTAINTY
+            )
+            ** 2
+            + (
+                self._approx_parameter_partial_derivative(
+                    "span_length",
+                    **scalar_measures,
+                )
+                * self.SPAN_LENGTH_UNCERTAINTY
+            )
+            ** 2
+            + (
+                self._approx_parameter_partial_derivative(
+                    "input_height",
+                    **scalar_measures,
+                )
+                * self.INPUT_LENGTH_UNCERTAINTY
+            )
+            ** 2
+        )
+        return np.sqrt(square_uncertainty)
+
+    def _absolute_uncertainty__sighting_device_not_at_support(
+        self, scalar_measures: dict[str, Number]
+    ) -> Number:
+        # Uncertainty comes only from uncertainties on angle_to_cable_tangent, angle_to_left_support,
+        # angle_to_right_support, span_length and distance.
+        square_uncertainty = (
+            (
+                self._approx_parameter_partial_derivative(
+                    "angle_to_cable_tangent",
+                    **scalar_measures,
+                )
+                * self.ANGLE_UNCERTAINTY
+            )
+            ** 2
+            + (
+                self._approx_parameter_partial_derivative(
+                    "angle_to_left_support",
+                    **scalar_measures,
+                )
+                * self.ANGLE_UNCERTAINTY
+            )
+            ** 2
+            + (
+                self._approx_parameter_partial_derivative(
+                    "angle_to_right_support",
+                    **scalar_measures,
+                )
+                * self.ANGLE_UNCERTAINTY
+            )
+            ** 2
+            + (
+                self._approx_parameter_partial_derivative(
+                    "span_length",
+                    **scalar_measures,
+                )
+                * self.SPAN_LENGTH_UNCERTAINTY
+            )
+            ** 2
+            + (
+                self._approx_parameter_partial_derivative(
+                    "distance",
+                    **scalar_measures,
+                )
+                * self.DISTANCE_UNCERTAINTY
+            )
+            ** 2
+        )
+
+        return np.sqrt(square_uncertainty)
+
+    def _approx_parameter_partial_derivative(
+        self,
+        variable_name: Literal[
+            "angle_to_cable_tangent",
+            "angle_to_left_support",
+            "angle_to_right_support",
+            "span_length",
+            "input_height",
+            "distance",
+        ],
+        angle_to_cable_tangent: Number,
+        angle_to_left_support: Number,
+        angle_to_right_support: Number,
+        span_length: Number,
+        input_height: Number,
+        distance: Number,
+    ) -> Number:
+        """Returns a partial derivative of the parameter computed using centered approximation."""
+        kwargs: dict[str, Number] = {
+            "angle_to_cable_tangent": angle_to_cable_tangent,
+            "angle_to_left_support": angle_to_left_support,
+            "angle_to_right_support": angle_to_right_support,
+            "span_length": span_length,
+            "input_height": input_height,
+            "distance": distance,
+        }
+        variable_value = kwargs.pop(variable_name)
+        return (
+            compute_parameter__scalar(  # type: ignore  # TODO
+                **kwargs,
+                **{
+                    variable_name: variable_value
+                    + self.STEP_FOR_APPROX_DERIVATIVE
+                },
+            )
+            - compute_parameter__scalar(  # type: ignore  # TODO
+                **kwargs,
+                **{
+                    variable_name: variable_value
+                    - self.STEP_FOR_APPROX_DERIVATIVE
+                },
+            )
+        ) / (2 * self.STEP_FOR_APPROX_DERIVATIVE)
+
+    def check_validity(self) -> bool:
+        """Returns True if the parameter is valid, False otherwise.
+
+        The parameter is considered valid if its relative uncertainty is below a certain threshold.
+        """
+        return self.relative_uncertainty() <= self.MAX_ACCEPTED_UNCERTAINTY
 
 
 def param_calibration(
