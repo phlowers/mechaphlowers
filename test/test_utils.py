@@ -13,6 +13,7 @@ import pytest
 from xxhash import xxh3_64
 
 from mechaphlowers.config import options
+from mechaphlowers.entities.errors import MechaphlowersTypeError, ShapeError, MechaphlowersValueError
 from mechaphlowers.utils import (
     CachedAccessor,
     acotan,
@@ -263,7 +264,7 @@ def test_check_inputs_are_numbers_empty() -> None:
 )
 def test_check_inputs_are_numbers_invalid(invalid_input, type_name) -> None:
     with pytest.raises(
-        TypeError,
+        MechaphlowersTypeError,
         match=f"Argument val should be a number, but got {type_name}",
     ):
         check_inputs_are_numbers(val=invalid_input)
@@ -271,7 +272,7 @@ def test_check_inputs_are_numbers_invalid(invalid_input, type_name) -> None:
 
 def test_check_inputs_are_numbers_mixed_valid_and_invalid() -> None:
     with pytest.raises(
-        TypeError,
+        MechaphlowersTypeError,
         match="Argument bad should be a number, but got str",
     ):
         check_inputs_are_numbers(good1=1, good2=2.5, bad="not a number")
@@ -300,7 +301,7 @@ def test_cotan_passing_cases() -> None:
 )
 def test_cotan_error_cases(invalid_input) -> None:
     with pytest.raises(
-        ValueError, match="x must be different from 0, pi etc."
+        MechaphlowersValueError, match="x must be different from 0, pi etc."
     ):
         cotan(invalid_input)
 
@@ -337,5 +338,5 @@ def test_check_all_arrays_have_the_same_shape():
     check_all_arrays_have_the_same_shape(
         caller_name="f", a=np.zeros(3), b=np.ones(3)
     )
-    with pytest.raises(ValueError, match="same shape"):
+    with pytest.raises(ShapeError, match="same shape"):
         check_all_arrays_have_the_same_shape("f", a=np.zeros(3), b=np.ones(2))

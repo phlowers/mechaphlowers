@@ -2,7 +2,11 @@ from typing import Tuple
 
 import numpy as np
 
-from mechaphlowers.entities.errors import ConvergenceError
+from mechaphlowers.entities.errors import (
+    ConvergenceError,
+    InputAngleNotInRangeError,
+    MechaphlowersValueError,
+)
 from mechaphlowers.numeric.newton import newton_solver_wrapper
 from mechaphlowers.utils import (
     Number,
@@ -50,24 +54,26 @@ def _validate_inputs(
         ],
     ):
         if np.logical_or(angle < 0, angle > np.pi).any():
-            raise ValueError(
+            raise InputAngleNotInRangeError(
                 f"All input angles must be between 0 and pi radians, got {variable_name}={angle} rad."
             )
     if (angle_to_cable_tangent == 0).any():
-        raise ValueError(
+        raise InputAngleNotInRangeError(
             f"Can't compute a parameter if angle_to_cable_tangent == 0. Got {angle_to_cable_tangent=}"
         )
     if (span_length <= 0).any():
-        raise ValueError(f"span_length must be positive, got {span_length}.")
+        raise MechaphlowersValueError(
+            f"span_length must be positive, got {span_length}."
+        )
     if (input_height < 0).any():
-        raise ValueError(
+        raise MechaphlowersValueError(
             f"input_height must be strictly positive, got {input_height}."
         )
     if (
         ((input_height == 0) | np.isnan(input_height))
         & ((distance == 0) | np.isnan(distance))
     ).any():
-        raise ValueError(
+        raise MechaphlowersValueError(
             "input_height or distance must be provided (not zero, not nan)"
         )
     if (
@@ -76,19 +82,19 @@ def _validate_inputs(
         & (distance != 0)
         & ~np.isnan(distance)
     ).any():
-        raise ValueError(
+        raise MechaphlowersValueError(
             "input_height and distance can't be both provided (not zero, not nan)"
         )
     if (
         (angle_to_left_support == 0) & (distance != 0) & ~np.isnan(distance)
     ).any():
-        raise ValueError(
+        raise MechaphlowersValueError(
             "If the angle to the left support is zero, the distance must be zero or nan."
         )
     if (
         ((distance == 0) | np.isnan(distance)) & (angle_to_left_support != 0)
     ).any():
-        raise ValueError(
+        raise MechaphlowersValueError(
             "If the distance is zero or nan, the angle to the left support must be zero."
         )
 
@@ -150,7 +156,11 @@ def compute_parameter__array(
         Computed parameters (as an array).
 
     Raises:
-        ValueError: if any of the angles is not comprised between 0 and Pi;
+        ShapeError:
+            if arguments (other than angle_unit) are arrays with different shapes,
+        InputAngleNotInRangeError:
+            if any of the angles is not comprised between 0 and Pi,
+        MechaphlowersValueError:
             if angle_to_cable_tangent is zero,
             if span_length is negative or zero,
             if input_height is strictly negative,
@@ -158,7 +168,8 @@ def compute_parameter__array(
             the parameter),
             if both distance and input_height are provided, non-zero and not nan,
             if distance isn't zero, and angle_to_left_support is zero (geometrically impossible).
-
+        ConvergenceError:
+            if the computation of the parameter fails to converge.
     """
     (
         angle_to_cable_tangent,

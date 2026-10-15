@@ -28,7 +28,12 @@ from mechaphlowers.core.tangential_sighting.tangential_sighting import (
 )
 from mechaphlowers.data.units import convert_angle_to_rad
 from mechaphlowers.entities.arrays import CableArray, SectionArray
-from mechaphlowers.entities.errors import MeasurementDataNotAvailable
+from mechaphlowers.entities.errors import (
+    MeasurementDataNotAvailable,
+    MechaphlowersTypeError,
+    MechaphlowersValueError,
+    MixedScalarAndArrayInputsError,
+)
 from mechaphlowers.utils import (
     Number,
     float_to_array,
@@ -78,9 +83,9 @@ class ParameterMeasure(ABC):
         output = {}
         for key, value in measures.items():
             if isinstance(value, np.ndarray) and value.ndim > 0:
-                raise ValueError(
-                    "uncertainty() only supports scalar inputs. "
-                    "Call measure_method() with scalar inputs."
+                raise MechaphlowersValueError(
+                    "uncertainty() only supports scalar inputs or scalar-like inputs. "
+                    "Call measure_method() with proper inputs."
                 )
             if isinstance(
                 value, np.ndarray
@@ -428,11 +433,15 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             None. The computed parameter is available through the `parameter` property.
 
         Raises:
-            TypeError:
-                if an argument isn't a Number (int or float) nor an array, or if Number and array arguments are mixed.
-            ValueError:
-                if arguments are arrays of different shapes,
-                if any of the angles is not comprised between 0 and Pi rad,
+            ShapeError:
+                if arguments (other than angle_unit) are arrays with different shapes,
+            MechaphlowersTypeError:
+                if an argument (other than angle_unit) is neither a Number (int or float) nor an array,
+            MixedScalarAndArrayInputsError:
+                if arguments (other than angle_unit) mix scalars and arrays,
+            InputAngleNotInRangeError:
+                if any of the angles is not between 0 and Pi,
+            MechaphlowersValueError:
                 if angle_to_cable_tangent is zero,
                 if span_length is negative or zero,
                 if input_height is strictly negative,
@@ -440,6 +449,8 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
                 the parameter),
                 if both distance and input_height are provided, non-zero and not nan,
                 if distance isn't zero, and angle_to_left_support is zero (geometrically impossible).
+            ConvergenceError:
+                if the computation of the parameter fails to converge.
         """
         self._check_arguments_are_either_all_scalars_or_all_arrays(
             angle_to_cable_tangent,
@@ -512,19 +523,19 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
         if isinstance(angle_to_cable_tangent, np.ndarray):
             for key, value in kwargs.items():
                 if not isinstance(value, np.ndarray):
-                    raise TypeError(
+                    raise MixedScalarAndArrayInputsError(
                         f"Arguments of TangentialSightingParameterMeasure.measure_method must either all be scalars or all be arrays.\n"
                         f"Got 'angle_to_cable_tangent' of type {type(angle_to_cable_tangent).__name__} and '{key}' of type {type(value).__name__}."
                     )
         elif is_number(angle_to_cable_tangent):
             for key, value in kwargs.items():
                 if not is_number(value):
-                    raise TypeError(
+                    raise MixedScalarAndArrayInputsError(
                         f"Arguments of TangentialSightingParameterMeasure.measure_method must either all be scalars or all be arrays.\n"
                         f"Got 'angle_to_cable_tangent' of type {type(angle_to_cable_tangent).__name__} and '{key}' of type {type(value).__name__}."
                     )
         else:
-            raise TypeError(
+            raise MechaphlowersTypeError(
                 "Arguments of TangentialSightingParameterMeasure.measure_method must be scalars or arrays.\n"
                 "Got 'angle_to_cable_tangent' of type {type(angle_to_cable_tangent).__name__}"
             )
@@ -536,7 +547,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
     def absolute_uncertainty(self) -> Number:
         """Returns the absolute uncertainty of the parameter, computed using the GUM method.
 
-        Raises ValueError if the input measures are not scalar.  TODO
+        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.  TODO
         Raises MeasurementDataNotAvailable if measure_method() has not been called before.
         """
         # TODO: store result so as not to recompute it if this method (or check_validity) is called by the user
@@ -566,7 +577,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
     def relative_uncertainty(self) -> Number:
         """Returns the relative uncertainty of the parameter, computed using the GUM method.
 
-        Raises ValueError if the input measures are not scalar.  TODO
+        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.  TODO
         Raises MeasurementDataNotAvailable if measure_method() has not been called before.
         """
         return self.absolute_uncertainty() / self.parameter  # type:ignore
@@ -574,7 +585,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
     def uncertainty(self) -> Number:
         """Returns the relative uncertainty of the parameter, computed using the GUM method.
 
-        Raises ValueError if the input measures are not scalar.  TODO
+        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.  TODO
         Raises MeasurementDataNotAvailable if measure_method() has not been called before.
         """
         return self.relative_uncertainty()

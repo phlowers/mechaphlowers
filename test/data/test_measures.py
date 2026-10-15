@@ -16,7 +16,8 @@ from mechaphlowers.data.measures import (
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import (
     ConvergenceError,
-    MeasurementDataNotAvailable,
+    MeasurementDataNotAvailable, MixedScalarAndArrayInputsError, MechaphlowersTypeError, ShapeError,
+    MechaphlowersValueError,
 )
 
 PAPOTO_INPUTS = dict(
@@ -317,7 +318,7 @@ def test_tangential_sighting_parameter_measure__mixed_scalar_array__type_error_1
     None
 ):
     tangential_sighting = TangentialSightingParameterMeasure()
-    with pytest.raises(TypeError, match="span_length"):
+    with pytest.raises(MixedScalarAndArrayInputsError, match="span_length"):
         tangential_sighting(
             angle_to_cable_tangent=101.607,
             angle_to_left_support=50,
@@ -333,7 +334,7 @@ def test_tangential_sighting_parameter_measure__mixed_scalar_array__type_error_2
     None
 ):
     tangential_sighting = TangentialSightingParameterMeasure()
-    with pytest.raises(TypeError, match="distance"):
+    with pytest.raises(MixedScalarAndArrayInputsError, match="distance"):
         tangential_sighting(
             angle_to_cable_tangent=np.array([101.607]),
             angle_to_left_support=np.array([50]),
@@ -349,7 +350,7 @@ def test_tangential_sighting_parameter_measure__invalid_type__type_error() -> (
     None
 ):
     tangential_sighting = TangentialSightingParameterMeasure()
-    with pytest.raises(TypeError, match="scalars or arrays"):
+    with pytest.raises(MechaphlowersTypeError, match="scalars or arrays"):
         tangential_sighting(
             angle_to_cable_tangent="abc",
             angle_to_left_support=50,
@@ -363,7 +364,7 @@ def test_tangential_sighting_parameter_measure__invalid_type__type_error() -> (
 
 def test_tangential_sighting_parameter_measure__bool__type_error() -> None:
     tangential_sighting = TangentialSightingParameterMeasure()
-    with pytest.raises(TypeError):
+    with pytest.raises(MechaphlowersTypeError):
         tangential_sighting(
             angle_to_cable_tangent=True,
             angle_to_left_support=50,
@@ -379,7 +380,7 @@ def test_tangential_sighting_parameter_measure__different_shapes__value_error() 
     None
 ):
     tangential_sighting = TangentialSightingParameterMeasure()
-    with pytest.raises(ValueError, match="same shape"):
+    with pytest.raises(ShapeError, match="same shape"):
         tangential_sighting(
             angle_to_cable_tangent=np.array([101.607, 101.607]),
             angle_to_left_support=np.array([50, 50]),
@@ -526,7 +527,7 @@ def test_tangential_sighting_uncertainty_multi_element_array_inputs_error() -> (
         distance=np.array([50, 50]),
         angle_unit="grad",
     )
-    with pytest.raises(ValueError, match="scalar"):
+    with pytest.raises(MechaphlowersValueError, match="scalar"):
         tangential_sighting.uncertainty()
 
 
@@ -659,5 +660,5 @@ def test_tangential_sighting_check_validity__multi_element_array_error() -> (
         distance=np.array([50, 50]),
         angle_unit="grad",
     )
-    with pytest.raises(ValueError, match="scalar"):
+    with pytest.raises(MechaphlowersValueError, match="scalar"):
         tangential_sighting.check_validity()
