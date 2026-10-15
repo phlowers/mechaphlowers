@@ -6,6 +6,7 @@
 
 
 import numpy as np
+import pytest
 
 from mechaphlowers.core.papoto.papoto_model import (
     papoto_2_points,
@@ -13,6 +14,7 @@ from mechaphlowers.core.papoto.papoto_model import (
     papoto_validity,
 )
 from mechaphlowers.data.units import Q_
+from mechaphlowers.entities.errors import ConvergenceError
 
 NON_CONVERGENT_INPUTS = {
     "a": 100.0,
@@ -25,7 +27,7 @@ NON_CONVERGENT_INPUTS = {
     "H2": 2.0,
     "V2": 3.13,
 }
-_NON_CONVERGENT_INPUT_THIRD_POINT = {"H3": 2.5, "V3": 3.13}
+_NON_CONVERGENT_INPUT_THIRD_POINT = {"H3": 2.0, "V3": 3.13}
 
 
 def _repeat(values: dict, n: int) -> dict:
@@ -54,6 +56,57 @@ def test_papoto_function_0() -> None:
         V2=Q_(V2, "grad").to("rad").magnitude,
     )
     np.testing.assert_allclose(parameter, np.array([2000, np.nan]), atol=1.0)
+
+
+def test_papoto_2_points__non_convergent__scalar() -> None:
+    with pytest.raises(ConvergenceError):  # Raises RuntimeError
+        papoto_2_points(
+            **{
+                "a": 100.0,
+                "HL": 0.0,
+                "VL": 0.001,
+                "HR": 3.14,
+                "VR": 3.13,
+                "H1": 1.57,
+                "V1": 0.001,
+                "H2": 2.0,
+                "V2": 3.13,
+            }
+        )
+
+
+def test_papoto_2_points__non_convergent__one_element_array() -> None:
+    with pytest.raises(ConvergenceError):  # Raises RuntimeError
+        papoto_2_points(
+            **{
+                "a": np.array([100.0]),
+                "HL": np.array([0.0]),
+                "VL": np.array([0.001]),
+                "HR": np.array([3.14]),
+                "VR": np.array([3.13]),
+                "H1": np.array([1.57]),
+                "V1": np.array([0.001]),
+                "H2": np.array([2.0]),
+                "V2": np.array([3.13]),
+            }
+        )
+
+
+def test_papoto_2_points__non_convergent__multi_element_array() -> None:
+    with pytest.raises(ConvergenceError):  # Raises RuntimeError
+        papoto_2_points(
+            **{
+                "a": np.array([100.0, 100.0]),
+                "HL": np.array([0.0, 0.0]),
+                "VL": np.array([0.001, 0.001]),
+                "HR": np.array([3.14, 3.14]),
+                "VR": np.array([3.13, 3.13]),
+                "H1": np.array([1.57, 1.57]),
+                "V1": np.array([0.001, 0.001]),
+                "H2": np.array([2.0, 2.0]),
+                "V2": np.array([3.13, 3.13]),
+            }
+        )
 
 
 def test_papoto_function_3_points() -> None:

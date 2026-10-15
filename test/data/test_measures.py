@@ -19,6 +19,8 @@ from mechaphlowers.entities.errors import (
     MeasurementDataNotAvailable, MixedScalarAndArrayInputsError, MechaphlowersTypeError, ShapeError,
     MechaphlowersValueError,
 )
+from test.core.papoto.test_papoto import NON_CONVERGENT_INPUTS as PAPOTO_NON_CONVERGENT_INPUTS, \
+    _NON_CONVERGENT_INPUT_THIRD_POINT as PAPOTO_NON_CONVERGENT_INPUT_THIRD_POINT
 
 PAPOTO_INPUTS = dict(
     a=498.565922913587,
@@ -116,6 +118,14 @@ def test_papoto_parameter_measure():
     np.testing.assert_allclose(
         papoto.check_validity(), np.array([True, False]), atol=0.1
     )
+
+
+def test_papoto_parameter_measure__non_convergent():
+    papoto = PapotoParameterMeasure()
+    kwargs = PAPOTO_NON_CONVERGENT_INPUTS
+    kwargs.update(PAPOTO_NON_CONVERGENT_INPUT_THIRD_POINT)
+    # with pytest.raises(ConvergenceError):
+    papoto(**kwargs)
 
 
 def test_select_points_in_dict():

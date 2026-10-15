@@ -563,7 +563,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
         )
 
         if (
-            np.isnan(scalar_measures["distance"])
+            np.isnan(scalar_measures["distance"])  # TODO: extract?...
             or scalar_measures["distance"] == 0
         ):
             return self._absolute_uncertainty__sighting_device_at_support(
