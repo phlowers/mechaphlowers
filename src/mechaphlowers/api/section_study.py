@@ -33,7 +33,10 @@ from mechaphlowers.entities.errors import BalanceEngineWarning, SolverError
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.cable.thermal import ThermalEngine
-    from mechaphlowers.core.models.estimation import EstimationEngine
+    from mechaphlowers.core.models.estimation import (
+        EstimationEngine,
+        OptimizationMethod,
+    )
     from mechaphlowers.core.models.guying import Guying
     from mechaphlowers.plotting.plot import PlotEngine
 from mechaphlowers.utils import arr
@@ -148,7 +151,7 @@ class SectionStudy:
         """Lazy-loaded inverse estimation engine.
 
         Returns an [`EstimationEngine`][mechaphlowers.core.models.estimation.EstimationEngine]
-        bound to this study, using Newton's method by default.
+        bound to this study, using Brent's method by default.
         """
         if self._estimation_engine is None:
             from mechaphlowers.core.models.estimation import (
@@ -158,9 +161,13 @@ class SectionStudy:
             self._estimation_engine = _EE(self)
         return self._estimation_engine
 
-    @estimation_engine.setter
-    def estimation_engine(self, estimation_engine: EstimationEngine):
-        self._estimation_engine = estimation_engine
+    def set_estimation_method(self, method: OptimizationMethod) -> None:
+        """Replace the estimation engine with one bound to this study using `method`."""
+        from mechaphlowers.core.models.estimation import (
+            EstimationEngine as _EE,
+        )
+
+        self._estimation_engine = _EE(self, method=method)
 
     @property
     def intermediate_memento(self) -> BalanceEngineMemento | None:
@@ -548,8 +555,7 @@ class SectionStudy:
         clone._thermal_engine = None
         clone._guying = None
         clone._estimation_engine = None
-        # Mementos are frozen and restore copies arrays: sharing is safe
-        clone._intermediate_memento = self._intermediate_memento
+        clone._intermediate_memento = deepcopy(self._intermediate_memento)
         return clone
 
     def save_state(self) -> BalanceEngineMemento:

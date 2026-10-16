@@ -238,7 +238,7 @@ class EstimationEngine:
         span_index: int,
         obstacle_point: np.ndarray,
         target_vertical_distance: float,
-        bounds: tuple[float, float] = (0.1, 10.0),
+        bounds: tuple[float, float] = (0.01, 10.0),
         rope_lineic_mass: float | None = None,
         new_temperature: float | None = None,
         wind_pressure: float | None = None,

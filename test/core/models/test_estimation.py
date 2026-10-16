@@ -23,7 +23,6 @@ from mechaphlowers.core.models.estimation import (
 from mechaphlowers.core.numeric import (
     BisectionMethod,
     BrentMethod,
-    NewtonMethod,
 )
 from mechaphlowers.data.units import convert_weight_to_mass
 from mechaphlowers.entities.arrays import CableArray, SectionArray
@@ -79,12 +78,6 @@ class TestOptimizationMethods:
         assert result.converged
         assert abs(result.value - 2.0) < 1e-5
 
-    def test_newton_converges(self):
-        method = NewtonMethod(tol=1e-6, maxiter=50, dx=0.01)
-        result = method.solve(self._simple_objective, bounds=(0.0, 5.0))
-        assert result.converged
-        assert abs(result.value - 2.0) < 1e-4
-
     def test_bisection_no_sign_change(self):
         """When bounds don't bracket a root, bisection returns best bound."""
         method = BisectionMethod(tol=1e-6, maxiter=50)
@@ -113,59 +106,6 @@ class TestOptimizationMethods:
         result = method.solve(self._simple_objective, bounds=(3.0, 5.0))
         assert not result.converged
         assert result.value == 3.0
-
-    def test_newton_near_zero_derivative(self):
-        method = NewtonMethod(tol=1e-6)
-        result = method.solve(lambda _x: 1.0, bounds=(0.0, 5.0))
-        assert not result.converged
-        assert result.residual == 1.0
-
-    def test_newton_maxiter_exhausted(self):
-        method = NewtonMethod(tol=1e-6, maxiter=2)
-        result = method.solve(lambda x: x + 10.0, bounds=(0.0, 1.0))
-        assert not result.converged
-        assert result.value == 0.0
-
-    def test_newton_probe_stays_within_bounds(self):
-        def objective(x: float) -> float:
-            if not 0.0 <= x <= 1.0:
-                raise ValueError(f"out of bounds: {x}")
-            return x - 0.3
-
-        result = NewtonMethod(tol=1e-6).solve(objective, bounds=(0.0, 1.0))
-        assert result.converged
-        assert abs(result.value - 0.3) < 1e-6
-
-    def test_newton_zero_width_interval(self):
-        calls: list[float] = []
-
-        def objective(x: float) -> float:
-            calls.append(x)
-            return x - 0.3
-
-        result = NewtonMethod(tol=1e-6).solve(objective, bounds=(1.0, 1.0))
-        assert not result.converged
-        assert result.value == 1.0
-        assert all(x == 1.0 for x in calls)
-
-    def test_legacy_estimation_exports(self):
-        from mechaphlowers.core.models.estimation.methods import (
-            BisectionMethod as LegacyBisectionMethod,
-        )
-        from mechaphlowers.core.models.estimation.methods import (
-            BrentMethod as LegacyBrentMethod,
-        )
-        from mechaphlowers.core.models.estimation.methods import (
-            NewtonMethod as LegacyNewtonMethod,
-        )
-        from mechaphlowers.core.models.estimation.result import (
-            EstimationResult as LegacyEstimationResult,
-        )
-
-        assert LegacyBisectionMethod is BisectionMethod
-        assert LegacyBrentMethod is BrentMethod
-        assert LegacyNewtonMethod is NewtonMethod
-        assert LegacyEstimationResult is EstimationResult
 
 
 class TestEstimationEngine:
@@ -201,7 +141,7 @@ class TestEstimationEngine:
         study.solve_adjustment()
 
         # Now estimate what temperature gives that distance
-        engine = EstimationEngine(study, method=NewtonMethod(tol=0.1))
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
         result = engine.estimate_temperature(
             span_index=0,
             obstacle_point=np.array([250.0, 10.0, 20.0]),
@@ -223,7 +163,7 @@ class TestEstimationEngine:
         # Restore state
         study.solve_adjustment()
 
-        engine = EstimationEngine(study, method=NewtonMethod(tol=0.5))
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.5))
         result = engine.estimate_wind(
             span_index=0,
             obstacle_point=np.array([250.0, 10.0, 20.0]),
@@ -273,7 +213,7 @@ class TestEstimationSandbox:
         ).distance_3d
         study.set_loads(np.zeros(n_spans), np.zeros(n_spans))
 
-        engine = EstimationEngine(study, method=NewtonMethod(tol=5))
+        engine = EstimationEngine(study, method=BrentMethod(tol=5))
         result = engine.estimate_load(
             span_index=0,
             obstacle_point=self.obstacle,
@@ -338,7 +278,7 @@ class TestEstimationSandbox:
         ).distance_3d
         study.set_loads(positions, np.array([0.0, 0.0, 30.0]))
 
-        engine = EstimationEngine(study, method=NewtonMethod(tol=5))
+        engine = EstimationEngine(study, method=BrentMethod(tol=5))
         result = engine.estimate_load(
             span_index=1,
             obstacle_point=obstacle,
@@ -536,7 +476,7 @@ class TestEstimationScenarios:
             new_temperature=temperature,
             **scenario.conditions,
         )
-        engine = EstimationEngine(scenario_study, method=NewtonMethod(tol=0.1))
+        engine = EstimationEngine(scenario_study, method=BrentMethod(tol=0.1))
         with no_estimation_warning():
             result = engine.estimate_temperature(
                 span_index=engine_span_index(scenario_study, scenario),
@@ -558,7 +498,7 @@ class TestEstimationScenarios:
             wind_pressure=wind_pressure,
             **scenario.conditions,
         )
-        engine = EstimationEngine(scenario_study, method=NewtonMethod(tol=0.5))
+        engine = EstimationEngine(scenario_study, method=BrentMethod(tol=0.5))
         with no_estimation_warning():
             result = engine.estimate_wind(
                 span_index=engine_span_index(scenario_study, scenario),
@@ -583,7 +523,7 @@ class TestEstimationScenarios:
         masses_before = (
             scenario_study._clean_engine.span_loads.load_mass.copy()
         )
-        engine = EstimationEngine(scenario_study, method=NewtonMethod(tol=5))
+        engine = EstimationEngine(scenario_study, method=BrentMethod(tol=5))
         expected_warning: AbstractContextManager[Any]
         if scenario.has_load_on_span:
             expected_warning = pytest.warns(
@@ -626,7 +566,7 @@ class TestEstimationScenarios:
 
         memento_before = scenario_study.save_state()
         balance_engine_before = scenario_study.balance_engine
-        engine = EstimationEngine(scenario_study, method=NewtonMethod(tol=0.1))
+        engine = EstimationEngine(scenario_study, method=BrentMethod(tol=0.1))
         with no_estimation_warning():
             result = engine.estimate_rope(
                 support_index=support_index,
@@ -669,7 +609,7 @@ class TestEstimateRope:
         return build_study(cable_array_AM600, Scenario(span=0))
 
     def estimate(self, study: SectionStudy, target: float, **kwargs):
-        engine = EstimationEngine(study, method=NewtonMethod(tol=0.1))
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
         return engine.estimate_rope(
             span_index=0,
             obstacle_point=self.obstacle,

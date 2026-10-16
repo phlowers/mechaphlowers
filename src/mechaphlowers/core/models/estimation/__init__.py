@@ -9,7 +9,6 @@ from mechaphlowers.core.numeric import (
     BisectionMethod,
     BrentMethod,
     EstimationResult,
-    NewtonMethod,
     OptimizationMethod,
 )
 
@@ -19,5 +18,4 @@ __all__ = [
     "OptimizationMethod",
     "BisectionMethod",
     "BrentMethod",
-    "NewtonMethod",
 ]

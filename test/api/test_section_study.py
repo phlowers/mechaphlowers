@@ -11,7 +11,7 @@ from plotly import graph_objects as go
 
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.core.models.estimation import EstimationEngine
+from mechaphlowers.core.models.estimation import BrentMethod
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import (
     BalanceEngineWarning,
@@ -169,16 +169,17 @@ class TestSectionStudyLifecycle:
 
         np.testing.assert_array_almost_equal(points_adj, points_restored)
 
-    def test_estimation_engine_setter(
+    def test_set_estimation_method(
         self, balance_engine_base_test: BalanceEngine
     ) -> None:
         study = SectionStudy(
             cable_array=balance_engine_base_test.cable_array,
             section_array=balance_engine_base_test.section_array,
         )
-        estimation_engine = EstimationEngine(study)
-        study.estimation_engine = estimation_engine
-        assert study.estimation_engine is estimation_engine
+        method = BrentMethod(tol=0.01)
+        study.set_estimation_method(method)
+        assert study.estimation_engine.method is method
+        assert study.estimation_engine._study is study
 
     def test_repr_and_str(
         self, balance_engine_base_test: BalanceEngine
