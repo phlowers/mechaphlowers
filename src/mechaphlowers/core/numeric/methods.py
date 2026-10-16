@@ -51,7 +51,7 @@ class BisectionMethod:
         fb = objective(b)
         iterations = 2
 
-        if fa * fb > 0:
+        if fa * fb >= 0:
             logger.warning(
                 "Bisection: objective does not change sign over bounds "
                 f"[{a}, {b}] (f(a)={fa:.3e}, f(b)={fb:.3e}). "

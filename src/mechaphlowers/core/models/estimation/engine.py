@@ -16,8 +16,8 @@ import numpy as np
 from mechaphlowers.config import options
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.numeric import (
-    EstimationResult,
     BrentMethod,
+    EstimationResult,
     OptimizationMethod,
 )
 from mechaphlowers.entities.errors import (
@@ -357,7 +357,8 @@ class EstimationEngine:
         if rope_lineic_mass is None:
             rope_lineic_mass = (
                 manipulation._rope_lineic_mass
-                or options.data.rope_lineic_mass_default
+                if manipulation._rope_lineic_mass is not None
+                else options.data.rope_lineic_mass_default
             )
         # set_rope replaces the whole overlay: keep the ropes on other supports
         other_ropes = {
