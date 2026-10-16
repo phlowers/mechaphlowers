@@ -313,14 +313,14 @@ class EstimationEngine:
         """Build ``f(x) = distance(x) - target`` on a deep copy of the balance engine."""
         original_balance_engine = self._study.balance_engine
         # Drop observers so the study's downstream engines are not copied
-        engine = deepcopy(
+        balance_engine = deepcopy(
             original_balance_engine,
             {id(original_balance_engine._observers): []},
         )
-        position_engine = PositionEngine(engine)
+        position_engine = PositionEngine(balance_engine)
 
         def objective(x: float) -> float:
-            engine.solve_change_state(**fixed_conditions, **{variable_name: x})
+            balance_engine.solve_change_state(**fixed_conditions, **{variable_name: x})
             result = position_engine.point_distance(span_index, obstacle_point)
             return result.distance_3d - target_distance
 
@@ -396,32 +396,32 @@ class EstimationEngine:
         Manipulations and existing loads are kept; only the load on ``span_index``
         (index before manipulation) is replaced.
         """
-        engine_span_index = (
+        span_index_after_manip = (
             self._study.manipulation.span_index_after_virtual_support(
                 span_index
             )
         )
-        if engine_span_index is None:
+        if span_index_after_manip is None:
             raise EstimateOnSplitSupportError(
                 f"Span {span_index} is split by a virtual support: "
                 "load estimation is not possible on this span."
             )
         original_balance_engine = self._study.balance_engine
         # Drop observers so the study's downstream engines are not copied
-        engine = deepcopy(
+        balance_engine = deepcopy(
             original_balance_engine,
             {id(original_balance_engine._observers): []},
         )
-        position_engine = PositionEngine(engine)
+        position_engine = PositionEngine(balance_engine)
         span_length = arr.decr(
-            engine.section_array.data.span_length.to_numpy()
+            balance_engine.section_array.data.span_length.to_numpy()
         )
-        load_positions = engine.span_loads.load_position * span_length
-        load_masses = engine.span_loads.load_mass.copy()
-        load_positions[engine_span_index] = load_position_distance
+        load_positions = balance_engine.span_loads.load_position * span_length
+        load_masses = balance_engine.span_loads.load_mass.copy()
+        load_positions[span_index_after_manip] = load_position_distance
 
         if not np.isclose(
-            np.nan_to_num(load_masses[engine_span_index]),
+            np.nan_to_num(load_masses[span_index_after_manip]),
             0.0,
             atol=1e-6,
         ):
@@ -433,14 +433,14 @@ class EstimationEngine:
         )
 
         def objective(load_mass: float) -> float:
-            load_masses[engine_span_index] = load_mass
-            engine.set_loads(load_positions, load_masses)
+            load_masses[span_index_after_manip] = load_mass
+            balance_engine.set_loads(load_positions, load_masses)
             if has_fixed_conditions:
                 # set_loads resets the nodes: a cold solve with ice or wind may diverge
-                engine.solve_change_state()
-            engine.solve_change_state(**fixed_conditions)
+                balance_engine.solve_change_state()
+            balance_engine.solve_change_state(**fixed_conditions)
             result = position_engine.point_distance(
-                engine_span_index, obstacle_point
+                span_index_after_manip, obstacle_point
             )
             return result.distance_3d - target_distance
 
