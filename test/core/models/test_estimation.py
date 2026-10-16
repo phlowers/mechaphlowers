@@ -126,6 +126,28 @@ class TestOptimizationMethods:
         assert not result.converged
         assert result.value == 0.0
 
+    def test_newton_probe_stays_within_bounds(self):
+        def objective(x: float) -> float:
+            if not 0.0 <= x <= 1.0:
+                raise ValueError(f"out of bounds: {x}")
+            return x - 0.3
+
+        result = NewtonMethod(tol=1e-6).solve(objective, bounds=(0.0, 1.0))
+        assert result.converged
+        assert abs(result.value - 0.3) < 1e-6
+
+    def test_newton_zero_width_interval(self):
+        calls: list[float] = []
+
+        def objective(x: float) -> float:
+            calls.append(x)
+            return x - 0.3
+
+        result = NewtonMethod(tol=1e-6).solve(objective, bounds=(1.0, 1.0))
+        assert not result.converged
+        assert result.value == 1.0
+        assert all(x == 1.0 for x in calls)
+
     def test_legacy_estimation_exports(self):
         from mechaphlowers.core.models.estimation.methods import (
             BisectionMethod as LegacyBisectionMethod,
@@ -162,8 +184,8 @@ class TestEstimationEngine:
     def test_method_setter(self, solved_study: SectionStudy):
         engine = EstimationEngine(solved_study)
         assert isinstance(engine.method, BrentMethod)
-        engine.method = NewtonMethod(tol=1e-3)
-        assert isinstance(engine.method, NewtonMethod)
+        engine.method = BisectionMethod(tol=1e-3)
+        assert isinstance(engine.method, BisectionMethod)
 
     def test_estimate_temperature(self, solved_study: SectionStudy):
         """Estimate temperature: solve at known temp, use that distance as target."""

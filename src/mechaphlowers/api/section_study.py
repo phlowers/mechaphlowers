@@ -148,7 +148,7 @@ class SectionStudy:
         """Lazy-loaded inverse estimation engine.
 
         Returns an [`EstimationEngine`][mechaphlowers.core.models.estimation.EstimationEngine]
-        bound to this study, using Brent's method by default.
+        bound to this study, using Newton's method by default.
         """
         if self._estimation_engine is None:
             from mechaphlowers.core.models.estimation import (

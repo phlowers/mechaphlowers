@@ -427,3 +427,58 @@ def test_gh_8881():
     # Check that it now succeeds.
     rt, r = zeros.newton(f, x0, fprime=fp, fprime2=fpp, full_output=True)
     assert r.converged
+
+
+BRENTQ_CASES = [
+    (lambda x: x**2 - 2 * x - 1, 0.5, 3.0),
+    (lambda x: exp(x) - cos(x), -0.5, 1.0),
+    (lambda x: x**3 - 2 * x - 5, 2.0, 3.0),
+    (lambda x: x - cos(x), 0.0, 1.0),
+    (lambda x: np.tanh(x - 0.3), -10.0, 10.0),
+    (lambda x: np.log(x), 0.1, 10.0),
+    (lambda x: np.sign(x - 0.7) * abs(x - 0.7) ** 0.1, 0.0, 2.0),
+]
+
+
+@pytest.mark.parametrize("f, a, b", BRENTQ_CASES)
+@pytest.mark.parametrize("xtol", [2e-12, 1e-6, 1e-2])
+def test_brentq_matches_scipy(f, a, b, xtol):
+    scipy_optimize = pytest.importorskip("scipy.optimize")
+    x_ref, r_ref = scipy_optimize.brentq(f, a, b, xtol=xtol, full_output=True)
+    x, r = zeros.brentq(f, a, b, xtol=xtol, full_output=True)
+    assert r.converged
+    assert_allclose(x, x_ref, rtol=0, atol=10 * TOL)
+    assert r.iterations == r_ref.iterations
+    assert r.function_calls == r_ref.function_calls
+
+
+def test_brentq_basic():
+    x = zeros.brentq(lambda x, c: x**2 - c, 0.0, 5.0, args=(4.0,))
+    assert_allclose(x, 2.0, atol=1e-11)
+
+
+def test_brentq_root_at_bound():
+    x, r = zeros.brentq(lambda x: x - 1.0, 1.0, 2.0, full_output=True)
+    assert x == 1.0 and r.converged and r.iterations == 0
+    x = zeros.brentq(lambda x: x - 2.0, 1.0, 2.0)
+    assert x == 2.0
+
+
+def test_brentq_errors():
+    with pytest.raises(ValueError, match="different signs"):
+        zeros.brentq(lambda x: x**2 + 1, -1.0, 1.0)
+    with pytest.raises(ValueError, match="xtol"):
+        zeros.brentq(lambda x: x, -1.0, 1.0, xtol=0.0)
+    with pytest.raises(ValueError, match="rtol"):
+        zeros.brentq(lambda x: x, -1.0, 1.0, rtol=0.0)
+    with pytest.raises(ValueError, match="maxiter"):
+        zeros.brentq(lambda x: x, -1.0, 1.0, maxiter=-1)
+
+
+def test_brentq_not_converged():
+    f = lambda x: x**3 - 2 * x - 5
+    with pytest.raises(RuntimeError, match="Failed to converge"):
+        zeros.brentq(f, 2.0, 3.0, maxiter=2)
+    x, r = zeros.brentq(f, 2.0, 3.0, maxiter=2, full_output=True, disp=False)
+    assert not r.converged
+    assert r.flag == zeros.CONVERR

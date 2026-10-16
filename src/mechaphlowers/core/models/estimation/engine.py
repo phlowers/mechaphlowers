@@ -16,8 +16,8 @@ import numpy as np
 from mechaphlowers.config import options
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.numeric import (
-    BrentMethod,
     EstimationResult,
+    BrentMethod,
     OptimizationMethod,
 )
 from mechaphlowers.entities.errors import (
@@ -105,7 +105,7 @@ class EstimationEngine:
         span_index: int,
         obstacle_point: np.ndarray,
         target_distance: float,
-        bounds: tuple[float, float] = (0.0, 200.0),
+        bounds: tuple[float, float] = (-50.0, 200.0),
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
     ) -> EstimationResult:
@@ -143,7 +143,7 @@ class EstimationEngine:
         span_index: int,
         obstacle_point: np.ndarray,
         target_distance: float,
-        bounds: tuple[float, float] = (0.0, 2000.0),
+        bounds: tuple[float, float] = (-1000.0, 1000.0),
         new_temperature: float | None = None,
         ice_thickness: float | None = None,
     ) -> EstimationResult:
@@ -185,7 +185,7 @@ class EstimationEngine:
         obstacle_point: np.ndarray,
         target_distance: float,
         load_position_distance: float,
-        bounds: tuple[float, float] = (0.0, 100.0),
+        bounds: tuple[float, float] = (0.0, 2000.0),
         new_temperature: float | None = None,
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
@@ -311,9 +311,12 @@ class EstimationEngine:
         fixed_conditions: dict[str, float | None],
     ) -> Callable[[float], float]:
         """Build ``f(x) = distance(x) - target`` on a deep copy of the balance engine."""
-        source_engine = self._study.balance_engine
+        original_balance_engine = self._study.balance_engine
         # Drop observers so the study's downstream engines are not copied
-        engine = deepcopy(source_engine, {id(source_engine._observers): []})
+        engine = deepcopy(
+            original_balance_engine,
+            {id(original_balance_engine._observers): []},
+        )
         position_engine = PositionEngine(engine)
 
         def objective(x: float) -> float:
@@ -402,9 +405,12 @@ class EstimationEngine:
                 f"Span {span_index} is split by a virtual support: "
                 "load estimation is not possible on this span."
             )
-        source_engine = self._study.balance_engine
+        original_balance_engine = self._study.balance_engine
         # Drop observers so the study's downstream engines are not copied
-        engine = deepcopy(source_engine, {id(source_engine._observers): []})
+        engine = deepcopy(
+            original_balance_engine,
+            {id(original_balance_engine._observers): []},
+        )
         position_engine = PositionEngine(engine)
         span_length = arr.decr(
             engine.section_array.data.span_length.to_numpy()

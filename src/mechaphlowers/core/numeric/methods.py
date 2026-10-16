@@ -94,10 +94,12 @@ class BisectionMethod:
 
 
 class BrentMethod:
-    """Brent's method for root-finding (via scipy.optimize.brentq).
+    """Brent's method for root-finding (``brentq``).
 
     Requires that ``objective`` changes sign over ``bounds``.
-    Falls back to bisection if scipy is not available.
+    Uses ``scipy.optimize.brentq`` when scipy is installed, otherwise the
+    pure-Python port in ``mechaphlowers.numeric.scipy``. Falls back to
+    bisection if the interval does not bracket a root.
 
     Args:
         tol: Absolute tolerance on the root. Defaults to 1e-3.
@@ -116,11 +118,7 @@ class BrentMethod:
         try:
             from scipy.optimize import brentq  # type: ignore
         except ImportError:
-            logger.warning(
-                "scipy not available, falling back to BisectionMethod."
-            )
-            fallback = BisectionMethod(tol=self.tol, maxiter=self.maxiter)
-            return fallback.solve(objective, bounds)
+            from mechaphlowers.numeric.scipy import brentq  # type: ignore
 
         a, b = bounds
 
@@ -132,12 +130,11 @@ class BrentMethod:
                 xtol=self.tol,
                 maxiter=self.maxiter,
                 full_output=True,
+                disp=False,
             )
             return EstimationResult(
                 value=root,
-                residual=abs(
-                    result_info.function_calls and abs(objective(root)) or 0.0
-                ),
+                residual=abs(objective(root)),
                 iterations=result_info.iterations,
                 converged=result_info.converged,
             )
@@ -190,9 +187,27 @@ class NewtonMethod:
                     converged=True,
                 )
 
-            fx_dx = objective(x + self.dx)
+            # Forward probe, else backward, else the farthest bound.
+            x_probe = x + self.dx
+            if x_probe > b:
+                x_probe = x - self.dx
+                if x_probe < a:
+                    x_probe = b if (b - x) >= (x - a) else a
+            step = x_probe - x
+            if step == 0.0:
+                logger.warning(
+                    "Newton: zero-width interval at x=%.6g, stopping.", x
+                )
+                return EstimationResult(
+                    value=x,
+                    residual=abs(fx),
+                    iterations=iterations,
+                    converged=False,
+                )
+
+            fx_probe = objective(x_probe)
             iterations += 1
-            derivative = (fx_dx - fx) / self.dx
+            derivative = (fx_probe - fx) / step
 
             if abs(derivative) < 1e-12:
                 logger.warning(
