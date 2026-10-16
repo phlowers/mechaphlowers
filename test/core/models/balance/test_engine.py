@@ -14,6 +14,7 @@ from pytest import fixture
 
 from mechaphlowers.core.models.balance.engine import (
     BalanceEngine,
+    DisplacementResult,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import (
@@ -77,6 +78,12 @@ def test_element_initialisation(balance_engine_simple: BalanceEngine):
     repr_be = balance_engine_simple.__repr__()
     assert repr_be.startswith("BalanceEngine")
     assert balance_engine_simple.support_number == 4
+
+
+def test_displacement_result() -> None:
+    dxdydz = np.array([[1.0, 2.0, 3.0]])
+    result = DisplacementResult(dxdydz)
+    np.testing.assert_array_equal(result.dxdydz, dxdydz)
 
 
 def test_element_change_state(balance_engine_simple: BalanceEngine):
@@ -454,6 +461,28 @@ def test_engine_wind_direction(balance_engine_simple: BalanceEngine):
     np.testing.assert_array_equal(
         displacement_clockwise, displacement_anticlockwise
     )
+
+
+def test_invalid_wind_direction(balance_engine_simple: BalanceEngine) -> None:
+    with pytest.raises(ValueError, match="wind_direction should be"):
+        balance_engine_simple.solve_change_state(
+            wind_direction="invalid"  # type: ignore[arg-type]
+        )
+
+
+def test_len_ruling_span_and_str_after_adjustment(
+    balance_engine_simple: BalanceEngine,
+) -> None:
+    balance_engine_simple.solve_adjustment()
+
+    assert len(balance_engine_simple) == balance_engine_simple.support_number
+
+    a = balance_engine_simple.balance_model.a
+    b = balance_engine_simple.balance_model.b
+    chord = np.sqrt(a**2 + b**2)
+    expected = np.sqrt(np.sum(a**4 / chord) / np.sum(chord))
+    assert balance_engine_simple.get_ruling_span_length() == expected
+    assert "L_ref:" in str(balance_engine_simple)
 
 
 # ── performance tests ────────────────────────────────────────────────────────
