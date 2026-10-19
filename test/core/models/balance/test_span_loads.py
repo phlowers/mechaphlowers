@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
+import pytest
 
 from mechaphlowers.core.models.balance.span_loads import SpanLoads
 
@@ -20,3 +21,21 @@ def test_has_load_on_span__nan() -> None:
         span_loads.has_load_on_span,
         np.array([False, False, False]),
     )
+
+
+def test_loads_mismatched_lengths() -> None:
+    with pytest.raises(ValueError, match="same length"):
+        SpanLoads(
+            load_position_distance=[0, 250],
+            load_mass=[1000],
+            span_length=[500, 500, np.nan],
+        )
+
+
+def test_loads_position_out_of_range() -> None:
+    with pytest.raises(ValueError, match="between 0"):
+        SpanLoads(
+            load_position_distance=[-1, 250],
+            load_mass=[1000, 1000],
+            span_length=[500, 500, np.nan],
+        )

@@ -5,18 +5,24 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import warnings as _warnings
+from typing import cast
 
 import numpy as np
 import pandas as pd
 import pytest
 from numpy.testing import assert_allclose
 
+from mechaphlowers.config import options
+from mechaphlowers.core.geometry.line_angles import get_edge_arm_coords
 from mechaphlowers.core.manipulation import Manipulation
+from mechaphlowers.core.models.balance.span_loads import SpanLoads
+from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.errors import (
     BalanceEngineWarning,
     InvalidManipulationIndex,
     InvalidManipulationKeys,
+    InvalidManipulationRange,
 )
 
 
@@ -281,6 +287,18 @@ def test_rope_manipulation_invalid_index(manipulation: Manipulation) -> None:
         manipulation.set_rope({99: 3.0})
 
 
+def test_rope_overlay_without_lineic_mass_is_skipped(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    manipulation._rope_overlay = {1: 5.0}
+    applied = manipulation.from_section_array(section_array)
+    assert_allclose(
+        applied.data["insulator_length"].to_numpy(),
+        section_array.data["insulator_length"].to_numpy(),
+    )
+
+
 def test_reset_rope_manipulation(
     section_array: SectionArray,
     manipulation: Manipulation,
@@ -305,6 +323,50 @@ def test_reset_rope_manipulation_no_prior(
     manipulation: Manipulation,
 ) -> None:
     manipulation.reset_rope()  # should not raise
+
+
+def _arm_altitude(sa: SectionArray) -> np.ndarray:
+    data = sa.data
+    center_arm_coords, _ = get_edge_arm_coords(
+        np.zeros((len(data), 3)),
+        data["conductor_attachment_altitude"].to_numpy(),
+        data["crossarm_length"].to_numpy(),
+        data["line_angle"].to_numpy(),
+        data["insulator_length"].to_numpy(),
+    )
+    return center_arm_coords[:, 2]
+
+
+def test_set_rope_keeps_arm_attachment_fixed(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_arm_altitude = _arm_altitude(section_array)
+
+    manipulation.set_rope({1: 5.0, 2: 1.0})
+    applied = manipulation.from_section_array(section_array)
+
+    assert_allclose(_arm_altitude(applied), original_arm_altitude)
+
+
+def test_set_rope_moves_cable_attachment(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_alt = section_array.data["conductor_attachment_altitude"]
+    original_length = section_array.data["insulator_length"]
+
+    manipulation.set_rope({1: 5.0, 2: 1.0})
+    applied = manipulation.from_section_array(section_array)
+
+    # arm stays, so the cable hangs at arm_altitude - rope_length
+    assert_allclose(
+        applied.data["conductor_attachment_altitude"].to_numpy()[1:3],
+        [
+            original_alt.iloc[1] + original_length.iloc[1] - 5.0,
+            original_alt.iloc[2] + original_length.iloc[2] - 1.0,
+        ],
+    )
 
 
 # ── counterweight masking ─────────────────────────────────────────────────
@@ -404,6 +466,141 @@ def test_set_virtual_support_changes_data_shape(
     )
     applied = manip.from_section_array(section_array)
     assert len(applied.data) == 5
+
+
+def _virtual_support(x: float) -> dict[str, float]:
+    return {
+        "x": x,
+        "y": 0.0,
+        "z": 55.0,
+        "insulator_length": 3.0,
+        "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": x,
+    }
+
+
+@pytest.mark.parametrize("span_index", [-1, 3])
+def test_set_virtual_support_invalid_index(
+    manipulation: Manipulation, span_index: int
+) -> None:
+    virtual_support = _virtual_support(100.0)
+    with pytest.raises(InvalidManipulationIndex, match="out of range"):
+        manipulation.set_virtual_support({span_index: virtual_support})
+
+
+def test_set_virtual_support_missing_keys(
+    manipulation: Manipulation,
+) -> None:
+    virtual_support = _virtual_support(100.0)
+    del virtual_support["z"]
+    with pytest.raises(InvalidManipulationKeys, match="Missing keys"):
+        manipulation.set_virtual_support({1: virtual_support})
+
+
+def test_set_virtual_support_x_out_of_range(
+    manipulation: Manipulation,
+) -> None:
+    virtual_support = _virtual_support(600.0)
+    with pytest.raises(InvalidManipulationRange, match="x=.*out of range"):
+        manipulation.set_virtual_support({1: virtual_support})
+
+
+def test_set_virtual_support_hanging_point_out_of_range(
+    manipulation: Manipulation,
+) -> None:
+    virtual_support = _virtual_support(100.0)
+    virtual_support["hanging_cable_point_from_left_support"] = 600.0
+    with pytest.raises(
+        InvalidManipulationRange,
+        match="hanging_cable_point_from_left_support=.*out of range",
+    ):
+        manipulation.set_virtual_support({1: virtual_support})
+
+
+def test_reset_virtual_support_no_prior(manipulation: Manipulation) -> None:
+    manipulation.reset_virtual_support()
+    assert manipulation._virtual_support_overlay is None
+
+
+def test_compute_split_l_ref_without_virtual_support(
+    manipulation: Manipulation,
+) -> None:
+    initial_l_ref = np.array([10.0, 20.0, 30.0])
+    result = manipulation.compute_split_L_ref(
+        initial_l_ref, cast(ISpan, object())
+    )
+    assert result is initial_l_ref
+
+
+def test_apply_virtual_support_overlay_without_overlay(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    raw_data = section_array._data.copy()
+    assert manipulation._apply_virtual_support_overlay(raw_data) is raw_data
+
+
+def test_apply_virtual_support_overlay_sets_ground_altitude(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    raw_data = section_array._data.copy()
+    raw_data["ground_altitude"] = [0.0, 0.0, 0.0, 0.0]
+    manipulation._virtual_support_overlay = {1: _virtual_support(100.0)}
+
+    applied = manipulation._apply_virtual_support_overlay(raw_data)
+
+    assert len(applied) == 5
+    assert applied.loc[2, "name"] == "virtual_1"
+    assert applied.loc[2, "ground_altitude"] == (
+        55.0 - options.ground.default_support_length
+    )
+
+
+def test_span_index_after_virtual_support_no_overlay(
+    manipulation: Manipulation,
+) -> None:
+    assert [
+        manipulation.span_index_after_virtual_support(i) for i in range(3)
+    ] == [0, 1, 2]
+
+
+def test_span_index_after_virtual_support_matches_span_loads(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.set_virtual_support({1: _virtual_support(100.0)})
+    span_length = manipulation._section_array.data.span_length.to_numpy()
+    for i in (0, 2):
+        positions = np.zeros(3)
+        masses = np.zeros(3)
+        positions[i] = 0.5
+        masses[i] = 10.0
+        new_loads = manipulation.build_new_span_loads_virtual_support(
+            SpanLoads(positions, masses, span_length)
+        )
+        j = manipulation.span_index_after_virtual_support(i)
+        assert j is not None
+        assert new_loads.load_mass[j] == 10.0
+        assert np.count_nonzero(new_loads.load_mass) == 1
+    assert manipulation.span_index_after_virtual_support(1) is None
+
+
+def test_span_index_after_virtual_support_multiple(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.set_virtual_support(
+        {0: _virtual_support(0.5), 2: _virtual_support(100.0)}
+    )
+    assert manipulation.span_index_after_virtual_support(0) is None
+    assert manipulation.span_index_after_virtual_support(1) == 2
+    assert manipulation.span_index_after_virtual_support(2) is None
+
+
+def test_span_index_after_virtual_support_invalid_index(
+    manipulation: Manipulation,
+) -> None:
+    with pytest.raises(InvalidManipulationIndex):
+        manipulation.span_index_after_virtual_support(3)
 
 
 def test_reset_virtual_support_restores_data_shape(
