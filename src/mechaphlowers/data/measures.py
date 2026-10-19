@@ -12,7 +12,7 @@ This module provides functions to compute various measures on sections and spans
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Literal, overload
+from typing import Any, Callable, Literal, overload
 
 import numpy as np
 
@@ -562,13 +562,30 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
         if (
             np.isnan(scalar_measures["distance"])
             or scalar_measures["distance"] == 0
-        ):
-            return self._absolute_uncertainty__sighting_device_at_support(
-                scalar_measures,
+        ):  # sighting device at left support
+            return _absolute_uncertainty_from_gum_method(
+                compute_parameter__scalar,
+                kwargs=scalar_measures,
+                variable_uncertainties={
+                    "angle_to_cable_tangent": self.ANGLE_UNCERTAINTY,
+                    "angle_to_right_support": self.ANGLE_UNCERTAINTY,
+                    "span_length": self.SPAN_LENGTH_UNCERTAINTY,
+                    "input_height": self.INPUT_LENGTH_UNCERTAINTY,
+                },
+                approx_derivative_step=self.STEP_FOR_APPROX_DERIVATIVE,
             )
-        else:
-            return self._absolute_uncertainty__sighting_device_not_at_support(
-                scalar_measures,
+        else:  # sighting device not at left support (inside or outside of the span)
+            return _absolute_uncertainty_from_gum_method(
+                compute_parameter__scalar,
+                kwargs=scalar_measures,
+                variable_uncertainties={
+                    "angle_to_cable_tangent": self.ANGLE_UNCERTAINTY,
+                    "angle_to_left_support": self.ANGLE_UNCERTAINTY,
+                    "angle_to_right_support": self.ANGLE_UNCERTAINTY,
+                    "span_length": self.SPAN_LENGTH_UNCERTAINTY,
+                    "distance": self.DISTANCE_UNCERTAINTY,
+                },
+                approx_derivative_step=self.STEP_FOR_APPROX_DERIVATIVE,
             )
 
     def relative_uncertainty(self) -> Number:
@@ -580,7 +597,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
         return self.absolute_uncertainty() / self.parameter  # type:ignore
 
     def uncertainty(self) -> Number:
-        """Returns the relative uncertainty of the parameter, computed using the GUM method.
+        """Returns the absolute uncertainty of the parameter, computed using the GUM method.
 
         Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.
         Raises MeasurementDataNotAvailable if measure_method() has not been called before.
@@ -696,31 +713,19 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
         distance: Number,
     ) -> Number:
         """Returns a partial derivative of the parameter computed using centered approximation."""
-        kwargs: dict[str, Number] = {
-            "angle_to_cable_tangent": angle_to_cable_tangent,
-            "angle_to_left_support": angle_to_left_support,
-            "angle_to_right_support": angle_to_right_support,
-            "span_length": span_length,
-            "input_height": input_height,
-            "distance": distance,
-        }
-        variable_value = kwargs.pop(variable_name)
-        return (
-            compute_parameter__scalar(  # type: ignore  # TODO
-                **kwargs,
-                **{
-                    variable_name: variable_value
-                    + self.STEP_FOR_APPROX_DERIVATIVE
-                },
-            )
-            - compute_parameter__scalar(  # type: ignore  # TODO
-                **kwargs,
-                **{
-                    variable_name: variable_value
-                    - self.STEP_FOR_APPROX_DERIVATIVE
-                },
-            )
-        ) / (2 * self.STEP_FOR_APPROX_DERIVATIVE)
+        return _approx_partial_derivative(
+            compute_parameter__scalar,
+            variable_name,
+            kwargs={
+                "angle_to_cable_tangent": angle_to_cable_tangent,
+                "angle_to_left_support": angle_to_left_support,
+                "angle_to_right_support": angle_to_right_support,
+                "span_length": span_length,
+                "input_height": input_height,
+                "distance": distance,
+            },
+            step=self.STEP_FOR_APPROX_DERIVATIVE,
+        )
 
     def check_validity(self) -> bool:
         """Returns True if the parameter is valid, False otherwise.
@@ -793,3 +798,71 @@ def param_calibration(
         param_approx = param_approx - delta / derivative
     logger.debug(f"param_calibration() finished, param found: {param_approx}")
     return param_approx
+
+
+def _approx_partial_derivative(
+    f: Callable,
+    variable_name: str,
+    kwargs: dict[str, Any],
+    step: Number = 1e-6,
+) -> Number:
+    """Returns a partial derivative of the input function computed using centered approximation.
+
+    Example:
+
+        >>> def f(x, y):
+        ...     return x**2 + y**2
+        >>> _approx_partial_derivative(f, "x", {"x": 1, "y": 2})
+        2.0
+    """
+    if variable_name not in kwargs:
+        raise ValueError(f"Variable {variable_name} not found in kwargs")
+    kwargs = kwargs.copy()
+    variable_value = kwargs.pop(variable_name)
+    return (
+        f(
+            **kwargs,
+            **{variable_name: variable_value + step},
+        )
+        - f(
+            **kwargs,
+            **{variable_name: variable_value - step},
+        )
+    ) / (2 * step)
+
+
+def _absolute_uncertainty_from_gum_method(
+    f: Callable,
+    kwargs: dict[str, Any],
+    variable_uncertainties: dict[str, Number],
+    approx_derivative_step: Number = 1e-6,
+) -> Number:
+    """Returns the absolute uncertainty of a function computed using the GUM method.
+
+    Example:
+
+        >>> def f(x, y):
+        ...     return x**2 + y**2
+        >>> _absolute_uncertainty_from_gum_method(
+        ...     f, {"x": 1, "y": 2}, {"x": 0.1, "y": 0.2}
+        ... )
+        np.float64(0.8246211251526301)
+        >>> _absolute_uncertainty_from_gum_method(
+        ...     f,
+        ...     {"x": 1, "y": 2},
+        ...     {"y": 0.2},
+        ... )
+        np.float64(0.8000000000230046)
+    """
+    square_uncertainty = sum(
+        _approx_partial_derivative(
+            f,
+            variable_name,
+            kwargs,
+            step=approx_derivative_step,
+        )
+        ** 2
+        * variable_uncertainty**2
+        for variable_name, variable_uncertainty in variable_uncertainties.items()
+    )
+    return np.sqrt(square_uncertainty)
