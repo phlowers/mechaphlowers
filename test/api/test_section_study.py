@@ -476,7 +476,12 @@ class TestSectionStudyManipulation:
 
     def test_rope_manipulation(self, study: SectionStudy):
         study.solve_adjustment()
-        study.set_rope({1: 6.0, 2: 4.0}, 0.01)
+        study.set_rope_or_chain(
+            {
+                1: {"type": "rope", "length": 6.0, "lineic_mass": 0.01},
+                2: {"type": "rope", "length": 4.0, "lineic_mass": 0.01},
+            }
+        )
 
         new_insulator_length = study._balance_engine.section_array.data[
             "insulator_length"
@@ -500,7 +505,12 @@ class TestSectionStudyManipulation:
 
     def test_rope_manipulation_no_adjustment(self, study: SectionStudy):
         with pytest.warns(BalanceEngineWarning):
-            study.set_rope({1: 6.0, 2: 4.0})
+            study.set_rope_or_chain(
+                {
+                    1: {"type": "rope", "length": 6.0},
+                    2: {"type": "rope", "length": 4.0},
+                }
+            )
 
         new_insulator_length = study._balance_engine.section_array.data[
             "insulator_length"
@@ -524,7 +534,12 @@ class TestSectionStudyManipulation:
         initial_insulator_length = np.array([3, 3, 3, 3])
         initial_insulator_mass = np.array([1000, 500, 500, 1000])
         study.solve_adjustment()
-        study.set_rope({1: 6.0, 2: 4.0})
+        study.set_rope_or_chain(
+            {
+                1: {"type": "rope", "length": 6.0},
+                2: {"type": "rope", "length": 4.0},
+            }
+        )
         manipulated_insulator_length = (
             study._balance_engine.section_array.data[
                 "insulator_length"
@@ -554,8 +569,13 @@ class TestSectionStudyManipulation:
 
     def test_rope_multiple(self, study: SectionStudy):
         study.solve_adjustment()
-        study.set_rope({0: 9.0})
-        study.set_rope({1: 6.0, 2: 4.0})
+        study.set_rope_or_chain({0: {"type": "rope", "length": 9.0}})
+        study.set_rope_or_chain(
+            {
+                1: {"type": "rope", "length": 6.0},
+                2: {"type": "rope", "length": 4.0},
+            }
+        )
         # should take into account only last call
 
         new_insulator_length = study._balance_engine.section_array.data[
@@ -584,8 +604,7 @@ class TestSectionStudyManipulation:
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
         displacement_original = study.chain_displacement().copy()
-
-        study.set_rope({1: 6.0})
+        study.set_rope_or_chain({1: {"type": "rope", "length": 6.0}})
         study.solve_change_state(new_temperature=15.0)
         displacement_with_manip = study.chain_displacement().copy()
         study.reset_rope()
@@ -1054,8 +1073,12 @@ class TestSectionStudyRestoreState:
 
     def test_position_engine_link_manipulations(self, study: SectionStudy):
         study.solve_adjustment()
-        study.set_rope({1: 6.0, 2: 4.0})
-
+        study.set_rope_or_chain(
+            {
+                1: {"type": "rope", "length": 6.0},
+                2: {"type": "rope", "length": 4.0},
+            }
+        )
         new_insulator_mass = study.position_engine.section_array.data[
             "insulator_mass"
         ].to_numpy()
@@ -1065,8 +1088,12 @@ class TestSectionStudyRestoreState:
 
     def test_restore_manipulations_after_error(self, study: SectionStudy):
         study.solve_adjustment()
-        study.set_rope({1: 6.0, 2: 4.0})
-
+        study.set_rope_or_chain(
+            {
+                1: {"type": "rope", "length": 6.0},
+                2: {"type": "rope", "length": 4.0},
+            }
+        )
         with pytest.raises(SuspectedChainReversal):
             study.solve_change_state(wind_pressure=20000)
 
