@@ -42,7 +42,6 @@ from mechaphlowers.utils import (
 
 logger = logging.getLogger(__name__)
 
-
 DEFAULT_ANGLE_UNCERTAINTY = convert_angle_to_rad(0.01, "grad")
 
 
@@ -87,9 +86,7 @@ class ParameterMeasure(ABC):
                     "uncertainty() only supports scalar inputs or scalar-like inputs. "
                     "Call measure_method() with proper inputs."
                 )
-            if isinstance(
-                value, np.ndarray
-            ):  # TODO: remove? (Do we want to support single-element arrays?)
+            if isinstance(value, np.ndarray):
                 output[key] = value[0]
             else:
                 output[key] = value
@@ -547,11 +544,9 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
     def absolute_uncertainty(self) -> Number:
         """Returns the absolute uncertainty of the parameter, computed using the GUM method.
 
-        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.  TODO
+        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.
         Raises MeasurementDataNotAvailable if measure_method() has not been called before.
         """
-        # TODO: store result so as not to recompute it if this method (or check_validity) is called by the user
-        #  after this call?
         if not hasattr(self, 'measures_converted'):
             raise MeasurementDataNotAvailable(
                 "measure_method() must be called before uncertainty()."
@@ -579,7 +574,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
     def relative_uncertainty(self) -> Number:
         """Returns the relative uncertainty of the parameter, computed using the GUM method.
 
-        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.  TODO
+        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.
         Raises MeasurementDataNotAvailable if measure_method() has not been called before.
         """
         return self.absolute_uncertainty() / self.parameter  # type:ignore
@@ -587,12 +582,10 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
     def uncertainty(self) -> Number:
         """Returns the relative uncertainty of the parameter, computed using the GUM method.
 
-        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.  TODO
+        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.
         Raises MeasurementDataNotAvailable if measure_method() has not been called before.
         """
-        return (
-            self.absolute_uncertainty()
-        )  # TODO: check. Return relative uncertainty instead?
+        return self.absolute_uncertainty()
 
     def _absolute_uncertainty__sighting_device_at_support(
         self, scalar_measures: dict[str, Number]

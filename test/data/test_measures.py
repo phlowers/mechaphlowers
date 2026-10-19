@@ -459,7 +459,9 @@ def test_tangential_sighting_relative_uncertainty__at_support() -> None:
     np.testing.assert_allclose(uncertainty, 0.0044, atol=0.0001)
 
 
-def test_tangential_sighting_relative_uncertainty__between_supports_1() -> None:
+def test_tangential_sighting_relative_uncertainty__between_supports_1() -> (
+    None
+):
     # 3nd test case of H. Ducloux
     tangential_sighting = TangentialSightingParameterMeasure()
     tangential_sighting(
@@ -477,7 +479,9 @@ def test_tangential_sighting_relative_uncertainty__between_supports_1() -> None:
     np.testing.assert_allclose(uncertainty, 0.0067, atol=0.0001)
 
 
-def test_tangential_sighting_relative_uncertainty__between_supports_2() -> None:
+def test_tangential_sighting_relative_uncertainty__between_supports_2() -> (
+    None
+):
     # 4nd test case of H. Ducloux
     tangential_sighting = TangentialSightingParameterMeasure()
     tangential_sighting(
