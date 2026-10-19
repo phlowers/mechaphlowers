@@ -20,6 +20,7 @@ from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.errors import (
     BalanceEngineWarning,
+    DataWarning,
     InvalidManipulationIndex,
     InvalidManipulationKeys,
     InvalidManipulationRange,
@@ -317,6 +318,19 @@ def test_rope_manipulation_custom_lineic_mass(
     applied = manipulation.from_section_array(section_array)
 
     assert_allclose(applied.data["insulator_mass"].iloc[0], 2.0 * 0.5)
+
+def test_rope_manipulation_override_lineic_mass(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    
+    with pytest.warns(DataWarning):
+        manipulation.set_rope_or_chain(
+            {0: {"type": "rope", "length": 2.0, "mass": 45, "lineic_mass": 0.5}}
+        )
+    applied = manipulation.from_section_array(section_array)
+
+    assert_allclose(applied.data["insulator_mass"].iloc[0], 45)
 
 
 def test_rope_manipulation_insulator_weight_updated(
