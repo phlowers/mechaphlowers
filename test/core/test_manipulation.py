@@ -340,18 +340,6 @@ def test_rope_manipulation_invalid_index(manipulation: Manipulation) -> None:
         manipulation.set_rope_or_chain({99: {"type": "rope", "length": 5.0}})
 
 
-def test_rope_overlay_without_lineic_mass_is_skipped(
-    section_array: SectionArray,
-    manipulation: Manipulation,
-) -> None:
-    manipulation._rope_overlay = {1: 5.0}
-    applied = manipulation.from_section_array(section_array)
-    assert_allclose(
-        applied.data["insulator_length"].to_numpy(),
-        section_array.data["insulator_length"].to_numpy(),
-    )
-
-
 def test_reset_rope_manipulation(
     section_array: SectionArray,
     manipulation: Manipulation,
@@ -400,8 +388,13 @@ def test_set_rope_keeps_arm_attachment_fixed(
     manipulation: Manipulation,
 ) -> None:
     original_arm_altitude = _arm_altitude(section_array)
+    manipulation.set_rope_or_chain(
+        {
+            1: {"type": "rope", "length": 5.0},
+            2: {"type": "rope", "length": 1.0},
+        }
+    )
 
-    manipulation.set_rope({1: 5.0, 2: 1.0})
     applied = manipulation.from_section_array(section_array)
 
     assert_allclose(_arm_altitude(applied), original_arm_altitude)
@@ -413,8 +406,13 @@ def test_set_rope_moves_cable_attachment(
 ) -> None:
     original_alt = section_array.data["conductor_attachment_altitude"]
     original_length = section_array.data["insulator_length"]
+    manipulation.set_rope_or_chain(
+        {
+            1: {"type": "rope", "length": 5.0},
+            2: {"type": "rope", "length": 1.0},
+        }
+    )
 
-    manipulation.set_rope({1: 5.0, 2: 1.0})
     applied = manipulation.from_section_array(section_array)
 
     # arm stays, so the cable hangs at arm_altitude - rope_length
