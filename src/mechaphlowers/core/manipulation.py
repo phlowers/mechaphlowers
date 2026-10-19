@@ -330,13 +330,13 @@ class Manipulation:
         Examples:
             >>> manip.set_rope_or_chain(
             ...     {1: {"type": "chain", "length": 5, "mass": 50}}
-            ... )  # here: value is insulator mass
+            ... )
             >>> manip.set_rope_or_chain(
             ...     {2: {"type": "rope", "length": 5, "lineic_mass": 0.01}}
-            ... )  # here: value is lineic mass
+            ... )
             >>> manip.set_rope_or_chain(
             ...     {2: {"type": "chain", "length": 5, "mass": 50, "lineic_mass": 0.01}}
-            ... )  # override? or raise error?
+            ... )  # `mass` will override `lineic_mass`
         """
         n_supports = len(self._section_array._data)
         required_keys = {"type", "length"}
