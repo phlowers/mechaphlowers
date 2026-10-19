@@ -372,7 +372,7 @@ def test_guying_integration(
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def guying_basic_setup(cable_array_AM600):
     balance_engine = BalanceEngine(
         cable_array=cable_array_AM600,

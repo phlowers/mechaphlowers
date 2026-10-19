@@ -90,6 +90,10 @@ class NoIntersectionPlaneForDistanceError(ValueError):
     """Raised when no intersection plane can be found for distance computation."""
 
 
+class EstimateOnSplitSupportError(ValueError):
+    """Raised when estimating a load on a span split by a virtual support."""
+
+
 class InvalidNebulosity(ValueError):
     """Raised when nebulosity is not in the range [0-8]."""
 
@@ -103,6 +107,10 @@ class DataWarning(UserWarning):
 
 class BalanceEngineWarning(UserWarning):
     """Base class for balance-related warnings."""
+
+
+class EstimationWarning(UserWarning):
+    """Base class for estimation-related warnings."""
 
 
 class ViewChoiceWarning(UserWarning):

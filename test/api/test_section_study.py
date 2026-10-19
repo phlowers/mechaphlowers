@@ -11,6 +11,7 @@ from plotly import graph_objects as go
 
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.models.balance.engine import BalanceEngine
+from mechaphlowers.core.models.estimation import BrentMethod
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import (
     BalanceEngineWarning,
@@ -168,46 +169,151 @@ class TestSectionStudyLifecycle:
 
         np.testing.assert_array_almost_equal(points_adj, points_restored)
 
+    def test_set_estimation_method(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        method = BrentMethod(tol=0.01)
+        study.set_estimation_method(method)
+        assert study.estimation_engine.method is method
+        assert study.estimation_engine._study is study
+
+    def test_repr_and_str(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        assert repr(study).startswith("SectionStudy(")
+        assert str(study) == repr(study)
+
+    def test_change_state_wrong_array_shape(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        with pytest.raises(ValueError, match="expected array of shape"):
+            study.solve_change_state(wind_pressure=np.array([1.0]))
+
+    def test_change_state_accepts_array_conditions(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        study.solve_adjustment()
+        span_shape = study.balance_engine.section_array.data.span_length.shape
+        wind_pressure = np.full(span_shape, 200.0)
+
+        study.solve_change_state(wind_pressure=wind_pressure)
+
+        np.testing.assert_array_equal(
+            study.balance_engine.balance_model.cable_loads.wind_pressure,
+            wind_pressure,
+        )
+
+    def test_add_loads_deprecated_adapter(
+        self,
+        balance_engine_base_test: BalanceEngine,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        captured: tuple[np.ndarray, np.ndarray] | None = None
+
+        def set_loads(
+            self: SectionStudy,
+            load_position_distance: np.ndarray | list[float],
+            load_mass: np.ndarray | list[float],
+        ) -> None:
+            nonlocal captured
+            captured = (
+                np.asarray(load_position_distance),
+                np.asarray(load_mass),
+            )
+
+        monkeypatch.setattr(SectionStudy, "set_loads", set_loads)
+        with pytest.warns(DeprecationWarning, match="add_loads is deprecated"):
+            study.add_loads([0.0, 100.0, 0.0, 0.0], [0.0, 50.0, 0.0, 0.0])
+
+        assert captured is not None
+        np.testing.assert_array_equal(captured[0], [0.0, 100.0, 0.0])
+        np.testing.assert_array_equal(captured[1], [0.0, 50.0, 0.0])
+
 
 class TestSectionStudyLazyEngines:
-    def test_plot_engine_not_created_eagerly(
+    def test_engines_not_created_eagerly(
         self, balance_engine_base_test: BalanceEngine
-    ):
+    ) -> None:
         study = SectionStudy(
             cable_array=balance_engine_base_test.cable_array,
             section_array=balance_engine_base_test.section_array,
         )
         assert study._plot_engine is None
+        assert study._thermal_engine is None
+        assert study._guying is None
+        assert study._estimation_engine is None
 
     def test_plot_engine_created_on_access(
         self, balance_engine_base_test: BalanceEngine
-    ):
+    ) -> None:
         study = SectionStudy(
             cable_array=balance_engine_base_test.cable_array,
             section_array=balance_engine_base_test.section_array,
         )
-        _ = study.plot_engine
+        engine = study.plot_engine
         assert study._plot_engine is not None
+
+        # Second access returns same instance
+        assert study.plot_engine is engine
 
     def test_thermal_engine_created_on_access(
         self, balance_engine_base_test: BalanceEngine
-    ):
+    ) -> None:
         study = SectionStudy(
             cable_array=balance_engine_base_test.cable_array,
             section_array=balance_engine_base_test.section_array,
         )
-        _ = study.thermal_engine
+        engine = study.thermal_engine
         assert study._thermal_engine is not None
+
+        # Second access returns same instance
+        assert study.thermal_engine is engine
 
     def test_guying_created_on_access(
         self, balance_engine_base_test: BalanceEngine
-    ):
+    ) -> None:
         study = SectionStudy(
             cable_array=balance_engine_base_test.cable_array,
             section_array=balance_engine_base_test.section_array,
         )
-        _ = study.guying
+        guying = study.guying
         assert study._guying is not None
+
+        # Second access returns same instance
+        assert study.guying is guying
+
+    def test_estimation_engine_created_on_access(
+        self, balance_engine_base_test: BalanceEngine
+    ) -> None:
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        estimation_engine = study.estimation_engine
+        assert study._estimation_engine is not None
+
+        # Second access returns same instance
+        assert study.estimation_engine is estimation_engine
 
 
 class TestSectionStudySubEngines:
@@ -309,7 +415,7 @@ class TestSectionStudyDelegates:
     """Verify that SectionStudy delegate methods return the same values as
     the underlying BalanceEngine / PositionEngine."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def solved_study(
         self, balance_engine_base_test: BalanceEngine
     ) -> SectionStudy:
@@ -354,6 +460,11 @@ class TestSectionStudyDelegates:
         expected = solved_study.balance_engine.support_number
         assert result == expected
 
+    def test_get_spans_points(self, solved_study: SectionStudy):
+        result = solved_study.get_spans_points("section")
+        expected = solved_study.position_engine.get_spans_points("section")
+        np.testing.assert_array_equal(result, expected)
+
     def test_get_points_for_plot(self, solved_study: SectionStudy):
         result_span, _, _ = solved_study.get_points_for_plot()
         expected_span, _, _ = solved_study.position_engine.get_points_for_plot(
@@ -365,7 +476,7 @@ class TestSectionStudyDelegates:
 class TestSectionStudyManipulation:
     """Integration tests for manipulations triggered through SectionStudy."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def study(self, cable_array_AM600: CableArray) -> SectionStudy:
         section_array = SectionArray(
             pd.DataFrame(
@@ -770,7 +881,7 @@ class TestSectionStudyManipulation:
 class TestSectionStudyUpdateLoads:
     """Testing if loads are registered correctly within SectionStudy."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def study(self, cable_array_AM600: CableArray) -> SectionStudy:
         section_array = SectionArray(
             pd.DataFrame(
@@ -1048,7 +1159,7 @@ class TestSectionStudyUpdateLoads:
 
 
 class TestSectionStudyRestoreState:
-    @pytest.fixture()
+    @pytest.fixture
     def study(self, cable_array_AM600: CableArray) -> SectionStudy:
         section_array = SectionArray(
             pd.DataFrame(
@@ -1114,3 +1225,107 @@ class TestSectionStudyRestoreState:
         param_current = study.balance_engine.parameter.copy()
         # the two states should be different
         assert not np.allclose(param_current, param_original, rtol=1e-6)
+
+
+class TestSectionStudyCopy:
+    point = np.array([250.0, 10.0, 20.0])
+    virtual_support = {
+        0: {
+            "x": 100.0,
+            "y": 0.0,
+            "z": 55.0,
+            "insulator_length": 3.0,
+            "insulator_mass": 500.0,
+            "hanging_cable_point_from_left_support": 100.0,
+        },
+    }
+
+    @pytest.fixture
+    def study(self, cable_array_AM600: CableArray) -> SectionStudy:
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2", "3", "4"],
+                    "suspension": [False, True, True, False],
+                    "conductor_attachment_altitude": [30, 50, 60, 65],
+                    "crossarm_length": [0, 0, 0, 0],
+                    "line_angle": [0, 0, 0, 0],
+                    "insulator_length": [3, 3, 3, 3],
+                    "span_length": [500, 300, 400, np.nan],
+                    "insulator_mass": [1000, 500, 500, 1000],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        study = SectionStudy(
+            cable_array=cable_array_AM600, section_array=section_array
+        )
+        study.solve_adjustment()
+        return study
+
+    def _distance(self, study: SectionStudy, x: float = 250.0) -> float:
+        point = np.array([x, 10.0, 20.0])
+        return study.position_engine.point_distance(0, point).distance_3d
+
+    def test_copy_independence(self, study: SectionStudy):
+        memento = study.intermediate_memento
+        dxdydz = study.balance_engine.balance_model.nodes.dxdydz.copy()
+        masses = np.copy(study._clean_engine.span_loads.load_mass)
+
+        clone = study.copy()
+        clone.set_loads(
+            np.array([100.0, 0.0, 0.0]), np.array([50.0, 0.0, 0.0])
+        )
+        clone.solve_change_state(new_temperature=80.0, wind_pressure=300.0)
+
+        assert study.intermediate_memento is memento
+        np.testing.assert_array_equal(
+            study.balance_engine.balance_model.nodes.dxdydz, dxdydz
+        )
+        np.testing.assert_array_equal(
+            study._clean_engine.span_loads.load_mass, masses
+        )
+
+    def test_copy_equivalence(self, study: SectionStudy):
+        clone = study.copy()
+        study.solve_change_state(new_temperature=80.0)
+        clone.solve_change_state(new_temperature=80.0)
+        assert self._distance(clone) == pytest.approx(self._distance(study))
+
+    def test_copy_with_manipulations(self, study: SectionStudy):
+        study.modify_support({1: {"z": 5.0}})
+        study.set_virtual_support(self.virtual_support)
+        clone = study.copy()
+        assert len(clone.balance_engine.section_array.data) == len(
+            study.balance_engine.section_array.data
+        )
+        study.solve_change_state(new_temperature=80.0)
+        clone.solve_change_state(new_temperature=80.0)
+        assert self._distance(clone, 50.0) == pytest.approx(
+            self._distance(study, 50.0)
+        )
+
+    def test_copy_unsolved(self, cable_array_AM600: CableArray):
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2"],
+                    "suspension": [False, False],
+                    "conductor_attachment_altitude": [30, 40],
+                    "crossarm_length": [0, 0],
+                    "line_angle": [0, 0],
+                    "insulator_length": [3, 3],
+                    "span_length": [500, np.nan],
+                    "insulator_mass": [1000, 1000],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        study = SectionStudy(cable_array_AM600, section_array)
+        clone = study.copy()
+        clone.solve_adjustment()
+        assert not hasattr(study._clean_engine, "L_ref")

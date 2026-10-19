@@ -14,6 +14,7 @@ _rtol = 4 * np.finfo(float).eps
 
 __all__ = [
     'newton',
+    'brentq',
     'RootResults',
 ]
 
@@ -495,3 +496,139 @@ def _array_newton(func, x0, fprime, args, tol, maxiter, fprime2, full_output):
         p = result(p, ~failures, zero_der)
 
     return p
+
+
+def brentq(
+    f,
+    a,
+    b,
+    args=(),
+    xtol=_xtol,
+    rtol=_rtol,
+    maxiter=_iter,
+    full_output=False,
+    disp=True,
+):
+    """Find a root of a scalar function in a bracketing interval with Brent's method.
+
+    Pure-Python port of scipy's ``brentq`` (``scipy/optimize/Zeros/brentq.c``),
+    with the same signature and return conventions as
+    ``scipy.optimize.brentq``.
+
+    ``f(a)`` and ``f(b)`` must have opposite signs. The returned root ``x0``
+    satisfies ``abs(x0 - x_true) <= xtol + rtol * abs(x0)``.
+
+    Parameters
+    ----------
+    f : callable
+        Scalar function ``f(x, *args)``.
+    a, b : float
+        Ends of the bracketing interval.
+    args : tuple, optional
+        Extra arguments passed to ``f``.
+    xtol, rtol : float, optional
+        Absolute and relative tolerances on the root.
+    maxiter : int, optional
+        Maximum number of iterations.
+    full_output : bool, optional
+        If True, return ``(x0, RootResults)``.
+    disp : bool, optional
+        If True, raise RuntimeError when the algorithm does not converge.
+
+    Returns
+    -------
+    x0 : float
+        Root estimate.
+    r : RootResults
+        Present if ``full_output`` is True.
+    """
+    if not isinstance(args, tuple):
+        args = (args,)
+    maxiter = int(maxiter)
+    if xtol <= 0:
+        raise ValueError("xtol too small (%g <= 0)" % xtol)
+    if rtol < _rtol:
+        raise ValueError("rtol too small (%g < %g)" % (rtol, _rtol))
+    if maxiter < 0:
+        raise ValueError("maxiter must be >= 0")
+
+    xpre = float(a)
+    xcur = float(b)
+    xblk = 0.0
+    fblk = 0.0
+    spre = 0.0
+    scur = 0.0
+
+    fpre = float(f(xpre, *args))
+    fcur = float(f(xcur, *args))
+    funcalls = 2
+
+    if fpre * fcur > 0:
+        raise ValueError("f(a) and f(b) must have different signs")
+    if fpre == 0:
+        return _results_select(full_output, (xpre, funcalls, 0, _ECONVERGED))
+    if fcur == 0:
+        return _results_select(full_output, (xcur, funcalls, 0, _ECONVERGED))
+
+    iterations = 0
+    for i in range(maxiter):
+        iterations += 1
+        if fpre != 0 and fcur != 0 and (fpre < 0) != (fcur < 0):
+            xblk = xpre
+            fblk = fpre
+            spre = scur = xcur - xpre
+        if abs(fblk) < abs(fcur):
+            xpre, xcur, xblk = xcur, xblk, xcur
+            fpre, fcur, fblk = fcur, fblk, fcur
+
+        delta = (xtol + rtol * abs(xcur)) / 2
+        sbis = (xblk - xcur) / 2
+        if fcur == 0 or abs(sbis) < delta:
+            return _results_select(
+                full_output, (xcur, funcalls, iterations, _ECONVERGED)
+            )
+
+        if abs(spre) > delta and abs(fcur) < abs(fpre):
+            if xpre == xblk:
+                # secant interpolation
+                stry = -fcur * (xcur - xpre) / (fcur - fpre)
+            else:
+                # inverse quadratic interpolation (extrapolation)
+                dpre = (fpre - fcur) / (xpre - xcur)
+                dblk = (fblk - fcur) / (xblk - xcur)
+                stry = (
+                    -fcur
+                    * (fblk * dblk - fpre * dpre)
+                    / (dblk * dpre * (fblk - fpre))
+                )
+            if 2 * abs(stry) < min(abs(spre), 3 * abs(sbis) - delta):
+                # good short step
+                spre = scur
+                scur = stry
+            else:
+                # bisect
+                spre = sbis
+                scur = sbis
+        else:
+            # bisect
+            spre = sbis
+            scur = sbis
+
+        xpre = xcur
+        fpre = fcur
+        if abs(scur) > delta:
+            xcur += scur
+        else:
+            xcur += delta if sbis > 0 else -delta
+
+        fcur = float(f(xcur, *args))
+        funcalls += 1
+
+    if disp:
+        raise RuntimeError(
+            "Failed to converge after %d iterations, value is %s"
+            % (iterations, xcur)
+        )
+    return _results_select(
+        full_output, (xcur, funcalls, iterations, _ECONVERR)
+    )

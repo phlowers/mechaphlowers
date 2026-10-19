@@ -33,6 +33,10 @@ from mechaphlowers.entities.errors import BalanceEngineWarning, SolverError
 
 if TYPE_CHECKING:
     from mechaphlowers.core.models.cable.thermal import ThermalEngine
+    from mechaphlowers.core.models.estimation import (
+        EstimationEngine,
+        OptimizationMethod,
+    )
     from mechaphlowers.core.models.guying import Guying
     from mechaphlowers.plotting.plot import PlotEngine
 from mechaphlowers.utils import arr
@@ -95,6 +99,7 @@ class SectionStudy:
         self._plot_engine: PlotEngine | None = None
         self._thermal_engine: ThermalEngine | None = None
         self._guying: Guying | None = None
+        self._estimation_engine: EstimationEngine | None = None
         self._intermediate_memento: BalanceEngineMemento | None = None
         # Clean version of BalanceEngine: used for applying loads and manipulations
         # Will not be affected by change states or manipulations
@@ -140,6 +145,29 @@ class SectionStudy:
 
             self._guying = _G(self._balance_engine)
         return self._guying
+
+    @property
+    def estimation_engine(self) -> EstimationEngine:
+        """Lazy-loaded inverse estimation engine.
+
+        Returns an [`EstimationEngine`][mechaphlowers.core.models.estimation.EstimationEngine]
+        bound to this study, using Brent's method by default.
+        """
+        if self._estimation_engine is None:
+            from mechaphlowers.core.models.estimation import (
+                EstimationEngine as _EE,
+            )
+
+            self._estimation_engine = _EE(self)
+        return self._estimation_engine
+
+    def set_estimation_method(self, method: OptimizationMethod) -> None:
+        """Replace the estimation engine with one bound to this study using `method`."""
+        from mechaphlowers.core.models.estimation import (
+            EstimationEngine as _EE,
+        )
+
+        self._estimation_engine = _EE(self, method=method)
 
     @property
     def intermediate_memento(self) -> BalanceEngineMemento | None:
@@ -500,6 +528,33 @@ class SectionStudy:
         self._balance_engine.reset(full=False)
 
     # ── State management ──────────────────────────────────────────────────
+
+    def copy(self) -> SectionStudy:
+        """Return an independent copy of the study (manipulations, loads and state included).
+
+        Lazy engines (plot, thermal, guying, estimation) are not copied.
+        """
+        # Bypass __init__: building BalanceEngines is far costlier than deepcopy
+        clone = SectionStudy.__new__(SectionStudy)
+        clone._cable_array = self._cable_array
+        clone._section_array = self._section_array
+        clone._span_model_type = self._span_model_type
+        clone._deformation_model_type = self._deformation_model_type
+        clone._manipulation = deepcopy(self._manipulation)
+        clone._clean_engine = deepcopy(self._clean_engine)
+        # Drop observers so the original's downstream engines are not copied
+        clone._balance_engine = deepcopy(
+            self._balance_engine,
+            {id(self._balance_engine._observers): []},
+        )
+        clone._caretaker = BalanceEngineCaretaker(clone._balance_engine)
+        clone._position_engine = PositionEngine(clone._balance_engine)
+        clone._plot_engine = None
+        clone._thermal_engine = None
+        clone._guying = None
+        clone._estimation_engine = None
+        clone._intermediate_memento = deepcopy(self._intermediate_memento)
+        return clone
 
     def save_state(self) -> BalanceEngineMemento:
         """Create an immutable snapshot of the current engine state.
