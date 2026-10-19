@@ -9,6 +9,8 @@ from __future__ import annotations
 import logging
 from typing import Callable, Protocol
 
+import numpy as np
+
 from mechaphlowers.core.numeric.result import EstimationResult
 
 logger = logging.getLogger(__name__)
@@ -37,6 +39,8 @@ class BisectionMethod:
         maxiter: Maximum number of iterations. Defaults to 50.
     """
 
+    FUNCTION_TOL = 1e-6
+
     def __init__(self, tol: float = 1e-3, maxiter: int = 50) -> None:
         self.tol = tol
         self.maxiter = maxiter
@@ -51,7 +55,18 @@ class BisectionMethod:
         fb = objective(b)
         iterations = 2
 
-        if fa * fb >= 0:
+        if np.isnan(fa) or np.isnan(fb):
+            raise ValueError("objective returned NaN at bounds")
+        if fa == 0:
+            return EstimationResult(
+                value=a, residual=0.0, iterations=iterations, converged=True
+            )
+        if fb == 0:
+            return EstimationResult(
+                value=b, residual=0.0, iterations=iterations, converged=True
+            )
+
+        if np.sign(fa) == np.sign(fb):
             logger.warning(
                 "Bisection: objective does not change sign over bounds "
                 f"[{a}, {b}] (f(a)={fa:.3e}, f(b)={fb:.3e}). "
@@ -63,7 +78,7 @@ class BisectionMethod:
                 value=best,
                 residual=residual,
                 iterations=iterations,
-                converged=residual <= self.tol,
+                converged=residual <= self.FUNCTION_TOL,
             )
 
         for _ in range(self.maxiter):
@@ -71,7 +86,7 @@ class BisectionMethod:
             fmid = objective(mid)
             iterations += 1
 
-            if abs(fmid) <= self.tol or (b - a) / 2.0 <= self.tol:
+            if abs(fmid) <= self.FUNCTION_TOL or (b - a) / 2.0 <= self.tol:
                 return EstimationResult(
                     value=mid,
                     residual=abs(fmid),
@@ -79,7 +94,7 @@ class BisectionMethod:
                     converged=True,
                 )
 
-            if fa * fmid < 0:
+            if np.sign(fa) != np.sign(fmid):
                 b = mid
             else:
                 a = mid

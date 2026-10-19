@@ -320,7 +320,9 @@ class EstimationEngine:
         position_engine = PositionEngine(balance_engine)
 
         def objective(x: float) -> float:
-            balance_engine.solve_change_state(**fixed_conditions, **{variable_name: x})
+            balance_engine.solve_change_state(
+                **fixed_conditions, **{variable_name: x}
+            )
             result = position_engine.point_distance(span_index, obstacle_point)
             return result.distance_3d - target_distance
 
