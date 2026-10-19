@@ -556,7 +556,9 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             raise MeasurementDataNotAvailable(
                 "measure_method() must be called before uncertainty()."
             )
+        return self.error_from_gum()
 
+    def error_from_gum(self) -> Number:
         # We only support uncertainty computation for scalar inputs
         scalar_measures = self._check_input_measures_are_scalar_or_scalar_like(
             self.measures_converted,
@@ -588,7 +590,9 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
         Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.  TODO
         Raises MeasurementDataNotAvailable if measure_method() has not been called before.
         """
-        return self.relative_uncertainty()
+        return (
+            self.absolute_uncertainty()
+        )  # TODO: check. Return relative uncertainty instead?
 
     def _absolute_uncertainty__sighting_device_at_support(
         self, scalar_measures: dict[str, Number]

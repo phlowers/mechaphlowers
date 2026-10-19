@@ -16,8 +16,11 @@ from mechaphlowers.data.measures import (
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import (
     ConvergenceError,
-    MeasurementDataNotAvailable, MixedScalarAndArrayInputsError, MechaphlowersTypeError, ShapeError,
+    MeasurementDataNotAvailable,
+    MechaphlowersTypeError,
     MechaphlowersValueError,
+    MixedScalarAndArrayInputsError,
+    ShapeError,
 )
 
 PAPOTO_INPUTS = dict(
@@ -420,7 +423,7 @@ def test_tangential_sighting_parameter_measure__scalar__error() -> None:
         )
 
 
-def test_tangential_sighting_uncertainty__left_of_support() -> None:
+def test_tangential_sighting_relative_uncertainty__left_of_support() -> None:
     # First test case of H. Ducloux
     tangential_sighting = TangentialSightingParameterMeasure()
     tangential_sighting(
@@ -434,11 +437,11 @@ def test_tangential_sighting_uncertainty__left_of_support() -> None:
     )
     parameter = tangential_sighting.parameter
     np.testing.assert_allclose(parameter, 2199.3, atol=0.1)
-    uncertainty = tangential_sighting.uncertainty()
+    uncertainty = tangential_sighting.relative_uncertainty()
     np.testing.assert_allclose(uncertainty, 0.0078, atol=0.0001)
 
 
-def test_tangential_sighting_uncertainty__at_support() -> None:
+def test_tangential_sighting_relative_uncertainty__at_support() -> None:
     # 2nd test case of H. Ducloux
     tangential_sighting = TangentialSightingParameterMeasure()
     tangential_sighting(
@@ -452,11 +455,11 @@ def test_tangential_sighting_uncertainty__at_support() -> None:
     )
     parameter = tangential_sighting.parameter
     np.testing.assert_allclose(parameter, 1200.0, atol=0.1)
-    uncertainty = tangential_sighting.uncertainty()
+    uncertainty = tangential_sighting.relative_uncertainty()
     np.testing.assert_allclose(uncertainty, 0.0044, atol=0.0001)
 
 
-def test_tangential_sighting_uncertainty__between_supports_1() -> None:
+def test_tangential_sighting_relative_uncertainty__between_supports_1() -> None:
     # 3nd test case of H. Ducloux
     tangential_sighting = TangentialSightingParameterMeasure()
     tangential_sighting(
@@ -470,11 +473,11 @@ def test_tangential_sighting_uncertainty__between_supports_1() -> None:
     )
     parameter = tangential_sighting.parameter
     np.testing.assert_allclose(parameter, 2500.1, atol=0.1)
-    uncertainty = tangential_sighting.uncertainty()
+    uncertainty = tangential_sighting.relative_uncertainty()
     np.testing.assert_allclose(uncertainty, 0.0067, atol=0.0001)
 
 
-def test_tangential_sighting_uncertainty__between_supports_2() -> None:
+def test_tangential_sighting_relative_uncertainty__between_supports_2() -> None:
     # 4nd test case of H. Ducloux
     tangential_sighting = TangentialSightingParameterMeasure()
     tangential_sighting(
@@ -488,7 +491,7 @@ def test_tangential_sighting_uncertainty__between_supports_2() -> None:
     )
     parameter = tangential_sighting.parameter
     np.testing.assert_allclose(parameter, 1000.4, atol=0.1)
-    uncertainty = tangential_sighting.uncertainty()
+    uncertainty = tangential_sighting.relative_uncertainty()
     np.testing.assert_allclose(uncertainty, 0.0127, atol=0.0001)
 
 
@@ -618,23 +621,23 @@ def test_tangential_sighting_check_validity__threshold(
         distance=50,
         angle_unit="grad",
     )
-    uncertainty = tangential_sighting.uncertainty()
+    relative_uncertainty = tangential_sighting.relative_uncertainty()
     monkeypatch.setattr(
         TangentialSightingParameterMeasure,
         "MAX_ACCEPTED_UNCERTAINTY",
-        uncertainty,
+        relative_uncertainty,
     )
     assert tangential_sighting.check_validity()
     monkeypatch.setattr(
         TangentialSightingParameterMeasure,
         "MAX_ACCEPTED_UNCERTAINTY",
-        uncertainty * 1.001,
+        relative_uncertainty * 1.001,
     )
     assert tangential_sighting.check_validity()
     monkeypatch.setattr(
         TangentialSightingParameterMeasure,
         "MAX_ACCEPTED_UNCERTAINTY",
-        uncertainty * 0.999,
+        relative_uncertainty * 0.999,
     )
     assert not tangential_sighting.check_validity()
 

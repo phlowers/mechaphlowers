@@ -13,7 +13,11 @@ import pytest
 from xxhash import xxh3_64
 
 from mechaphlowers.config import options
-from mechaphlowers.entities.errors import MechaphlowersTypeError, ShapeError, MechaphlowersValueError
+from mechaphlowers.entities.errors import (
+    MechaphlowersTypeError,
+    MechaphlowersValueError,
+    ShapeError,
+)
 from mechaphlowers.utils import (
     CachedAccessor,
     acotan,

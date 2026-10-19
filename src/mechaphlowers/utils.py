@@ -16,7 +16,12 @@ import pandas as pd
 from xxhash import xxh3_64
 
 from mechaphlowers.config import options
-from mechaphlowers.entities.errors import ShapeError, ViewChoiceWarning, MechaphlowersTypeError, MechaphlowersValueError
+from mechaphlowers.entities.errors import (
+    MechaphlowersTypeError,
+    MechaphlowersValueError,
+    ShapeError,
+    ViewChoiceWarning,
+)
 
 logger = logging.getLogger(__name__)
 
