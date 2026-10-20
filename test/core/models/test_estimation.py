@@ -557,7 +557,9 @@ class TestEstimationScenarios:
         obstacle = obstacle_point(scenario)
 
         reference = scenario_study.copy()
-        reference.set_rope({support_index: rope_length})
+        reference.set_rope_or_chain(
+            {support_index: {"type": "rope", "length": rope_length}}
+        )
         reference.solve_change_state(**scenario.conditions)
         distance = reference.position_engine.point_distance(
             span_index, obstacle
@@ -579,7 +581,7 @@ class TestEstimationScenarios:
         assert result.converged
         assert abs(result.value - rope_length) < 0.05
         # The study is left untouched
-        assert scenario_study.manipulation._rope_overlay is None
+        assert scenario_study.manipulation._rope_or_chain_overlay is None
         assert scenario_study.balance_engine is balance_engine_before
         np.testing.assert_array_equal(
             scenario_study.balance_engine.balance_model.nodes.dxdydz,
@@ -589,13 +591,13 @@ class TestEstimationScenarios:
 
 def rope_target(
     study: SectionStudy,
-    rope: dict[int, float],
+    rope: dict[int, dict],
     span_index: int,
     obstacle: np.ndarray,
 ) -> float:
     """Vertical distance above the obstacle once the ropes are set on a copy."""
     reference = study.copy()
-    reference.set_rope(rope)
+    reference.set_rope_or_chain(rope)
     reference.solve_change_state()
     distance = reference.position_engine.point_distance(span_index, obstacle)
     return distance.point_target[2] - obstacle[2]
@@ -619,20 +621,34 @@ class TestEstimateRope:
         )
 
     def test_rope_on_other_support_is_kept(self, study: SectionStudy):
-        target = rope_target(study, {1: 5.0, 2: 2.0}, 0, self.obstacle)
-        study.set_rope({2: 2.0})
+        target = rope_target(
+            study,
+            {
+                1: {"type": "rope", "length": 5.0},
+                2: {"type": "rope", "length": 2.0},
+            },
+            0,
+            self.obstacle,
+        )
+        study.set_rope_or_chain({2: {"type": "rope", "length": 2.0}})
         result = self.estimate(study, target, support_index=1)
         assert result.converged
         assert abs(result.value - 5.0) < 0.05
-        assert study.manipulation._rope_overlay == {2: 2.0}
+        assert study.manipulation._rope_or_chain_overlay == {
+            2: {"type": "rope", "length": 2.0, 'mass': 0.02}
+        }
 
     def test_rope_on_support_is_replaced(self, study: SectionStudy):
-        target = rope_target(study, {1: 5.0}, 0, self.obstacle)
-        study.set_rope({1: 2.0})
+        target = rope_target(
+            study, {1: {"type": "rope", "length": 5.0}}, 0, self.obstacle
+        )
+        study.set_rope_or_chain({1: {"type": "rope", "length": 2.0}})
         result = self.estimate(study, target, support_index=1)
         assert result.converged
         assert abs(result.value - 5.0) < 0.05
-        assert study.manipulation._rope_overlay == {1: 2.0}
+        assert study.manipulation._rope_or_chain_overlay == {
+            1: {'type': 'rope', 'length': 2.0, 'mass': 0.02}
+        }
 
     def test_split_span_raises(self, study: SectionStudy):
         study.set_virtual_support({0: VIRTUAL_SUPPORTS[0]})
@@ -647,10 +663,12 @@ class TestEstimateRope:
             self.estimate(study, 30.0, support_index=support_index)
 
     def test_arm_altitude_is_kept(self, study: SectionStudy):
-        target = rope_target(study, {1: 5.0}, 0, self.obstacle)
+        target = rope_target(
+            study, {1: {"type": "rope", "length": 5.0}}, 0, self.obstacle
+        )
         result = self.estimate(study, target, support_index=1)
         roped = study.copy()
-        roped.set_rope({1: result.value})
+        roped.set_rope_or_chain({1: {"type": "rope", "length": result.value}})
         roped.solve_change_state()
         np.testing.assert_allclose(
             roped.position_engine.coords_calculator.center_arm_coords[:, 2],

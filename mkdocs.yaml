@@ -105,6 +105,7 @@ nav:
                   - Estimation result: docstring/core/numeric/result.md
               - Papoto: docstring/core/papoto/papoto_model.md
               - Tangential Sighting Method: docstring/core/tangential_sighting/tangential_sighting.md
+              - Manipulation: docstring/core/manipulation.md
           - Data:
               - Catalog: docstring/data/catalog/catalog.md
               - Geography: docstring/data/geography/helpers.md
