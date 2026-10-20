@@ -363,7 +363,7 @@ class EstimationEngine:
                 else {}
             )
             rope_lineic_mass = overlay.get(support_index, {}).get(
-                "lineic_weight", options.data.rope_lineic_mass_default
+                "lineic_mass", options.data.rope_lineic_mass_default
             )
         other_ropes = {
             idx: other_dict

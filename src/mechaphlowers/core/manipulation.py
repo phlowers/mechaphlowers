@@ -302,7 +302,7 @@ class Manipulation:
 
     def set_rope_or_chain(
         self,
-        rope_or_chain: dict[int, dict],  # define TypedDict?
+        rope_or_chain: dict[int, dict],
     ) -> None:
         """Override insulator length and mass for specified supports with rope values.
 
@@ -357,10 +357,8 @@ class Manipulation:
                 logger.warning(warning_message)
                 warnings.warn(warning_message, DataWarning)
             if "mass" not in insulator:
-                lineic_mass = (
-                    insulator["lineic_mass"]
-                    if "lineic_mass" in insulator
-                    else options.data.rope_lineic_mass_default
+                lineic_mass = insulator.get(
+                    "lineic_mass", options.data.rope_lineic_mass_default
                 )
                 insulator["mass"] = lineic_mass * insulator["length"]
         self._rope_or_chain_overlay = rope_or_chain
@@ -372,7 +370,7 @@ class Manipulation:
         Does nothing if no rope manipulation has been applied.
 
         Examples:
-            >>> manip.set_rope_or_chain({1: 4.5})
+            >>> manip.set_rope_or_chain({1: {"type": "chain", "length": 5, "mass": 50}})
             >>> manip.reset_rope()
         """
         if self._rope_or_chain_overlay is None:
@@ -501,7 +499,7 @@ class Manipulation:
 
         Examples:
             >>> manip.modify_support({1: {"z": 2.0}})
-            >>> manip.set_rope_or_chain({2: 4.0})
+            >>> manip.set_rope_or_chain({1: {"type": "chain", "length": 5, "mass": 50}})
             >>> manip.reset_all()  # both overlays cleared
         """
         self.reset_support()

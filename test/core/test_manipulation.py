@@ -361,6 +361,11 @@ def test_rope_manipulation_invalid_index(manipulation: Manipulation) -> None:
         manipulation.set_rope_or_chain({99: {"type": "rope", "length": 5.0}})
 
 
+def test_rope_manipulation_no_type(manipulation: Manipulation) -> None:
+    with pytest.raises(InvalidManipulationKeys):
+        manipulation.set_rope_or_chain({1: {"length": 5.0}})
+
+
 def test_reset_rope_manipulation(
     section_array: SectionArray,
     manipulation: Manipulation,
