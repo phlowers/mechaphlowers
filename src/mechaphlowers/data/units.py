@@ -29,7 +29,7 @@ unit.enable_contexts("mecha")
 
 Q_ = unit.Quantity
 
-__all__ = ["unit", "Q_", "Quantity", "convert_grad_to_rad"]
+__all__ = ["unit", "Q_", "Quantity", "convert_angle_to_rad"]
 
 
 def convert_weight_to_mass(weight: np.ndarray | list) -> np.ndarray:
@@ -57,26 +57,30 @@ def convert_mass_to_weight(mass: np.ndarray | list) -> np.ndarray:
 
 
 @overload
-def convert_grad_to_rad(
-    angle_in_grad: Number,
+def convert_angle_to_rad(
+    angle: Number,
+    input_unit: str = "grad",
 ) -> Number: ...
 
 
 @overload
-def convert_grad_to_rad(
-    angle_in_grad: np.ndarray,
+def convert_angle_to_rad(
+    angle: np.ndarray,
+    input_unit: str = "grad",
 ) -> np.ndarray: ...
 
 
-def convert_grad_to_rad(
-    angle_in_grad: np.ndarray | Number,
+def convert_angle_to_rad(
+    angle: np.ndarray | Number,
+    input_unit: str = "grad",
 ) -> np.ndarray | Number:
-    """Converts an angle in grad to radians.
+    """Converts angle(s) to radians.
 
     Args:
-        angle_in_grad (np.ndarray | Number): angle or array of angles in grad
+        angle (np.ndarray | Number): angle or array of angles
+        input_unit (str): unit of the angle(s). Defaults to "grad".
 
     Returns:
         np.ndarray | Number: angle or array of angles in radians
     """
-    return Q_(angle_in_grad, "grad").to("rad").magnitude
+    return Q_(angle, input_unit).to("rad").magnitude

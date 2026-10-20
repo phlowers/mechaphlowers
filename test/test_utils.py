@@ -16,10 +16,12 @@ from mechaphlowers.config import options
 from mechaphlowers.utils import (
     CachedAccessor,
     acotan,
+    check_all_arrays_have_the_same_shape,
     check_inputs_are_numbers,
     check_time,
     cotan,
     hash_numpy_xxhash,
+    is_number,
     numpy_cache,
     ppnp,
     span_to_support_view_guying,
@@ -319,3 +321,21 @@ def test_acotan() -> None:
         ]
     )
     np.testing.assert_allclose(acotan(inputs), expected, atol=1e-12)
+
+
+def test_is_number():
+    assert is_number(1)
+    assert is_number(1.5)
+    assert is_number(np.float64(2.0))
+    assert not is_number(True)
+    assert not is_number("1")
+    assert not is_number(np.array([1.0]))
+
+
+def test_check_all_arrays_have_the_same_shape():
+    check_all_arrays_have_the_same_shape(caller_name="f")
+    check_all_arrays_have_the_same_shape(
+        caller_name="f", a=np.zeros(3), b=np.ones(3)
+    )
+    with pytest.raises(ValueError, match="same shape"):
+        check_all_arrays_have_the_same_shape("f", a=np.zeros(3), b=np.ones(2))

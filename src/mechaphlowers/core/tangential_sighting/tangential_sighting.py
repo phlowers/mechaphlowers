@@ -4,7 +4,11 @@ import numpy as np
 
 from mechaphlowers.entities.errors import ConvergenceError
 from mechaphlowers.numeric.newton import newton_solver_wrapper
-from mechaphlowers.utils import Number, cotan
+from mechaphlowers.utils import (
+    Number,
+    check_all_arrays_have_the_same_shape,
+    cotan,
+)
 
 
 def _validate_inputs(
@@ -23,6 +27,16 @@ def _validate_inputs(
     np.ndarray,
 ]:
     """NB: input angles are assumed to be in radians."""
+    check_all_arrays_have_the_same_shape(
+        caller_name="tangential_sighting.compute_parameter__array",
+        angle_to_cable_tangent=angle_to_cable_tangent,
+        angle_to_left_support=angle_to_left_support,
+        angle_to_right_support=angle_to_right_support,
+        span_length=span_length,
+        input_height=input_height,
+        distance=distance,
+    )
+
     for angle, variable_name in zip(
         [
             angle_to_cable_tangent,
