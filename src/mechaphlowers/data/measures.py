@@ -80,13 +80,13 @@ class ParameterMeasure(ABC):
     ) -> dict[str, Number]:
         output = {}
         for key, value in measures.items():
-            if isinstance(value, np.ndarray) and value.ndim > 0:
+            if isinstance(value, np.ndarray) and value.size != 1:
                 raise MechaphlowersValueError(
                     "uncertainty() only supports scalar inputs or scalar-like inputs. "
                     "Call measure_method() with proper inputs."
                 )
             if isinstance(value, np.ndarray):
-                output[key] = value[0]
+                output[key] = value.item()
             else:
                 output[key] = value
         return output

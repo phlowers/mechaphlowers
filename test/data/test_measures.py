@@ -500,20 +500,21 @@ def test_tangential_sighting_relative_uncertainty__between_supports_2() -> (
     np.testing.assert_allclose(uncertainty, 0.0127, atol=0.0001)
 
 
-# TODO? or not
-# def test_tangential_sighting_uncertainty_single_element_array_inputs_ok() -> None:
-#     tangential_sighting = TangentialSightingParameterMeasure()
-#     tangential_sighting(
-#         angle_to_cable_tangent=np.array([101.607]),
-#         angle_to_left_support=np.array([50]),
-#         angle_to_right_support=np.array([100]),
-#         span_length=np.array([800]),
-#         input_height=np.array([0]),
-#         distance=np.array([50]),
-#         angle_unit="grad",
-#     )
-#     uncertainty = tangential_sighting.uncertainty()
-#     np.testing.assert_allclose(uncertainty, 0.0067, atol=0.0001)
+def test_tangential_sighting_uncertainty_single_element_array_inputs_ok() -> (
+    None
+):
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=np.array([101.607]),
+        angle_to_left_support=np.array([50]),
+        angle_to_right_support=np.array([100]),
+        span_length=np.array([800]),
+        input_height=np.array([0]),
+        distance=np.array([50]),
+        angle_unit="grad",
+    )
+    uncertainty = tangential_sighting.relative_uncertainty()
+    np.testing.assert_allclose(uncertainty, 0.0067, atol=0.0001)
 
 
 def test_tangential_sighting_uncertainty_before_measure_method_error() -> None:
@@ -627,16 +628,24 @@ def test_tangential_sighting_check_validity__threshold(
         angle_unit="grad",
     )
     relative_uncertainty = tangential_sighting.relative_uncertainty()
-    options.measure_uncertainty.max_accepted_uncertainty = relative_uncertainty
-    assert tangential_sighting.check_validity()
-
-    options.measure_uncertainty.max_accepted_uncertainty = (
-        relative_uncertainty * 1.001
+    monkeypatch.setattr(
+        options.measure_uncertainty,
+        "max_accepted_uncertainty",
+        relative_uncertainty,
     )
     assert tangential_sighting.check_validity()
 
-    options.measure_uncertainty.max_accepted_uncertainty = (
-        relative_uncertainty * 0.999
+    monkeypatch.setattr(
+        options.measure_uncertainty,
+        "max_accepted_uncertainty",
+        relative_uncertainty * 1.001,
+    )
+    assert tangential_sighting.check_validity()
+
+    monkeypatch.setattr(
+        options.measure_uncertainty,
+        "max_accepted_uncertainty",
+        relative_uncertainty * 0.999,
     )
     assert not tangential_sighting.check_validity()
 
