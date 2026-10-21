@@ -190,7 +190,7 @@ class SectionStudy:
         [`Manipulation.modify_support`][mechaphlowers.core.manipulation.Manipulation.modify_support].
 
         Args:
-            manipulation: Dictionary mapping support index (0-based) to
+            support_modification: Dictionary mapping support index (0-based) to
                 offsets with optional keys ``"y"`` and ``"z"``.
         """
         self._manipulation.modify_support(support_modification)

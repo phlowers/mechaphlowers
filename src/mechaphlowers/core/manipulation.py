@@ -42,7 +42,7 @@ class Manipulation:
     original [`SectionArray`][mechaphlowers.entities.arrays.SectionArray] whose ``_data`` incorporates every active
     overlay.  The original array is never modified.
 
-    If there is successive calls of the same manipulation, only the last one is taken into account.
+    If there are successive calls of the same manipulation, only the last one is taken into account.
 
     Args:
         section_array: The original (clean) section array to manipulate.
@@ -242,7 +242,7 @@ class Manipulation:
         the applied copy.
 
         Args:
-            manipulation: Dictionary mapping support index (0-based) to
+            support_modification: Dictionary mapping support index (0-based) to
                 offsets.  Each value is a dict with optional keys:
 
                 - ``"y"``: added to ``crossarm_length`` (meters)
