@@ -157,7 +157,7 @@ def compute_parameter__array(
 
     Raises:
         ShapeError:
-            if arguments (other than angle_unit) are arrays with different shapes,
+            if arguments are arrays with different shapes,
         InputAngleNotInRangeError:
             if any of the angles is not comprised between 0 and Pi,
         MechaphlowersValueError:
