@@ -41,8 +41,8 @@ class Manipulation:
     support insertions.  Calling [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array] produces a **copy** of the
     original [`SectionArray`][mechaphlowers.entities.arrays.SectionArray] whose ``_data`` incorporates every active
     overlay.  The original array is never modified.
-    
-    If there is successive calls of the same manipulation, only the last one is taken into account. 
+
+    If there is successive calls of the same manipulation, only the last one is taken into account.
 
     Args:
         section_array: The original (clean) section array to manipulate.
