@@ -9,8 +9,6 @@ import numpy as np
 import pint
 from pint import Quantity, UnitRegistry
 
-from mechaphlowers.utils import Number
-
 unit = UnitRegistry()
 
 c = pint.Context("mecha")
@@ -58,9 +56,9 @@ def convert_mass_to_weight(mass: np.ndarray | list) -> np.ndarray:
 
 @overload
 def convert_angle_to_rad(
-    angle: Number,
+    angle: float,
     input_unit: str = "grad",
-) -> Number: ...
+) -> float: ...
 
 
 @overload
@@ -71,16 +69,16 @@ def convert_angle_to_rad(
 
 
 def convert_angle_to_rad(
-    angle: np.ndarray | Number,
+    angle: np.ndarray | float,
     input_unit: str = "grad",
-) -> np.ndarray | Number:
+) -> np.ndarray | float:
     """Converts angle(s) to radians.
 
     Args:
-        angle (np.ndarray | Number): angle or array of angles
+        angle (np.ndarray | float): angle or array of angles
         input_unit (str): unit of the angle(s). Defaults to "grad".
 
     Returns:
-        np.ndarray | Number: angle or array of angles in radians
+        np.ndarray | float: angle or array of angles in radians
     """
     return Q_(angle, input_unit).to("rad").magnitude

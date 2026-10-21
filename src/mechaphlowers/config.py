@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from mechaphlowers.data.units import convert_angle_to_rad
+
 
 @dataclass
 class OutputUnitsConfig:
@@ -185,16 +187,22 @@ class InputUnitsConfig:
 
 
 @dataclass
+class MeasureUncertaintyConfig:
+    step_for_approx_derivative: float = 1e-6
+    angle_uncertainty: float = convert_angle_to_rad(0.01)
+    span_length_uncertainty: float = 0.5
+    input_length_uncertainty: float = 0.1
+    distance_uncertainty: float = 0.5
+    max_accepted_uncertainty: float = 0.01
+
+
+@dataclass
 class Config:
     """Configuration class for mechaphlowers settings.
 
     This class is not intended to be used directly. Other classes
     are using the options instance to provide configuration settings. Default values are set in the class.
     `options` is available in the module mechaphlowers.config.
-
-    Attributes:
-            graphics_resolution (int): Resolution of the graphics.
-            graphics_marker_size (float): Size of the markers in the graphics.
     """
 
     def __init__(self):
@@ -207,6 +215,7 @@ class Config:
         self._log = LogConfig()
         self._input_units = InputUnitsConfig()
         self._data_config = DataConfig()
+        self._measure_uncertainty = MeasureUncertaintyConfig()
 
     @property
     def ground(self) -> GroundConfig:
@@ -251,6 +260,11 @@ class Config:
     def log(self) -> LogConfig:
         """Logging configuration property."""
         return self._log
+
+    @property
+    def measure_uncertainty(self) -> MeasureUncertaintyConfig:
+        """Measure uncertainty configuration property."""
+        return self._measure_uncertainty
 
     class OptionError(Exception):
         """Exception raised when an option is not available."""

@@ -8,6 +8,7 @@
 import numpy as np
 import pytest
 
+from mechaphlowers.config import options
 from mechaphlowers.data.measures import (
     PapotoParameterMeasure,
     TangentialSightingParameterMeasure,
@@ -626,22 +627,16 @@ def test_tangential_sighting_check_validity__threshold(
         angle_unit="grad",
     )
     relative_uncertainty = tangential_sighting.relative_uncertainty()
-    monkeypatch.setattr(
-        TangentialSightingParameterMeasure,
-        "MAX_ACCEPTED_UNCERTAINTY",
-        relative_uncertainty,
+    options.measure_uncertainty.max_accepted_uncertainty = relative_uncertainty
+    assert tangential_sighting.check_validity()
+
+    options.measure_uncertainty.max_accepted_uncertainty = (
+        relative_uncertainty * 1.001
     )
     assert tangential_sighting.check_validity()
-    monkeypatch.setattr(
-        TangentialSightingParameterMeasure,
-        "MAX_ACCEPTED_UNCERTAINTY",
-        relative_uncertainty * 1.001,
-    )
-    assert tangential_sighting.check_validity()
-    monkeypatch.setattr(
-        TangentialSightingParameterMeasure,
-        "MAX_ACCEPTED_UNCERTAINTY",
-        relative_uncertainty * 0.999,
+
+    options.measure_uncertainty.max_accepted_uncertainty = (
+        relative_uncertainty * 0.999
     )
     assert not tangential_sighting.check_validity()
 
