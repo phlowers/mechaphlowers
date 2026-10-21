@@ -373,7 +373,9 @@ def compute_parameter__scalar(
         Computed parameter.
 
     Raises:
-        ValueError: if any of the angles is not comprised between 0 and Pi;
+        InputAngleNotInRangeError:
+            if any of the angles is not comprised between 0 and Pi,
+        MechaphlowersValueError:
             if angle_to_cable_tangent is zero,
             if span_length is negative or zero,
             if input_height is strictly negative,
@@ -381,7 +383,8 @@ def compute_parameter__scalar(
             the parameter),
             if both distance and input_height are provided, non-zero and not nan,
             if distance isn't zero, and angle_to_left_support is zero (geometrically impossible).
-
+        ConvergenceError:
+            if the computation of the parameter fails to converge.
     """
     return compute_parameter__array(
         np.array([angle_to_cable_tangent]),
