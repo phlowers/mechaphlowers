@@ -582,7 +582,12 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
         Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.
         Raises MeasurementDataNotAvailable if measure_method() has not been called before.
         """
-        return self.absolute_uncertainty() / self.parameter  # type:ignore
+        absolute_uncertainty = self.absolute_uncertainty()
+        if isinstance(self.parameter, np.ndarray):
+            parameter = self.parameter.item()  # type: ignore
+        else:
+            parameter = self.parameter
+        return absolute_uncertainty / parameter  # type: ignore
 
     def uncertainty(self) -> Number:
         """Returns the absolute uncertainty of the parameter, computed using the GUM method.

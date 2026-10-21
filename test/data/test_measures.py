@@ -517,6 +517,27 @@ def test_tangential_sighting_uncertainty_single_element_array_inputs_ok() -> (
     np.testing.assert_allclose(uncertainty, 0.0067, atol=0.0001)
 
 
+def test_tangential_sighting_relative_uncertainty_single_element_array_inputs_ok() -> (
+    None
+):
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=np.array([101.607]),
+        angle_to_left_support=np.array([50]),
+        angle_to_right_support=np.array([100]),
+        span_length=np.array([800]),
+        input_height=np.array([0]),
+        distance=np.array([50]),
+        angle_unit="grad",
+    )
+
+    np.testing.assert_allclose(
+        tangential_sighting.relative_uncertainty(),
+        0.00679768,
+        atol=1.0,
+    )
+
+
 def test_tangential_sighting_uncertainty_before_measure_method_error() -> None:
     tangential_sighting = TangentialSightingParameterMeasure()
     with pytest.raises(MeasurementDataNotAvailable):
