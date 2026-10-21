@@ -288,7 +288,17 @@ study.reset_support()
 
 `set_rope_or_chain` replaces the insulator length and mass for specified supports with rope or chain values. Internally the `Manipulation` object produces a new `SectionArray` that includes the rope or chain data; the original section array is never modified.
 
-The input is a dictionary where keys are support indices (0-based) and values are the rope length in meters. An optional `rope_lineic_mass` parameter (kg/m, default `0.01`) controls the mass per unit length.
+The input is a dictionary where keys are support indices (0-based) and values are dicts with the following required keys:
+
+| Key | Description |
+|---|---|
+| `"type"` | type of the manipulation: "rope" or "chain" |
+| `"length"` | length of the new chain or the rope, in m |
+| `"mass"` | mass of the rope or the chain, in kg (optional)|
+| `"lineic_mass"` | lineic mass of the rope, in kg/m (optional, will be ignored if mass is given) |
+
+
+If neither mass nor lineic mass is given, a default lineic mass value will be given `0.01` kg/m.
 
 ```python
 # Replace insulator properties for supports 1 and 2 with rope values
