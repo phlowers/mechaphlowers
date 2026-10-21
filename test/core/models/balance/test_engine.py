@@ -688,7 +688,7 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
         }
     )
     # 1 rope manipulation (support 3)
-    manip.set_rope({3: 4.5})
+    manip.set_rope_or_chain({3: {"type": "rope", "length": 4.5}})
     # 4 virtual supports (one per span: spans 0, 2, 4, 6)
     manip.set_virtual_support(
         {

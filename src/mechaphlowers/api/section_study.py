@@ -204,20 +204,18 @@ class SectionStudy:
         self._manipulation.reset_support()
         self.apply_manipulations()
 
-    def set_rope(
+    def set_rope_or_chain(
         self,
-        rope: dict[int, float],
-        rope_lineic_mass: float | None = None,
+        rope_or_chain: dict[int, dict],
     ) -> None:
-        """Override insulator length and mass for specified supports with rope values.
+        """Override insulator length and mass for specified supports with rope or chain values.
 
-        Delegates to [`Manipulation.set_rope`][mechaphlowers.core.manipulation.Manipulation.set_rope].
+        Delegates to [`Manipulation.set_rope_or_chain`][mechaphlowers.core.manipulation.Manipulation.set_rope_or_chain].
 
         Args:
-            rope: Dictionary mapping support index (0-based) to rope length (meters).
-            rope_lineic_mass: Linear mass of the rope in kg/m.
+            rope_or_chain: Dictionary mapping support index (0-based) to rope length (meters).
         """
-        self._manipulation.set_rope(rope, rope_lineic_mass)
+        self._manipulation.set_rope_or_chain(rope_or_chain)
 
         self.apply_manipulations()
 

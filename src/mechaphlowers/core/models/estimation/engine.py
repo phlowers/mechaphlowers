@@ -252,7 +252,7 @@ class EstimationEngine:
 
         Existing manipulations, loads and ropes on other supports are kept.
         The chain on ``support_index`` is replaced by the rope with
-        `SectionStudy.set_rope`: the arm stays fixed, the cable attachment moves.
+        `SectionStudy.set_rope_or_chain`: the arm stays fixed, the cable attachment moves.
 
         Args:
             support_index: Index of the support (before manipulation) where
@@ -339,7 +339,7 @@ class EstimationEngine:
     ) -> Callable[[float], float]:
         """Build ``f(rope_length) = vertical_distance - target`` on a copy of the study.
 
-        Each evaluation applies the rope with `SectionStudy.set_rope`, then runs
+        Each evaluation applies the rope with `SectionStudy.set_rope_or_chain`, then runs
         `SectionStudy.solve_change_state` with the fixed conditions.
         """
         manipulation = self._study.manipulation
@@ -357,23 +357,34 @@ class EstimationEngine:
                 f"Support index {support_index} is out of range [0, {n_supports - 1}]"
             )
         if rope_lineic_mass is None:
-            rope_lineic_mass = (
-                manipulation._rope_lineic_mass
-                if manipulation._rope_lineic_mass is not None
-                else options.data.rope_lineic_mass_default
+            overlay = (
+                manipulation._rope_or_chain_overlay
+                if manipulation._rope_or_chain_overlay is not None
+                else {}
             )
-        # set_rope replaces the whole overlay: keep the ropes on other supports
+            rope_lineic_mass = overlay.get(support_index, {}).get(
+                "lineic_mass", options.data.rope_lineic_mass_default
+            )
         other_ropes = {
-            idx: length
-            for idx, length in (manipulation._rope_overlay or {}).items()
+            idx: other_dict
+            for idx, other_dict in (
+                manipulation._rope_or_chain_overlay or {}
+            ).items()
             if idx != support_index
         }
 
         study = self._study.copy()
 
         def objective(rope_length: float) -> float:
-            study.set_rope(
-                {**other_ropes, support_index: rope_length}, rope_lineic_mass
+            study.set_rope_or_chain(
+                {
+                    **other_ropes,
+                    support_index: {
+                        "type": "rope",
+                        "length": rope_length,
+                        "lineic_mass": rope_lineic_mass,
+                    },
+                }
             )
             study.solve_change_state(**fixed_conditions)
             # apply_manipulations rebuilds the position engine: do not cache it

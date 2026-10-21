@@ -286,18 +286,37 @@ study.reset_support()
 
 ### Rope Manipulation
 
-`set_rope` replaces the insulator length and mass for specified supports with rope values. Internally the `Manipulation` object produces a new `SectionArray` with the rope values baked in; the original section array is never modified.
+`set_rope_or_chain` replaces the insulator length and mass for specified supports with rope or chain values. Internally the `Manipulation` object produces a new `SectionArray` that includes the rope or chain data; the original section array is never modified.
 
-The input is a dictionary where keys are support indices (0-based) and values are the rope length in meters. An optional `rope_lineic_mass` parameter (kg/m, default `0.01`) controls the mass per unit length.
+The input is a dictionary where keys are support indices (0-based) and values are dicts with the following required keys:
+
+| Key | Description |
+|---|---|
+| `"type"` | type of the manipulation: "rope" or "chain" |
+| `"length"` | length of the new chain or the rope, in m |
+| `"mass"` | mass of the rope or the chain, in kg (optional)|
+| `"lineic_mass"` | lineic mass of the rope, in kg/m (optional, will be ignored if mass is given) |
+
+
+If neither mass nor lineic mass is given, a default lineic mass value will be given `0.01` kg/m.
 
 ```python
 # Replace insulator properties for supports 1 and 2 with rope values
-study.set_rope({1: 4.5, 2: 3.0})
+study.set_rope_or_chain({
+                1: {"type": "rope", "length": 6.0},
+                2: {"type": "rope", "length": 4.0},
+            })
 
 # With a custom linear mass
-study.set_rope({0: 2.0}, rope_lineic_mass=0.05)
+study.set_rope_or_chain({
+                0: {"type": "rope", "length": 2.0, "lineic_mass": 0.05},
+            })
 
-study.solve_adjustment()
+# With a custom insulator mass
+study.set_rope_or_chain({
+                0: {"type": "chain", "length": 5.0, "mass": 50},
+            })
+
 study.solve_change_state(new_temperature=15.0)
 
 # Remove the rope overlay

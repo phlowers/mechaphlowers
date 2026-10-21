@@ -21,6 +21,7 @@ from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.errors import (
     BalanceEngineWarning,
+    DataWarning,
     InvalidManipulationIndex,
     InvalidManipulationKeys,
     InvalidManipulationRange,
@@ -48,8 +49,7 @@ class Manipulation:
     def __init__(self, section_array: SectionArray) -> None:
         self._section_array = section_array
         self._support_overlay: dict[int, dict[str, float]] | None = None
-        self._rope_overlay: dict[int, float] | None = None
-        self._rope_lineic_mass: float | None = None
+        self._rope_or_chain_overlay: dict[int, dict] | None = None
         self._virtual_support_overlay: dict[int, dict] | None = None
         self._shifting_distance_support: np.ndarray | None = None
         self._shortening_distance_span: np.ndarray | None = None
@@ -60,7 +60,7 @@ class Manipulation:
     def has_manipulations(self) -> bool:
         return (
             self._support_overlay is not None
-            or self._rope_overlay is not None
+            or self._rope_or_chain_overlay is not None
             or self._virtual_support_overlay is not None
             or self._shifting_distance_support is not None
         )
@@ -300,10 +300,9 @@ class Manipulation:
 
     # ── Rope manipulation ─────────────────────────────────────────────────
 
-    def set_rope(
+    def set_rope_or_chain(
         self,
-        rope: dict[int, float],
-        rope_lineic_mass: float | None = None,
+        rope_or_chain: dict[int, dict],
     ) -> None:
         """Override insulator length and mass for specified supports with rope values.
 
@@ -316,32 +315,54 @@ class Manipulation:
         supports, ``conductor_attachment_altitude`` is shifted by
         ``insulator_length - rope_length``.
 
+        If no mass or lineic_mass is given, and type is rope: using default lineic mass.
+
         Args:
-            rope: Dictionary mapping support index (0-based) to rope length (meters).
-            rope_lineic_mass: Linear mass of the rope in kg/m. Defaults to
-                ``options.data.rope_lineic_mass_default`` (``0.01`` kg/m).
+            rope_or_chain: Dictionary mapping support index (0-based) to
+                offsets.  Each value is a dict with optional keys:
+
+                - ``"type"``: `chain` or `rope`. Stored but unused for computation. Used for graphs
+                - ``"length"``: added to ``insulator_length`` (meters).
+                - ``"mass"``: added to ``mass`` (meters). Will ignore `"lineic_mass"` if given
+                - ``"lineic_mass"``: if mass is not set, computes new value to ``mass`` (meters).
 
         Raises:
             InvalidManipulationIndex: If a support index is out of range.
 
         Examples:
-            >>> manip.set_rope({1: 4.5, 2: 3.0})
-            >>> manip.set_rope({0: 2.0}, rope_lineic_mass=0.05)
+            >>> manip.set_rope_or_chain({1: {"type": "chain", "length": 5, "mass": 50}})
+            >>> manip.set_rope_or_chain(
+            ...     {2: {"type": "rope", "length": 5, "lineic_mass": 0.01}}
+            ... )
+            >>> manip.set_rope_or_chain(
+            ...     {2: {"type": "chain", "length": 5, "mass": 50, "lineic_mass": 0.01}}
+            ... )  # `mass` will override `lineic_mass`
         """
         n_supports = len(self._section_array._data)
-        for idx in rope:
-            if idx < 0 or idx >= n_supports:
+        required_keys = {"type", "length"}
+
+        for support_index, insulator in rope_or_chain.items():
+            if support_index < 0 or support_index >= n_supports:
                 raise InvalidManipulationIndex(
-                    f"Support index {idx} is out of range [0, {n_supports - 1}]"
+                    f"Support index {support_index} is out of range [0, {n_supports - 1}]"
                 )
 
-        self._rope_overlay = rope
-        self._rope_lineic_mass = (
-            rope_lineic_mass
-            if rope_lineic_mass is not None
-            else options.data.rope_lineic_mass_default
-        )
-        logger.debug(f"Rope manipulation applied: {rope}")
+            missing_keys = required_keys - set(insulator.keys())
+            if missing_keys:
+                raise InvalidManipulationKeys(
+                    f"Missing keys {missing_keys} for span {support_index}. Required: {required_keys}"
+                )
+            if "mass" in insulator and "lineic_mass" in insulator:
+                warning_message = f"Both mass and lineic_mass were provided for support {support_index}.\nlineic_mass will be ignored."
+                logger.warning(warning_message)
+                warnings.warn(warning_message, DataWarning)
+            if "mass" not in insulator:
+                lineic_mass = insulator.get(
+                    "lineic_mass", options.data.rope_lineic_mass_default
+                )
+                insulator["mass"] = lineic_mass * insulator["length"]
+        self._rope_or_chain_overlay = rope_or_chain
+        logger.debug(f"Rope manipulation applied: {rope_or_chain}")
 
     def reset_rope(self) -> None:
         """Remove the rope overlay.
@@ -349,16 +370,15 @@ class Manipulation:
         Does nothing if no rope manipulation has been applied.
 
         Examples:
-            >>> manip.set_rope({1: 4.5})
+            >>> manip.set_rope_or_chain({1: {"type": "chain", "length": 5, "mass": 50}})
             >>> manip.reset_rope()
         """
-        if self._rope_overlay is None:
+        if self._rope_or_chain_overlay is None:
             logger.debug(
                 "reset_rope called but no rope manipulation was applied."
             )
             return
-        self._rope_overlay = None
-        self._rope_lineic_mass = None
+        self._rope_or_chain_overlay = None
         logger.debug("Rope manipulation cleared.")
 
     # ── Virtual support ───────────────────────────────────────────────────
@@ -479,7 +499,7 @@ class Manipulation:
 
         Examples:
             >>> manip.modify_support({1: {"z": 2.0}})
-            >>> manip.set_rope({2: 4.0})
+            >>> manip.set_rope_or_chain({1: {"type": "chain", "length": 5, "mass": 50}})
             >>> manip.reset_all()  # both overlays cleared
         """
         self.reset_support()
@@ -491,7 +511,7 @@ class Manipulation:
     # ── Apply ─────────────────────────────────────────────────────────────
 
     def from_section_array(self, section_array: SectionArray) -> SectionArray:
-        """Create a copy of the section array with all manipulations baked into ``_data``.
+        """Create a copy of the section array with all manipulations backed up into ``_data``.
 
         The original section array is never modified.
         The returned copy has:
@@ -532,51 +552,41 @@ class Manipulation:
                         offsets["y"], "crossarm_length", input_units
                     )
 
-        # Apply rope overlay
-        if self._rope_overlay is not None:
-            if self._rope_lineic_mass is None:
-                logger.warning(
-                    "Rope overlay is set but rope_lineic_mass is None; skipping rope overlay application."
-                )
-            else:
-                original_insulator_length = original.data["insulator_length"]
-                last_idx = len(raw_data) - 1
-                for idx, rope_length in self._rope_overlay.items():
-                    # Arm is fixed: the cable attachment absorbs the length change
-                    # (only on intermediate supports, see get_edge_arm_coords).
-                    if 0 < idx < last_idx:
-                        delta = (
-                            float(original_insulator_length.iloc[idx])
-                            - rope_length
-                        )
-                        raw_data.loc[idx, "conductor_attachment_altitude"] = (
-                            cast(
-                                float,
-                                raw_data.loc[
-                                    idx, "conductor_attachment_altitude"
-                                ],
-                            )
-                            + self._to_input(
-                                delta,
-                                "conductor_attachment_altitude",
-                                input_units,
-                            )
-                        )
-                    raw_data.loc[idx, "insulator_length"] = self._to_input(
-                        rope_length, "insulator_length", input_units
+        # Apply rope or chain overlay
+        if self._rope_or_chain_overlay is not None:
+            original_insulator_length = original.data["insulator_length"]
+            last_idx = len(raw_data) - 1
+            for idx, rope_or_chain in self._rope_or_chain_overlay.items():
+                # Arm is fixed: the cable attachment absorbs the length change
+                # (only on intermediate supports, see get_edge_arm_coords).
+                if 0 < idx < last_idx:
+                    delta = (
+                        float(original_insulator_length.iloc[idx])
+                        - rope_or_chain["length"]
                     )
-                    raw_data.loc[idx, "insulator_mass"] = self._to_input(
-                        rope_length * self._rope_lineic_mass,
-                        "insulator_mass",
+                    raw_data.loc[idx, "conductor_attachment_altitude"] = cast(
+                        float,
+                        raw_data.loc[idx, "conductor_attachment_altitude"],
+                    ) + self._to_input(
+                        delta,
+                        "conductor_attachment_altitude",
                         input_units,
                     )
+                raw_data.loc[idx, "insulator_length"] = self._to_input(
+                    rope_or_chain["length"], "insulator_length", input_units
+                )
+                raw_data.loc[idx, "insulator_mass"] = self._to_input(
+                    rope_or_chain["mass"],
+                    "insulator_mass",
+                    input_units,
+                )
 
         # Counterweight masking for affected supports
         affected: set[int] = set()
         if self._support_overlay is not None:
             affected |= set(self._support_overlay.keys())
-        if self._rope_overlay is not None:
-            affected |= set(self._rope_overlay.keys())
+        if self._rope_or_chain_overlay is not None:
+            affected |= set(self._rope_or_chain_overlay.keys())
         if "counterweight_mass" in raw_data.columns and affected:
             for idx in affected:
                 raw_data.loc[idx, "counterweight_mass"] = 0.0
@@ -599,8 +609,8 @@ class Manipulation:
         applied = []
         if self._support_overlay is not None:
             applied.append(f"support_overlay={self._support_overlay}")
-        if self._rope_overlay is not None:
-            applied.append(f"rope_overlay={self._rope_overlay}")
+        if self._rope_or_chain_overlay is not None:
+            applied.append(f"rope_overlay={self._rope_or_chain_overlay}")
         if self._virtual_support_overlay is not None:
             applied.append(
                 f"virtual_support_overlay={list(self._virtual_support_overlay.keys())}"
@@ -709,9 +719,7 @@ class Manipulation:
             A configured [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] ready for
             ``solve_change_state`` calls.
         """
-        from mechaphlowers.core.models.balance.engine import (
-            BalanceEngine as _BE,
-        )
+        from mechaphlowers.core.models.balance.engine import BalanceEngine
 
         L_ref = initial_L_ref.copy()
 
@@ -727,7 +735,7 @@ class Manipulation:
             L_ref = self.compute_shifted_L_ref(L_ref, expand=True)
 
         # Build target engine
-        target_engine = _BE(
+        target_engine = BalanceEngine(
             cable_array=clean_engine.cable_array,
             section_array=section_array,
             span_model_type=clean_engine.span_model_type,
