@@ -41,6 +41,8 @@ class Manipulation:
     support insertions.  Calling [`from_section_array`][mechaphlowers.core.manipulation.Manipulation.from_section_array] produces a **copy** of the
     original [`SectionArray`][mechaphlowers.entities.arrays.SectionArray] whose ``_data`` incorporates every active
     overlay.  The original array is never modified.
+    
+    If there is successive calls of the same manipulation, only the last one is taken into account. 
 
     Args:
         section_array: The original (clean) section array to manipulate.
@@ -229,7 +231,7 @@ class Manipulation:
     # ── Support manipulation ──────────────────────────────────────────────
 
     def modify_support(
-        self, manipulation: dict[int, dict[str, float]]
+        self, support_modification: dict[int, dict[str, float]]
     ) -> None:
         """Apply additive offsets to support geometry.
 
@@ -257,7 +259,7 @@ class Manipulation:
         n_supports = len(self._section_array._data)
         allowed_keys = {"y", "z"}
 
-        for idx, offsets in manipulation.items():
+        for idx, offsets in support_modification.items():
             if idx < 0 or idx >= n_supports:
                 raise InvalidManipulationIndex(
                     f"Support index {idx} is out of range [0, {n_supports - 1}]"
@@ -268,17 +270,8 @@ class Manipulation:
                     f"Invalid keys {invalid_keys} for support {idx}. Allowed keys: {allowed_keys}"
                 )
 
-        if self._support_overlay is None:
-            self._support_overlay = {}
-        for idx, offsets in manipulation.items():
-            if idx not in self._support_overlay:
-                self._support_overlay[idx] = {}
-            for key, value in offsets.items():
-                self._support_overlay[idx][key] = (
-                    self._support_overlay[idx].get(key, 0.0) + value
-                )
-
-        logger.debug(f"Support manipulation applied: {manipulation}")
+        self._support_overlay = support_modification
+        logger.debug(f"Support manipulation applied: {support_modification}")
 
     def reset_support(self) -> None:
         """Remove the support manipulation overlay.

@@ -102,6 +102,23 @@ def test_support_manipulation_multiple_supports(
     )
 
 
+def test_support_manipulation_multiple_calls(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+
+    manipulation.modify_support({1: {"z": 3.0}})
+    manipulation.modify_support({0: {"z": 1.0}, 2: {"z": -0.5, "y": 2.0}})
+    applied = manipulation.from_section_array(section_array)
+
+    # first call should be ignored
+    assert_allclose(
+        applied.data["conductor_attachment_altitude"].iloc[1],
+        original_alt.iloc[1],
+    )
+
+
 def test_support_manipulation_partial_keys(
     section_array: SectionArray,
     manipulation: Manipulation,
@@ -128,37 +145,6 @@ def test_support_manipulation_partial_keys(
     assert_allclose(
         applied.data["conductor_attachment_altitude"].iloc[0],
         original_alt.iloc[0],
-    )
-    assert_allclose(
-        applied.data["crossarm_length"].iloc[0],
-        original_arm.iloc[0] - 1.0,
-    )
-
-
-def test_support_manipulation_add_successive_without_reset(
-    section_array: SectionArray,
-    manipulation: Manipulation,
-) -> None:
-    original_alt = section_array._data["conductor_attachment_altitude"].copy()
-    original_arm = section_array._data["crossarm_length"].copy()
-
-    manipulation.modify_support({0: {"z": 1.5}})
-    applied = manipulation.from_section_array(section_array)
-
-    assert_allclose(
-        applied.data["conductor_attachment_altitude"].iloc[0],
-        original_alt.iloc[0] + 1.5,
-    )
-    assert_allclose(
-        applied.data["crossarm_length"].iloc[0],
-        original_arm.iloc[0],
-    )
-
-    manipulation.modify_support({0: {"y": -1.0}})
-    applied = manipulation.from_section_array(section_array)
-    assert_allclose(
-        applied.data["conductor_attachment_altitude"].iloc[0],
-        original_alt.iloc[0] + 1.5,
     )
     assert_allclose(
         applied.data["crossarm_length"].iloc[0],
@@ -305,6 +291,37 @@ def test_chain_manipulation_overrides_data(
     assert_allclose(
         section_array._data["insulator_mass"].to_numpy(),
         original_insulator_mass.to_numpy(),
+    )
+
+
+def test_rope_manipulation_multiple_calls(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_insulator_length = section_array._data["insulator_length"].copy()
+    original_insulator_mass = section_array._data["insulator_mass"].copy()
+
+    manipulation.set_rope_or_chain(
+        {
+            0: {"type": "rope", "length": 1.0},
+        }
+    )
+    manipulation.set_rope_or_chain(
+        {
+            1: {"type": "rope", "length": 5.0},
+            2: {"type": "rope", "length": 3.0},
+        }
+    )
+    applied = manipulation.from_section_array(section_array)
+
+    # First call should be ignored
+    assert_allclose(
+        applied.data["insulator_length"].iloc[0],
+        original_insulator_length.iloc[0],
+    )
+    assert_allclose(
+        applied.data["insulator_mass"].iloc[0],
+        original_insulator_mass.iloc[0],
     )
 
 
@@ -894,11 +911,36 @@ def test_compute_shifted_L_ref(
     np.testing.assert_allclose(shifted, np.array([501.0, 299.0, 400.0]))
 
 
+def test_compute_shifted_L_ref_multiple_calls(
+    manipulation: Manipulation,
+) -> None:
+    initial_L_ref = np.array([500.0, 300.0, 400.0])
+
+    # only second call counts
+    manipulation.modify_cable(shift_support={2: 4.0})
+    # shift support 1 by 1m → span 0 gains 1m, span 1 loses 1m
+    manipulation.modify_cable(shift_support={1: 1.0})
+    shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
+    np.testing.assert_allclose(shifted, np.array([501.0, 299.0, 400.0]))
+
+
 def test_compute_shifted_L_ref_with_shortening(
     manipulation: Manipulation,
 ) -> None:
     initial_L_ref = np.array([500.0, 300.0, 400.0])
 
+    manipulation.modify_cable(shorten_span={1: 2.0})
+    shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
+    np.testing.assert_allclose(shifted, np.array([500.0, 298.0, 400.0]))
+
+
+def test_compute_shifted_L_ref_with_shortening_multiple_calls(
+    manipulation: Manipulation,
+) -> None:
+    initial_L_ref = np.array([500.0, 300.0, 400.0])
+
+    # only second call counts
+    manipulation.modify_cable(shorten_span={2: 3.2})
     manipulation.modify_cable(shorten_span={1: 2.0})
     shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
     np.testing.assert_allclose(shifted, np.array([500.0, 298.0, 400.0]))
