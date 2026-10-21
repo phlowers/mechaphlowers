@@ -182,7 +182,7 @@ class SectionStudy:
     # ── Manipulation methods ──────────────────────────────────────────────
 
     def modify_support(
-        self, manipulation: dict[int, dict[str, float]]
+        self, support_modification: dict[int, dict[str, float]]
     ) -> None:
         """Apply additive offsets to support geometry.
 
@@ -190,10 +190,10 @@ class SectionStudy:
         [`Manipulation.modify_support`][mechaphlowers.core.manipulation.Manipulation.modify_support].
 
         Args:
-            manipulation: Dictionary mapping support index (0-based) to
+            support_modification: Dictionary mapping support index (0-based) to
                 offsets with optional keys ``"y"`` and ``"z"``.
         """
-        self._manipulation.modify_support(manipulation)
+        self._manipulation.modify_support(support_modification)
         self.apply_manipulations()
 
     def reset_support(self) -> None:

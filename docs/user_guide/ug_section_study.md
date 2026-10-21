@@ -280,8 +280,8 @@ study.reset_support()
 ```
 
 !!! note
-    Manipulations are **additive**: calling `modify_support` multiple times stacks the offsets.
-    `reset_support` clears all accumulated offsets and restores the original geometry.
+    Manipulations are NOT additive: If there are successive calls of `modify_support`, only the last one is taken into account.
+    `reset_support` clears all offsets and restores the original geometry.
     For each affected support, `counterweight_mass` is set to 0; unaffected supports keep their original value.
 
 ### Rope Manipulation
