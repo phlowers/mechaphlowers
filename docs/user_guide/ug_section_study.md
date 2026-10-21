@@ -254,10 +254,10 @@ fig.show()
 
 ## Manipulations
 
-`SectionStudy` provides methods to alter the geometry and insulator properties of supports as overlays, without modifying the original `SectionArray`. Manipulations are registered on the `study` object and are applied when `solve_adjustment()` is called: a clean adjustment is first solved on the original geometry, then a new engine is built from the manipulated copy and receives the injected $L_{ref}$.
+`SectionStudy` provides methods to alter the geometry and insulator properties of supports as overlays, without modifying the original `SectionArray`. Manipulations are registered on the `study` object and are applied when a manipulation method (`modify_cable()` for example) is called.
 
 !!! important
-    Manipulations must be registered **before** calling `solve_adjustment()`. After `solve_adjustment()` with active manipulations, `plot_engine` and `guying` are reset and recreated lazily on next access.
+    Manipulations must be registered **after** calling `solve_adjustment()`. If it has not been already run, `solve_adjustment()` will be run automatically
 
 ### Support Manipulation
 
@@ -280,24 +280,43 @@ study.reset_support()
 ```
 
 !!! note
-    Manipulations are **additive**: calling `modify_support` multiple times stacks the offsets.
-    `reset_support` clears all accumulated offsets and restores the original geometry.
+    Manipulations are NOT additive: If there are successive calls of `modify_support`, only the last one is taken into account.
+    `reset_support` clears all offsets and restores the original geometry.
     For each affected support, `counterweight_mass` is set to 0; unaffected supports keep their original value.
 
 ### Rope Manipulation
 
-`add_rope` replaces the insulator length and mass for specified supports with rope values. Internally the `Manipulation` object produces a new `SectionArray` with the rope values baked in; the original section array is never modified.
+`set_rope_or_chain` replaces the insulator length and mass for specified supports with rope or chain values. Internally the `Manipulation` object produces a new `SectionArray` that includes the rope or chain data; the original section array is never modified.
 
-The input is a dictionary where keys are support indices (0-based) and values are the rope length in meters. An optional `rope_lineic_mass` parameter (kg/m, default `0.01`) controls the mass per unit length.
+The input is a dictionary where keys are support indices (0-based) and values are dicts with the following required keys:
+
+| Key | Description |
+|---|---|
+| `"type"` | type of the manipulation: "rope" or "chain" |
+| `"length"` | length of the new chain or the rope, in m |
+| `"mass"` | mass of the rope or the chain, in kg (optional)|
+| `"lineic_mass"` | lineic mass of the rope, in kg/m (optional, will be ignored if mass is given) |
+
+
+If neither mass nor lineic mass is given, a default lineic mass value will be given `0.01` kg/m.
 
 ```python
 # Replace insulator properties for supports 1 and 2 with rope values
-study.add_rope({1: 4.5, 2: 3.0})
+study.set_rope_or_chain({
+                1: {"type": "rope", "length": 6.0},
+                2: {"type": "rope", "length": 4.0},
+            })
 
 # With a custom linear mass
-study.add_rope({0: 2.0}, rope_lineic_mass=0.05)
+study.set_rope_or_chain({
+                0: {"type": "rope", "length": 2.0, "lineic_mass": 0.05},
+            })
 
-study.solve_adjustment()
+# With a custom insulator mass
+study.set_rope_or_chain({
+                0: {"type": "chain", "length": 5.0, "mass": 50},
+            })
+
 study.solve_change_state(new_temperature=15.0)
 
 # Remove the rope overlay
@@ -312,7 +331,7 @@ study.reset_rope()
 
 ### Virtual Support
 
-`add_virtual_support` inserts intermediate supports into a line section. Internally the `Manipulation` object produces a new `SectionArray` with the virtual support rows inserted; the original section array is never modified. Each virtual support splits a given span at a specified horizontal distance from the left support. Because the number of supports changes, the full internal model is rebuilt while preserving observer bindings.
+`set_virtual_support` inserts intermediate supports into a line section. Internally the `Manipulation` object produces a new `SectionArray` with the virtual support rows inserted; the original section array is never modified. Each virtual support splits a given span at a specified horizontal distance from the left support. Because the number of supports changes, the full internal model is rebuilt while preserving observer bindings.
 
 The input is a dictionary where keys are left-support indices (0-based, must not be the last support) and values are dicts with the following required keys:
 
@@ -327,7 +346,7 @@ The input is a dictionary where keys are left-support indices (0-based, must not
 
 ```python
 # Insert a virtual support at 100 m into span 1
-study.add_virtual_support({
+study.set_virtual_support({
     1: {"x": 100.0, "y": 0.0, "z": 55.0,
         "insulator_length": 3.0, "insulator_mass": 500.0,
         "hanging_cable_point_from_left_support": 100.0}
@@ -340,10 +359,10 @@ study.solve_change_state(new_temperature=15.0)
 study.reset_virtual_support()
 ```
 
-Multiple spans can be provided in one call, or via successive calls (overlays accumulate):
+Multiple spans must be provided in one call:
 
 ```python
-study.add_virtual_support({
+study.set_virtual_support({
     0: {"x": 200.0, "y": 0.0, "z": 40.0, "insulator_length": 3.0, "insulator_mass": 500.0,
         "hanging_cable_point_from_left_support": 200.0},
     2: {"x": 200.0, "y": 10.0, "z": 62.0, "insulator_length": 3.0, "insulator_mass": 500.0,

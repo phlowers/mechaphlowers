@@ -14,6 +14,7 @@ from pytest import fixture
 
 from mechaphlowers.core.models.balance.engine import (
     BalanceEngine,
+    DisplacementResult,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import (
@@ -77,6 +78,12 @@ def test_element_initialisation(balance_engine_simple: BalanceEngine):
     repr_be = balance_engine_simple.__repr__()
     assert repr_be.startswith("BalanceEngine")
     assert balance_engine_simple.support_number == 4
+
+
+def test_displacement_result() -> None:
+    dxdydz = np.array([[1.0, 2.0, 3.0]])
+    result = DisplacementResult(dxdydz)
+    np.testing.assert_array_equal(result.dxdydz, dxdydz)
 
 
 def test_element_change_state(balance_engine_simple: BalanceEngine):
@@ -344,7 +351,6 @@ def test_adjustment_convergence_error_origin(
     # mocking L_ref and initial_L_ref to avoid launching adjustment solver first
     dummy_L_ref = np.zeros(balance_engine_simple.support_number - 1)
     balance_engine_simple.L_ref = dummy_L_ref
-    balance_engine_simple.initial_L_ref = dummy_L_ref
 
     with pytest.raises(ConvergenceError) as excinfo:
         balance_engine_simple.solve_change_state()
@@ -455,6 +461,28 @@ def test_engine_wind_direction(balance_engine_simple: BalanceEngine):
     np.testing.assert_array_equal(
         displacement_clockwise, displacement_anticlockwise
     )
+
+
+def test_invalid_wind_direction(balance_engine_simple: BalanceEngine) -> None:
+    with pytest.raises(ValueError, match="wind_direction should be"):
+        balance_engine_simple.solve_change_state(
+            wind_direction="invalid"  # type: ignore[arg-type]
+        )
+
+
+def test_len_ruling_span_and_str_after_adjustment(
+    balance_engine_simple: BalanceEngine,
+) -> None:
+    balance_engine_simple.solve_adjustment()
+
+    assert len(balance_engine_simple) == balance_engine_simple.support_number
+
+    a = balance_engine_simple.balance_model.a
+    b = balance_engine_simple.balance_model.b
+    chord = np.sqrt(a**2 + b**2)
+    expected = np.sqrt(np.sum(a**4 / chord) / np.sum(chord))
+    assert balance_engine_simple.get_ruling_span_length() == expected
+    assert "L_ref:" in str(balance_engine_simple)
 
 
 # ── performance tests ────────────────────────────────────────────────────────
@@ -660,9 +688,9 @@ def test_perf_data_and_change_state_baseline_vs_manipulations(
         }
     )
     # 1 rope manipulation (support 3)
-    manip.add_rope({3: 4.5})
+    manip.set_rope_or_chain({3: {"type": "rope", "length": 4.5}})
     # 4 virtual supports (one per span: spans 0, 2, 4, 6)
-    manip.add_virtual_support(
+    manip.set_virtual_support(
         {
             0: {
                 "x": 200.0,

@@ -2,7 +2,7 @@
 
 ## Building documentation 
 
-### Serving documnentation
+### Serving documentation
 
 cf. README
 
@@ -22,7 +22,7 @@ Use the docs/docs folder to organize where the documentation can be added :
 - Developer guide for technical documentation
 - _static is for images, figures
 - docstring is for automatic docstring generation (see below)
-- javascript is only for addons or extra plugins of mkddocs
+- javascript is only for addons or extra plugins of mkdocs
 
 
 ## Dosctring generation

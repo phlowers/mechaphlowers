@@ -68,7 +68,7 @@ print(engine.L_ref)         # e.g. [500.8, 298.5, 401.7]
 print(engine.parameter)     # sagging parameter per span
 ```
 
-After this call, `engine.L_ref` and `engine.initial_L_ref` are set. The sagging parameter and chain displacements are also updated inside the balance model.
+After this call, `engine.L_ref` is set. The sagging parameter and chain displacements are also updated inside the balance model.
 
 ---
 
@@ -168,7 +168,7 @@ engine.reset(full=False)  # partial reset — e.g. after updating loads
 ```
 
 !!! warning
-    `reset(full=True)` rebuilds the internal models but does **not** clear `engine.L_ref` or `engine.initial_L_ref`. If you need a fresh adjustment (for example after changing geometry, loads, or cable data), you must call `solve_adjustment()` again before `solve_change_state()`.
+    `reset(full=True)` rebuilds the internal models but does **not** clear `engine.L_ref`. If you need a fresh adjustment (for example after changing geometry, loads, or cable data), you must call `solve_adjustment()` again before `solve_change_state()`.
 
 ---
 

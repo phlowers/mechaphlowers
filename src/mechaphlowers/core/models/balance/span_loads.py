@@ -73,8 +73,9 @@ class SpanLoads:
             )
         if len(load_position_distance) + 1 != len(span_length):
             raise ValueError(
-                "Length of load_position_distance must be length of span_length - 1. "
-                f"Got {len(load_position_distance)=} and {len(span_length)=}"
+                "Length of load_position_distance must be length of the number of spans. "
+                f"Got {len(load_position_distance)=} and {len(span_length)=}. "
+                f"Expected {len(span_length) - 1}"
             )
 
         load_position_distance = np.array(load_position_distance)

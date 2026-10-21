@@ -1058,8 +1058,8 @@ def test_angles_counterweight(cable_array_AM600: CableArray):
     )
     section_array.add_units({"line_angle": "grad"})
 
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
+    section_array.set_sagging_parameter(2000)
+    section_array.set_sagging_temperature(15)
     balance_engine = BalanceEngine(cable_array_AM600, section_array)
     balance_engine.solve_adjustment()
     balance_engine.solve_change_state()
@@ -1157,8 +1157,8 @@ def test_angles_bundle_number(cable_array_AM600: CableArray):
     )
     section_array.add_units({"line_angle": "grad"})
 
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
+    section_array.set_sagging_parameter(2000)
+    section_array.set_sagging_temperature(15)
     balance_engine = BalanceEngine(cable_array_AM600, section_array)
     balance_engine.solve_adjustment()
     balance_engine.solve_change_state()

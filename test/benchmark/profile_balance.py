@@ -39,8 +39,8 @@ def setup():
         )
     )
     section_array.add_units({"line_angle": "grad"})
-    section_array.sagging_parameter = 2000
-    section_array.sagging_temperature = 15
+    section_array.set_sagging_parameter(2000)
+    section_array.set_sagging_temperature(15)
 
     engine = BalanceEngine(cable_array=cable, section_array=section_array)
     engine.solve_adjustment()

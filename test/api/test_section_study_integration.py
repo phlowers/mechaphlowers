@@ -220,8 +220,12 @@ def test_cable_shifting(
 @pytest.mark.integration
 def test_rope(study_8span: SectionStudy) -> None:
     """Replace insulators with rope on two supports."""
-    study_8span.manipulation.add_rope({2: 5.0, 5: 4.0})
-    study_8span.solve_adjustment()
+    study_8span.set_rope_or_chain(
+        {
+            2: {"type": "rope", "length": 5.0},
+            5: {"type": "rope", "length": 4.0},
+        }
+    )
     study_8span.solve_change_state(new_temperature=15.0)
 
     expected_insulator_length = np.array(
@@ -310,7 +314,7 @@ def test_virtual_support(study_8span: SectionStudy) -> None:
     """Add a virtual support in span 4 (longest span: 500m)."""
 
     study_8span.solve_adjustment()  # solve before adding virtual support to compute initial L_ref
-    study_8span.manipulation.add_virtual_support(
+    study_8span.manipulation.set_virtual_support(
         {
             4: {
                 "x": 250.0,
@@ -348,29 +352,19 @@ def test_virtual_support(study_8span: SectionStudy) -> None:
 
 @pytest.mark.integration
 def test_virtual_support_doesnot_change_input_index(
-    study_8span: SectionStudy, study_8span_Lref: np.ndarray
+    study_8span: SectionStudy,
 ) -> None:
     """Add a virtual support in span 4 (longest span: 500m)."""
 
-    study_8span.manipulation.modify_cable(
-        shift_support={
-            1: 1.0,
-            6: 2.0,
-            7: 1.0,
-        },
-    )
-    study_8span.manipulation.modify_support(
-        {
-            5: {"z": 2.0},
-        }
-    )
-    study_8span.add_rope({5: 4.0})
+    study_8span.modify_cable(shift_support={1: 1.0, 6: 2.0, 7: 1.0})
+    study_8span.modify_support({5: {"z": 2.0}})
+    study_8span.set_rope_or_chain({5: {"type": "rope", "length": 4.0}})
     study_8span.solve_adjustment()
     study_8span.solve_change_state(new_temperature=15.0)
 
     L_ref_before_support_addition = study_8span._balance_engine.L_ref.copy()
 
-    study_8span.manipulation.add_virtual_support(
+    study_8span.manipulation.set_virtual_support(
         {
             4: {
                 "x": 250.0,
@@ -395,7 +389,7 @@ def test_virtual_support_doesnot_change_input_index(
     study_8span.reset_all()  # reset manipulations to check that virtual support addition does not change input index
 
     # Check in the inverse affectation order
-    study_8span.manipulation.add_virtual_support(
+    study_8span.manipulation.set_virtual_support(
         {
             4: {
                 "x": 250.0,
@@ -407,19 +401,9 @@ def test_virtual_support_doesnot_change_input_index(
             },
         }
     )
-    study_8span.manipulation.modify_cable(
-        shift_support={
-            1: 1.0,
-            6: 2.0,
-            7: 1.0,
-        },
-    )
-    study_8span.manipulation.modify_support(
-        {
-            5: {"z": 2.0},
-        }
-    )
-    study_8span.add_rope({5: 4.0})
+    study_8span.modify_cable(shift_support={1: 1.0, 6: 2.0, 7: 1.0})
+    study_8span.modify_support({5: {"z": 2.0}})
+    study_8span.set_rope_or_chain({5: {"type": "rope", "length": 4.0}})
     study_8span.solve_adjustment()
 
     study_8span.solve_adjustment()
@@ -451,7 +435,7 @@ def test_virtual_support_and_manip_same_span(
 
     L_ref_before_support_addition = study_8span._balance_engine.L_ref.copy()
 
-    study_8span.manipulation.add_virtual_support(
+    study_8span.manipulation.set_virtual_support(
         {
             4: {
                 "x": 250.0,
@@ -510,7 +494,7 @@ def test_rollback_with_manipulation(
     study_8span.manipulation.modify_cable(
         shift_support={1: 2.0, 3: -1.5, 6: -3.0},
     )
-    study_8span.manipulation.add_virtual_support(
+    study_8span.manipulation.set_virtual_support(
         {
             4: {
                 "x": 250.0,

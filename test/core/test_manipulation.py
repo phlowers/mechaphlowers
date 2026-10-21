@@ -5,18 +5,25 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import warnings as _warnings
+from typing import cast
 
 import numpy as np
 import pandas as pd
 import pytest
 from numpy.testing import assert_allclose
 
+from mechaphlowers.config import options
+from mechaphlowers.core.geometry.line_angles import get_edge_arm_coords
 from mechaphlowers.core.manipulation import Manipulation
+from mechaphlowers.core.models.balance.span_loads import SpanLoads
+from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.entities.arrays import SectionArray
 from mechaphlowers.entities.errors import (
     BalanceEngineWarning,
+    DataWarning,
     InvalidManipulationIndex,
     InvalidManipulationKeys,
+    InvalidManipulationRange,
 )
 
 
@@ -95,6 +102,23 @@ def test_support_manipulation_multiple_supports(
     )
 
 
+def test_support_manipulation_multiple_calls(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_alt = section_array._data["conductor_attachment_altitude"].copy()
+
+    manipulation.modify_support({1: {"z": 3.0}})
+    manipulation.modify_support({0: {"z": 1.0}, 2: {"z": -0.5, "y": 2.0}})
+    applied = manipulation.from_section_array(section_array)
+
+    # first call should be ignored
+    assert_allclose(
+        applied.data["conductor_attachment_altitude"].iloc[1],
+        original_alt.iloc[1],
+    )
+
+
 def test_support_manipulation_partial_keys(
     section_array: SectionArray,
     manipulation: Manipulation,
@@ -121,37 +145,6 @@ def test_support_manipulation_partial_keys(
     assert_allclose(
         applied.data["conductor_attachment_altitude"].iloc[0],
         original_alt.iloc[0],
-    )
-    assert_allclose(
-        applied.data["crossarm_length"].iloc[0],
-        original_arm.iloc[0] - 1.0,
-    )
-
-
-def test_support_manipulation_add_successive_without_reset(
-    section_array: SectionArray,
-    manipulation: Manipulation,
-) -> None:
-    original_alt = section_array._data["conductor_attachment_altitude"].copy()
-    original_arm = section_array._data["crossarm_length"].copy()
-
-    manipulation.modify_support({0: {"z": 1.5}})
-    applied = manipulation.from_section_array(section_array)
-
-    assert_allclose(
-        applied.data["conductor_attachment_altitude"].iloc[0],
-        original_alt.iloc[0] + 1.5,
-    )
-    assert_allclose(
-        applied.data["crossarm_length"].iloc[0],
-        original_arm.iloc[0],
-    )
-
-    manipulation.modify_support({0: {"y": -1.0}})
-    applied = manipulation.from_section_array(section_array)
-    assert_allclose(
-        applied.data["conductor_attachment_altitude"].iloc[0],
-        original_alt.iloc[0] + 1.5,
     )
     assert_allclose(
         applied.data["crossarm_length"].iloc[0],
@@ -220,7 +213,12 @@ def test_rope_manipulation_overrides_data(
     original_insulator_length = section_array._data["insulator_length"].copy()
     original_insulator_mass = section_array._data["insulator_mass"].copy()
 
-    manipulation.add_rope({1: 5.0, 2: 3.0})
+    manipulation.set_rope_or_chain(
+        {
+            1: {"type": "rope", "length": 5.0},
+            2: {"type": "rope", "length": 3.0},
+        }
+    )
     applied = manipulation.from_section_array(section_array)
 
     # Modified supports
@@ -252,14 +250,111 @@ def test_rope_manipulation_overrides_data(
     )
 
 
+def test_chain_manipulation_overrides_data(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_insulator_length = section_array._data["insulator_length"].copy()
+    original_insulator_mass = section_array._data["insulator_mass"].copy()
+
+    manipulation.set_rope_or_chain(
+        {
+            1: {"type": "chain", "length": 5.0, "mass": 45},
+            2: {"type": "chain", "length": 3.0, "mass": 55},
+        }
+    )
+    applied = manipulation.from_section_array(section_array)
+
+    # Modified supports
+    assert_allclose(applied.data["insulator_length"].iloc[1], 5.0)
+    assert_allclose(applied.data["insulator_length"].iloc[2], 3.0)
+    assert_allclose(
+        applied.data["insulator_mass"].iloc[1], 45
+    )  # default lineic mass
+    assert_allclose(applied.data["insulator_mass"].iloc[2], 55)
+
+    # Unlisted support unchanged
+    assert_allclose(
+        applied.data["insulator_length"].iloc[0],
+        original_insulator_length.iloc[0],
+    )
+    assert_allclose(
+        applied.data["insulator_mass"].iloc[0],
+        original_insulator_mass.iloc[0],
+    )
+
+    # Original _data must be unchanged
+    assert_allclose(
+        section_array._data["insulator_length"].to_numpy(),
+        original_insulator_length.to_numpy(),
+    )
+    assert_allclose(
+        section_array._data["insulator_mass"].to_numpy(),
+        original_insulator_mass.to_numpy(),
+    )
+
+
+def test_rope_manipulation_multiple_calls(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_insulator_length = section_array._data["insulator_length"].copy()
+    original_insulator_mass = section_array._data["insulator_mass"].copy()
+
+    manipulation.set_rope_or_chain(
+        {
+            0: {"type": "rope", "length": 1.0},
+        }
+    )
+    manipulation.set_rope_or_chain(
+        {
+            1: {"type": "rope", "length": 5.0},
+            2: {"type": "rope", "length": 3.0},
+        }
+    )
+    applied = manipulation.from_section_array(section_array)
+
+    # First call should be ignored
+    assert_allclose(
+        applied.data["insulator_length"].iloc[0],
+        original_insulator_length.iloc[0],
+    )
+    assert_allclose(
+        applied.data["insulator_mass"].iloc[0],
+        original_insulator_mass.iloc[0],
+    )
+
+
 def test_rope_manipulation_custom_lineic_mass(
     section_array: SectionArray,
     manipulation: Manipulation,
 ) -> None:
-    manipulation.add_rope({0: 2.0}, rope_lineic_mass=0.5)
+    manipulation.set_rope_or_chain(
+        {0: {"type": "rope", "length": 2.0, "lineic_mass": 0.5}}
+    )
     applied = manipulation.from_section_array(section_array)
 
     assert_allclose(applied.data["insulator_mass"].iloc[0], 2.0 * 0.5)
+
+
+def test_rope_manipulation_lineic_mass_ignored(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    with pytest.warns(DataWarning):
+        manipulation.set_rope_or_chain(
+            {
+                0: {
+                    "type": "rope",
+                    "length": 2.0,
+                    "mass": 45,
+                    "lineic_mass": 0.5,
+                }
+            }
+        )
+    applied = manipulation.from_section_array(section_array)
+
+    assert_allclose(applied.data["insulator_mass"].iloc[0], 45)
 
 
 def test_rope_manipulation_insulator_weight_updated(
@@ -267,7 +362,9 @@ def test_rope_manipulation_insulator_weight_updated(
     manipulation: Manipulation,
 ) -> None:
     """insulator_weight in .data must reflect the rope mass."""
-    manipulation.add_rope({1: 4.0}, rope_lineic_mass=0.1)
+    manipulation.set_rope_or_chain(
+        {1: {"type": "rope", "length": 4.0, "lineic_mass": 0.1}}
+    )
     applied = manipulation.from_section_array(section_array)
 
     expected_weight = 4.0 * 0.1 * 9.81  # approx N
@@ -278,7 +375,12 @@ def test_rope_manipulation_insulator_weight_updated(
 
 def test_rope_manipulation_invalid_index(manipulation: Manipulation) -> None:
     with pytest.raises(InvalidManipulationIndex, match="out of range"):
-        manipulation.add_rope({99: 3.0})
+        manipulation.set_rope_or_chain({99: {"type": "rope", "length": 5.0}})
+
+
+def test_rope_manipulation_no_type(manipulation: Manipulation) -> None:
+    with pytest.raises(InvalidManipulationKeys):
+        manipulation.set_rope_or_chain({1: {"length": 5.0}})
 
 
 def test_reset_rope_manipulation(
@@ -288,7 +390,12 @@ def test_reset_rope_manipulation(
     original_length = section_array.data["insulator_length"].copy()
     original_mass = section_array.data["insulator_mass"].copy()
 
-    manipulation.add_rope({1: 5.0, 2: 3.0})
+    manipulation.set_rope_or_chain(
+        {
+            1: {"type": "rope", "length": 5.0},
+            2: {"type": "rope", "length": 3.0},
+        }
+    )
     manipulation.reset_rope()
     applied = manipulation.from_section_array(section_array)
 
@@ -305,6 +412,60 @@ def test_reset_rope_manipulation_no_prior(
     manipulation: Manipulation,
 ) -> None:
     manipulation.reset_rope()  # should not raise
+
+
+def _arm_altitude(sa: SectionArray) -> np.ndarray:
+    data = sa.data
+    center_arm_coords, _ = get_edge_arm_coords(
+        np.zeros((len(data), 3)),
+        data["conductor_attachment_altitude"].to_numpy(),
+        data["crossarm_length"].to_numpy(),
+        data["line_angle"].to_numpy(),
+        data["insulator_length"].to_numpy(),
+    )
+    return center_arm_coords[:, 2]
+
+
+def test_set_rope_keeps_arm_attachment_fixed(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_arm_altitude = _arm_altitude(section_array)
+    manipulation.set_rope_or_chain(
+        {
+            1: {"type": "rope", "length": 5.0},
+            2: {"type": "rope", "length": 1.0},
+        }
+    )
+
+    applied = manipulation.from_section_array(section_array)
+
+    assert_allclose(_arm_altitude(applied), original_arm_altitude)
+
+
+def test_set_rope_moves_cable_attachment(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    original_alt = section_array.data["conductor_attachment_altitude"]
+    original_length = section_array.data["insulator_length"]
+    manipulation.set_rope_or_chain(
+        {
+            1: {"type": "rope", "length": 5.0},
+            2: {"type": "rope", "length": 1.0},
+        }
+    )
+
+    applied = manipulation.from_section_array(section_array)
+
+    # arm stays, so the cable hangs at arm_altitude - rope_length
+    assert_allclose(
+        applied.data["conductor_attachment_altitude"].to_numpy()[1:3],
+        [
+            original_alt.iloc[1] + original_length.iloc[1] - 5.0,
+            original_alt.iloc[2] + original_length.iloc[2] - 1.0,
+        ],
+    )
 
 
 # ── counterweight masking ─────────────────────────────────────────────────
@@ -363,7 +524,7 @@ def test_counterweight_masked_during_rope_manipulation() -> None:
     assert (original_counterweight > 0).any()
 
     manip = Manipulation(sa)
-    manip.add_rope({1: 4.5})
+    manip.set_rope_or_chain({1: {"type": "rope", "length": 4.5}})
     applied = manip.from_section_array(sa)
     data = applied.data
 
@@ -385,12 +546,12 @@ def test_counterweight_masked_during_rope_manipulation() -> None:
 # ── virtual support ──────────────────────────────────────────────────────
 
 
-def test_add_virtual_support_changes_data_shape(
+def test_set_virtual_support_changes_data_shape(
     section_array: SectionArray,
 ) -> None:
     manip = Manipulation(section_array)
     assert len(section_array.data) == 4
-    manip.add_virtual_support(
+    manip.set_virtual_support(
         {
             1: {
                 "x": 100.0,
@@ -406,11 +567,146 @@ def test_add_virtual_support_changes_data_shape(
     assert len(applied.data) == 5
 
 
+def _virtual_support(x: float) -> dict[str, float]:
+    return {
+        "x": x,
+        "y": 0.0,
+        "z": 55.0,
+        "insulator_length": 3.0,
+        "insulator_mass": 500.0,
+        "hanging_cable_point_from_left_support": x,
+    }
+
+
+@pytest.mark.parametrize("span_index", [-1, 3])
+def test_set_virtual_support_invalid_index(
+    manipulation: Manipulation, span_index: int
+) -> None:
+    virtual_support = _virtual_support(100.0)
+    with pytest.raises(InvalidManipulationIndex, match="out of range"):
+        manipulation.set_virtual_support({span_index: virtual_support})
+
+
+def test_set_virtual_support_missing_keys(
+    manipulation: Manipulation,
+) -> None:
+    virtual_support = _virtual_support(100.0)
+    del virtual_support["z"]
+    with pytest.raises(InvalidManipulationKeys, match="Missing keys"):
+        manipulation.set_virtual_support({1: virtual_support})
+
+
+def test_set_virtual_support_x_out_of_range(
+    manipulation: Manipulation,
+) -> None:
+    virtual_support = _virtual_support(600.0)
+    with pytest.raises(InvalidManipulationRange, match="x=.*out of range"):
+        manipulation.set_virtual_support({1: virtual_support})
+
+
+def test_set_virtual_support_hanging_point_out_of_range(
+    manipulation: Manipulation,
+) -> None:
+    virtual_support = _virtual_support(100.0)
+    virtual_support["hanging_cable_point_from_left_support"] = 600.0
+    with pytest.raises(
+        InvalidManipulationRange,
+        match="hanging_cable_point_from_left_support=.*out of range",
+    ):
+        manipulation.set_virtual_support({1: virtual_support})
+
+
+def test_reset_virtual_support_no_prior(manipulation: Manipulation) -> None:
+    manipulation.reset_virtual_support()
+    assert manipulation._virtual_support_overlay is None
+
+
+def test_compute_split_l_ref_without_virtual_support(
+    manipulation: Manipulation,
+) -> None:
+    initial_l_ref = np.array([10.0, 20.0, 30.0])
+    result = manipulation.compute_split_L_ref(
+        initial_l_ref, cast(ISpan, object())
+    )
+    assert result is initial_l_ref
+
+
+def test_apply_virtual_support_overlay_without_overlay(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    raw_data = section_array._data.copy()
+    assert manipulation._apply_virtual_support_overlay(raw_data) is raw_data
+
+
+def test_apply_virtual_support_overlay_sets_ground_altitude(
+    section_array: SectionArray,
+    manipulation: Manipulation,
+) -> None:
+    raw_data = section_array._data.copy()
+    raw_data["ground_altitude"] = [0.0, 0.0, 0.0, 0.0]
+    manipulation._virtual_support_overlay = {1: _virtual_support(100.0)}
+
+    applied = manipulation._apply_virtual_support_overlay(raw_data)
+
+    assert len(applied) == 5
+    assert applied.loc[2, "name"] == "virtual_1"
+    assert applied.loc[2, "ground_altitude"] == (
+        55.0 - options.ground.default_support_length
+    )
+
+
+def test_span_index_after_virtual_support_no_overlay(
+    manipulation: Manipulation,
+) -> None:
+    assert [
+        manipulation.span_index_after_virtual_support(i) for i in range(3)
+    ] == [0, 1, 2]
+
+
+def test_span_index_after_virtual_support_matches_span_loads(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.set_virtual_support({1: _virtual_support(100.0)})
+    span_length = manipulation._section_array.data.span_length.to_numpy()
+    for i in (0, 2):
+        positions = np.zeros(3)
+        masses = np.zeros(3)
+        positions[i] = 0.5
+        masses[i] = 10.0
+        new_loads = manipulation.build_new_span_loads_virtual_support(
+            SpanLoads(positions, masses, span_length)
+        )
+        j = manipulation.span_index_after_virtual_support(i)
+        assert j is not None
+        assert new_loads.load_mass[j] == 10.0
+        assert np.count_nonzero(new_loads.load_mass) == 1
+    assert manipulation.span_index_after_virtual_support(1) is None
+
+
+def test_span_index_after_virtual_support_multiple(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.set_virtual_support(
+        {0: _virtual_support(0.5), 2: _virtual_support(100.0)}
+    )
+    assert manipulation.span_index_after_virtual_support(0) is None
+    assert manipulation.span_index_after_virtual_support(1) == 2
+    assert manipulation.span_index_after_virtual_support(2) is None
+
+
+def test_span_index_after_virtual_support_invalid_index(
+    manipulation: Manipulation,
+) -> None:
+    with pytest.raises(InvalidManipulationIndex):
+        manipulation.span_index_after_virtual_support(3)
+
+
 def test_reset_virtual_support_restores_data_shape(
     section_array: SectionArray,
 ) -> None:
     manip = Manipulation(section_array)
-    manip.add_virtual_support(
+    manip.set_virtual_support(
         {
             1: {
                 "x": 100.0,
@@ -437,7 +733,7 @@ def test_apply_does_not_modify_original(
     original_data = section_array._data.copy()
 
     manipulation.modify_support({0: {"z": 10.0}})
-    manipulation.add_rope({1: 6.0})
+    manipulation.set_rope_or_chain({1: {"type": "rope", "length": 6}})
     _ = manipulation.from_section_array(section_array)
 
     # Original section array must be untouched
@@ -470,14 +766,14 @@ def test_has_manipulations_after_support(
 def test_has_manipulations_after_rope(
     manipulation: Manipulation,
 ) -> None:
-    manipulation.add_rope({0: 2.0})
+    manipulation.set_rope_or_chain({0: {"type": "rope", "length": 2}})
     assert manipulation.has_manipulations
 
 
 def test_has_manipulations_after_virtual_support(
     manipulation: Manipulation,
 ) -> None:
-    manipulation.add_virtual_support(
+    manipulation.set_virtual_support(
         {
             1: {
                 "x": 100.0,
@@ -615,11 +911,36 @@ def test_compute_shifted_L_ref(
     np.testing.assert_allclose(shifted, np.array([501.0, 299.0, 400.0]))
 
 
+def test_compute_shifted_L_ref_multiple_calls(
+    manipulation: Manipulation,
+) -> None:
+    initial_L_ref = np.array([500.0, 300.0, 400.0])
+
+    # only second call counts
+    manipulation.modify_cable(shift_support={2: 4.0})
+    # shift support 1 by 1m → span 0 gains 1m, span 1 loses 1m
+    manipulation.modify_cable(shift_support={1: 1.0})
+    shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
+    np.testing.assert_allclose(shifted, np.array([501.0, 299.0, 400.0]))
+
+
 def test_compute_shifted_L_ref_with_shortening(
     manipulation: Manipulation,
 ) -> None:
     initial_L_ref = np.array([500.0, 300.0, 400.0])
 
+    manipulation.modify_cable(shorten_span={1: 2.0})
+    shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
+    np.testing.assert_allclose(shifted, np.array([500.0, 298.0, 400.0]))
+
+
+def test_compute_shifted_L_ref_with_shortening_multiple_calls(
+    manipulation: Manipulation,
+) -> None:
+    initial_L_ref = np.array([500.0, 300.0, 400.0])
+
+    # only second call counts
+    manipulation.modify_cable(shorten_span={2: 3.2})
     manipulation.modify_cable(shorten_span={1: 2.0})
     shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
     np.testing.assert_allclose(shifted, np.array([500.0, 298.0, 400.0]))

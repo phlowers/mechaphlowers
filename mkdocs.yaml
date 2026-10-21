@@ -60,6 +60,7 @@ nav:
       - Plotting: user_guide/ug_plotting.md
       - Thermal engine: user_guide/ug_thermal_engine.md
       - Section Study: user_guide/ug_section_study.md
+      - Estimation: user_guide/ug_estimation.md
       - Specific errors used: user_guide/ug_mph_errors.md
   - Developer guide:
       - API Reference:
@@ -97,8 +98,14 @@ nav:
                       - Guying: docstring/core/models/guying.md
                   - External loads: docstring/core/models/external_loads.md
                   - Point loads: docstring/core/models/balance/span_loads.md
+                  - Estimation:
+                      - Engine: docstring/core/models/estimation/engine.md
+              - Numeric:
+                  - Optimization methods: docstring/core/numeric/methods.md
+                  - Estimation result: docstring/core/numeric/result.md
               - Papoto: docstring/core/papoto/papoto_model.md
               - Tangential Sighting Method: docstring/core/tangential_sighting/tangential_sighting.md
+              - Manipulation: docstring/core/manipulation.md
           - Data:
               - Catalog: docstring/data/catalog/catalog.md
               - Geography: docstring/data/geography/helpers.md
