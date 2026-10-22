@@ -16,7 +16,12 @@ import pandas as pd
 from xxhash import xxh3_64
 
 from mechaphlowers.config import options
-from mechaphlowers.entities.errors import ViewChoiceWarning
+from mechaphlowers.entities.errors import (
+    MechaphlowersTypeError,
+    MechaphlowersValueError,
+    ShapeError,
+    ViewChoiceWarning,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +270,7 @@ def is_number(value: Any) -> bool:
 def check_inputs_are_numbers(**kwargs) -> None:
     for key, value in kwargs.items():
         if not is_number(value):
-            raise TypeError(
+            raise MechaphlowersTypeError(
                 f"Argument {key} should be a number, but got {type(value).__name__}"
             )
 
@@ -282,7 +287,7 @@ def check_all_arrays_have_the_same_shape(
 
     for parameter_name, value in kwargs.items():
         if value.shape != first_shape:
-            raise ValueError(
+            raise ShapeError(
                 f"All array arguments of {caller_name} should have the same shape, but got shape {first_shape} for {first_parameter_name} and shape {value.shape} for {parameter_name}"
             )
 
@@ -377,7 +382,7 @@ def cotan(x: Number) -> Number: ...
 
 def cotan(x: np.ndarray | Number) -> np.ndarray | Number:
     if np.any(np.isclose(np.sin(x), 0.0, atol=1e-12)):
-        raise ValueError("x must be different from 0, pi etc.")
+        raise MechaphlowersValueError("x must be different from 0, pi etc.")
     return 1 / np.tan(x)
 
 
