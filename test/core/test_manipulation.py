@@ -618,7 +618,7 @@ def test_set_virtual_support_hanging_point_out_of_range(
 
 def test_reset_virtual_support_no_prior(manipulation: Manipulation) -> None:
     manipulation.reset_virtual_support()
-    assert manipulation._virtual_support_overlay is None
+    assert len(manipulation._virtual_support_overlay) == 0
 
 
 def test_compute_split_l_ref_without_virtual_support(
@@ -890,8 +890,8 @@ def test_reset_cable_shifting(
     manipulation.modify_cable(shift_support={1: 1.0})
     manipulation.reset_cable()
     assert not manipulation.has_shifting
-    assert manipulation.shift_support is None
-    assert manipulation.shortening_span is None
+    assert len(manipulation.shift_support) == 0
+    assert len(manipulation.shortening_span) == 0
 
 
 def test_reset_cable_shifting_no_prior(

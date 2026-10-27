@@ -50,40 +50,57 @@ class Manipulation:
 
     def __init__(self, section_array: SectionArray) -> None:
         self._section_array = section_array
-        self._support_overlay: dict[int, dict[str, float]] | None = None
-        self._rope_or_chain_overlay: dict[int, dict] | None = None
-        self._virtual_support_overlay: dict[int, dict] | None = None
-        self._shifting_distance_support: np.ndarray | None = None
-        self._shortening_distance_span: np.ndarray | None = None
+        self._support_overlay: dict[int, dict[str, float]] = {}
+        self._rope_or_chain_overlay: dict[int, dict] = {}
+        self._virtual_support_overlay: dict[int, dict] = {}
+        self._shifting_distance_support: np.ndarray = np.array([])
+        self._shortening_distance_span: np.ndarray = np.array([])
 
     # ── Query helpers ─────────────────────────────────────────────────────
 
     @property
     def has_manipulations(self) -> bool:
         return (
-            self._support_overlay is not None
-            or self._rope_or_chain_overlay is not None
-            or self._virtual_support_overlay is not None
-            or self._shifting_distance_support is not None
+            len(self._support_overlay) > 0
+            or len(self._rope_or_chain_overlay) > 0
+            or len(self._virtual_support_overlay) > 0
+            or len(self._shifting_distance_support) > 0
+            or len(self._shortening_distance_span) > 0
         )
 
     @property
+    def has_modified_support(self) -> bool:
+        return len(self._support_overlay) > 0
+
+    @property
+    def has_rope_or_chain(self) -> bool:
+        return len(self._rope_or_chain_overlay) > 0
+
+    @property
     def has_virtual_support(self) -> bool:
-        return self._virtual_support_overlay is not None
+        return len(self._virtual_support_overlay) > 0
 
     @property
     def has_shifting(self) -> bool:
-        return self._shifting_distance_support is not None
+        return len(self._shifting_distance_support) > 0
+
+    @property
+    def has_shortened_span(self) -> bool:
+        return len(self._shortening_distance_span) > 0
+
+    @property
+    def has_modified_cable(self) -> bool:
+        return self.has_shifting or self.has_shortened_span
 
     # ── Cable shifting ────────────────────────────────────────────────────
 
     @property
-    def shift_support(self) -> np.ndarray | None:
+    def shift_support(self) -> np.ndarray:
         """Shifting distance, in meters. ``None`` when no shifting is set."""
         return self._shifting_distance_support
 
     @property
-    def shortening_span(self) -> np.ndarray | None:
+    def shortening_span(self) -> np.ndarray:
         """Shortening distance, in meters. ``None`` when no shifting is set."""
         return self._shortening_distance_span
 
@@ -163,11 +180,11 @@ class Manipulation:
 
         Does nothing if no shifting has been applied.
         """
-        if self._shifting_distance_support is None:
+        if len(self._shifting_distance_support) == 0:
             logger.debug("reset_cable called but no shifting was applied.")
             return
-        self._shifting_distance_support = None
-        self._shortening_distance_span = None
+        self._shifting_distance_support = np.array([])
+        self._shortening_distance_span = np.array([])
         logger.debug("Cable shifting cleared.")
 
     def _compute_shift_delta(self) -> np.ndarray:
@@ -179,8 +196,8 @@ class Manipulation:
             Array of length ``n_spans`` (original indices, before any
             virtual-support expansion).
         """
-        assert self._shifting_distance_support is not None
-        assert self._shortening_distance_span is not None
+        assert len(self._shifting_distance_support) > 0
+        assert len(self._shortening_distance_span) > 0
         shift_span = (
             self._shifting_distance_support[:-1]
             - self._shifting_distance_support[1:]
@@ -208,7 +225,7 @@ class Manipulation:
         Returns:
             Shifted L_ref array with same length as *initial_L_ref*.
         """
-        if self._shifting_distance_support is None:
+        if len(self._shifting_distance_support) == 0:
             return initial_L_ref
 
         shifted_length = self._compute_shift_delta()
@@ -216,7 +233,7 @@ class Manipulation:
         should_expand = (
             expand if expand is not None else self.has_virtual_support
         )
-        if should_expand and self._virtual_support_overlay is not None:
+        if should_expand and self._virtual_support_overlay:
             for offset, span_idx in enumerate(
                 sorted(self._virtual_support_overlay.keys())
             ):
@@ -282,13 +299,13 @@ class Manipulation:
             >>> manip.modify_support({1: {"z": 5.0}})
             >>> manip.reset_support()
         """
-        if self._support_overlay is None:
+        if len(self._support_overlay) == 0:
             logger.debug(
                 "reset_support called but no manipulation was applied."
             )
             return
 
-        self._support_overlay = None
+        self._support_overlay = {}
         logger.debug("Support manipulation reset to original values.")
 
     # ── Rope manipulation ─────────────────────────────────────────────────
@@ -366,12 +383,12 @@ class Manipulation:
             >>> manip.set_rope_or_chain({1: {"type": "chain", "length": 5, "mass": 50}})
             >>> manip.reset_rope()
         """
-        if self._rope_or_chain_overlay is None:
+        if len(self._rope_or_chain_overlay) == 0:
             logger.debug(
                 "reset_rope called but no rope manipulation was applied."
             )
             return
-        self._rope_or_chain_overlay = None
+        self._rope_or_chain_overlay = {}
         logger.debug("Rope manipulation cleared.")
 
     # ── Virtual support ───────────────────────────────────────────────────
@@ -473,12 +490,12 @@ class Manipulation:
             >>> manip.set_virtual_support({...})
             >>> manip.reset_virtual_support()
         """
-        if self._virtual_support_overlay is None:
+        if len(self._virtual_support_overlay) == 0:
             logger.debug(
                 "reset_virtual_support called but no virtual support was added."
             )
             return
-        self._virtual_support_overlay = None
+        self._virtual_support_overlay = {}
         logger.debug("Virtual support overlay cleared.")
 
     def reset_all(self) -> None:
@@ -527,7 +544,7 @@ class Manipulation:
         input_units = original.input_units
 
         # Apply support overlay
-        if self._support_overlay is not None:
+        if self._support_overlay:
             for idx, offsets in self._support_overlay.items():
                 if "z" in offsets:
                     raw_data.loc[idx, "conductor_attachment_altitude"] = cast(
@@ -546,7 +563,7 @@ class Manipulation:
                     )
 
         # Apply rope or chain overlay
-        if self._rope_or_chain_overlay is not None:
+        if self._rope_or_chain_overlay:
             original_insulator_length = original.data["insulator_length"]
             last_idx = len(raw_data) - 1
             for idx, rope_or_chain in self._rope_or_chain_overlay.items():
@@ -576,16 +593,16 @@ class Manipulation:
 
         # Counterweight masking for affected supports
         affected: set[int] = set()
-        if self._support_overlay is not None:
+        if self._support_overlay:
             affected |= set(self._support_overlay.keys())
-        if self._rope_or_chain_overlay is not None:
+        if self._rope_or_chain_overlay:
             affected |= set(self._rope_or_chain_overlay.keys())
         if "counterweight_mass" in raw_data.columns and affected:
             for idx in affected:
                 raw_data.loc[idx, "counterweight_mass"] = 0.0
 
         # Virtual support insertion
-        if self._virtual_support_overlay is not None:
+        if self._virtual_support_overlay:
             raw_data = self._apply_virtual_support_overlay(
                 raw_data, input_units
             )
@@ -600,15 +617,15 @@ class Manipulation:
         sa.geolocator = copy(original.geolocator)
 
         applied = []
-        if self._support_overlay is not None:
+        if self._support_overlay:
             applied.append(f"support_overlay={self._support_overlay}")
-        if self._rope_or_chain_overlay is not None:
+        if self._rope_or_chain_overlay:
             applied.append(f"rope_overlay={self._rope_or_chain_overlay}")
-        if self._virtual_support_overlay is not None:
+        if self._virtual_support_overlay:
             applied.append(
                 f"virtual_support_overlay={list(self._virtual_support_overlay.keys())}"
             )
-        if self._shifting_distance_support is not None:
+        if len(self._shifting_distance_support) > 0:
             applied.append(
                 f"cable_shifting={self._shifting_distance_support}, cable_shortening={self._shortening_distance_span}"
             )
@@ -637,7 +654,7 @@ class Manipulation:
         has_default_length = (
             len(span_loads.load_position) == len(self._section_array.data) - 1
         )
-        if self._virtual_support_overlay is not None and has_default_length:
+        if self._virtual_support_overlay and has_default_length:
             sorted_span_indices = sorted(self._virtual_support_overlay.keys())
             for offset, span_idx in enumerate(sorted_span_indices):
                 effective_idx = span_idx + offset
@@ -672,7 +689,7 @@ class Manipulation:
             raise InvalidManipulationIndex(
                 f"Span index {span_index} is out of range [0, {n_spans - 1}]"
             )
-        if self._virtual_support_overlay is None:
+        if len(self._virtual_support_overlay) == 0:
             return span_index
         if span_index in self._virtual_support_overlay:
             return None
@@ -774,7 +791,7 @@ class Manipulation:
         Returns:
             Expanded L_ref array with additional entries for virtual spans.
         """
-        if self._virtual_support_overlay is None:
+        if len(self._virtual_support_overlay) == 0:
             return initial_L_ref
 
         n_spans = int(initial_L_ref.shape[0])
@@ -821,7 +838,7 @@ class Manipulation:
         Returns:
             Expanded state vector (size ``2 * (n_original_nodes + n_virtual)``).
         """
-        if self._virtual_support_overlay is None:
+        if len(self._virtual_support_overlay) == 0:
             return state_vector
 
         result = state_vector.copy()
@@ -872,7 +889,7 @@ class Manipulation:
     ) -> pd.DataFrame:
         """Insert virtual support rows into *raw_data* (in input units)."""
 
-        if self._virtual_support_overlay is None:
+        if len(self._virtual_support_overlay) == 0:
             logger.warning(
                 "_apply_virtual_support_overlay called but no virtual support overlay is set; returning original data."
             )
