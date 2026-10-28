@@ -33,6 +33,9 @@ dependencies = [
     "xxhash>=3.5.0,<4",
     "pydantic>=2.10.6,<3",
     "pyproj>=3.7.2,<4",
+    # Temporary certifi minimum for the eMudhra/emSign CA incident.
+    # See https://github.com/phlowers/mechaphlowers/security/dependabot/49
+    "certifi>=2026.10.19",
 ]
 
 [project.urls]
