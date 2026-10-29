@@ -58,7 +58,9 @@ def angle_between_vectors(
     Returns:
         A 1D array of angles in radians, where each angle corresponds to the angle between the vectors at the same index.
     """
-    cross_product = np.cross(vector_a, vector_b)
+    cross_product = (
+        vector_a[:, 0] * vector_b[:, 1] - vector_a[:, 1] * vector_b[:, 0]
+    )
     dot_product = np.vecdot(vector_a, vector_b)
     angle_result = np.arctan2(cross_product, dot_product)
     # Return NaN if either vector is null
