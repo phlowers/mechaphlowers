@@ -182,9 +182,14 @@ class SectionStudy:
     # ── Manipulation methods ──────────────────────────────────────────────
 
     def modify_support(
-        self, support_modification: dict[int, dict[str, float]]
+        self,
+        support_modification: dict[int, dict[str, float]],
+        apply: bool = True,
     ) -> None:
         """Apply additive offsets to support geometry.
+
+        The `apply` argument allows skipping `apply_manipulation()`, which takes time.
+        `apply_manipulations()̀  still need to be run later, for the manipulation to work properly.
 
         Delegates to
         [`Manipulation.modify_support`][mechaphlowers.core.manipulation.Manipulation.modify_support].
@@ -192,23 +197,28 @@ class SectionStudy:
         Args:
             support_modification: Dictionary mapping support index (0-based) to
                 offsets with optional keys ``"y"`` and ``"z"``.
+            apply (bool): if set to True, will run apply_manipulation(). Default to True
         """
         self._manipulation.modify_support(support_modification)
-        self.apply_manipulations()
+        if apply:
+            self.apply_manipulations()
 
-    def reset_support(self) -> None:
+    def reset_support(self, apply: bool = True) -> None:
         """Remove the support manipulation overlay.
 
         Delegates to [`Manipulation.reset_support`][mechaphlowers.core.manipulation.Manipulation.reset_support].
         """
         self._manipulation.reset_support()
-        self.apply_manipulations()
+        if apply:
+            self.apply_manipulations()
 
     def set_rope_or_chain(
-        self,
-        rope_or_chain: dict[int, dict],
+        self, rope_or_chain: dict[int, dict], apply: bool = True
     ) -> None:
         """Override insulator length and mass for specified supports with rope or chain values.
+
+        The `apply` argument allows skipping `apply_manipulation()`, which takes time.
+        `apply_manipulations()̀  still need to be run later, for the manipulation to work properly.
 
         Delegates to [`Manipulation.set_rope_or_chain`][mechaphlowers.core.manipulation.Manipulation.set_rope_or_chain].
 
@@ -216,8 +226,8 @@ class SectionStudy:
             rope_or_chain: Dictionary mapping support index (0-based) to rope length (meters).
         """
         self._manipulation.set_rope_or_chain(rope_or_chain)
-
-        self.apply_manipulations()
+        if apply:
+            self.apply_manipulations()
 
     def apply_manipulations(self):
         """Update balance_engine in order to take into account manipulations.
@@ -258,16 +268,17 @@ class SectionStudy:
         # _intermediate_memento should be reset after changing manipulations
         self._intermediate_memento = None
 
-    def reset_rope(self) -> None:
+    def reset_rope(self, apply: bool = True) -> None:
         """Remove the rope overlay.
 
         Delegates to [`Manipulation.reset_rope`][mechaphlowers.core.manipulation.Manipulation.reset_rope].
         """
         self._manipulation.reset_rope()
-        self.apply_manipulations()
+        if apply:
+            self.apply_manipulations()
 
     def set_virtual_support(
-        self, virtual_support: dict[int, dict[str, float]]
+        self, virtual_support: dict[int, dict[str, float]], apply: bool = True
     ) -> None:
         """Insert virtual supports.
 
@@ -280,20 +291,23 @@ class SectionStudy:
                 support parameters.
         """
         self._manipulation.set_virtual_support(virtual_support)
-        self.apply_manipulations()
+        if apply:
+            self.apply_manipulations()
 
-    def reset_virtual_support(self) -> None:
+    def reset_virtual_support(self, apply: bool = True) -> None:
         """Remove all virtual supports.
 
         Delegates to [`Manipulation.reset_virtual_support`][mechaphlowers.core.manipulation.Manipulation.reset_virtual_support].
         """
         self._manipulation.reset_virtual_support()
-        self.apply_manipulations()
+        if apply:
+            self.apply_manipulations()
 
     def modify_cable(
         self,
         shift_support: dict[int, float] | None = None,
         shorten_span: dict[int, float] | None = None,
+        apply: bool = True,
     ) -> None:
         """Validate and store cable shifting values.
 
@@ -308,15 +322,17 @@ class SectionStudy:
                 shorten the span.
         """
         self._manipulation.modify_cable(shift_support, shorten_span)
-        self.apply_manipulations()
+        if apply:
+            self.apply_manipulations()
 
-    def reset_cable(self) -> None:
+    def reset_cable(self, apply: bool = True) -> None:
         """Remove cable shifting.
 
         Delegates to [`Manipulation.reset_cable`][mechaphlowers.core.manipulation.Manipulation.reset_cable].
         """
         self._manipulation.reset_cable()
-        self.apply_manipulations()
+        if apply:
+            self.apply_manipulations()
 
     def reset_all(self) -> None:
         """Remove all active manipulations.
