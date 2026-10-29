@@ -22,6 +22,34 @@ pytest test/path/to/test_file.py
 pytest test/path/to/test_file.py::test_name
 ```
 
+## Dependency compatibility
+
+The supported dependency ranges include pandas 2 and 3, Plotly 5 and 6,
+and xxhash 3 and 4. Plotly remains below 7 because the geographic line
+map uses `Scattermapbox`, which was removed in Plotly 7. Supporting that
+release requires a separate migration to MapLibre.
+
+Validate the locked dependencies on both the minimum and newest tested
+Python versions using uv-managed interpreters:
+
+```bash
+uv sync --managed-python --python 3.11 --all-groups --extra full
+uv run --managed-python --python 3.11 --locked pytest
+uv sync --managed-python --python 3.14 --all-groups --extra full
+uv run --managed-python --python 3.14 --locked pytest
+```
+
+When widening dependency bounds, also test the affected code paths with
+the retained older dependency majors. An isolated run can override the
+locked versions without changing the lockfile:
+
+```bash
+uv run --managed-python --python 3.11 --locked --isolated \
+    --with 'pandas==2.3.1' --with 'plotly==5.24.1' --with 'xxhash==3.5.0' \
+    pytest test/entities/test_obstacle_array.py \
+    test/core/geometry/test_position_engine.py test/test_utils.py test/plotting/
+```
+
 ## Fixtures and shared test setup
 
 Shared fixtures are defined in `test/conftest.py` (data builders, common objects, report hooks, and helper toggles).
