@@ -332,7 +332,7 @@ def numpy_cache(f: Callable[..., Any]) -> CachedCallable:
             ]
         )
         # key_args += key_kwargs
-        key = xxh3_64(key_args).digest()
+        key = xxh3_64(key_args.encode()).digest()
         if key not in cache:
             cache[key] = f(*args, **kwargs)
         return cache[key]
