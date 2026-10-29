@@ -53,19 +53,23 @@ class Manipulation:
         self._support_overlay: dict[int, dict[str, float]] = {}
         self._rope_or_chain_overlay: dict[int, dict] = {}
         self._virtual_support_overlay: dict[int, dict] = {}
-        self._shifting_distance_support: np.ndarray = np.array([])
-        self._shortening_distance_span: np.ndarray = np.array([])
+        n_supports = len(self._section_array._data)
+        self._shifting_distance_support: np.ndarray = np.zeros(
+            n_supports, dtype=np.float64
+        )
+        self._shortening_distance_span: np.ndarray = np.zeros(
+            n_supports - 1, dtype=np.float64
+        )
 
     # ── Query helpers ─────────────────────────────────────────────────────
 
     @property
     def has_manipulations(self) -> bool:
         return (
-            len(self._support_overlay) > 0
-            or len(self._rope_or_chain_overlay) > 0
-            or len(self._virtual_support_overlay) > 0
-            or len(self._shifting_distance_support) > 0
-            or len(self._shortening_distance_span) > 0
+            self.has_modified_support
+            or self.has_rope_or_chain
+            or self.has_modified_cable
+            or self.has_virtual_support
         )
 
     @property
@@ -82,11 +86,11 @@ class Manipulation:
 
     @property
     def has_shifting(self) -> bool:
-        return len(self._shifting_distance_support) > 0
+        return bool(np.any(self._shifting_distance_support != 0))
 
     @property
     def has_shortened_span(self) -> bool:
-        return len(self._shortening_distance_span) > 0
+        return bool(np.any(self._shortening_distance_span != 0))
 
     @property
     def has_modified_cable(self) -> bool:
@@ -741,7 +745,7 @@ class Manipulation:
         # Cable shifting (applied after split so the shift maps to correct
         # expanded span indices — the shift only affects the left sub-span
         # adjacent to the shifted support)
-        if self.has_shifting:
+        if self.has_modified_cable:
             L_ref = self.compute_shifted_L_ref(L_ref, expand=True)
 
         # Build target engine

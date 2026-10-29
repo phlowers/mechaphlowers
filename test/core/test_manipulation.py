@@ -763,6 +763,20 @@ def test_has_manipulations_after_support(
     assert manipulation.has_manipulations
 
 
+def test_has_shifting(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.modify_cable(shift_support={1: -3})
+    assert manipulation.has_shifting
+
+
+def test_has_shortened_span(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.modify_cable(shorten_span={0: 2})
+    assert manipulation.has_shortened_span
+
+
 def test_has_manipulations_after_rope(
     manipulation: Manipulation,
 ) -> None:
@@ -793,6 +807,41 @@ def test_has_manipulations_after_shifting(
 ) -> None:
     manipulation.modify_cable(shift_support={1: 1.0})
     assert manipulation.has_manipulations
+
+
+def test_empty_call_rope_or_chain(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.set_rope_or_chain({})
+    assert not manipulation.has_rope_or_chain
+
+
+def test_empty_call_modify_support(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.modify_support({})
+    assert not manipulation.has_modified_support
+
+
+def test_empty_call_virtual_support(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.set_virtual_support({})
+    assert not manipulation.has_virtual_support
+
+
+def test_empty_call_shifting(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.modify_cable(shift_support={})
+    assert not manipulation.has_shifting
+
+
+def test_empty_call_shorten(
+    manipulation: Manipulation,
+) -> None:
+    manipulation.modify_cable(shorten_span={})
+    assert not manipulation.has_shortened_span
 
 
 # ── cable shifting ────────────────────────────────────────────────────────
