@@ -1193,6 +1193,14 @@ class LoadModel(IModelForSolver):
         self.z_i = value[1::2]
         self.update_lengths_span_models()
 
+    @property
+    def jacobian_half_bandwidth(self) -> int:
+        """State and objective have 2 entries per load: `[.., x_i, z_i, ..]` and
+        `[.., Th_diff_i, Tv_diff_i, ..]`. Each load only depends on its own
+        position, so the jacobian is block diagonal (2x2 blocks): |row - col| <= 1.
+        """
+        return 1
+
     def objective_function(self) -> np.ndarray:
         """Objective function to minimize: differences of tensions at the load position.
         The balance position is found when the tensions are equal on both side of the load.
