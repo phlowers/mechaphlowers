@@ -10,9 +10,6 @@ import pytest
 from numpy.testing import assert_allclose
 
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.core.models.balance.models.model_ducloux import (
-    BalanceModel,
-)
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.entities.arrays import SectionArray
 
@@ -50,8 +47,7 @@ def balance_engine_long() -> BalanceEngine:
     return engine
 
 
-def jacobians_banded_and_dense(engine, solver, monkeypatch):
-    model = engine.balance_model
+def jacobians_banded_and_dense(model, solver, monkeypatch):
     rng = np.random.default_rng(0)
     # move away from equilibrium to test a generic point
     model.state_vector = model.state_vector + rng.uniform(
@@ -62,10 +58,18 @@ def jacobians_banded_and_dense(engine, solver, monkeypatch):
 
     jacobian_banded = solver.jacobian(objective, model, solver.perturb)
     monkeypatch.setattr(
-        BalanceModel, "jacobian_half_bandwidth", property(lambda self: None)
+        type(model), "jacobian_half_bandwidth", property(lambda self: None)
     )
     jacobian_dense = solver.jacobian(objective, model, solver.perturb)
     return jacobian_banded, jacobian_dense
+
+
+def solve_change_state(engine):
+    engine.solve_change_state(
+        wind_pressure=np.full(8, -200.0),
+        ice_thickness=np.full(8, 0.02),
+        new_temperature=np.full(8, 5.0),
+    )
 
 
 def test_banded_jacobian_matches_dense__adjustment(
@@ -74,7 +78,7 @@ def test_banded_jacobian_matches_dense__adjustment(
     engine = balance_engine_long
     engine.balance_model.adjustment = True
     banded, dense = jacobians_banded_and_dense(
-        engine, engine.solver_adjustment, monkeypatch
+        engine.balance_model, engine.solver_adjustment, monkeypatch
     )
     assert_allclose(banded, dense, rtol=0, atol=1e-6 * np.abs(dense).max())
 
@@ -83,13 +87,22 @@ def test_banded_jacobian_matches_dense__change_state_with_loads(
     balance_engine_long, monkeypatch
 ):
     engine = balance_engine_long
-    engine.solve_change_state(
-        wind_pressure=np.full(8, -200.0),
-        ice_thickness=np.full(8, 0.02),
-        new_temperature=np.full(8, 5.0),
-    )
+    solve_change_state(engine)
     assert engine.balance_model.nodes.has_load_on_span.any()
     banded, dense = jacobians_banded_and_dense(
-        engine, engine.solver_change_state, monkeypatch
+        engine.balance_model, engine.solver_change_state, monkeypatch
+    )
+    assert_allclose(banded, dense, rtol=0, atol=1e-6 * np.abs(dense).max())
+
+
+def test_banded_jacobian_matches_dense__load_model(
+    balance_engine_long, monkeypatch
+):
+    engine = balance_engine_long
+    solve_change_state(engine)
+    load_model = engine.balance_model.load_model
+    assert len(load_model.state_vector) > 3  # banded path is used
+    banded, dense = jacobians_banded_and_dense(
+        load_model, engine.balance_model.load_solver, monkeypatch
     )
     assert_allclose(banded, dense, rtol=0, atol=1e-6 * np.abs(dense).max())
