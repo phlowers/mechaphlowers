@@ -283,7 +283,7 @@ class BalanceEngine(Notifier):
         # Do we really still need this now that clean_engine exists?
         self.L_ref = self.balance_model.update_L_ref()
 
-        logger.debug(f"Output : L_ref = {str(self.L_ref)}")
+        logger.debug("Output : L_ref = %s", self.L_ref)
 
     @check_time
     def solve_change_state(
@@ -314,8 +314,13 @@ class BalanceEngine(Notifier):
             ValueError: If input parameters have incorrect shape.
         """
         logger.debug("Starting change state.")
+        # Lazy %s formatting: arrays are only converted to str if DEBUG is enabled
         logger.debug(
-            f"Parameters received: \nwind_pressure {str(wind_pressure)}\nice_thickness {str(ice_thickness)}\nnew_temperature {str(new_temperature)}\nwind_direction {str(wind_direction)}"
+            "Parameters received: \nwind_pressure %s\nice_thickness %s\nnew_temperature %s\nwind_direction %s",
+            wind_pressure,
+            ice_thickness,
+            new_temperature,
+            wind_direction,
         )
 
         if wind_direction not in ["clockwise", "anticlockwise"]:
@@ -327,7 +332,8 @@ class BalanceEngine(Notifier):
         try:
             _ = self.L_ref
             logger.debug(
-                f"Adjustment has been done before, initial_L_ref before shifting: {str(self.L_ref)}"
+                "Adjustment has been done before, initial_L_ref before shifting: %s",
+                self.L_ref,
             )
         except AttributeError:
             logger.warning(self._warning_no_L_ref)
@@ -386,9 +392,10 @@ class BalanceEngine(Notifier):
             e.origin = "solve_change_state"
             raise e
 
-        logger.debug(
-            f"Output : get_displacement \n{str(self.get_displacement())}"
-        )
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "Output : get_displacement \n%s", self.get_displacement()
+            )
         self.balance_model.update_nodes_span_model()
 
     def get_data_spans(self) -> dict[str, list]:
