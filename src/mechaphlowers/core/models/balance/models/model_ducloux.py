@@ -960,37 +960,30 @@ class Nodes:
         return new
 
     def compute_moment(self) -> None:
-        """Compute moments of two forces: force of the cable, and chain weight."""
-        F_zeros = np.empty(self.signed_insulator_weight.shape)
-        F_zeros.fill(0.0)
-        # Force of the cable. Applied at attachement point between cable and chain.
-        Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
-        force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
-        force_counterweight = np.vstack(
-            (F_zeros, F_zeros, self.signed_counterweight)
-        ).T
-        # size : (nb nodes , 3 for 3D)
+        """Compute moments of two forces: force of the cable, and chain weight.
 
-        lever_cable = np.array([self.dx, self.dy, self.dz]).T
-        M_cable = np.cross(lever_cable, force_cable + force_counterweight)
+        Cross products are written per component (same operations as np.cross,
+        without building (nb nodes, 3) arrays at each solver evaluation).
+        """
+        dx, dy, dz = self.dx, self.dy, self.dz
+        # Force of the cable + counterweight (vertical).
+        # Applied at attachement point between cable and chain.
+        Fx, Fy, Fz_cable = self.vector_projection.force_cable()
+        Fz = Fz_cable + self.signed_counterweight
+        # M_cable = (dx, dy, dz) x (Fx, Fy, Fz)
+        Mx_cable = dy * Fz - dz * Fy
+        My_cable = dz * Fx - dx * Fz
+        Mz_cable = dx * Fy - dy * Fx
 
-        # add counterweight here (full length chain)
+        # Weight of the chain (vertical). Applied on center of gravity of the chain
+        # M_chain_weight = (dx, dy, dz) / 2 x (0, 0, insulator_weight)
+        weight = self.signed_insulator_weight
+        Mx_chain_weight = (dy / 2) * weight
+        My_chain_weight = -(dx / 2) * weight
 
-        # Weight of the chain. Applied on center of gravity of the chain
-        force_chain_weight = np.vstack(
-            (F_zeros, F_zeros, self.signed_insulator_weight)
-        ).T
-        lever_chain_weight = np.array([self.dx, self.dy, self.dz]).T / 2
-        M_chain_weight = np.cross(lever_chain_weight, force_chain_weight)
-
-        M = M_cable + M_chain_weight
-
-        Mx = M[:, 0]
-        My = M[:, 1]
-        Mz = M[:, 2]
-        self.Mx = Mx
-        self.My = My
-        self.Mz = Mz
+        self.Mx = Mx_cable + Mx_chain_weight
+        self.My = My_cable + My_chain_weight
+        self.Mz = Mz_cable
 
     def __repr__(self):
         data = {
