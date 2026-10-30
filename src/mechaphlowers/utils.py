@@ -233,8 +233,13 @@ def check_time(f):
             ts = time()
             result = f(self, *args, **kw)
             te = time()
+            # Lazy %s formatting: args may hold large arrays
             logger.debug(
-                f"function: {f.__name__} with args:[{args}, {kw} solved in {te-ts:.4f} seconds."
+                "function: %s with args:[%s, %s solved in %.4f seconds.",
+                f.__name__,
+                args,
+                kw,
+                te - ts,
             )
         else:
             result = f(self, *args, **kw)
