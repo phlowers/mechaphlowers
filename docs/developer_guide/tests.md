@@ -37,6 +37,8 @@ uv sync --managed-python --python 3.11 --all-groups --extra full
 uv run --managed-python --python 3.11 --locked pytest
 uv sync --managed-python --python 3.14 --all-groups --extra full
 uv run --managed-python --python 3.14 --locked pytest
+uv sync --managed-python --python 3.15 --all-groups --extra full
+uv run --managed-python --python 3.15 --locked pytest
 ```
 
 When widening dependency bounds, also test the affected code paths with
