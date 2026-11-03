@@ -410,6 +410,34 @@ class TestStudyErrorAndRestoreState:
         # check solver runs correctly after error
         study.solve_change_state(wind_pressure=400)
 
+    def test_change_state_virtual_support(
+        self, balance_engine_base_test: BalanceEngine
+    ):
+        study = SectionStudy(
+            cable_array=balance_engine_base_test.cable_array,
+            section_array=balance_engine_base_test.section_array,
+        )
+        study.solve_adjustment()
+        study.solve_change_state()
+        study.set_virtual_support(
+            {
+                0: {
+                    "x": 100.0,
+                    "y": 0.0,
+                    "z": 1000.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                },
+            }
+        )
+        with pytest.raises(Exception):
+            study.solve_change_state(wind_pressure=10)
+
+        # check solver runs correctly after error: should remove the manipulation (?)
+        study.set_virtual_support({})
+        study.solve_change_state(wind_pressure=10)
+
 
 class TestSectionStudyDelegates:
     """Verify that SectionStudy delegate methods return the same values as

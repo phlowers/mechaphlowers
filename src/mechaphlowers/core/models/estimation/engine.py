@@ -357,19 +357,13 @@ class EstimationEngine:
                 f"Support index {support_index} is out of range [0, {n_supports - 1}]"
             )
         if rope_lineic_mass is None:
-            overlay = (
-                manipulation._rope_or_chain_overlay
-                if manipulation._rope_or_chain_overlay is not None
-                else {}
-            )
+            overlay = manipulation._rope_or_chain_overlay
             rope_lineic_mass = overlay.get(support_index, {}).get(
                 "lineic_mass", options.data.rope_lineic_mass_default
             )
         other_ropes = {
             idx: other_dict
-            for idx, other_dict in (
-                manipulation._rope_or_chain_overlay or {}
-            ).items()
+            for idx, other_dict in manipulation._rope_or_chain_overlay.items()
             if idx != support_index
         }
 

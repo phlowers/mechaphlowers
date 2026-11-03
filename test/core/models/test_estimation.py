@@ -581,7 +581,7 @@ class TestEstimationScenarios:
         assert result.converged
         assert abs(result.value - rope_length) < 0.05
         # The study is left untouched
-        assert scenario_study.manipulation._rope_or_chain_overlay is None
+        assert scenario_study.manipulation._rope_or_chain_overlay == {}
         assert scenario_study.balance_engine is balance_engine_before
         np.testing.assert_array_equal(
             scenario_study.balance_engine.balance_model.nodes.dxdydz,
