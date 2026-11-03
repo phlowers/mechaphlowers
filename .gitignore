@@ -118,3 +118,7 @@ input_data
 
 .github
 
+
+# Pyodide check
+.dist-pyodide/
+ci/pyodide/node_modules/

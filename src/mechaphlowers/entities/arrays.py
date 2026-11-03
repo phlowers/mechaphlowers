@@ -896,8 +896,17 @@ class ObstacleArray(ElementArray):
         data: pd.DataFrame,
     ) -> None:
         if data.empty:
-            columns_names = list(ObstacleArrayInput.__annotations__.keys())
-            empty_df = pd.DataFrame(columns=columns_names)
+            empty_df = pd.DataFrame(
+                {
+                    "name": pd.Series(dtype=str),
+                    "point_index": pd.Series(dtype="int64"),
+                    "span_index": pd.Series(dtype="int64"),
+                    "x": pd.Series(dtype="float64"),
+                    "y": pd.Series(dtype="float64"),
+                    "z": pd.Series(dtype="float64"),
+                    "object_type": pd.Series(dtype=str),
+                }
+            )
             super().__init__(empty_df)
         else:
             super().__init__(data)

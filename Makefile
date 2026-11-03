@@ -64,6 +64,31 @@ test-release: .uv
 	@rm -rf .dist-release
 	@echo "Release tests completed and artifacts cleaned up"
 
+pyodide_dir = ci/pyodide
+pyodide_dist = .dist-pyodide
+pyodide_python = 3.14
+
+.PHONY: pyodide-resolve  ## Check that dependencies resolve with the Pyodide constraints
+pyodide-resolve: .uv
+	uv pip compile pyproject.toml --extra full --python-version $(pyodide_python) \
+		--constraints $(pyodide_dir)/constraints.txt --quiet --no-header > /dev/null
+	@echo "Dependency resolution OK with Pyodide constraints"
+
+.PHONY: pyodide-build  ## Build the wheel installed in Pyodide
+pyodide-build: .uv
+	@rm -rf $(pyodide_dist)
+	uv build --wheel --python $(pyodide_python) --out-dir $(pyodide_dist)
+
+.PHONY: pyodide-test  ## Install the built wheel in Pyodide (Node) and run the tests
+pyodide-test:
+	@command -v npm > /dev/null || (echo 'Please install Node.js 24: https://nodejs.org' && exit 1)
+	npm --prefix $(pyodide_dir) ci
+	NODE_USE_ENV_PROXY=1 node $(pyodide_dir)/run_tests.mjs $(pyodide_dist)/*.whl test \
+		$(pyodide_dir)/constraints.txt -m "not benchmark" -W ignore::DeprecationWarning
+
+.PHONY: pyodide-check  ## Check dependency resolution, build, install and tests in Pyodide
+pyodide-check: pyodide-resolve pyodide-build pyodide-test
+
 .PHONY: all  ## Run the standard set of checks performed in CI
 all: check-lint check-format typing testcov
 
