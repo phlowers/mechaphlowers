@@ -119,7 +119,7 @@ jobs:
         with:
           # Install a specific version of uv.
           version: "0.13.7"
-          python-version: "3.11"
+          python-version: "3.11.18"
 
       - name: ⚙️ Check uv version
         run: |

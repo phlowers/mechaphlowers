@@ -24,6 +24,10 @@ jobs:
           version: "0.13.7"
           python-version: "3.14"
 
+      - name: ⚙️ Check python version
+        run: |
+          python --version
+
       - name: ⚙️ Set up Node.js 24
         uses: actions/setup-node@v7.1.0
         with:
