@@ -5,6 +5,7 @@ name: 🧪 Pyodide check
 # Equivalent to `make pyodide-check`.
 on:
   workflow_dispatch:
+  pull_request:
   release:
     types: [published]
 
