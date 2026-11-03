@@ -883,8 +883,12 @@ class Manipulation:
             virtual_support = self._virtual_support_overlay[span_idx]
             effective_idx = span_idx + offset
 
-            x = virtual_support["x"]
-            y = virtual_support["y"]
+            x = self._to_input(
+                virtual_support["x"], "span_length", input_units
+            )
+            y = self._to_input(
+                virtual_support["y"], "span_length", input_units
+            )
 
             original_span_length = cast(
                 float, raw_data.loc[effective_idx, "span_length"]

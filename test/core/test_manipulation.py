@@ -879,6 +879,59 @@ def test_virtual_support_integration_with_line_angle() -> None:
     )
 
 
+def test_virtual_support_integration_with_line_angle_weird_units() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["support 1", "2", "three", "support 4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 10, 20, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [10_000, 10_000, 10_000, np.nan],
+                "insulator_mass": [100.0, 50.0, 50.0, 100.0],
+            }
+        ),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "deg", "span_length": "cm"})
+    manip = Manipulation(section_array)
+    manip.set_virtual_support(
+        {
+            1: {
+                "x": 50.0,
+                "y": 50.0,
+                "z": 0.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 50.0,
+                "hanging_cable_point_from_left_support": 50.0,
+            }
+        }
+    )
+    new_section_array = manip.from_section_array(section_array)
+    expected_span_length = np.array(
+        [100, 100 / np.sqrt(2), 100 / np.sqrt(2), 100, np.nan]
+    )
+    expected_line_angle = np.array(
+        [
+            0,
+            np.pi / 4 + np.deg2rad(10),
+            -np.pi / 2,
+            np.pi / 4 + np.deg2rad(20),
+            0,
+        ]
+    )
+
+    np.testing.assert_allclose(
+        new_section_array.data["span_length"].to_numpy(), expected_span_length
+    )
+    np.testing.assert_allclose(
+        new_section_array.data["line_angle"].to_numpy(), expected_line_angle
+    )
+
+
 def test_virtual_support_integration_non_squared() -> None:
     section_array = SectionArray(
         pd.DataFrame(
