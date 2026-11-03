@@ -152,6 +152,42 @@ def test_support_manipulation_partial_keys(
     )
 
 
+def test_modify_support_weird_units() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["support 1", "2", "three", "support 4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [3000, 3000, 3000, 3000],
+                "crossarm_length": [3000, 3000, 3000, 3000],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [100, 100, 100, np.nan],
+                "insulator_mass": [100.0, 50.0, 50.0, 100.0],
+            }
+        ),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+    )
+    section_array.add_units(
+        {"conductor_attachment_altitude": "cm", "crossarm_length": "mm"}
+    )
+    manip = Manipulation(section_array)
+    manip.modify_support({0: {"z": 1.0}, 2: {"z": -0.5, "y": 2.0}})
+
+    new_section_array = manip.from_section_array(section_array)
+    expected_conductor_attachment_altitude = np.array([31, 30, 29.5, 30])
+    expected_crossarm_length = np.array([3, 3, 5, 3])
+    np.testing.assert_array_equal(
+        new_section_array.data["conductor_attachment_altitude"].to_numpy(),
+        expected_conductor_attachment_altitude,
+    )
+    np.testing.assert_array_equal(
+        new_section_array.data["crossarm_length"].to_numpy(),
+        expected_crossarm_length,
+    )
+
+
 def test_support_manipulation_invalid_index(
     manipulation: Manipulation,
 ) -> None:
@@ -700,6 +736,237 @@ def test_span_index_after_virtual_support_invalid_index(
 ) -> None:
     with pytest.raises(InvalidManipulationIndex):
         manipulation.span_index_after_virtual_support(3)
+
+
+def test_virtual_support_integration_square() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["support 1", "2", "three", "support 4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [100, 100, 100, np.nan],
+                "insulator_mass": [100.0, 50.0, 50.0, 100.0],
+            }
+        ),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "deg"})
+    manip = Manipulation(section_array)
+    manip.set_virtual_support(
+        {
+            1: {
+                "x": 50.0,
+                "y": 50.0,
+                "z": 0.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 50.0,
+                "hanging_cable_point_from_left_support": 50.0,
+            }
+        }
+    )
+    new_section_array = manip.from_section_array(section_array)
+    expected_span_length = np.array(
+        [100, 100 / np.sqrt(2), 100 / np.sqrt(2), 100, np.nan]
+    )
+    expected_line_angle = np.array([0, np.pi / 4, -np.pi / 2, np.pi / 4, 0])
+    np.testing.assert_allclose(
+        new_section_array.data["span_length"].to_numpy(), expected_span_length
+    )
+    np.testing.assert_allclose(
+        new_section_array.data["line_angle"].to_numpy(), expected_line_angle
+    )
+
+
+def test_virtual_support_integration_reversed_square() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["support 1", "2", "three", "support 4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [100, 100, 100, np.nan],
+                "insulator_mass": [100.0, 50.0, 50.0, 100.0],
+            }
+        ),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "deg"})
+    manip = Manipulation(section_array)
+    manip.set_virtual_support(
+        {
+            1: {
+                "x": 50.0,
+                "y": -50.0,
+                "z": 0.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 50.0,
+                "hanging_cable_point_from_left_support": 50.0,
+            }
+        }
+    )
+    new_section_array = manip.from_section_array(section_array)
+    expected_span_length = np.array(
+        [100, 100 / np.sqrt(2), 100 / np.sqrt(2), 100, np.nan]
+    )
+    expected_line_angle = np.array([0, -np.pi / 4, np.pi / 2, -np.pi / 4, 0])
+    np.testing.assert_allclose(
+        new_section_array.data["span_length"].to_numpy(), expected_span_length
+    )
+    np.testing.assert_allclose(
+        new_section_array.data["line_angle"].to_numpy(), expected_line_angle
+    )
+
+
+def test_virtual_support_integration_with_line_angle() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["support 1", "2", "three", "support 4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 10, 20, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [100, 100, 100, np.nan],
+                "insulator_mass": [100.0, 50.0, 50.0, 100.0],
+            }
+        ),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "deg"})
+    manip = Manipulation(section_array)
+    manip.set_virtual_support(
+        {
+            1: {
+                "x": 50.0,
+                "y": 50.0,
+                "z": 0.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 50.0,
+                "hanging_cable_point_from_left_support": 50.0,
+            }
+        }
+    )
+    new_section_array = manip.from_section_array(section_array)
+    expected_span_length = np.array(
+        [100, 100 / np.sqrt(2), 100 / np.sqrt(2), 100, np.nan]
+    )
+    expected_line_angle = np.array(
+        [
+            0,
+            np.pi / 4 + np.deg2rad(10),
+            -np.pi / 2,
+            np.pi / 4 + np.deg2rad(20),
+            0,
+        ]
+    )
+
+    np.testing.assert_allclose(
+        new_section_array.data["span_length"].to_numpy(), expected_span_length
+    )
+    np.testing.assert_allclose(
+        new_section_array.data["line_angle"].to_numpy(), expected_line_angle
+    )
+
+
+def test_virtual_support_integration_non_squared() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["support 1", "2", "three", "support 4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [100, 100, 100, np.nan],
+                "insulator_mass": [100.0, 50.0, 50.0, 100.0],
+            }
+        ),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "deg"})
+    manip = Manipulation(section_array)
+    manip.set_virtual_support(
+        {
+            1: {
+                "x": 50.0,
+                "y": 100 * np.sqrt(3) / 2,
+                "z": 0.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 50.0,
+                "hanging_cable_point_from_left_support": 50.0,
+            }
+        }
+    )
+    new_section_array = manip.from_section_array(section_array)
+    expected_span_length = np.array([100, 100, 100, 100, np.nan])
+    expected_line_angle = np.array(
+        [0, np.pi / 3, -2 * np.pi / 3, np.pi / 3, 0]
+    )
+
+    np.testing.assert_allclose(
+        new_section_array.data["span_length"].to_numpy(), expected_span_length
+    )
+    np.testing.assert_allclose(
+        new_section_array.data["line_angle"].to_numpy(), expected_line_angle
+    )
+
+
+def test_virtual_support_integration_asymmetric() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["support 1", "2", "three", "support 4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 0, 0, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [100, 100, 100, np.nan],
+                "insulator_mass": [100.0, 50.0, 50.0, 100.0],
+            }
+        ),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "deg"})
+    manip = Manipulation(section_array)
+    manip.set_virtual_support(
+        {
+            1: {
+                "x": 100 / 4,
+                "y": 100 * np.sqrt(3) / 4,
+                "z": 0.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 50.0,
+                "hanging_cable_point_from_left_support": 25.0,
+            }
+        }
+    )
+    new_section_array = manip.from_section_array(section_array)
+    expected_span_length = np.array(
+        [100, 100 / 2, np.sqrt(3) * 100 / 2, 100, np.nan]
+    )
+    expected_line_angle = np.array([0, np.pi / 3, -np.pi / 2, np.pi / 6, 0])
+
+    np.testing.assert_allclose(
+        new_section_array.data["span_length"].to_numpy(), expected_span_length
+    )
+    np.testing.assert_allclose(
+        new_section_array.data["line_angle"].to_numpy(), expected_line_angle
+    )
 
 
 def test_reset_virtual_support_restores_data_shape(

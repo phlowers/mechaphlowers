@@ -878,27 +878,42 @@ class Manipulation:
             )
             return raw_data
         sorted_span_indices = sorted(self._virtual_support_overlay.keys())
+        # should be rad
         for offset, span_idx in enumerate(sorted_span_indices):
             virtual_support = self._virtual_support_overlay[span_idx]
             effective_idx = span_idx + offset
 
             x = virtual_support["x"]
             y = virtual_support["y"]
-            angle = np.arctan2(y, x)  # radians
 
-            original_span_input = cast(
+            original_span_length = cast(
                 float, raw_data.loc[effective_idx, "span_length"]
             )
-            x_input = self._to_input(x, "span_length", input_units)
-
-            # Modify left support
-            raw_data.loc[effective_idx, "span_length"] = x_input
-            raw_data.loc[effective_idx, "line_angle"] = self._to_input(
-                angle, "line_angle", input_units
+            # Called d_0 and d_0 in the documentation
+            new_span_length_0 = np.sqrt(x**2 + y**2)
+            new_span_length_1 = np.sqrt((original_span_length - x) ** 2 + y**2)
+            # gamma_0, gamma_1
+            line_angle_0, line_angle_1 = raw_data["line_angle"][
+                effective_idx : effective_idx + 2
+            ]
+            # alpha_1, alpha_2
+            # assume target unit for line_angle is still rad
+            beta_0 = self._to_input(
+                np.arctan2(y, x), "line_angle", input_units
             )
+            beta_1 = self._to_input(
+                np.arctan2(y, original_span_length - x),
+                "line_angle",
+                input_units,
+            )
+            new_angle_0 = line_angle_0 + beta_0
+            new_angle_1 = -(beta_0 + beta_1)
+            new_angle_2 = line_angle_1 + beta_1
+            # Modify left support
+            raw_data.loc[effective_idx, "span_length"] = new_span_length_0
+            raw_data.loc[effective_idx, "line_angle"] = new_angle_0
 
             # Build virtual row
-            remaining_span = abs(original_span_input - x_input)
             virtual_row: dict[str, object] = {
                 col: np.nan for col in raw_data.columns
             }
@@ -914,15 +929,13 @@ class Manipulation:
                     "crossarm_length": self._to_input(
                         0.0, "crossarm_length", input_units
                     ),
-                    "line_angle": self._to_input(
-                        -angle, "line_angle", input_units
-                    ),
+                    "line_angle": new_angle_1,
                     "insulator_length": self._to_input(
                         max(float(virtual_support["insulator_length"]), 0.01),
                         "insulator_length",
                         input_units,
                     ),
-                    "span_length": remaining_span,
+                    "span_length": new_span_length_1,
                     "insulator_mass": self._to_input(
                         float(virtual_support["insulator_mass"]),
                         "insulator_mass",
@@ -930,6 +943,7 @@ class Manipulation:
                     ),
                 }
             )
+            raw_data.loc[effective_idx + 1, "line_angle"] = new_angle_2
 
             for optional_col, fill in (
                 ("counterweight_mass", 0.0),
