@@ -1,0 +1,12 @@
+{
+  "name": "mechaphlowers-pyodide-check",
+  "private": true,
+  "type": "module",
+  "description": "Runs the mechaphlowers test suite inside Pyodide on Node",
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "pyodide": "314.0.7"
+  }
+}

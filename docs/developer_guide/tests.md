@@ -37,8 +37,6 @@ uv sync --managed-python --python 3.11 --all-groups --extra full
 uv run --managed-python --python 3.11 --locked pytest
 uv sync --managed-python --python 3.14 --all-groups --extra full
 uv run --managed-python --python 3.14 --locked pytest
-uv sync --managed-python --python 3.15 --all-groups --extra full
-uv run --managed-python --python 3.15 --locked pytest
 ```
 
 When widening dependency bounds, also test the affected code paths with
@@ -99,3 +97,23 @@ To ensure `SHOW_FIGURES` is available, add a `debug-test` launch configuration i
 ```
 
 With this configuration, launching tests in debug mode from VS Code will honor the `SHOW_FIGURES` mechanism.
+## Pyodide check
+
+`make pyodide-check` verifies that mechaphlowers resolves, builds, installs
+and passes its tests in [Pyodide](https://pyodide.org) (Python 3.14, run with
+Node.js 24). It runs three steps, available separately:
+
+- `make pyodide-resolve`: dependency resolution with Python 3.14 and the
+  constraints in `ci/pyodide/constraints.txt`.
+- `make pyodide-build`: builds the wheel in `.dist-pyodide/`.
+- `make pyodide-test`: installs the wheel with `micropip` in Pyodide and runs
+  the test suite. This takes around 15 minutes.
+
+The constraints are the versions shipped by Pyodide, except `certifi`, which
+keeps the security minimum of `pyproject.toml`. When upgrading Pyodide, update
+the `pyodide` version in `ci/pyodide/package.json` (and its lock file) and the
+pins in `ci/pyodide/constraints.txt`.
+
+The same check can be run manually on GitHub with the "Pyodide check"
+workflow. Behind an HTTP proxy, run `make` with `NODE_USE_ENV_PROXY=1` so that
+Node.js uses the proxy to download Pyodide packages.

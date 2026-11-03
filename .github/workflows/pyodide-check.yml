@@ -1,0 +1,47 @@
+name: 🧪 Pyodide check
+
+# Manual check: dependency resolution, build, install and tests of
+# mechaphlowers in Pyodide (Python 3.14, run with Node).
+# Equivalent to `make pyodide-check`.
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  pyodide:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📃 Checkout sources
+        uses: actions/checkout@v6.1.0
+        with:
+          fetch-depth: 0 # Version is computed from git tags
+
+      - name: ⚙️ Install uv and Set up Python 3.14
+        uses: astral-sh/setup-uv@v8.3.2
+        with:
+          version: "0.13.5"
+          python-version: "3.14"
+
+      - name: ⚙️ Set up Node.js 24
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24"
+
+      - name: ✔️ Check dependency resolution with Pyodide constraints
+        run: make pyodide-resolve
+
+      - name: 🛠️ Build wheel
+        run: make pyodide-build
+
+      - name: ✔️ Install wheel and run tests in Pyodide
+        run: make pyodide-test
+
+      - name: 📦 Upload wheel
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: mechaphlowers-wheel
+          path: .dist-pyodide/*.whl
+          if-no-files-found: ignore

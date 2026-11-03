@@ -52,7 +52,8 @@ def test_fake_catalog__get_one_row() -> None:
         index=["Bulbasaur"],
     )
     expected_dataframe.index.name = "Name"
-    assert_frame_equal(first_row, expected_dataframe)
+    # Integer width depends on the platform (int32 on Pyodide)
+    assert_frame_equal(first_row, expected_dataframe, check_dtype=False)
 
 
 def test_fake_catalog__get_several_rows() -> None:
@@ -76,7 +77,7 @@ def test_fake_catalog__get_several_rows() -> None:
         index=["Bulbasaur", "Spheal", "Volcanion"],
     )
     expected_dataframe.index.name = "Name"
-    assert_frame_equal(rows, expected_dataframe)
+    assert_frame_equal(rows, expected_dataframe, check_dtype=False)
 
 
 def test_fake_catalog__get_same_row_twice() -> None:
@@ -99,7 +100,7 @@ def test_fake_catalog__get_same_row_twice() -> None:
         index=["Spheal", "Spheal"],
     )
     expected_dataframe.index.name = "Name"
-    assert_frame_equal(rows, expected_dataframe)
+    assert_frame_equal(rows, expected_dataframe, check_dtype=False)
 
 
 def test_fake_catalog__get_nothing() -> None:
@@ -150,7 +151,7 @@ def test_fake_catalog__get_one_row_ot_list() -> None:
         index=["Bulbasaur"],
     )
     expected_dataframe.index.name = "Name"
-    assert_frame_equal(first_row, expected_dataframe)
+    assert_frame_equal(first_row, expected_dataframe, check_dtype=False)
     # other cases
     with pytest.raises(TypeError):
         first_row = fake_catalog.get(123)  # type: ignore[arg-type]
