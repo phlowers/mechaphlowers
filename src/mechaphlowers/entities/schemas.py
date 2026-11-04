@@ -62,7 +62,7 @@ class SectionArrayInput(pa.DataFrameModel):
         Please set span_length to "not a number" (numpy.nan) to suppress this error.""",
     )
     def no_span_length_for_last_row(cls, df: pd.DataFrame) -> bool:
-        return df.tail(1)["span_length"].isin([0, np.nan]).all()
+        return bool(df.tail(1)["span_length"].isin([0, np.nan]).all())
 
     @pa.dataframe_check(
         description="""Each row in the dataframe contains information about a support
@@ -85,7 +85,7 @@ class SectionArrayInput(pa.DataFrameModel):
     def last_values_are_nan_for_columns(
         cls, df: pd.DataFrame, columns: Iterable[str]
     ) -> bool:
-        return df.tail(1)[columns].isna().all().all()
+        return bool(df.tail(1)[columns].isna().all().all())
 
 
 class CableArrayInput(pa.DataFrameModel):

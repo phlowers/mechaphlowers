@@ -1,0 +1,23 @@
+# Constraints used to check mechaphlowers against Pyodide.
+# Versions shipped by Pyodide 314.0.7 (Python 3.14):
+# https://pyodide.org/en/stable/usage/packages-in-pyodide.html
+# Keep in sync with the "pyodide" version in package.json.
+idna==3.11
+narwhals==2.18.1
+numpy==2.4.6
+packaging==26.1
+pandas==3.0.2
+platformdirs==4.9.4
+pydantic==2.12.5
+pydantic-core==2.41.5
+pyproj==3.7.2
+pyyaml==6.0.3
+scipy==1.18.0
+tzdata==2025.3
+typing-extensions==4.15.0
+typing-inspection==0.4.2
+xxhash==3.6.0
+
+# Not shipped at this version by Pyodide: same security minimum as pyproject.toml.
+# See https://github.com/phlowers/mechaphlowers/security/dependabot/49
+certifi>=2026.10.19

@@ -13,7 +13,7 @@ from math import cos, exp, sin, sqrt
 
 import numpy as np
 import pytest
-from numpy.testing import assert_, assert_allclose, assert_equal, assert_warns
+from numpy.testing import assert_, assert_allclose, assert_equal
 
 import mechaphlowers.numeric.scipy as zeros
 
@@ -120,13 +120,12 @@ class TestBasic(object):
 
     def test_array_newton_zero_der_failures(self):
         # test derivative zero warning
-        assert_warns(
-            RuntimeWarning,
-            zeros.newton,
-            lambda y: y**2 - 2,
-            [0.0, 0.0],
-            lambda y: 2 * y,
-        )
+        with pytest.warns(RuntimeWarning):
+            zeros.newton(
+                lambda y: y**2 - 2,
+                [0.0, 0.0],
+                lambda y: 2 * y,
+            )
         # test failures and zero_der
         with pytest.warns(RuntimeWarning):
             results = zeros.newton(
@@ -191,9 +190,8 @@ class TestBasic(object):
     def test_deriv_zero_warning(self):
         func = lambda x: x**2 - 2.0
         dfunc = lambda x: 2 * x
-        assert_warns(
-            RuntimeWarning, zeros.newton, func, 0.0, dfunc, disp=False
-        )
+        with pytest.warns(RuntimeWarning):
+            zeros.newton(func, 0.0, dfunc, disp=False)
         with pytest.raises(RuntimeError, match='Derivative was zero'):
             result = zeros.newton(func, 0.0, dfunc)
 
@@ -393,7 +391,8 @@ def test_gh9551_raise_error_if_disp_true():
     def f_p(x):
         return 2 * x
 
-    assert_warns(RuntimeWarning, zeros.newton, f, 1.0, f_p, disp=False)
+    with pytest.warns(RuntimeWarning):
+        zeros.newton(f, 1.0, f_p, disp=False)
     with pytest.raises(
         RuntimeError,
         match=r'^Derivative was zero\. Failed to converge after \d+ iterations, value is [+-]?\d*\.\d+\.$',

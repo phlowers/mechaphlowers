@@ -47,6 +47,11 @@ jobs:
             abi: cp313,
             version: '3.13'
           }
+          - {
+            name: cp314,
+            abi: cp314,
+            version: '3.14'
+          }
 
     steps:
       - name: 📃 Checkout sources
@@ -59,7 +64,7 @@ jobs:
         with:
           # Install a specific version of uv.
           version: "0.13.5"
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python.version }}
 
       - name: ⚙️ Check uv version
         run: |
@@ -143,4 +148,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-
