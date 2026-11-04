@@ -893,14 +893,13 @@ class Manipulation:
             original_span_length = cast(
                 float, raw_data.loc[effective_idx, "span_length"]
             )
-            # Called d_0 and d_0 in the documentation
+            # Called l_0 and l_1 in the documentation
             new_span_length_0 = np.sqrt(x**2 + y**2)
             new_span_length_1 = np.sqrt((original_span_length - x) ** 2 + y**2)
             # gamma_0, gamma_1
             line_angle_0, line_angle_1 = raw_data["line_angle"][
                 effective_idx : effective_idx + 2
             ]
-            # alpha_1, alpha_2
             # assume target unit for line_angle is still rad
             beta_0 = self._to_input(
                 np.arctan2(y, x), "line_angle", input_units
@@ -910,6 +909,7 @@ class Manipulation:
                 "line_angle",
                 input_units,
             )
+            # alpha_0, alpha_1, alpha_2
             new_angle_0 = line_angle_0 + beta_0
             new_angle_1 = -(beta_0 + beta_1)
             new_angle_2 = line_angle_1 + beta_1
