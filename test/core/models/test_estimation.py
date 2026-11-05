@@ -235,7 +235,7 @@ class TestEstimationEngine:
                 span_index=0,
                 obstacle_point=np.array([250.0, 10.0, 20.0]),
                 target_distance=50.0,
-                wind_direction="invalid",
+                wind_direction="invalid", # type: ignore[arg-type]
             )
 
 
