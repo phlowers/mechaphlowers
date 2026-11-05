@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import warnings
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import numpy as np
 
@@ -146,6 +146,9 @@ class EstimationEngine:
         bounds: tuple[float, float] = (-1000.0, 1000.0),
         new_temperature: float | None = None,
         ice_thickness: float | None = None,
+        wind_direction: Literal[
+            "clockwise", "anticlockwise"
+        ] = "anticlockwise",
     ) -> EstimationResult:
         """Find the wind pressure that yields a target distance to an obstacle.
 
@@ -156,9 +159,16 @@ class EstimationEngine:
             bounds: Search interval for wind pressure in Pa.
             new_temperature: Fixed temperature in °C (optional).
             ice_thickness: Fixed ice thickness in m (optional).
+            wind_direction: Direction of positive wind pressure: "clockwise"
+                towards the user (right), "anticlockwise" away from the user
+                (left). Defaults to "anticlockwise". Negative pressure reverses
+                the selected direction.
 
         Returns:
             EstimationResult with the wind pressure value.
+
+        Raises:
+            ValueError: If ``wind_direction`` is not "clockwise" or "anticlockwise".
         """
 
         objective = self._build_distance_objective__climatic_case(
@@ -170,6 +180,7 @@ class EstimationEngine:
                 "new_temperature": new_temperature,
                 "ice_thickness": ice_thickness,
             },
+            wind_direction=wind_direction,
         )
 
         logger.info(
@@ -309,6 +320,9 @@ class EstimationEngine:
         target_distance: float,
         variable_name: str,
         fixed_conditions: dict[str, float | None],
+        wind_direction: Literal[
+            "clockwise", "anticlockwise"
+        ] = "anticlockwise",
     ) -> Callable[[float], float]:
         """Build ``f(x) = distance(x) - target`` on a deep copy of the balance engine."""
         original_balance_engine = self._study.balance_engine
@@ -321,7 +335,9 @@ class EstimationEngine:
 
         def objective(x: float) -> float:
             balance_engine.solve_change_state(
-                **fixed_conditions, **{variable_name: x}
+                **fixed_conditions,
+                **{variable_name: x},
+                wind_direction=wind_direction,
             )
             result = position_engine.point_distance(span_index, obstacle_point)
             return result.distance_3d - target_distance

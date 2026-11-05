@@ -196,6 +196,48 @@ class TestEstimationEngine:
             memento_before.dxdydz,
         )
 
+    @pytest.mark.parametrize("wind_direction", ["clockwise", "anticlockwise"])
+    def test_estimate_wind_direction(
+        self, solved_study: SectionStudy, wind_direction
+    ):
+        wind_pressure = 400.0
+        obstacle = np.array([250.0, 10.0, 20.0])
+        reference = solved_study.copy()
+        reference.solve_change_state(
+            wind_pressure=wind_pressure, wind_direction=wind_direction
+        )
+        target_distance = reference.position_engine.point_distance(
+            span_index=0, point=obstacle
+        ).distance_3d
+        memento_before = solved_study.save_state()
+
+        result = solved_study.estimation_engine.estimate_wind(
+            span_index=0,
+            obstacle_point=obstacle,
+            target_distance=target_distance,
+            bounds=(0.0, 1000.0),
+            wind_direction=wind_direction,
+        )
+
+        assert result.converged
+        assert abs(result.value - wind_pressure) < 5.0
+        np.testing.assert_array_equal(
+            solved_study.balance_engine.balance_model.nodes.dxdydz,
+            memento_before.dxdydz,
+        )
+
+    def test_estimate_wind_invalid_direction(self, solved_study: SectionStudy):
+        with pytest.raises(
+            ValueError,
+            match="wind_direction should be 'clockwise' or 'anticlockwise'",
+        ):
+            solved_study.estimation_engine.estimate_wind(
+                span_index=0,
+                obstacle_point=np.array([250.0, 10.0, 20.0]),
+                target_distance=50.0,
+                wind_direction="invalid",
+            )
+
 
 class TestEstimationSandbox:
     obstacle = np.array([250.0, 10.0, 20.0])
