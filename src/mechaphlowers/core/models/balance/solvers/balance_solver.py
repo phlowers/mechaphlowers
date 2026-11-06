@@ -107,6 +107,12 @@ class BalanceSolver:
         perturb: float = 1e-4,
     ) -> np.ndarray:
         n = len(objective_vector)
+        half_bandwidth = model.jacobian_half_bandwidth
+        if half_bandwidth is not None and 2 * half_bandwidth + 1 < n:
+            return self._banded_jacobian(
+                objective_vector, model, perturb, half_bandwidth
+            )
+
         jacobian = np.empty((n, n))
         vector_perturb = np.zeros_like(objective_vector)
 
@@ -117,6 +123,37 @@ class BalanceSolver:
             jacobian[:, i] = (f_perturb - objective_vector) / perturb
 
             vector_perturb[i] -= perturb
+
+        return jacobian
+
+    def _banded_jacobian(
+        self,
+        objective_vector: np.ndarray,
+        model: IModelForSolver,
+        perturb: float,
+        half_bandwidth: int,
+    ) -> np.ndarray:
+        """Finite-difference jacobian of a banded system (Curtis-Powell-Reid).
+
+        Columns more than 2 * half_bandwidth apart share no non-zero row, so they
+        are perturbed together: 2 * half_bandwidth + 1 evaluations instead of n.
+        Gives the same result as the dense jacobian when the band assumption holds.
+        """
+        n = len(objective_vector)
+        jacobian = np.zeros((n, n))
+        step = 2 * half_bandwidth + 1
+
+        for group in range(step):
+            vector_perturb = np.zeros_like(objective_vector)
+            vector_perturb[group::step] = perturb
+
+            f_perturb = self._delta_d(model, vector_perturb)
+            delta = (f_perturb - objective_vector) / perturb
+
+            for j in range(group, n, step):
+                first_row = max(0, j - half_bandwidth)
+                last_row = j + half_bandwidth + 1
+                jacobian[first_row:last_row, j] = delta[first_row:last_row]
 
         return jacobian
 

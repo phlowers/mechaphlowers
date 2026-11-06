@@ -528,6 +528,14 @@ class BalanceModel(IBalanceModel):
     def state_vector(self, value: np.ndarray) -> None:
         self.nodes.state_vector = value
 
+    @property
+    def jacobian_half_bandwidth(self) -> int:
+        """State and objective have 2 entries per node: `[.., dx_i|dz_i, dy_i, ..]`
+        and `[.., Mx_i, My_i, ..]`. The moments at node i only depend on the two
+        spans adjacent to node i, hence on nodes i-1, i and i+1: row 2i+k depends
+        on columns 2(i-1) to 2(i+1)+1, so |row - col| <= 3."""
+        return 3
+
     def update(self) -> None:
         # for the init only, update_span() needs to be call before update_tensions()
         # for other cases, order does not seem to matter

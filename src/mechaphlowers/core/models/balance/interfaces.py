@@ -60,6 +60,17 @@ class IModelForSolver(ABC):
         """
         return {}
 
+    @property
+    def jacobian_half_bandwidth(self) -> int | None:
+        """Half-bandwidth of the jacobian of objective_function w.r.t. state_vector.
+
+        If not None, objective_function()[i] must not depend on state_vector[j]
+        when |i - j| > half_bandwidth. BalanceSolver then computes the jacobian
+        with a constant number of evaluations instead of one per variable.
+        None (default) means dense jacobian.
+        """
+        return None
+
 
 class IBalanceModel(IModelForSolver, ABC):
     """Interface for balance models. Used by BalanceEngine to find insulator chain positions."""
