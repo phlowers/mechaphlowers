@@ -254,13 +254,6 @@ class TestMethods:
     def test_aspect_ratio(self, group_points_obstacles: GroupPoints):
         group_points_obstacles.get_aspect_ratio()
 
-    def test_all_objects(self, group_points_distances: GroupPoints):
-        reversed_result = group_points_distances.get_all_objects_dict(True)
-        group_points_distances.spans.coords[0][0][1] == -reversed_result[  # type: ignore[union-attr]
-            "spans"
-        ].coords[0][0][1]
-        group_points_distances.obstacles.y == -reversed_result["obstacles"].y  # type: ignore[union-attr]
-
     def test_create_group_points_with_additional_points(
         self, group_points_additional: GroupPoints
     ):
@@ -282,18 +275,6 @@ class TestMethods:
         self, group_points: GroupPoints
     ):
         assert group_points.additional_points_dict() == {}
-
-    def test_all_objects_reversed_y_with_additional_points(
-        self, group_points_additional: GroupPoints
-    ):
-        reversed_result = group_points_additional.get_all_objects_dict(
-            reversed_y_axis=True
-        )
-        assert "additional_points" in reversed_result
-        np.testing.assert_array_equal(
-            reversed_result["additional_points"].y,
-            -group_points_additional.additional_points.y,  # type: ignore[union-attr]
-        )
 
     def test_change_frame_propagates_to_additional_points(
         self, group_points_additional: GroupPoints

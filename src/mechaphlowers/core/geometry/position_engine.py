@@ -303,7 +303,7 @@ class PositionEngine(Observer, Notifier):
         result_dict: dict = {}
         for index_in_small_array, span_index in enumerate(loads_spans_idx):
             point_index = loads_points_idx[index_in_small_array]
-            result_dict[int(span_index)] = spans_points.coords[
+            result_dict[int(span_index)] = spans_points.coords[  # type: ignore[union-attr]
                 span_index, point_index
             ]
         return result_dict
