@@ -548,7 +548,7 @@ class Manipulation:
         input_units = original.input_units
 
         # Apply support overlay
-        if self._support_overlay:
+        if self.has_modified_support:
             for idx, offsets in self._support_overlay.items():
                 if "z" in offsets:
                     raw_data.loc[idx, "conductor_attachment_altitude"] = cast(
@@ -567,7 +567,7 @@ class Manipulation:
                     )
 
         # Apply rope or chain overlay
-        if self._rope_or_chain_overlay:
+        if self.has_rope_or_chain:
             original_insulator_length = original.data["insulator_length"]
             last_idx = len(raw_data) - 1
             for idx, rope_or_chain in self._rope_or_chain_overlay.items():
@@ -597,16 +597,16 @@ class Manipulation:
 
         # Counterweight masking for affected supports
         affected: set[int] = set()
-        if self._support_overlay:
+        if self.has_modified_support:
             affected |= set(self._support_overlay.keys())
-        if self._rope_or_chain_overlay:
+        if self.has_rope_or_chain:
             affected |= set(self._rope_or_chain_overlay.keys())
         if "counterweight_mass" in raw_data.columns and affected:
             for idx in affected:
                 raw_data.loc[idx, "counterweight_mass"] = 0.0
 
         # Virtual support insertion
-        if self._virtual_support_overlay:
+        if self.has_virtual_support:
             raw_data = self._apply_virtual_support_overlay(
                 raw_data, input_units
             )
@@ -621,15 +621,15 @@ class Manipulation:
         sa.geolocator = copy(original.geolocator)
 
         applied = []
-        if self._support_overlay:
+        if self.has_modified_support:
             applied.append(f"support_overlay={self._support_overlay}")
-        if self._rope_or_chain_overlay:
+        if self.has_rope_or_chain:
             applied.append(f"rope_overlay={self._rope_or_chain_overlay}")
-        if self._virtual_support_overlay:
+        if self.has_virtual_support:
             applied.append(
                 f"virtual_support_overlay={list(self._virtual_support_overlay.keys())}"
             )
-        if len(self._shifting_distance_support) > 0:
+        if self.has_modified_cable:
             applied.append(
                 f"cable_shifting={self._shifting_distance_support}, cable_shortening={self._shortening_distance_span}"
             )
