@@ -81,7 +81,7 @@ class GroupPoints:
             "virtual_insulators": virtual_insulators,
         }
         """
-        result_dict = self.all_points
+        result_dict = deepcopy(self.all_points)  # type: ignore[arg-type]
         if len(self.virtual_supports_list) > 0:
             # careful to indices
             spans_coords = result_dict["spans"].coords

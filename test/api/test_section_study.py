@@ -1424,3 +1424,4 @@ class TestSectionVirtualSupportsGraph:
             len(group_points.all_points_merged()["virtual_supports"].coords)
             == 2
         )
+        options.graphics.resolution = 30
