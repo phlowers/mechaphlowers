@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any
 
 import numpy as np
 
@@ -30,6 +29,7 @@ class GroupPoints:
         obstacles: SparsePoints | None = None,
         additional_points: SparsePoints | None = None,
         distances: dict[str, dict[int, DistanceResult]] | None = None,
+        virtual_supports_list: list[int] = [],
     ):
         self.line_angle = line_angle
         self.spans = spans
@@ -40,6 +40,7 @@ class GroupPoints:
         # dictionary of DistanceResult (result of get_distances_from_obstacles)
         self.distances = distances
         self.current_frame = -1
+        self.virtual_supports_list = virtual_supports_list
 
     @property
     def all_points(self) -> dict[str, PointsT]:
@@ -67,9 +68,8 @@ class GroupPoints:
                 result_dict[name] = points
         return result_dict
 
-    def get_all_objects_dict(self, reversed_y_axis=False) -> dict:
-        """Dict of all objects. If an attribute is set to None, it is not included
-        Distances are included in this dict
+    def all_points_merged(self) -> dict[str, PointsT]:
+        """Same than all_points, but spans with virtual supports are merged
 
         {
             "spans": self.spans,
@@ -77,49 +77,55 @@ class GroupPoints:
             "insulators": self.insulators,
             "obstacles": self.obstacles,
             "additional_points": self.additional_points,
-            "distances": self.distances,
+            "virtual_supports": virtual_supports,
+            "virtual_insulators": virtual_insulators,
         }
-
-        Option to reverse the y axis for displaying the line in 2D (may be more intuitive)
-
-        Args:
-            reversed_y_axis (bool): If True: reverse the y axis. Defaults to False
         """
-        if reversed_y_axis:
-            result_dict: dict[str, Any] = {}
-            points_objects = ["spans", "supports", "insulators"]
-            for name, points in self.__dict__.items():
-                if points is not None and name in points_objects:
-                    x, y, z = points.vectors
-                    inverted_points = Points.from_vectors(x, -y, z)
-                    result_dict[name] = inverted_points
-            if isinstance(self.obstacles, SparsePoints):
-                reversed_obstacle = deepcopy(self.obstacles)
-                reversed_obstacle.y = -reversed_obstacle.y
-                result_dict["obstacles"] = reversed_obstacle
-            if isinstance(self.additional_points, SparsePoints):
-                reversed_additional = deepcopy(self.additional_points)
-                reversed_additional.y = -reversed_additional.y
-                result_dict["additional_points"] = reversed_additional
-            if self.distances is not None:
-                reversed_distances_dict = self._reverse_y_axis_distances(
-                    deepcopy(self.distances)
+        result_dict = deepcopy(self.all_points)  # type: ignore[arg-type]
+        if len(self.virtual_supports_list) > 0:
+            # careful to indices
+            spans_coords = result_dict["spans"].coords
+            # virtual_supports_array are the indices of the virtual supports BEFORE adding them
+            # true indices are the position of the virtual supports AFTER adding them
+            true_indices_vs = (
+                np.array(self.virtual_supports_list, dtype=int)
+                + np.array(range(len(self.virtual_supports_list)))
+                + 1
+            )
+            for span_index in true_indices_vs:
+                extracted_spans = np.take(
+                    spans_coords, [span_index - 1, span_index], axis=0
                 )
-                result_dict["distances"] = reversed_distances_dict
-        else:
-            result_dict = self.all_points
-            if isinstance(self.distances, dict):
-                result_dict["distances"] = self.distances  # type:ignore[assignment]
-        return result_dict
-
-    def _reverse_y_axis_distances(self, distances_dict: dict) -> dict:
-        for obstacle_name, obstacle_dict in distances_dict.items():
-            for point_index, distance_result in obstacle_dict.items():
-                distances_dict[obstacle_name][point_index] = (
-                    distance_result.generate_with_reversed_y_axis()
+                new_span = extracted_spans.reshape(
+                    1, extracted_spans.shape[1] * 2, 3
                 )
+                new_span_resized = new_span[0][::2]
+                spans_coords[span_index - 1] = new_span_resized
+                # add new span, and remove the useless one
+            modified_spans_coords = np.delete(
+                spans_coords, true_indices_vs, axis=0
+            )
+            result_dict["spans"] = Points(modified_spans_coords)  # type: ignore[assignment]
 
-        return distances_dict
+            supports_coords = result_dict["supports"].coords
+            deleted_supports_coords = np.delete(
+                supports_coords, true_indices_vs, axis=0
+            )
+            result_dict["supports"] = Points(deleted_supports_coords)  # type: ignore[assignment]
+            virtual_supports_coords = supports_coords[true_indices_vs]
+            result_dict["virtual_supports"] = Points(virtual_supports_coords)  # type: ignore[assignment]
+
+            insulators_coords = result_dict["insulators"].coords
+            deleted_insulators_coords = np.delete(
+                insulators_coords, true_indices_vs, axis=0
+            )
+            result_dict["insulators"] = Points(deleted_insulators_coords)  # type: ignore[assignment]
+            virtual_insulators_coords = supports_coords[true_indices_vs]
+            result_dict["virtual_insulators"] = Points(  # type: ignore[assignment]
+                virtual_insulators_coords
+            )
+
+        return result_dict  # type: ignore[return-value]
 
     def get_aspect_ratio(
         self,

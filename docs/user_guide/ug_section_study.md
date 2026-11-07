@@ -256,6 +256,9 @@ fig.show()
 
 `SectionStudy` provides methods to alter the geometry and insulator properties of supports as overlays, without modifying the original `SectionArray`. Manipulations are registered on the `study` object and are applied when a manipulation method (`modify_cable()` for example) is called.
 
+The methods have an boolean argument `apply`, set to `True` as default. If set to False, manipulations will be registered but not applied. In order to do so, `SectionStudy.apply_manipulations()` should be run after this call.
+This option exists for performance issues if many manipulations are set successively.
+
 !!! important
     Manipulations must be registered **after** calling `solve_adjustment()`. If it has not been already run, `solve_adjustment()` will be run automatically
 
