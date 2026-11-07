@@ -68,7 +68,6 @@ class GroupPoints:
                 result_dict[name] = points
         return result_dict
 
-    @property
     def all_points_merged(self) -> dict[str, PointsT]:
         """Same than all_points, but spans with virtual supports are merged
 
@@ -78,44 +77,55 @@ class GroupPoints:
             "insulators": self.insulators,
             "obstacles": self.obstacles,
             "additional_points": self.additional_points,
+            "virtual_supports": virtual_supports,
+            "virtual_insulators": virtual_insulators,
         }
         """
         result_dict = self.all_points
         if len(self.virtual_supports_list) > 0:
             # careful to indices
             spans_coords = result_dict["spans"].coords
-            virtual_supports_array = list(self.virtual_supports_list)
-            true_indices_vs = np.array(
-                virtual_supports_array, dtype=int
-            ) + np.array(range(len(virtual_supports_array)))
+            # virtual_supports_array are the indices of the virtual supports BEFORE adding them
+            # true indices are the position of the virtual supports AFTER adding them
+            true_indices_vs = (
+                np.array(self.virtual_supports_list, dtype=int)
+                + np.array(range(len(self.virtual_supports_list)))
+                + 1
+            )
             for span_index in true_indices_vs:
                 extracted_spans = np.take(
-                    spans_coords, [span_index, span_index + 1], axis=0
+                    spans_coords, [span_index - 1, span_index], axis=0
                 )
                 new_span = extracted_spans.reshape(
                     1, extracted_spans.shape[1] * 2, 3
                 )
                 new_span_resized = new_span[0][::2]
-                spans_coords[span_index] = new_span_resized
+                spans_coords[span_index - 1] = new_span_resized
                 # add new span, and remove the useless one
             modified_spans_coords = np.delete(
-                spans_coords, true_indices_vs + 1, axis=0
+                spans_coords, true_indices_vs, axis=0
             )
-            result_dict["spans"] = Points(modified_spans_coords)
+            result_dict["spans"] = Points(modified_spans_coords)  # type: ignore[assignment]
 
             supports_coords = result_dict["supports"].coords
             deleted_supports_coords = np.delete(
                 supports_coords, true_indices_vs, axis=0
             )
-            result_dict["supports"] = Points(deleted_supports_coords)
+            result_dict["supports"] = Points(deleted_supports_coords)  # type: ignore[assignment]
+            virtual_supports_coords = supports_coords[true_indices_vs]
+            result_dict["virtual_supports"] = Points(virtual_supports_coords)  # type: ignore[assignment]
 
             insulators_coords = result_dict["insulators"].coords
             deleted_insulators_coords = np.delete(
                 insulators_coords, true_indices_vs, axis=0
             )
-            result_dict["insulators"] = Points(deleted_insulators_coords)
+            result_dict["insulators"] = Points(deleted_insulators_coords)  # type: ignore[assignment]
+            virtual_insulators_coords = supports_coords[true_indices_vs]
+            result_dict["virtual_insulators"] = Points(  # type: ignore[assignment]
+                virtual_insulators_coords
+            )
 
-        return result_dict
+        return result_dict  # type: ignore[return-value]
 
     def get_aspect_ratio(
         self,

@@ -420,8 +420,8 @@ class TestGroupDistances:
 
 class TestVirtualSupports:
     def test_virtual_support(self, group_points: GroupPoints):
-        group_points.virtual_supports_list = {1}
-        all_points = group_points.all_points_merged
+        group_points.virtual_supports_list = [1]
+        all_points = group_points.all_points_merged()
         spans = all_points["spans"]
         supports = all_points["supports"]
         insulators = all_points["insulators"]
