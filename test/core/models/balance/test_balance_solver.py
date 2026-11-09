@@ -4,11 +4,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from unittest.mock import MagicMock
+
 import numpy as np
 import pandas as pd
 import pytest
 from numpy.testing import assert_allclose
 
+from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.data.catalog.catalog import sample_cable_catalog
 from mechaphlowers.entities.arrays import SectionArray
@@ -106,3 +109,65 @@ def test_banded_jacobian_matches_dense__load_model(
         load_model, engine.balance_model.load_solver, monkeypatch
     )
     assert_allclose(banded, dense, rtol=0, atol=1e-6 * np.abs(dense).max())
+
+
+def test_banded_jacobian_inactive_uses_dense(balance_engine_long, monkeypatch):
+    engine = balance_engine_long
+    engine.balance_model.adjustment = True
+    model = engine.balance_model
+    solver = engine.solver_adjustment
+    objective = model.objective_function()
+
+    called = []
+    monkeypatch.setattr(
+        solver, "_banded_jacobian", lambda *a, **k: called.append(True)
+    )
+    monkeypatch.setattr(
+        options.solver.acceleration.banded_jacobian, "active", False
+    )
+    solver.jacobian(objective, model, solver.perturb)
+    assert not called
+
+    monkeypatch.setattr(
+        options.solver.acceleration.banded_jacobian, "active", True
+    )
+    solver.jacobian(objective, model, solver.perturb)
+    assert called
+
+
+def test_dense_jacobian_called_when_banded_inactive(
+    balance_engine_long, monkeypatch
+):
+    engine = balance_engine_long
+    engine.balance_model.adjustment = True
+    model = engine.balance_model
+    solver = engine.solver_adjustment
+    objective = model.objective_function()
+    n = len(objective)
+    assert 2 * model.jacobian_half_bandwidth + 1 < n  # banded would be used
+
+    monkeypatch.setattr(
+        options.solver.acceleration.banded_jacobian, "active", False
+    )
+    banded_spy = MagicMock(side_effect=solver._banded_jacobian)
+    monkeypatch.setattr(solver, "_banded_jacobian", banded_spy)
+    delta_d_spy = MagicMock(side_effect=solver._delta_d)
+    monkeypatch.setattr(solver, "_delta_d", delta_d_spy)
+
+    jacobian = solver.jacobian(objective, model, solver.perturb)
+
+    banded_spy.assert_not_called()
+    # dense jacobian perturbs one variable at a time
+    assert delta_d_spy.call_count == n
+    assert jacobian.shape == (n, n)
+
+
+def test_banded_jacobian_band_size_from_config(
+    balance_engine_long, monkeypatch
+):
+    model = balance_engine_long.balance_model
+    banded_config = options.solver.acceleration.banded_jacobian
+    monkeypatch.setattr(banded_config, "node_band_size", 5)
+    monkeypatch.setattr(banded_config, "load_band_size", 2)
+    assert model.jacobian_half_bandwidth == 5
+    assert model.load_model.jacobian_half_bandwidth == 2

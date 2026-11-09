@@ -11,6 +11,7 @@ import logging
 
 import numpy as np
 
+from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.interfaces import IModelForSolver
 from mechaphlowers.entities.errors import ConvergenceError
 
@@ -108,7 +109,11 @@ class BalanceSolver:
     ) -> np.ndarray:
         n = len(objective_vector)
         half_bandwidth = model.jacobian_half_bandwidth
-        if half_bandwidth is not None and 2 * half_bandwidth + 1 < n:
+        if (
+            options.solver.acceleration.banded_jacobian.active
+            and half_bandwidth is not None
+            and 2 * half_bandwidth + 1 < n
+        ):
             return self._banded_jacobian(
                 objective_vector, model, perturb, half_bandwidth
             )
