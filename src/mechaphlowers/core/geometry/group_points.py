@@ -70,7 +70,7 @@ class GroupPoints:
                 result_dict[name] = points
         return result_dict
 
-    def all_points_keep_span_number(self) -> dict[str, PointsT]:
+    def all_points_virtual_separated(self) -> dict[str, PointsT]:
         """Same than all_points, but spans with virtual supports are merged
 
         {

@@ -1412,22 +1412,22 @@ class TestSectionVirtualSupportsGraph:
         study.solve_change_state(new_temperature=15.0)
         group_points = study.position_engine.get_group_points()
         assert (
-            len(group_points.all_points_keep_span_number()["spans"].coords)
+            len(group_points.all_points_virtual_separated()["spans"].coords)
             == 3
         )
         assert (
             len(
-                group_points.all_points_keep_span_number()["insulators"].coords
+                group_points.all_points_virtual_separated()["insulators"].coords
             )
             == 4
         )
         assert (
-            len(group_points.all_points_keep_span_number()["supports"].coords)
+            len(group_points.all_points_virtual_separated()["supports"].coords)
             == 4
         )
         assert (
             len(
-                group_points.all_points_keep_span_number()[
+                group_points.all_points_virtual_separated()[
                     "virtual_insulators"
                 ].coords
             )
@@ -1435,7 +1435,7 @@ class TestSectionVirtualSupportsGraph:
         )
         assert (
             len(
-                group_points.all_points_keep_span_number()[
+                group_points.all_points_virtual_separated()[
                     "virtual_supports"
                 ].coords
             )
