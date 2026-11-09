@@ -1417,7 +1417,9 @@ class TestSectionVirtualSupportsGraph:
         )
         assert (
             len(
-                group_points.all_points_virtual_separated()["insulators"].coords
+                group_points.all_points_virtual_separated()[
+                    "insulators"
+                ].coords
             )
             == 4
         )
