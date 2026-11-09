@@ -548,7 +548,7 @@ class Manipulation:
         input_units = original.input_units
 
         # Apply support overlay
-        if self._support_overlay:
+        if self.has_modified_support:
             for idx, offsets in self._support_overlay.items():
                 if "z" in offsets:
                     raw_data.loc[idx, "conductor_attachment_altitude"] = cast(
@@ -567,7 +567,7 @@ class Manipulation:
                     )
 
         # Apply rope or chain overlay
-        if self._rope_or_chain_overlay:
+        if self.has_rope_or_chain:
             original_insulator_length = original.data["insulator_length"]
             last_idx = len(raw_data) - 1
             for idx, rope_or_chain in self._rope_or_chain_overlay.items():
@@ -597,16 +597,16 @@ class Manipulation:
 
         # Counterweight masking for affected supports
         affected: set[int] = set()
-        if self._support_overlay:
+        if self.has_modified_support:
             affected |= set(self._support_overlay.keys())
-        if self._rope_or_chain_overlay:
+        if self.has_rope_or_chain:
             affected |= set(self._rope_or_chain_overlay.keys())
         if "counterweight_mass" in raw_data.columns and affected:
             for idx in affected:
                 raw_data.loc[idx, "counterweight_mass"] = 0.0
 
         # Virtual support insertion
-        if self._virtual_support_overlay:
+        if self.has_virtual_support:
             raw_data = self._apply_virtual_support_overlay(
                 raw_data, input_units
             )
@@ -621,15 +621,15 @@ class Manipulation:
         sa.geolocator = copy(original.geolocator)
 
         applied = []
-        if self._support_overlay:
+        if self.has_modified_support:
             applied.append(f"support_overlay={self._support_overlay}")
-        if self._rope_or_chain_overlay:
+        if self.has_rope_or_chain:
             applied.append(f"rope_overlay={self._rope_or_chain_overlay}")
-        if self._virtual_support_overlay:
+        if self.has_virtual_support:
             applied.append(
                 f"virtual_support_overlay={list(self._virtual_support_overlay.keys())}"
             )
-        if len(self._shifting_distance_support) > 0:
+        if self.has_modified_cable:
             applied.append(
                 f"cable_shifting={self._shifting_distance_support}, cable_shortening={self._shortening_distance_span}"
             )
@@ -900,27 +900,46 @@ class Manipulation:
             )
             return raw_data
         sorted_span_indices = sorted(self._virtual_support_overlay.keys())
+        # should be rad
         for offset, span_idx in enumerate(sorted_span_indices):
             virtual_support = self._virtual_support_overlay[span_idx]
             effective_idx = span_idx + offset
 
-            x = virtual_support["x"]
-            y = virtual_support["y"]
-            angle = np.arctan2(y, x)  # radians
+            x = self._to_input(
+                virtual_support["x"], "span_length", input_units
+            )
+            y = self._to_input(
+                virtual_support["y"], "span_length", input_units
+            )
 
-            original_span_input = cast(
+            original_span_length = cast(
                 float, raw_data.loc[effective_idx, "span_length"]
             )
-            x_input = self._to_input(x, "span_length", input_units)
-
-            # Modify left support
-            raw_data.loc[effective_idx, "span_length"] = x_input
-            raw_data.loc[effective_idx, "line_angle"] = self._to_input(
-                angle, "line_angle", input_units
+            # Called l_0 and l_1 in the documentation
+            new_span_length_0 = np.sqrt(x**2 + y**2)
+            new_span_length_1 = np.sqrt((original_span_length - x) ** 2 + y**2)
+            # gamma_0, gamma_1
+            line_angle_0, line_angle_1 = raw_data["line_angle"][
+                effective_idx : effective_idx + 2
+            ]
+            # assume target unit for line_angle is still rad
+            beta_0 = self._to_input(
+                np.arctan2(y, x), "line_angle", input_units
             )
+            beta_1 = self._to_input(
+                np.arctan2(y, original_span_length - x),
+                "line_angle",
+                input_units,
+            )
+            # alpha_0, alpha_1, alpha_2
+            new_angle_0 = line_angle_0 + beta_0
+            new_angle_1 = -(beta_0 + beta_1)
+            new_angle_2 = line_angle_1 + beta_1
+            # Modify left support
+            raw_data.loc[effective_idx, "span_length"] = new_span_length_0
+            raw_data.loc[effective_idx, "line_angle"] = new_angle_0
 
             # Build virtual row
-            remaining_span = abs(original_span_input - x_input)
             virtual_row: dict[str, object] = {
                 col: np.nan for col in raw_data.columns
             }
@@ -936,15 +955,13 @@ class Manipulation:
                     "crossarm_length": self._to_input(
                         0.0, "crossarm_length", input_units
                     ),
-                    "line_angle": self._to_input(
-                        -angle, "line_angle", input_units
-                    ),
+                    "line_angle": new_angle_1,
                     "insulator_length": self._to_input(
                         max(float(virtual_support["insulator_length"]), 0.01),
                         "insulator_length",
                         input_units,
                     ),
-                    "span_length": remaining_span,
+                    "span_length": new_span_length_1,
                     "insulator_mass": self._to_input(
                         float(virtual_support["insulator_mass"]),
                         "insulator_mass",
@@ -952,6 +969,7 @@ class Manipulation:
                     ),
                 }
             )
+            raw_data.loc[effective_idx + 1, "line_angle"] = new_angle_2
 
             for optional_col, fill in (
                 ("counterweight_mass", 0.0),

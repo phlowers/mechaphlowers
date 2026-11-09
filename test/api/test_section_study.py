@@ -431,7 +431,7 @@ class TestStudyErrorAndRestoreState:
                 },
             }
         )
-        with pytest.raises(Exception):
+        with pytest.raises(SuspectedChainReversal):
             study.solve_change_state(wind_pressure=10)
 
         # check solver runs correctly after error: should remove the manipulation (?)

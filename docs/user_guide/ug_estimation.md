@@ -36,6 +36,13 @@ Each evaluation of $f$ runs a change of state in the balance engine. This is don
 
 The other climatic conditions (temperature, wind pressure, ice thickness) can be fixed through optional arguments. A generic `estimate()` method also accepts any user-defined objective function.
 
+For `estimate_wind`, set `wind_direction="clockwise"` (towards the user,
+right) or `"anticlockwise"` (away from the user, left; the default), using
+the same convention as `SectionStudy.solve_change_state`. Use non-negative
+pressure bounds, such as `bounds=(0.0, 1000.0)`, to search only in the selected
+direction. Negative pressures reverse that direction; the default signed
+bounds remain unchanged.
+
 !!! Warning
 
     `estimate_load` and `estimate_rope` cannot be used on a span split by a virtual support (`EstimateOnSplitSupportError`).
