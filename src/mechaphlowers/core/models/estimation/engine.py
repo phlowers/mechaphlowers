@@ -108,6 +108,9 @@ class EstimationEngine:
         bounds: tuple[float, float] = (-50.0, 200.0),
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
+        distance_type: Literal[
+            "distance_3d", "distance_u", "distance_v"
+        ] = "distance_v",
     ) -> EstimationResult:
         """Find the cable temperature that yields a target distance to an obstacle.
 
@@ -118,6 +121,9 @@ class EstimationEngine:
             bounds: Search interval for temperature in °C.
             wind_pressure: Fixed wind pressure in Pa (optional).
             ice_thickness: Fixed ice thickness in m (optional).
+            distance_type: Component used as the optimization target:
+                ``"distance_3d"``, ``"distance_u"`` or ``"distance_v"``.
+                Defaults to ``"distance_v"``.
 
         Returns:
             EstimationResult with the temperature value.
@@ -129,6 +135,7 @@ class EstimationEngine:
             target_distance,
             "new_temperature",
             {"wind_pressure": wind_pressure, "ice_thickness": ice_thickness},
+            distance_type=distance_type,
         )
 
         logger.info(
@@ -149,6 +156,9 @@ class EstimationEngine:
         wind_direction: Literal[
             "clockwise", "anticlockwise"
         ] = "anticlockwise",
+        distance_type: Literal[
+            "distance_3d", "distance_u", "distance_v"
+        ] = "distance_3d",
     ) -> EstimationResult:
         """Find the wind pressure that yields a target distance to an obstacle.
 
@@ -163,6 +173,9 @@ class EstimationEngine:
                 towards the user (right), "anticlockwise" away from the user
                 (left). Defaults to "anticlockwise". Negative pressure reverses
                 the selected direction.
+            distance_type: Component used as the optimization target:
+                ``"distance_3d"``, ``"distance_u"`` or ``"distance_v"``.
+                Defaults to ``"distance_3d"``.
 
         Returns:
             EstimationResult with the wind pressure value.
@@ -181,6 +194,7 @@ class EstimationEngine:
                 "ice_thickness": ice_thickness,
             },
             wind_direction=wind_direction,
+            distance_type=distance_type,
         )
 
         logger.info(
@@ -200,6 +214,9 @@ class EstimationEngine:
         new_temperature: float | None = None,
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
+        distance_type: Literal[
+            "distance_3d", "distance_u", "distance_v"
+        ] = "distance_3d",
     ) -> EstimationResult:
         """Find the load mass that yields a target distance to an obstacle.
 
@@ -216,6 +233,9 @@ class EstimationEngine:
             new_temperature: Fixed temperature in °C (optional).
             wind_pressure: Fixed wind pressure in Pa (optional).
             ice_thickness: Fixed ice thickness in m (optional).
+            distance_type: Component used as the optimization target:
+                ``"distance_3d"``, ``"distance_u"`` or ``"distance_v"``.
+                Defaults to ``"distance_3d"``.
 
         Returns:
             EstimationResult with the load mass value.
@@ -234,6 +254,7 @@ class EstimationEngine:
                 "wind_pressure": wind_pressure,
                 "ice_thickness": ice_thickness,
             },
+            distance_type=distance_type,
         )
 
         logger.info(
@@ -254,8 +275,11 @@ class EstimationEngine:
         new_temperature: float | None = None,
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
+        distance_type: Literal[
+            "distance_3d", "distance_u", "distance_v"
+        ] = "distance_3d",
     ) -> EstimationResult:
-        """Find the rope length that yields a target vertical distance above an obstacle.
+        """Find the rope length that yields a target distance above an obstacle.
 
         The vertical distance is ``z_cable - z_obstacle``, where ``z_cable`` is
         the altitude of the cable point lying in the vertical plane that
@@ -271,8 +295,9 @@ class EstimationEngine:
             span_index: Index of the span (before manipulation) where the
                 obstacle is located. Must not be split by a virtual support.
             obstacle_point: 3D coordinates of the obstacle point (shape ``(3,)``).
-            target_vertical_distance: Desired vertical distance between cable
-                and obstacle (meters).
+            target_vertical_distance: Desired distance between cable and obstacle
+                (meters). This value is used as the target for the selected
+                ``distance_type``.
             bounds: Search interval for the rope length in meters.
             rope_lineic_mass: Linear mass of the rope in kg/m. Defaults to the
                 rope lineic mass already set on the study, or to
@@ -281,6 +306,9 @@ class EstimationEngine:
             new_temperature: Fixed temperature in °C (optional).
             wind_pressure: Fixed wind pressure in Pa (optional).
             ice_thickness: Fixed ice thickness in m (optional).
+            distance_type: Component used as the optimization target:
+                ``"distance_3d"``, ``"distance_u"`` or ``"distance_v"``.
+                Defaults to ``"distance_3d"``.
 
         Returns:
             EstimationResult with the rope length value.
@@ -301,6 +329,7 @@ class EstimationEngine:
                 "wind_pressure": wind_pressure,
                 "ice_thickness": ice_thickness,
             },
+            distance_type=distance_type,
         )
 
         logger.info(
@@ -313,6 +342,22 @@ class EstimationEngine:
 
     # ── Private helpers ───────────────────────────────────────────────────
 
+    @staticmethod
+    def _distance_for_type(
+        result: Any,
+        distance_type: Literal["distance_3d", "distance_u", "distance_v"],
+    ) -> float:
+        """Return the requested distance component from a DistanceResult."""
+        if distance_type == "distance_3d":
+            return result.distance_3d
+        if distance_type == "distance_u":
+            return result.distance_projection_u
+        if distance_type == "distance_v":
+            return result.distance_projection_v
+        raise ValueError(
+            "distance_type must be one of 'distance_3d', 'distance_u', 'distance_v'"
+        )
+
     def _build_distance_objective__climatic_case(
         self,
         span_index: int,
@@ -323,6 +368,9 @@ class EstimationEngine:
         wind_direction: Literal[
             "clockwise", "anticlockwise"
         ] = "anticlockwise",
+        distance_type: Literal[
+            "distance_3d", "distance_u", "distance_v"
+        ] = "distance_3d",
     ) -> Callable[[float], float]:
         """Build ``f(x) = distance(x) - target`` on a deep copy of the balance engine."""
         original_balance_engine = self._study.balance_engine
@@ -340,7 +388,10 @@ class EstimationEngine:
                 wind_direction=wind_direction,
             )
             result = position_engine.point_distance(span_index, obstacle_point)
-            return result.distance_3d - target_distance
+            return (
+                self._distance_for_type(result, distance_type)
+                - target_distance
+            )
 
         return objective
 
@@ -352,8 +403,11 @@ class EstimationEngine:
         target_vertical_distance: float,
         rope_lineic_mass: float | None,
         fixed_conditions: dict[str, Any],
+        distance_type: Literal[
+            "distance_3d", "distance_u", "distance_v"
+        ] = "distance_3d",
     ) -> Callable[[float], float]:
-        """Build ``f(rope_length) = vertical_distance - target`` on a copy of the study.
+        """Build ``f(rope_length) = selected_distance - target`` on a copy of the study.
 
         Each evaluation applies the rope with `SectionStudy.set_rope_or_chain`, then runs
         `SectionStudy.solve_change_state` with the fixed conditions.
@@ -401,8 +455,10 @@ class EstimationEngine:
             result = study.position_engine.point_distance(
                 engine_span_index, obstacle_point
             )
-            vertical_distance = result.point_target[2] - result.point_base[2]
-            return vertical_distance - target_vertical_distance
+            return (
+                self._distance_for_type(result, distance_type)
+                - target_vertical_distance
+            )
 
         return objective
 
@@ -413,6 +469,9 @@ class EstimationEngine:
         target_distance: float,
         load_position_distance: float,
         fixed_conditions: dict[str, float | None],
+        distance_type: Literal[
+            "distance_3d", "distance_u", "distance_v"
+        ] = "distance_3d",
     ) -> Callable[[float], float]:
         """Build ``f(load_mass) = distance - target`` on a deep copy of the balance engine.
 
@@ -465,6 +524,9 @@ class EstimationEngine:
             result = position_engine.point_distance(
                 span_index_after_manip, obstacle_point
             )
-            return result.distance_3d - target_distance
+            return (
+                self._distance_for_type(result, distance_type)
+                - target_distance
+            )
 
         return objective

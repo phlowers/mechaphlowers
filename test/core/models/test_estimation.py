@@ -151,6 +151,30 @@ class TestEstimationEngine:
         assert result.converged
         assert abs(result.value - temperature) < 0.1
 
+    def test_estimate_temperature_distance_type_vertical(
+        self, solved_study: SectionStudy
+    ):
+        """Temperature estimation can target the vertical plane component."""
+        study = solved_study
+        temperature = 60.0
+        study.solve_change_state(new_temperature=temperature)
+        ref_distance = study.position_engine.point_distance(
+            span_index=0, point=np.array([250.0, 10.0, 20.0])
+        ).distance_projection_v
+
+        study.solve_adjustment()
+
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
+        result = engine.estimate_temperature(
+            span_index=0,
+            obstacle_point=np.array([250.0, 10.0, 20.0]),
+            target_distance=ref_distance,
+            bounds=(0.0, 120.0),
+            distance_type="distance_v",
+        )
+        assert result.converged
+        assert abs(result.value - temperature) < 0.1
+
     def test_estimate_wind(self, solved_study: SectionStudy):
         """Estimate wind pressure using a known reference."""
         study = solved_study
