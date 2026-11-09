@@ -92,7 +92,7 @@ class BalanceEngine(Notifier):
         balance_model_type: Type[IBalanceModel] = BalanceModel,
         span_model_type: Type[ISpan] = CatenarySpan,
         deformation_model_type: Type[IDeformation] = DeformationRte,
-        virtual_supports_list: list[int] = [],
+        virtual_supports_list: list[int] | None = None,
     ) -> None:
         # TODO: find a better way to initialize objects
         self.section_array = section_array
@@ -100,7 +100,9 @@ class BalanceEngine(Notifier):
         self.balance_model_type = balance_model_type
         self.span_model_type = span_model_type
         self.deformation_model_type = deformation_model_type
-        self.virtual_supports_list = virtual_supports_list
+        self.virtual_supports_list = (
+            virtual_supports_list if virtual_supports_list is not None else []
+        )
 
         self.reset(full=True)
 

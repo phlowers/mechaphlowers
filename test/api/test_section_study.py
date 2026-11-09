@@ -10,7 +10,6 @@ import pytest
 from plotly import graph_objects as go
 
 from mechaphlowers.api.section_study import SectionStudy
-from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.estimation import BrentMethod
 from mechaphlowers.entities.arrays import CableArray, SectionArray
@@ -1412,14 +1411,33 @@ class TestSectionVirtualSupportsGraph:
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
         group_points = study.position_engine.get_group_points()
-        assert len(group_points.all_points_merged()["spans"].coords) == 3
-        assert len(group_points.all_points_merged()["insulators"].coords) == 4
-        assert len(group_points.all_points_merged()["supports"].coords) == 4
         assert (
-            len(group_points.all_points_merged()["virtual_insulators"].coords)
+            len(group_points.all_points_keep_span_number()["spans"].coords)
+            == 3
+        )
+        assert (
+            len(
+                group_points.all_points_keep_span_number()["insulators"].coords
+            )
+            == 4
+        )
+        assert (
+            len(group_points.all_points_keep_span_number()["supports"].coords)
+            == 4
+        )
+        assert (
+            len(
+                group_points.all_points_keep_span_number()[
+                    "virtual_insulators"
+                ].coords
+            )
             == 2
         )
         assert (
-            len(group_points.all_points_merged()["virtual_supports"].coords)
+            len(
+                group_points.all_points_keep_span_number()[
+                    "virtual_supports"
+                ].coords
+            )
             == 2
         )

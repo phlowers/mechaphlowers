@@ -29,7 +29,7 @@ class GroupPoints:
         obstacles: SparsePoints | None = None,
         additional_points: SparsePoints | None = None,
         distances: dict[str, dict[int, DistanceResult]] | None = None,
-        virtual_supports_list: list[int] = [],
+        virtual_supports_list: list[int] | None = None,
     ):
         self.line_angle = line_angle
         self.spans = spans
@@ -40,7 +40,9 @@ class GroupPoints:
         # dictionary of DistanceResult (result of get_distances_from_obstacles)
         self.distances = distances
         self.current_frame = -1
-        self.virtual_supports_list = virtual_supports_list
+        self.virtual_supports_list = (
+            virtual_supports_list if virtual_supports_list is not None else []
+        )
 
     @property
     def all_points(self) -> dict[str, PointsT]:
@@ -68,7 +70,7 @@ class GroupPoints:
                 result_dict[name] = points
         return result_dict
 
-    def all_points_merged(self) -> dict[str, PointsT]:
+    def all_points_keep_span_number(self) -> dict[str, PointsT]:
         """Same than all_points, but spans with virtual supports are merged
 
         {
@@ -88,7 +90,7 @@ class GroupPoints:
             # virtual_supports_array are the indices of the virtual supports BEFORE adding them
             # true indices are the position of the virtual supports AFTER adding them
             true_indices_vs = (
-                np.array(self.virtual_supports_list, dtype=int)
+                np.array(sorted(self.virtual_supports_list), dtype=int)
                 + np.array(range(len(self.virtual_supports_list)))
                 + 1
             )
@@ -99,7 +101,11 @@ class GroupPoints:
                 new_span = extracted_spans.reshape(
                     1, extracted_spans.shape[1] * 2, 3
                 )
+                # Take one value every two points, for adjusting array length
+                # The point of the virtual support will always be taken, because this point is duplicated
                 new_span_resized = new_span[0][::2]
+                # But we need the last point because it is the attachement point
+                new_span_resized[-1] = new_span[0][-1]
                 spans_coords[span_index - 1] = new_span_resized
                 # add new span, and remove the useless one
             modified_spans_coords = np.delete(
@@ -120,7 +126,7 @@ class GroupPoints:
                 insulators_coords, true_indices_vs, axis=0
             )
             result_dict["insulators"] = Points(deleted_insulators_coords)  # type: ignore[assignment]
-            virtual_insulators_coords = supports_coords[true_indices_vs]
+            virtual_insulators_coords = insulators_coords[true_indices_vs]
             result_dict["virtual_insulators"] = Points(  # type: ignore[assignment]
                 virtual_insulators_coords
             )

@@ -402,10 +402,17 @@ class TestGroupDistances:
 class TestVirtualSupports:
     def test_virtual_support(self, group_points: GroupPoints):
         group_points.virtual_supports_list = [1]
-        all_points = group_points.all_points_merged()
+        all_points = group_points.all_points_keep_span_number()
         spans = all_points["spans"]
         supports = all_points["supports"]
         insulators = all_points["insulators"]
         assert len(spans.coords) == 2
         assert len(supports.coords) == 3
         assert len(insulators.coords) == 3
+        first_point = [500.0, 10.0, 100.0]
+        middle_point = [1000.0, 10.0, 50.0]
+        last_point = [1497.02812657, 10.0, 49.59016064]
+
+        assert first_point in spans.coords[1].tolist()
+        assert middle_point in spans.coords[1].tolist()
+        assert last_point in spans.coords[1].tolist()
