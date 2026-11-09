@@ -1411,7 +1411,6 @@ class TestSectionVirtualSupportsGraph:
 
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
-        options.graphics.resolution = 6
         group_points = study.position_engine.get_group_points()
         assert len(group_points.all_points_merged()["spans"].coords) == 3
         assert len(group_points.all_points_merged()["insulators"].coords) == 4
@@ -1424,4 +1423,3 @@ class TestSectionVirtualSupportsGraph:
             len(group_points.all_points_merged()["virtual_supports"].coords)
             == 2
         )
-        options.graphics.resolution = 30
