@@ -1357,3 +1357,89 @@ class TestSectionStudyCopy:
         clone = study.copy()
         clone.solve_adjustment()
         assert not hasattr(study._clean_engine, "L_ref")
+
+
+class TestSectionVirtualSupportsGraph:
+    """Testing if loads are registered correctly within SectionStudy."""
+
+    @pytest.fixture
+    def study(self, cable_array_AM600: CableArray) -> SectionStudy:
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2", "3", "4"],
+                    "suspension": [False, True, True, False],
+                    "conductor_attachment_altitude": [30, 50, 60, 65],
+                    "crossarm_length": [0, 0, 0, 0],
+                    "line_angle": [0, 0, 0, 0],
+                    "insulator_length": [3, 3, 3, 3],
+                    "span_length": [500, 500, 500, np.nan],
+                    "insulator_mass": [1000, 500, 500, 1000],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        return SectionStudy(
+            cable_array=cable_array_AM600, section_array=section_array
+        )
+
+    def test_virtual_support_group_points(self, study: SectionStudy):
+        study.solve_adjustment()
+        study.set_virtual_support(
+            {
+                1: {
+                    "x": 100.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                },
+                2: {
+                    "x": 100.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                },
+            }
+        )
+
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        group_points = study.position_engine.get_group_points()
+        assert (
+            len(group_points.all_points_virtual_separated()["spans"].coords)
+            == 3
+        )
+        assert (
+            len(
+                group_points.all_points_virtual_separated()[
+                    "insulators"
+                ].coords
+            )
+            == 4
+        )
+        assert (
+            len(group_points.all_points_virtual_separated()["supports"].coords)
+            == 4
+        )
+        assert (
+            len(
+                group_points.all_points_virtual_separated()[
+                    "virtual_insulators"
+                ].coords
+            )
+            == 2
+        )
+        assert (
+            len(
+                group_points.all_points_virtual_separated()[
+                    "virtual_supports"
+                ].coords
+            )
+            == 2
+        )

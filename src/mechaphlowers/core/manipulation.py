@@ -754,6 +754,7 @@ class Manipulation:
             section_array=section_array,
             span_model_type=clean_engine.span_model_type,
             deformation_model_type=clean_engine.deformation_model_type,
+            virtual_supports_list=list(self._virtual_support_overlay.keys()),
         )
 
         # Propagate clean engine's solved node state to the target engine so
