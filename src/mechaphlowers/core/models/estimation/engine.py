@@ -596,6 +596,7 @@ class EstimationEngine:
             residual_factory,
         )
 
+    # Question: Move this into PositionEngine or points ?
     @staticmethod
     def _cable_altitude_at_x(
         position_engine: PositionEngine, span_index: int, x: float
@@ -616,9 +617,7 @@ class EstimationEngine:
         span_index: int,
         load_position_distance: float,
         fixed_conditions: dict[str, float | None],
-        residual_factory: Callable[
-            [PositionEngine, int], Callable[[], float]
-        ],
+        residual_factory: Callable[[PositionEngine, int], Callable[[], float]],
     ) -> Callable[[float], float]:
         """Build ``f(load_mass)`` on a deep copy of the balance engine.
 
