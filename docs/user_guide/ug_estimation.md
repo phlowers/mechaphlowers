@@ -33,6 +33,9 @@ Each evaluation of $f$ runs a change of state in the balance engine. This is don
 | `estimate_wind`        | Wind pressure (Pa)            | [-1000, 1000]    | 3D distance                            |
 | `estimate_load`        | Load mass (kg)                | [0, 2000]        | 3D distance                            |
 | `estimate_rope`        | Rope length (m)               | [0.1, 10]        | Vertical distance above the obstacle   |
+| `estimate_load_relative` | Load mass (kg)              | [0, 2000]        | Cable altitude change at the load abscissa |
+
+`estimate_load_relative` has no obstacle: it reads the cable altitude at `load_position_distance` on the current state of the study, then finds the load for which `new altitude - initial altitude` equals `target_distance` (negative when the cable goes down).
 
 The other climatic conditions (temperature, wind pressure, ice thickness) can be fixed through optional arguments. A generic `estimate()` method also accepts any user-defined objective function.
 
@@ -45,8 +48,8 @@ bounds remain unchanged.
 
 !!! Warning
 
-    `estimate_load` and `estimate_rope` cannot be used on a span split by a virtual support (`EstimateOnSplitSupportError`).
-    For `estimate_load`, an existing load on the target span is ignored and replaced by the estimated one.
+    `estimate_load`, `estimate_load_relative` and `estimate_rope` cannot be used on a span split by a virtual support (`EstimateOnSplitSupportError`).
+    For `estimate_load` and `estimate_load_relative`, an existing load on the target span is ignored and replaced by the estimated one.
 
 ## Optimization methods
 

@@ -264,6 +264,65 @@ class EstimationEngine:
         )
         return self._method.solve(objective, bounds)
 
+    def estimate_load_relative(
+        self,
+        span_index: int,
+        target_distance: float,
+        load_position_distance: float,
+        bounds: tuple[float, float] = (0.0, 2000.0),
+        new_temperature: float | None = None,
+        wind_pressure: float | None = None,
+        ice_thickness: float | None = None,
+    ) -> EstimationResult:
+        """Find the load mass that yields a target altitude change of the cable.
+
+        The altitude (z) of the cable at the abscissa ``load_position_distance``
+        is read on the current state of the study (initial altitude). The load
+        mass is then optimized so that ``new altitude - initial altitude`` equals
+        ``target_distance`` at the same abscissa. A load lowers the cable, so
+        ``target_distance`` is usually negative.
+
+        Existing loads on other spans are kept. The load replaces any existing
+        load on ``span_index``.
+
+        Args:
+            span_index: Index of the span (before manipulation) holding the load.
+                Must not be split by a virtual support.
+            target_distance: Desired altitude change of the cable at
+                ``load_position_distance`` (meters).
+            load_position_distance: Position of the load along the span, from
+                the left attachment (meters). It is also the abscissa where the
+                altitude is measured.
+            bounds: Search interval for load mass in kg.
+            new_temperature: Fixed temperature in °C (optional).
+            wind_pressure: Fixed wind pressure in Pa (optional).
+            ice_thickness: Fixed ice thickness in m (optional).
+
+        Returns:
+            EstimationResult with the load mass value.
+
+        Raises:
+            EstimateOnSplitSupportError: If ``span_index`` is split by a virtual support.
+        """
+
+        objective = self._build_relative_altitude_objective__load_case(
+            span_index,
+            target_distance,
+            load_position_distance,
+            {
+                "new_temperature": new_temperature,
+                "wind_pressure": wind_pressure,
+                "ice_thickness": ice_thickness,
+            },
+        )
+
+        logger.info(
+            "Estimating load mass for target altitude change %.3f m on span %d",
+            target_distance,
+            span_index,
+        )
+        return self._method.solve(objective, bounds)
+
     def estimate_rope(
         self,
         support_index: int,
@@ -478,6 +537,97 @@ class EstimationEngine:
         Manipulations and existing loads are kept; only the load on ``span_index``
         (index before manipulation) is replaced.
         """
+
+        def residual_factory(
+            position_engine: PositionEngine, span_index_after_manip: int
+        ) -> Callable[[], float]:
+            def residual() -> float:
+                result = position_engine.point_distance(
+                    span_index_after_manip, obstacle_point
+                )
+                return (
+                    self._distance_for_type(result, distance_type)
+                    - target_distance
+                )
+
+            return residual
+
+        return self._build_load_objective(
+            span_index,
+            load_position_distance,
+            fixed_conditions,
+            residual_factory,
+        )
+
+    def _build_relative_altitude_objective__load_case(
+        self,
+        span_index: int,
+        target_distance: float,
+        load_position_distance: float,
+        fixed_conditions: dict[str, float | None],
+    ) -> Callable[[float], float]:
+        """Build ``f(load_mass) = (z(x) - z_initial(x)) - target`` on a deep copy of the balance engine.
+
+        ``x`` is ``load_position_distance``. ``z_initial`` is read on the current
+        state of the study, before the load and the fixed conditions are applied.
+        """
+
+        def residual_factory(
+            position_engine: PositionEngine, span_index_after_manip: int
+        ) -> Callable[[], float]:
+            initial_altitude = self._cable_altitude_at_x(
+                position_engine, span_index_after_manip, load_position_distance
+            )
+
+            def residual() -> float:
+                altitude = self._cable_altitude_at_x(
+                    position_engine,
+                    span_index_after_manip,
+                    load_position_distance,
+                )
+                return altitude - initial_altitude - target_distance
+
+            return residual
+
+        return self._build_load_objective(
+            span_index,
+            load_position_distance,
+            fixed_conditions,
+            residual_factory,
+        )
+
+    @staticmethod
+    def _cable_altitude_at_x(
+        position_engine: PositionEngine, span_index: int, x: float
+    ) -> float:
+        """Altitude (z, section frame) of the cable at abscissa ``x`` from the left attachment.
+
+        Linear interpolation between the cable points of the span.
+        """
+        coords_calculator = position_engine.coords_calculator
+        z_span = coords_calculator.get_spans(frame="section").coords[
+            span_index, :, 2
+        ]
+        x_cable = coords_calculator.x_cable[:, span_index]
+        return float(np.interp(x, x_cable - x_cable[0], z_span))
+
+    def _build_load_objective(
+        self,
+        span_index: int,
+        load_position_distance: float,
+        fixed_conditions: dict[str, float | None],
+        residual_factory: Callable[
+            [PositionEngine, int], Callable[[], float]
+        ],
+    ) -> Callable[[float], float]:
+        """Build ``f(load_mass)`` on a deep copy of the balance engine.
+
+        Manipulations and existing loads are kept; only the load on ``span_index``
+        (index before manipulation) is replaced. ``residual_factory`` is called
+        once, before any change of state, with the position engine and the span
+        index after manipulation. It returns the function evaluated on the
+        updated state.
+        """
         span_index_after_manip = (
             self._study.manipulation.span_index_after_virtual_support(
                 span_index
@@ -513,6 +663,7 @@ class EstimationEngine:
         has_fixed_conditions = any(
             value is not None for value in fixed_conditions.values()
         )
+        residual = residual_factory(position_engine, span_index_after_manip)
 
         def objective(load_mass: float) -> float:
             load_masses[span_index_after_manip] = load_mass
@@ -521,12 +672,6 @@ class EstimationEngine:
                 # set_loads resets the nodes: a cold solve with ice or wind may diverge
                 balance_engine.solve_change_state()
             balance_engine.solve_change_state(**fixed_conditions)
-            result = position_engine.point_distance(
-                span_index_after_manip, obstacle_point
-            )
-            return (
-                self._distance_for_type(result, distance_type)
-                - target_distance
-            )
+            return residual()
 
         return objective

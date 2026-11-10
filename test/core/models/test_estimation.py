@@ -317,6 +317,65 @@ class TestEstimationSandbox:
             study.balance_engine.span_loads.load_mass, engine_masses_before
         )
 
+    @pytest.mark.parametrize("fixed", [{}, {"new_temperature": 40.0}])
+    def test_estimate_load_relative_converges(
+        self, solved_study: SectionStudy, fixed: dict
+    ):
+        study = solved_study
+        n_spans = len(study._clean_engine.section_array.data) - 1
+        x = 100.0
+        initial_altitude = EstimationEngine._cable_altitude_at_x(
+            study.position_engine, 0, x
+        )
+
+        positions = np.zeros(n_spans)
+        masses = np.zeros(n_spans)
+        positions[0] = x
+        masses[0] = 50.0
+        reference = study.copy()
+        reference.set_loads(positions, masses)
+        reference.solve_change_state(**fixed)
+        target = (
+            EstimationEngine._cable_altitude_at_x(
+                reference.position_engine, 0, x
+            )
+            - initial_altitude
+        )
+        assert target < 0
+
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.01))
+        result = engine.estimate_load_relative(
+            span_index=0,
+            target_distance=target,
+            load_position_distance=x,
+            bounds=(0.0, 100.0),
+            **fixed,
+        )
+        assert result.converged
+        assert abs(result.value - 50.0) < 1.0
+
+    def test_study_untouched_after_estimate_load_relative(
+        self, solved_study: SectionStudy
+    ):
+        study = solved_study
+        memento_before = study.intermediate_memento
+        engine_masses_before = np.copy(
+            study.balance_engine.span_loads.load_mass
+        )
+        engine = EstimationEngine(
+            study, method=BisectionMethod(tol=1.0, maxiter=3)
+        )
+        engine.estimate_load_relative(
+            span_index=0,
+            target_distance=-0.5,
+            load_position_distance=100.0,
+            bounds=(0.0, 100.0),
+        )
+        assert study.intermediate_memento is memento_before
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, engine_masses_before
+        )
+
     virtual_support = {
         0: {
             "x": 100.0,
@@ -370,6 +429,22 @@ class TestEstimationSandbox:
                 span_index=0,
                 obstacle_point=self.obstacle,
                 target_distance=30.0,
+                load_position_distance=50.0,
+            )
+
+    def test_estimate_load_relative_on_split_span_raises(
+        self, solved_study: SectionStudy
+    ):
+        study = solved_study
+        study.set_virtual_support(self.virtual_support)
+        engine = EstimationEngine(study)
+        with pytest.raises(
+            EstimateOnSplitSupportError,
+            match="split by a virtual support",
+        ):
+            engine.estimate_load_relative(
+                span_index=0,
+                target_distance=-1.0,
                 load_position_distance=50.0,
             )
 
