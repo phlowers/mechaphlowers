@@ -305,6 +305,8 @@ class EstimationEngine:
             EstimateOnSplitSupportError: If ``span_index`` is split by a virtual support.
         """
 
+        # set target state
+
         objective = self._build_relative_altitude_objective__load_case(
             span_index,
             target_distance,
@@ -321,6 +323,7 @@ class EstimationEngine:
             target_distance,
             span_index,
         )
+
         return self._method.solve(objective, bounds)
 
     def estimate_rope(
@@ -575,17 +578,18 @@ class EstimationEngine:
         def residual_factory(
             position_engine: PositionEngine, span_index_after_manip: int
         ) -> Callable[[], float]:
-            initial_altitude = self._cable_altitude_at_x(
-                position_engine, span_index_after_manip, load_position_distance
-            )
+            if not position_engine.get_loads_coords_group_points():
+                raise ValueError("No load coordinates available")
+            initial_altitude = position_engine.get_loads_coords_group_points()[
+                span_index_after_manip
+            ]
 
             def residual() -> float:
-                altitude = self._cable_altitude_at_x(
-                    position_engine,
-                    span_index_after_manip,
-                    load_position_distance,
-                )
-                return altitude - initial_altitude - target_distance
+                altitude = position_engine.get_loads_coords_group_points()[
+                    span_index_after_manip
+                ]
+                # take z component
+                return altitude[2] - initial_altitude[2] - target_distance
 
             return residual
 
@@ -605,6 +609,7 @@ class EstimationEngine:
 
         Linear interpolation between the cable points of the span.
         """
+
         coords_calculator = position_engine.coords_calculator
         z_span = coords_calculator.get_spans(frame="section").coords[
             span_index, :, 2
@@ -647,14 +652,20 @@ class EstimationEngine:
         span_length = arr.decr(
             balance_engine.section_array.data.span_length.to_numpy()
         )
+
+        # get the current load positions and masses for the span after manipulation
         load_positions = balance_engine.span_loads.load_position * span_length
         load_masses = balance_engine.span_loads.load_mass.copy()
         load_positions[span_index_after_manip] = load_position_distance
+        # in case there is no existing load, set a small default value
+        load_masses[span_index_after_manip] = (
+            load_masses[span_index_after_manip] or 0.01
+        )
 
         if not np.isclose(
             np.nan_to_num(load_masses[span_index_after_manip]),
-            0.0,
-            atol=1e-6,
+            0.01,
+            atol=1e-2,
         ):
             logger.warning(self._warning_existing_load)
             warnings.warn(self._warning_existing_load, EstimationWarning)
@@ -662,6 +673,11 @@ class EstimationEngine:
         has_fixed_conditions = any(
             value is not None for value in fixed_conditions.values()
         )
+
+        # set initial state for balance engine
+        balance_engine.set_loads(load_positions, load_masses)
+        balance_engine.solve_change_state(**fixed_conditions)
+
         residual = residual_factory(position_engine, span_index_after_manip)
 
         def objective(load_mass: float) -> float:

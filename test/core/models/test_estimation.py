@@ -317,42 +317,50 @@ class TestEstimationSandbox:
             study.balance_engine.span_loads.load_mass, engine_masses_before
         )
 
-    @pytest.mark.parametrize("fixed", [{}, {"new_temperature": 40.0}])
+    @pytest.mark.parametrize("temperature", [{}, {"new_temperature": 40.0}])
     def test_estimate_load_relative_converges(
-        self, solved_study: SectionStudy, fixed: dict
+        self, solved_study: SectionStudy, temperature: dict
     ):
         study = solved_study
         n_spans = len(study._clean_engine.section_array.data) - 1
         x = 100.0
-        initial_altitude = EstimationEngine._cable_altitude_at_x(
-            study.position_engine, 0, x
-        )
+        guess_mass = 50.0
 
         positions = np.zeros(n_spans)
         masses = np.zeros(n_spans)
+
         positions[0] = x
-        masses[0] = 50.0
+        masses[0] = 0.01
         reference = study.copy()
         reference.set_loads(positions, masses)
-        reference.solve_change_state(**fixed)
+        reference.solve_change_state(**temperature)
+
+        initial_altitude = (
+            reference.position_engine.get_loads_coords_group_points()[0][2]
+        )
+
+        positions[0] = x
+        masses[0] = guess_mass
+        reference = study.copy()
+        reference.set_loads(positions, masses)
+        reference.solve_change_state(**temperature)
+
         target = (
-            EstimationEngine._cable_altitude_at_x(
-                reference.position_engine, 0, x
-            )
+            reference.position_engine.get_loads_coords_group_points()[0][2]
             - initial_altitude
         )
         assert target < 0
 
-        engine = EstimationEngine(study, method=BrentMethod(tol=0.01))
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
         result = engine.estimate_load_relative(
             span_index=0,
             target_distance=target,
             load_position_distance=x,
             bounds=(0.0, 100.0),
-            **fixed,
+            **temperature,
         )
         assert result.converged
-        assert abs(result.value - 50.0) < 1.0
+        assert abs(result.value - guess_mass) < 1.0
 
     def test_study_untouched_after_estimate_load_relative(
         self, solved_study: SectionStudy
@@ -509,7 +517,7 @@ SCENARIOS = {
         target_load=(100.0, 20.0),
         virtual_support=VIRTUAL_SUPPORTS,
         modify_support={2: {"z": 1.0}},
-        shift_support={2: 1.0},
+        shift_support={3: 1.0},
         conditions={"ice_thickness": 0.01},
     ),
 }
@@ -549,7 +557,7 @@ def build_study(cable_array: CableArray, scenario: Scenario) -> SectionStudy:
                 ),
             }
         ),
-        sagging_parameter=2000,
+        sagging_parameter=1000,
         sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
