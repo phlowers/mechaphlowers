@@ -130,6 +130,29 @@ def plane_from_line(
     return u_plane, v_plane, point
 
 
+def plane_basis(normals: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Vectorized equivalent of `plane_from_line` for several normals.
+
+    Args:
+        normals: Unit horizontal normals of shape (S, 3).
+
+    Returns:
+        A tuple `(u, v)` of plane basis vectors, both of shape (S, 3).
+    """
+    normals = np.atleast_2d(np.asarray(normals, dtype=float))
+    n0, n1 = normals[:, 0], normals[:, 1]
+    u = np.column_stack([-n1, n0, np.zeros_like(n0)])
+    # guard for vertical normals (n0 and n1 close to zero)
+    vertical = (np.abs(n0) < 1e-6) & (np.abs(n1) < 1e-6)
+    u[vertical] = [1.0, 0.0, 0.0]
+    # normalize u to unit length
+    u /= np.linalg.norm(u, axis=1, keepdims=True)
+    # create v and normalize to unit length
+    v = np.cross(normals, u)
+    v /= np.linalg.norm(v, axis=1, keepdims=True)
+    return u, v
+
+
 def meshgrid_plane(
     u_plane: np.ndarray,
     v_plane: np.ndarray,

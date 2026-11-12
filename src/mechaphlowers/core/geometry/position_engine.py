@@ -8,8 +8,7 @@ from __future__ import annotations
 
 import logging
 import warnings
-from collections.abc import Callable
-from typing import Literal, NamedTuple
+from typing import Literal
 
 import numpy as np
 
@@ -18,10 +17,10 @@ from mechaphlowers.core.geometry.distances import (
     DistanceResult,
     ObstacleDistanceResult,
     batch_plane_distances,
-    plane_basis,
+    build_distance_results,
 )
 from mechaphlowers.core.geometry.group_points import GroupPoints
-from mechaphlowers.core.geometry.planes import change_local_frame
+from mechaphlowers.core.geometry.planes import change_local_frame, plane_basis
 from mechaphlowers.core.geometry.points import CoordsCalculator, Points
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import ObstacleArray
@@ -29,83 +28,6 @@ from mechaphlowers.entities.errors import NoIntersectionPlaneWarning
 from mechaphlowers.entities.reactivity import Notifier, Observer
 
 logger = logging.getLogger(__name__)
-
-
-def _validate_sampling(step: float, xtol: float) -> None:
-    if step <= 0:
-        raise ValueError("step must be strictly positive")
-    if xtol <= 0:
-        raise ValueError("xtol must be strictly positive")
-
-
-def _golden_section_search(
-    evaluate: Callable[[np.ndarray], np.ndarray],
-    lower: np.ndarray,
-    upper: np.ndarray,
-    tol: np.ndarray,
-) -> np.ndarray:
-    """Golden-section search of several independent intervals at once.
-
-    `evaluate` takes one abscissa per interval and returns the matching
-    distances. All intervals share the same number of iterations, computed
-    from the largest ratio ``(upper - lower) / tol``.
-
-    Returns:
-        The midpoint of each final interval, shape of `lower`.
-    """
-    inv_phi = (np.sqrt(5.0) - 1.0) / 2.0
-    ratio = np.max((upper - lower) / tol)
-    n_iterations = int(np.ceil(np.log(max(ratio, 1.0)) / -np.log(inv_phi)))
-
-    a, b = lower.copy(), upper.copy()
-    c = b - inv_phi * (b - a)
-    d = a + inv_phi * (b - a)
-    fc, fd = evaluate(c), evaluate(d)
-    for _ in range(n_iterations):
-        left = fc < fd
-        a, b = np.where(left, a, c), np.where(left, d, b)
-        probe = np.where(left, b - inv_phi * (b - a), a + inv_phi * (b - a))
-        f_probe = evaluate(probe)
-        c, d = np.where(left, probe, d), np.where(left, c, probe)
-        fc, fd = np.where(left, f_probe, fd), np.where(left, fc, f_probe)
-    return (a + b) / 2.0
-
-
-class _SearchInterval(NamedTuple):
-    obstacle_id: int
-    segment_id: int
-    lower: float
-    upper: float
-
-
-class _BestSamples(NamedTuple):
-    seg: np.ndarray
-    t: np.ndarray
-    distance: np.ndarray
-
-    def points(self, seg_start: np.ndarray, seg_vec: np.ndarray) -> np.ndarray:
-        """Return the best point of each obstacle, shape ``(N, 3)``."""
-        return seg_start[self.seg] + self.t[:, np.newaxis] * seg_vec[self.seg]
-
-
-class _RefinedCandidates(NamedTuple):
-    obstacle_id: np.ndarray
-    segment_id: np.ndarray
-    t: np.ndarray
-    distance: np.ndarray
-
-
-class _SegmentSamples(NamedTuple):
-    seg_start: np.ndarray
-    seg_vec: np.ndarray
-    seg_loc: np.ndarray
-    seg_sub: np.ndarray
-    seg_span: np.ndarray
-    seg_len: np.ndarray
-    sample_seg: np.ndarray
-    sample_t: np.ndarray
-    sample_obs: np.ndarray
-    spans: list[int]
 
 
 class PositionEngine(Observer, Notifier):
@@ -536,7 +458,6 @@ class PositionEngine(Observer, Notifier):
             >>> result = pos_engine.obstacle_min_distance("road")
             >>> result.distance_3d, result.closest_obstacle_point
         """
-        _validate_sampling(step, xtol)
         result = self._min_distances(
             [obstacle_name], step=step, refine=refine, xtol=xtol
         )[obstacle_name]
@@ -547,105 +468,6 @@ class PositionEngine(Observer, Notifier):
                 result.closest_obstacle_point, frame="section"
             )
         return result
-
-    @staticmethod
-    def _build_segments_samples(
-        coords_dict: dict[str, np.ndarray],
-        names: list[str],
-        first_row: dict[str, int],
-        span_of_row: np.ndarray,
-        step: float,
-    ) -> _SegmentSamples:
-        """Split the selected obstacles into segments and sample them.
-
-        Each obstacle polyline with `V_i` vertices yields `V_i - 1` segments
-        (a single-vertex obstacle yields one zero-length segment). Each segment
-        is subdivided into `seg_sub` pieces of at most `step` meters, and
-        samples are placed at local parameters `t` in `[0, 1]`, excluding the
-        end vertex of every segment except the last one of its obstacle.
-
-        Args:
-            coords_dict: Obstacle name to vertices, each of shape `(V_i, 3)`.
-            names: Names of the `N` selected obstacles, in output order.
-            first_row: Obstacle name to its first row index in the obstacle
-                coordinates table.
-            span_of_row: Span index of each row, shape `(R,)`, where `R` is
-                the number of rows in the obstacle coordinates table.
-            step: Maximum sampling step along the obstacle segments, in meters.
-
-        Returns:
-            A `_SegmentSamples` with, for `K = sum(V_i - 1)` segments:
-                - `seg_start`, `seg_vec`: segment start points and vectors,
-                  shape `(K, 3)`.
-                - `seg_loc`: index of the segment within its obstacle, `(K,)`.
-                - `seg_sub`: number of subdivisions of each segment, `(K,)`.
-                - `seg_span`: span index of each segment, `(K,)`.
-                - `seg_len`: length of each segment in meters, `(K,)`.
-            and, for `P` samples in total:
-                - `sample_seg`: segment index of each sample, `(P,)`.
-                - `sample_t`: local segment parameter of each sample, `(P,)`.
-                - `sample_obs`: obstacle index (into `names`) of each sample,
-                  `(P,)`.
-            and `spans`: span index of each of the `N` obstacles, as a list.
-        """
-        seg_starts: list[np.ndarray] = []
-        seg_vectors: list[np.ndarray] = []
-        seg_obstacle: list[np.ndarray] = []
-        seg_local: list[np.ndarray] = []
-        seg_nb_sub: list[np.ndarray] = []
-        sample_segments: list[np.ndarray] = []
-        sample_ts: list[np.ndarray] = []
-        spans: list[int] = []
-
-        n_segments = 0
-        for obstacle_id, name in enumerate(names):
-            vertices = np.asarray(coords_dict[name], dtype=float)
-            spans.append(int(span_of_row[first_row[name]]))
-            if len(vertices) == 1:
-                starts, vectors = vertices, np.zeros_like(vertices)
-            else:
-                starts, vectors = vertices[:-1], np.diff(vertices, axis=0)
-            nb_segments = len(starts)
-            nb_subdivisions = np.maximum(
-                np.ceil(np.linalg.norm(vectors, axis=1) / step), 1
-            ).astype(int)
-            for local in range(nb_segments):
-                ts = np.linspace(0.0, 1.0, nb_subdivisions[local] + 1)
-                if len(vertices) == 1:
-                    ts = ts[:1]
-                elif local < nb_segments - 1:
-                    ts = ts[:-1]
-                sample_segments.append(np.full(len(ts), n_segments + local))
-                sample_ts.append(ts)
-            seg_starts.append(starts)
-            seg_vectors.append(vectors)
-            seg_obstacle.append(np.full(nb_segments, obstacle_id))
-            seg_local.append(np.arange(nb_segments))
-            seg_nb_sub.append(nb_subdivisions)
-            n_segments += nb_segments
-
-        seg_start = np.concatenate(seg_starts)
-        seg_vec = np.concatenate(seg_vectors)
-        seg_obs = np.concatenate(seg_obstacle)
-        seg_loc = np.concatenate(seg_local)
-        seg_sub = np.concatenate(seg_nb_sub)
-        seg_span = np.asarray(spans)[seg_obs]
-        seg_len = np.linalg.norm(seg_vec, axis=1)
-        sample_seg = np.concatenate(sample_segments)
-        sample_t = np.concatenate(sample_ts)
-        sample_obs = seg_obs[sample_seg]
-        return _SegmentSamples(
-            seg_start,
-            seg_vec,
-            seg_loc,
-            seg_sub,
-            seg_span,
-            seg_len,
-            sample_seg,
-            sample_t,
-            sample_obs,
-            spans,
-        )
 
     def _span_geometry(
         self,
@@ -671,122 +493,6 @@ class PositionEngine(Observer, Notifier):
         u, v = plane_basis(normals)
         return curves, normals, u, v
 
-    def _build_distance_results(
-        self,
-        points: np.ndarray,
-        span_indices: np.ndarray,
-        targets: np.ndarray,
-        distances: np.ndarray,
-        u: np.ndarray,
-        v: np.ndarray,
-    ) -> list[DistanceResult]:
-        """Build one `DistanceResult` per row from batched plane distances.
-
-        Args:
-            points: Section-frame points, shape (N, 3).
-            span_indices: Span index of each point, shape (N,).
-            targets: Intersection points on the span, shape (N, 3).
-            distances: 3D distances, shape (N,).
-            u: Plane u basis of every span, shape (S, 3).
-            v: Plane v basis of every span, shape (S, 3).
-        """
-        # increase u v size from S,3 to N,3
-        u_rows = u[span_indices]
-        v_rows = v[span_indices]
-
-        diff = targets - points
-        # project the vector onto u,v
-        proj_u = np.einsum("nk,nk->n", diff, u_rows)
-        proj_v = np.einsum("nk,nk->n", diff, v_rows)
-        return [
-            DistanceResult(
-                point_base=points[i].copy(),
-                point_target=targets[i].copy(),
-                u_plane=u_rows[i].copy(),
-                v_plane=v_rows[i].copy(),
-                distance_3d=float(distances[i]),
-                distance_projection_u=float(proj_u[i]),
-                distance_projection_v=float(proj_v[i]),
-            )
-            for i in range(len(points))
-        ]
-
-    @staticmethod
-    def _warning_no_intersection(
-        names: list[str],
-        spans: list[int],
-        n_samples: np.ndarray,
-        n_skipped: np.ndarray,
-    ) -> None:
-        """Log and warn for each obstacle having samples without intersection.
-
-        Args:
-            names: Obstacle names, indexed by obstacle id.
-            spans: Span index of each obstacle, indexed by obstacle id.
-            n_samples: Number of sampled points per obstacle.
-            n_skipped: Number of sampled points without intersection per obstacle.
-        """
-        for obstacle_id in map(int, np.flatnonzero(n_skipped)):
-            message = (
-                f"No intersection found between span {spans[obstacle_id]} and "
-                f"{n_skipped[obstacle_id]}/{n_samples[obstacle_id]} sampled points of obstacle "
-                f"'{names[obstacle_id]}' - skipping them."
-            )
-            logger.warning(message)
-            warnings.warn(message, NoIntersectionPlaneWarning, stacklevel=4)
-
-    @staticmethod
-    def _keep_better_candidates(
-        best_samples: _BestSamples,
-        candidates: _RefinedCandidates,
-    ) -> None:
-        """Update each obstacle's best sample when a refined candidate is better.
-
-        Updates the arrays of `best_samples` in place. A candidate
-        replaces the current best only if its distance is strictly smaller, so
-        NaN candidates and ties are ignored. Candidates are processed in order,
-        so several intervals of the same obstacle compete with each other.
-        """
-        for obs_id, segment_id, t_refined, distance in zip(
-            candidates.obstacle_id,
-            candidates.segment_id,
-            candidates.t,
-            candidates.distance,
-        ):
-            if distance < best_samples.distance[obs_id]:
-                best_samples.seg[obs_id] = segment_id
-                best_samples.t[obs_id] = t_refined
-                best_samples.distance[obs_id] = distance
-
-    @staticmethod
-    def _assemble_obstacle_results(
-        names: list[str],
-        spans: list[int],
-        seg_loc: np.ndarray,
-        best_samples: _BestSamples,
-        found: np.ndarray,
-        distance_results: list[DistanceResult],
-    ) -> dict[str, ObstacleDistanceResult | None]:
-        """Map the found distance results back to their obstacle names.
-
-        `found` holds the obstacle indices of `distance_results`, in the same
-        order. Obstacles absent from `found` keep `None`.
-        """
-        results: dict[str, ObstacleDistanceResult | None] = {
-            name: None for name in names
-        }
-        for obstacle_id, distance_result in zip(
-            found.tolist(), distance_results
-        ):
-            results[names[obstacle_id]] = ObstacleDistanceResult(
-                obstacle_name=names[obstacle_id],
-                span_index=spans[obstacle_id],
-                distance_result=distance_result,
-                segment_index=int(seg_loc[best_samples.seg[obstacle_id]]),
-                segment_parameter=float(best_samples.t[obstacle_id]),
-            )
-        return results
-
     def _min_distances(
         self,
         names: list[str] | None,
@@ -796,20 +502,8 @@ class PositionEngine(Observer, Notifier):
     ) -> dict[str, ObstacleDistanceResult | None]:
         """Minimum distance of the selected obstacles, computed together.
 
-        All samples of all obstacles are evaluated in one batch. When `refine`
-        is `True`, the minimum around each obstacle best sample is refined by
-        a golden-section search, run simultaneously for all obstacles.
-
-        Shapes used internally, with `N` selected obstacles, `S` spans,
-        `V_i` vertices of obstacle `i`, `K = sum(V_i - 1)` segments (a
-        single-vertex obstacle counts as one zero-length segment) and
-        `P` samples in total:
-            - obstacle polyline `vertices`: (V_i, 3)
-            - segment starts and vectors: (K, 3)
-            - segment subdivisions: (K,)
-            - sample segment indices and parameters `t`: (P,)
-            - span curves: (S, M, 3); span normals, `u` and `v` bases: (S, 3)
-            - best sample per obstacle, before and after refinement: (N,)
+        Delegates the computation to
+        [`DistanceEngine.min_distances`][mechaphlowers.core.geometry.distances.DistanceEngine.min_distances].
 
         Args:
             names: Obstacle names, or `None` for all obstacles.
@@ -818,189 +512,42 @@ class PositionEngine(Observer, Notifier):
             xtol: Absolute tolerance of the refinement, in meters.
 
         Returns:
-            Dict mapping each of the `N` obstacle names to its
-            `ObstacleDistanceResult`, or `None` if no sample of the obstacle
-            faces the span.
+            Dict mapping each obstacle name to its `ObstacleDistanceResult`,
+            or `None` if no sample of the obstacle faces the span.
 
         Raises:
             KeyError: If an obstacle name does not exist.
+            ValueError: If `step` or `xtol` is not strictly positive.
         """
 
         # get the obstacles points
         obstacles_points = self.coords_calculator.compute_obstacle_coords()
-        coords_dict = obstacles_points.dict_coords()
+        all_coords = obstacles_points.dict_coords()
         if names is None:
-            names = list(coords_dict)
+            names = list(all_coords)
         for name in names:
-            if name not in coords_dict:
+            if name not in all_coords:
                 raise KeyError(f"Obstacle '{name}' not found")
-        if not names:
-            return {}
 
-        object_names = list(obstacles_points.object_name)
         span_of_row = np.asarray(obstacles_points.span_index, dtype=int)
         first_row: dict[str, int] = {}
-        for row, name in enumerate(object_names):
+        for row, name in enumerate(obstacles_points.object_name):
             first_row.setdefault(name, row)
 
-        segments_samples = self._build_segments_samples(
-            coords_dict, names, first_row, span_of_row, step
-        )
-        seg_start = segments_samples.seg_start
-        seg_vec = segments_samples.seg_vec
-        seg_loc = segments_samples.seg_loc
-        seg_sub = segments_samples.seg_sub
-        seg_span = segments_samples.seg_span
-        seg_len = segments_samples.seg_len
-        sample_seg = segments_samples.sample_seg
-        sample_t = segments_samples.sample_t
-        sample_obs = segments_samples.sample_obs
-        spans = segments_samples.spans
+        coords_dict = {name: all_coords[name] for name in names}
+        spans_dict = {
+            name: int(span_of_row[first_row[name]]) for name in names
+        }
 
-        curves, normals, u, v = self._span_geometry()
-
-        def evaluate_plane_distance(
-            seg_ids: np.ndarray, t: np.ndarray
-        ) -> np.ndarray:
-            """Evaluate plane distances for sampled segment points.
-
-            Args:
-                seg_ids: Segment indices, shape ``(N,)``.
-                t: Local segment parameters, shape ``(N,)``.
-
-            Returns:
-                Distances for the sampled points, shape ``(N,)``.
-            """
-            # seg_start is (M,3) with M being the number of segments.
-            # points will be (N,3) with N being the number of sampled points.
-            points = seg_start[seg_ids] + t[:, np.newaxis] * seg_vec[seg_ids]
-            distances, _ = batch_plane_distances(
-                points, seg_span[seg_ids], curves, normals
-            )
-            return distances
-
-        sample_distances = evaluate_plane_distance(sample_seg, sample_t)
-
-        # prepare obstacle statistics for warning
-        n_obstacles = len(names)
-        n_samples = np.bincount(sample_obs, minlength=n_obstacles)
-        n_skipped = np.bincount(
-            sample_obs[~np.isfinite(sample_distances)], minlength=n_obstacles
-        )
-        self._warning_no_intersection(names, spans, n_samples, n_skipped)
-
-        # Best sample per obstacle (first one on ties).
-        order = np.lexsort((sample_distances, sample_obs))
-        group_start = np.searchsorted(
-            sample_obs[order], np.arange(n_obstacles)
-        )
-        best = order[group_start]
-        best_samples = _BestSamples(
-            seg=sample_seg[best],
-            t=sample_t[best],
-            distance=sample_distances[best],
-        )
-
-        if refine:
-            # 2 steps refinement:
-            # - coarse sampling to find the best little segment and avoid multiple local minima
-            #   it is cheap because vectorized -> golden search can quickly converge after
-            # - golden search (need several iterations to converge)
-
-            seg_nb_vertices = np.array([len(coords_dict[n]) for n in names])
-            intervals: list[_SearchInterval] = []
-            obstacle_id_to_refine = np.flatnonzero(
-                np.isfinite(best_samples.distance) & (seg_nb_vertices > 1)
-            )  # refine only obstacles with finite distance and more than one segment vertex
-            for obstacle_id in map(int, obstacle_id_to_refine):
-                segment_id = int(best_samples.seg[obstacle_id])
-                t0 = float(best_samples.t[obstacle_id])
-
-                # add/subtract dt to create the search interval around t0
-                dt = (
-                    1.0 / seg_sub[segment_id]
-                )  # warning dt is in parameter unit
-
-                # Search both sides of a shared vertex.
-                intervals.append(
-                    _SearchInterval(
-                        obstacle_id=obstacle_id,
-                        segment_id=segment_id,
-                        lower=max(t0 - dt, 0.0),
-                        upper=min(t0 + dt, 1.0),
-                    )
-                )
-                # If t0 == 0 and this isn't the obstacle's first segment, the minimum may sit on the shared vertex with the previous segment. So an extra interval is added on segment_id - 1, covering [1 - prev_dt, 1]
-                if t0 == 0.0 and seg_loc[segment_id] > 0:
-                    prev_dt = 1.0 / seg_sub[segment_id - 1]
-                    intervals.append(
-                        _SearchInterval(
-                            obstacle_id=obstacle_id,
-                            segment_id=segment_id - 1,
-                            lower=1.0 - prev_dt,
-                            upper=1.0,
-                        )
-                    )
-
-            # compute valid intervals with positive segment length where search is meaningful
-            intervals = [
-                iv for iv in intervals if seg_len[iv.segment_id] > 0.0
-            ]
-
-            if intervals:
-                # convert into numpy arrays for vectorized processing
-                obs_ids = np.array(
-                    [iv.obstacle_id for iv in intervals], dtype=int
-                )
-                interval_segs = np.array(
-                    [iv.segment_id for iv in intervals], dtype=int
-                )
-                lower = np.array([iv.lower for iv in intervals])
-                upper = np.array([iv.upper for iv in intervals])
-
-                refined_t = _golden_section_search(
-                    lambda t: evaluate_plane_distance(interval_segs, t),
-                    lower,
-                    upper,
-                    tol=xtol
-                    / seg_len[
-                        interval_segs
-                    ],  # unit: relative to segment length
-                )
-
-                refined_distance = evaluate_plane_distance(
-                    interval_segs, refined_t
-                )
-
-                self._keep_better_candidates(
-                    best_samples,
-                    _RefinedCandidates(
-                        obstacle_id=obs_ids,
-                        segment_id=interval_segs,
-                        t=refined_t,
-                        distance=refined_distance,
-                    ),
-                )
-
-        best_points = best_samples.points(seg_start, seg_vec)
-        best_spans = seg_span[best_samples.seg]
-        final_distances, final_targets = batch_plane_distances(
-            best_points, best_spans, curves, normals
-        )
-
-        # Filter out invalid distances and build the final distance results for valid samples
-        found = np.flatnonzero(np.isfinite(final_distances))
-        distance_results = self._build_distance_results(
-            best_points[found],
-            best_spans[found],
-            final_targets[found],
-            final_distances[found],
-            u,
-            v,
-        )
-
-        return self._assemble_obstacle_results(
-            names, spans, seg_loc, best_samples, found, distance_results
+        curves, normals, _, _ = self._span_geometry()
+        return self.distance_engine.min_distances(
+            coords_dict,
+            spans_dict,
+            curves,
+            normals,
+            step=step,
+            refine=refine,
+            xtol=xtol,
         )
 
     def get_segment_distances_from_obstacles(
@@ -1037,7 +584,6 @@ class PositionEngine(Observer, Notifier):
             [`ObstacleDistanceResult`][mechaphlowers.core.geometry.distances.ObstacleDistanceResult]
             (`None` if the obstacle does not face the span).
         """
-        _validate_sampling(step, xtol)
         return self._min_distances(None, step=step, refine=refine, xtol=xtol)
 
     def get_distances_from_obstacles(
@@ -1066,7 +612,7 @@ class PositionEngine(Observer, Notifier):
             points, span_indices, curves, normals
         )
         found = np.isfinite(distances)
-        results = self._build_distance_results(
+        results = build_distance_results(
             points[found],
             span_indices[found],
             targets[found],
