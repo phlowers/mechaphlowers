@@ -68,6 +68,7 @@ class PositionEngine(Observer, Notifier):
         self.span_model = balance_engine.balance_model.nodes_span_model
         self.cable_loads = balance_engine.cable_loads
         self.section_array = balance_engine.section_array
+        self.virtual_supports_list = balance_engine.virtual_supports_list
         self.obstacle_array = ObstacleArray.build_empty_array()
         self.additional_points_array = ObstacleArray.build_empty_array()
         self.coords_calculator = CoordsCalculator(
@@ -297,12 +298,12 @@ class PositionEngine(Observer, Notifier):
         group_points = self.get_group_points()
         if project:
             group_points = group_points.change_frame(frame_index)
-        spans_points = group_points.get_all_objects_dict()["spans"]
+        spans_points = group_points.spans
         loads_spans_idx, loads_points_idx = self.span_model.loads_indices
         result_dict: dict = {}
         for index_in_small_array, span_index in enumerate(loads_spans_idx):
             point_index = loads_points_idx[index_in_small_array]
-            result_dict[int(span_index)] = spans_points.coords[
+            result_dict[int(span_index)] = spans_points.coords[  # type: ignore[union-attr]
                 span_index, point_index
             ]
         return result_dict
@@ -491,6 +492,7 @@ class PositionEngine(Observer, Notifier):
             obstacles=obstacles_points,
             additional_points=additional_points,
             distances=distances_dict,
+            virtual_supports_list=self.virtual_supports_list,
         )
 
     # ── String representations ────────────────────────────────────────────────

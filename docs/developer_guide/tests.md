@@ -22,6 +22,34 @@ pytest test/path/to/test_file.py
 pytest test/path/to/test_file.py::test_name
 ```
 
+## Dependency compatibility
+
+The supported dependency ranges include pandas 2 and 3, Plotly 5 and 6,
+and xxhash 3 and 4. Plotly remains below 7 because the geographic line
+map uses `Scattermapbox`, which was removed in Plotly 7. Supporting that
+release requires a separate migration to MapLibre.
+
+Validate the locked dependencies on both the minimum and newest tested
+Python versions using uv-managed interpreters:
+
+```bash
+uv sync --managed-python --python 3.11 --all-groups --extra full
+uv run --managed-python --python 3.11 --locked pytest
+uv sync --managed-python --python 3.14 --all-groups --extra full
+uv run --managed-python --python 3.14 --locked pytest
+```
+
+When widening dependency bounds, also test the affected code paths with
+the retained older dependency majors. An isolated run can override the
+locked versions without changing the lockfile:
+
+```bash
+uv run --managed-python --python 3.11 --locked --isolated \
+    --with 'pandas==2.3.1' --with 'plotly==5.24.1' --with 'xxhash==3.5.0' \
+    pytest test/entities/test_obstacle_array.py \
+    test/core/geometry/test_position_engine.py test/test_utils.py test/plotting/
+```
+
 ## Fixtures and shared test setup
 
 Shared fixtures are defined in `test/conftest.py` (data builders, common objects, report hooks, and helper toggles).
@@ -69,3 +97,23 @@ To ensure `SHOW_FIGURES` is available, add a `debug-test` launch configuration i
 ```
 
 With this configuration, launching tests in debug mode from VS Code will honor the `SHOW_FIGURES` mechanism.
+## Pyodide check
+
+`make pyodide-check` verifies that mechaphlowers resolves, builds, installs
+and passes its tests in [Pyodide](https://pyodide.org) (Python 3.14, run with
+Node.js 24). It runs three steps, available separately:
+
+- `make pyodide-resolve`: dependency resolution with Python 3.14 and the
+  constraints in `ci/pyodide/constraints.txt`.
+- `make pyodide-build`: builds the wheel in `.dist-pyodide/`.
+- `make pyodide-test`: installs the wheel with `micropip` in Pyodide and runs
+  the test suite. This takes around 15 minutes.
+
+The constraints are the versions shipped by Pyodide, except `certifi`, which
+keeps the security minimum of `pyproject.toml`. When upgrading Pyodide, update
+the `pyodide` version in `ci/pyodide/package.json` (and its lock file) and the
+pins in `ci/pyodide/constraints.txt`.
+
+The same check can be run manually on GitHub with the "Pyodide check"
+workflow. Behind an HTTP proxy, run `make` with `NODE_USE_ENV_PROXY=1` so that
+Node.js uses the proxy to download Pyodide packages.

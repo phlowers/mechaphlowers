@@ -82,11 +82,13 @@ def compute_adjustment_angles(
             "Invalid geometry: HL and HR must define a non-zero horizontal angle difference."
         )
 
-    alpha_opposite_side = np.arcsin(sin_alpha * dist_support / span_length)
-    alpha_same_side = np.pi - alpha - alpha_opposite_side
+    alpha_opposite_side: float | np.ndarray = np.arcsin(
+        sin_alpha * dist_support / span_length
+    )
+    alpha_same_side: float | np.ndarray = np.pi - alpha - alpha_opposite_side
     dist_opposite_support = span_length / sin_alpha * np.sin(alpha_same_side)
 
-    expected_alpha_opposite_value = np.arccos(
+    expected_alpha_opposite_value: float | np.ndarray = np.arccos(
         -(dist_support**2 - dist_opposite_support**2 - span_length**2)
         / 2
         / dist_opposite_support
@@ -103,6 +105,10 @@ def compute_adjustment_angles(
             span_length / np.sin(alpha) * np.sin(alpha_same_side)
         )
 
+    alpha_left: float | np.ndarray
+    alpha_right: float | np.ndarray
+    dist_left: float | np.ndarray
+    dist_right: float | np.ndarray
     if side == "left":
         alpha_left, alpha_right = alpha_same_side, alpha_opposite_side
         dist_left, dist_right = dist_support, dist_opposite_support
