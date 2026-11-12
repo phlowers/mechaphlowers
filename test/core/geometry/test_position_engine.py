@@ -758,6 +758,42 @@ class TestDistancesFromObstacles:
         assert True
 
 
+class TestBuildSegmentsSamples:
+    def test_builds_polyline_segments_and_single_point_samples(self):
+        coords_dict = {
+            "line": np.array(
+                [[0, 0, 0], [2.5, 0, 0], [2.5, 4, 0]], dtype=float
+            ),
+            "point": np.array([[10, 0, 0]], dtype=float),
+        }
+
+        result = PositionEngine._build_segments_samples(
+            coords_dict=coords_dict,
+            names=["point", "line"],
+            first_row={"line": 0, "point": 1},
+            span_of_row=np.array([3, 5]),
+            step=1.5,
+        )
+
+        assert result.spans == [5, 3]
+        np.testing.assert_array_equal(
+            result.seg_start,
+            [[10, 0, 0], [0, 0, 0], [2.5, 0, 0]],
+        )
+        np.testing.assert_array_equal(
+            result.seg_vec, [[0, 0, 0], [2.5, 0, 0], [0, 4, 0]]
+        )
+        np.testing.assert_array_equal(result.seg_loc, [0, 0, 1])
+        np.testing.assert_array_equal(result.seg_sub, [1, 2, 3])
+        np.testing.assert_array_equal(result.seg_span, [5, 3, 3])
+        np.testing.assert_allclose(result.seg_len, [0, 2.5, 4])
+        np.testing.assert_array_equal(result.sample_seg, [0, 1, 1, 2, 2, 2, 2])
+        np.testing.assert_allclose(
+            result.sample_t, [0, 0, 0.5, 0, 1 / 3, 2 / 3, 1]
+        )
+        np.testing.assert_array_equal(result.sample_obs, [0, 1, 1, 1, 1, 1, 1])
+
+
 class TestObstacleMinDistance:
     @pytest.fixture
     def pos_engine(self, balance_engine_base_test: BalanceEngine):
@@ -923,16 +959,17 @@ class TestObstacleMinDistance:
 
         for name in ("road", "pt"):
             single = pos_engine.obstacle_min_distance(name)
-            assert batch[name] is not None
+            batch_result = batch[name]
+            assert batch_result is not None
             assert single is not None
-            assert batch[name].span_index == single.span_index
+            assert batch_result.span_index == single.span_index
             np.testing.assert_allclose(
-                batch[name].distance_result.distance_3d,
+                batch_result.distance_result.distance_3d,
                 single.distance_result.distance_3d,
                 atol=1e-9,
             )
             np.testing.assert_allclose(
-                batch[name].closest_obstacle_point,
+                batch_result.closest_obstacle_point,
                 single.closest_obstacle_point,
                 atol=1e-2,
             )
@@ -941,7 +978,10 @@ class TestObstacleMinDistance:
         polylines = {
             "poly_a": (0, np.array([[50, 0, 0], [120, 5, 0], [400, -5, 10]])),
             "poly_b": (0, np.array([[0, 0, 0], [400, 0, 0]])),
-            "poly_c": (1, np.array([[60, 0, 5], [150, 10, 25], [260, 20, 10]])),
+            "poly_c": (
+                1,
+                np.array([[60, 0, 5], [150, 10, 25], [260, 20, 10]]),
+            ),
             "poly_d": (1, np.array([[0, -10, 0], [450, -10, 0]])),
         }
         for name, (span_index, coords) in polylines.items():
@@ -1019,20 +1059,16 @@ class TestObstacleMinDistance:
         )
 
         result = pos_engine.get_segment_distances_from_obstacles()["ground"]
-        span_coords = pos_engine.coords_calculator.get_spans(
-            frame="section"
-        ).coords[0]
 
         assert result is not None
         np.testing.assert_allclose(
             result.closest_span_point[0],
-            25.,
+            25.0,
             atol=1e-3,
         )
         np.testing.assert_allclose(
             result.closest_obstacle_point[0], 25.0, atol=1e-3
         )
-
 
 
 class TestPositionEngineAdditionalPointsArray:

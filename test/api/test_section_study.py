@@ -1306,11 +1306,11 @@ class TestSectionStudyCopy:
         result = study.obstacle_min_distance("road")
         all_results = study.get_segment_distances_from_obstacles()
 
+        road_result = all_results["road"]
         assert result is not None
+        assert road_result is not None
         assert set(all_results.keys()) == {"road"}
-        np.testing.assert_allclose(
-            all_results["road"].distance_3d, result.distance_3d
-        )
+        np.testing.assert_allclose(road_result.distance_3d, result.distance_3d)
 
     def test_copy_independence(self, study: SectionStudy):
         memento = study.intermediate_memento
