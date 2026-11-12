@@ -32,6 +32,7 @@ from mechaphlowers.entities.core import VhlResult
 from mechaphlowers.entities.errors import BalanceEngineWarning, SolverError
 
 if TYPE_CHECKING:
+    from mechaphlowers.core.geometry.distances import ObstacleDistanceResult
     from mechaphlowers.core.models.cable.thermal import ThermalEngine
     from mechaphlowers.core.models.estimation import (
         EstimationEngine,
@@ -634,6 +635,43 @@ class SectionStudy:
             Tuple of ``(spans, supports, insulators)`` as `Points`.
         """
         return self._position_engine.get_points_for_plot(project, frame_index)
+
+    def obstacle_min_distance(
+        self,
+        obstacle_name: str,
+        step: float = 1.0,
+        refine: bool = True,
+        xtol: float = 1e-3,
+    ) -> ObstacleDistanceResult | None:
+        """Delegate to [`PositionEngine.obstacle_min_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.obstacle_min_distance].
+
+        Args:
+            obstacle_name: Obstacle name.
+            step: Sampling step along the obstacle segments, in meters.
+            refine: Refine the minimum between samples.
+            xtol: Absolute tolerance of the refinement, in meters.
+
+        Returns:
+            Minimum distance result, or `None` if the obstacle does not face its span.
+        """
+        return self._position_engine.obstacle_min_distance(
+            obstacle_name, step=step, refine=refine, xtol=xtol
+        )
+
+    def get_min_distances_from_obstacles(
+        self,
+        step: float = 1.0,
+        refine: bool = True,
+        xtol: float = 1e-3,
+    ) -> dict[str, ObstacleDistanceResult | None]:
+        """Delegate to [`PositionEngine.get_min_distances_from_obstacles`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_min_distances_from_obstacles].
+
+        Returns:
+            Dict mapping obstacle name to its minimum distance result.
+        """
+        return self._position_engine.get_min_distances_from_obstacles(
+            step=step, refine=refine, xtol=xtol
+        )
 
     def chain_displacement(self) -> np.ndarray:
         return self._balance_engine.balance_model.chain_displacement()

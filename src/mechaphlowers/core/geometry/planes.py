@@ -187,8 +187,8 @@ def intersection_curve_plane(
     intersections = np.empty((0, 3), dtype=curve_points.dtype)
 
     if fine_tuning:
-        # Only check if the segment crosses the plane (opposite signs)
-        if p1_signed_dist * p2_signed_dist < 0:
+        # Only check if the segment crosses or touches the plane
+        if p1_signed_dist * p2_signed_dist <= 0:
             # Step 4: Calculate intersection using parametric equation
             p_start = curve_points[closest_indices[0]]
             p_end = curve_points[closest_indices[1]]

@@ -4,14 +4,30 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+import sys
+
 import numpy as np
 import pytest
 
 from mechaphlowers.core.geometry.distances import (
     DistanceResult,
     get_projection_points,
+    minimize_bounded,
     points_distance_inside_plane,
 )
+
+
+@pytest.mark.parametrize("without_scipy", [False, True])
+def test_minimize_bounded(monkeypatch, without_scipy):
+    if without_scipy:
+        monkeypatch.setitem(sys.modules, "scipy.optimize", None)
+
+    x_min = minimize_bounded(lambda x: (x - 0.3) ** 2, (0.0, 1.0), xtol=1e-6)
+    np.testing.assert_allclose(x_min, 0.3, atol=1e-5)
+
+    # Minimum on the boundary
+    x_min = minimize_bounded(lambda x: x, (0.2, 1.0), xtol=1e-6)
+    np.testing.assert_allclose(x_min, 0.2, atol=1e-5)
 
 
 def test_points_distance_inside_plane_returns_distance_and_projections():

@@ -15,6 +15,8 @@ import numpy as np
 from mechaphlowers.core.geometry.distances import (
     DistanceEngine,
     DistanceResult,
+    ObstacleDistanceResult,
+    minimize_bounded,
 )
 from mechaphlowers.core.geometry.group_points import GroupPoints
 from mechaphlowers.core.geometry.planes import change_local_frame
@@ -386,6 +388,11 @@ class PositionEngine(Observer, Notifier):
         if point.shape != (3,):
             raise ValueError("point must be a 1D array of shape (3,)")
 
+        self._set_distance_span(span_index)
+        return self.distance_engine.plane_distance(point, frame="section")
+
+    def _set_distance_span(self, span_index: int) -> None:
+        """Load span `span_index` frame and cable curve into the distance engine."""
         ground_supports = self.coords_calculator.supports_ground_coords.copy()
         if span_index < 0 or span_index >= len(ground_supports) - 1:
             raise IndexError(
@@ -401,7 +408,188 @@ class PositionEngine(Observer, Notifier):
                 span_index
             ]
         )
-        return self.distance_engine.plane_distance(point, frame="section")
+
+    def obstacle_min_distance(
+        self,
+        obstacle_name: str,
+        step: float = 1.0,
+        refine: bool = True,
+        xtol: float = 1e-3,
+    ) -> ObstacleDistanceResult | None:
+        """Compute the minimum distance between a polyline obstacle and its span.
+
+        The obstacle points are joined, in `point_index` order, into a
+        polyline. Each segment is sampled every `step` meters (vertices
+        included) and the plane distance (see
+        [`point_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.point_distance])
+        is computed at each sample. When `refine` is `True`, a bounded scalar
+        minimization is then run around the best sample to find the minimum
+        between samples.
+
+        Samples whose distance plane does not intersect the span (e.g. beyond
+        the supports) are skipped and a `NoIntersectionPlaneWarning` is
+        emitted.
+
+        Args:
+            obstacle_name: Name of the obstacle.
+            step: Sampling step along the obstacle segments, in meters.
+                Defaults to ``1.0``.
+            refine: Refine the minimum between samples. Defaults to `True`.
+            xtol: Absolute tolerance of the refinement, in meters along the
+                segment. Defaults to ``1e-3``.
+
+        Returns:
+            [`ObstacleDistanceResult`][mechaphlowers.core.geometry.distances.ObstacleDistanceResult],
+            or `None` if no obstacle sample intersects the span.
+
+        Raises:
+            KeyError: If `obstacle_name` does not exist.
+            ValueError: If `step` or `xtol` is not strictly positive.
+
+        Examples:
+            >>> pos_engine.add_obstacle(
+            ...     name="road",
+            ...     span_index=0,
+            ...     coords=np.array([[100, -20, 0], [150, 20, 2]]),
+            ... )
+            >>> result = pos_engine.obstacle_min_distance("road")
+            >>> result.distance_3d, result.closest_obstacle_point
+        """
+        if step <= 0:
+            raise ValueError("step must be strictly positive")
+        if xtol <= 0:
+            raise ValueError("xtol must be strictly positive")
+
+        obstacles_points = self.coords_calculator.compute_obstacle_coords()
+        coords_dict = obstacles_points.dict_coords()
+        if obstacle_name not in coords_dict:
+            raise KeyError(f"Obstacle '{obstacle_name}' not found")
+        vertices = np.asarray(coords_dict[obstacle_name], dtype=float)
+        span_index = int(
+            obstacles_points.span_index[
+                list(obstacles_points.object_name).index(obstacle_name)
+            ]
+        )
+        self._set_distance_span(span_index)
+
+        nb_segments = max(len(vertices) - 1, 1)
+        if len(vertices) == 1:
+            segment_starts = vertices
+            segment_vectors = np.zeros_like(vertices)
+        else:
+            segment_starts = vertices[:-1]
+            segment_vectors = np.diff(vertices, axis=0)
+        nb_subdivisions = np.maximum(
+            np.ceil(np.linalg.norm(segment_vectors, axis=1) / step), 1
+        ).astype(int)
+
+        def distance_at(segment: int, t: float) -> DistanceResult | None:
+            point = segment_starts[segment] + t * segment_vectors[segment]
+            try:
+                return self.distance_engine.plane_distance(
+                    point, frame="section"
+                )
+            except NoIntersectionPlaneForDistanceError:
+                return None
+
+        # Shared vertices are sampled once, as t=0 of the following segment.
+        samples: list[tuple[int, float]] = []
+        for segment in range(nb_segments):
+            ts = np.linspace(0.0, 1.0, nb_subdivisions[segment] + 1)
+            if len(vertices) == 1:
+                ts = ts[:1]
+            elif segment < nb_segments - 1:
+                ts = ts[:-1]
+            samples.extend((segment, float(t)) for t in ts)
+
+        best: tuple[int, float, DistanceResult] | None = None
+        nb_skipped = 0
+        for segment, t in samples:
+            result = distance_at(segment, t)
+            if result is None:
+                nb_skipped += 1
+            elif best is None or result.distance_3d < best[2].distance_3d:
+                best = (segment, t, result)
+
+        if nb_skipped > 0:
+            message = (
+                f"No intersection found between span {span_index} and "
+                f"{nb_skipped}/{len(samples)} sampled points of obstacle "
+                f"'{obstacle_name}' - skipping them."
+            )
+            logger.warning(message)
+            warnings.warn(message, NoIntersectionPlaneWarning, stacklevel=2)
+        if best is None:
+            return None
+
+        if refine and len(vertices) > 1:
+            best_segment, best_t, _ = best
+            # Search the neighbourhood of the best sample, on both sides of
+            # a shared vertex.
+            intervals = []
+            dt = 1.0 / nb_subdivisions[best_segment]
+            intervals.append(
+                (best_segment, max(best_t - dt, 0.0), min(best_t + dt, 1.0))
+            )
+            if best_t == 0.0 and best_segment > 0:
+                prev_dt = 1.0 / nb_subdivisions[best_segment - 1]
+                intervals.append((best_segment - 1, 1.0 - prev_dt, 1.0))
+
+            for segment, t_min, t_max in intervals:
+                segment_length = float(
+                    np.linalg.norm(segment_vectors[segment])
+                )
+                if segment_length == 0.0:
+                    continue
+
+                def objective(t: float, segment: int = segment) -> float:
+                    result = distance_at(segment, t)
+                    return np.inf if result is None else result.distance_3d
+
+                t_refined = minimize_bounded(
+                    objective, (t_min, t_max), xtol=xtol / segment_length
+                )
+                result = distance_at(segment, t_refined)
+                if (
+                    result is not None
+                    and result.distance_3d < best[2].distance_3d
+                ):
+                    best = (segment, t_refined, result)
+
+        segment, t, best_result = best
+        # Re-evaluate so that the distance engine state matches the result.
+        distance_at(segment, t)
+        return ObstacleDistanceResult(
+            obstacle_name=obstacle_name,
+            span_index=span_index,
+            distance_result=best_result,
+            segment_index=segment,
+            segment_parameter=t,
+        )
+
+    def get_min_distances_from_obstacles(
+        self,
+        step: float = 1.0,
+        refine: bool = True,
+        xtol: float = 1e-3,
+    ) -> dict[str, ObstacleDistanceResult | None]:
+        """Compute the minimum distance of every obstacle to its span.
+
+        See [`obstacle_min_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.obstacle_min_distance]
+        for the algorithm and arguments.
+
+        Returns:
+            Dict mapping obstacle name to its
+            [`ObstacleDistanceResult`][mechaphlowers.core.geometry.distances.ObstacleDistanceResult]
+            (`None` if the obstacle does not face the span).
+        """
+        obstacles_points = self.coords_calculator.compute_obstacle_coords()
+        return {
+            obstacle_name: self.obstacle_min_distance(
+                obstacle_name, step=step, refine=refine, xtol=xtol
+            )
+            for obstacle_name in obstacles_points.dict_coords()
+        }
 
     def get_distances_from_obstacles(
         self,

@@ -16,7 +16,10 @@ import pytest
 from pandas.testing import assert_frame_equal
 
 from mechaphlowers.config import options as cfg
-from mechaphlowers.core.geometry.distances import DistanceResult
+from mechaphlowers.core.geometry.distances import (
+    DistanceResult,
+    ObstacleDistanceResult,
+)
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.errors import (
@@ -711,6 +714,137 @@ class TestDistancesFromObstacles:
         group_points = pos_engine_with_obstacles.get_group_points()
         group_points.change_frame(frame_index=1)
         assert True
+
+
+class TestObstacleMinDistance:
+    @pytest.fixture
+    def pos_engine(self, balance_engine_base_test: BalanceEngine):
+        return PositionEngine(balance_engine_base_test)
+
+    def test_single_point_matches_point_distance(
+        self, pos_engine: PositionEngine
+    ):
+        pos_engine.add_obstacle(
+            name="pt", span_index=1, coords=np.array([[200, 5, 10]])
+        )
+        result = pos_engine.obstacle_min_distance("pt")
+        point = pos_engine.obstacles_dict()["pt"][0]
+        expected = pos_engine.point_distance(1, point)
+
+        assert isinstance(result, ObstacleDistanceResult)
+        assert result.span_index == 1
+        assert result.segment_index == 0
+        assert result.segment_parameter == 0.0
+        np.testing.assert_allclose(result.distance_3d, expected.distance_3d)
+        np.testing.assert_allclose(result.closest_obstacle_point, point)
+
+    def test_minimum_between_vertices(self, pos_engine: PositionEngine):
+        # Crossing line whose closest location is far from both vertices.
+        pos_engine.add_obstacle(
+            name="road",
+            span_index=0,
+            coords=np.array([[50, -40, 0], [450, 40, 0]]),
+        )
+        vertices = pos_engine.obstacles_dict()["road"]
+        vertex_distances = [
+            pos_engine.point_distance(0, vertex).distance_3d
+            for vertex in vertices
+        ]
+
+        result = pos_engine.obstacle_min_distance("road", step=1.0)
+
+        assert result is not None
+        assert 0.0 < result.segment_parameter < 1.0
+        assert result.distance_3d < min(vertex_distances)
+
+        brute_force = pos_engine.obstacle_min_distance(
+            "road", step=0.05, refine=False
+        )
+        assert brute_force is not None
+        assert result.distance_3d <= brute_force.distance_3d + 1e-6
+        np.testing.assert_allclose(
+            result.distance_3d, brute_force.distance_3d, atol=1e-3
+        )
+        expected_point = vertices[0] + result.segment_parameter * (
+            vertices[1] - vertices[0]
+        )
+        np.testing.assert_allclose(
+            result.closest_obstacle_point, expected_point
+        )
+
+    def test_refine_never_worse_than_sampling(
+        self, pos_engine: PositionEngine
+    ):
+        pos_engine.add_obstacle(
+            name="polyline",
+            span_index=1,
+            coords=np.array(
+                [[50, 0, 0], [180, 10, 20], [260, -10, 15], [400, 0, 0]]
+            ),
+        )
+        coarse = pos_engine.obstacle_min_distance(
+            "polyline", step=50.0, refine=False
+        )
+        refined = pos_engine.obstacle_min_distance("polyline", step=50.0)
+        fine = pos_engine.obstacle_min_distance(
+            "polyline", step=0.05, refine=False
+        )
+
+        assert coarse is not None and refined is not None and fine is not None
+        assert refined.distance_3d <= coarse.distance_3d
+        np.testing.assert_allclose(
+            refined.distance_3d, fine.distance_3d, atol=1e-3
+        )
+
+    def test_partially_outside_span_warns(self, pos_engine: PositionEngine):
+        pos_engine.add_obstacle(
+            name="obs",
+            span_index=0,
+            coords=np.array([[-50, 0, 0], [100, 0, 0]]),
+        )
+        with pytest.warns(NoIntersectionPlaneWarning):
+            result = pos_engine.obstacle_min_distance("obs")
+        assert result is not None
+
+    def test_fully_outside_span_returns_none(self, pos_engine: PositionEngine):
+        pos_engine.add_obstacle(
+            name="obs",
+            span_index=0,
+            coords=np.array([[-80, 0, 0], [-50, 0, 0]]),
+        )
+        with pytest.warns(NoIntersectionPlaneWarning):
+            assert pos_engine.obstacle_min_distance("obs") is None
+
+    def test_get_min_distances_from_obstacles(
+        self, pos_engine: PositionEngine
+    ):
+        pos_engine.add_obstacle(
+            name="obs_0", span_index=0, coords=np.array([[100, 0, 0]])
+        )
+        pos_engine.add_obstacle(
+            name="obs_1",
+            span_index=1,
+            coords=np.array([[50, 0, 0], [100, 0, 10]]),
+        )
+        results = pos_engine.get_min_distances_from_obstacles()
+
+        assert set(results.keys()) == {"obs_0", "obs_1"}
+        assert results["obs_1"] is not None
+        assert results["obs_1"].span_index == 1
+
+    def test_no_obstacle(self, pos_engine: PositionEngine):
+        assert pos_engine.get_min_distances_from_obstacles() == {}
+
+    def test_invalid_inputs(self, pos_engine: PositionEngine):
+        pos_engine.add_obstacle(
+            name="obs", span_index=0, coords=np.array([[100, 0, 0]])
+        )
+        with pytest.raises(KeyError):
+            pos_engine.obstacle_min_distance("unknown")
+        with pytest.raises(ValueError):
+            pos_engine.obstacle_min_distance("obs", step=0)
+        with pytest.raises(ValueError):
+            pos_engine.obstacle_min_distance("obs", xtol=-1)
 
 
 class TestPositionEngineAdditionalPointsArray:

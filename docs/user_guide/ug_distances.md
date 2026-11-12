@@ -82,3 +82,38 @@ fig.show()
 ```
 
 --8<-- "docs/user_guide/assets/distance_plotengine_example.html"
+
+### Minimum distance to an obstacle
+
+An obstacle made of several points is considered as a polyline: its points are joined in `point_index` order.
+`obstacle_min_distance` returns the minimum distance between this polyline and the span the obstacle belongs to, using the plane distance described above.
+
+The algorithm is:
+
+1. Each obstacle segment is sampled every `step` meters (vertices included) and the plane distance is computed at each sample.
+2. If `refine=True` (default), a bounded scalar minimization is run around the best sample, so the minimum can lie between two samples (`scipy.optimize.minimize_scalar` when scipy is installed, a golden-section search otherwise).
+
+Samples whose distance plane does not intersect the span (for instance beyond the supports) are skipped with a `NoIntersectionPlaneWarning`. If no sample intersects the span, `None` is returned.
+
+```python
+study = SectionStudy(...)  # with a solved balance
+study.position_engine.add_obstacle(
+    name="road",
+    span_index=0,
+    coords=np.array([[100, -30, 0], [400, 30, 0]]),
+)
+
+result = study.obstacle_min_distance("road", step=1.0)
+result.distance_3d  # minimum distance
+result.closest_obstacle_point  # closest point on the obstacle (absolute frame)
+result.closest_span_point  # closest point on the cable (absolute frame)
+result.segment_index, result.segment_parameter  # location along the obstacle polyline
+result.distance_result  # DistanceResult at the closest location
+
+# All obstacles at once
+results = study.get_min_distances_from_obstacles()
+
+# With plotting
+fig = go.Figure()
+study.plot_engine.obstacle_min_distance("road", fig=fig)
+```

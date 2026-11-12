@@ -6,7 +6,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Literal
+from dataclasses import dataclass
+from typing import Callable, Literal
 
 import numpy as np
 
@@ -165,6 +166,95 @@ class DistanceResult:
         new_distance_result.u_plane[1] = -new_distance_result.u_plane[1]
         new_distance_result.v_plane[1] = -new_distance_result.v_plane[1]
         return new_distance_result
+
+
+def minimize_bounded(
+    func: Callable[[float], float],
+    bounds: tuple[float, float],
+    xtol: float = 1e-5,
+    maxiter: int = 100,
+) -> float:
+    """Return the argmin of a scalar function on a bounded interval.
+
+    Uses ``scipy.optimize.minimize_scalar(method="bounded")`` when scipy is
+    installed, otherwise a pure-Python golden-section search.
+
+    Args:
+        func: Scalar function to minimize.
+        bounds: Search interval ``(a, b)``.
+        xtol: Absolute tolerance on the argmin.
+        maxiter: Maximum number of iterations.
+
+    Returns:
+        The abscissa of the minimum found inside `bounds`.
+    """
+    a, b = bounds
+    try:
+        from scipy.optimize import minimize_scalar  # type: ignore
+    except ImportError:
+        inv_phi = (np.sqrt(5.0) - 1.0) / 2.0
+        c = b - inv_phi * (b - a)
+        d = a + inv_phi * (b - a)
+        fc, fd = func(c), func(d)
+        for _ in range(maxiter):
+            if abs(b - a) <= xtol:
+                break
+            if fc < fd:
+                b, d, fd = d, c, fc
+                c = b - inv_phi * (b - a)
+                fc = func(c)
+            else:
+                a, c, fc = c, d, fd
+                d = a + inv_phi * (b - a)
+                fd = func(d)
+        return (a + b) / 2.0
+
+    result = minimize_scalar(
+        func,
+        bounds=(a, b),
+        method="bounded",
+        options={"xatol": xtol, "maxiter": maxiter},
+    )
+    return float(result.x)
+
+
+@dataclass
+class ObstacleDistanceResult:
+    """Minimum distance between a polyline obstacle and its span.
+
+    Attributes:
+        obstacle_name: Name of the obstacle.
+        span_index: Index of the span the obstacle belongs to.
+        distance_result: `DistanceResult` at the closest obstacle location.
+            `distance_result.point_base` is the closest point on the obstacle.
+        segment_index: Index of the obstacle segment holding the minimum
+            (segment ``i`` joins points ``i`` and ``i + 1``). Always ``0``
+            for single-point obstacles.
+        segment_parameter: Position along the segment, in ``[0, 1]``
+            (``0`` at point ``segment_index``, ``1`` at point
+            ``segment_index + 1``).
+    """
+
+    obstacle_name: str
+    span_index: int
+    distance_result: DistanceResult
+    segment_index: int
+    segment_parameter: float
+
+    @property
+    def distance_3d(self) -> float:
+        """Minimum distance between the obstacle and the span."""
+        return self.distance_result.distance_3d
+
+    @property
+    def closest_obstacle_point(self) -> np.ndarray:
+        """Closest point on the obstacle (absolute section frame)."""
+        return self.distance_result.point_base
+
+    @property
+    def closest_span_point(self) -> np.ndarray:
+        """Closest point on the span (absolute section frame)."""
+        return self.distance_result.point_target
 
 
 class DistanceEngine:
