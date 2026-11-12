@@ -658,18 +658,18 @@ class SectionStudy:
             obstacle_name, step=step, refine=refine, xtol=xtol
         )
 
-    def get_min_distances_from_obstacles(
+    def get_segment_distances_from_obstacles(
         self,
         step: float = 1.0,
         refine: bool = True,
         xtol: float = 1e-3,
     ) -> dict[str, ObstacleDistanceResult | None]:
-        """Delegate to [`PositionEngine.get_min_distances_from_obstacles`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_min_distances_from_obstacles].
+        """Delegate to [`PositionEngine.get_segment_distances_from_obstacles`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_segment_distances_from_obstacles].
 
         Returns:
             Dict mapping obstacle name to its minimum distance result.
         """
-        return self._position_engine.get_min_distances_from_obstacles(
+        return self._position_engine.get_segment_distances_from_obstacles(
             step=step, refine=refine, xtol=xtol
         )
 

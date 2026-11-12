@@ -257,6 +257,97 @@ class ObstacleDistanceResult:
         return self.distance_result.point_target
 
 
+def plane_basis(normals: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Vectorized equivalent of `planes.plane_from_line` for several normals.
+
+    Args:
+        normals: Unit horizontal normals of shape (S, 3).
+
+    Returns:
+        A tuple `(u, v)` of plane basis vectors, both of shape (S, 3).
+    """
+    normals = np.atleast_2d(np.asarray(normals, dtype=float))
+    n0, n1 = normals[:, 0], normals[:, 1]
+    u = np.column_stack([-n1, n0, np.zeros_like(n0)])
+    # guard for vertical normals (n0 and n1 close to zero)
+    vertical = (np.abs(n0) < 1e-6) & (np.abs(n1) < 1e-6)
+    u[vertical] = [1.0, 0.0, 0.0]
+    # normalize u to unit length
+    u /= np.linalg.norm(u, axis=1, keepdims=True)
+    # create v and normalize to unit length
+    v = np.cross(normals, u)
+    v /= np.linalg.norm(v, axis=1, keepdims=True)
+    return u, v
+
+
+def batch_plane_distances(
+    points: np.ndarray,
+    span_indices: np.ndarray,
+    curves: np.ndarray,
+    normals: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Plane distance of N points, each against the curve of its own span.
+
+    For point ``p`` of span ``s``, the plane is the one through ``p`` with
+    normal ``normals[s]``. The curve crossing is found from the two curve
+    points closest to the plane, then linearly interpolated.
+
+    Args:
+        points: Section-frame points of shape (N, 3), or (3,) for one point.
+        span_indices: Span index of each point, shape (N,).
+        curves: Section-frame curve points of every span, shape (S, M, 3).
+        normals: Unit horizontal plane normals of every span, shape (S, 3).
+
+    Returns:
+        A tuple `(distances, targets)` with shapes (N,) and (N, 3).
+        Entries without intersection are `np.inf` and `np.nan`.
+    """
+    points = np.atleast_2d(np.asarray(points, dtype=float))
+    span_indices = np.atleast_1d(np.asarray(span_indices, dtype=int))
+    curves = np.asarray(curves, dtype=float)
+    normals = np.asarray(normals, dtype=float)
+    rows = np.arange(points.shape[0])
+
+    point_normals = normals[span_indices]
+    # project points and curves onto the plane defined by the normals
+    # reminder: smk, sm -> sm means dots along the normal (s,3) for each curve point (s,m,3)
+    points_proj = np.einsum("nk,nk->n", points, point_normals)
+    curves_proj = np.einsum("smk,sk->sm", curves, normals)[span_indices]
+    signed = curves_proj - points_proj[:, np.newaxis]
+
+    # find the two curve points closest to the plane for each point
+    closest = np.argsort(np.abs(signed), axis=1)[:, :2]
+    closest.sort(axis=1)
+    i0, i1 = closest[:, 0], closest[:, 1]
+
+    crossing = signed[rows, i0] * signed[rows, i1] <= 0
+    start = curves[span_indices, i0]
+    segment = curves[span_indices, i1] - start
+    # project the segment onto the plane defined by the point normals
+    denominator = np.einsum("nk,nk->n", segment, point_normals)
+    # check denominator to avoid division by zero (crossing + segment not parallel to plane)
+    valid = crossing & (np.abs(denominator) > 1e-10)
+    safe_denominator = np.where(valid, denominator, 1.0)
+
+    # direct solving for the intersection parameter t along the segment
+    # c(t) = start + t * segment
+    # intersection with the plane occurs when dot(c(t), point_normals) = points_proj
+    # solve for t: dot(start + t * segment, point_normals) = points_proj
+    t = (
+        points_proj - np.einsum("nk,nk->n", start, point_normals)
+    ) / safe_denominator
+    valid &= (t >= 0) & (t <= 1)
+
+    # now you have t, let's find targets = start + t * segment
+    targets = start + t[:, np.newaxis] * segment
+    # compute distances from points to their corresponding targets on the curve along the plane
+    distances = np.linalg.norm(targets - points, axis=1)
+    # clear distances for invalid intersections
+    distances = np.where(valid, distances, np.inf)
+    targets = np.where(valid[:, np.newaxis], targets, np.nan)
+    return distances, targets
+
+
 class DistanceEngine:
     """DistanceEngine distance computation between a point and a curve in 3D space.
 
@@ -381,4 +472,27 @@ class DistanceEngine:
             distance_3d=distance_3d,
             distance_projection_u=distance_projection_u,
             distance_projection_v=distance_projection_v,
+        )
+
+    def plane_distances(
+        self, points: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Vectorized plane distance for N points given in the section frame.
+
+        Requires `add_span_frame` and `add_curves` to have been called. Unlike
+        `plane_distance`, this method does not modify the engine state.
+
+        Args:
+            points: A numpy array of shape (N, 3), or (3,) for a single point.
+
+        Returns:
+            A tuple `(distances_3d, targets)` with shapes (N,) and (N, 3).
+            Entries without intersection are `np.inf` and `np.nan`.
+        """
+        points = np.atleast_2d(np.asarray(points, dtype=float))
+        return batch_plane_distances(
+            points,
+            span_indices=np.zeros(points.shape[0], dtype=int),
+            curves=np.asarray(self.curve_points, dtype=float)[np.newaxis],
+            normals=self.line_direction_normalized[np.newaxis],
         )

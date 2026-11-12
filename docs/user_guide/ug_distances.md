@@ -91,7 +91,9 @@ An obstacle made of several points is considered as a polyline: its points are j
 The algorithm is:
 
 1. Each obstacle segment is sampled every `step` meters (vertices included) and the plane distance is computed at each sample.
-2. If `refine=True` (default), a bounded scalar minimization is run around the best sample, so the minimum can lie between two samples (`scipy.optimize.minimize_scalar` when scipy is installed, a golden-section search otherwise).
+2. If `refine=True` (default), a golden-section search is run around the best sample, so the minimum can lie between two samples. This search is run simultaneously for all obstacles.
+
+All obstacles and spans are computed in batched numpy operations, without Python loops over points.
 
 Samples whose distance plane does not intersect the span (for instance beyond the supports) are skipped with a `NoIntersectionPlaneWarning`. If no sample intersects the span, `None` is returned.
 

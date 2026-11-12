@@ -1304,7 +1304,7 @@ class TestSectionStudyCopy:
             coords=np.array([[100, -30, 0], [400, 30, 0]]),
         )
         result = study.obstacle_min_distance("road")
-        all_results = study.get_min_distances_from_obstacles()
+        all_results = study.get_segment_distances_from_obstacles()
 
         assert result is not None
         assert set(all_results.keys()) == {"road"}
