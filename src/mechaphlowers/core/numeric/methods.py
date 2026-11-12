@@ -157,3 +157,36 @@ class BrentMethod:
             logger.warning(f"Brent's method failed: {e}. Trying bisection.")
             fallback = BisectionMethod(tol=self.tol, maxiter=self.maxiter)
             return fallback.solve(objective, bounds)
+
+
+def golden_section_search(
+    evaluate: Callable[[np.ndarray], np.ndarray],
+    lower: np.ndarray,
+    upper: np.ndarray,
+    tol: np.ndarray,
+) -> np.ndarray:
+    """Golden-section search of several independent intervals at once.
+
+    `evaluate` takes one abscissa per interval and returns the matching
+    distances. All intervals share the same number of iterations, computed
+    from the largest ratio ``(upper - lower) / tol``.
+
+    Returns:
+        The midpoint of each final interval, shape of `lower`.
+    """
+    inv_phi = (np.sqrt(5.0) - 1.0) / 2.0
+    ratio = np.max((upper - lower) / tol)
+    n_iterations = int(np.ceil(np.log(max(ratio, 1.0)) / -np.log(inv_phi)))
+
+    a, b = lower.copy(), upper.copy()
+    c = b - inv_phi * (b - a)
+    d = a + inv_phi * (b - a)
+    fc, fd = evaluate(c), evaluate(d)
+    for _ in range(n_iterations):
+        left = fc < fd
+        a, b = np.where(left, a, c), np.where(left, d, b)
+        probe = np.where(left, b - inv_phi * (b - a), a + inv_phi * (b - a))
+        f_probe = evaluate(probe)
+        c, d = np.where(left, probe, d), np.where(left, c, probe)
+        fc, fd = np.where(left, f_probe, fd), np.where(left, fc, f_probe)
+    return (a + b) / 2.0

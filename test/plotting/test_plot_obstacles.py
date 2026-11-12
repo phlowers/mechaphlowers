@@ -271,3 +271,24 @@ def test_plot_obstacles_frame_index_out_of_range(
         plt_engine.obstacles_dict(project=True, frame_index=5)
     with pytest.raises(ValueError):
         plt_engine.obstacles_dict(project=True, frame_index=-1)
+
+
+def test_plot_obstacle_min_distance(balance_engine_angles: BalanceEngine):
+    plt_engine = PlotEngine(balance_engine_angles)
+    balance_engine_angles.solve_adjustment()
+    balance_engine_angles.solve_change_state(new_temperature=15)
+    plt_engine.position_engine.add_obstacle(
+        name="road",
+        span_index=1,
+        coords=np.array([[100, -30, 0], [300, 30, 5]]),
+    )
+
+    fig = go.Figure()
+    result = plt_engine.obstacle_min_distance("road", fig=fig)
+
+    assert result is not None
+    assert result.obstacle_name == "road"
+    assert len(fig.data) > 0
+    if show_figures:
+        plt_engine.preview_line3d(fig)
+        fig.show()
