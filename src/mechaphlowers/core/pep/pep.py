@@ -49,17 +49,17 @@ def _compute_parameter_from_one_point(
 
         delta = (y - ym) - measured_y
 
-        p_estimate = p_estimate + 1
-
-        xm = -a / 2 + p_estimate * np.asinh(
-            b / (2 * p_estimate * np.sinh(a / (2 * p_estimate)))
+        xm2 = -a / 2 + (p_estimate + 1) * np.asinh(
+            b / (2 * (p_estimate + 1) * np.sinh(a / (2 * (p_estimate + 1))))
         )
-        ym = p_estimate * (np.cosh(xm / p_estimate) - 1)
+        ym2 = (p_estimate + 1) * (np.cosh(xm2 / (p_estimate + 1)) - 1)
 
-        x = measured_x + xm
-        y = p_estimate * (np.cosh(x / p_estimate) - 1)
+        x = measured_x + xm2
+        y = (p_estimate + 1) * (np.cosh(x / (p_estimate + 1)) - 1)
 
-        derive = ((y - ym) - measured_y) - delta
+        delta2 = (y - ym2) - measured_y
 
-        p_estimate = (p_estimate - 1) - delta / derive
+        derive = delta2 - delta
+
+        p_estimate = p_estimate - delta / derive
     return p_estimate
