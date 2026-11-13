@@ -7,6 +7,7 @@
 """Module for mechaphlowers configuration settings"""
 
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 import numpy as np
 
@@ -84,6 +85,21 @@ class BandedJacobianConfig:
     node_band_size: int = 3
     load_band_size: int = 1
     active: bool = True
+
+    # Minimal half-bandwidths ensuring the banded jacobian is exact
+    MIN_NODE_BAND_SIZE: ClassVar[int] = 3
+    MIN_LOAD_BAND_SIZE: ClassVar[int] = 1
+
+    def __setattr__(self, name: str, value) -> None:
+        minimums = {
+            "node_band_size": self.MIN_NODE_BAND_SIZE,
+            "load_band_size": self.MIN_LOAD_BAND_SIZE,
+        }
+        if name in minimums and value < minimums[name]:
+            raise ValueError(
+                f"{name} must be greater than or equal to {minimums[name]}, got {value}"
+            )
+        super().__setattr__(name, value)
 
 
 @dataclass

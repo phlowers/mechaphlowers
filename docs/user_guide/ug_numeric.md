@@ -8,7 +8,7 @@ When the model is **banded**, most of those evaluations can be shared.
 
 A model has half-bandwidth `h` if objective `i` depends on state variable `j` only when `|i - j| <= h`. The Jacobian is then zero outside the band, and its nonzero entries sit within `h` of the diagonal.
 
-The `h` values are set in the configuration (`options.solver.acceleration.banded_jacobian`): `node_band_size` (default 3) for the node model and `load_band_size` (default 1) for the load model.
+The `h` values are set in the configuration (`options.solver.acceleration.banded_jacobian`): `node_band_size` (default 3) for the node model and `load_band_size` (default 1) for the load model. These defaults are also the minimum accepted values: setting a lower value raises a `ValueError`.
 
 ## Column grouping
 
