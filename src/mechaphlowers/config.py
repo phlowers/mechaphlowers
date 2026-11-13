@@ -7,6 +7,7 @@
 """Module for mechaphlowers configuration settings"""
 
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 import numpy as np
 
@@ -73,9 +74,50 @@ class GraphicsConfig:
 
 
 @dataclass
+class BandedJacobianConfig:
+    """Configuration of the banded jacobian computation in BalanceSolver.
+
+    If `active` is False, the classic (dense) jacobian is computed. If True, the
+    banded jacobian is used, with the half-bandwidth given by `node_band_size`
+    for the node model and `load_band_size` for the load model.
+    """
+
+    node_band_size: int = 3
+    load_band_size: int = 1
+    active: bool = True
+
+    # Minimal half-bandwidths ensuring the banded jacobian is exact
+    MIN_NODE_BAND_SIZE: ClassVar[int] = 3
+    MIN_LOAD_BAND_SIZE: ClassVar[int] = 1
+
+    def __setattr__(self, name: str, value) -> None:
+        minimums = {
+            "node_band_size": self.MIN_NODE_BAND_SIZE,
+            "load_band_size": self.MIN_LOAD_BAND_SIZE,
+        }
+        if name in minimums and value < minimums[name]:
+            raise ValueError(
+                f"{name} must be greater than or equal to {minimums[name]}, got {value}"
+            )
+        super().__setattr__(name, value)
+
+
+@dataclass
+class AccelerationConfig:
+    """Configuration of computation accelerations."""
+
+    banded_jacobian: BandedJacobianConfig = field(
+        default_factory=BandedJacobianConfig
+    )
+
+
+@dataclass
 class SolverConfig:
     """Solvers configuration class."""
 
+    acceleration: AccelerationConfig = field(
+        default_factory=AccelerationConfig
+    )
     sagtension_zeta: float = 10.0
     param_calibration_zeta: float = 1.0
     papoto_zeta: float = 1.0

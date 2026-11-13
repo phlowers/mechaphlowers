@@ -114,6 +114,72 @@ engine.solve_change_state(wind_pressure=np.array([200.0, 150.0, 100.0, 0.0]))
 
 ---
 
+## Solver performance: banded Jacobian
+
+Both adjustment and change-of-state computations use a Newton-Raphson solver.
+At each iteration, the solver estimates the Jacobian by finite differences:
+each column describes how the equilibrium equations change when one state
+variable is perturbed. A dense finite-difference calculation requires one
+model evaluation per state variable.
+
+The balance equations have **local dependencies**: the moments at a node
+depend only on that node and its immediate neighbours. With two state
+variables and two equilibrium equations per node, non-zero Jacobian entries
+lie within three positions of the diagonal. This is a **banded Jacobian** with
+half-bandwidth $b = 3$:
+
+$$
+J_{ij} = 0 \quad \text{when } |i-j| > b.
+$$
+
+Columns separated by $2b+1$ positions affect disjoint sets of equations.
+The solver can therefore perturb these columns together and recover their
+derivatives from a single evaluation. This grouped finite-difference method
+(Curtis-Powell-Reid) needs **7 model evaluations instead of one per state
+variable** to build the balance-model Jacobian.
+
+For point loads, the inner `LoadModel` solves each load's position independently
+of the other loads, with the surrounding span geometry held fixed. Its
+Jacobian consists of independent $2 \times 2$ blocks, giving $b = 1$ and
+**3 evaluations instead of 2 per loaded span**. Reducing both outer and inner
+evaluations is especially beneficial for sections with many loaded spans.
+
+This optimisation is automatic; no change to the `BalanceEngine` API is needed.
+The solver retains dense finite differences when the model does not declare
+a bandwidth or when grouping would not reduce the number of evaluations.
+It still stores a dense matrix and uses `numpy.linalg.solve`: this is an
+optimisation of Jacobian construction, not a sparse linear solver.
+
+### Measured performance
+
+The following results compare `main` at `9a21da93` with the optimised branch
+`refactor/optim-banded-jacobian-load-model` at `6041df16`, measured locally on
+2026-11-05. Values are median times for a **fresh `solve_change_state()` call**
+over five independently prepared engines; construction, adjustment and load
+configuration are excluded.
+
+| Scenario | Main | Optimised branch | Speedup |
+|---|---:|---:|---:|
+| 9 loaded spans | 5,308 ms | 545 ms | **9.7x** |
+| 19 loaded spans | 21,090 ms | 539 ms | **39.1x** |
+| 99 unloaded spans | 1,944 ms | 64 ms | **30.2x** |
+
+The benchmarks used ASTER600 cable, 500 m spans, level 50 m supports, 3 m
+insulators, and a sagging parameter of 2000 m at 15 °C. Change-of-state
+conditions were -200 Pa wind pressure, 0.02 m ice thickness and 5 °C.
+Loaded cases explicitly used `set_loads()` to place a 500 kg point load
+200 m from the left support on every span.
+
+Both revisions ran with the same dependencies (NumPy 2.2.5, SciPy 1.14.1,
+pandas 2.3.1 and Pandera 0.33.1), Python 3.13.18 and single-threaded BLAS.
+
+Across all nine benchmark scenarios, 108 paired numerical-output comparisons
+passed for fresh and repeated solves. State and physical-output arrays used
+relative tolerance $10^{-6}$ and absolute tolerance $10^{-5}$; equilibrium
+objective arrays used absolute tolerance $10^{-2}$.
+
+---
+
 ## `add_loads()`
 
 Adds a point load (e.g. a maintenance device) on a span. Inputs are per-support arrays; the last support value must be `nan` (span-based convention).
