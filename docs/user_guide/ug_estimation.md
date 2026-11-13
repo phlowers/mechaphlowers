@@ -29,10 +29,21 @@ Each evaluation of $f$ runs a change of state in the balance engine. This is don
 
 | Method                | Estimated variable            | Default bounds   | Distance used                          |
 | --------------------- | ----------------------------- | ---------------- | -------------------------------------- |
-| `estimate_temperature` | Cable temperature (°C)        | [-50, 200]       | 3D distance                            |
+| `estimate_temperature` | Cable temperature (°C)        | [-50, 200]       | Signed vertical distance (default)     |
 | `estimate_wind`        | Wind pressure (Pa)            | [-1000, 1000]    | 3D distance                            |
 | `estimate_load`        | Load mass (kg)                | [0, 2000]        | 3D distance                            |
-| `estimate_rope`        | Rope length (m)               | [0.1, 10]        | Vertical distance above the obstacle   |
+| `estimate_rope`        | Rope length (m)               | [0.1, 10]        | Signed vertical distance (default)     |
+| `estimate_load_relative` | Load mass (kg)              | [0, 2000]        | Cable altitude change at the load abscissa |
+
+The `distance_type` argument of `estimate_temperature`, `estimate_wind`, `estimate_load` and `estimate_rope` selects the distance used as the target:
+
+- `"distance_3d"`: unsigned 3D distance between the cable and the obstacle.
+- `"horizontal"`: signed distance along the horizontal axis of the plane containing the obstacle and orthogonal to the span.
+- `"vertical"`: signed vertical distance `z_cable - z_obstacle`. It is negative when the obstacle is above the cable.
+
+`estimate_temperature` and `estimate_rope` default to `"vertical"`; `estimate_wind` and `estimate_load` default to `"distance_3d"`.
+
+`estimate_load_relative` has no obstacle: it reads the cable altitude at `load_position_distance` on the current state of the study, then finds the load for which `new altitude - initial altitude` equals `target_distance` (negative when the cable goes down).
 
 The other climatic conditions (temperature, wind pressure, ice thickness) can be fixed through optional arguments. A generic `estimate()` method also accepts any user-defined objective function.
 
@@ -45,8 +56,8 @@ bounds remain unchanged.
 
 !!! Warning
 
-    `estimate_load` and `estimate_rope` cannot be used on a span split by a virtual support (`EstimateOnSplitSupportError`).
-    For `estimate_load`, an existing load on the target span is ignored and replaced by the estimated one.
+    `estimate_load`, `estimate_load_relative` and `estimate_rope` cannot be used on a span split by a virtual support (`EstimateOnSplitSupportError`).
+    For `estimate_load` and `estimate_load_relative`, an existing load on the target span is ignored and replaced by the estimated one.
 
 ## Optimization methods
 

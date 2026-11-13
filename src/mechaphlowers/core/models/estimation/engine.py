@@ -15,6 +15,10 @@ import numpy as np
 
 from mechaphlowers.config import options
 from mechaphlowers.core.geometry.position_engine import PositionEngine
+from mechaphlowers.core.models.estimation.distance import (
+    ComputeDistance,
+    DistanceType,
+)
 from mechaphlowers.core.numeric import (
     BrentMethod,
     EstimationResult,
@@ -108,6 +112,7 @@ class EstimationEngine:
         bounds: tuple[float, float] = (-50.0, 200.0),
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
+        distance_type: DistanceType = "vertical",
     ) -> EstimationResult:
         """Find the cable temperature that yields a target distance to an obstacle.
 
@@ -118,6 +123,11 @@ class EstimationEngine:
             bounds: Search interval for temperature in °C.
             wind_pressure: Fixed wind pressure in Pa (optional).
             ice_thickness: Fixed ice thickness in m (optional).
+            distance_type: Distance used as the optimization target:
+                ``"distance_3d"`` (unsigned 3D distance),
+                ``"horizontal"`` (signed component along the plane ``u`` axis) or
+                ``"vertical"`` (signed ``z_cable - z_obstacle``).
+                Defaults to ``"vertical"``.
 
         Returns:
             EstimationResult with the temperature value.
@@ -129,6 +139,7 @@ class EstimationEngine:
             target_distance,
             "new_temperature",
             {"wind_pressure": wind_pressure, "ice_thickness": ice_thickness},
+            distance_type=distance_type,
         )
 
         logger.info(
@@ -149,6 +160,7 @@ class EstimationEngine:
         wind_direction: Literal[
             "clockwise", "anticlockwise"
         ] = "anticlockwise",
+        distance_type: DistanceType = "distance_3d",
     ) -> EstimationResult:
         """Find the wind pressure that yields a target distance to an obstacle.
 
@@ -163,6 +175,11 @@ class EstimationEngine:
                 towards the user (right), "anticlockwise" away from the user
                 (left). Defaults to "anticlockwise". Negative pressure reverses
                 the selected direction.
+            distance_type: Distance used as the optimization target:
+                ``"distance_3d"`` (unsigned 3D distance),
+                ``"horizontal"`` (signed component along the plane ``u`` axis) or
+                ``"vertical"`` (signed ``z_cable - z_obstacle``).
+                Defaults to ``"distance_3d"``.
 
         Returns:
             EstimationResult with the wind pressure value.
@@ -181,6 +198,7 @@ class EstimationEngine:
                 "ice_thickness": ice_thickness,
             },
             wind_direction=wind_direction,
+            distance_type=distance_type,
         )
 
         logger.info(
@@ -200,6 +218,7 @@ class EstimationEngine:
         new_temperature: float | None = None,
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
+        distance_type: DistanceType = "distance_3d",
     ) -> EstimationResult:
         """Find the load mass that yields a target distance to an obstacle.
 
@@ -216,6 +235,11 @@ class EstimationEngine:
             new_temperature: Fixed temperature in °C (optional).
             wind_pressure: Fixed wind pressure in Pa (optional).
             ice_thickness: Fixed ice thickness in m (optional).
+            distance_type: Distance used as the optimization target:
+                ``"distance_3d"`` (unsigned 3D distance),
+                ``"horizontal"`` (signed component along the plane ``u`` axis) or
+                ``"vertical"`` (signed ``z_cable - z_obstacle``).
+                Defaults to ``"distance_3d"``.
 
         Returns:
             EstimationResult with the load mass value.
@@ -234,6 +258,7 @@ class EstimationEngine:
                 "wind_pressure": wind_pressure,
                 "ice_thickness": ice_thickness,
             },
+            distance_type=distance_type,
         )
 
         logger.info(
@@ -241,6 +266,68 @@ class EstimationEngine:
             target_distance,
             span_index,
         )
+        return self._method.solve(objective, bounds)
+
+    def estimate_load_relative(
+        self,
+        span_index: int,
+        target_distance: float,
+        load_position_distance: float,
+        bounds: tuple[float, float] = (0.0, 2000.0),
+        new_temperature: float | None = None,
+        wind_pressure: float | None = None,
+        ice_thickness: float | None = None,
+    ) -> EstimationResult:
+        """Find the load mass that yields a target altitude change of the cable.
+
+        The altitude (z) of the cable at the abscissa ``load_position_distance``
+        is read on the current state of the study (initial altitude). The load
+        mass is then optimized so that ``new altitude - initial altitude`` equals
+        ``target_distance`` at the same abscissa. A load lowers the cable, so
+        ``target_distance`` is usually negative.
+
+        Existing loads on other spans are kept. The load replaces any existing
+        load on ``span_index``.
+
+        Args:
+            span_index: Index of the span (before manipulation) holding the load.
+                Must not be split by a virtual support.
+            target_distance: Desired altitude change of the cable at
+                ``load_position_distance`` (meters).
+            load_position_distance: Position of the load along the span, from
+                the left attachment (meters). It is also the abscissa where the
+                altitude is measured.
+            bounds: Search interval for load mass in kg.
+            new_temperature: Fixed temperature in °C (optional).
+            wind_pressure: Fixed wind pressure in Pa (optional).
+            ice_thickness: Fixed ice thickness in m (optional).
+
+        Returns:
+            EstimationResult with the load mass value.
+
+        Raises:
+            EstimateOnSplitSupportError: If ``span_index`` is split by a virtual support.
+        """
+
+        # set target state
+
+        objective = self._build_relative_altitude_objective__load_case(
+            span_index,
+            target_distance,
+            load_position_distance,
+            {
+                "new_temperature": new_temperature,
+                "wind_pressure": wind_pressure,
+                "ice_thickness": ice_thickness,
+            },
+        )
+
+        logger.info(
+            "Estimating load mass for target altitude change %.3f m on span %d",
+            target_distance,
+            span_index,
+        )
+
         return self._method.solve(objective, bounds)
 
     def estimate_rope(
@@ -254,12 +341,14 @@ class EstimationEngine:
         new_temperature: float | None = None,
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
+        distance_type: DistanceType = "vertical",
     ) -> EstimationResult:
-        """Find the rope length that yields a target vertical distance above an obstacle.
+        """Find the rope length that yields a target distance above an obstacle.
 
-        The vertical distance is ``z_cable - z_obstacle``, where ``z_cable`` is
-        the altitude of the cable point lying in the vertical plane that
-        contains the obstacle and is orthogonal to the span.
+        By default, the vertical distance is ``z_cable - z_obstacle``, where
+        ``z_cable`` is the altitude of the cable point lying in the vertical
+        plane that contains the obstacle and is orthogonal to the span. It is
+        signed: a negative value means the obstacle is above the cable.
 
         Existing manipulations, loads and ropes on other supports are kept.
         The chain on ``support_index`` is replaced by the rope with
@@ -271,8 +360,10 @@ class EstimationEngine:
             span_index: Index of the span (before manipulation) where the
                 obstacle is located. Must not be split by a virtual support.
             obstacle_point: 3D coordinates of the obstacle point (shape ``(3,)``).
-            target_vertical_distance: Desired vertical distance between cable
-                and obstacle (meters).
+            target_vertical_distance: Desired signed vertical distance between
+                cable and obstacle (meters), ``z_cable - z_obstacle`` by default.
+                This value is used as the target for the selected
+                ``distance_type``.
             bounds: Search interval for the rope length in meters.
             rope_lineic_mass: Linear mass of the rope in kg/m. Defaults to the
                 rope lineic mass already set on the study, or to
@@ -281,6 +372,11 @@ class EstimationEngine:
             new_temperature: Fixed temperature in °C (optional).
             wind_pressure: Fixed wind pressure in Pa (optional).
             ice_thickness: Fixed ice thickness in m (optional).
+            distance_type: Distance used as the optimization target:
+                ``"distance_3d"`` (unsigned 3D distance),
+                ``"horizontal"`` (signed component along the plane ``u`` axis) or
+                ``"vertical"`` (signed ``z_cable - z_obstacle``).
+                Defaults to ``"vertical"``.
 
         Returns:
             EstimationResult with the rope length value.
@@ -301,6 +397,7 @@ class EstimationEngine:
                 "wind_pressure": wind_pressure,
                 "ice_thickness": ice_thickness,
             },
+            distance_type=distance_type,
         )
 
         logger.info(
@@ -323,8 +420,10 @@ class EstimationEngine:
         wind_direction: Literal[
             "clockwise", "anticlockwise"
         ] = "anticlockwise",
+        distance_type: DistanceType = "vertical",
     ) -> Callable[[float], float]:
         """Build ``f(x) = distance(x) - target`` on a deep copy of the balance engine."""
+        compute_distance = ComputeDistance(distance_type)
         original_balance_engine = self._study.balance_engine
         # Drop observers so the study's downstream engines are not copied
         balance_engine = deepcopy(
@@ -332,6 +431,10 @@ class EstimationEngine:
             {id(original_balance_engine._observers): []},
         )
         position_engine = PositionEngine(balance_engine)
+        residual = compute_distance.compute_distance_factory(
+            lambda: position_engine.point_distance(span_index, obstacle_point),
+            target_distance,
+        )
 
         def objective(x: float) -> float:
             balance_engine.solve_change_state(
@@ -339,8 +442,7 @@ class EstimationEngine:
                 **{variable_name: x},
                 wind_direction=wind_direction,
             )
-            result = position_engine.point_distance(span_index, obstacle_point)
-            return result.distance_3d - target_distance
+            return residual()
 
         return objective
 
@@ -352,12 +454,14 @@ class EstimationEngine:
         target_vertical_distance: float,
         rope_lineic_mass: float | None,
         fixed_conditions: dict[str, Any],
+        distance_type: DistanceType = "vertical",
     ) -> Callable[[float], float]:
-        """Build ``f(rope_length) = vertical_distance - target`` on a copy of the study.
+        """Build ``f(rope_length) = selected_distance - target`` on a copy of the study.
 
         Each evaluation applies the rope with `SectionStudy.set_rope_or_chain`, then runs
         `SectionStudy.solve_change_state` with the fixed conditions.
         """
+        compute_distance = ComputeDistance(distance_type)
         manipulation = self._study.manipulation
         engine_span_index = manipulation.span_index_after_virtual_support(
             span_index
@@ -384,6 +488,13 @@ class EstimationEngine:
         }
 
         study = self._study.copy()
+        # apply_manipulations rebuilds the position engine: the lambda must not cache it
+        residual = compute_distance.compute_distance_factory(
+            lambda: study.position_engine.point_distance(
+                engine_span_index, obstacle_point
+            ),
+            target_vertical_distance,
+        )
 
         def objective(rope_length: float) -> float:
             study.set_rope_or_chain(
@@ -397,12 +508,7 @@ class EstimationEngine:
                 }
             )
             study.solve_change_state(**fixed_conditions)
-            # apply_manipulations rebuilds the position engine: do not cache it
-            result = study.position_engine.point_distance(
-                engine_span_index, obstacle_point
-            )
-            vertical_distance = result.point_target[2] - result.point_base[2]
-            return vertical_distance - target_vertical_distance
+            return residual()
 
         return objective
 
@@ -413,11 +519,84 @@ class EstimationEngine:
         target_distance: float,
         load_position_distance: float,
         fixed_conditions: dict[str, float | None],
+        distance_type: DistanceType = "distance_3d",
     ) -> Callable[[float], float]:
         """Build ``f(load_mass) = distance - target`` on a deep copy of the balance engine.
 
         Manipulations and existing loads are kept; only the load on ``span_index``
         (index before manipulation) is replaced.
+        """
+        compute_distance = ComputeDistance(distance_type)
+
+        def residual_factory(
+            position_engine: PositionEngine, span_index_after_manip: int
+        ) -> Callable[[], float]:
+            return compute_distance.compute_distance_factory(
+                lambda: position_engine.point_distance(
+                    span_index_after_manip, obstacle_point
+                ),
+                target_distance,
+            )
+
+        return self._build_load_objective(
+            span_index,
+            load_position_distance,
+            fixed_conditions,
+            residual_factory,
+        )
+
+    def _build_relative_altitude_objective__load_case(
+        self,
+        span_index: int,
+        target_distance: float,
+        load_position_distance: float,
+        fixed_conditions: dict[str, float | None],
+    ) -> Callable[[float], float]:
+        """Build ``f(load_mass) = (z(x) - z_initial(x)) - target`` on a deep copy of the balance engine.
+
+        ``x`` is ``load_position_distance``. ``z_initial`` is read on the current
+        state of the study, before the load and the fixed conditions are applied.
+        """
+
+        def residual_factory(
+            position_engine: PositionEngine, span_index_after_manip: int
+        ) -> Callable[[], float]:
+            if not position_engine.get_loads_coords_group_points():
+                raise ValueError("No load coordinates available")
+            initial_altitude = position_engine.get_loads_coords_group_points()[
+                span_index_after_manip
+            ]
+
+            def residual() -> float:
+                altitude = position_engine.get_loads_coords_group_points()[
+                    span_index_after_manip
+                ]
+                # take z component
+                return altitude[2] - initial_altitude[2] - target_distance
+
+            return residual
+
+        return self._build_load_objective(
+            span_index,
+            load_position_distance,
+            fixed_conditions,
+            residual_factory,
+        )
+
+    def _build_load_objective(
+        self,
+        span_index: int,
+        load_position_distance: float,
+        fixed_conditions: dict[str, float | None],
+        residual_factory: Callable[[PositionEngine, int], Callable[[], float]],
+    ) -> Callable[[float], float]:
+        """Build ``f(load_mass)`` on a deep copy of the balance engine.
+
+        Manipulations and existing loads are kept; only the load on ``span_index``
+        (index before manipulation) is replaced. ``residual_factory`` is called
+        once, before any change of state, with the position engine and the span
+        index after manipulation. It returns the function evaluated on the
+        updated state.
         """
         span_index_after_manip = (
             self._study.manipulation.span_index_after_virtual_support(
@@ -439,14 +618,20 @@ class EstimationEngine:
         span_length = arr.decr(
             balance_engine.section_array.data.span_length.to_numpy()
         )
+
+        # get the current load positions and masses for the span after manipulation
         load_positions = balance_engine.span_loads.load_position * span_length
         load_masses = balance_engine.span_loads.load_mass.copy()
         load_positions[span_index_after_manip] = load_position_distance
+        # in case there is no existing load, set a small default value
+        load_masses[span_index_after_manip] = (
+            load_masses[span_index_after_manip] or 0.01
+        )
 
         if not np.isclose(
             np.nan_to_num(load_masses[span_index_after_manip]),
-            0.0,
-            atol=1e-6,
+            0.01,
+            atol=1e-2,
         ):
             logger.warning(self._warning_existing_load)
             warnings.warn(self._warning_existing_load, EstimationWarning)
@@ -455,6 +640,12 @@ class EstimationEngine:
             value is not None for value in fixed_conditions.values()
         )
 
+        # set initial state for balance engine
+        balance_engine.set_loads(load_positions, load_masses)
+        balance_engine.solve_change_state(**fixed_conditions)
+
+        residual = residual_factory(position_engine, span_index_after_manip)
+
         def objective(load_mass: float) -> float:
             load_masses[span_index_after_manip] = load_mass
             balance_engine.set_loads(load_positions, load_masses)
@@ -462,9 +653,6 @@ class EstimationEngine:
                 # set_loads resets the nodes: a cold solve with ice or wind may diverge
                 balance_engine.solve_change_state()
             balance_engine.solve_change_state(**fixed_conditions)
-            result = position_engine.point_distance(
-                span_index_after_manip, obstacle_point
-            )
-            return result.distance_3d - target_distance
+            return residual()
 
         return objective

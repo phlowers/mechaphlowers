@@ -15,8 +15,11 @@ import pandas as pd
 import pytest
 
 from mechaphlowers.api.section_study import SectionStudy
+from mechaphlowers.core.geometry.distances import DistanceResult
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.estimation import (
+    ComputeDistance,
+    DistanceType,
     EstimationEngine,
     EstimationResult,
 )
@@ -147,6 +150,31 @@ class TestEstimationEngine:
             obstacle_point=np.array([250.0, 10.0, 20.0]),
             target_distance=ref_distance,
             bounds=(0.0, 120.0),
+        )
+        assert result.converged
+        assert abs(result.value - temperature) < 0.1
+
+    def test_estimate_temperature_distance_type_vertical(
+        self, solved_study: SectionStudy
+    ):
+        """Temperature estimation can target the signed vertical distance."""
+        study = solved_study
+        temperature = 60.0
+        study.solve_change_state(new_temperature=temperature)
+        distance = study.position_engine.point_distance(
+            span_index=0, point=np.array([250.0, 10.0, 20.0])
+        )
+        ref_distance = distance.point_target[2] - distance.point_base[2]
+
+        study.solve_adjustment()
+
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
+        result = engine.estimate_temperature(
+            span_index=0,
+            obstacle_point=np.array([250.0, 10.0, 20.0]),
+            target_distance=ref_distance,
+            bounds=(0.0, 120.0),
+            distance_type="vertical",
         )
         assert result.converged
         assert abs(result.value - temperature) < 0.1
@@ -293,6 +321,73 @@ class TestEstimationSandbox:
             study.balance_engine.span_loads.load_mass, engine_masses_before
         )
 
+    @pytest.mark.parametrize("temperature", [{}, {"new_temperature": 40.0}])
+    def test_estimate_load_relative_converges(
+        self, solved_study: SectionStudy, temperature: dict
+    ):
+        study = solved_study
+        n_spans = len(study._clean_engine.section_array.data) - 1
+        x = 100.0
+        guess_mass = 50.0
+
+        positions = np.zeros(n_spans)
+        masses = np.zeros(n_spans)
+
+        positions[0] = x
+        masses[0] = 0.01
+        reference = study.copy()
+        reference.set_loads(positions, masses)
+        reference.solve_change_state(**temperature)
+
+        initial_altitude = (
+            reference.position_engine.get_loads_coords_group_points()[0][2]
+        )
+
+        positions[0] = x
+        masses[0] = guess_mass
+        reference = study.copy()
+        reference.set_loads(positions, masses)
+        reference.solve_change_state(**temperature)
+
+        target = (
+            reference.position_engine.get_loads_coords_group_points()[0][2]
+            - initial_altitude
+        )
+        assert target < 0
+
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
+        result = engine.estimate_load_relative(
+            span_index=0,
+            target_distance=target,
+            load_position_distance=x,
+            bounds=(0.0, 100.0),
+            **temperature,
+        )
+        assert result.converged
+        assert abs(result.value - guess_mass) < 1.0
+
+    def test_study_untouched_after_estimate_load_relative(
+        self, solved_study: SectionStudy
+    ):
+        study = solved_study
+        memento_before = study.intermediate_memento
+        engine_masses_before = np.copy(
+            study.balance_engine.span_loads.load_mass
+        )
+        engine = EstimationEngine(
+            study, method=BisectionMethod(tol=1.0, maxiter=3)
+        )
+        engine.estimate_load_relative(
+            span_index=0,
+            target_distance=-0.5,
+            load_position_distance=100.0,
+            bounds=(0.0, 100.0),
+        )
+        assert study.intermediate_memento is memento_before
+        np.testing.assert_array_equal(
+            study.balance_engine.span_loads.load_mass, engine_masses_before
+        )
+
     virtual_support = {
         0: {
             "x": 100.0,
@@ -346,6 +441,22 @@ class TestEstimationSandbox:
                 span_index=0,
                 obstacle_point=self.obstacle,
                 target_distance=30.0,
+                load_position_distance=50.0,
+            )
+
+    def test_estimate_load_relative_on_split_span_raises(
+        self, solved_study: SectionStudy
+    ):
+        study = solved_study
+        study.set_virtual_support(self.virtual_support)
+        engine = EstimationEngine(study)
+        with pytest.raises(
+            EstimateOnSplitSupportError,
+            match="split by a virtual support",
+        ):
+            engine.estimate_load_relative(
+                span_index=0,
+                target_distance=-1.0,
                 load_position_distance=50.0,
             )
 
@@ -410,7 +521,7 @@ SCENARIOS = {
         target_load=(100.0, 20.0),
         virtual_support=VIRTUAL_SUPPORTS,
         modify_support={2: {"z": 1.0}},
-        shift_support={2: 1.0},
+        shift_support={3: 1.0},
         conditions={"ice_thickness": 0.01},
     ),
 }
@@ -450,7 +561,7 @@ def build_study(cable_array: CableArray, scenario: Scenario) -> SectionStudy:
                 ),
             }
         ),
-        sagging_parameter=2000,
+        sagging_parameter=1000,
         sagging_temperature=15,
     )
     section_array.add_units({"line_angle": "grad"})
@@ -716,3 +827,91 @@ class TestEstimateRope:
             roped.position_engine.coords_calculator.center_arm_coords[:, 2],
             study.position_engine.coords_calculator.center_arm_coords[:, 2],
         )
+
+    @pytest.mark.parametrize(
+        "obstacle",
+        [
+            np.array([250.0, 30.0, 20.0]),  # laterally offset
+            np.array([250.0, 10.0, 200.0]),  # above the cable: negative target
+        ],
+    )
+    def test_default_vertical_distance_is_signed(
+        self, study: SectionStudy, obstacle: np.ndarray
+    ):
+        rope = {1: {"type": "rope", "length": 5.0}}
+        target = rope_target(study, rope, 0, obstacle)
+        study.set_rope_or_chain(rope)
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
+        result = engine.estimate_rope(
+            span_index=0,
+            obstacle_point=obstacle,
+            target_vertical_distance=target,
+            bounds=(1.0, 10.0),
+            support_index=1,
+        )
+        assert result.converged
+        assert abs(result.value - 5.0) < 0.05
+
+    def test_distance_3d_explicit(self, study: SectionStudy):
+        rope = {1: {"type": "rope", "length": 5.0}}
+        reference = study.copy()
+        reference.set_rope_or_chain(rope)
+        reference.solve_change_state()
+        target = reference.position_engine.point_distance(
+            0, self.obstacle
+        ).distance_3d
+        study.set_rope_or_chain({1: {"type": "rope", "length": 2.0}})
+        result = self.estimate(
+            study, target, support_index=1, distance_type="distance_3d"
+        )
+        assert result.converged
+        assert abs(result.value - 5.0) < 0.05
+
+
+class TestComputeDistance:
+    @pytest.fixture
+    def result(self) -> DistanceResult:
+        """Base point at origin, cable 3 m along u, 4 m below along v."""
+        u_plane = np.array([1.0, 0.0, 0.0])
+        v_plane = np.array([0.0, 0.0, 1.0])
+        return DistanceResult(
+            point_base=np.array([0.0, 0.0, 10.0]),
+            point_target=np.array([3.0, 0.0, 6.0]),
+            u_plane=u_plane,
+            v_plane=v_plane,
+            distance_3d=5.0,
+            distance_projection_u=3.0,
+            distance_projection_v=-4.0,
+        )
+
+    @pytest.mark.parametrize(
+        "distance_type, expected",
+        [
+            ("distance_3d", 5.0),
+            ("horizontal", 3.0),
+            ("vertical", -4.0),
+        ],
+    )
+    def test_select_distance(
+        self,
+        result: DistanceResult,
+        distance_type: DistanceType,
+        expected: float,
+    ):
+        compute = ComputeDistance(distance_type)
+        assert compute.select_distance(result) == pytest.approx(expected)
+
+    def test_negative_horizontal_is_signed(self, result: DistanceResult):
+        result.signed_distance_projection_u = -3.0
+        compute = ComputeDistance("horizontal")
+        assert compute.select_distance(result) == pytest.approx(-3.0)
+
+    def test_compute_distance_factory(self, result: DistanceResult):
+        residual = ComputeDistance("vertical").compute_distance_factory(
+            lambda: result, target=-1.0
+        )
+        assert residual() == pytest.approx(-3.0)
+
+    def test_invalid_distance_type_raises(self):
+        with pytest.raises(ValueError, match="distance_type must be one of"):
+            ComputeDistance("distance_u")  # type: ignore[arg-type]
