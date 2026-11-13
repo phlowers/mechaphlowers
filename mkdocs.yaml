@@ -61,6 +61,7 @@ nav:
       - Thermal engine: user_guide/ug_thermal_engine.md
       - Section Study: user_guide/ug_section_study.md
       - Estimation: user_guide/ug_estimation.md
+      - Numeric: user_guide/ug_numeric.md
       - Specific errors used: user_guide/ug_mph_errors.md
   - Developer guide:
       - API Reference:
