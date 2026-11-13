@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from mechaphlowers.core.tangential_sighting.tangential_sighting import (
+from mechaphlowers.core.parameter_measures.tangential_sighting import (
     compute_parameter__array,
     compute_parameter__scalar,
 )

@@ -103,8 +103,9 @@ nav:
               - Numeric:
                   - Optimization methods: docstring/core/numeric/methods.md
                   - Estimation result: docstring/core/numeric/result.md
-              - Papoto: docstring/core/papoto/papoto_model.md
-              - Tangential Sighting Method: docstring/core/tangential_sighting/tangential_sighting.md
+              - Parameter Measures:
+                  - Papoto: docstring/core/parameter_measures/papoto.md
+                  - Tangential Sighting Method: docstring/core/parameter_measures/tangential_sighting.md
               - Manipulation: docstring/core/manipulation.md
           - Data:
               - Catalog: docstring/data/catalog/catalog.md

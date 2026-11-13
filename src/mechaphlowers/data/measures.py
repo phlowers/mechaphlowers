@@ -19,13 +19,16 @@ import numpy as np
 from mechaphlowers.config import options
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.core.papoto.papoto_model import (
+from mechaphlowers.core.parameter_measures.papoto import (
     papoto_2_points,
     papoto_validity,
 )
-from mechaphlowers.core.tangential_sighting.tangential_sighting import (
-    compute_parameter__array,
-    compute_parameter__scalar,
+from mechaphlowers.core.parameter_measures.pep import compute_parameter as pep
+from mechaphlowers.core.parameter_measures.tangential_sighting import (
+    compute_parameter__array as tangential_sighting__array,
+)
+from mechaphlowers.core.parameter_measures.tangential_sighting import (
+    compute_parameter__scalar as tangential_sighting__scalar,
 )
 from mechaphlowers.data.units import convert_angle_to_rad
 from mechaphlowers.entities.arrays import CableArray, SectionArray
@@ -361,6 +364,45 @@ class PapotoParameterMeasure(ParameterMeasure):
             raise ValueError("angle_error must be a non-negative real number.")
 
 
+class PepParameterMeasure(ParameterMeasure):
+    validity_criteria = 0.005
+
+    def measure_method(
+        self,
+        span_length: np.ndarray,
+        elevation_difference: np.ndarray,
+        x1: np.ndarray,
+        z1: np.ndarray,
+        x2: np.ndarray,
+        z2: np.ndarray,
+        x3: np.ndarray,
+        z3: np.ndarray,
+    ) -> None:
+        """Compute the cable parameter from the coordinates of 3 measured points, using the Pep method.
+
+        All coordinates must be in the span frame.
+        (Typically, x1, x2 and x3 are positive and y1, y2 and y3 are negative.)
+
+        This method is only valid if there was little to no wind during the measurements.
+        """
+        logger.debug("Start running PepParameterMeasure.measure_method()")
+        _, _, _, self._parameter, self.relative_error = pep(
+            span_length, elevation_difference, x1, z1, x2, z2, x3, z3
+        )
+        logger.debug("PepParameterMeasure.measure_method() ended")
+
+    @property
+    def parameter(self) -> np.ndarray:
+        return self._parameter
+
+    @property
+    def validity(self):
+        return self.relative_error < self.validity_criteria
+
+    def check_validity(self) -> np.ndarray:
+        return self.validity
+
+
 class TangentialSightingParameterMeasure(ParameterMeasure):
     """Class to compute a parameter using the tangential sighting method."""
 
@@ -471,7 +513,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
         }
 
         if isinstance(angle_to_cable_tangent, np.ndarray):
-            self._parameter = compute_parameter__array(
+            self._parameter = tangential_sighting__array(
                 angle_to_cable_tangent,
                 angle_to_left_support,  # type: ignore
                 angle_to_right_support,  # type: ignore
@@ -480,7 +522,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
                 distance,  # type: ignore
             )
         else:
-            self._parameter = compute_parameter__scalar(
+            self._parameter = tangential_sighting__scalar(
                 angle_to_cable_tangent,  # type: ignore
                 angle_to_left_support,  # type: ignore
                 angle_to_right_support,  # type: ignore
@@ -554,7 +596,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             or scalar_measures["distance"] == 0
         ):  # sighting device at left support
             return _absolute_uncertainty_from_gum_method(
-                compute_parameter__scalar,
+                tangential_sighting__scalar,
                 f_kwargs=scalar_measures,
                 variable_uncertainties={
                     "angle_to_cable_tangent": cfg.measure_uncertainty.angle_uncertainty,
@@ -565,7 +607,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             )
         else:  # sighting device not at left support (inside or outside the span)
             return _absolute_uncertainty_from_gum_method(
-                compute_parameter__scalar,
+                tangential_sighting__scalar,
                 f_kwargs=scalar_measures,
                 variable_uncertainties={
                     "angle_to_cable_tangent": cfg.measure_uncertainty.angle_uncertainty,

@@ -11,6 +11,7 @@ import pytest
 from mechaphlowers.config import options
 from mechaphlowers.data.measures import (
     PapotoParameterMeasure,
+    PepParameterMeasure,
     TangentialSightingParameterMeasure,
     param_calibration,
 )
@@ -694,3 +695,88 @@ def test_tangential_sighting_check_validity__multi_element_array_error() -> (
     )
     with pytest.raises(MechaphlowersValueError, match="scalar"):
         tangential_sighting.check_validity()
+
+
+def test_pep_parameter_measure__array__ok() -> None:
+    pep = PepParameterMeasure()
+    pep(
+        span_length=np.array([466.067, 485.144, 430.521]),
+        elevation_difference=np.array([-1.560, 7.023, -0.025]),
+        x1=np.array([198.332, 123.346, 108.903]),
+        z1=np.array([-13.288, -8.779, -8.270]),
+        x2=np.array([205.037, 202.985, 221.108]),
+        z2=np.array([-13.444, -10.631, -10.896]),
+        x3=np.array([298.816, 250.684, 284.145]),
+        z3=np.array([-12.879, -10.299, -9.803]),
+    )
+    np.testing.assert_allclose(
+        pep.parameter,
+        np.array([2104, 2113, 2126]),
+        atol=1.0,
+    )
+    np.testing.assert_equal(pep.validity, np.array([True, True, True]))
+    assert (pep.relative_error < 0.005).all()
+
+
+def test_pep_parameter_measure__array__mixed_validity() -> None:
+    measure_error = 50
+    pep = PepParameterMeasure()
+    pep(
+        span_length=np.array([466.067, 485.144, 430.521]),
+        elevation_difference=np.array([-1.560, 7.023, -0.025]),
+        x1=np.array([198.332 + measure_error, 123.346, 108.903]),
+        z1=np.array([-13.288, -8.779, -8.270]),
+        x2=np.array([205.037, 202.985, 221.108]),
+        z2=np.array([-13.444, -10.631, -10.896]),
+        x3=np.array([298.816, 250.684, 284.145]),
+        z3=np.array([-12.879, -10.299, -9.803]),
+    )
+    np.testing.assert_allclose(
+        pep.parameter,
+        np.array([2126, 2113, 2126]),
+        atol=1.0,
+    )
+    np.testing.assert_equal(pep.validity, np.array([False, True, True]))
+
+
+def test_pep_parameter_measure__scalar__ok() -> None:
+    pep = PepParameterMeasure()
+    pep(
+        span_length=466.067,
+        elevation_difference=-1.560,
+        x1=198.332,
+        z1=-13.288,
+        x2=205.037,
+        z2=-13.444,
+        x3=298.816,
+        z3=-12.879,
+    )
+    np.testing.assert_allclose(
+        pep.parameter,
+        2104,
+        atol=1.0,
+    )
+    np.testing.assert_equal(pep.validity, True)
+    assert pep.relative_error < 0.005
+
+
+def test_pep_parameter_measure__scalar__not_valid() -> None:
+    measure_error = 50
+    pep = PepParameterMeasure()
+    pep(
+        span_length=466.067,
+        elevation_difference=-1.560,
+        x1=198.332 + measure_error,
+        z1=-13.288,
+        x2=205.037,
+        z2=-13.444,
+        x3=298.816,
+        z3=-12.879,
+    )
+    np.testing.assert_allclose(
+        pep.parameter,
+        2126,
+        atol=1.0,
+    )
+    assert pep.relative_error > 0.005
+    assert not pep.validity
