@@ -15,8 +15,10 @@ import pandas as pd
 import pytest
 
 from mechaphlowers.api.section_study import SectionStudy
+from mechaphlowers.core.geometry.distances import DistanceResult
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.estimation import (
+    ComputeDistance,
     EstimationEngine,
     EstimationResult,
 )
@@ -154,13 +156,14 @@ class TestEstimationEngine:
     def test_estimate_temperature_distance_type_vertical(
         self, solved_study: SectionStudy
     ):
-        """Temperature estimation can target the vertical plane component."""
+        """Temperature estimation can target the signed vertical distance."""
         study = solved_study
         temperature = 60.0
         study.solve_change_state(new_temperature=temperature)
-        ref_distance = study.position_engine.point_distance(
+        distance = study.position_engine.point_distance(
             span_index=0, point=np.array([250.0, 10.0, 20.0])
-        ).distance_projection_v
+        )
+        ref_distance = distance.point_target[2] - distance.point_base[2]
 
         study.solve_adjustment()
 
@@ -170,7 +173,7 @@ class TestEstimationEngine:
             obstacle_point=np.array([250.0, 10.0, 20.0]),
             target_distance=ref_distance,
             bounds=(0.0, 120.0),
-            distance_type="distance_v",
+            distance_type="vertical",
         )
         assert result.converged
         assert abs(result.value - temperature) < 0.1
@@ -823,3 +826,88 @@ class TestEstimateRope:
             roped.position_engine.coords_calculator.center_arm_coords[:, 2],
             study.position_engine.coords_calculator.center_arm_coords[:, 2],
         )
+
+    @pytest.mark.parametrize(
+        "obstacle",
+        [
+            np.array([250.0, 30.0, 20.0]),  # laterally offset
+            np.array([250.0, 10.0, 200.0]),  # above the cable: negative target
+        ],
+    )
+    def test_default_vertical_distance_is_signed(
+        self, study: SectionStudy, obstacle: np.ndarray
+    ):
+        rope = {1: {"type": "rope", "length": 5.0}}
+        target = rope_target(study, rope, 0, obstacle)
+        study.set_rope_or_chain(rope)
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
+        result = engine.estimate_rope(
+            span_index=0,
+            obstacle_point=obstacle,
+            target_vertical_distance=target,
+            bounds=(1.0, 10.0),
+            support_index=1,
+        )
+        assert result.converged
+        assert abs(result.value - 5.0) < 0.05
+
+    def test_distance_3d_explicit(self, study: SectionStudy):
+        rope = {1: {"type": "rope", "length": 5.0}}
+        reference = study.copy()
+        reference.set_rope_or_chain(rope)
+        reference.solve_change_state()
+        target = reference.position_engine.point_distance(
+            0, self.obstacle
+        ).distance_3d
+        study.set_rope_or_chain({1: {"type": "rope", "length": 2.0}})
+        result = self.estimate(
+            study, target, support_index=1, distance_type="distance_3d"
+        )
+        assert result.converged
+        assert abs(result.value - 5.0) < 0.05
+
+
+class TestComputeDistance:
+    @pytest.fixture
+    def result(self) -> DistanceResult:
+        """Base point at origin, cable 3 m along u, 4 m below along v."""
+        u_plane = np.array([1.0, 0.0, 0.0])
+        v_plane = np.array([0.0, 0.0, 1.0])
+        return DistanceResult(
+            point_base=np.array([0.0, 0.0, 10.0]),
+            point_target=np.array([3.0, 0.0, 6.0]),
+            u_plane=u_plane,
+            v_plane=v_plane,
+            distance_3d=5.0,
+            distance_projection_u=3.0,
+            distance_projection_v=-4.0,
+        )
+
+    @pytest.mark.parametrize(
+        "distance_type, expected",
+        [
+            ("distance_3d", 5.0),
+            ("horizontal", 3.0),
+            ("vertical", -4.0),
+        ],
+    )
+    def test_select_distance(
+        self, result: DistanceResult, distance_type: str, expected: float
+    ):
+        compute = ComputeDistance(distance_type)
+        assert compute.select_distance(result) == pytest.approx(expected)
+
+    def test_negative_horizontal_is_signed(self, result: DistanceResult):
+        result.signed_distance_projection_u = -3.0
+        compute = ComputeDistance("horizontal")
+        assert compute.select_distance(result) == pytest.approx(-3.0)
+
+    def test_compute_distance_factory(self, result: DistanceResult):
+        residual = ComputeDistance("vertical").compute_distance_factory(
+            lambda: result, target=-1.0
+        )
+        assert residual() == pytest.approx(-3.0)
+
+    def test_invalid_distance_type_raises(self):
+        with pytest.raises(ValueError, match="distance_type must be one of"):
+            ComputeDistance("distance_u")  # type: ignore[arg-type]

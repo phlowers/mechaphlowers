@@ -4,6 +4,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
+from mechaphlowers.core.models.estimation.distance import (
+    ComputeDistance,
+    DistanceType,
+)
 from mechaphlowers.core.models.estimation.engine import EstimationEngine
 from mechaphlowers.core.numeric import (
     BisectionMethod,
@@ -13,6 +17,8 @@ from mechaphlowers.core.numeric import (
 )
 
 __all__ = [
+    "ComputeDistance",
+    "DistanceType",
     "EstimationEngine",
     "EstimationResult",
     "OptimizationMethod",
