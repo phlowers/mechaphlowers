@@ -15,8 +15,8 @@ import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
 from mechaphlowers.core.geometry.distances import (
-    DistanceResult,
-    ObstacleDistanceResult,
+    PointDistanceResult,
+    ClosestDistanceResult,
 )
 from mechaphlowers.core.geometry.points import Points
 from mechaphlowers.core.geometry.position_engine import PositionEngine
@@ -802,8 +802,8 @@ class PlotEngine(Observer):
         point_index: int,
         *,
         fig: go.Figure | None = None,
-    ) -> DistanceResult:
-        """Compute the distance from *point* to a span, with optional plotting.
+    ) -> PointDistanceResult:
+        """Compute the distance from an obstacle point to its span, with optional plotting.
 
         Delegates the geometric computation to
         [`PositionEngine.point_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.point_distance] and, when *fig* is provided,
@@ -817,6 +817,10 @@ class PlotEngine(Observer):
 
         Returns:
             [`DistanceResult`][mechaphlowers.core.geometry.distances.DistanceResult].
+
+        Raises:
+            KeyError: If the obstacle does not exist, or if the point does
+                not intersect the span.
 
         Examples:
 
@@ -835,11 +839,16 @@ class PlotEngine(Observer):
             # ...get a distance result object with the distance and closest point coordinates
             >>> fig.show()
         """
-        distance_result = self.position_engine.get_distances_from_obstacles()[
+        obstacle_distances = self.position_engine.get_distances(obstacle_name)[
             obstacle_name
-        ][point_index]
+        ]
+        distance_result = obstacle_distances.points[point_index]
 
         if fig is not None:
+            # Load the distance engine so that plotting uses the same plane.
+            self.position_engine.point_distance(
+                obstacle_distances.span_index, distance_result.point_base
+            )
             plot_distance_engine(
                 self.position_engine.distance_engine,
                 distance_result=distance_result,
@@ -871,8 +880,8 @@ class PlotEngine(Observer):
         xtol: float = 1e-3,
         *,
         fig: go.Figure | None = None,
-    ) -> ObstacleDistanceResult | None:
-        """Compute the minimum distance between a polyline obstacle and its span, with optional plotting.
+    ) -> ClosestDistanceResult | None:
+        """Compute the minimum distance between an obstacle and its span, with optional plotting.
 
         Delegates the computation to
         [`PositionEngine.obstacle_min_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.obstacle_min_distance]

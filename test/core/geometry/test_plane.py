@@ -9,7 +9,7 @@ import pytest
 
 from mechaphlowers.core.geometry.planes import (
     change_local_frame,
-    intersection_curve_plane,
+    scalar_intersection_curve_plane,
     line_function_from_2_points,
     meshgrid_plane,
     parametric_line_from_2_points,
@@ -104,7 +104,7 @@ def test_intersection_curve_plane_closest_points_when_not_fine_tuning():
     plane_normal = np.array([1.0, 0.0, 0.0])
     point_on_plane = np.array([0.0, 0.0, 0.0])
 
-    intersections = intersection_curve_plane(
+    intersections = scalar_intersection_curve_plane(
         plane_normal, point_on_plane, spans1, fine_tuning=False
     )
 
@@ -125,7 +125,7 @@ def test_intersection_curve_plane_fine_tuning_intersection():
     plane_normal = np.array([1.0, 0.0, 0.0])
     point_on_plane = np.array([0.0, 0.0, 0.0])
 
-    intersections = intersection_curve_plane(
+    intersections = scalar_intersection_curve_plane(
         plane_normal, point_on_plane, spans1, fine_tuning=True
     )
 
@@ -145,7 +145,7 @@ def test_intersection_curve_plane_fine_tuning_plane_through_curve_point():
     plane_normal = np.array([1.0, 0.0, 0.0])
     point_on_plane = np.array([-1.0, 5.0, 5.0])
 
-    intersections = intersection_curve_plane(
+    intersections = scalar_intersection_curve_plane(
         plane_normal, point_on_plane, spans1, fine_tuning=True
     )
 
@@ -167,7 +167,7 @@ def test_intersection_curve_plane_fine_tuning_same_side_raises():
     with pytest.raises(
         NoIntersectionPlaneForDistanceError,
     ):
-        intersection_curve_plane(
+        scalar_intersection_curve_plane(
             plane_normal, point_on_plane, spans1, fine_tuning=True
         )
 

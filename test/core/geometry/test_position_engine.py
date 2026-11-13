@@ -16,12 +16,10 @@ import pytest
 from pandas.testing import assert_frame_equal
 
 from mechaphlowers.config import options as cfg
-from mechaphlowers.core.geometry import (
-    position_engine as position_engine_module,
-)
+from mechaphlowers.core.geometry import distances as distances_module
 from mechaphlowers.core.geometry.distances import (
-    DistanceResult,
-    ObstacleDistanceResult,
+    PointDistanceResult,
+    ClosestDistanceResult,
 )
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
@@ -300,7 +298,7 @@ class TestPositionEngineDistance:
             span_index=0, point=np.array([250.0, 0.0, 30.0])
         )
 
-        assert isinstance(dr, DistanceResult)
+        assert isinstance(dr, PointDistanceResult)
         assert dr.distance_3d > 0
 
     def test_point_distance_invalid_span_index_raises(
@@ -374,7 +372,9 @@ class TestPositionEngineObstacleArray:
             }
         )
         assert_frame_equal(
-            pos_engine.obstacle_array.data, expected_df, check_like=True
+            pos_engine.obstacle_array.data,
+            expected_df.assign(geometry_type="points"),
+            check_like=True,
         )
 
     def test_add_many_obstacle(self, balance_engine_base_test: BalanceEngine):
@@ -431,7 +431,9 @@ class TestPositionEngineObstacleArray:
             }
         )
         assert_frame_equal(
-            pos_engine.obstacle_array.data, expected_df, check_like=True
+            pos_engine.obstacle_array.data,
+            expected_df.assign(geometry_type="points"),
+            check_like=True,
         )
 
     def test_refresh_absolute_coordinates(
@@ -510,7 +512,9 @@ class TestPositionEngineObstacleArray:
             }
         )
         assert_frame_equal(
-            pos_engine.obstacle_array.data, expected_df, check_like=True
+            pos_engine.obstacle_array.data,
+            expected_df.assign(geometry_type="points"),
+            check_like=True,
         )
 
     def test_delete_point(self, balance_engine_base_test: BalanceEngine):
@@ -566,7 +570,9 @@ class TestPositionEngineObstacleArray:
             }
         )
         assert_frame_equal(
-            pos_engine.obstacle_array.data, expected_df, check_like=True
+            pos_engine.obstacle_array.data,
+            expected_df.assign(geometry_type="points"),
+            check_like=True,
         )
 
     def test_add_and_delete_obstacle_dict(
@@ -659,31 +665,27 @@ class TestDistancesFromObstacles:
     def test_multiple_obstacles(
         self, pos_engine_with_obstacles: PositionEngine
     ):
-        distances_dict = (
-            pos_engine_with_obstacles.get_distances_from_obstacles()
-        )
+        distances_dict = pos_engine_with_obstacles.get_distances()
         assert set(distances_dict.keys()) == {"obs_0", "obs_1", "obs_2"}
-        assert set(distances_dict["obs_1"].keys()) == {0, 1, 2, 3}
+        assert set(distances_dict["obs_1"].points.keys()) == {0, 1, 2, 3}
 
     def test_multiple_obstacles_angles(
         self, pos_engine_with_obstacles_angles: PositionEngine
     ):
-        distances_dict = (
-            pos_engine_with_obstacles_angles.get_distances_from_obstacles()
-        )
+        distances_dict = pos_engine_with_obstacles_angles.get_distances()
         assert set(distances_dict.keys()) == {"obs_0", "obs_1", "obs_2"}
-        assert set(distances_dict["obs_1"].keys()) == {0, 1, 2, 3}
+        assert set(distances_dict["obs_1"].points.keys()) == {0, 1, 2, 3}
 
     def test_no_obstacle(self, balance_engine_base_test: BalanceEngine):
         pos_engine = PositionEngine(balance_engine_base_test)
 
-        distances_dict = pos_engine.get_distances_from_obstacles()
+        distances_dict = pos_engine.get_distances()
         assert distances_dict == {}
 
     def test_no_intersection_skips_point_and_warns(
         self, pos_engine_with_obstacles: PositionEngine
     ):
-        original_batch = position_engine_module.batch_plane_distances
+        original_batch = distances_module.batch_plane_distances
         failing_point = pos_engine_with_obstacles.coords_calculator.obstacles_points.dict_coords()[
             "obs_1"
         ][1]
@@ -701,32 +703,37 @@ class TestDistancesFromObstacles:
             return distances, targets
 
         with patch.object(
-            position_engine_module,
+            distances_module,
             "batch_plane_distances",
             side_effect=fake_batch,
         ):
-            with pytest.warns(NoIntersectionPlaneWarning, match="obs_1"):
-                distances_dict = (
-                    pos_engine_with_obstacles.get_distances_from_obstacles()
-                )
+            with pytest.warns(
+                NoIntersectionPlaneWarning, match="obs_1"
+            ) as record:
+                distances_dict = pos_engine_with_obstacles.get_distances()
+
+        # the warning points to the caller of the public method
+        assert {
+            w.filename
+            for w in record
+            if issubclass(w.category, NoIntersectionPlaneWarning)
+        } == {__file__}
 
         assert set(distances_dict.keys()) == {"obs_0", "obs_1", "obs_2"}
         # Point index 1 for obs_1 was skipped, the others are still present.
-        assert set(distances_dict["obs_1"].keys()) == {0, 2, 3}
+        assert set(distances_dict["obs_1"].points.keys()) == {0, 2, 3}
 
     def test_get_distances_equal_point_distance(
         self, pos_engine_with_obstacles: PositionEngine
     ):
-        distances_dict = (
-            pos_engine_with_obstacles.get_distances_from_obstacles()
-        )
+        distances_dict = pos_engine_with_obstacles.get_distances()
         obstacles_points = pos_engine_with_obstacles.coords_calculator.compute_obstacle_coords()
         checked = 0
         for row, name in enumerate(obstacles_points.object_name):
             point_index = int(obstacles_points.point_index[row])
-            if point_index not in distances_dict[name]:
+            if point_index not in distances_dict[name].points:
                 continue
-            batch = distances_dict[name][point_index]
+            batch = distances_dict[name].points[point_index]
             expected = pos_engine_with_obstacles.point_distance(
                 int(obstacles_points.span_index[row]),
                 obstacles_points.coords[row],
@@ -758,6 +765,15 @@ class TestDistancesFromObstacles:
         assert True
 
 
+def _minimums(
+    pos_engine: PositionEngine,
+) -> dict[str, ClosestDistanceResult | None]:
+    return {
+        name: distances.minimum
+        for name, distances in pos_engine.get_distances().items()
+    }
+
+
 class TestObstacleMinDistance:
     @pytest.fixture
     def pos_engine(self, balance_engine_base_test: BalanceEngine):
@@ -767,13 +783,16 @@ class TestObstacleMinDistance:
         self, pos_engine: PositionEngine
     ):
         pos_engine.add_obstacle(
-            name="pt", span_index=1, coords=np.array([[200, 5, 10]])
+            geometry_type="polyline",
+            name="pt",
+            span_index=1,
+            coords=np.array([[200, 5, 10]]),
         )
         result = pos_engine.obstacle_min_distance("pt")
         point = pos_engine.obstacles_dict()["pt"][0]
         expected = pos_engine.point_distance(1, point)
 
-        assert isinstance(result, ObstacleDistanceResult)
+        assert isinstance(result, ClosestDistanceResult)
         assert result.span_index == 1
         assert result.segment_index == 0
         assert result.segment_parameter == 0.0
@@ -783,6 +802,7 @@ class TestObstacleMinDistance:
     def test_minimum_between_vertices(self, pos_engine: PositionEngine):
         # Crossing line whose closest location is far from both vertices.
         pos_engine.add_obstacle(
+            geometry_type="polyline",
             name="road",
             span_index=0,
             coords=np.array([[50, -40, 0], [450, 40, 0]]),
@@ -818,6 +838,7 @@ class TestObstacleMinDistance:
         self, pos_engine: PositionEngine
     ):
         pos_engine.add_obstacle(
+            geometry_type="polyline",
             name="polyline",
             span_index=1,
             coords=np.array(
@@ -840,6 +861,7 @@ class TestObstacleMinDistance:
 
     def test_partially_outside_span_warns(self, pos_engine: PositionEngine):
         pos_engine.add_obstacle(
+            geometry_type="polyline",
             name="obs",
             span_index=0,
             coords=np.array([[-50, 0, 0], [100, 0, 0]]),
@@ -850,6 +872,7 @@ class TestObstacleMinDistance:
 
     def test_fully_outside_span_returns_none(self, pos_engine: PositionEngine):
         pos_engine.add_obstacle(
+            geometry_type="polyline",
             name="obs",
             span_index=0,
             coords=np.array([[-80, 0, 0], [-50, 0, 0]]),
@@ -861,25 +884,96 @@ class TestObstacleMinDistance:
         self, pos_engine: PositionEngine
     ):
         pos_engine.add_obstacle(
-            name="obs_0", span_index=0, coords=np.array([[100, 0, 0]])
+            geometry_type="polyline",
+            name="obs_0",
+            span_index=0,
+            coords=np.array([[100, 0, 0]]),
         )
         pos_engine.add_obstacle(
+            geometry_type="polyline",
             name="obs_1",
             span_index=1,
             coords=np.array([[50, 0, 0], [100, 0, 10]]),
         )
-        results = pos_engine.get_segment_distances_from_obstacles()
+        results = _minimums(pos_engine)
 
         assert set(results.keys()) == {"obs_0", "obs_1"}
         assert results["obs_1"] is not None
         assert results["obs_1"].span_index == 1
 
     def test_no_obstacle(self, pos_engine: PositionEngine):
-        assert pos_engine.get_segment_distances_from_obstacles() == {}
+        assert pos_engine.get_distances() == {}
+
+    def test_get_distances_selection(self, pos_engine: PositionEngine):
+        for name in ("a", "b", "c"):
+            pos_engine.add_obstacle(
+                name=name, span_index=0, coords=np.array([[100, 0, 0]])
+            )
+        assert set(pos_engine.get_distances()) == {"a", "b", "c"}
+        assert set(pos_engine.get_distances("b")) == {"b"}
+        assert set(pos_engine.get_distances(["c", "a"])) == {"a", "c"}
+        with pytest.raises(KeyError):
+            pos_engine.get_distances(["a", "unknown"])
+
+    def test_get_distances_points_vs_polyline(
+        self, pos_engine: PositionEngine
+    ):
+        # Crossing line: the closest location is between the two points.
+        coords = np.array([[50, -40, 0], [450, 40, 0]])
+        pos_engine.add_obstacle(name="discrete", span_index=0, coords=coords)
+        pos_engine.add_obstacle(
+            geometry_type="polyline",
+            name="line",
+            span_index=0,
+            coords=coords,
+        )
+        results = pos_engine.get_distances()
+        discrete, line = results["discrete"], results["line"]
+
+        assert discrete.geometry_type == "points"
+        assert line.geometry_type == "polyline"
+        # one distance per point, with its target on the cable
+        for result in (discrete, line):
+            assert set(result.points) == {0, 1}
+            for point_index, vertex in enumerate(
+                pos_engine.obstacles_dict()["discrete"]
+            ):
+                expected = pos_engine.point_distance(0, vertex)
+                np.testing.assert_allclose(
+                    result.points[point_index].distance_3d,
+                    expected.distance_3d,
+                )
+                np.testing.assert_allclose(
+                    result.points[point_index].point_target,
+                    expected.point_target,
+                )
+
+        # discrete minimum is the closest point
+        closest = min(
+            discrete.points, key=lambda i: discrete.points[i].distance_3d
+        )
+        assert discrete.minimum is not None
+        assert discrete.minimum.segment_index == closest
+        assert discrete.minimum.segment_parameter == 0.0
+        np.testing.assert_allclose(
+            discrete.minimum.distance_result.point_target,
+            discrete.points[closest].point_target,
+        )
+        assert discrete.minimum.distance_3d == pytest.approx(
+            discrete.points[closest].distance_3d
+        )
+
+        # polyline minimum is searched between the points
+        assert line.minimum is not None
+        assert 0.0 < line.minimum.segment_parameter < 1.0
+        assert line.minimum.distance_3d < discrete.minimum.distance_3d
 
     def test_invalid_inputs(self, pos_engine: PositionEngine):
         pos_engine.add_obstacle(
-            name="obs", span_index=0, coords=np.array([[100, 0, 0]])
+            geometry_type="polyline",
+            name="obs",
+            span_index=0,
+            coords=np.array([[100, 0, 0]]),
         )
         with pytest.raises(KeyError):
             pos_engine.obstacle_min_distance("unknown")
@@ -892,10 +986,16 @@ class TestObstacleMinDistance:
         self, pos_engine: PositionEngine
     ):
         pos_engine.add_obstacle(
-            name="obs_a", span_index=0, coords=np.array([[50, 5, 5]])
+            geometry_type="polyline",
+            name="obs_a",
+            span_index=0,
+            coords=np.array([[50, 5, 5]]),
         )
         pos_engine.add_obstacle(
-            name="obs_b", span_index=1, coords=np.array([[200, -5, 5]])
+            geometry_type="polyline",
+            name="obs_b",
+            span_index=1,
+            coords=np.array([[200, -5, 5]]),
         )
         coords_calculator = pos_engine.coords_calculator
         with patch.object(
@@ -903,7 +1003,7 @@ class TestObstacleMinDistance:
             "get_spans",
             wraps=coords_calculator.get_spans,
         ) as get_spans_mock:
-            results = pos_engine.get_segment_distances_from_obstacles()
+            results = _minimums(pos_engine)
 
         assert set(results) == {"obs_a", "obs_b"}
         assert get_spans_mock.call_count == 1
@@ -912,14 +1012,18 @@ class TestObstacleMinDistance:
         self, pos_engine: PositionEngine
     ):
         pos_engine.add_obstacle(
+            geometry_type="polyline",
             name="road",
             span_index=1,
             coords=np.array([[50, 0, 0], [100, 0, 10], [150, 10, 0]]),
         )
         pos_engine.add_obstacle(
-            name="pt", span_index=0, coords=np.array([[100, 3, 8]])
+            geometry_type="polyline",
+            name="pt",
+            span_index=0,
+            coords=np.array([[100, 3, 8]]),
         )
-        batch = pos_engine.get_segment_distances_from_obstacles()
+        batch = _minimums(pos_engine)
 
         for name in ("road", "pt"):
             single = pos_engine.obstacle_min_distance(name)
@@ -950,10 +1054,13 @@ class TestObstacleMinDistance:
         }
         for name, (span_index, coords) in polylines.items():
             pos_engine.add_obstacle(
-                name=name, span_index=span_index, coords=coords
+                geometry_type="polyline",
+                name=name,
+                span_index=span_index,
+                coords=coords,
             )
 
-        results = pos_engine.get_segment_distances_from_obstacles()
+        results = _minimums(pos_engine)
 
         for name, (span_index, _) in polylines.items():
             result = results[name]
@@ -977,17 +1084,18 @@ class TestObstacleMinDistance:
             engine = PositionEngine(balance_engine_base_test)
             for i in range(nb_obstacles):
                 engine.add_obstacle(
+                    geometry_type="polyline",
                     name=f"obs_{i}",
                     span_index=1,
                     coords=np.array([[50, 0, 0], [100, 0, 10], [150, 10, 0]]),
                 )
-            original = position_engine_module.batch_plane_distances
+            original = distances_module.batch_plane_distances
             with patch.object(
-                position_engine_module,
+                distances_module,
                 "batch_plane_distances",
                 wraps=original,
             ) as batch_mock:
-                engine.get_segment_distances_from_obstacles()
+                engine.get_distances()
             return batch_mock.call_count
 
         assert count_calls(2) == count_calls(6)
@@ -1017,12 +1125,13 @@ class TestObstacleMinDistance:
         )
         pos_engine = PositionEngine(balance_engine)
         pos_engine.add_obstacle(
+            geometry_type="polyline",
             name="ground",
             span_index=0,
             coords=np.array([[0, 0, 0], [50, 0, 0]]),
         )
 
-        result = pos_engine.get_segment_distances_from_obstacles()["ground"]
+        result = _minimums(pos_engine)["ground"]
 
         assert result is not None
         np.testing.assert_allclose(

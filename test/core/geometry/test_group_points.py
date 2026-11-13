@@ -10,7 +10,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mechaphlowers.core.geometry.distances import DistanceResult
+from mechaphlowers.core.geometry.distances import (
+    PointDistanceResult,
+    ClosestDistanceResult,
+    ObstacleDistances,
+)
 from mechaphlowers.core.geometry.group_points import GroupPoints
 from mechaphlowers.core.geometry.points import Points, SparsePoints
 from mechaphlowers.entities.arrays import ObstacleArray
@@ -146,8 +150,8 @@ def obstacle_points(obs_array: ObstacleArray) -> SparsePoints:
 
 
 @pytest.fixture
-def distance_result() -> DistanceResult:
-    return DistanceResult(
+def distance_result() -> PointDistanceResult:
+    return PointDistanceResult(
         np.array([100.0000, 6.7000, 0.0000]),
         np.array([100.0000, 9.9940, 49.9035]),
         np.array([-0.0000, 1.0000, 0.0000]),
@@ -160,16 +164,21 @@ def distance_result() -> DistanceResult:
 
 @pytest.fixture
 def distance_dict(
-    distance_result: DistanceResult,
-) -> dict[str, dict[int, DistanceResult]]:
+    distance_result: PointDistanceResult,
+) -> dict[str, ObstacleDistances]:
+    def points(nb_points: int) -> dict[int, PointDistanceResult]:
+        return {i: copy(distance_result) for i in range(nb_points)}
+
     return {
-        "obs_0": {0: copy(distance_result), 1: copy(distance_result)},
-        "obs_1": {
-            0: copy(distance_result),
-            1: copy(distance_result),
-            2: copy(distance_result),
-        },
-        "obs_2": {0: copy(distance_result)},
+        "obs_0": ObstacleDistances("obs_0", 0, "points", points(2), None),
+        "obs_1": ObstacleDistances(
+            "obs_1",
+            1,
+            "polyline",
+            points(3),
+            ClosestDistanceResult("obs_1", 1, copy(distance_result), 0, 0.5),
+        ),
+        "obs_2": ObstacleDistances("obs_2", 1, "points", points(1), None),
     }
 
 
@@ -214,7 +223,7 @@ def group_points_distances(
     supports_points: Points,
     insulators_points: Points,
     obstacle_points: SparsePoints,
-    distance_dict: dict[str, dict[int, DistanceResult]],
+    distance_dict: dict[str, ObstacleDistances],
 ) -> GroupPoints:
     return GroupPoints(
         np.array([0, 0, 0, 0]),
@@ -373,7 +382,7 @@ class TestChangeFrame:
             expected_supports_unchanged,
         )
         np.testing.assert_equal(
-            group_points_distances.distances["obs_1"][0].point_base,  # type: ignore[index]
+            group_points_distances.distances["obs_1"].points[0].point_base,  # type: ignore[index]
             np.array([100.0000, 6.7000, 0.0000]),
         )
 
@@ -386,6 +395,26 @@ class TestGroupDistances:
         )
         group_points_distances.distances
         assert True
+
+    def test_change_frame_moves_points_and_minimum(
+        self, group_points_distances: GroupPoints
+    ):
+        moved = group_points_distances.change_frame(frame_index=1)
+        expected_base = np.array([100.0, 6.7, 0.0]) - np.array([500, 0, 0])
+
+        obs_1 = moved.distances["obs_1"]  # type: ignore[index]
+        np.testing.assert_allclose(obs_1.points[0].point_base, expected_base)
+        np.testing.assert_allclose(
+            obs_1.minimum.closest_obstacle_point,  # type: ignore[union-attr]
+            expected_base,
+        )
+        # original object is unchanged
+        np.testing.assert_allclose(
+            group_points_distances.distances[
+                "obs_1"
+            ].minimum.closest_obstacle_point,  # type: ignore[index, union-attr]
+            np.array([100.0, 6.7, 0.0]),
+        )
 
     def test_distances_with_angle(self, group_points_distances: GroupPoints):
         group_points_distances.line_angle = np.array(

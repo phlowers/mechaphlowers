@@ -174,7 +174,7 @@ def meshgrid_plane(
     return X_plane_pts, Y_plane_pts, Z_plane_pts
 
 
-def intersection_curve_plane(
+def scalar_intersection_curve_plane(
     plane_normal: np.ndarray,
     point_on_plane: np.ndarray,
     curve_points: np.ndarray,

@@ -81,6 +81,43 @@ obstacle_array.add_obstacle(
 ```
 
 
+### Discrete points or polyline
+
+The optional `geometry_type` column (or `geometry_type` argument of `add_obstacle()`) tells how the points of a multipoint obstacle are interpreted for distance computation:
+
+- `"points"` (default): discrete points;
+- `"polyline"`: points joined in `point_index` order, for instance for a road or a power line crossing.
+
+If the column is absent from the DataFrame, all obstacles are `"points"`. All points of an obstacle must have the same `geometry_type`, otherwise a `ValueError` is raised.
+
+```python
+input_data = {
+	"name": ["road", "road", "pylon", "pylon"],
+	"point_index": [0, 1, 0, 1],
+	"span_index": [0, 0, 0, 0],
+	"x": [100.0, 400.0, 150.0, 150.0],
+	"y": [-30.0, 30.0, 0.0, 5.0],
+	"z": [0.0, 0.0, 0.0, 0.0],
+	"object_type": ["ground", "ground", "ground", "ground"],
+	"geometry_type": ["polyline", "polyline", "points", "points"],
+}
+obs_array = ObstacleArray(pd.DataFrame(input_data))
+```
+
+The same flag is available with `add_obstacle()`, for instance on a `SectionStudy`:
+
+```python
+study.position_engine.add_obstacle(
+	name="road",
+	span_index=0,
+	coords=np.array([[100, -30, 0], [400, 30, 0]]),
+	geometry_type="polyline",
+)
+```
+
+See [Distances](ug_distances.md#distances-to-obstacles) for the distance computation.
+
+
 ## Plotting obstacles
 
 You can plot obstacles using PlotEngine:
@@ -154,14 +191,11 @@ study.position_engine.add_additional_point(
 # study.position_engine.add_additional_points_array(my_obstacle_array)
 ```
 
-Once added, you can extract their coordinates or compute distances from the spans, similar to obstacles:
+Once added, you can extract their coordinates. Additional points are not part of the obstacle distance computation (`get_distances`):
 
 ```python
 # Get coordinates as a single continuous absolute coordinate array
 additional_coords = study.position_engine.get_additional_points()
-
-# Get minimum distances from the spans
-distances = study.position_engine.get_distances_from_additional_points()
 
 # Or get them from the global points topology
 group_points = study.position_engine.get_group_points()

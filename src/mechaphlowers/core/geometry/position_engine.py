@@ -14,17 +14,15 @@ import numpy as np
 
 from mechaphlowers.core.geometry.distances import (
     DistanceEngine,
-    DistanceResult,
-    ObstacleDistanceResult,
-    batch_plane_distances,
-    build_distance_results,
+    PointDistanceResult,
+    ClosestDistanceResult,
+    ObstacleDistances,
 )
 from mechaphlowers.core.geometry.group_points import GroupPoints
 from mechaphlowers.core.geometry.planes import change_local_frame, plane_basis
 from mechaphlowers.core.geometry.points import CoordsCalculator, Points
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import ObstacleArray
-from mechaphlowers.entities.errors import NoIntersectionPlaneWarning
 from mechaphlowers.entities.reactivity import Notifier, Observer
 
 logger = logging.getLogger(__name__)
@@ -41,7 +39,7 @@ class PositionEngine(Observer, Notifier):
 
     Users can work with a `PositionEngine` directly — without any Plotly
     dependency — to obtain span points, support positions, obstacle
-    coordinates, and point-to-cable distances.
+    coordinates, and obstacle-to-cable distances (see `get_distances`).
 
     Args:
         balance_engine: `BalanceEngine` to observe.
@@ -130,6 +128,7 @@ class PositionEngine(Observer, Notifier):
         object_type: str = "ground",
         support_reference: Literal['left', 'right'] = 'left',
         span_length: np.ndarray | None = None,
+        geometry_type: Literal['points', 'polyline'] = 'points',
     ):
         """Delegate to [`ObstacleArray.add_obstacle`][mechaphlowers.entities.arrays.ObstacleArray.add_obstacle]."""
         self.obstacle_array.add_obstacle(
@@ -139,6 +138,7 @@ class PositionEngine(Observer, Notifier):
             object_type,
             support_reference,
             span_length,
+            geometry_type=geometry_type,
         )
         # Replace by a Notifier/Observer pattern?
         self.coords_calculator.refresh_obstacles()
@@ -368,7 +368,7 @@ class PositionEngine(Observer, Notifier):
 
     def point_distance(
         self, span_index: int, point: np.ndarray
-    ) -> DistanceResult:
+    ) -> PointDistanceResult:
         """Compute the minimum distance from `point` to a cable span.
 
         Args:
@@ -387,7 +387,7 @@ class PositionEngine(Observer, Notifier):
             raise ValueError("point must be a 1D array of shape (3,)")
 
         self._set_distance_span(span_index)
-        return self.distance_engine.plane_distance(point, frame="section")
+        return self.distance_engine.scalar_plane_distance(point, frame="section")
 
     def _set_distance_span(
         self, span_index: int, spans_coords: np.ndarray | None = None
@@ -412,41 +412,52 @@ class PositionEngine(Observer, Notifier):
         )
         self.distance_engine.add_curves(spans_coords[span_index])
 
-    def obstacle_min_distance(
+    def get_distances(
         self,
-        obstacle_name: str,
+        names: str | list[str] | None = None,
         step: float = 1.0,
         refine: bool = True,
-        xtol: float = 1e-2,
-    ) -> ObstacleDistanceResult | None:
-        """Compute the minimum distance between a polyline obstacle and its span.
+        xtol: float = 1e-3,
+    ) -> dict[str, ObstacleDistances]:
+        """Compute the distances between obstacles and their span.
 
-        The obstacle points are joined, in `point_index` order, into a
-        polyline. Each segment is sampled every `step` meters (vertices
-        included) and the plane distance (see
-        [`point_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.point_distance])
-        is computed at each sample. When `refine` is `True`, a golden-section
-        search is then run around the best sample to find the minimum
-        between samples.
+        For every selected obstacle:
 
-        Samples whose distance plane does not intersect the span (e.g. beyond
-        the supports) are skipped and a `NoIntersectionPlaneWarning` is
-        emitted.
+        - each obstacle point gets its plane distance to the cable
+          (see [`point_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.point_distance]),
+          with the target point on the cable;
+        - for ``geometry_type="points"`` obstacles (default), the minimum is
+          the closest point;
+        - for ``geometry_type="polyline"`` obstacles with at least two points,
+          the minimum is searched along the polyline: each segment is sampled
+          every `step` meters (vertices included) and, when `refine` is
+          `True`, a golden-section search refines the minimum between samples.
+          Otherwise, the minimum is the closest sample.
+
+        All obstacles are computed in batched numpy operations. The span is
+        represented by its sampled cable polyline
+        (`cfg.graphics.resolution` points), so the distances are
+        approximate.
+
+        Points or samples whose distance plane does not intersect the span
+        (e.g. beyond the supports) are skipped and a
+        `NoIntersectionPlaneWarning` is emitted.
 
         Args:
-            obstacle_name: Name of the obstacle.
-            step: Sampling step along the obstacle segments, in meters.
+            names: Obstacle name, list of names, or `None` for all obstacles.
+            step: Sampling step along the polyline segments, in meters.
                 Defaults to ``1.0``.
-            refine: Refine the minimum between samples. Defaults to `True`.
+            refine: Refine the polyline minimum between samples.
+                Defaults to `True`.
             xtol: Absolute tolerance of the refinement, in meters along the
                 segment. Defaults to ``1e-3``.
 
         Returns:
-            [`ObstacleDistanceResult`][mechaphlowers.core.geometry.distances.ObstacleDistanceResult],
-            or `None` if no obstacle sample intersects the span.
+            Dict mapping obstacle name to its
+            [`ObstacleDistances`][mechaphlowers.core.geometry.distances.ObstacleDistances].
 
         Raises:
-            KeyError: If `obstacle_name` does not exist.
+            KeyError: If an obstacle name does not exist.
             ValueError: If `step` or `xtol` is not strictly positive.
 
         Examples:
@@ -454,17 +465,52 @@ class PositionEngine(Observer, Notifier):
             ...     name="road",
             ...     span_index=0,
             ...     coords=np.array([[100, -20, 0], [150, 20, 2]]),
+            ...     geometry_type="polyline",
             ... )
-            >>> result = pos_engine.obstacle_min_distance("road")
-            >>> result.distance_3d, result.closest_obstacle_point
+            >>> distances = pos_engine.get_distances("road")["road"]
+            >>> distances.points[0].distance_3d  # distance of the first point
+            >>> distances.minimum.distance_3d  # minimum along the polyline
         """
-        result = self._min_distances(
-            [obstacle_name], step=step, refine=refine, xtol=xtol
-        )[obstacle_name]
+        return self._compute_distances(names, step, refine, xtol)
+
+    def obstacle_min_distance(
+        self,
+        obstacle_name: str,
+        step: float = 1.0,
+        refine: bool = True,
+        xtol: float = 1e-3,
+    ) -> ClosestDistanceResult | None:
+        """Compute the minimum distance between an obstacle and its span.
+
+        Shortcut for the `minimum` of
+        [`get_distances`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_distances],
+        which also loads the distance engine with the closest location, so
+        that plotting uses the same plane.
+
+        Args:
+            obstacle_name: Name of the obstacle.
+            step: Sampling step along the polyline segments, in meters.
+                Defaults to ``1.0``.
+            refine: Refine the polyline minimum between samples.
+                Defaults to `True`.
+            xtol: Absolute tolerance of the refinement, in meters along the
+                segment. Defaults to ``1e-3``.
+
+        Returns:
+            [`ObstacleDistanceResult`][mechaphlowers.core.geometry.distances.ObstacleDistanceResult],
+            or `None` if no obstacle point intersects the span.
+
+        Raises:
+            KeyError: If `obstacle_name` does not exist.
+            ValueError: If `step` or `xtol` is not strictly positive.
+        """
+        result = self._compute_distances([obstacle_name], step, refine, xtol)[
+            obstacle_name
+        ].minimum
         if result is not None:
             # Load the distance engine so that plotting uses the same plane.
             self._set_distance_span(result.span_index)
-            self.distance_engine.plane_distance(
+            self.distance_engine.scalar_plane_distance(
                 result.closest_obstacle_point, frame="section"
             )
         return result
@@ -493,161 +539,57 @@ class PositionEngine(Observer, Notifier):
         u, v = plane_basis(normals)
         return curves, normals, u, v
 
-    def _min_distances(
+    def _compute_distances(
         self,
-        names: list[str] | None,
+        names: str | list[str] | None,
         step: float,
         refine: bool,
         xtol: float,
-    ) -> dict[str, ObstacleDistanceResult | None]:
-        """Minimum distance of the selected obstacles, computed together.
+    ) -> dict[str, ObstacleDistances]:
+        """Implementation of `get_distances`.
 
-        Delegates the computation to
-        [`DistanceEngine.min_distances`][mechaphlowers.core.geometry.distances.DistanceEngine.min_distances].
-
-        Args:
-            names: Obstacle names, or `None` for all obstacles.
-            step: Sampling step along the obstacle segments, in meters.
-            refine: Refine the minimum between samples.
-            xtol: Absolute tolerance of the refinement, in meters.
-
-        Returns:
-            Dict mapping each obstacle name to its `ObstacleDistanceResult`,
-            or `None` if no sample of the obstacle faces the span.
-
-        Raises:
-            KeyError: If an obstacle name does not exist.
-            ValueError: If `step` or `xtol` is not strictly positive.
+        Must be called directly by the public methods: the warning stack
+        levels rely on it.
         """
-
-        # get the obstacles points
         obstacles_points = self.coords_calculator.compute_obstacle_coords()
-        all_coords = obstacles_points.dict_coords()
+        row_names = np.asarray(obstacles_points.object_name, dtype=object)
+        all_names = list(dict.fromkeys(row_names.tolist()))
         if names is None:
-            names = list(all_coords)
-        for name in names:
-            if name not in all_coords:
-                raise KeyError(f"Obstacle '{name}' not found")
+            selected = all_names
+        else:
+            selected = list(
+                dict.fromkeys([names] if isinstance(names, str) else names)
+            )
+            missing = set(selected).difference(all_names)
+            if missing:
+                raise KeyError(f"Obstacle(s) not found: {sorted(missing)}")
+        if not selected:
+            return {}
 
-        span_of_row = np.asarray(obstacles_points.span_index, dtype=int)
-        first_row: dict[str, int] = {}
-        for row, name in enumerate(obstacles_points.object_name):
-            first_row.setdefault(name, row)
-
-        coords_dict = {name: all_coords[name] for name in names}
-        spans_dict = {
-            name: int(span_of_row[first_row[name]]) for name in names
-        }
-
+        geometry_types = dict(
+            zip(
+                self.obstacle_array.data["name"],
+                self.obstacle_array.data["geometry_type"],
+            )
+        )
+        points = np.asarray(obstacles_points.coords, dtype=float)
+        span_indices = np.asarray(obstacles_points.span_index, dtype=int)
         curves, normals, _, _ = self._span_geometry()
-        return self.distance_engine.min_distances(
-            coords_dict,
-            spans_dict,
+
+        # Rows are sorted by (name, point_index): vertices in point_index order
+        return self.distance_engine.distances(
+            {name: points[row_names == name] for name in selected},
+            {
+                name: int(span_indices[row_names == name][0])
+                for name in selected
+            },
             curves,
             normals,
             step=step,
             refine=refine,
             xtol=xtol,
+            geometry_types={name: geometry_types[name] for name in selected},
         )
-
-    def get_segment_distances_from_obstacles(
-        self,
-        step: float = 1.0,
-        refine: bool = True,
-        xtol: float = 1e-3,
-    ) -> dict[str, ObstacleDistanceResult | None]:
-        """Compute the minimum distance of every obstacle to its span.
-
-        Each obstacle is treated as a polyline. Every segment is sampled
-        every `step` metres, vertices included, and the plane distance to
-        the span is computed at each sample. When `refine` is `True`, a
-        golden-section search then refines the minimum around the best
-        sample. If several samples share the same distance, the first one
-        is kept.
-
-        The span is represented by its sampled cable polyline
-        (`cfg.graphics.resolution` points), so the distances are
-        approximate and may differ slightly from the exact cable minimum.
-
-        See [`obstacle_min_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.obstacle_min_distance]
-        for the single-obstacle variant and the arguments.
-
-        Args:
-            step: Sampling step along the obstacle segments, in meters.
-                Defaults to ``1.0``.
-            refine: Refine the minimum between samples. Defaults to `True`.
-            xtol: Absolute tolerance of the refinement, in meters.
-                Defaults to ``1e-3``.
-
-        Returns:
-            Dict mapping obstacle name to its
-            [`ObstacleDistanceResult`][mechaphlowers.core.geometry.distances.ObstacleDistanceResult]
-            (`None` if the obstacle does not face the span).
-        """
-        return self._min_distances(None, step=step, refine=refine, xtol=xtol)
-
-    def get_distances_from_obstacles(
-        self,
-    ) -> dict[str, dict[int, DistanceResult]]:
-        """Compute distances for all obstacles to their respective spans.
-
-        Only in absolute coordiantes.
-
-        {
-            'obs_0': {0: DistanceResult, 1: DistanceResult},
-            'obs_1': {0: DistanceResult}
-        }
-
-        Returns:
-            dict: dictionary of DistanceResult, sorted by obstacles
-        """
-        obstacles_points = self.coords_calculator.compute_obstacle_coords()
-        names = list(obstacles_points.object_name)
-        span_indices = np.asarray(obstacles_points.span_index, dtype=int)
-        point_indices = np.asarray(obstacles_points.point_index, dtype=int)
-        points = np.asarray(obstacles_points.coords, dtype=float)
-
-        curves, normals, u, v = self._span_geometry()
-        distances, targets = batch_plane_distances(
-            points, span_indices, curves, normals
-        )
-        found = np.isfinite(distances)
-        results = build_distance_results(
-            points[found],
-            span_indices[found],
-            targets[found],
-            distances[found],
-            u,
-            v,
-        )
-
-        distance_dict_result: dict[str, dict[int, DistanceResult]] = {}
-        found_rows = np.flatnonzero(found)
-        for name in dict.fromkeys(names):
-            distance_dict_result[name] = {}
-        for row, distance_result in zip(found_rows, results):
-            distance_dict_result[names[row]][int(point_indices[row])] = (
-                distance_result
-            )
-
-        skipped_by_name: dict[str, list[int]] = {}
-        for row in np.flatnonzero(~found):
-            skipped_by_name.setdefault(names[row], []).append(
-                int(point_indices[row])
-            )
-        for name, skipped in skipped_by_name.items():
-            if skipped:
-                message = (
-                    f"No intersection found between obstacle '{name}' "
-                    f"(point index {', '.join(map(str, skipped))}) and its span - "
-                    "skipping distance computation for these points."
-                )
-                logger.warning(message)
-                warnings.warn(
-                    message, NoIntersectionPlaneWarning, stacklevel=2
-                )
-
-        return distance_dict_result
 
     def get_group_points(self) -> GroupPoints:
         spans_points: Points = self.coords_calculator.get_spans("section")
@@ -676,7 +618,7 @@ class PositionEngine(Observer, Notifier):
         if obstacles_points is not None or additional_points is not None:
             distances_dict = {}
             if obstacles_points is not None:
-                distances_dict.update(self.get_distances_from_obstacles())
+                distances_dict.update(self.get_distances())
 
         return GroupPoints(
             line_angle=self.coords_calculator.line_angle,

@@ -17,7 +17,7 @@ import pytest
 
 from mechaphlowers.core.geometry.distances import (
     DistanceEngine,
-    DistanceResult,
+    PointDistanceResult,
 )
 from mechaphlowers.plotting.plot import PlotEngine
 from mechaphlowers.plotting.plot_distances import plot_distance_engine
@@ -67,7 +67,7 @@ def test_distance_engine():
     de.add_curves(spans1)
     de.add_span_frame(pt0, pt1)
 
-    dr = de.plane_distance(obstacle, frame="span")
+    dr = de.scalar_plane_distance(obstacle, frame="span")
 
     fig = plot_distance_engine(
         de, distance_result=dr, show_plane=True, show_projections=True
@@ -76,7 +76,7 @@ def test_distance_engine():
         fig.show()
 
     assert isinstance(
-        dr, DistanceResult
+        dr, PointDistanceResult
     ), "DistanceEngine should return a DistanceResult"
     assert dr.distance_3d > 0, "Distance should be positive"
 
@@ -125,7 +125,7 @@ def test_point_distance_method_with_plot_engine(balance_engine_angles):
 
     # Verify returns
     assert isinstance(
-        dr, DistanceResult
+        dr, PointDistanceResult
     ), "Returned object should be a DistanceResult instance"
 
     # Verify figure has traces

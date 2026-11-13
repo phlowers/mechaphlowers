@@ -14,7 +14,10 @@ import pandas as pd
 import pytest
 
 from mechaphlowers.api.section_study import SectionStudy
-from mechaphlowers.core.geometry.distances import DistanceResult
+from mechaphlowers.core.geometry.distances import (
+    PointDistanceResult,
+    ObstacleDistances,
+)
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import NoIntersectionPlaneWarning
 
@@ -85,7 +88,7 @@ def _multipoint_coords(span_index: int, n_points: int) -> np.ndarray:
     return np.column_stack([x, y, z])
 
 
-def _extract3(dr: DistanceResult) -> tuple[float, float, float]:
+def _extract3(dr: PointDistanceResult) -> tuple[float, float, float]:
     return (
         dr.distance_3d,
         dr.distance_projection_u,
@@ -94,9 +97,11 @@ def _extract3(dr: DistanceResult) -> tuple[float, float, float]:
 
 
 def _flatten_standard(
-    result: dict[str, dict[int, DistanceResult]],
-) -> list[DistanceResult]:
-    return [dr for per_point in result.values() for dr in per_point.values()]
+    result: dict[str, ObstacleDistances],
+) -> list[PointDistanceResult]:
+    return [
+        dr for distances in result.values() for dr in distances.points.values()
+    ]
 
 
 def _time_ms(run: Callable[[], object]) -> tuple[object, float]:
@@ -172,10 +177,7 @@ def test_perf_single_point_obstacles(cable_array_AM600: CableArray) -> None:
         pe.add_obstacle(f"obs_{span}", span, _single_point_coords(span))
 
     def run_a2() -> list[tuple[float, float, float]]:
-        return [
-            _extract3(dr)
-            for dr in _flatten_standard(pe.get_distances_from_obstacles())
-        ]
+        return [_extract3(dr) for dr in _flatten_standard(pe.get_distances())]
 
     a2_result, a2_ms = _time_ms(run_a2)
     assert len(a2_result) == 10
@@ -194,10 +196,7 @@ def test_perf_single_point_obstacles(cable_array_AM600: CableArray) -> None:
             pe.add_obstacle(f"obs_{span}_{k}", span, coords)
 
     def run_a3() -> list[tuple[float, float, float]]:
-        return [
-            _extract3(dr)
-            for dr in _flatten_standard(pe.get_distances_from_obstacles())
-        ]
+        return [_extract3(dr) for dr in _flatten_standard(pe.get_distances())]
 
     a3_result, a3_ms = _time_ms(run_a3)
     assert len(a3_result) == 30
@@ -223,10 +222,7 @@ def test_perf_multipoint_obstacles(cable_array_AM600: CableArray) -> None:
         pe.add_obstacle(f"obs_{span}", span, _multipoint_coords(span, 3))
 
     def run_b1() -> list[tuple[float, float, float]]:
-        return [
-            _extract3(dr)
-            for dr in _flatten_standard(pe.get_distances_from_obstacles())
-        ]
+        return [_extract3(dr) for dr in _flatten_standard(pe.get_distances())]
 
     b1_result, b1_ms = _time_ms(run_b1)
     assert len(b1_result) == 30
@@ -238,20 +234,24 @@ def test_perf_multipoint_obstacles(cable_array_AM600: CableArray) -> None:
     study.solve_adjustment()
     pe = study.position_engine
     for span in range(N_SPANS):
-        pe.add_obstacle(f"obs_{span}", span, _multipoint_coords(span, 10))
+        pe.add_obstacle(
+            f"obs_{span}",
+            span,
+            _multipoint_coords(span, 10),
+            geometry_type="polyline",
+        )
 
     def run_b2_min() -> list[tuple[float, float, float] | None]:
-        results = pe.get_segment_distances_from_obstacles()
+        results = pe.get_distances()
         return [
-            None if res is None else _extract3(res.distance_result)
+            None
+            if res.minimum is None
+            else _extract3(res.minimum.distance_result)
             for res in results.values()
         ]
 
     def run_b2_per_point() -> list[tuple[float, float, float]]:
-        return [
-            _extract3(dr)
-            for dr in _flatten_standard(pe.get_distances_from_obstacles())
-        ]
+        return [_extract3(dr) for dr in _flatten_standard(pe.get_distances())]
 
     b2_min_result, b2_min_ms = _time_ms(run_b2_min)
     valid_min = [t for t in b2_min_result if t is not None]
@@ -265,11 +265,9 @@ def test_perf_multipoint_obstacles(cable_array_AM600: CableArray) -> None:
     rows.append(("B2 per-point, 10 pts", 10, 100, b2_pp_ms))
 
     # Minimum over the polyline must not exceed the minimum over its points.
-    min_results = pe.get_segment_distances_from_obstacles()
-    per_point = pe.get_distances_from_obstacles()
-    for name, res in min_results.items():
-        assert res is not None
-        point_min = min(dr.distance_3d for dr in per_point[name].values())
-        assert res.distance_result.distance_3d <= point_min + 1e-9
+    for res in pe.get_distances().values():
+        assert res.minimum is not None
+        point_min = min(dr.distance_3d for dr in res.points.values())
+        assert res.minimum.distance_3d <= point_min + 1e-9
 
     _print_table(rows, "Group B: multipoint obstacles")

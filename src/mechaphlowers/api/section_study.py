@@ -32,7 +32,10 @@ from mechaphlowers.entities.core import VhlResult
 from mechaphlowers.entities.errors import BalanceEngineWarning, SolverError
 
 if TYPE_CHECKING:
-    from mechaphlowers.core.geometry.distances import ObstacleDistanceResult
+    from mechaphlowers.core.geometry.distances import (
+        ClosestDistanceResult,
+        ObstacleDistances,
+    )
     from mechaphlowers.core.models.cable.thermal import ThermalEngine
     from mechaphlowers.core.models.estimation import (
         EstimationEngine,
@@ -642,7 +645,7 @@ class SectionStudy:
         step: float = 1.0,
         refine: bool = True,
         xtol: float = 1e-3,
-    ) -> ObstacleDistanceResult | None:
+    ) -> ClosestDistanceResult | None:
         """Delegate to [`PositionEngine.obstacle_min_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.obstacle_min_distance].
 
         Args:
@@ -658,19 +661,26 @@ class SectionStudy:
             obstacle_name, step=step, refine=refine, xtol=xtol
         )
 
-    def get_segment_distances_from_obstacles(
+    def get_distances(
         self,
+        names: str | list[str] | None = None,
         step: float = 1.0,
         refine: bool = True,
         xtol: float = 1e-3,
-    ) -> dict[str, ObstacleDistanceResult | None]:
-        """Delegate to [`PositionEngine.get_segment_distances_from_obstacles`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_segment_distances_from_obstacles].
+    ) -> dict[str, ObstacleDistances]:
+        """Delegate to [`PositionEngine.get_distances`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_distances].
+
+        Args:
+            names: Obstacle name, list of names, or `None` for all obstacles.
+            step: Sampling step along the polyline segments, in meters.
+            refine: Refine the polyline minimum between samples.
+            xtol: Absolute tolerance of the refinement, in meters.
 
         Returns:
-            Dict mapping obstacle name to its minimum distance result.
+            Dict mapping obstacle name to its distances per point and minimum.
         """
-        return self._position_engine.get_segment_distances_from_obstacles(
-            step=step, refine=refine, xtol=xtol
+        return self._position_engine.get_distances(
+            names, step=step, refine=refine, xtol=xtol
         )
 
     def chain_displacement(self) -> np.ndarray:

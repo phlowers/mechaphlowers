@@ -5,17 +5,20 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from mechaphlowers.core.geometry.distances import (
     DistanceEngine,
-    DistanceResult,
+    ObstacleDistances,
+    PointDistanceResult,
     _build_segments_samples,
     batch_plane_distances,
     get_projection_points,
-    points_distance_inside_plane,
+    scalar_points_distance_inside_plane,
 )
 from mechaphlowers.core.geometry.planes import plane_basis, plane_from_line
+from mechaphlowers.entities.errors import NoIntersectionPlaneWarning
 
 
 def test_points_distance_inside_plane_returns_distance_and_projections():
@@ -26,7 +29,7 @@ def test_points_distance_inside_plane_returns_distance_and_projections():
     u_plane = np.array([1.0, 0.0, 0.0])
     v_plane = np.array([0.0, 1.0, 0.0])
 
-    distance_3d, projection_u, projection_v = points_distance_inside_plane(
+    distance_3d, projection_u, projection_v = scalar_points_distance_inside_plane(
         point_1,
         point_2,
         u_plane,
@@ -47,7 +50,7 @@ def test_points_distance_inside_plane_invalid_projection_raises():
     v_plane = np.array([0.0, 0.0, 1.0])
 
     with pytest.raises(ValueError, match="Projected distance"):
-        points_distance_inside_plane(
+        scalar_points_distance_inside_plane(
             point_1,
             point_2,
             u_plane,
@@ -71,7 +74,7 @@ def test_get_projection_points():
 
 
 def test_distance_result_reverse_y_axis():
-    distance_result = DistanceResult(
+    distance_result = PointDistanceResult(
         np.array([100.0000, 6.7000, 0.0000]),
         np.array([100.0000, 9.9940, 49.9035]),
         np.array([-0.0000, 1.0000, 0.0000]),
@@ -137,7 +140,7 @@ def test_plane_distances_matches_scalar_plane_distance():
     assert distances.shape == (5,)
     assert targets.shape == (5, 3)
     for i in range(4):
-        expected = engine.plane_distance(points[i], frame="section")
+        expected = engine.scalar_plane_distance(points[i], frame="section")
         np.testing.assert_allclose(distances[i], expected.distance_3d)
         np.testing.assert_allclose(targets[i], expected.point_target)
     assert np.isinf(distances[4])
@@ -154,7 +157,7 @@ def test_plane_distances_accepts_single_point_and_keeps_state():
             [np.linspace(0, 100, 10), np.zeros(10), np.linspace(20, 10, 10)]
         )
     )
-    engine.plane_distance(np.array([40.0, 0.0, 5.0]), frame="section")
+    engine.scalar_plane_distance(np.array([40.0, 0.0, 5.0]), frame="section")
     point_base_before = engine.point_base.copy()
 
     distances, targets = engine.plane_distances(np.array([40.0, 1.0, 5.0]))
@@ -200,7 +203,7 @@ def test_batch_plane_distances_matches_plane_distance_per_point():
             assert np.isinf(distances[i])
             assert np.all(np.isnan(targets[i]))
             continue
-        expected = engine.plane_distance(point, frame="section")
+        expected = engine.scalar_plane_distance(point, frame="section")
         np.testing.assert_allclose(
             distances[i], expected.distance_3d, atol=1e-9
         )
@@ -260,6 +263,24 @@ class TestBuildSegmentsSamples:
             result.sample_t, [0, 0, 0.5, 0, 1 / 3, 2 / 3, 1]
         )
         np.testing.assert_array_equal(result.sample_obs, [0, 1, 1, 1, 1, 1, 1])
+        np.testing.assert_array_equal(
+            result.sample_vertex, [0, 0, -1, 1, -1, -1, 2]
+        )
+
+    def test_points_geometry_yields_one_zero_length_segment_per_vertex(self):
+        result = _build_segments_samples(
+            coords_dict={
+                "pts": np.array([[0, 0, 0], [5, 0, 0], [5, 5, 0]], dtype=float)
+            },
+            spans_dict={"pts": 0},
+            step=1.0,
+            geometry_types={"pts": "points"},
+        )
+
+        np.testing.assert_array_equal(result.seg_vec, np.zeros((3, 3)))
+        np.testing.assert_array_equal(result.seg_loc, [0, 1, 2])
+        np.testing.assert_array_equal(result.sample_t, [0, 0, 0])
+        np.testing.assert_array_equal(result.sample_vertex, [0, 1, 2])
 
 
 class TestMinDistances:
@@ -275,3 +296,141 @@ class TestMinDistances:
             engine.min_distances({}, {}, curves, normals, 0.0, True, 1e-3)
         with pytest.raises(ValueError):
             engine.min_distances({}, {}, curves, normals, 1.0, True, -1.0)
+
+
+class TestDistances:
+    # straight cable along x at z=10: the plane of a point crosses it at the
+    # point x, so the distance is the (y, z) offset to (0, 10)
+    curves = np.column_stack(
+        [np.linspace(0, 100, 101), np.zeros(101), np.full(101, 10.0)]
+    )[np.newaxis]
+    normals = np.array([[1.0, 0.0, 0.0]])
+
+    def test_vertices_and_minimum_per_geometry_type(self):
+        coords = np.array([[10, 0, 0], [20, 0, 5], [30, 0, 8]], dtype=float)
+        line = np.array([[40, 5, 10], [60, -5, 10]], dtype=float)
+
+        result = DistanceEngine().distances(
+            {"pts": coords, "line": line},
+            {"pts": 0, "line": 0},
+            self.curves,
+            self.normals,
+            step=1.0,
+            refine=True,
+            xtol=1e-6,
+            geometry_types={"pts": "points", "line": "polyline"},
+        )
+
+        pts = result["pts"]
+        assert pts.geometry_type == "points"
+        assert {i: r.distance_3d for i, r in pts.points.items()} == (
+            pytest.approx({0: 10.0, 1: 5.0, 2: 2.0})
+        )
+        np.testing.assert_allclose(pts.points[2].point_target, [30, 0, 10])
+        assert pts.minimum is not None
+        assert pts.minimum.segment_index == 2
+        assert pts.minimum.segment_parameter == 0.0
+        assert pts.minimum.distance_3d == pytest.approx(2.0)
+
+        polyline = result["line"]
+        assert polyline.geometry_type == "polyline"
+        assert {i: r.distance_3d for i, r in polyline.points.items()} == (
+            pytest.approx({0: 5.0, 1: 5.0})
+        )
+        assert polyline.minimum is not None
+        assert polyline.minimum.segment_parameter == pytest.approx(0.5)
+        assert polyline.minimum.distance_3d == pytest.approx(0.0, abs=1e-5)
+
+    def test_vertex_without_intersection_is_absent_and_warns(self):
+        coords = np.array([[50, 0, 0], [150, 0, 0]], dtype=float)
+
+        with pytest.warns(NoIntersectionPlaneWarning, match="pts"):
+            result = DistanceEngine().distances(
+                {"pts": coords},
+                {"pts": 0},
+                self.curves,
+                self.normals,
+                step=1.0,
+                refine=True,
+                xtol=1e-6,
+                geometry_types={"pts": "points"},
+            )
+
+        assert set(result["pts"].points) == {0}
+        assert result["pts"].minimum is not None
+        assert result["pts"].minimum.segment_index == 0
+
+
+class TestObstacleDistancesTable:
+    @staticmethod
+    def _obstacle(points: dict[int, PointDistanceResult]) -> ObstacleDistances:
+        return ObstacleDistances(
+            obstacle_name="pylone",
+            span_index=0,
+            geometry_type="points",
+            points=points,
+            minimum=None,
+        )
+
+    @staticmethod
+    def _result(base, target, distance_3d) -> PointDistanceResult:
+        return PointDistanceResult(
+            point_base=np.array(base, dtype=float),
+            point_target=np.array(target, dtype=float),
+            u_plane=np.array([1.0, 0.0, 0.0]),
+            v_plane=np.array([0.0, 1.0, 0.0]),
+            distance_3d=distance_3d,
+            distance_projection_u=0.0,
+            distance_projection_v=distance_3d,
+        )
+
+    def test_get_table_has_one_row_per_point(self):
+        obstacle = self._obstacle(
+            {
+                0: self._result([0, 1, 2], [3, 4, 5], 5.0),
+                3: self._result([1, 1, 2], [6, 4, 5], 2.0),
+            }
+        )
+
+        table = obstacle.get_table()
+
+        assert table.shape == (2,)
+        np.testing.assert_array_equal(table["point_index"], [0, 3])
+        np.testing.assert_allclose(table["distance_3d"], [5.0, 2.0])
+        np.testing.assert_allclose(table["point_base_x"], [0.0, 1.0])
+        np.testing.assert_allclose(table["point_base_y"], [1.0, 1.0])
+        np.testing.assert_allclose(table["point_base_z"], [2.0, 2.0])
+        np.testing.assert_allclose(table["point_target_x"], [3.0, 6.0])
+        np.testing.assert_allclose(table["point_target_y"], [4.0, 4.0])
+        np.testing.assert_allclose(table["point_target_z"], [5.0, 5.0])
+
+    def test_get_table_without_points_is_empty(self):
+        table = self._obstacle({}).get_table()
+
+        assert table.shape == (0,)
+        assert "distance_3d" in table.dtype.names
+
+    def test_get_table_converts_to_dataframe(self):
+        obstacle = self._obstacle(
+            {
+                0: self._result([0, 1, 2], [3, 4, 5], 5.0),
+                3: self._result([1, 1, 2], [6, 4, 5], 2.0),
+            }
+        )
+
+        df = pd.DataFrame(obstacle.get_table())
+
+        assert list(df.columns) == [
+            "point_index",
+            "distance_3d",
+            "point_base_x",
+            "point_base_y",
+            "point_base_z",
+            "point_target_x",
+            "point_target_y",
+            "point_target_z",
+        ]
+        assert df["point_index"].tolist() == [0, 3]
+        assert df["distance_3d"].tolist() == pytest.approx([5.0, 2.0])
+        assert df.loc[1, "point_target_x"] == pytest.approx(6.0)
+
