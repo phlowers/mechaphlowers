@@ -67,7 +67,7 @@ def compute_parameter(
         p2 = (p2 - 1) - delta / derive
 
     # calcul point 3
-    p3 = np.full_like(a, 1346)
+    p3 = np.full_like(a, 1000)
 
     for _ in range(10):
         xm = -a / 2 + p3 * np.asinh(b / (2 * p3 * np.sinh(a / (2 * p3))))
@@ -78,7 +78,7 @@ def compute_parameter(
 
         delta = (y - ym) - y3
 
-        p3 = p3 + 0.1
+        p3 = p3 + 1
 
         xm = -a / 2 + p3 * np.asinh(b / (2 * p3 * np.sinh(a / (2 * p3))))
         ym = p3 * (np.cosh(xm / p3) - 1)
@@ -86,9 +86,9 @@ def compute_parameter(
         x = x3 + xm
         y = p3 * (np.cosh(x / p3) - 1)
 
-        derive = (((y - ym) - y3) - delta) / 0.1
+        derive = (((y - ym) - y3) - delta) / 1
 
-        p3 = (p3 - 0.1) - delta / derive
+        p3 = (p3 - 1) - delta / derive
 
     p = np.round((p1 + p2 + p3) / 3, 0)
     p1 = np.round(p1, 0)
