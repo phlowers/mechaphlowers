@@ -33,7 +33,7 @@ jobs:
         run: make pyodide-resolve
 
       - name: 🛠️ Build wheel
-        run: make pyodide-build
+        run: make pyodide-build pyodide_python="$UV_PYTHON"
 
       - name: ✔️ Install wheel and run tests in Pyodide
         run: make pyodide-test
