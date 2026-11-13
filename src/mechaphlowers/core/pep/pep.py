@@ -13,15 +13,18 @@ def compute_parameter(
     a: np.ndarray,
     b: np.ndarray,
     x1: np.ndarray,
-    y1: np.ndarray,
+    z1: np.ndarray,
     x2: np.ndarray,
-    y2: np.ndarray,
+    z2: np.ndarray,
     x3: np.ndarray,
-    y3: np.ndarray,
+    z3: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    p1 = _compute_parameter_from_one_point(a, b, x1, y1)
-    p2 = _compute_parameter_from_one_point(a, b, x2, y2)
-    p3 = _compute_parameter_from_one_point(a, b, x3, y3)
+    # All point coordinates are in span frame
+    # We assume there is so little wind that the cable frame
+    # is only a translation of the span frame.
+    p1 = _compute_parameter_from_one_point(a, b, x1, z1)
+    p2 = _compute_parameter_from_one_point(a, b, x2, z2)
+    p3 = _compute_parameter_from_one_point(a, b, x3, z3)
     p = p1 + p2 + p3
 
     p1 = np.round(p1, 0)
@@ -35,29 +38,33 @@ def _compute_parameter_from_one_point(
     a: ndarray,
     b: ndarray,
     measured_x: ndarray,
-    measured_y: ndarray,
+    measured_z: ndarray,
 ) -> ndarray:
     p_estimate = np.full_like(a, 1000)
     for _ in range(10):
-        xm = -a / 2 + p_estimate * np.asinh(
+        # xm and zm the coordinates of the lowest point of the
+        # cable in the span frame
+        xm = a / 2 - p_estimate * np.asinh(
             b / (2 * p_estimate * np.sinh(a / (2 * p_estimate)))
         )
-        ym = p_estimate * (np.cosh(xm / p_estimate) - 1)
+        zm = -p_estimate * (np.cosh(xm / p_estimate) - 1)
 
-        x = measured_x + xm
-        y = p_estimate * (np.cosh(x / p_estimate) - 1)
+        x = measured_x - xm
+        z = p_estimate * (np.cosh(x / p_estimate) - 1)
 
-        delta = (y - ym) - measured_y
+        delta = (z + zm) - measured_z
 
-        xm2 = -a / 2 + (p_estimate + 1) * np.asinh(
+        # xm2 and zm2 the coordinates of the lowest point of the
+        # cable in the span frame
+        xm2 = a / 2 - (p_estimate + 1) * np.asinh(
             b / (2 * (p_estimate + 1) * np.sinh(a / (2 * (p_estimate + 1))))
         )
-        ym2 = (p_estimate + 1) * (np.cosh(xm2 / (p_estimate + 1)) - 1)
+        zm2 = -(p_estimate + 1) * (np.cosh(xm2 / (p_estimate + 1)) - 1)
 
-        x = measured_x + xm2
-        y = (p_estimate + 1) * (np.cosh(x / (p_estimate + 1)) - 1)
+        x = measured_x - xm2
+        z = (p_estimate + 1) * (np.cosh(x / (p_estimate + 1)) - 1)
 
-        delta2 = (y - ym2) - measured_y
+        delta2 = (z + zm2) - measured_z
 
         derive = delta2 - delta
 
