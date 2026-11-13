@@ -9,10 +9,12 @@ from typing import Tuple
 import numpy as np
 from numpy import ndarray
 
+from mechaphlowers.config import options
 from mechaphlowers.core.parameter_measures.utils import (
     _catenary_equation_z,
     _lowest_point_coordinates,
 )
+from mechaphlowers.numeric.newton import newton_solver_wrapper
 
 
 def compute_parameter(
@@ -59,28 +61,34 @@ def _compute_parameter_from_one_point(
 ) -> ndarray:
     # Convention: x, z are coordinates in the span frame;
     # _x, _z are coordinates in the cable frame
-    p_estimate = np.full_like(span_length, 1000)
 
-    def z(p: ndarray) -> ndarray:
+    def z(x, parameter: ndarray) -> ndarray:
         xm, zm = _lowest_point_coordinates(
-            p, span_length, elevation_difference
+            parameter, span_length, elevation_difference
         )
+        _x = x - xm
+        _z = _catenary_equation_z(_x, parameter)
+        return _z + zm
 
-        _measured_x = measured_x - xm
-        _measured_z = measured_z - zm
+    def f(parameter):
+        return z(measured_x, parameter) - measured_z
 
-        _z_estimate = _catenary_equation_z(_measured_x, p)
+    # Use newton method to find parameter such that f(parameter) = 0
 
-        return _z_estimate + zm
+    def f_prime_approx(parameter):
+        zeta = options.solver.pep_zeta
+        return (f(parameter + zeta) - f(parameter)) / zeta
 
-    for _ in range(10):
-        z_estimate = z(p_estimate)
-        delta = z_estimate - measured_z
-        z_estimate2 = z(p_estimate + 1)
-        delta2 = z_estimate2 - measured_z
-        derive = delta2 - delta
-        p_estimate = p_estimate - delta / derive
-    return p_estimate
+    p0 = np.full_like(span_length, 1000)
+
+    root = newton_solver_wrapper(
+        f,
+        x0=p0,
+        fprime=f_prime_approx,
+        args=(),
+        caller_name="pep",
+    )
+    return root
 
 
 def max_relative_error(
