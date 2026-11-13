@@ -19,6 +19,7 @@ from mechaphlowers.core.geometry.distances import DistanceResult
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.estimation import (
     ComputeDistance,
+    DistanceType,
     EstimationEngine,
     EstimationResult,
 )
@@ -892,7 +893,10 @@ class TestComputeDistance:
         ],
     )
     def test_select_distance(
-        self, result: DistanceResult, distance_type: str, expected: float
+        self,
+        result: DistanceResult,
+        distance_type: DistanceType,
+        expected: float,
     ):
         compute = ComputeDistance(distance_type)
         assert compute.select_distance(result) == pytest.approx(expected)
