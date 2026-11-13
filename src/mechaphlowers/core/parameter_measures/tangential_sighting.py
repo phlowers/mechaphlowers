@@ -3,6 +3,7 @@ from typing import Tuple
 import numpy as np
 
 from mechaphlowers.core.parameter_measures.utils import (
+    _catenary_equation_z,
     _lowest_point_coordinates,
 )
 from mechaphlowers.entities.errors import (
@@ -309,7 +310,7 @@ def _tangent_point_coordinates(
         parameter, span_length, elevation_difference
     )
     x = x_lowest + parameter * np.asinh(slope)
-    z = z_lowest + parameter * (np.cosh((x - x_lowest) / parameter) - 1)
+    z = z_lowest + _catenary_equation_z(x - x_lowest, parameter)
     return x, z
 
 

@@ -3,12 +3,14 @@
 # License, v. 2.0. If span_length copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
+
 from typing import Tuple
 
 import numpy as np
 from numpy import ndarray
 
 from mechaphlowers.core.parameter_measures.utils import (
+    _catenary_equation_z,
     _lowest_point_coordinates,
 )
 
@@ -27,13 +29,22 @@ def compute_parameter(
     # We assume there is so little wind that the cable frame
     # is only span_length translation of the span frame.
     p1 = _compute_parameter_from_one_point(
-        span_length, elevation_difference, x1, z1
+        span_length,
+        elevation_difference,
+        x1,
+        z1,
     )
     p2 = _compute_parameter_from_one_point(
-        span_length, elevation_difference, x2, z2
+        span_length,
+        elevation_difference,
+        x2,
+        z2,
     )
     p3 = _compute_parameter_from_one_point(
-        span_length, elevation_difference, x3, z3
+        span_length,
+        elevation_difference,
+        x3,
+        z3,
     )
     _max_relative_error = max_relative_error(p1, p2, p3)
     p = (p1 + p2 + p3) / 3
@@ -50,7 +61,6 @@ def _compute_parameter_from_one_point(
     # _x, _z are coordinates in the cable frame
     p_estimate = np.full_like(span_length, 1000)
 
-    #
     def z(p: ndarray) -> ndarray:
         xm, zm = _lowest_point_coordinates(
             p, span_length, elevation_difference
@@ -71,14 +81,6 @@ def _compute_parameter_from_one_point(
         derive = delta2 - delta
         p_estimate = p_estimate - delta / derive
     return p_estimate
-
-
-def _catenary_equation_z(
-    _x: ndarray,
-    parameter: ndarray,
-) -> ndarray:
-    # In cable frame
-    return parameter * (np.cosh(_x / parameter) - 1)
 
 
 def max_relative_error(

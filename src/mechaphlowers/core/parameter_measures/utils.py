@@ -1,4 +1,7 @@
 import numpy as np
+from numpy import ndarray
+
+# TODO: mutualize with CableSpan.compute_x__m and .z_one_point?
 
 
 def _lowest_point_coordinates(
@@ -17,5 +20,13 @@ def _lowest_point_coordinates(
         )
         * parameter
     )
-    z = -parameter * (np.cosh(x / parameter) - 1)
+    z = -_catenary_equation_z(x, parameter)
     return x, z
+
+
+def _catenary_equation_z(
+    x: ndarray,
+    parameter: ndarray,
+) -> ndarray:
+    # In cable frame
+    return parameter * (np.cosh(x / parameter) - 1)
