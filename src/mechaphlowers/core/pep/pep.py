@@ -6,6 +6,7 @@
 from typing import Tuple
 
 import numpy as np
+from numpy import ndarray
 
 
 def compute_parameter(
@@ -18,81 +19,47 @@ def compute_parameter(
     x3: np.ndarray,
     y3: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    # calcul point 1
-    p1 = np.full_like(a, 1000)
+    p1 = _compute_parameter_from_one_point(a, b, x1, y1)
+    p2 = _compute_parameter_from_one_point(a, b, x2, y2)
+    p3 = _compute_parameter_from_one_point(a, b, x3, y3)
+    p = p1 + p2 + p3
 
-    for _ in range(10):
-        xm = -a / 2 + p1 * np.asinh(b / (2 * p1 * np.sinh(a / (2 * p1))))
-        ym = p1 * (np.cosh(xm / p1) - 1)
-
-        x = x1 + xm
-        y = p1 * (np.cosh(x / p1) - 1)
-
-        delta = (y - ym) - y1
-
-        p1 = p1 + 1
-
-        xm = -a / 2 + p1 * np.asinh(b / (2 * p1 * np.sinh(a / (2 * p1))))
-        ym = p1 * (np.cosh(xm / p1) - 1)
-
-        x = x1 + xm
-        y = p1 * (np.cosh(x / p1) - 1)
-
-        derive = ((y - ym) - y1) - delta
-
-        p1 = (p1 - 1) - delta / derive
-
-    # calcul point 2
-    p2 = np.full_like(a, 1000)
-
-    for _ in range(10):
-        xm = -a / 2 + p2 * np.asinh(b / (2 * p2 * np.sinh(a / (2 * p2))))
-        ym = p2 * (np.cosh(xm / p2) - 1)
-
-        x = x2 + xm
-        y = p2 * (np.cosh(x / p2) - 1)
-
-        delta = (y - ym) - y2
-
-        p2 = p2 + 1
-
-        xm = -a / 2 + p2 * np.asinh(b / (2 * p2 * np.sinh(a / (2 * p2))))
-        ym = p2 * (np.cosh(xm / p2) - 1)
-
-        x = x2 + xm
-        y = p2 * (np.cosh(x / p2) - 1)
-
-        derive = ((y - ym) - y2) - delta
-
-        p2 = (p2 - 1) - delta / derive
-
-    # calcul point 3
-    p3 = np.full_like(a, 1000)
-
-    for _ in range(10):
-        xm = -a / 2 + p3 * np.asinh(b / (2 * p3 * np.sinh(a / (2 * p3))))
-        ym = p3 * (np.cosh(xm / p3) - 1)
-
-        x = x3 + xm
-        y = p3 * (np.cosh(x / p3) - 1)
-
-        delta = (y - ym) - y3
-
-        p3 = p3 + 1
-
-        xm = -a / 2 + p3 * np.asinh(b / (2 * p3 * np.sinh(a / (2 * p3))))
-        ym = p3 * (np.cosh(xm / p3) - 1)
-
-        x = x3 + xm
-        y = p3 * (np.cosh(x / p3) - 1)
-
-        derive = (((y - ym) - y3) - delta) / 1
-
-        p3 = (p3 - 1) - delta / derive
-
-    p = np.round((p1 + p2 + p3) / 3, 0)
     p1 = np.round(p1, 0)
     p2 = np.round(p2, 0)
     p3 = np.round(p3, 0)
-
+    p = np.round(p / 3, 0)
     return p1, p2, p3, p
+
+
+def _compute_parameter_from_one_point(
+    a: ndarray,
+    b: ndarray,
+    measured_x: ndarray,
+    measured_y: ndarray,
+) -> ndarray:
+    p_estimate = np.full_like(a, 1000)
+    for _ in range(10):
+        xm = -a / 2 + p_estimate * np.asinh(
+            b / (2 * p_estimate * np.sinh(a / (2 * p_estimate)))
+        )
+        ym = p_estimate * (np.cosh(xm / p_estimate) - 1)
+
+        x = measured_x + xm
+        y = p_estimate * (np.cosh(x / p_estimate) - 1)
+
+        delta = (y - ym) - measured_y
+
+        p_estimate = p_estimate + 1
+
+        xm = -a / 2 + p_estimate * np.asinh(
+            b / (2 * p_estimate * np.sinh(a / (2 * p_estimate)))
+        )
+        ym = p_estimate * (np.cosh(xm / p_estimate) - 1)
+
+        x = measured_x + xm
+        y = p_estimate * (np.cosh(x / p_estimate) - 1)
+
+        derive = ((y - ym) - measured_y) - delta
+
+        p_estimate = (p_estimate - 1) - delta / derive
+    return p_estimate
