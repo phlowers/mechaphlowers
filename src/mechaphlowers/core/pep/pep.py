@@ -22,7 +22,7 @@ def compute_parameter(
     z2: np.ndarray,
     x3: np.ndarray,
     z3: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     # All point coordinates are in span frame
     # We assume there is so little wind that the cable frame
     # is only span_length translation of the span frame.
@@ -35,13 +35,9 @@ def compute_parameter(
     p3 = _compute_parameter_from_one_point(
         span_length, elevation_difference, x3, z3
     )
-    p = p1 + p2 + p3
-
-    p1 = np.round(p1, 0)
-    p2 = np.round(p2, 0)
-    p3 = np.round(p3, 0)
-    p = np.round(p / 3, 0)
-    return p1, p2, p3, p
+    _max_relative_error = max_relative_error(p1, p2, p3)
+    p = (p1 + p2 + p3) / 3
+    return p1, p2, p3, p, _max_relative_error
 
 
 def _compute_parameter_from_one_point(
@@ -83,3 +79,23 @@ def _catenary_equation_z(
 ) -> ndarray:
     # In cable frame
     return parameter * (np.cosh(_x / parameter) - 1)
+
+
+def max_relative_error(
+    p1: np.ndarray, p2: np.ndarray, p3: np.ndarray
+) -> np.ndarray:
+    return np.max(
+        [
+            _relative_error(p1, p2),
+            _relative_error(p2, p1),
+            _relative_error(p3, p1),
+            _relative_error(p1, p3),
+            _relative_error(p3, p2),
+            _relative_error(p2, p3),
+        ],
+        axis=0,
+    )
+
+
+def _relative_error(x: ndarray, y: ndarray) -> ndarray:
+    return np.abs((x - y) / y)
