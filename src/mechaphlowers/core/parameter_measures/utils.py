@@ -1,14 +1,31 @@
+from typing import overload
+
 import numpy as np
-from numpy import ndarray
 
 # TODO: mutualize with CableSpan.compute_x__m and .z_one_point?
 
 
+@overload
+def _lowest_point_coordinates(
+    parameter: float,
+    span_length: float,
+    elevation_difference: float,
+) -> tuple[float, float]: ...
+
+
+@overload
 def _lowest_point_coordinates(
     parameter: np.ndarray,
     span_length: np.ndarray,
     elevation_difference: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]: ...
+
+
+def _lowest_point_coordinates(
+    parameter: np.ndarray | float,
+    span_length: np.ndarray | float,
+    elevation_difference: np.ndarray | float,
+) -> tuple[np.ndarray | float, np.ndarray | float]:
     """Coordinates of the lowest point of the cable in the span frame.
 
     (Origin is the left hanging point.)"""
@@ -24,9 +41,23 @@ def _lowest_point_coordinates(
     return x, z
 
 
+@overload
 def _catenary_equation_z(
-    x: ndarray,
-    parameter: ndarray,
-) -> ndarray:
+    x: float,
+    parameter: float,
+) -> float: ...
+
+
+@overload
+def _catenary_equation_z(
+    x: np.ndarray,
+    parameter: np.ndarray,
+) -> np.ndarray: ...
+
+
+def _catenary_equation_z(
+    x: np.ndarray | float,
+    parameter: np.ndarray | float,
+) -> np.ndarray | float:
     # In cable frame
     return parameter * (np.cosh(x / parameter) - 1)

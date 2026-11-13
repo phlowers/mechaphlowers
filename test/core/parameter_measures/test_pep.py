@@ -9,8 +9,8 @@ import numpy as np
 from mechaphlowers.core.parameter_measures.pep import compute_parameter
 
 
-def test_compute_parameter() -> None:
-    p1, p2, p3, p, _ = compute_parameter(
+def test_compute_parameter__array() -> None:
+    p1, p2, p3, p, relative_error = compute_parameter(
         np.array([466.067, 485.144, 430.521]),
         np.array([-1.560, 7.023, -0.025]),
         np.array([198.332, 123.346, 108.903]),
@@ -24,3 +24,22 @@ def test_compute_parameter() -> None:
     np.testing.assert_allclose(p2, np.array([2100, 2113, 2129]), atol=1)
     np.testing.assert_allclose(p3, np.array([2106, 2113, 2127]), atol=1)
     np.testing.assert_allclose(p, np.array([2104, 2113, 2126]), atol=1)
+    assert (relative_error < 0.05).all()
+
+
+def test_compute_parameter__scalar() -> None:
+    p1, p2, p3, p, relative_error = compute_parameter(
+        466.067,
+        -1.560,
+        198.332,
+        -13.288,
+        205.037,
+        -13.444,
+        298.816,
+        -12.879,
+    )
+    np.testing.assert_allclose(p1, 2105, atol=1)
+    np.testing.assert_allclose(p2, 2100, atol=1)
+    np.testing.assert_allclose(p3, 2106, atol=1)
+    np.testing.assert_allclose(p, 2104, atol=1)
+    assert relative_error < 0.05
