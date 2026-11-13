@@ -6,7 +6,7 @@
 
 import numpy as np
 
-from mechaphlowers.core.pep.pep import compute_parameter
+from mechaphlowers.core.parameter_measures.pep import compute_parameter
 
 
 def test_compute_parameter() -> None:

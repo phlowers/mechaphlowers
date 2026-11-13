@@ -19,15 +19,15 @@ import numpy as np
 from mechaphlowers.config import options
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.models.balance.engine import BalanceEngine
-from mechaphlowers.core.papoto.papoto_model import (
+from mechaphlowers.core.parameter_measures.papoto import (
     papoto_2_points,
     papoto_validity,
 )
-from mechaphlowers.core.pep.pep import compute_parameter as pep
-from mechaphlowers.core.tangential_sighting.tangential_sighting import (
+from mechaphlowers.core.parameter_measures.pep import compute_parameter as pep
+from mechaphlowers.core.parameter_measures.tangential_sighting import (
     compute_parameter__array as tangential_sighting__array,
 )
-from mechaphlowers.core.tangential_sighting.tangential_sighting import (
+from mechaphlowers.core.parameter_measures.tangential_sighting import (
     compute_parameter__scalar as tangential_sighting__scalar,
 )
 from mechaphlowers.data.units import convert_angle_to_rad

@@ -8,7 +8,7 @@ from typing import Tuple
 import numpy as np
 from numpy import ndarray
 
-from mechaphlowers.core.tangential_sighting.tangential_sighting import (
+from mechaphlowers.core.parameter_measures.utils import (
     _lowest_point_coordinates,
 )
 

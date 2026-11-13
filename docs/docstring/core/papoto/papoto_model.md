@@ -1,1 +1,0 @@
-::: mechaphlowers.core.papoto.papoto_model

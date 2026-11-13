@@ -2,6 +2,9 @@ from typing import Tuple
 
 import numpy as np
 
+from mechaphlowers.core.parameter_measures.utils import (
+    _lowest_point_coordinates,
+)
 from mechaphlowers.entities.errors import (
     ConvergenceError,
     InputAngleNotInRangeError,
@@ -293,26 +296,6 @@ def approx_parameter_using_parabola(
     ) * slope
     sag = ((a + b) / 2 + np.sqrt(a * b)) / 2
     return span_length * span_length / (8 * sag)
-
-
-def _lowest_point_coordinates(
-    parameter: np.ndarray,
-    span_length: np.ndarray,
-    elevation_difference: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Coordinates of the lowest point of the cable in the span frame.
-
-    (Origin is the left hanging point.)"""
-    x = (
-        span_length / 2
-        - np.asinh(
-            elevation_difference
-            / (2 * parameter * np.sinh(span_length / (2 * parameter)))
-        )
-        * parameter
-    )
-    z = -parameter * (np.cosh(x / parameter) - 1)
-    return x, z
 
 
 def _tangent_point_coordinates(
