@@ -399,6 +399,9 @@ class PepParameterMeasure(ParameterMeasure):
     def validity(self):
         return self.relative_error < self.validity_criteria
 
+    def check_validity(self) -> np.ndarray:
+        return self.validity
+
 
 class TangentialSightingParameterMeasure(ParameterMeasure):
     """Class to compute a parameter using the tangential sighting method."""
