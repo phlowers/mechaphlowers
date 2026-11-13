@@ -715,6 +715,7 @@ def test_pep_parameter_measure__array__ok() -> None:
         atol=1.0,
     )
     np.testing.assert_equal(pep.validity, np.array([True, True, True]))
+    assert (pep.relative_error < 0.005).all()
 
 
 def test_pep_parameter_measure__array__mixed_validity() -> None:
@@ -736,3 +737,46 @@ def test_pep_parameter_measure__array__mixed_validity() -> None:
         atol=1.0,
     )
     np.testing.assert_equal(pep.validity, np.array([False, True, True]))
+
+
+def test_pep_parameter_measure__scalar__ok() -> None:
+    pep = PepParameterMeasure()
+    pep(
+        span_length=466.067,
+        elevation_difference=-1.560,
+        x1=198.332,
+        z1=-13.288,
+        x2=205.037,
+        z2=-13.444,
+        x3=298.816,
+        z3=-12.879,
+    )
+    np.testing.assert_allclose(
+        pep.parameter,
+        2104,
+        atol=1.0,
+    )
+    np.testing.assert_equal(pep.validity, True)
+    assert pep.relative_error < 0.005
+
+
+def test_pep_parameter_measure__scalar__not_valid() -> None:
+    measure_error = 50
+    pep = PepParameterMeasure()
+    pep(
+        span_length=466.067,
+        elevation_difference=-1.560,
+        x1=198.332 + measure_error,
+        z1=-13.288,
+        x2=205.037,
+        z2=-13.444,
+        x3=298.816,
+        z3=-12.879,
+    )
+    np.testing.assert_allclose(
+        pep.parameter,
+        2126,
+        atol=1.0,
+    )
+    assert pep.relative_error > 0.005
+    assert not pep.validity
