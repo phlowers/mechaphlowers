@@ -36,15 +36,9 @@ def cable_to_localsection_frame(
             z_span: Rotated z coordinates in the localsection frame.
     """
 
-    # beta is inverted because these formulas come from the prototype, which has indirect angles
-    azimuth_angle_inverted = -azimuth_angle
-
-    projected_x_span = x * np.cos(azimuth_angle_inverted) - y * np.sin(
-        azimuth_angle_inverted
-    )
-    projected_y_span = -x * np.sin(azimuth_angle_inverted) + y * np.cos(
-        azimuth_angle_inverted
-    )
+    # Direct rotation of angle azimuth_angle around the z axis
+    projected_x_span = x * np.cos(azimuth_angle) - y * np.sin(azimuth_angle)
+    projected_y_span = x * np.sin(azimuth_angle) + y * np.cos(azimuth_angle)
 
     return projected_x_span, projected_y_span, z
 
