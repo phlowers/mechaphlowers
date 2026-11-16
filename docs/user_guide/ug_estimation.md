@@ -166,6 +166,7 @@ result = engine.estimate_wind(
     new_temperature=15.0,
 )
 print(result.value, result.converged)  # ~285 Pa, True
+print(result.extra["distance"])  # distance at the solution, ~42 m
 ```
 
 #### Closest point (`target_distance=None`)
@@ -211,6 +212,7 @@ result = engine.estimate_load_relative(
     bounds=(0.0, 500.0),
 )
 print(result.value, result.converged)  # ~40 kg, True
+print(result.extra["x_shift"])  # initial x_cable - final x_cable, in meters
 ```
 
 ### Rope

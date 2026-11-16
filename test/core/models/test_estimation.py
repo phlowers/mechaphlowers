@@ -145,6 +145,49 @@ class TestEstimationEngine:
         assert result.converged
         assert abs(result.value - 3.0) < 1e-3
 
+    def test_estimate_tol_is_set_on_method_then_restored(
+        self, solved_study: SectionStudy
+    ):
+        seen: list[float] = []
+
+        class SpyMethod(BisectionMethod):
+            def solve(self, objective, bounds):
+                seen.append(self.tol)
+                return super().solve(objective, bounds)
+
+        engine = EstimationEngine(solved_study, method=SpyMethod(tol=1e-2))
+        engine.estimate(lambda x: x - 1.0, (0.0, 10.0), tol=1e-6)
+        engine.estimate(lambda x: x - 1.0, (0.0, 10.0))
+        assert seen == [1e-6, 1e-2]
+        assert isinstance(engine.method, SpyMethod)
+        assert engine.method.tol == 1e-2
+
+    def test_estimate_tol_on_minimizer_for_closest_point(
+        self, solved_study: SectionStudy
+    ):
+        engine = EstimationEngine(
+            solved_study, minimizer=BrentMinimizationMethod(tol=1e-2)
+        )
+        engine.estimate_wind(
+            span_index=0,
+            obstacle_point=np.array([250.0, -10.0, 20.0]),
+            target_distance=None,
+            tol=0.5,
+        )
+        assert isinstance(engine.minimizer, BrentMinimizationMethod)
+        assert engine.minimizer.tol == 1e-2
+
+    def test_estimate_tol_without_tol_attribute_raises(
+        self, solved_study: SectionStudy
+    ):
+        class NoTol:
+            def solve(self, objective, bounds):
+                raise AssertionError("must not be called")
+
+        engine = EstimationEngine(solved_study, method=NoTol())
+        with pytest.raises(ValueError, match="tol"):
+            engine.estimate(lambda x: x, (0.0, 1.0), tol=1e-3)
+
     def test_method_setter(self, solved_study: SectionStudy):
         engine = EstimationEngine(solved_study)
         assert isinstance(engine.method, BrentMethod)
@@ -236,6 +279,7 @@ class TestEstimationEngine:
         )
         assert result.converged
         assert abs(result.value - wind_pressure) < 5.0
+        assert result.extra["distance"] == pytest.approx(ref_distance, abs=0.5)
 
     def test_estimate_wind_closest_point(self, solved_study: SectionStudy):
         """Without target distance, the wind giving the minimum distance is found."""
@@ -443,9 +487,10 @@ class TestEstimationSandbox:
         reference.set_loads(positions, masses)
         reference.solve_change_state(**temperature)
 
-        initial_altitude = (
-            reference.position_engine.get_loads_coords_group_points()[0][2]
-        )
+        initial_point = reference.position_engine.get_loads_coords_group_points()[
+            0
+        ].copy()
+        initial_altitude = initial_point[2]
 
         positions[0] = x
         masses[0] = guess_mass
@@ -453,10 +498,11 @@ class TestEstimationSandbox:
         reference.set_loads(positions, masses)
         reference.solve_change_state(**temperature)
 
-        target = (
-            reference.position_engine.get_loads_coords_group_points()[0][2]
-            - initial_altitude
-        )
+        final_point = reference.position_engine.get_loads_coords_group_points()[
+            0
+        ]
+        expected_x_shift = initial_point[0] - final_point[0]
+        target = final_point[2] - initial_altitude
         assert target < 0
 
         engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
@@ -469,6 +515,9 @@ class TestEstimationSandbox:
         )
         assert result.converged
         assert abs(result.value - guess_mass) < 1.0
+        assert result.extra["x_shift"] == pytest.approx(
+            expected_x_shift, abs=0.05
+        )
 
     def test_study_untouched_after_estimate_load_relative(
         self, solved_study: SectionStudy
