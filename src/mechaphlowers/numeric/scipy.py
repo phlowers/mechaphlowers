@@ -15,6 +15,7 @@ _rtol = 4 * np.finfo(float).eps
 __all__ = [
     'newton',
     'brentq',
+    'fminbound',
     'RootResults',
 ]
 
@@ -632,3 +633,166 @@ def brentq(
     return _results_select(
         full_output, (xcur, funcalls, iterations, _ECONVERR)
     )
+
+
+def fminbound(
+    func,
+    x1,
+    x2,
+    args=(),
+    xtol=1e-5,
+    maxfun=500,
+    full_output=False,
+    disp=1,
+):
+    """Bounded minimization of a scalar function (Brent's method).
+
+    Pure-Python port of scipy's ``fminbound``
+    (``scipy/optimize/_optimize.py::_minimize_scalar_bounded``), with the same
+    signature and return conventions as ``scipy.optimize.fminbound``. Combines
+    golden-section search and parabolic interpolation, without derivatives.
+    Only points strictly inside ``(x1, x2)`` are evaluated.
+
+    Parameters
+    ----------
+    func : callable
+        Scalar function ``func(x, *args)`` to minimize.
+    x1, x2 : float
+        Finite optimization bounds.
+    args : tuple, optional
+        Extra arguments passed to ``func``.
+    xtol : float, optional
+        Absolute convergence tolerance on ``x``.
+    maxfun : int, optional
+        Maximum number of function evaluations.
+    full_output : bool, optional
+        If True, return ``(xopt, fval, ierr, numfunc)``.
+    disp : int, optional
+        If non-zero, warn when the algorithm does not converge.
+
+    Returns
+    -------
+    xopt : float
+        Minimizer of ``func`` in ``[x1, x2]``.
+    fval : float
+        Present if ``full_output`` is True. Value of ``func`` at ``xopt``.
+    ierr : int
+        Present if ``full_output`` is True. 0 if converged, 1 if ``maxfun``
+        was reached, 2 if NaN was encountered.
+    numfunc : int
+        Present if ``full_output`` is True. Number of function calls.
+    """
+    if not isinstance(args, tuple):
+        args = (args,)
+    maxfun = int(maxfun)
+    if not (np.isfinite(x1) and np.isfinite(x2)):
+        raise ValueError("Optimization bounds must be finite scalars.")
+    if x1 > x2:
+        raise ValueError("The lower bound exceeds the upper bound.")
+    if maxfun < 1:
+        raise ValueError("maxfun must be >= 1")
+
+    flag = 0
+    sqrt_eps = np.sqrt(2.2e-16)
+    golden_mean = 0.5 * (3.0 - np.sqrt(5.0))
+    a, b = float(x1), float(x2)
+    fulc = a + golden_mean * (b - a)
+    nfc, xf = fulc, fulc
+    rat = e = 0.0
+    x = xf
+    fx = float(func(x, *args))
+    num = 1
+    fu = np.inf
+
+    ffulc = fnfc = fx
+    xm = 0.5 * (a + b)
+    tol1 = sqrt_eps * abs(xf) + xtol / 3.0
+    tol2 = 2.0 * tol1
+
+    while abs(xf - xm) > (tol2 - 0.5 * (b - a)):
+        golden = True
+        # Check for parabolic fit
+        if abs(e) > tol1:
+            golden = False
+            r = (xf - nfc) * (fx - ffulc)
+            q = (xf - fulc) * (fx - fnfc)
+            p = (xf - fulc) * q - (xf - nfc) * r
+            q = 2.0 * (q - r)
+            if q > 0.0:
+                p = -p
+            q = abs(q)
+            r = e
+            e = rat
+
+            # Check for acceptability of parabola
+            if (
+                abs(p) < abs(0.5 * q * r)
+                and p > q * (a - xf)
+                and p < q * (b - xf)
+            ):
+                rat = (p + 0.0) / q
+                x = xf + rat
+                if ((x - a) < tol2) or ((b - x) < tol2):
+                    si = np.sign(xm - xf) + ((xm - xf) == 0)
+                    rat = tol1 * si
+            else:
+                golden = True
+
+        if golden:
+            if xf >= xm:
+                e = a - xf
+            else:
+                e = b - xf
+            rat = golden_mean * e
+
+        si = np.sign(rat) + (rat == 0)
+        x = xf + si * max(abs(rat), tol1)
+        fu = float(func(x, *args))
+        num += 1
+
+        if fu <= fx:
+            if x >= xf:
+                a = xf
+            else:
+                b = xf
+            fulc, ffulc = nfc, fnfc
+            nfc, fnfc = xf, fx
+            xf, fx = x, fu
+        else:
+            if x < xf:
+                a = x
+            else:
+                b = x
+            if (fu <= fnfc) or (nfc == xf):
+                fulc, ffulc = nfc, fnfc
+                nfc, fnfc = x, fu
+            elif (fu <= ffulc) or (fulc == xf) or (fulc == nfc):
+                fulc, ffulc = x, fu
+
+        xm = 0.5 * (a + b)
+        tol1 = sqrt_eps * abs(xf) + xtol / 3.0
+        tol2 = 2.0 * tol1
+
+        if num >= maxfun:
+            flag = 1
+            break
+
+    if np.isnan(xf) or np.isnan(fx) or np.isnan(fu):
+        flag = 2
+
+    if disp and flag == 1:
+        warnings.warn(
+            "Maximum number of function calls reached in fminbound",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    elif disp and flag == 2:
+        warnings.warn(
+            "NaN result encountered in fminbound",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+    if full_output:
+        return float(xf), fx, flag, num
+    return float(xf)

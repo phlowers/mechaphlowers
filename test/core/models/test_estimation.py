@@ -16,6 +16,7 @@ import pytest
 
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.geometry.distances import DistanceResult
+from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.estimation import (
     ComputeDistance,
@@ -26,6 +27,7 @@ from mechaphlowers.core.models.estimation import (
 from mechaphlowers.core.numeric import (
     BisectionMethod,
     BrentMethod,
+    BrentMinimizationMethod,
 )
 from mechaphlowers.data.units import convert_weight_to_mass
 from mechaphlowers.entities.arrays import CableArray, SectionArray
@@ -109,6 +111,25 @@ class TestOptimizationMethods:
         result = method.solve(self._simple_objective, bounds=(3.0, 5.0))
         assert not result.converged
         assert result.value == 3.0
+
+    @pytest.mark.parametrize("without_scipy", [False, True])
+    def test_brent_minimization_converges(
+        self, monkeypatch: pytest.MonkeyPatch, without_scipy: bool
+    ):
+        if without_scipy:
+            monkeypatch.setitem(sys.modules, "scipy.optimize", None)
+        method = BrentMinimizationMethod(tol=1e-6)
+        result = method.minimize(lambda x: abs(x - 1.5), bounds=(0.0, 5.0))
+        assert result.converged
+        assert abs(result.value - 1.5) < 1e-5
+        assert result.residual == pytest.approx(abs(result.value - 1.5))
+
+    def test_brent_minimization_minimum_on_bound(self):
+        method = BrentMinimizationMethod(tol=1e-6)
+        result = method.minimize(self._simple_objective, bounds=(1.0, 5.0))
+        assert not result.converged
+        assert result.value == 1.0
+        assert result.residual == -3.0
 
 
 class TestEstimationEngine:
@@ -215,6 +236,74 @@ class TestEstimationEngine:
         )
         assert result.converged
         assert abs(result.value - wind_pressure) < 5.0
+
+    def test_estimate_wind_closest_point(self, solved_study: SectionStudy):
+        """Without target distance, the wind giving the minimum distance is found."""
+        study = solved_study
+        obstacle = np.array([250.0, -10.0, 20.0])
+        memento_before = study.save_state()
+        reference = study.copy()
+
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.5))
+        result = engine.estimate_wind(
+            span_index=0,
+            obstacle_point=obstacle,
+            target_distance=None,
+        )
+
+        assert result.converged
+        assert "distance" in result.extra
+        assert abs(result.value + 235.7) < 1.0
+        for delta in (-20.0, 20.0):
+            reference.balance_engine.solve_change_state(
+                wind_pressure=result.value + delta
+            )
+            position = PositionEngine(reference.balance_engine)
+            nearby = position.point_distance(0, obstacle).distance_3d
+            assert result.extra["distance"] <= nearby
+        np.testing.assert_array_equal(
+            study.balance_engine.balance_model.nodes.dxdydz,
+            memento_before.dxdydz,
+        )
+
+    @pytest.mark.parametrize(
+        ("bounds", "expected_value"),
+        [((100.0, 1000.0), 100.0), ((-1000.0, -100.0), -100.0)],
+    )
+    def test_estimate_wind_closest_point_on_bound(
+        self,
+        solved_study: SectionStudy,
+        bounds: tuple[float, float],
+        expected_value: float,
+    ):
+        """If the minimum distance lies outside bounds, the closest bound is returned."""
+        engine = EstimationEngine(solved_study, method=BrentMethod(tol=0.5))
+        result = engine.estimate_wind(
+            span_index=0,
+            obstacle_point=np.array([250.0, 10.0, 20.0]),
+            target_distance=None,
+            bounds=bounds,
+        )
+
+        assert not result.converged
+        assert result.value == expected_value
+        assert result.extra["distance"] == pytest.approx(39.596, abs=1e-2)
+
+    def test_estimate_wind_closest_point_signed_distance(
+        self, solved_study: SectionStudy
+    ):
+        """Signed horizontal distance is minimized in absolute value (zero crossing)."""
+        engine = EstimationEngine(solved_study, method=BrentMethod(tol=0.5))
+        result = engine.estimate_wind(
+            span_index=0,
+            obstacle_point=np.array([250.0, 25.0, 20.0]),
+            target_distance=None,
+            distance_type="horizontal",
+        )
+
+        assert result.converged
+        assert "distance" in result.extra
+        assert result.extra["distance"] < 1e-3
 
     def test_state_preserved_after_estimation(
         self, solved_study: SectionStudy

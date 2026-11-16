@@ -481,3 +481,34 @@ def test_brentq_not_converged():
     x, r = zeros.brentq(f, 2.0, 3.0, maxiter=2, full_output=True, disp=False)
     assert not r.converged
     assert r.flag == zeros.CONVERR
+
+
+FMINBOUND_CASES = [
+    (lambda x: (x - 1.3) ** 2, -5.0, 5.0),
+    (lambda x: abs(x - 0.4), -1.0, 2.0),
+    (lambda x: np.cosh(x - 2.0), 0.0, 10.0),
+    (lambda x: x**4 - 3 * x**2 + x, 0.0, 3.0),
+    (lambda x: x, 1.0, 2.0),
+]
+
+
+@pytest.mark.parametrize("f, a, b", FMINBOUND_CASES)
+@pytest.mark.parametrize("xtol", [1e-8, 1e-5, 1e-2])
+def test_fminbound_matches_scipy(f, a, b, xtol):
+    scipy_optimize = pytest.importorskip("scipy.optimize")
+    ref = scipy_optimize.fminbound(f, a, b, xtol=xtol, full_output=True)
+    res = zeros.fminbound(f, a, b, xtol=xtol, full_output=True)
+    assert_allclose(res[0], ref[0], rtol=0, atol=10 * TOL)
+    assert res[2:] == ref[2:]
+
+
+def test_fminbound_maxfun_and_errors():
+    with pytest.warns(RuntimeWarning, match="Maximum number"):
+        xopt, _, ierr, num = zeros.fminbound(
+            lambda x: (x - 1.0) ** 2, -10.0, 10.0, maxfun=3, full_output=True
+        )
+    assert ierr == 1 and num == 3
+    with pytest.raises(ValueError, match="lower bound"):
+        zeros.fminbound(lambda x: x, 1.0, 0.0)
+    with pytest.raises(ValueError, match="finite"):
+        zeros.fminbound(lambda x: x, -np.inf, 0.0)

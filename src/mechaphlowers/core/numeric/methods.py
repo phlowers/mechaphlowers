@@ -157,3 +157,83 @@ class BrentMethod:
             logger.warning(f"Brent's method failed: {e}. Trying bisection.")
             fallback = BisectionMethod(tol=self.tol, maxiter=self.maxiter)
             return fallback.solve(objective, bounds)
+
+
+class MinimizationMethod(Protocol):
+    """Protocol for bounded scalar minimization algorithms.
+
+    Implementations minimize ``objective(x)`` within given bounds and return
+    the objective value at the minimum as the result ``residual``.
+    """
+
+    def minimize(
+        self,
+        objective: Callable[[float], float],
+        bounds: tuple[float, float],
+    ) -> EstimationResult: ...
+
+
+class BrentMinimizationMethod:
+    """Brent's bounded minimization (``fminbound``), derivative-free.
+
+    Uses ``scipy.optimize.fminbound`` when scipy is installed, otherwise the
+    pure-Python port in ``mechaphlowers.numeric.scipy``. Assumes a single
+    local minimum inside ``bounds``.
+
+    The interior search never evaluates the bounds, so the objective is also
+    evaluated at both bounds: if a bound is at least as low as the interior
+    minimum, the minimum lies on that bound and it is returned with
+    ``converged=False``.
+
+    The ``residual`` of the result is the objective value at the minimum.
+
+    Args:
+        tol: Absolute tolerance on the minimizer. Defaults to 1e-3.
+        maxiter: Maximum number of objective evaluations of the interior
+            search. Defaults to 50.
+    """
+
+    def __init__(self, tol: float = 1e-3, maxiter: int = 50) -> None:
+        self.tol = tol
+        self.maxiter = maxiter
+
+    def minimize(
+        self,
+        objective: Callable[[float], float],
+        bounds: tuple[float, float],
+    ) -> EstimationResult:
+        try:
+            from scipy.optimize import fminbound  # type: ignore
+        except ImportError:
+            from mechaphlowers.numeric.scipy import fminbound  # type: ignore
+
+        lower, upper = bounds
+        xopt, fopt, ierr, numfunc = fminbound(
+            objective,
+            lower,
+            upper,
+            xtol=self.tol,
+            maxfun=self.maxiter,
+            full_output=True,
+            disp=0,
+        )
+        f_lower = objective(lower)
+        f_upper = objective(upper)
+        iterations = numfunc + 2
+
+        bound, f_bound = (
+            (lower, f_lower) if f_lower <= f_upper else (upper, f_upper)
+        )
+        if f_bound <= fopt:
+            return EstimationResult(
+                value=bound,
+                residual=f_bound,
+                iterations=iterations,
+                converged=False,
+            )
+        return EstimationResult(
+            value=float(xopt),
+            residual=float(fopt),
+            iterations=iterations,
+            converged=ierr == 0,
+        )
