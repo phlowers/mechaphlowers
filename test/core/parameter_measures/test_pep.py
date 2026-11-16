@@ -7,6 +7,10 @@
 import numpy as np
 
 from mechaphlowers.core.parameter_measures.pep import compute_parameter
+from mechaphlowers.core.parameter_measures.utils import (
+    _catenary_equation_z,
+    _lowest_point_coordinates,
+)
 
 
 def test_compute_parameter__array() -> None:
@@ -43,3 +47,46 @@ def test_compute_parameter__scalar() -> None:
     np.testing.assert_allclose(p3, 2106, atol=1)
     np.testing.assert_allclose(p, 2104, atol=1)
     assert relative_error < 0.05
+
+
+def test_compute_parameter__scalar__parameter_far_from_initial_guess() -> None:
+    # given
+    span_length = 600
+    elevation_difference = 0
+    parameter = 500
+    # Same convention as in pep.py: x, z are coordinates in the span frame;
+    # _x, _z are coordinates in the cable frame
+    xm, ym = _lowest_point_coordinates(
+        parameter,
+        span_length,
+        elevation_difference,
+    )
+    _x1 = -30
+    _x3 = 30
+    x1 = xm + _x1
+    x3 = xm + _x3
+    _y1 = _catenary_equation_z(
+        _x1,
+        parameter,
+    )
+    _y3 = _catenary_equation_z(
+        _x3,
+        parameter,
+    )
+    y1 = _y1 + ym
+    y3 = _y3 + ym
+
+    # when
+    _, _, _, p, _ = compute_parameter(
+        span_length,
+        elevation_difference,
+        x1,
+        y1,
+        xm,
+        ym,
+        x3,
+        y3,
+    )
+
+    # then
+    np.testing.assert_allclose(p, parameter, atol=1)
