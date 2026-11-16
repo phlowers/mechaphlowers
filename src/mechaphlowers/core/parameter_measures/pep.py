@@ -58,7 +58,7 @@ def compute_parameter(
     span_length: np.ndarray | float,
     elevation_difference: np.ndarray | float,
     x1: np.ndarray | float,
-    z1: np.ndarray | float,
+    z1: np.ndarray | float,  # TODO: rename? z -> y
     x2: np.ndarray | float,
     z2: np.ndarray | float,
     x3: np.ndarray | float,

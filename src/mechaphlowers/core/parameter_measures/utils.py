@@ -37,12 +37,12 @@ def _lowest_point_coordinates(
         )
         * parameter
     )
-    z = -_catenary_equation_z(x, parameter)
+    z = -_catenary_equation_z(x, parameter)  # TODO: rename? z->y
     return x, z
 
 
 @overload
-def _catenary_equation_z(
+def _catenary_equation_z(  # TODO: rename? z->y
     x: float,
     parameter: float,
 ) -> float: ...
