@@ -4,24 +4,21 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 
-from typing import Tuple, overload
+from typing import Tuple
 
-import numpy as np
-
-from mechaphlowers.config import options
+from mechaphlowers.core.numeric import BrentMethod
 from mechaphlowers.core.parameter_measures.utils import (
     _catenary_equation_z,
     _lowest_point_coordinates,
 )
-from mechaphlowers.numeric.newton import newton_solver_wrapper
+from mechaphlowers.entities.errors import ConvergenceError
 
 
-@overload
 def compute_parameter(
     span_length: float,
     elevation_difference: float,
     x1: float,
-    z1: float,
+    z1: float,  # TODO: rename? z -> y
     x2: float,
     z2: float,
     x3: float,
@@ -32,43 +29,6 @@ def compute_parameter(
     float,
     float,
     float,
-]: ...
-
-
-@overload
-def compute_parameter(
-    span_length: np.ndarray,
-    elevation_difference: np.ndarray,
-    x1: np.ndarray,
-    z1: np.ndarray,
-    x2: np.ndarray,
-    z2: np.ndarray,
-    x3: np.ndarray,
-    z3: np.ndarray,
-) -> Tuple[
-    np.ndarray,
-    np.ndarray,
-    np.ndarray,
-    np.ndarray,
-    np.ndarray,
-]: ...
-
-
-def compute_parameter(
-    span_length: np.ndarray | float,
-    elevation_difference: np.ndarray | float,
-    x1: np.ndarray | float,
-    z1: np.ndarray | float,  # TODO: rename? z -> y
-    x2: np.ndarray | float,
-    z2: np.ndarray | float,
-    x3: np.ndarray | float,
-    z3: np.ndarray | float,
-) -> Tuple[
-    np.ndarray | float,
-    np.ndarray | float,
-    np.ndarray | float,
-    np.ndarray | float,
-    np.ndarray | float,
 ]:
     """
     Compute the cable parameter from the coordinates of 3 measured points, using the Pep method.
@@ -108,34 +68,17 @@ def compute_parameter(
     return p1, p2, p3, p, _max_relative_error
 
 
-@overload
 def _compute_parameter_from_one_point(
     span_length: float,
     elevation_difference: float,
     measured_x: float,
     measured_z: float,
-) -> float: ...
-
-
-@overload
-def _compute_parameter_from_one_point(
-    span_length: np.ndarray,
-    elevation_difference: np.ndarray,
-    measured_x: np.ndarray,
-    measured_z: np.ndarray,
-) -> np.ndarray: ...
-
-
-def _compute_parameter_from_one_point(
-    span_length: np.ndarray | float,
-    elevation_difference: np.ndarray | float,
-    measured_x: np.ndarray | float,
-    measured_z: np.ndarray | float,
-) -> np.ndarray | float:
+    bounds: tuple[float, float] = (1, 3000.0),
+) -> float:
     # Convention: x, z are coordinates in the span frame;
     # _x, _z are coordinates in the cable frame
 
-    def z(x, parameter: np.ndarray | float) -> np.ndarray | float:
+    def z(x, parameter: float) -> float:
         xm, zm = _lowest_point_coordinates(
             parameter, span_length, elevation_difference
         )
@@ -146,38 +89,26 @@ def _compute_parameter_from_one_point(
     def f(parameter):
         return z(measured_x, parameter) - measured_z
 
-    # Use newton method to find parameter such that f(parameter) = 0
+    solver_method = BrentMethod()
 
-    def f_prime_approx(parameter):
-        zeta = options.solver.pep_zeta
-        return (f(parameter + zeta) - f(parameter)) / zeta
-
-    p0 = np.full_like(span_length, 1000)
-
-    root = newton_solver_wrapper(
-        f,
-        x0=p0,
-        fprime=f_prime_approx,
-        args=(),
-        caller_name="pep",
-    )
-    return root
-
-
-@overload
-def max_relative_error(p1: float, p2: float, p3: float) -> float: ...
-
-
-@overload
-def max_relative_error(
-    p1: np.ndarray, p2: np.ndarray, p3: np.ndarray
-) -> np.ndarray: ...
+    result = solver_method.solve(f, bounds)
+    if not result.converged:
+        raise ConvergenceError(
+            message="pep parameter computation failed to converged",
+            details=f"inputs:\n"
+            f"\t{span_length=},\n{elevation_difference=},\n"
+            f"{measured_x=},\n\t{measured_z=},\n"
+            f"\t{bounds=}",
+        )
+    return result.value
 
 
 def max_relative_error(
-    p1: np.ndarray | float, p2: np.ndarray | float, p3: np.ndarray | float
-) -> np.ndarray | float:
-    return np.max(
+    p1: float,
+    p2: float,
+    p3: float,
+) -> float:
+    return max(
         [
             _relative_error(p1, p2),
             _relative_error(p2, p1),
@@ -186,19 +117,8 @@ def max_relative_error(
             _relative_error(p3, p2),
             _relative_error(p2, p3),
         ],
-        axis=0,
     )
 
 
-@overload
-def _relative_error(x: float, y: float) -> float: ...
-
-
-@overload
-def _relative_error(x: np.ndarray, y: np.ndarray) -> np.ndarray: ...
-
-
-def _relative_error(
-    x: np.ndarray | float, y: np.ndarray | float
-) -> np.ndarray | float:
-    return np.abs((x - y) / y)
+def _relative_error(x: float, y: float) -> float:
+    return abs((x - y) / y)

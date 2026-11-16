@@ -39,7 +39,6 @@ from mechaphlowers.entities.errors import (
     MixedScalarAndArrayInputsError,
 )
 from mechaphlowers.utils import (
-    Number,
     float_to_array,
     is_number,
 )
@@ -70,7 +69,7 @@ class ParameterMeasure(ABC):
 
     @property
     @abstractmethod
-    def parameter(self) -> np.ndarray | Number:
+    def parameter(self) -> np.ndarray | float:
         """Property to get the computed parameter."""
         pass
 
@@ -79,8 +78,8 @@ class ParameterMeasure(ABC):
 
     @staticmethod
     def _check_input_measures_are_scalar_or_scalar_like(
-        measures: dict[str, np.ndarray | Number],
-    ) -> dict[str, Number]:
+        measures: dict[str, np.ndarray | float],
+    ) -> dict[str, float]:
         output = {}
         for key, value in measures.items():
             if isinstance(value, np.ndarray) and value.size != 1:
@@ -102,17 +101,17 @@ class PapotoParameterMeasure(ParameterMeasure):
 
     def measure_method(
         self,
-        a: np.ndarray | Number,
-        HL: np.ndarray | Number,
-        VL: np.ndarray | Number,
-        HR: np.ndarray | Number,
-        VR: np.ndarray | Number,
-        H1: np.ndarray | Number,
-        V1: np.ndarray | Number,
-        H2: np.ndarray | Number,
-        V2: np.ndarray | Number,
-        H3: np.ndarray | Number,
-        V3: np.ndarray | Number,
+        a: np.ndarray | float,
+        HL: np.ndarray | float,
+        VL: np.ndarray | float,
+        HR: np.ndarray | float,
+        VR: np.ndarray | float,
+        H1: np.ndarray | float,
+        V1: np.ndarray | float,
+        H2: np.ndarray | float,
+        V2: np.ndarray | float,
+        H3: np.ndarray | float,
+        V3: np.ndarray | float,
         angle_unit: str = "grad",
     ) -> None:
         """Compute the PAPOTO measure.
@@ -237,7 +236,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         return self._validity < self.validity_criteria
 
     @property
-    def parameter(self) -> np.ndarray | Number:
+    def parameter(self) -> np.ndarray | float:
         return self._parameter
 
     def uncertainty(
@@ -249,7 +248,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         """Estimate uncertainty on the PAPOTO parameter using Monte Carlo method.
 
         Args:
-            draw_number (int): Number of Monte Carlo random draws. Defaults to 1000.
+            draw_number (int): float of Monte Carlo random draws. Defaults to 1000.
             angle_error (float): Magnitude of angle measurement error (uniform in
                 [-angle_error, +angle_error]). Defaults to 0.01.
 
@@ -369,14 +368,14 @@ class PepParameterMeasure(ParameterMeasure):
 
     def measure_method(
         self,
-        span_length: np.ndarray,
-        elevation_difference: np.ndarray,
-        x1: np.ndarray,
-        z1: np.ndarray,
-        x2: np.ndarray,
-        z2: np.ndarray,
-        x3: np.ndarray,
-        z3: np.ndarray,
+        span_length: float,
+        elevation_difference: float,
+        x1: float,
+        z1: float,
+        x2: float,
+        z2: float,
+        x3: float,
+        z3: float,
     ) -> None:
         """Compute the cable parameter from the coordinates of 3 measured points, using the Pep method.
 
@@ -392,14 +391,14 @@ class PepParameterMeasure(ParameterMeasure):
         logger.debug("PepParameterMeasure.measure_method() ended")
 
     @property
-    def parameter(self) -> np.ndarray:
+    def parameter(self) -> float:
         return self._parameter
 
     @property
     def validity(self):
         return self.relative_error < self.validity_criteria
 
-    def check_validity(self) -> np.ndarray:
+    def check_validity(self) -> float:
         return self.validity
 
 
@@ -409,12 +408,12 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
     @overload
     def measure_method(
         self,
-        angle_to_cable_tangent: Number,
-        angle_to_left_support: Number,
-        angle_to_right_support: Number,
-        span_length: Number,
-        input_height: Number,
-        distance: Number,
+        angle_to_cable_tangent: float,
+        angle_to_left_support: float,
+        angle_to_right_support: float,
+        span_length: float,
+        input_height: float,
+        distance: float,
         angle_unit: str = "grad",
     ) -> None: ...
 
@@ -432,12 +431,12 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
 
     def measure_method(
         self,
-        angle_to_cable_tangent: np.ndarray | Number,
-        angle_to_left_support: np.ndarray | Number,
-        angle_to_right_support: np.ndarray | Number,
-        span_length: np.ndarray | Number,
-        input_height: np.ndarray | Number,
-        distance: np.ndarray | Number,
+        angle_to_cable_tangent: np.ndarray | float,
+        angle_to_left_support: np.ndarray | float,
+        angle_to_right_support: np.ndarray | float,
+        span_length: np.ndarray | float,
+        input_height: np.ndarray | float,
+        distance: np.ndarray | float,
         angle_unit: str = "grad",
     ) -> None:
         """Compute a parameter using the tangential sighting method.
@@ -465,7 +464,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             ShapeError:
                 if arguments (other than angle_unit) are arrays with different shapes,
             MechaphlowersTypeError:
-                if an argument (other than angle_unit) is neither a Number (int or float) nor an array,
+                if an argument (other than angle_unit) is neither a float (int or float) nor an array,
             MixedScalarAndArrayInputsError:
                 if arguments (other than angle_unit) mix scalars and arrays,
             InputAngleNotInRangeError:
@@ -570,10 +569,10 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             )
 
     @property
-    def parameter(self) -> np.ndarray | Number:
+    def parameter(self) -> np.ndarray | float:
         return self._parameter
 
-    def absolute_uncertainty(self) -> Number:
+    def absolute_uncertainty(self) -> float:
         """Returns the absolute uncertainty of the parameter, computed using the GUM method.
 
         Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.
@@ -585,7 +584,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             )
         return self.error_from_gum()
 
-    def error_from_gum(self) -> Number:
+    def error_from_gum(self) -> float:
         # We only support uncertainty computation for scalar inputs
         scalar_measures = self._check_input_measures_are_scalar_or_scalar_like(
             self.measures_converted,
@@ -618,7 +617,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
                 },
             )
 
-    def relative_uncertainty(self) -> Number:
+    def relative_uncertainty(self) -> float:
         """Returns the relative uncertainty of the parameter, computed using the GUM method.
 
         Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.
@@ -631,7 +630,7 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             parameter = self.parameter
         return absolute_uncertainty / parameter  # type: ignore
 
-    def uncertainty(self) -> Number:
+    def uncertainty(self) -> float:
         """Returns the absolute uncertainty of the parameter, computed using the GUM method.
 
         Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.
@@ -719,7 +718,7 @@ def _approx_partial_derivative(
     f: Callable,
     variable_name: str,
     kwargs: dict[str, Any],
-) -> Number:
+) -> float:
     """Returns a partial derivative of the input function computed using centered approximation.
 
     Example:
@@ -749,8 +748,8 @@ def _approx_partial_derivative(
 def _absolute_uncertainty_from_gum_method(
     f: Callable,
     f_kwargs: dict[str, Any],
-    variable_uncertainties: dict[str, Number],
-) -> Number:
+    variable_uncertainties: dict[str, float],
+) -> float:
     """Returns the absolute uncertainty of a function computed using the GUM method.
 
     Args:
