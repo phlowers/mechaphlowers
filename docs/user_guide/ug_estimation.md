@@ -85,20 +85,138 @@ Every estimation returns an `EstimationResult` with:
 
     Always check `converged`. If the objective does not change sign over `bounds`, no root can be bracketed and the best bound is returned.
 
-## Example
+## Examples
+
+The examples below share the same setup: a solved study of three spans, with an obstacle located under the middle span (span index 1), about 39 m below the cable at 15 °C.
 
 ```python
 import numpy as np
+import pandas as pd
 
+from mechaphlowers import SectionArray, SectionStudy
 from mechaphlowers.core.models.estimation import BrentMethod, EstimationEngine
+from mechaphlowers.data.catalog import sample_cable_catalog
+
+section_array = SectionArray(
+    pd.DataFrame(
+        {
+            "name": ["1", "2", "3", "4"],
+            "suspension": [False, True, True, False],
+            "conductor_attachment_altitude": [50, 100, 50, 50],
+            "crossarm_length": [10, 10, 10, 10],
+            "line_angle": [0, 0, 0, 0],
+            "insulator_length": [3, 3, 3, 3],
+            "span_length": [500, 500, 500, float("nan")],
+            "insulator_mass": [100, 50, 50, 100],
+        }
+    ),
+    sagging_parameter=2000,
+    sagging_temperature=15,
+)
+section_array.add_units({"line_angle": "grad"})
+cable_array = sample_cable_catalog.get_as_object(["ASTER600"])
+
+study = SectionStudy(cable_array, section_array)
+study.solve_adjustment()
 
 engine = EstimationEngine(study, method=BrentMethod(tol=0.01))
+obstacle = np.array([750.0, 10.0, 20.0])  # x, y, z in meters
+```
 
+### Temperature
+
+At which temperature is the cable at 36 m above the obstacle (signed vertical distance, the default)?
+
+```python
 result = engine.estimate_temperature(
-    span_index=0,
-    obstacle_point=np.array([150.0, 0.0, 5.0]),
-    target_distance=8.0,
-    bounds=(0.0, 200.0),
+    span_index=1,
+    obstacle_point=obstacle,
+    target_distance=36.0,
+    bounds=(0.0, 150.0),
 )
-print(result.value, result.converged)
+print(result.value, result.converged)  # ~74.7 °C, True
+```
+
+Other climatic conditions can be fixed, and another distance can be targeted:
+
+```python
+result = engine.estimate_temperature(
+    span_index=1,
+    obstacle_point=obstacle,
+    target_distance=36.0,
+    bounds=(0.0, 150.0),
+    wind_pressure=200.0,
+    distance_type="distance_3d",
+)
+```
+
+### Wind
+
+Which wind pressure brings the cable at 42 m (3D distance, the default) from the obstacle?
+
+```python
+result = engine.estimate_wind(
+    span_index=1,
+    obstacle_point=obstacle,
+    target_distance=42.0,
+    bounds=(0.0, 1000.0),
+    wind_direction="clockwise",
+    new_temperature=15.0,
+)
+print(result.value, result.converged)  # ~285 Pa, True
+```
+
+### Load
+
+Which mass, hung at 250 m from the left support of the span, brings the cable at 37 m (3D distance, the default) from the obstacle?
+
+```python
+result = engine.estimate_load(
+    span_index=1,
+    obstacle_point=obstacle,
+    target_distance=37.0,
+    load_position_distance=250.0,
+    bounds=(0.0, 500.0),
+)
+print(result.value, result.converged)  # ~95 kg, True
+```
+
+### Load relative to the initial altitude
+
+Which mass, hung at 250 m from the left support of the span, lowers the cable by 1 m at its own abscissa? No obstacle is needed, and the target is negative when the cable goes down.
+
+```python
+result = engine.estimate_load_relative(
+    span_index=1,
+    target_distance=-1.0,
+    load_position_distance=250.0,
+    bounds=(0.0, 500.0),
+)
+print(result.value, result.converged)  # ~40 kg, True
+```
+
+### Rope
+
+Which rope length, set on support 2 (right support of span 1), gives a vertical clearance of 38.5 m above the obstacle?
+
+```python
+result = engine.estimate_rope(
+    support_index=2,
+    span_index=1,
+    obstacle_point=obstacle,
+    target_vertical_distance=38.5,
+    bounds=(1.0, 10.0),
+)
+print(result.value, result.converged)  # ~5.7 m, True
+```
+
+The rope linear mass (`rope_lineic_mass`) and the climatic conditions can also be set.
+
+### Custom objective
+
+`estimate()` accepts any function of the variable whose root is searched:
+
+```python
+result = engine.estimate(lambda x: x**2 - 4, bounds=(0.0, 5.0))
+print(result.value)  # ~2.0
 ```
