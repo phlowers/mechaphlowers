@@ -487,9 +487,9 @@ class TestEstimationSandbox:
         reference.set_loads(positions, masses)
         reference.solve_change_state(**temperature)
 
-        initial_point = reference.position_engine.get_loads_coords_group_points()[
-            0
-        ].copy()
+        initial_point = (
+            reference.position_engine.get_loads_coords_group_points()[0].copy()
+        )
         initial_altitude = initial_point[2]
 
         positions[0] = x
@@ -498,9 +498,9 @@ class TestEstimationSandbox:
         reference.set_loads(positions, masses)
         reference.solve_change_state(**temperature)
 
-        final_point = reference.position_engine.get_loads_coords_group_points()[
-            0
-        ]
+        final_point = (
+            reference.position_engine.get_loads_coords_group_points()[0]
+        )
         expected_x_shift = initial_point[0] - final_point[0]
         target = final_point[2] - initial_altitude
         assert target < 0

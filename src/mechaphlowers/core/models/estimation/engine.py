@@ -387,15 +387,17 @@ class EstimationEngine:
 
         # set target state
 
-        objective, x_shift = self._build_relative_altitude_objective__load_case(
-            span_index,
-            target_distance,
-            load_position_distance,
-            {
-                "new_temperature": new_temperature,
-                "wind_pressure": wind_pressure,
-                "ice_thickness": ice_thickness,
-            },
+        objective, x_shift = (
+            self._build_relative_altitude_objective__load_case(
+                span_index,
+                target_distance,
+                load_position_distance,
+                {
+                    "new_temperature": new_temperature,
+                    "wind_pressure": wind_pressure,
+                    "ice_thickness": ice_thickness,
+                },
+            )
         )
 
         logger.info(
