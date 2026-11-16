@@ -120,3 +120,22 @@ print(result["number_non_valid_values"])       # draws that failed validity
 
 !!! note
     `measure_method()` (or calling the object directly) must be invoked before `uncertainty()`. A `RuntimeError` is raised otherwise.
+
+### Static uncertainty threshold
+
+Instead of running the uncertainty calculation, you can use a static uncertainty, expressed as a fraction of the parameter. This is available on both `PapotoParameterMeasure` (replaces the Monte Carlo) and `TangentialSightingParameterMeasure` (replaces the GUM calculation).
+
+- `threshold_active`: if `True`, `uncertainty()` skips the calculation and returns `threshold_value * parameter`. Default: `False`.
+- `threshold_value`: relative uncertainty (`0.01` means 1% of the parameter). Default: `0.01`.
+
+```python
+papoto.threshold_active = True
+papoto.threshold_value = 0.02
+
+papoto.uncertainty()  # 0.02 * papoto.parameter (scalar, or array if the inputs are arrays)
+```
+
+Defaults are defined in `options.measure_uncertainty` (`threshold_value` and `threshold_active`). Setting a property on an instance overrides the default for that instance; setting it to `None` restores the default.
+
+!!! note
+    Only the uncertainty is bypassed. The parameter and the validity are computed as usual. With the threshold active, `uncertainty()` of `PapotoParameterMeasure` returns the value directly instead of a dictionary of statistics.

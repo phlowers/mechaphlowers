@@ -280,6 +280,76 @@ def test_uncertainty_invalid_angle_error(bad_angle_error):
         papoto.uncertainty(angle_error=bad_angle_error)
 
 
+def test_threshold_defaults_and_instance_override(monkeypatch):
+    papoto = PapotoParameterMeasure()
+    assert papoto.threshold_value == 0.01
+    assert papoto.threshold_active is False
+
+    # Instance override wins over config; None goes back to the config
+    monkeypatch.setattr(options.measure_uncertainty, "threshold_value", 0.02)
+    monkeypatch.setattr(options.measure_uncertainty, "threshold_active", True)
+    assert papoto.threshold_value == 0.02
+    assert papoto.threshold_active is True
+    papoto.threshold_value = 0.05
+    papoto.threshold_active = False
+    assert papoto.threshold_value == 0.05
+    assert papoto.threshold_active is False
+    papoto.threshold_value = None
+    papoto.threshold_active = None
+    assert papoto.threshold_value == 0.02
+    assert papoto.threshold_active is True
+
+
+@pytest.mark.parametrize("bad_value", [-0.1, "0.01", True, [0.01], np.nan])
+def test_threshold_value_invalid(bad_value):
+    with pytest.raises(ValueError, match="threshold_value"):
+        PapotoParameterMeasure().threshold_value = bad_value
+
+
+@pytest.mark.parametrize("bad_value", [1, "True", 0.5])
+def test_threshold_active_invalid(bad_value):
+    with pytest.raises(ValueError, match="threshold_active"):
+        PapotoParameterMeasure().threshold_active = bad_value
+
+
+def test_papoto_uncertainty_threshold_bypasses_monte_carlo():
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+    parameter, validity = papoto.parameter, papoto.validity
+    papoto.threshold_active = True
+    papoto.threshold_value = 0.02
+
+    # Monte Carlo arguments are not validated when the threshold is active
+    result = papoto.uncertainty(draw_number=-1)
+
+    np.testing.assert_allclose(result, 0.02 * parameter)
+    assert papoto.parameter is parameter
+    assert papoto.validity is validity
+
+
+def test_papoto_uncertainty_threshold_array_inputs():
+    papoto = PapotoParameterMeasure()
+    papoto(
+        **{
+            key: np.array([value, value * 1.01])
+            for key, value in PAPOTO_INPUTS.items()
+        }
+    )
+    papoto.threshold_active = True
+
+    result = papoto.uncertainty()
+
+    assert result.shape == (2,)
+    np.testing.assert_allclose(result, 0.01 * papoto.parameter)
+
+
+def test_papoto_uncertainty_threshold_raises_before_measure_method():
+    papoto = PapotoParameterMeasure()
+    papoto.threshold_active = True
+    with pytest.raises(MeasurementDataNotAvailable):
+        papoto.uncertainty()
+
+
 def test_tangential_sighting_parameter_measure__array__ok() -> None:
     tangential_sighting = TangentialSightingParameterMeasure()
     tangential_sighting(
@@ -558,6 +628,56 @@ def test_tangential_sighting_uncertainty_multi_element_array_inputs_error() -> (
         angle_unit="grad",
     )
     with pytest.raises(MechaphlowersValueError, match="scalar"):
+        tangential_sighting.uncertainty()
+
+
+def test_tangential_sighting_uncertainty_threshold_array_inputs() -> None:
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=np.array([101.607, 101.607]),
+        angle_to_left_support=np.array([50, 50]),
+        angle_to_right_support=np.array([100, 100]),
+        span_length=np.array([800, 800]),
+        input_height=np.array([0, 0]),
+        distance=np.array([50, 50]),
+        angle_unit="grad",
+    )
+    tangential_sighting.threshold_active = True
+    tangential_sighting.threshold_value = 0.02
+
+    np.testing.assert_allclose(
+        tangential_sighting.uncertainty(),
+        0.02 * tangential_sighting.parameter,
+    )
+
+
+def test_tangential_sighting_threshold_does_not_change_validity() -> None:
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=95.622,
+        angle_to_left_support=75.776,
+        angle_to_right_support=94.228,
+        span_length=500,
+        input_height=0,
+        distance=-50,
+        angle_unit="grad",
+    )
+    relative_uncertainty = tangential_sighting.relative_uncertainty()
+    validity = tangential_sighting.check_validity()
+
+    tangential_sighting.threshold_active = True
+    tangential_sighting.threshold_value = 0.5
+
+    assert tangential_sighting.relative_uncertainty() == relative_uncertainty
+    assert tangential_sighting.check_validity() == validity
+
+
+def test_tangential_sighting_uncertainty_threshold_before_measure_method_error() -> (
+    None
+):
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting.threshold_active = True
+    with pytest.raises(MeasurementDataNotAvailable):
         tangential_sighting.uncertainty()
 
 

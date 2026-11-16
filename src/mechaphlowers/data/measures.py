@@ -45,7 +45,54 @@ logger = logging.getLogger(__name__)
 
 
 class ParameterMeasure(ABC):
-    """Class to compute measures on parameters."""
+    """Class to compute measures on parameters.
+
+    The uncertainty calculation can be replaced by a static threshold:
+    when `threshold_active` is True, `uncertainty()` returns
+    `threshold_value * parameter`. Both properties default to the values of
+    `options.measure_uncertainty` and can be overridden per instance
+    (set to None to go back to the default).
+    """
+
+    _threshold_value: float | None = None
+    _threshold_active: bool | None = None
+
+    @property
+    def threshold_value(self) -> float:
+        """Relative static uncertainty (0.01 means 1% of the parameter)."""
+        if self._threshold_value is None:
+            return cfg.measure_uncertainty.threshold_value
+        return self._threshold_value
+
+    @threshold_value.setter
+    def threshold_value(self, value: float | None) -> None:
+        if value is not None and (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float, np.integer, np.floating))
+            or not np.isfinite(value)
+            or value < 0
+        ):
+            raise ValueError(
+                "threshold_value must be a non-negative real number."
+            )
+        self._threshold_value = None if value is None else float(value)
+
+    @property
+    def threshold_active(self) -> bool:
+        """If True, uncertainty() returns the static threshold instead of computing it."""
+        if self._threshold_active is None:
+            return cfg.measure_uncertainty.threshold_active
+        return self._threshold_active
+
+    @threshold_active.setter
+    def threshold_active(self, value: bool | None) -> None:
+        if value is not None and not isinstance(value, (bool, np.bool_)):
+            raise ValueError("threshold_active must be a boolean.")
+        self._threshold_active = None if value is None else bool(value)
+
+    def _threshold_uncertainty(self) -> np.ndarray | Number:
+        """Static uncertainty: threshold_value * parameter (elementwise for arrays)."""
+        return self.threshold_value * self.parameter
 
     @abstractmethod
     def measure_method(self, *args, **kwargs) -> None:
@@ -245,13 +292,19 @@ class PapotoParameterMeasure(ParameterMeasure):
     ) -> dict:
         """Estimate uncertainty on the PAPOTO parameter using Monte Carlo method.
 
+        If `threshold_active` is True, the Monte Carlo simulation is bypassed and
+        `threshold_value * parameter` is returned instead (scalar or array like
+        the parameter). Other arguments are then ignored.
+
         Args:
             draw_number (int): Number of Monte Carlo random draws. Defaults to 1000.
             angle_error (float): Magnitude of angle measurement error (uniform in
                 [-angle_error, +angle_error]). Defaults to 0.01.
+            seed (int): Seed of the random number generator. Defaults to 42.
 
         Returns:
-            dict: Dictionary with statistics over valid and non-valid draws.
+            dict | np.ndarray | Number: Dictionary with statistics over valid and non-valid draws,
+                or the static uncertainty if `threshold_active` is True.
 
         Raises:
             MeasurementDataNotAvailable: If measure_method() has not been called first.
@@ -263,6 +316,9 @@ class PapotoParameterMeasure(ParameterMeasure):
             raise MeasurementDataNotAvailable(
                 "measure_method() must be called before uncertainty()."
             )
+
+        if self.threshold_active:
+            return self._threshold_uncertainty()
 
         self._validate_inputs_uncertainty(draw_number, angle_error)
 
@@ -589,12 +645,23 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
             parameter = self.parameter
         return absolute_uncertainty / parameter  # type: ignore
 
-    def uncertainty(self) -> Number:
+    def uncertainty(self) -> np.ndarray | Number:
         """Returns the absolute uncertainty of the parameter, computed using the GUM method.
 
-        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like.
+        If `threshold_active` is True, GUM is bypassed and `threshold_value * parameter`
+        is returned instead (scalar or array like the parameter). This does not
+        affect `relative_uncertainty()` nor `check_validity()`.
+
+        Raises MechaphlowersValueError if the input measures are not scalar or scalar-like
+        (only when the threshold is not active).
         Raises MeasurementDataNotAvailable if measure_method() has not been called before.
         """
+        if self.threshold_active:
+            if not hasattr(self, 'measures_converted'):
+                raise MeasurementDataNotAvailable(
+                    "measure_method() must be called before uncertainty()."
+                )
+            return self._threshold_uncertainty()
         return self.absolute_uncertainty()
 
     def check_validity(self) -> bool:

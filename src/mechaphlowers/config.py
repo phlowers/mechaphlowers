@@ -236,6 +236,10 @@ class MeasureUncertaintyConfig:
     input_length_uncertainty: float = 0.1
     distance_uncertainty: float = 0.5
     max_accepted_uncertainty: float = 0.01
+    # Static uncertainty, relative to the parameter. When active, it replaces
+    # the uncertainty calculation (Monte Carlo or GUM) in parameter measures.
+    threshold_value: float = 0.01
+    threshold_active: bool = False
 
 
 @dataclass
