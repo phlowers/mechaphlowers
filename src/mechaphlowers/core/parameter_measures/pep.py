@@ -70,7 +70,19 @@ def compute_parameter(
     np.ndarray | float,
     np.ndarray | float,
 ]:
-    # All point coordinates are in span frame
+    """
+    Compute the cable parameter from the coordinates of 3 measured points, using the Pep method.
+
+    All coordinates must be in the span frame.
+    (Typically, x1, x2 and x3 are positive and y1, y2 and y3 are negative.)
+
+    This method is only valid if there was little to no wind during the measurements.
+    The 3 measured points should be close to the lowest point of the cable.
+
+    Returns:
+        A tuple with the 3 estimated parameters (one for each measured point),
+        their mean, and the maximum relative error.
+    """
     # We assume there is so little wind that the cable frame
     # is only span_length translation of the span frame.
     p1 = _compute_parameter_from_one_point(
