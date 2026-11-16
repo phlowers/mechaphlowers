@@ -15,6 +15,7 @@ import numpy as np
 if TYPE_CHECKING:
     from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.balance.span_loads import SpanLoads
+from mechaphlowers.core.models.cable.deformation_laws import DeformationState
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,9 @@ class BalanceEngineMemento:
     # --- engine ---
     L_ref: Optional[np.ndarray]
 
+    # --- loading history (immutable, stored by reference) ---
+    deformation_state: Optional[DeformationState] = None
+
 
 class BalanceEngineCaretaker:
     """Dedicated class responsible for saving and restoring [`BalanceEngine`][mechaphlowers.core.models.balance.engine.BalanceEngine] state.
@@ -108,6 +112,7 @@ class BalanceEngineCaretaker:
             L_ref=np.array(engine.L_ref).copy()
             if hasattr(engine, "L_ref")
             else None,
+            deformation_state=engine.deformation_model.state,
         )
 
     def restore(self, memento: BalanceEngineMemento) -> None:
@@ -163,6 +168,8 @@ class BalanceEngineCaretaker:
         engine.deformation_model.cable_length = (
             memento.deformation_cable_length.copy()
         )
+        if memento.deformation_state is not None:
+            engine.deformation_model.state = memento.deformation_state
 
         # (f) L_ref
         if memento.L_ref is not None:

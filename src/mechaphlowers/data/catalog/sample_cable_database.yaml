@@ -48,6 +48,10 @@ columns:
   - nb_strand_layer_6: float
   - nb_strand_layer_7: float
   - nb_strand_layer_8: float
+  - young_modulus_conductor: float
+  - young_modulus_heart: float
+  - dilatation_coefficient_conductor: float
+  - dilatation_coefficient_heart: float
 
 columns_renaming:
   - stress_strain_a0: a0
@@ -67,6 +71,10 @@ columns_units:
   - young_modulus: MPa
   - linear_mass: kg/m
   - dilatation_coefficient: 1/K
+  - young_modulus_conductor: MPa
+  - young_modulus_heart: MPa
+  - dilatation_coefficient_conductor: 1/K
+  - dilatation_coefficient_heart: 1/K
   - a0: MPa
   - a1: MPa
   - a2: MPa

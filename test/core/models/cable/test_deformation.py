@@ -6,8 +6,6 @@
 
 import numpy as np
 import pandas as pd
-import pytest
-from numpy.polynomial import Polynomial as Poly
 
 from mechaphlowers.core.models.cable.deformation import DeformationRte
 from mechaphlowers.core.models.cable.span import (
@@ -99,126 +97,6 @@ def test_deformation_values__default_data(
         np.array([480.6392123, np.nan]),
         atol=1e-6,
     )
-
-
-@pytest.mark.skip(
-    reason="Polynomial model not implemented yet/need to be reworked"
-)
-def test_poly_deformation__degree_three(
-    default_data_container_one_span: DataContainer,
-) -> None:
-    new_poly = Poly([0, 1e9 * 50, 1e9 * -3_000, 1e9 * 44_000, 0])
-    default_data_container_one_span.polynomial_conductor = new_poly
-
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
-    tension_mean = span_model.T_mean()
-    cable_length = span_model.compute_L()
-
-    deformation_model = DeformationRte(
-        **default_data_container_one_span.__dict__,
-        tension_mean=tension_mean,
-        cable_length=cable_length,
-    )
-
-    constraint = (
-        tension_mean / default_data_container_one_span.cable_section_area
-    )
-    constraint = np.fmax(constraint, np.array([0, 0]))
-    deformation_model.resolve_stress_strain_equation(
-        constraint,
-    )
-    deformation_model.epsilon_mecha()
-
-    deformation_model.epsilon()
-
-
-@pytest.mark.skip(
-    reason="Polynomial model not implemented yet/need to be reworked"
-)
-def test_poly_deformation__degree_four(
-    default_data_container_one_span: DataContainer,
-) -> None:
-    new_poly = Poly(
-        [0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
-    )
-    default_data_container_one_span.polynomial_conductor = new_poly
-
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
-    tension_mean = span_model.T_mean()
-    cable_length = span_model.compute_L()
-
-    deformation_model = DeformationRte(
-        **default_data_container_one_span.__dict__,
-        tension_mean=tension_mean,
-        cable_length=cable_length,
-    )
-
-    constraint = (
-        tension_mean / default_data_container_one_span.cable_section_area
-    )
-    constraint = np.fmax(constraint, np.array([0, 0]))
-    deformation_model.resolve_stress_strain_equation(
-        constraint,
-    )
-    deformation_model.epsilon_mecha()
-
-    deformation_model.epsilon()
-
-
-@pytest.mark.skip(
-    reason="Polynomial model not implemented yet/need to be reworked"
-)
-def test_poly_deformation__degree_four__with_max_stress(
-    default_data_container_one_span: DataContainer,
-) -> None:
-    new_poly = Poly(
-        [0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
-    )
-    default_data_container_one_span.polynomial_conductor = new_poly
-
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
-    tension_mean = span_model.T_mean()
-    cable_length = span_model.compute_L()
-
-    deformation_model = DeformationRte(
-        **default_data_container_one_span.__dict__,
-        tension_mean=tension_mean,
-        cable_length=cable_length,
-    )
-
-    constraint = (
-        tension_mean / default_data_container_one_span.cable_section_area
-    )
-    constraint = np.fmax(constraint, np.array([0, 0]))
-    deformation_model.max_stress = np.array([1000, 1e8])
-    deformation_model.epsilon_mecha()
-    deformation_model.epsilon()
-
-
-@pytest.mark.skip(
-    reason="Polynomial model not implemented yet/need to be reworked"
-)
-def test_poly_deformation__no_solutions(
-    default_data_container_one_span: DataContainer,
-) -> None:
-    new_poly = Poly(
-        [0, 1e9 * 100, 1e9 * -24_000, 1e9 * 2_440_000, 1e9 * -90_000_000]
-    )
-    default_data_container_one_span.polynomial_conductor = new_poly
-
-    span_model = CatenarySpan(**default_data_container_one_span.__dict__)
-    tension_mean = span_model.T_mean()
-    cable_length = span_model.compute_L()
-
-    deformation_model = DeformationRte(
-        **default_data_container_one_span.__dict__,
-        tension_mean=tension_mean,
-        cable_length=cable_length,
-    )
-
-    deformation_model.max_stress = np.array([1000, 1e10])
-    with pytest.raises(ValueError):
-        deformation_model.epsilon_mecha()
 
 
 def test_deformation__data_container(

@@ -26,6 +26,7 @@ from mechaphlowers.core.models.cable.deformation import (
     IDeformation,
     deformation_model_builder,
 )
+from mechaphlowers.core.models.cable.deformation_laws import DeformationState
 from mechaphlowers.core.models.cable.span import (
     CatenarySpan,
     ISpan,
@@ -93,6 +94,7 @@ class BalanceEngine(Notifier):
         span_model_type: Type[ISpan] = CatenarySpan,
         deformation_model_type: Type[IDeformation] = DeformationRte,
         virtual_supports_list: list[int] | None = None,
+        ratchet: bool = False,
     ) -> None:
         # TODO: find a better way to initialize objects
         self.section_array = section_array
@@ -103,6 +105,7 @@ class BalanceEngine(Notifier):
         self.virtual_supports_list = (
             virtual_supports_list if virtual_supports_list is not None else []
         )
+        self.ratchet = ratchet
 
         self.reset(full=True)
 
@@ -140,12 +143,23 @@ class BalanceEngine(Notifier):
                 arr.decr(zeros_vector),
                 self.section_array.data.span_length.to_numpy(),
             )
+            previous_model = getattr(self, "deformation_model", None)
             self.deformation_model = deformation_model_builder(
                 self.cable_array,
                 self.span_model,
                 sagging_temperature,
                 self.deformation_model_type,
             )
+            # the loading history is kept on reset, if still consistent
+            if previous_model is not None:
+                previous = previous_model.state.max_strain
+                current = self.deformation_model.state.max_strain
+                if (
+                    previous is not None
+                    and current is not None
+                    and previous.shape == current.shape
+                ):
+                    self.deformation_model.state = previous_model.state
             if not hasattr(self, "_observers"):
                 super().__init__()
             self.balance_model = self.balance_model_type(
@@ -401,6 +415,48 @@ class BalanceEngine(Notifier):
                 "Output : get_displacement \n%s", self.get_displacement()
             )
         self.balance_model.update_nodes_span_model()
+
+        if self.ratchet:
+            self.commit_deformation_state()
+
+    @property
+    def deformation_state(self) -> DeformationState:
+        """Loading history of the cable (immutable), used by history-dependent
+        stress-strain laws (polynomial cables). It is empty for linear cables."""
+        return self.deformation_model.state
+
+    @deformation_state.setter
+    def deformation_state(self, state: DeformationState) -> None:
+        self.deformation_model.state = state
+
+    def commit_deformation_state(self) -> None:
+        """Record the last solved situation in the loading history of the cable.
+
+        The maximal strain reached by each material is raised where the last solved
+        situation exceeds it (for spans with a load, the most loaded semi-span is used).
+        Next computations will take into account the permanent elongation.
+        Typically used after solving the worst past case:
+
+        Examples:
+            >>> engine.solve_adjustment()
+            >>> engine.solve_change_state(ice_thickness=0.02, new_temperature=-5)
+            >>> engine.commit_deformation_state()
+            >>> engine.solve_change_state(new_temperature=40)  # with history
+
+        See also `ratchet`: if True, the history is committed after each
+        `solve_change_state`. No effect for linear cables.
+        """
+        self.deformation_model.state = (
+            self.balance_model.loaded_deformation_state()
+        )
+
+    def reset_deformation_state(self) -> None:
+        """Forget the loading history: the cable is back to its virgin state."""
+        self.deformation_model.state = (
+            self.deformation_model.law.initial_state(
+                self.deformation_model.cable_length.shape[0]
+            )
+        )
 
     def get_data_spans(self) -> dict[str, list]:
         """Fetch data from BalanceEngine about spans.

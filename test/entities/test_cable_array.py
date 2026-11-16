@@ -228,6 +228,10 @@ def test_cable_mecha_thermal_data(cable_array_input_data: dict):
             "section_conductor": [600.4e-6],
             "section_heart": [0.0],
             "is_polynomial": [False],
+            "young_modulus_conductor": [np.nan],
+            "young_modulus_heart": [np.nan],
+            "dilatation_coefficient_conductor": [np.nan],
+            "dilatation_coefficient_heart": [np.nan],
         }
     )
 
@@ -267,3 +271,28 @@ def test_cable_array_is_bimetallic(
 ) -> None:
     assert (cable_array_AM600.is_bimetallic == np.array([False])).all()
     assert (cable_array_NARCISSE600G.is_bimetallic == np.array([True])).all()
+
+
+def test_cable_array__optional_per_material_mecha_columns(
+    cable_array_input_data: dict,
+) -> None:
+    input_df = pd.DataFrame(cable_array_input_data)
+    cable_without = CableArray(input_df)
+    assert cable_without.data_mecha["young_modulus_conductor"].isna().all()
+    assert (
+        cable_without.data_mecha["dilatation_coefficient_heart"].isna().all()
+    )
+
+    input_df_with = input_df.assign(
+        young_modulus_conductor=[40000.0],
+        young_modulus_heart=[35000.0],
+        dilatation_coefficient_conductor=[2.3e-5],
+        dilatation_coefficient_heart=[1.1e-6],
+    )
+    cable_with = CableArray(input_df_with)
+    data = cable_with.data
+    assert data["young_modulus_conductor"].iloc[0] == pytest.approx(40e9)
+    assert data["young_modulus_heart"].iloc[0] == pytest.approx(35e9)
+    assert data["dilatation_coefficient_conductor"].iloc[0] == pytest.approx(
+        2.3e-5
+    )

@@ -89,7 +89,11 @@ class FindParamModel(IModelToSolve):
 
     def _delta(self, parameter: np.ndarray) -> np.ndarray:
         """Equation to solve:
-        $\\frac{L(p) - L_0}{L_0} - (\\varepsilon_{mecha}(p) + \\varepsilon_{therm}(p)) = 0$
+        $\\frac{L(p) - L_0}{L_0} - \\varepsilon_0(p) = 0$
+
+        where $\\varepsilon_0$ is the total strain (mechanical + thermal) relative to the
+        unstressed length at 0°C. Mechanical and thermal strains are not separable in general
+        (multi-material cables), so only the total strain is used.
 
         Args:
             parameter (np.ndarray): parameter
@@ -99,9 +103,9 @@ class FindParamModel(IModelToSolve):
         """
         self.update_models(parameter)
         L = self.span_model.L
-        eps_mecha = self.deformation_model.epsilon_mecha()
-        eps_therm = self.deformation_model.epsilon_therm_0()
-        return (L - self.L_ref) / self.L_ref - (eps_mecha + eps_therm)
+        return (
+            L - self.L_ref
+        ) / self.L_ref - self.deformation_model.epsilon_0()
 
     def _delta_prime(
         self,

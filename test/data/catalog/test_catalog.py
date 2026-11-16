@@ -425,6 +425,10 @@ def test_catalog_cable_array_units_aster(cable_array_AM600) -> None:
             "nb_strand_layer_6": [0],
             "nb_strand_layer_7": [0],
             "nb_strand_layer_8": [0],
+            "young_modulus_conductor": [np.nan],
+            "young_modulus_heart": [np.nan],
+            "dilatation_coefficient_conductor": [np.nan],
+            "dilatation_coefficient_heart": [np.nan],
         }
     )
     assert_frame_equal(
@@ -484,6 +488,10 @@ def test_catalog_cable_array_units_narcisse(cable_array_NARCISSE600G) -> None:
             "nb_strand_layer_6": [0],
             "nb_strand_layer_7": [0],
             "nb_strand_layer_8": [0],
+            "young_modulus_conductor": [40531e6],
+            "young_modulus_heart": [35034e6],
+            "dilatation_coefficient_conductor": [2.3e-5],
+            "dilatation_coefficient_heart": [1.1e-6],
         }
     )
     assert_frame_equal(
@@ -543,6 +551,10 @@ def test_catalog_correct_array(cable_array_AM600) -> None:
                 "nb_strand_layer_6": [0],
                 "nb_strand_layer_7": [0],
                 "nb_strand_layer_8": [0],
+                "young_modulus_conductor": [np.nan],
+                "young_modulus_heart": [np.nan],
+                "dilatation_coefficient_conductor": [np.nan],
+                "dilatation_coefficient_heart": [np.nan],
             }
         )
     )

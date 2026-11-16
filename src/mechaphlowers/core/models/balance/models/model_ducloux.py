@@ -33,8 +33,13 @@ from mechaphlowers.core.models.balance.solvers.find_parameter_solver import (
 )
 from mechaphlowers.core.models.balance.span_loads import SpanLoads
 from mechaphlowers.core.models.cable.deformation import (
+    DeformationRte,
     IDeformation,
     deformation_model_builder,
+)
+from mechaphlowers.core.models.cable.deformation_laws import (
+    DeformationState,
+    IStressStrainLaw,
 )
 from mechaphlowers.core.models.cable.span import CatenarySpan, ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
@@ -225,6 +230,9 @@ class BalanceModel(IBalanceModel):
             self.current_temperature[self.nodes.has_load_on_span],
             self.parameter[self.nodes.has_load_on_span],
             self.nodes.bundle_number,
+            deformation_model_type=type(self.deformation_model),
+            deformation_law=self.deformation_model.law,
+            deformation_state=self.load_spans_deformation_state(),
         )
 
     def initialize_cable(self, cable_array):
@@ -368,8 +376,8 @@ class BalanceModel(IBalanceModel):
             self.k_load,
             self.cable_section,
             self.linear_weight,
-            self.young_modulus,
-            self.dilatation_coefficient,
+            self.deformation_model.law.young_modulus_equivalent,
+            self.deformation_model.law.dilatation_coefficient_equivalent,
             self.current_temperature,
         )
         parameter_parabola = arr.incr(parameter_parabola)
@@ -455,9 +463,62 @@ class BalanceModel(IBalanceModel):
             self.b_prime[self.nodes.has_load_on_span],
             self.k_load[self.nodes.has_load_on_span],
             self.current_temperature[self.nodes.has_load_on_span],
+            deformation_state=self.load_spans_deformation_state(),
         )
 
         self.load_solver.solve(self.load_model)
+
+    def load_spans_deformation_state(self) -> DeformationState:
+        """Deformation state of the spans with loads, duplicated for the left and right
+        semi-spans of [`LoadModel`][mechaphlowers.core.models.balance.models.model_ducloux.LoadModel]:
+        both semi-spans share the history of their span."""
+        source = self.deformation_model.state
+        mask = self.nodes.has_load_on_span
+        cache = getattr(self, "_load_state_cache", None)
+        if (
+            cache is not None
+            and cache[0] is source
+            and np.array_equal(cache[1], mask)
+        ):
+            return cache[2]
+        state = source.select(np.concatenate((mask, [False])))
+        state = DeformationState.concatenate([state, state])
+        self._load_state_cache = (source, mask.copy(), state)
+        return state
+
+    def loaded_deformation_state(self) -> DeformationState:
+        """Deformation state after the current solved situation (ratchet): history is raised
+        where the current strain exceeds it. For spans with loads, the maximum of the two
+        semi-spans is used. The deformation state of the models is not modified.
+
+        Returns:
+            DeformationState: new state, same size as `deformation_model.state`.
+        """
+        self.deformation_model.tension_mean = self.span_model.T_mean()
+        self.deformation_model.cable_length = self.span_model.L
+        state = self.deformation_model.updated_state()
+        has_load = self.nodes.has_load_on_span
+        if self._adjustment or not has_load.any() or state.max_strain is None:
+            return state
+        load_model = self.load_model
+        load_model._span_combined.set_parameter(
+            np.concatenate(
+                [
+                    load_model.span_model_left.parameter,
+                    load_model.span_model_right.parameter,
+                ]
+            )
+        )
+        load_deformation = load_model._deformation_combined
+        load_deformation.tension_mean = load_model._span_combined.T_mean()
+        halves = load_deformation.updated_state().max_strain
+        assert halves is not None
+        n_loads = int(has_load.sum())
+        max_strain = state.max_strain.copy()
+        max_strain[:, np.flatnonzero(has_load)] = np.fmax(
+            halves[:, :n_loads], halves[:, n_loads:]
+        )
+        return DeformationState(max_strain)
 
     def update_projections(self) -> None:
         """update attributes of VectorProjection in order to compute with correct values"""
@@ -1078,6 +1139,9 @@ class LoadModel(IModelForSolver):
         find_param_solver_type: Type[
             IFindParamSolver
         ] = FindParamSolverForLoop,
+        deformation_model_type: Type[IDeformation] = DeformationRte,
+        deformation_law: IStressStrainLaw | None = None,
+        deformation_state: DeformationState | None = None,
     ):
         self.cable_array = cable_array
         self.cable_section = np.float64(self.cable_array.data.section.iloc[0])
@@ -1119,6 +1183,9 @@ class LoadModel(IModelForSolver):
             self.cable_array,
             self._span_combined,
             t2,
+            deformation_model_type,
+            state=deformation_state,
+            law=deformation_law,
         )
         self._find_param_model = FindParamModel(
             self._span_combined, self._deformation_combined
@@ -1136,6 +1203,7 @@ class LoadModel(IModelForSolver):
         b_prime: np.ndarray,
         k_load: np.ndarray,
         temperature: np.ndarray,
+        deformation_state: DeformationState | None = None,
     ) -> None:
         """Update attributes. This method is used frequently, at every iteration of the main loop
 
@@ -1147,7 +1215,14 @@ class LoadModel(IModelForSolver):
             b_prime (np.ndarray): elevation difference
             k_load (np.ndarray): load coefficient
             temperature (np.ndarray): current temperature
+            deformation_state (DeformationState | None): deformation state of the semi-spans
+                (`[left..., right...]`). Unchanged if None.
         """
+        if (
+            deformation_state is not None
+            and deformation_state is not self._deformation_combined.state
+        ):
+            self._deformation_combined.state = deformation_state
         # put L_ref in constructor?
         self.L_ref = L_ref
         self.x_i = x_i
@@ -1263,8 +1338,8 @@ class LoadModel(IModelForSolver):
             k_both,
             self.cable_section,
             self.linear_weight,
-            self.young_modulus,
-            self.dilatation_coefficient,
+            self._deformation_combined.law.young_modulus_equivalent,
+            self._deformation_combined.law.dilatation_coefficient_equivalent,
             t_both,
         )
 

@@ -238,6 +238,29 @@ engine.reset(full=False)  # partial reset — e.g. after updating loads
 
 ---
 
+## Loading history
+
+For polynomial cables, the cable keeps the highest mechanical strain reached in each span (the loading history). The history is kept by `reset()`, and it can be set, committed and cleared with these methods:
+
+- `commit_deformation_state()`: records the last solved situation in the history. Typically used after solving the worst past case
+- `reset_deformation_state()`: forgets the history (virgin cable)
+- `ratchet`: if `True`, the history is committed automatically after each `solve_change_state()`
+- `deformation_state`: the current history (read, or set with a `DeformationState`)
+
+```python
+engine.solve_adjustment()
+
+engine.solve_change_state(ice_thickness=0.02, new_temperature=-5)  # worst past case
+engine.commit_deformation_state()
+
+engine.solve_change_state(new_temperature=40)  # includes the permanent elongation
+engine.reset_deformation_state()  # back to a virgin cable
+```
+
+See [Loading history](ug_deformation.md#loading-history) for details.
+
+---
+
 ## Typical workflows
 
 ### Basic sag-tension

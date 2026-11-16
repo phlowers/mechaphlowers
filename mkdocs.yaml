@@ -94,6 +94,7 @@ nav:
                   - Cable:
                       - Span: docstring/core/models/cable/span.md
                       - Deformation: docstring/core/models/cable/deformation.md
+                      - Deformation laws: docstring/core/models/cable/deformation_laws.md
                       - Thermal Engine: docstring/core/models/cable/thermal_engine.md
                       - Cable Strength: docstring/core/models/cable/cable_strength.md
                       - Guying: docstring/core/models/guying.md

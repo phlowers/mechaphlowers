@@ -100,6 +100,10 @@ class CableArrayInput(pa.DataFrameModel):
             temperature_reference (float): Temperature used to compute unstressed cable length (usually 0°C or 15°C)
             a0/a1/a2/a3/a4 (float): Coefficients of the relation between stress $\\sigma$ and deformation $\\varepsilon$ for the conductor: $\\sigma = a0 + a1*\\varepsilon + a2*\\varepsilon^2 + a3*\\varepsilon^3 + a4*\\varepsilon^4$
             b0/b1/b2/b3/b4 (float): Coefficients of the relation between stress $\\sigma$ and deformation $\\varepsilon$ for the heart: $\\sigma = b0 + b1*\\varepsilon + b2*\\varepsilon^2 + b3*\\varepsilon^3 + b4*\\varepsilon^4$
+            young_modulus_conductor (float, optional): Young modulus of the conductor, in MPa. Can be missing or NaN for linear cables.
+            young_modulus_heart (float, optional): Young modulus of the heart, in MPa. Can be missing or NaN for linear cables.
+            dilatation_coefficient_conductor (float, optional): Dilatation coefficient of the conductor, in 1/K. Can be missing or NaN for linear cables.
+            dilatation_coefficient_heart (float, optional): Dilatation coefficient of the heart, in 1/K. Can be missing or NaN for linear cables.
     """
 
     section: pdt.Series[float] = pa.Field(coerce=True)
@@ -182,6 +186,18 @@ class CableArrayInput(pa.DataFrameModel):
         nullable=True, coerce=True
     )
     nb_strand_layer_8: Optional[pdt.Series[pd.Int64Dtype()]] = pa.Field(  # type: ignore[valid-type]
+        nullable=True, coerce=True
+    )
+    young_modulus_conductor: Optional[pdt.Series[float]] = pa.Field(
+        nullable=True, coerce=True
+    )
+    young_modulus_heart: Optional[pdt.Series[float]] = pa.Field(
+        nullable=True, coerce=True
+    )
+    dilatation_coefficient_conductor: Optional[pdt.Series[float]] = pa.Field(
+        nullable=True, coerce=True
+    )
+    dilatation_coefficient_heart: Optional[pdt.Series[float]] = pa.Field(
         nullable=True, coerce=True
     )
 

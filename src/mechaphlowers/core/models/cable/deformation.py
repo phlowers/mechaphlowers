@@ -11,16 +11,31 @@ from typing import Type
 import numpy as np
 from numpy.polynomial import Polynomial as Poly
 
-from mechaphlowers.config import options as cfg
+from mechaphlowers.core.models.cable.deformation_laws import (
+    DeformationState,
+    IPreparedLaw,
+    IStressStrainLaw,
+    LinearLaw,
+    deformation_law_builder,
+)
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.entities.arrays import CableArray
-from mechaphlowers.entities.errors import ConvergenceError
-
-IMAGINARY_THRESHOLD = cfg.solver.deformation_imag_thresh  # type: ignore
 
 
 class IDeformation(ABC):
-    """This abstract class is a base class for models to compute relative cable deformations."""
+    """This abstract class is a base class for models to compute relative cable deformations.
+
+    The constitutive behaviour is delegated to a stress-strain law
+    ([`IStressStrainLaw`][mechaphlowers.core.models.cable.deformation_laws.IStressStrainLaw]),
+    and the loading history to an immutable
+    [`DeformationState`][mechaphlowers.core.models.cable.deformation_laws.DeformationState].
+    The law is prepared lazily for the current temperature and state, and re-prepared only when
+    `current_temperature` or `state` are assigned new values.
+
+    `tension_mean`, `cable_length` and `current_temperature` are updated by callers (solvers).
+    `current_temperature` is copied when the law is prepared, so in-place modifications
+    are ignored until the next assignment: assign the array instead.
+    """
 
     def __init__(
         self,
@@ -34,6 +49,8 @@ class IDeformation(ABC):
         polynomial_conductor: Poly,
         sagging_temperature: np.ndarray,
         max_stress: np.ndarray | None = None,
+        law: IStressStrainLaw | None = None,
+        state: DeformationState | None = None,
         **_,
     ):
         self.tension_mean = tension_mean
@@ -44,28 +61,94 @@ class IDeformation(ABC):
         self.dilatation_coefficient = dilatation_coefficient
         self.temp_ref = temperature_reference
         self.polynomial_conductor = polynomial_conductor
-        self.current_temperature = sagging_temperature
         self.is_polynomial = polynomial_conductor.trim().degree() >= 2
+        # kept for compatibility, history is now stored in `state`
+        self.max_stress = max_stress
 
-        if max_stress is None:
-            self.max_stress = np.full(self.cable_length.shape, 0)
-        else:
-            self.max_stress = max_stress
+        if law is None and not self.is_polynomial:
+            law = LinearLaw(
+                cable_section_area,
+                young_modulus,
+                dilatation_coefficient,
+                temperature_reference,
+            )
+        self._law = law
+        self._prepared: IPreparedLaw | None = None
+        self._prepared_temperature: np.ndarray | None = None
+        self._current_temperature = sagging_temperature
+        self._state = (
+            state
+            if state is not None
+            else (
+                law.initial_state(np.shape(cable_length)[0])
+                if law is not None
+                else DeformationState()
+            )
+        )
 
     def __copy__(self) -> IDeformation:
         new = object.__new__(type(self))
+        new.__dict__.update(self.__dict__)
         new.tension_mean = self.tension_mean.copy()
         new.cable_length = self.cable_length.copy()
-        new.cable_section_area = self.cable_section_area
-        new.linear_weight = self.linear_weight
-        new.young_modulus = self.young_modulus
-        new.dilatation_coefficient = self.dilatation_coefficient
-        new.temp_ref = self.temp_ref
-        new.polynomial_conductor = self.polynomial_conductor
-        new.current_temperature = self.current_temperature.copy()
-        new.is_polynomial = self.is_polynomial
-        new.max_stress = self.max_stress.copy()
+        new._current_temperature = self._current_temperature.copy()
+        new._prepared = None
         return new
+
+    @property
+    def law(self) -> IStressStrainLaw:
+        """Stress-strain law of the cable."""
+        if self._law is None:
+            raise NotImplementedError(
+                "No stress-strain law given for a polynomial cable: "
+                "use deformation_model_builder() to build the deformation model."
+            )
+        return self._law
+
+    @property
+    def current_temperature(self) -> np.ndarray:
+        return self._current_temperature
+
+    @current_temperature.setter
+    def current_temperature(self, value: np.ndarray) -> None:
+        # solvers re-assign equal temperatures at each iteration: keep the prepared law
+        if self._prepared is not None and not np.array_equal(
+            value,
+            self._prepared_temperature,  # type: ignore[arg-type]
+            equal_nan=True,
+        ):
+            self._prepared = None
+        self._current_temperature = value
+
+    @property
+    def state(self) -> DeformationState:
+        """Loading history (immutable). Assign a new state to change it."""
+        return self._state
+
+    @state.setter
+    def state(self, value: DeformationState) -> None:
+        if value is not self._state:
+            self._prepared = None
+        self._state = value
+
+    @property
+    def prepared(self) -> IPreparedLaw:
+        """Law prepared for the current temperature and state (cached)."""
+        if self._prepared is None:
+            self._prepared_temperature = np.array(
+                self._current_temperature, dtype=np.float64
+            )
+            self._prepared = self.law.prepare(
+                self._prepared_temperature, self._state
+            )
+        return self._prepared
+
+    def updated_state(self) -> DeformationState:
+        """State after loading at the current `tension_mean` and `current_temperature`
+        (ratchet). The model is not modified."""
+        return self.law.update_state(
+            self.tension_mean, self._current_temperature, self._state
+        )
 
     @abstractmethod
     def L_ref(self) -> np.ndarray:
@@ -78,6 +161,10 @@ class IDeformation(ABC):
     @abstractmethod
     def epsilon(self) -> np.ndarray:
         """Total relative strain of the cable."""
+
+    @abstractmethod
+    def epsilon_0(self) -> np.ndarray:
+        """Total relative strain of the cable, relative to the unstressed length at 0°C."""
 
     @abstractmethod
     def epsilon_mecha(self) -> np.ndarray:
@@ -93,120 +180,37 @@ class IDeformation(ABC):
 
 
 class DeformationRte(IDeformation):
-    """This class implements the deformation model used by RTE."""
+    """This class implements the deformation model used by RTE.
+
+    Linear cables use [`LinearLaw`][mechaphlowers.core.models.cable.deformation_laws.LinearLaw],
+    polynomial cables use [`PolynomialLaw`][mechaphlowers.core.models.cable.deformation_laws.PolynomialLaw]
+    (selected by [`deformation_model_builder`][mechaphlowers.core.models.cable.deformation.deformation_model_builder]).
+
+    For multi-material cables, mechanical and thermal strains are not separable:
+    `epsilon_therm` uses the equivalent dilatation coefficient and `epsilon_mecha` is
+    `epsilon - epsilon_therm`.
+    """
 
     def L_ref(self) -> np.ndarray:
-        L = self.cable_length
-        epsilon = self.epsilon_therm() + self.epsilon_mecha()
-        return L / (1 + epsilon)
+        return self.cable_length / (1 + self.epsilon())
 
     def L_0(self) -> np.ndarray:
-        L = self.cable_length
-        epsilon = self.epsilon_therm_0() + self.epsilon_mecha()
-        return L / (1 + epsilon)
+        return self.cable_length / (1 + self.epsilon_0())
+
+    def epsilon(self) -> np.ndarray:
+        return self.prepared.epsilon(self.tension_mean)
+
+    def epsilon_0(self) -> np.ndarray:
+        return self.prepared.epsilon_0(self.tension_mean)
 
     def epsilon_mecha(self) -> np.ndarray:
-        T_mean = self.tension_mean
-        E = self.young_modulus
-        S = self.cable_section_area
-        # linear case
-        if not self.is_polynomial:
-            return T_mean / (E * S)
-        # polynomial case
-        else:
-            raise NotImplementedError(
-                "Deformation model for polynomial cables not implemented"
-            )
-            # previous version used to return self.epsilon_mecha_polynomial()
-
-    def epsilon(self):
-        return self.epsilon_mecha() + self.epsilon_therm()
+        return self.prepared.epsilon_mecha(self.tension_mean)
 
     def epsilon_therm(self) -> np.ndarray:
-        sagging_temperature = self.current_temperature
-        temp_ref = self.temp_ref
-        alpha = self.dilatation_coefficient
-        return (sagging_temperature - temp_ref) * alpha
+        return self.prepared.epsilon_therm()
 
     def epsilon_therm_0(self) -> np.ndarray:
-        sagging_temperature = self.current_temperature
-        alpha = self.dilatation_coefficient
-        return sagging_temperature * alpha
-
-    def epsilon_mecha_polynomial(self) -> np.ndarray:
-        """Computes epsilon when the stress-strain relation is polynomial"""
-        T_mean = self.tension_mean
-        E = self.young_modulus
-        S = self.cable_section_area
-
-        sigma = T_mean / S
-        if self.polynomial_conductor is None:
-            raise ValueError("polynomial_conductor is not defined")
-        epsilon_plastic = self.epsilon_plastic()
-        return epsilon_plastic + sigma / E
-
-    def epsilon_plastic(self) -> np.ndarray:
-        """Computes elastic permanent strain."""
-        T_mean = self.tension_mean
-        E = self.young_modulus
-        S = self.cable_section_area
-        max_stress = self.max_stress
-
-        sigma = T_mean / S
-        if max_stress is None:
-            max_stress = np.full(T_mean.shape, 0)
-        # epsilon plastic is based on the highest value between sigma and max_stress
-        highest_constraint = np.fmax(sigma, max_stress)
-        equation_solution = self.resolve_stress_strain_equation(
-            highest_constraint
-        )
-        equation_solution -= highest_constraint / E
-        return equation_solution
-
-    def resolve_stress_strain_equation(
-        self, highest_constraint: np.ndarray
-    ) -> np.ndarray:
-        """Solves $\\sigma = Polynomial(\\varepsilon)$"""
-        polynomial = self.polynomial_conductor
-
-        polynom_array = np.full(highest_constraint.shape, polynomial)
-        poly_to_resolve = polynom_array - highest_constraint
-        return self.find_smallest_real_positive_root(poly_to_resolve)
-
-    def find_smallest_real_positive_root(
-        self,
-        poly_to_resolve: np.ndarray,
-    ) -> np.ndarray:
-        """Find the smallest root that is real and positive for each polynomial
-
-        Args:
-                poly_to_resolve (np.ndarray): array of polynomials to solve
-
-        Raises:
-                ValueError: if no real positive root has been found for at least one polynomial.
-
-        Returns:
-                np.ndarray: array of the roots (one per polynomial)
-        """
-        # Can cause performance issues
-        all_roots = [poly.roots() for poly in poly_to_resolve]
-
-        all_roots_stacked = np.stack(all_roots)
-        keep_solution_condition = np.logical_and(
-            abs(all_roots_stacked.imag) < IMAGINARY_THRESHOLD,
-            0.0 <= all_roots_stacked,
-        )
-        # Replace roots that are not real nor positive by np.inf
-        real_positive_roots = np.where(
-            keep_solution_condition, all_roots_stacked, np.inf
-        )
-        real_smallest_root = real_positive_roots.min(axis=1).real
-        if np.inf in real_smallest_root:
-            raise ConvergenceError(
-                "No solution found for at least one span",
-                origin="deformation_model",
-            )
-        return real_smallest_root
+        return self.prepared.epsilon_therm_0()
 
 
 def deformation_model_builder(
@@ -214,7 +218,12 @@ def deformation_model_builder(
     span_model: ISpan,
     sagging_temperature: np.ndarray,
     deformation_model_type: Type[IDeformation] = DeformationRte,
+    state: DeformationState | None = None,
+    law: IStressStrainLaw | None = None,
 ) -> IDeformation:
+    """Build a deformation model. The stress-strain law is selected from cable data by
+    [`deformation_law_builder`][mechaphlowers.core.models.cable.deformation_laws.deformation_law_builder]
+    unless `law` is given. `state` defaults to a virgin cable."""
     tension_mean = span_model.T_mean()
     cable_length = span_model.compute_L()
     cable_section = np.float64(cable_array.data.section.iloc[0])
@@ -227,6 +236,8 @@ def deformation_model_builder(
         cable_array.data.temperature_reference.iloc[0]
     )
     polynomial_conductor = cable_array.polynomial_conductor
+    if law is None:
+        law = deformation_law_builder(cable_array)
     return deformation_model_type(
         tension_mean,
         cable_length,
@@ -237,4 +248,6 @@ def deformation_model_builder(
         temperature_reference,
         polynomial_conductor,
         sagging_temperature,
+        law=law,
+        state=state,
     )

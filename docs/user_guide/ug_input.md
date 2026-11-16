@@ -139,17 +139,24 @@ A Cable is described using the following data:
 - section in $mm^2$, denoted later as $S$
 - diameter in $mm$, denoted later as $D$
 - linear weight in $N/m$, denoted later as $\lambda$
-- Young modulus in $GPa$, denoted later as $E$
+- Young modulus in $MPa$, denoted later as $E$
 - temperature of reference in $°C$
 - dilatation coefficient in $°C^{-1}$, denoted later as $\alpha_{th}$
-- coefficients of the polynomial model between stress and deformation in $GPa$
+- coefficients of the polynomial model between stress and deformation in $MPa$: `a0` to `a4` for the conductor, `b0` to `b4` for the heart (two-material cables only)
+
+For two-material cables (conductor and heart), the following columns are optional. They can be missing or `NaN` for linear cables:
+
+- `young_modulus_conductor` and `young_modulus_heart`, in $MPa$: unloading modulus of each material. Used only when the linear coefficient (`a1` or `b1`) is zero
+- `dilatation_coefficient_conductor` and `dilatation_coefficient_heart`, in $°C^{-1}$: dilatation coefficient of each material. If missing, `dilatation_coefficient` is used
+
+See [Deformation](ug_deformation.md#stress-strain-laws) for the meaning of these coefficients.
 
 
 Similarly to line section data, input data should be organized in a table. However, the number of rows should be equal to 1: the attributes of a cable are the same on any span.
 
 |section|diameter|linear_weight|young_modulus|dilatation_coefficient|temperature_reference|a0|a1|a2|a3|a4|b0|b1|b2|b3|b4|
 |---|-----|--|--|--|-|-|--|-----|-------|-----------|-|-|-|-|-|
-|450|30.5 |14|45|23|0|0|15|45000|2300000|-1800000000|0|0|0|0|0|
+|450|30.5 |14|45000|23e-6|0|0|15000|45000000|2300000000|-1800000000000|0|0|0|0|0|
 
 You may use the following code to define this data and load it so that it can be used by mechaphlowers:
 
@@ -164,8 +171,8 @@ input_df = pd.DataFrame({
 	"section": [450],
 	"diameter": [30.5],
 	"linear_weight": [14],
-	"young_modulus": [45],
-	"dilatation_coefficient": [23],
+	"young_modulus": [45000],
+	"dilatation_coefficient": [23e-6],
 	"temperature_reference": [0],
 	"a0": [0],
 	"a1": [15000],

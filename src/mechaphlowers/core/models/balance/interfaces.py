@@ -20,6 +20,7 @@ from mechaphlowers.core.models.balance.solvers.find_parameter_solver import (
 )
 from mechaphlowers.core.models.balance.span_loads import SpanLoads
 from mechaphlowers.core.models.cable.deformation import IDeformation
+from mechaphlowers.core.models.cable.deformation_laws import DeformationState
 from mechaphlowers.core.models.cable.span import ISpan
 from mechaphlowers.core.models.external_loads import CableLoads
 from mechaphlowers.entities.arrays import CableArray, SectionArray
@@ -220,6 +221,16 @@ class IBalanceModel(IModelForSolver, ABC):
     @abstractmethod
     def initialize_loadmodel(self) -> None:
         pass
+
+    def loaded_deformation_state(self) -> DeformationState:
+        """Deformation state after the current solved situation (loading history ratchet).
+        The deformation state of the models is not modified.
+
+        Default implementation ignores loads on spans: override it if needed.
+        """
+        self.deformation_model.tension_mean = self.span_model.T_mean()
+        self.deformation_model.cable_length = self.span_model.L
+        return self.deformation_model.updated_state()
 
     @abstractmethod
     def sync_after_memento_restore(self, *args, **kwargs):

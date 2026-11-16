@@ -656,8 +656,12 @@ class CableArray(ElementArray):
         "section": "m^2",
         "diameter": "m",
         "young_modulus": "Pa",
+        "young_modulus_conductor": "Pa",
+        "young_modulus_heart": "Pa",
         "linear_mass": "kg/m",
         "dilatation_coefficient": "1/K",
+        "dilatation_coefficient_conductor": "1/K",
+        "dilatation_coefficient_heart": "1/K",
         "temperature_reference": "°C",
         "a0": "Pa",
         "a1": "Pa",
@@ -706,6 +710,10 @@ class CableArray(ElementArray):
         "section_heart",
         "section_conductor",
         "is_polynomial",
+        "young_modulus_conductor",
+        "young_modulus_heart",
+        "dilatation_coefficient_conductor",
+        "dilatation_coefficient_heart",
     ]
 
     thermal_attributes = [
@@ -816,8 +824,11 @@ class CableArray(ElementArray):
 
     @property
     def data_mecha(self) -> pd.DataFrame:
-        """Returns mechanical data for cable. These attributes are stored in mecha_attributes"""
-        return self.data[self.mecha_attributes]
+        """Returns mechanical data for cable. These attributes are stored in mecha_attributes.
+
+        Optional attributes absent from the input are returned as NaN columns.
+        """
+        return self.data.reindex(columns=self.mecha_attributes)
 
     @property
     def data_thermal(self) -> pd.DataFrame:
