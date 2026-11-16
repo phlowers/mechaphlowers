@@ -11,7 +11,7 @@ from typing import Callable, Protocol
 
 import numpy as np
 
-from mechaphlowers.core.numeric.result import EstimationResult
+from mechaphlowers.core.numeric.result import EstimationResult, ArrayEstimationResult
 
 logger = logging.getLogger(__name__)
 

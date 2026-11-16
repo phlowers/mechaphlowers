@@ -62,15 +62,27 @@ class TestEstimationResult:
 class TestOptimizationMethods:
     """Test the optimization methods on a simple analytical function."""
 
-    def _simple_objective(self, x: float) -> float:
+    @staticmethod
+    def _simple_objective(x: float) -> float:
         """f(x) = x^2 - 4, root at x=2."""
         return x**2 - 4
+
+    @staticmethod
+    def _simple_array_objective(x: np.ndarray) -> np.ndarray:
+        """f(x) = x^2 - [4, 9], roots at x=np.array([2, 3])."""
+        return x**2 - np.array([4, 9])
 
     def test_bisection_converges(self):
         method = BisectionMethod(tol=1e-6, maxiter=100)
         result = method.solve(self._simple_objective, bounds=(0.0, 5.0))
         assert result.converged
         assert abs(result.value - 2.0) < 1e-5
+
+    def test_bisection_converges__array(self):
+        method = BisectionMethod(tol=1e-6, maxiter=100)
+        result = method.solve(self._simple_array_objective, bounds=(np.array([0.0, 2.5]), np.array([2.5, 10.0])))
+        assert result.converged
+        np.testing.assert_allclose(result.value, np.array([2.0, 3.0]), atol=1e-5)
 
     def test_brent_converges(self):
         method = BrentMethod(tol=1e-6, maxiter=100)

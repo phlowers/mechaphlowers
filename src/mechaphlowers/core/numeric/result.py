@@ -6,6 +6,9 @@
 
 from __future__ import annotations
 
+import numpy as np
+from numpy import typing as npt
+
 from dataclasses import dataclass
 
 
@@ -32,3 +35,15 @@ class EstimationResult:
             f"residual={self.residual:.3e}, "
             f"iterations={self.iterations}, {status})"
         )
+
+
+@dataclass(frozen=True)
+class ArrayEstimationResult:
+    value: np.ndarray
+    residual: np.ndarray
+    iterations: int
+    converged: npt.NDArray[np.bool]
+
+    def __repr__(self) -> str:
+        # TODO: return details
+        return "EstimationResult"
