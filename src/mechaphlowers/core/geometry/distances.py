@@ -15,17 +15,15 @@ import numpy as np
 
 from mechaphlowers.core.geometry.planes import (
     change_local_frame,
-    scalar_intersection_curve_plane,
     plane_basis,
     plane_from_line,
+    scalar_intersection_curve_plane,
 )
 from mechaphlowers.core.geometry.points import rotate_vector
 from mechaphlowers.core.numeric.methods import golden_section_search
 from mechaphlowers.entities.errors import NoIntersectionPlaneWarning
 
 logger = logging.getLogger(__name__)
-
-
 
 
 class DistanceEngine:
@@ -154,56 +152,292 @@ class DistanceEngine:
             distance_projection_v=distance_projection_v,
         )
 
-    def plane_distances(
-        self, points: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Vectorized plane distance for N points given in the section frame.
 
-        Requires `add_span_frame` and `add_curves` to have been called. Unlike
-        `plane_distance`, this method does not modify the engine state.
+def _span_normals(ground_supports: np.ndarray) -> np.ndarray:
+    """Unit horizontal normals of the spans between consecutive ground supports.
+
+    Args:
+        ground_supports: Ground coordinates of the supports, shape (S+1, 3).
+
+    Returns:
+        Unit normals of shape (S, 3), with zero vertical component.
+    """
+    ground = np.array(ground_supports, dtype=float)
+    # project ground points onto the XY plane
+    ground[:, 2] = 0.0
+    # get the direction vectors of the spans in the XY plane
+    axis = np.diff(ground, axis=0)
+    # normalize the direction vectors to get horizontal normals
+    return axis / np.linalg.norm(axis, axis=1, keepdims=True)
+
+
+@dataclass(frozen=True)
+class SamplingOptions:
+    """Default sampling options of `VectorizedDistanceEngine`.
+
+    Attributes:
+        step: Sampling step along the obstacle segments, in meters.
+        refine: Refine the minimum between samples.
+        xtol: Absolute tolerance of the refinement, in meters.
+
+    Raises:
+        ValueError: If `step` or `xtol` is not strictly positive.
+    """
+
+    step: float = 1.0
+    refine: bool = True
+    xtol: float = 1e-3
+
+    def __post_init__(self) -> None:
+        _validate_sampling(self.step, self.xtol)
+
+
+class VectorizedDistanceEngine:
+    """Plane distances of obstacles to several spans, computed in batch.
+
+    The engine holds a mutable store: the unit normals and `u`, `v` plane
+    bases of every span (see `set_frames`), and the section-frame curve
+    points of every span (see `set_curves` and `update_spans`). Distance
+    methods read this store as it is; they never refresh it.
+
+    Args:
+        ground_supports: Ground coordinates of the supports, shape (S+1, 3).
+            Optional, see `set_frames`.
+        curves: Section-frame curve points of every span, shape (S, M, 3).
+            Optional, see `set_curves`.
+        options: Default sampling options of the distance methods.
+            Defaults to `SamplingOptions()`.
+
+    Examples:
+        >>> engine = VectorizedDistanceEngine(ground_supports, curves)
+        >>> engine.update_spans([2], new_curves_of_span_2)
+        >>> engine.min_distances(coords_dict, spans_dict)
+    """
+
+    def __init__(
+        self,
+        ground_supports: np.ndarray | None = None,
+        curves: np.ndarray | None = None,
+        options: SamplingOptions | None = None,
+    ) -> None:
+        self.options = options if options is not None else SamplingOptions()
+        self.normals: np.ndarray | None = None
+        self.u: np.ndarray | None = None
+        self.v: np.ndarray | None = None
+        self.curves: np.ndarray | None = None
+        self.curves_proj: np.ndarray | None = None
+        if ground_supports is not None:
+            self.set_frames(ground_supports)
+        if curves is not None:
+            self.set_curves(curves)
+
+    def set_frames(self, ground_supports: np.ndarray) -> None:
+        """Set the frame of every span from the ground supports.
+
+        Recomputes the normals and plane bases, and the projected curves if
+        curves are already set. Changing the frames is rare: prefer
+        `update_spans` for changes of the curves only.
 
         Args:
-            points: A numpy array of shape (N, 3), or (3,) for a single point.
+            ground_supports: Ground coordinates of the supports, shape (S+1, 3).
+
+        Raises:
+            ValueError: If the shape is not (S+1, 3) with S >= 1, or if the
+                curves already set do not have S spans.
+        """
+        ground_supports = np.asarray(ground_supports, dtype=float)
+        if ground_supports.ndim != 2 or ground_supports.shape[1] != 3:
+            raise ValueError("ground_supports must have shape (S+1, 3)")
+        if ground_supports.shape[0] < 2:
+            raise ValueError("ground_supports must contain at least 2 points")
+        normals = _span_normals(ground_supports)
+        if self.curves is not None and self.curves.shape[0] != len(normals):
+            raise ValueError(
+                f"ground_supports define {len(normals)} spans but curves "
+                f"define {self.curves.shape[0]}"
+            )
+        self.normals = normals
+        self.u, self.v = plane_basis(normals)
+        self._refresh_curves_proj()
+
+    def set_curves(self, curves: np.ndarray) -> None:
+        """Set the section-frame curve points of all spans.
+
+        The array is copied, so that later changes of the caller's array do
+        not affect the engine. Use `update_spans` to change some spans.
+
+        Args:
+            curves: Section-frame curve points of every span, shape (S, M, 3).
+
+        Raises:
+            ValueError: If the shape is not (S, M, 3), or if the frames
+                already set do not have S spans.
+        """
+        curves = np.array(curves, dtype=float)
+        if curves.ndim != 3 or curves.shape[2] != 3:
+            raise ValueError("curves must have shape (S, M, 3)")
+        if self.normals is not None and curves.shape[0] != len(self.normals):
+            raise ValueError(
+                f"curves have {curves.shape[0]} spans but frames define "
+                f"{len(self.normals)}"
+            )
+        self.curves = curves
+        self._refresh_curves_proj()
+
+    def set_spans(
+        self, ground_supports: np.ndarray, curves: np.ndarray
+    ) -> None:
+        """Set the frames and the curves of all spans together.
+
+        Unlike calling `set_frames` then `set_curves`, the number of spans
+        may change (e.g. after a section change).
+
+        Args:
+            ground_supports: Ground coordinates of the supports, shape (S+1, 3).
+            curves: Section-frame curve points of every span, shape (S, M, 3).
+
+        Raises:
+            ValueError: If the shapes are invalid or the span counts differ.
+        """
+        self.normals = self.u = self.v = None
+        self.curves = self.curves_proj = None
+        self.set_frames(ground_supports)
+        self.set_curves(curves)
+
+    def update_spans(self, span_ids: np.ndarray, curves: np.ndarray) -> None:
+        """Replace the curve points of some spans, in place.
+
+        Only the given rows of the curves and of their projections are
+        updated: the cost is proportional to the number of updated spans.
+
+        Args:
+            span_ids: Indices of the spans to update, shape (k,).
+            curves: New section-frame curve points of these spans, shape
+                (k, M, 3), with the same M as the curves already set.
+
+        Raises:
+            RuntimeError: If `set_frames` and `set_curves` were not both called.
+            IndexError: If a span index is out of range.
+            ValueError: If the shape of `curves` does not match `span_ids`.
+        """
+        self._require_ready()
+        span_ids = np.atleast_1d(np.asarray(span_ids, dtype=int))
+        curves = np.asarray(curves, dtype=float)
+        n_spans, n_points, _ = self.curves.shape
+        if span_ids.ndim != 1:
+            raise ValueError("span_ids must be a 1D sequence of indices")
+        if span_ids.size and (span_ids.min() < 0 or span_ids.max() >= n_spans):
+            raise IndexError(
+                f"span_ids must be in [0, {n_spans - 1}], got {span_ids}"
+            )
+        if curves.shape != (span_ids.size, n_points, 3):
+            raise ValueError(
+                f"curves must have shape ({span_ids.size}, {n_points}, 3), "
+                f"got {curves.shape}"
+            )
+        self.curves[span_ids] = curves
+        self.curves_proj[span_ids] = np.einsum(
+            "smk,sk->sm", curves, self.normals[span_ids]
+        )
+
+    def _refresh_curves_proj(self) -> None:
+        """Recompute the projections of all curves, when both are set."""
+        if self.curves is None or self.normals is None:
+            self.curves_proj = None
+        else:
+            self.curves_proj = np.einsum(
+                "smk,sk->sm", self.curves, self.normals
+            )
+
+    def _require_ready(self) -> None:
+        if self.normals is None or self.curves is None:
+            raise RuntimeError(
+                "Distances need the span frames and curves: call set_frames "
+                "and set_curves (or pass ground_supports and curves) first."
+            )
+
+    def _resolve_sampling(
+        self,
+        step: float | None,
+        refine: bool | None,
+        xtol: float | None,
+    ) -> tuple[float, bool, float]:
+        """Replace the `None` arguments by the default options, then validate."""
+        step = self.options.step if step is None else step
+        refine = self.options.refine if refine is None else refine
+        xtol = self.options.xtol if xtol is None else xtol
+        _validate_sampling(step, xtol)
+        return step, refine, xtol
+
+    def plane_distances(
+        self, points: np.ndarray, span_indices: np.ndarray | None = None
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Vectorized plane distance of N points, each to its own span.
+
+        Args:
+            points: A numpy array of shape (N, 3), or (3,) for a single point,
+                in the section frame.
+            span_indices: Span index of each point, shape (N,). Defaults to
+                span 0 for all points.
 
         Returns:
             A tuple `(distances_3d, targets)` with shapes (N,) and (N, 3).
             Entries without intersection are `np.inf` and `np.nan`.
+
+        Raises:
+            RuntimeError: If `set_frames` and `set_curves` were not both called.
         """
+        self._require_ready()
         points = np.atleast_2d(np.asarray(points, dtype=float))
+        if span_indices is None:
+            span_indices = np.zeros(points.shape[0], dtype=int)
         return batch_plane_distances(
             points,
-            span_indices=np.zeros(points.shape[0], dtype=int),
-            curves=np.asarray(self.curve_points, dtype=float)[np.newaxis],
-            normals=self.line_direction_normalized[np.newaxis],
+            span_indices=span_indices,
+            curves=self.curves,
+            normals=self.normals,
+            curves_proj=self.curves_proj,
         )
 
     def min_distances(
         self,
         coords_dict: dict[str, np.ndarray],
         spans_dict: dict[str, int],
-        curves: np.ndarray,
-        normals: np.ndarray,
-        step: float,
-        refine: bool,
-        xtol: float,
+        step: float | None = None,
+        refine: bool | None = None,
+        xtol: float | None = None,
     ) -> dict[str, ClosestDistanceResult | None]:
         """Minimum distance of several polyline obstacles, computed together.
 
         Shortcut for the `minimum` of
-        [`distances`][mechaphlowers.core.geometry.distances.DistanceEngine.distances]
+        [`distances`][mechaphlowers.core.geometry.distances.VectorizedDistanceEngine.distances]
         with polyline obstacles.
 
+        Args:
+            coords_dict: Obstacle name to vertices in the section frame.
+            spans_dict: Obstacle name to the index of its span.
+            step: Sampling step, in meters. `None` uses `options.step`.
+            refine: Refine the minimum between samples. `None` uses
+                `options.refine`.
+            xtol: Absolute tolerance of the refinement, in meters. `None`
+                uses `options.xtol`.
+
         Returns:
-            Dict mapping each obstacle name to its `ObstacleDistanceResult`,
+            Dict mapping each obstacle name to its `ClosestDistanceResult`,
             or `None` if no sample of the obstacle faces the span.
 
         Raises:
+            RuntimeError: If `set_frames` and `set_curves` were not both called.
             ValueError: If `step` or `xtol` is not strictly positive.
         """
         return {
             name: obstacle_distances.minimum
             for name, obstacle_distances in self.distances(
-                coords_dict, spans_dict, curves, normals, step, refine, xtol
+                coords_dict,
+                spans_dict,
+                step=step,
+                refine=refine,
+                xtol=xtol,
             ).items()
         }
 
@@ -211,12 +445,10 @@ class DistanceEngine:
         self,
         coords_dict: dict[str, np.ndarray],
         spans_dict: dict[str, int],
-        curves: np.ndarray,
-        normals: np.ndarray,
-        step: float,
-        refine: bool,
-        xtol: float,
         geometry_types: dict[str, Literal["points", "polyline"]] | None = None,
+        step: float | None = None,
+        refine: bool | None = None,
+        xtol: float | None = None,
     ) -> dict[str, ObstacleDistances]:
         """Distances of several obstacles, computed together.
 
@@ -243,13 +475,14 @@ class DistanceEngine:
             coords_dict: Obstacle name to vertices in the section frame, each
                 of shape (V_i, 3), in `point_index` order.
             spans_dict: Obstacle name to the index of its span.
-            curves: Section-frame curve points of every span, shape (S, M, 3).
-            normals: Unit horizontal plane normals of every span, shape (S, 3).
-            step: Sampling step along the obstacle segments, in meters.
-            refine: Refine the minimum between samples.
-            xtol: Absolute tolerance of the refinement, in meters.
             geometry_types: Obstacle name to ``"points"`` or ``"polyline"``.
                 Missing obstacles are polylines. Defaults to `None`.
+            step: Sampling step along the obstacle segments, in meters.
+                `None` uses `options.step`.
+            refine: Refine the minimum between samples. `None` uses
+                `options.refine`.
+            xtol: Absolute tolerance of the refinement, in meters. `None`
+                uses `options.xtol`.
 
         Returns:
             Dict mapping each of the `N` obstacle names to its
@@ -257,9 +490,11 @@ class DistanceEngine:
             vertex position within its own array of `coords_dict`.
 
         Raises:
+            RuntimeError: If `set_frames` and `set_curves` were not both called.
             ValueError: If `step` or `xtol` is not strictly positive.
         """
-        _validate_sampling(step, xtol)
+        self._require_ready()
+        step, refine, xtol = self._resolve_sampling(step, refine, xtol)
         if not coords_dict:
             return {}
 
@@ -268,7 +503,6 @@ class DistanceEngine:
             name: (geometry_types or {}).get(name, "polyline")
             for name in names
         }
-        u, v = plane_basis(normals)
 
         segments_samples = _build_segments_samples(
             coords_dict, spans_dict, step, geometry_types
@@ -280,7 +514,11 @@ class DistanceEngine:
         spans = segments_samples.spans
 
         coarse_samples = _coarse_sampling(
-            names, segments_samples, curves, normals
+            names,
+            segments_samples,
+            self.curves,
+            self.normals,
+            self.curves_proj,
         )
         best_samples = coarse_samples.best
 
@@ -317,7 +555,12 @@ class DistanceEngine:
 
                 refined_t = golden_section_search(
                     lambda t: _segment_plane_distances(
-                        segments_samples, interval_segs, t, curves, normals
+                        segments_samples,
+                        interval_segs,
+                        t,
+                        self.curves,
+                        self.normals,
+                        self.curves_proj,
                     ),
                     lower,
                     upper,
@@ -328,7 +571,12 @@ class DistanceEngine:
                 )
 
                 refined_distance = _segment_plane_distances(
-                    segments_samples, interval_segs, refined_t, curves, normals
+                    segments_samples,
+                    interval_segs,
+                    refined_t,
+                    self.curves,
+                    self.normals,
+                    self.curves_proj,
                 )
 
                 _keep_better_candidates(
@@ -344,7 +592,11 @@ class DistanceEngine:
         best_points = segments_samples.points(best_samples.seg, best_samples.t)
         best_spans = seg_span[best_samples.seg]
         final_distances, final_targets = batch_plane_distances(
-            best_points, best_spans, curves, normals
+            best_points,
+            best_spans,
+            self.curves,
+            self.normals,
+            curves_proj=self.curves_proj,
         )
 
         # Filter out invalid distances and build the final distance results for valid samples
@@ -354,15 +606,15 @@ class DistanceEngine:
             best_spans[found],
             final_targets[found],
             final_distances[found],
-            u,
-            v,
+            self.u,
+            self.v,
         )
 
         minimums = _assemble_obstacle_results(
             names, spans, seg_loc, best_samples, found, distance_results
         )
         vertices = _vertex_results(
-            segments_samples, coarse_samples, len(names), u, v
+            segments_samples, coarse_samples, len(names), self.u, self.v
         )
         return {
             name: ObstacleDistances(
@@ -374,7 +626,6 @@ class DistanceEngine:
             )
             for obstacle_id, name in enumerate(names)
         }
-
 
 
 def scalar_points_distance_inside_plane(
@@ -594,8 +845,6 @@ class ClosestDistanceResult:
         return "<ClosestDistanceResult>\n" + self.__str__()
 
 
-
-
 @dataclass
 class ObstacleDistances:
     """Distances between an obstacle and its span.
@@ -690,6 +939,7 @@ def batch_plane_distances(
     span_indices: np.ndarray,
     curves: np.ndarray,
     normals: np.ndarray,
+    curves_proj: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Plane distance of N points, each against the curve of its own span.
 
@@ -702,6 +952,8 @@ def batch_plane_distances(
         span_indices: Span index of each point, shape (N,).
         curves: Section-frame curve points of every span, shape (S, M, 3).
         normals: Unit horizontal plane normals of every span, shape (S, 3).
+        curves_proj: Projections of `curves` on `normals`, shape (S, M).
+            Optional cache: computed from `curves` and `normals` when `None`.
 
     Returns:
         A tuple `(distances, targets)` with shapes (N,) and (N, 3).
@@ -718,8 +970,9 @@ def batch_plane_distances(
     # reminder: smk, sm -> sm means dots along the normal (s,3) for each curve point (s,m,3)
     # TODO: draw
     points_proj = np.einsum("nk,nk->n", points, point_normals)
-    curves_proj = np.einsum("smk,sk->sm", curves, normals)[span_indices]
-    signed = curves_proj - points_proj[:, np.newaxis]
+    if curves_proj is None:
+        curves_proj = np.einsum("smk,sk->sm", curves, normals)
+    signed = curves_proj[span_indices] - points_proj[:, np.newaxis]
 
     # find the two curve points closest to the plane for each point
     closest = np.argsort(np.abs(signed), axis=1)[:, :2]
@@ -992,6 +1245,7 @@ def _segment_plane_distances(
     t: np.ndarray,
     curves: np.ndarray,
     normals: np.ndarray,
+    curves_proj: np.ndarray | None = None,
 ) -> np.ndarray:
     """Plane distances of points lying on segments.
 
@@ -1001,6 +1255,7 @@ def _segment_plane_distances(
         t: Local segment parameter of each point, shape ``(N,)``.
         curves: Section-frame curve points of every span, shape (S, M, 3).
         normals: Unit horizontal plane normals of every span, shape (S, 3).
+        curves_proj: Optional cache of the projections of `curves`, shape (S, M).
 
     Returns:
         Distances of the points, shape ``(N,)``.
@@ -1010,6 +1265,7 @@ def _segment_plane_distances(
         segments.seg_span[seg_ids],
         curves,
         normals,
+        curves_proj=curves_proj,
     )
     return distances
 
@@ -1019,6 +1275,7 @@ def _coarse_sampling(
     segments: _SegmentSamples,
     curves: np.ndarray,
     normals: np.ndarray,
+    curves_proj: np.ndarray | None = None,
 ) -> _CoarseSamples:
     """Evaluate every sample and keep the closest one of each obstacle.
 
@@ -1032,7 +1289,11 @@ def _coarse_sampling(
     sample_obs = segments.sample_obs
     sample_points = segments.points(segments.sample_seg, segments.sample_t)
     sample_distances, sample_targets = batch_plane_distances(
-        sample_points, segments.seg_span[segments.sample_seg], curves, normals
+        sample_points,
+        segments.seg_span[segments.sample_seg],
+        curves,
+        normals,
+        curves_proj=curves_proj,
     )
 
     n_obstacles = len(names)
@@ -1189,4 +1450,3 @@ def search_interval_refinement(
 
     # compute valid intervals with positive segment length where search is meaningful
     return [iv for iv in intervals if seg_len[iv.segment_id] > 0.0]
-

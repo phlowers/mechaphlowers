@@ -12,6 +12,8 @@ from mechaphlowers.core.geometry.distances import (
     DistanceEngine,
     ObstacleDistances,
     PointDistanceResult,
+    SamplingOptions,
+    VectorizedDistanceEngine,
     _build_segments_samples,
     batch_plane_distances,
     get_projection_points,
@@ -19,6 +21,18 @@ from mechaphlowers.core.geometry.distances import (
 )
 from mechaphlowers.core.geometry.planes import plane_basis, plane_from_line
 from mechaphlowers.entities.errors import NoIntersectionPlaneWarning
+
+
+def _vectorized_engine(
+    curves: np.ndarray,
+    normals: np.ndarray,
+    options: SamplingOptions | None = None,
+) -> VectorizedDistanceEngine:
+    """Engine whose span frames have the given horizontal unit normals."""
+    ground = np.vstack([np.zeros((1, 3)), np.cumsum(normals, axis=0)])
+    return VectorizedDistanceEngine(
+        ground_supports=ground, curves=curves, options=options
+    )
 
 
 def test_points_distance_inside_plane_returns_distance_and_projections():
@@ -29,11 +43,13 @@ def test_points_distance_inside_plane_returns_distance_and_projections():
     u_plane = np.array([1.0, 0.0, 0.0])
     v_plane = np.array([0.0, 1.0, 0.0])
 
-    distance_3d, projection_u, projection_v = scalar_points_distance_inside_plane(
-        point_1,
-        point_2,
-        u_plane,
-        v_plane,
+    distance_3d, projection_u, projection_v = (
+        scalar_points_distance_inside_plane(
+            point_1,
+            point_2,
+            u_plane,
+            v_plane,
+        )
     )
 
     np.testing.assert_allclose(distance_3d, 1.0)
@@ -125,6 +141,9 @@ def test_plane_distances_matches_scalar_plane_distance():
     x = np.linspace(0, 100, 30)
     curve = np.column_stack([x, np.zeros_like(x), 50 - 0.002 * (x - 50) ** 2])
     engine.add_curves(curve)
+    vectorized = _vectorized_engine(
+        curve[np.newaxis], np.array([[1.0, 0.0, 0.0]])
+    )
     points = np.array(
         [
             [30.0, 2.0, 10.0],
@@ -135,7 +154,7 @@ def test_plane_distances_matches_scalar_plane_distance():
         ]
     )
 
-    distances, targets = engine.plane_distances(points)
+    distances, targets = vectorized.plane_distances(points)
 
     assert distances.shape == (5,)
     assert targets.shape == (5, 3)
@@ -159,8 +178,14 @@ def test_plane_distances_accepts_single_point_and_keeps_state():
     )
     engine.scalar_plane_distance(np.array([40.0, 0.0, 5.0]), frame="section")
     point_base_before = engine.point_base.copy()
+    vectorized = _vectorized_engine(
+        np.column_stack(
+            [np.linspace(0, 100, 10), np.zeros(10), np.linspace(20, 10, 10)]
+        )[np.newaxis],
+        np.array([[1.0, 0.0, 0.0]]),
+    )
 
-    distances, targets = engine.plane_distances(np.array([40.0, 1.0, 5.0]))
+    distances, targets = vectorized.plane_distances(np.array([40.0, 1.0, 5.0]))
 
     assert distances.shape == (1,)
     assert targets.shape == (1, 3)
@@ -287,15 +312,15 @@ class TestMinDistances:
     def test_empty_and_invalid_sampling(self):
         curves = np.zeros((1, 3, 3))
         normals = np.array([[1.0, 0.0, 0.0]])
-        engine = DistanceEngine()
+        engine = _vectorized_engine(curves, normals)
         assert (
-            engine.min_distances({}, {}, curves, normals, 1.0, True, 1e-3)
+            engine.min_distances({}, {}, step=1.0, refine=True, xtol=1e-3)
             == {}
         )
         with pytest.raises(ValueError):
-            engine.min_distances({}, {}, curves, normals, 0.0, True, 1e-3)
+            engine.min_distances({}, {}, step=0.0, refine=True, xtol=1e-3)
         with pytest.raises(ValueError):
-            engine.min_distances({}, {}, curves, normals, 1.0, True, -1.0)
+            engine.min_distances({}, {}, step=1.0, refine=True, xtol=-1.0)
 
 
 class TestDistances:
@@ -310,15 +335,13 @@ class TestDistances:
         coords = np.array([[10, 0, 0], [20, 0, 5], [30, 0, 8]], dtype=float)
         line = np.array([[40, 5, 10], [60, -5, 10]], dtype=float)
 
-        result = DistanceEngine().distances(
+        result = _vectorized_engine(self.curves, self.normals).distances(
             {"pts": coords, "line": line},
             {"pts": 0, "line": 0},
-            self.curves,
-            self.normals,
+            geometry_types={"pts": "points", "line": "polyline"},
             step=1.0,
             refine=True,
             xtol=1e-6,
-            geometry_types={"pts": "points", "line": "polyline"},
         )
 
         pts = result["pts"]
@@ -345,15 +368,13 @@ class TestDistances:
         coords = np.array([[50, 0, 0], [150, 0, 0]], dtype=float)
 
         with pytest.warns(NoIntersectionPlaneWarning, match="pts"):
-            result = DistanceEngine().distances(
+            result = _vectorized_engine(self.curves, self.normals).distances(
                 {"pts": coords},
                 {"pts": 0},
-                self.curves,
-                self.normals,
+                geometry_types={"pts": "points"},
                 step=1.0,
                 refine=True,
                 xtol=1e-6,
-                geometry_types={"pts": "points"},
             )
 
         assert set(result["pts"].points) == {0}
@@ -361,7 +382,118 @@ class TestDistances:
         assert result["pts"].minimum.segment_index == 0
 
 
-class TestObstacleDistancesTable:
+class TestVectorizedDistanceEngine:
+    @staticmethod
+    def _obstacles():
+        coords = {
+            "a": np.array([[30, 5, -10], [40, 12, -8]], dtype=float),
+            "b": np.array([[20, -2, -3], [25, -1, -2]], dtype=float),
+        }
+        return coords, {"a": 0, "b": 1}
+
+    @staticmethod
+    def _min_values(results):
+        return {
+            name: None if res is None else res.distance_3d
+            for name, res in results.items()
+        }
+
+    def test_update_spans_equals_set_curves_with_full_array(self):
+        curves, normals = _two_spans_curves_and_normals()
+        new_curves = curves.copy()
+        new_curves[1] += np.array([0.0, 0.0, 2.0])
+        coords, spans = self._obstacles()
+
+        full = _vectorized_engine(new_curves, normals)
+        partial = _vectorized_engine(curves, normals)
+        partial.update_spans([1], new_curves[[1]])
+
+        np.testing.assert_array_equal(partial.curves, full.curves)
+        np.testing.assert_array_equal(partial.curves_proj, full.curves_proj)
+        points = np.array([[30.0, 5.0, -10.0], [20.0, -2.0, -3.0]])
+        span_ids = np.array([0, 1])
+        d_full, t_full = full.plane_distances(points, span_ids)
+        d_part, t_part = partial.plane_distances(points, span_ids)
+        np.testing.assert_array_equal(d_part, d_full)
+        np.testing.assert_array_equal(t_part, t_full)
+        assert self._min_values(
+            partial.min_distances(coords, spans)
+        ) == self._min_values(full.min_distances(coords, spans))
+
+    def test_set_frames_after_curves_recomputes_projections(self):
+        curves, normals = _two_spans_curves_and_normals()
+        engine = VectorizedDistanceEngine()
+        engine.set_curves(curves)
+        assert engine.curves_proj is None
+        engine.set_frames(
+            np.vstack([np.zeros((1, 3)), np.cumsum(normals, axis=0)])
+        )
+        np.testing.assert_array_equal(
+            engine.curves_proj, np.einsum("smk,sk->sm", curves, engine.normals)
+        )
+
+    def test_options_are_defaults_overridden_per_call(self):
+        curves, normals = _two_spans_curves_and_normals()
+        coords, spans = self._obstacles()
+        coarse = _vectorized_engine(
+            curves, normals, SamplingOptions(step=5.0, refine=False)
+        )
+        default = _vectorized_engine(curves, normals)
+
+        assert self._min_values(coarse.min_distances(coords, spans)) == (
+            self._min_values(
+                default.min_distances(
+                    coords, spans, step=5.0, refine=False, xtol=1e-3
+                )
+            )
+        )
+        assert self._min_values(
+            coarse.min_distances(coords, spans, step=1.0, refine=True)
+        ) == self._min_values(default.min_distances(coords, spans))
+
+        with pytest.raises(ValueError):
+            SamplingOptions(step=0.0)
+        with pytest.raises(ValueError):
+            default.min_distances(coords, spans, xtol=-1.0)
+
+    def test_distances_before_frames_and_curves_are_set_raise(self):
+        curves, normals = _two_spans_curves_and_normals()
+        coords, spans = self._obstacles()
+        engine = VectorizedDistanceEngine()
+
+        with pytest.raises(RuntimeError):
+            engine.distances(coords, spans)
+        with pytest.raises(RuntimeError):
+            engine.plane_distances(np.zeros(3))
+        engine.set_curves(curves)
+        with pytest.raises(RuntimeError):
+            engine.min_distances(coords, spans)
+        with pytest.raises(RuntimeError):
+            engine.update_spans([0], curves[[0]])
+
+    def test_update_spans_validates_ids_and_shape(self):
+        curves, normals = _two_spans_curves_and_normals()
+        engine = _vectorized_engine(curves, normals)
+
+        with pytest.raises(IndexError):
+            engine.update_spans([2], curves[[0]])
+        with pytest.raises(ValueError):
+            engine.update_spans([0], curves)
+
+    def test_set_spans_allows_changing_the_number_of_spans(self):
+        engine = VectorizedDistanceEngine(
+            np.array([[0, 0, 0], [100, 0, 0], [200, 0, 0]], dtype=float),
+            np.zeros((2, 5, 3)),
+        )
+        engine.set_spans(
+            np.array(
+                [[0, 0, 0], [100, 0, 0], [200, 0, 0], [300, 0, 0]], float
+            ),
+            np.zeros((3, 5, 3)),
+        )
+        assert engine.normals.shape == (3, 3)
+        assert engine.curves_proj.shape == (3, 5)
+
     @staticmethod
     def _obstacle(points: dict[int, PointDistanceResult]) -> ObstacleDistances:
         return ObstacleDistances(
@@ -433,4 +565,3 @@ class TestObstacleDistancesTable:
         assert df["point_index"].tolist() == [0, 3]
         assert df["distance_3d"].tolist() == pytest.approx([5.0, 2.0])
         assert df.loc[1, "point_target_x"] == pytest.approx(6.0)
-

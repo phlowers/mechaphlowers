@@ -51,26 +51,31 @@ The `DistanceResult` class is used to store the results of the distance computat
 
 ### Several obstacles at once
 
-[`DistanceEngine.distances`][mechaphlowers.core.geometry.distances.DistanceEngine.distances] is the low-level method computing the distances of several obstacles together. It works on plain arrays in the section frame and does not modify the state of the engine. [`PositionEngine.get_distances`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_distances] gathers the obstacle data and calls it (see [Distances to obstacles](#distances-to-obstacles)).
+[`VectorizedDistanceEngine`][mechaphlowers.core.geometry.distances.VectorizedDistanceEngine] is the low-level engine computing the distances of several obstacles together, over several spans. It keeps the span geometry in a store: the frames (normals and in-plane axes) are set with `set_frames(ground_supports)`, the curves of all spans with `set_curves(curves)`, and only some spans can be refreshed in place with `update_spans(span_ids, curves)`. The store is not updated automatically when the state of the engine changes.
+
+Sampling defaults are given by a [`SamplingOptions`][mechaphlowers.core.geometry.distances.SamplingOptions] object (`step`, `refine`, `xtol`). Each of them can be overridden per call in `distances` and `min_distances`.
 
 ```python
-from mechaphlowers.core.geometry.distances import DistanceEngine
+from mechaphlowers.core.geometry.distances import (
+    SamplingOptions,
+    VectorizedDistanceEngine,
+)
 
-engine = DistanceEngine()
+engine = VectorizedDistanceEngine(options=SamplingOptions(step=1.0, refine=True, xtol=1e-3))
+engine.set_frames(ground_supports)  # array (S+1, 3): ground support of each span boundary
+engine.set_curves(curves)  # array (S, M, 3): points of each span
 obstacles = engine.distances(
     coords_dict={"road": road_coords},  # {name: array (V, 3)}, in point_index order
     spans_dict={"road": 0},  # {name: span index}
-    curves=curves,  # array (S, M, 3): points of each span
-    normals=normals,  # array (S, 3): unit horizontal normal of each span
-    step=1.0,
-    refine=True,
-    xtol=1e-3,
     geometry_types={"road": "polyline"},  # optional, missing obstacles are polylines
+    step=0.5,  # optional per-call override of the options
 )
 obstacles["road"].minimum.distance_3d
 ```
 
-`DistanceEngine.min_distances` takes the same arguments and returns only the `minimum` of each polyline obstacle.
+`min_distances` takes the same arguments and returns only the `minimum` of each polyline obstacle.
+
+[`PositionEngine.get_distances`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_distances] and [`PositionEngine.obstacle_min_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.obstacle_min_distance] use the engine stored in `PositionEngine.vectorized_distance_engine`. This store is created once, but it is not refreshed automatically: after a solve or any change of the state, call `pos_engine.update_distance_spans()` (all frames and curves), or `pos_engine.update_distance_spans(span_ids)` to refresh only some spans. Otherwise the distances are computed from the previous geometry. See [Distances to obstacles](#distances-to-obstacles).
 
 ### Plot engine
 

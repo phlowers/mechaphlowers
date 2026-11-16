@@ -634,6 +634,26 @@ class TestDistancesFromObstacles:
         )
         return pos_engine
 
+    def test_get_distances_is_stale_until_update_distance_spans(
+        self, pos_engine_with_obstacles: PositionEngine
+    ):
+        pos_engine = pos_engine_with_obstacles
+        store = pos_engine.vectorized_distance_engine
+
+        def min_3d() -> float:
+            minimum = pos_engine.get_distances()["obs_0"].minimum
+            assert minimum is not None
+            return minimum.distance_3d
+
+        baseline = min_3d()
+        assert store.curves is not None
+        all_spans = np.arange(store.curves.shape[0])
+        store.update_spans(all_spans, store.curves + np.array([0.0, 0.0, 5.0]))
+        assert min_3d() != pytest.approx(baseline)
+
+        pos_engine.update_distance_spans()
+        assert min_3d() == pytest.approx(baseline)
+
     @pytest.fixture
     def pos_engine_with_obstacles_angles(
         self, balance_engine_angles: BalanceEngine
@@ -690,10 +710,12 @@ class TestDistancesFromObstacles:
             "obs_1"
         ][1]
 
-        def fake_batch(points, span_indices, curves, normals):
+        def fake_batch(
+            points, span_indices, curves, normals, curves_proj=None
+        ):
             # obs_1 has 4 points (indices 0-3); make the 2nd one (index 1) fail.
             distances, targets = original_batch(
-                points, span_indices, curves, normals
+                points, span_indices, curves, normals, curves_proj=curves_proj
             )
             failing = (span_indices == 1) & np.all(
                 points == failing_point, axis=1
@@ -982,7 +1004,7 @@ class TestObstacleMinDistance:
         with pytest.raises(ValueError):
             pos_engine.obstacle_min_distance("obs", xtol=-1)
 
-    def test_get_min_distances_computes_spans_once(
+    def test_get_min_distances_uses_stored_spans(
         self, pos_engine: PositionEngine
     ):
         pos_engine.add_obstacle(
@@ -1004,6 +1026,8 @@ class TestObstacleMinDistance:
             wraps=coords_calculator.get_spans,
         ) as get_spans_mock:
             results = _minimums(pos_engine)
+            assert get_spans_mock.call_count == 0
+            pos_engine.update_distance_spans()
 
         assert set(results) == {"obs_a", "obs_b"}
         assert get_spans_mock.call_count == 1

@@ -839,6 +839,7 @@ class PlotEngine(Observer):
             # ...get a distance result object with the distance and closest point coordinates
             >>> fig.show()
         """
+        self.position_engine.update_distance_spans()
         obstacle_distances = self.position_engine.get_distances(obstacle_name)[
             obstacle_name
         ]
@@ -899,6 +900,7 @@ class PlotEngine(Observer):
             [`ObstacleDistanceResult`][mechaphlowers.core.geometry.distances.ObstacleDistanceResult],
             or `None` if the obstacle does not face its span.
         """
+        self.position_engine.update_distance_spans()
         result = self.position_engine.obstacle_min_distance(
             obstacle_name, step=step, refine=refine, xtol=xtol
         )

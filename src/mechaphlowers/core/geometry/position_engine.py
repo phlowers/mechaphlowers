@@ -13,13 +13,14 @@ from typing import Literal
 import numpy as np
 
 from mechaphlowers.core.geometry.distances import (
-    DistanceEngine,
-    PointDistanceResult,
     ClosestDistanceResult,
+    DistanceEngine,
     ObstacleDistances,
+    PointDistanceResult,
+    VectorizedDistanceEngine,
 )
 from mechaphlowers.core.geometry.group_points import GroupPoints
-from mechaphlowers.core.geometry.planes import change_local_frame, plane_basis
+from mechaphlowers.core.geometry.planes import change_local_frame
 from mechaphlowers.core.geometry.points import CoordsCalculator, Points
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.entities.arrays import ObstacleArray
@@ -60,6 +61,10 @@ class PositionEngine(Observer, Notifier):
         self.distance_engine = DistanceEngine()
         self.initialize_engine(balance_engine)
         self.reset(balance_engine=balance_engine)
+        self.vectorized_distance_engine = VectorizedDistanceEngine(
+            ground_supports=self.coords_calculator.supports_ground_coords,
+            curves=self.coords_calculator.get_spans(frame="section").coords,
+        )
 
     def initialize_engine(self, balance_engine: BalanceEngine) -> None:
         """Initialise internal references from `balance_engine`."""
@@ -387,7 +392,9 @@ class PositionEngine(Observer, Notifier):
             raise ValueError("point must be a 1D array of shape (3,)")
 
         self._set_distance_span(span_index)
-        return self.distance_engine.scalar_plane_distance(point, frame="section")
+        return self.distance_engine.scalar_plane_distance(
+            point, frame="section"
+        )
 
     def _set_distance_span(
         self, span_index: int, spans_coords: np.ndarray | None = None
@@ -515,29 +522,31 @@ class PositionEngine(Observer, Notifier):
             )
         return result
 
-    def _span_geometry(
-        self,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """Helper to get section-frame curves, horizontal normals and plane basis of all spans.
+    def update_distance_spans(self, span_ids: list[int] | None = None) -> None:
+        """Refresh the spans used by `get_distances` and `obstacle_min_distance`.
 
-        Returns:
-            A tuple `(curves, normals, u, v)` with shapes (S, M, 3), (S, 3),
-            (S, 3) and (S, 3).
+        `get_distances` uses the stored span frames and curves as they are:
+        it does not recompute them. Call this method after a solve or any
+        change of the state (cable loads, section, supports, ...), otherwise
+        the distances are computed on the previous geometry.
+
+        Args:
+            span_ids: Indices of the spans whose curves are refreshed. `None`
+                refreshes the frames and the curves of all spans.
+
+        Raises:
+            IndexError: If a span index is out of range.
         """
-        ground = np.array(
-            self.coords_calculator.supports_ground_coords, dtype=float
-        )
-        # project ground points onto the XY plane
-        ground[:, 2] = 0.0
-        # get the direction vectors of the spans in the XY plane
-        axis = np.diff(ground, axis=0)
-        # normalize the direction vectors to get horizontal normals
-        normals = axis / np.linalg.norm(axis, axis=1, keepdims=True)
-
-        # get the section-frame curves for all spans and u,v basis for the planes
+        engine = self.vectorized_distance_engine
+        if span_ids is None:
+            engine.set_spans(
+                self.coords_calculator.supports_ground_coords,
+                self.coords_calculator.get_spans(frame="section").coords,
+            )
+            return
+        ids = np.asarray(span_ids, dtype=int)
         curves = self.coords_calculator.get_spans(frame="section").coords
-        u, v = plane_basis(normals)
-        return curves, normals, u, v
+        engine.update_spans(ids, curves[ids])
 
     def _compute_distances(
         self,
@@ -548,8 +557,9 @@ class PositionEngine(Observer, Notifier):
     ) -> dict[str, ObstacleDistances]:
         """Implementation of `get_distances`.
 
-        Must be called directly by the public methods: the warning stack
-        levels rely on it.
+        Uses the spans stored in `vectorized_distance_engine` without
+        refreshing them (see `update_distance_spans`). Must be called directly
+        by the public methods: the warning stack levels rely on it.
         """
         obstacles_points = self.coords_calculator.compute_obstacle_coords()
         row_names = np.asarray(obstacles_points.object_name, dtype=object)
@@ -574,21 +584,18 @@ class PositionEngine(Observer, Notifier):
         )
         points = np.asarray(obstacles_points.coords, dtype=float)
         span_indices = np.asarray(obstacles_points.span_index, dtype=int)
-        curves, normals, _, _ = self._span_geometry()
 
         # Rows are sorted by (name, point_index): vertices in point_index order
-        return self.distance_engine.distances(
+        return self.vectorized_distance_engine.distances(
             {name: points[row_names == name] for name in selected},
             {
                 name: int(span_indices[row_names == name][0])
                 for name in selected
             },
-            curves,
-            normals,
+            geometry_types={name: geometry_types[name] for name in selected},
             step=step,
             refine=refine,
             xtol=xtol,
-            geometry_types={name: geometry_types[name] for name in selected},
         )
 
     def get_group_points(self) -> GroupPoints:
@@ -618,6 +625,7 @@ class PositionEngine(Observer, Notifier):
         if obstacles_points is not None or additional_points is not None:
             distances_dict = {}
             if obstacles_points is not None:
+                self.update_distance_spans()
                 distances_dict.update(self.get_distances())
 
         return GroupPoints(

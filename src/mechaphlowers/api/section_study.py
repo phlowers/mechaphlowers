@@ -657,6 +657,7 @@ class SectionStudy:
         Returns:
             Minimum distance result, or `None` if the obstacle does not face its span.
         """
+        self._position_engine.update_distance_spans()
         return self._position_engine.obstacle_min_distance(
             obstacle_name, step=step, refine=refine, xtol=xtol
         )
@@ -679,6 +680,7 @@ class SectionStudy:
         Returns:
             Dict mapping obstacle name to its distances per point and minimum.
         """
+        self._position_engine.update_distance_spans()
         return self._position_engine.get_distances(
             names, step=step, refine=refine, xtol=xtol
         )
