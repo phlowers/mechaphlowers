@@ -289,7 +289,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         draw_number: int = 1000,
         angle_error: float = 0.01,
         seed: int = 42,
-    ) -> dict:
+    ) -> dict | np.ndarray | Number:
         """Estimate uncertainty on the PAPOTO parameter using Monte Carlo method.
 
         If `threshold_active` is True, the Monte Carlo simulation is bypassed and
