@@ -1321,3 +1321,23 @@ def test_compute_shifted_L_ref_no_shifting(
     initial_L_ref = np.array([500.0, 300.0, 400.0])
     result = manipulation.compute_shifted_L_ref(initial_L_ref)
     np.testing.assert_array_equal(result, initial_L_ref)
+
+
+@pytest.mark.xfail(
+    reason="Shift is always put on the left sub-span of a split span, even "
+    "when the shifted support is the right end of that span",
+    strict=True,
+)
+def test_compute_shifted_L_ref_virtual_support_on_span_next_to_shifted_support(
+    manipulation: Manipulation,
+) -> None:
+    # Span 1 (supports 1 -> 2) is split into two sub-spans
+    manipulation.set_virtual_support({1: _virtual_support(100.0)})
+    # Expanded spans: 0, 1 (left sub-span), 1 (right sub-span), 2
+    initial_L_ref = np.array([500.0, 100.0, 200.0, 400.0])
+
+    # Support 2 is the right end of span 1: the extra length must go on the
+    # right sub-span, next to support 2. Span 2 loses 1m.
+    manipulation.modify_cable(shift_support={2: 1.0})
+    shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
+    np.testing.assert_allclose(shifted, np.array([500.0, 100.0, 201.0, 399.0]))
