@@ -160,24 +160,39 @@ class TestEstimationEngine:
         """Temperature estimation can target the signed vertical distance."""
         study = solved_study
         temperature = 60.0
+        # Laterally offset: 3D and vertical distances must differ
+        obstacle = np.array([250.0, 30.0, 20.0])
         study.solve_change_state(new_temperature=temperature)
         distance = study.position_engine.point_distance(
-            span_index=0, point=np.array([250.0, 10.0, 20.0])
+            span_index=0, point=obstacle
         )
         ref_distance = distance.point_target[2] - distance.point_base[2]
+        assert abs(ref_distance - distance.distance_3d) > 1.0
 
         study.solve_adjustment()
 
         engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
         result = engine.estimate_temperature(
             span_index=0,
-            obstacle_point=np.array([250.0, 10.0, 20.0]),
+            obstacle_point=obstacle,
             target_distance=ref_distance,
             bounds=(0.0, 120.0),
             distance_type="vertical",
         )
         assert result.converged
         assert abs(result.value - temperature) < 0.1
+
+        # The 3D distance is a different objective: it does not match the vertical target
+        result_3d = engine.estimate_temperature(
+            span_index=0,
+            obstacle_point=obstacle,
+            target_distance=ref_distance,
+            bounds=(0.0, 120.0),
+            distance_type="distance_3d",
+        )
+        assert not (
+            result_3d.converged and abs(result_3d.value - temperature) < 0.1
+        )
 
     def test_estimate_wind(self, solved_study: SectionStudy):
         """Estimate wind pressure using a known reference."""
@@ -740,6 +755,42 @@ class TestEstimationScenarios:
             scenario_study.balance_engine.balance_model.nodes.dxdydz,
             memento_before.dxdydz,
         )
+
+
+class TestEstimateLoadRelativeWindSlope:
+    """Sloped spans (unequal attachment altitudes) with wind."""
+
+    position = 300.0
+    mass = 50.0
+    wind_pressure = 300.0
+
+    @pytest.mark.parametrize("span", [0, 1, 2, 3])
+    def test_retrieves_known_mass(
+        self, cable_array_AM600: CableArray, span: int
+    ):
+        study = build_study(cable_array_AM600, Scenario(span=span))
+
+        def load_altitude(mass: float) -> float:
+            reference = study.copy()
+            set_study_loads(reference, {span: (self.position, mass)})
+            reference.solve_change_state(wind_pressure=self.wind_pressure)
+            return reference.position_engine.get_loads_coords_group_points()[
+                span
+            ][2]
+
+        target = load_altitude(self.mass) - load_altitude(0.01)
+        assert target < 0
+
+        engine = EstimationEngine(study, method=BrentMethod(tol=0.1))
+        result = engine.estimate_load_relative(
+            span_index=span,
+            target_distance=target,
+            load_position_distance=self.position,
+            bounds=(0.0, 100.0),
+            wind_pressure=self.wind_pressure,
+        )
+        assert result.converged
+        assert abs(result.value - self.mass) < 1.0
 
 
 def rope_target(
