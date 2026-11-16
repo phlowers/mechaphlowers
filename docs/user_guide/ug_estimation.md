@@ -32,7 +32,7 @@ Each evaluation of $f$ runs a change of state in the balance engine. This is don
 | `estimate_temperature` | Cable temperature (°C)        | [-50, 200]       | Signed vertical distance (default)     |
 | `estimate_wind`        | Wind pressure (Pa)            | [-1000, 1000]    | 3D distance                            |
 | `estimate_load`        | Load mass (kg)                | [0, 2000]        | 3D distance                            |
-| `estimate_rope`        | Rope length (m)               | [0.1, 10]        | Signed vertical distance (default)     |
+| `estimate_rope`        | Rope length (m)               | [0.01, 10]       | Signed vertical distance (default)     |
 | `estimate_load_relative` | Load mass (kg)              | [0, 2000]        | Cable altitude change at the load abscissa |
 
 The `distance_type` argument of `estimate_temperature`, `estimate_wind`, `estimate_load` and `estimate_rope` selects the distance used as the target:
