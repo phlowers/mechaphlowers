@@ -229,6 +229,24 @@ class InputUnitsConfig:
 
 
 @dataclass
+class ParameterMeasureConfig:
+    """Static uncertainty settings of one parameter measure class."""
+
+    # Relative to the parameter (0.01 means 1% of the parameter).
+    threshold_value: float = 0.01
+    threshold_active: bool = False
+
+
+@dataclass
+class PapotoMeasureConfig(ParameterMeasureConfig):
+    """Static uncertainty and Monte Carlo settings of PAPOTO measures."""
+
+    draw_number: int = 1000
+    angle_error: float = 0.01
+    seed: int | None = None
+
+
+@dataclass
 class MeasureUncertaintyConfig:
     step_for_approx_derivative: float = 1e-6
     angle_uncertainty: float = convert_angle_to_rad(0.01)
@@ -236,10 +254,16 @@ class MeasureUncertaintyConfig:
     input_length_uncertainty: float = 0.1
     distance_uncertainty: float = 0.5
     max_accepted_uncertainty: float = 0.01
-    # Static uncertainty, relative to the parameter. When active, it replaces
-    # the uncertainty calculation (Monte Carlo or GUM) in parameter measures.
+    # Fallback static uncertainty, used when a parameter measure class has no
+    # class-specific settings. When active, it replaces the uncertainty
+    # calculation (Monte Carlo or GUM) in parameter measures.
     threshold_value: float = 0.01
     threshold_active: bool = False
+    # Class-specific static uncertainty settings.
+    papoto: PapotoMeasureConfig = field(default_factory=PapotoMeasureConfig)
+    tangential_sighting: ParameterMeasureConfig = field(
+        default_factory=ParameterMeasureConfig
+    )
 
 
 @dataclass

@@ -49,19 +49,35 @@ class ParameterMeasure(ABC):
 
     The uncertainty calculation can be replaced by a static threshold:
     when `threshold_active` is True, `uncertainty()` returns
-    `threshold_value * parameter`. Both properties default to the values of
-    `options.measure_uncertainty` and can be overridden per instance
+    `threshold_value * parameter`. Both properties default to the class settings
+    (e.g. `options.measure_uncertainty.papoto`) and can be overridden per instance
     (set to None to go back to the default).
     """
 
-    _threshold_value: float | None = None
-    _threshold_active: bool | None = None
+    _threshold_value_cls: float = cfg.measure_uncertainty.threshold_value
+    _threshold_active_cls: bool = cfg.measure_uncertainty.threshold_active
+
+    def __init__(
+        self,
+        threshold_value: float | None = None,
+        threshold_active: bool | None = None,
+    ) -> None:
+        self._threshold_value: float | None = (
+            threshold_value
+            if threshold_value is not None
+            else self._threshold_value_cls
+        )
+        self._threshold_active: bool | None = (
+            threshold_active
+            if threshold_active is not None
+            else self._threshold_active_cls
+        )
 
     @property
     def threshold_value(self) -> float:
         """Relative static uncertainty (0.01 means 1% of the parameter)."""
         if self._threshold_value is None:
-            return cfg.measure_uncertainty.threshold_value
+            return self._threshold_value_cls
         return self._threshold_value
 
     @threshold_value.setter
@@ -81,7 +97,7 @@ class ParameterMeasure(ABC):
     def threshold_active(self) -> bool:
         """If True, uncertainty() returns the static threshold instead of computing it."""
         if self._threshold_active is None:
-            return cfg.measure_uncertainty.threshold_active
+            return self._threshold_active_cls
         return self._threshold_active
 
     @threshold_active.setter
@@ -143,6 +159,21 @@ class PapotoParameterMeasure(ParameterMeasure):
     """Class to compute PAPOTO parameter measures."""
 
     validity_criteria = 0.005
+
+    def __init__(
+        self,
+        threshold_value: float | None = None,
+        threshold_active: bool | None = None,
+    ) -> None:
+        self._threshold_value_cls = (
+            cfg.measure_uncertainty.papoto.threshold_value
+        )
+        self._threshold_active_cls = (
+            cfg.measure_uncertainty.papoto.threshold_active
+        )
+        super().__init__(
+            threshold_value=threshold_value, threshold_active=threshold_active
+        )
 
     def measure_method(
         self,
@@ -284,27 +315,53 @@ class PapotoParameterMeasure(ParameterMeasure):
     def parameter(self) -> np.ndarray | Number:
         return self._parameter
 
-    def uncertainty(
-        self,
-        draw_number: int = 1000,
-        angle_error: float = 0.01,
-        seed: int = 42,
-    ) -> dict | np.ndarray | Number:
-        """Estimate uncertainty on the PAPOTO parameter using Monte Carlo method.
+    def uncertainty(self) -> np.ndarray | Number:
+        """Estimate uncertainty on the PAPOTO parameter.
 
-        If `threshold_active` is True, the Monte Carlo simulation is bypassed and
-        `threshold_value * parameter` is returned instead (scalar or array like
-        the parameter). Other arguments are then ignored.
-
-        Args:
-            draw_number (int): Number of Monte Carlo random draws. Defaults to 1000.
-            angle_error (float): Magnitude of angle measurement error (uniform in
-                [-angle_error, +angle_error]). Defaults to 0.01.
-            seed (int): Seed of the random number generator. Defaults to 42.
+        If `threshold_active` is True, `threshold_value * parameter` is returned
+        (scalar or array like the parameter). Otherwise, the uncertainty is estimated
+        with `monte_carlo_uncertainty()` using the `options.measure_uncertainty.papoto`
+        settings.
 
         Returns:
             dict | np.ndarray | Number: Dictionary with statistics over valid and non-valid draws,
                 or the static uncertainty if `threshold_active` is True.
+
+        Raises:
+            MeasurementDataNotAvailable: If measure_method() has not been called first.
+        """
+        if not hasattr(self, 'measures'):
+            raise MeasurementDataNotAvailable(
+                "measure_method() must be called before uncertainty()."
+            )
+
+        if self.threshold_active:
+            return self._threshold_uncertainty()
+
+        papoto_config = cfg.measure_uncertainty.papoto
+        uncertainty = self.monte_carlo_uncertainty(
+            draw_number=papoto_config.draw_number,
+            angle_error=papoto_config.angle_error,
+            seed=papoto_config.seed,
+        )
+        return uncertainty["std_parameter_valid_values"]
+
+    def monte_carlo_uncertainty(
+        self,
+        draw_number: int,
+        angle_error: float,
+        seed: int | None,
+    ) -> dict:
+        """Estimate uncertainty on the PAPOTO parameter using Monte Carlo method.
+
+        Args:
+            draw_number (int): Number of Monte Carlo random draws.
+            angle_error (float): Magnitude of angle measurement error (uniform in
+                [-angle_error, +angle_error]).
+            seed (int): Seed of the random number generator.
+
+        Returns:
+            dict: Dictionary with statistics over valid and non-valid draws.
 
         Raises:
             MeasurementDataNotAvailable: If measure_method() has not been called first.
@@ -314,11 +371,8 @@ class PapotoParameterMeasure(ParameterMeasure):
 
         if not hasattr(self, 'measures'):
             raise MeasurementDataNotAvailable(
-                "measure_method() must be called before uncertainty()."
+                "measure_method() must be called before monte_carlo_uncertainty()."
             )
-
-        if self.threshold_active:
-            return self._threshold_uncertainty()
 
         self._validate_inputs_uncertainty(draw_number, angle_error)
 
@@ -326,6 +380,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         _angle_error: float = float(angle_error)  # type: ignore[arg-type]
 
         # ===== Monte Carlo simulation =====
+
 
         rng = np.random.default_rng(seed)
         angle_keys = self._base_measures.keys()
@@ -419,6 +474,21 @@ class PapotoParameterMeasure(ParameterMeasure):
 
 class TangentialSightingParameterMeasure(ParameterMeasure):
     """Class to compute a parameter using the tangential sighting method."""
+
+    def __init__(
+        self,
+        threshold_value: float | None = None,
+        threshold_active: bool | None = None,
+    ) -> None:
+        self._threshold_value_cls = (
+            cfg.measure_uncertainty.tangential_sighting.threshold_value
+        )
+        self._threshold_active_cls = (
+            cfg.measure_uncertainty.tangential_sighting.threshold_active
+        )
+        super().__init__(
+            threshold_value=threshold_value, threshold_active=threshold_active
+        )
 
     @overload
     def measure_method(

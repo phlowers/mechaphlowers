@@ -206,7 +206,9 @@ def test_uncertainty_returns_expected_keys():
     """uncertainty() must return a dict with all expected keys."""
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
-    result = papoto.uncertainty(draw_number=100)
+    result = papoto.monte_carlo_uncertainty(
+        draw_number=100, angle_error=0.01, seed=42
+    )
     assert isinstance(result, dict)
     assert set(result.keys()) == EXPECTED_UNCERTAINTY_KEYS
 
@@ -215,8 +217,28 @@ def test_uncertainty_number_non_valid_is_int():
     """number_non_valid_values must be an integer."""
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
-    result = papoto.uncertainty(draw_number=100)
+    result = papoto.monte_carlo_uncertainty(
+        draw_number=100, angle_error=0.01, seed=42
+    )
     assert isinstance(result['number_non_valid_values'], int)
+
+
+def test_uncertainty_uses_papoto_config_for_monte_carlo(monkeypatch):
+    """uncertainty() must run the Monte Carlo with the papoto config values."""
+    monkeypatch.setattr(options.measure_uncertainty.papoto, "draw_number", 50)
+    monkeypatch.setattr(
+        options.measure_uncertainty.papoto, "angle_error", 0.02
+    )
+    monkeypatch.setattr(options.measure_uncertainty.papoto, "seed", 7)
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+
+    result = papoto.uncertainty()
+
+    expected = papoto.monte_carlo_uncertainty(
+        draw_number=50, angle_error=0.02, seed=7
+    )
+    assert result == expected
 
 
 def test_uncertainty_valid_values_consistent():
@@ -224,7 +246,9 @@ def test_uncertainty_valid_values_consistent():
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
 
-    result = papoto.uncertainty(draw_number=500, angle_error=0.01, seed=42)
+    result = papoto.monte_carlo_uncertainty(
+        draw_number=500, angle_error=0.01, seed=42
+    )
 
     assert (
         result['min_parameter_valid_values']
@@ -242,7 +266,9 @@ def test_uncertainty_parameter_by_span_length():
     """parameter_by_span_length must equal mean_valid / a."""
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
-    result = papoto.uncertainty(draw_number=200, seed=42)
+    result = papoto.monte_carlo_uncertainty(
+        draw_number=200, angle_error=0.01, seed=42
+    )
     expected = result['mean_parameter_valid_values'] / PAPOTO_INPUTS['a']
     np.testing.assert_allclose(result['parameter_by_span_length'], expected)
 
@@ -253,7 +279,9 @@ def test_uncertainty_non_valid_nan_when_all_valid():
     papoto(**PAPOTO_INPUTS)
 
     # Use angle_error=0 so all draws are identical and valid
-    result = papoto.uncertainty(draw_number=200, angle_error=0)
+    result = papoto.monte_carlo_uncertainty(
+        draw_number=200, angle_error=0, seed=42
+    )
 
     assert result['number_non_valid_values'] == 0
     assert np.isnan(result['mean_non_valid_values'])
@@ -266,7 +294,9 @@ def test_uncertainty_invalid_draw_number(bad_draw_number):
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
     with pytest.raises(ValueError, match="draw_number"):
-        papoto.uncertainty(draw_number=bad_draw_number)
+        papoto.monte_carlo_uncertainty(
+            draw_number=bad_draw_number, angle_error=0.01, seed=42
+        )
 
 
 @pytest.mark.parametrize(
@@ -277,7 +307,9 @@ def test_uncertainty_invalid_angle_error(bad_angle_error):
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
     with pytest.raises(ValueError, match="angle_error"):
-        papoto.uncertainty(angle_error=bad_angle_error)
+        papoto.monte_carlo_uncertainty(
+            draw_number=100, angle_error=bad_angle_error, seed=42
+        )
 
 
 def test_threshold_defaults_and_instance_override(monkeypatch):
@@ -285,9 +317,14 @@ def test_threshold_defaults_and_instance_override(monkeypatch):
     assert papoto.threshold_value == 0.01
     assert papoto.threshold_active is False
 
-    # Instance override wins over config; None goes back to the config
-    monkeypatch.setattr(options.measure_uncertainty, "threshold_value", 0.02)
-    monkeypatch.setattr(options.measure_uncertainty, "threshold_active", True)
+    # Instance override wins over config; None goes back to the class config
+    monkeypatch.setattr(
+        options.measure_uncertainty.papoto, "threshold_value", 0.02
+    )
+    monkeypatch.setattr(
+        options.measure_uncertainty.papoto, "threshold_active", True
+    )
+    papoto = PapotoParameterMeasure()
     assert papoto.threshold_value == 0.02
     assert papoto.threshold_active is True
     papoto.threshold_value = 0.05
@@ -298,6 +335,23 @@ def test_threshold_defaults_and_instance_override(monkeypatch):
     papoto.threshold_active = None
     assert papoto.threshold_value == 0.02
     assert papoto.threshold_active is True
+
+
+def test_threshold_config_is_specific_per_class(monkeypatch):
+    monkeypatch.setattr(
+        options.measure_uncertainty.papoto, "threshold_value", 0.03
+    )
+    monkeypatch.setattr(
+        options.measure_uncertainty.tangential_sighting,
+        "threshold_active",
+        True,
+    )
+    papoto = PapotoParameterMeasure()
+    tangential_sighting = TangentialSightingParameterMeasure()
+    assert papoto.threshold_value == 0.03
+    assert papoto.threshold_active is False
+    assert tangential_sighting.threshold_value == 0.01
+    assert tangential_sighting.threshold_active is True
 
 
 @pytest.mark.parametrize("bad_value", [-0.1, "0.01", True, [0.01], np.nan])
@@ -319,8 +373,8 @@ def test_papoto_uncertainty_threshold_bypasses_monte_carlo():
     papoto.threshold_active = True
     papoto.threshold_value = 0.02
 
-    # Monte Carlo arguments are not validated when the threshold is active
-    result = papoto.uncertainty(draw_number=-1)
+    # Monte Carlo arguments come from the config and are not used when the threshold is active
+    result = papoto.uncertainty()
 
     np.testing.assert_allclose(result, 0.02 * parameter)
     assert papoto.parameter is parameter

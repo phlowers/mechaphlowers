@@ -182,7 +182,7 @@ def test_uncertainty_integration():
     np.testing.assert_allclose(papoto.parameter[0], 1957.1, atol=1e-1)
     np.testing.assert_allclose(papoto.validity[0], 0.004, atol=1e-3)
 
-    result = papoto.uncertainty(draw_number=1000, angle_error=0.01, seed=42)
+    result = papoto.uncertainty()
 
     assert isinstance(result, dict)
 
