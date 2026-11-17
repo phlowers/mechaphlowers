@@ -21,13 +21,13 @@ class Masks:
     ) -> None:
         self.nodes_type = nodes_type
         self.insulator_length = insulator_length
-        # Python lists are used because string are involved in self.nodes_type, but using numpy could work
-        self.is_suspension = [x == "suspension" for x in self.nodes_type]
-        self.is_anchor_first = [x == "anchor_first" for x in self.nodes_type]
-        self.is_anchor_last = [x == "anchor_last" for x in self.nodes_type]
-        self.is_anchor = [
-            x == "anchor_first" or x == "anchor_last" for x in self.nodes_type
-        ]
+        # Boolean numpy arrays: indexing with Python lists of bool converts
+        # the list on every access, which is costly in the solver loop.
+        nodes_type_array = np.asarray(self.nodes_type)
+        self.is_suspension = nodes_type_array == "suspension"
+        self.is_anchor_first = nodes_type_array == "anchor_first"
+        self.is_anchor_last = nodes_type_array == "anchor_last"
+        self.is_anchor = self.is_anchor_first | self.is_anchor_last
 
     def compute_dx_dy_dz(
         self, dx: np.ndarray, dy: np.ndarray, dz: np.ndarray
