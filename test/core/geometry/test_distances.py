@@ -8,10 +8,14 @@ import numpy as np
 import pytest
 
 from mechaphlowers.core.geometry.distances import (
+    DistanceEngine,
     DistanceResult,
+    _build_segments_samples,
+    batch_plane_distances,
     get_projection_points,
     points_distance_inside_plane,
 )
+from mechaphlowers.core.geometry.planes import plane_basis, plane_from_line
 
 
 def test_points_distance_inside_plane_returns_distance_and_projections():
@@ -108,3 +112,166 @@ def test_distance_result_reverse_y_axis():
     np.testing.assert_allclose(
         distance_result.v_plane, np.array([0.0000, 0.1000, 1.0000])
     )
+
+
+def test_plane_distances_matches_scalar_plane_distance():
+    engine = DistanceEngine()
+    engine.add_span_frame(
+        np.array([0.0, 0.0, 0.0]), np.array([100.0, 0.0, 0.0])
+    )
+    x = np.linspace(0, 100, 30)
+    curve = np.column_stack([x, np.zeros_like(x), 50 - 0.002 * (x - 50) ** 2])
+    engine.add_curves(curve)
+    points = np.array(
+        [
+            [30.0, 2.0, 10.0],
+            [60.0, -3.0, 20.0],
+            [80.0, 1.0, 5.0],
+            [10.0, 0.5, 30.0],
+            [150.0, 0.0, 0.0],
+        ]
+    )
+
+    distances, targets = engine.plane_distances(points)
+
+    assert distances.shape == (5,)
+    assert targets.shape == (5, 3)
+    for i in range(4):
+        expected = engine.plane_distance(points[i], frame="section")
+        np.testing.assert_allclose(distances[i], expected.distance_3d)
+        np.testing.assert_allclose(targets[i], expected.point_target)
+    assert np.isinf(distances[4])
+    assert np.all(np.isnan(targets[4]))
+
+
+def test_plane_distances_accepts_single_point_and_keeps_state():
+    engine = DistanceEngine()
+    engine.add_span_frame(
+        np.array([0.0, 0.0, 0.0]), np.array([100.0, 0.0, 0.0])
+    )
+    engine.add_curves(
+        np.column_stack(
+            [np.linspace(0, 100, 10), np.zeros(10), np.linspace(20, 10, 10)]
+        )
+    )
+    engine.plane_distance(np.array([40.0, 0.0, 5.0]), frame="section")
+    point_base_before = engine.point_base.copy()
+
+    distances, targets = engine.plane_distances(np.array([40.0, 1.0, 5.0]))
+
+    assert distances.shape == (1,)
+    assert targets.shape == (1, 3)
+    np.testing.assert_array_equal(engine.point_base, point_base_before)
+
+
+def _two_spans_curves_and_normals():
+    x = np.linspace(0.0, 100.0, 11)
+    curve_0 = np.column_stack([x, 0.2 * x, -0.01 * x * (100.0 - x)])
+    curve_1 = np.column_stack(
+        [x, -0.5 * x + 10.0, -0.02 * x * (100.0 - x) + 3]
+    )
+    curves = np.stack([curve_0, curve_1])
+    normals = np.array([[0.0, 1.0, 0.0], [0.6, 0.8, 0.0]])
+    return curves, normals
+
+
+def test_batch_plane_distances_matches_plane_distance_per_point():
+    curves, normals = _two_spans_curves_and_normals()
+    points = np.array(
+        [
+            [30.0, 5.0, -10.0],
+            [40.0, -8.0, -6.0],
+            [20.0, -2.0, -3.0],
+            [40.0, 12.0, -8.0],
+            1000.0 * normals[1],  # no intersection
+        ]
+    )
+    span_indices = np.array([0, 1, 1, 0, 1])
+
+    distances, targets = batch_plane_distances(
+        points, span_indices, curves, normals
+    )
+
+    for i, (point, span) in enumerate(zip(points, span_indices)):
+        engine = DistanceEngine()
+        engine.add_span_frame(np.array([0.0, 0.0, 0.0]), normals[span] * 100.0)
+        engine.add_curves(curves[span])
+        if i == 4:
+            assert np.isinf(distances[i])
+            assert np.all(np.isnan(targets[i]))
+            continue
+        expected = engine.plane_distance(point, frame="section")
+        np.testing.assert_allclose(
+            distances[i], expected.distance_3d, atol=1e-9
+        )
+        np.testing.assert_allclose(
+            targets[i], expected.point_target, atol=1e-9
+        )
+
+
+def test_plane_basis_matches_plane_from_line():
+    normals = np.array(
+        [
+            [0.0, 1.0, 0.0],
+            [0.6, 0.8, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],  # vertical
+        ]
+    )
+    u, v = plane_basis(normals)
+
+    assert u.shape == (4, 3)
+    assert v.shape == (4, 3)
+    for i, normal in enumerate(normals):
+        u_expected, v_expected, _ = plane_from_line(np.zeros(3), normal)
+        np.testing.assert_allclose(u[i], u_expected, atol=1e-12)
+        np.testing.assert_allclose(v[i], v_expected, atol=1e-12)
+
+
+class TestBuildSegmentsSamples:
+    def test_builds_polyline_segments_and_single_point_samples(self):
+        coords_dict = {
+            "point": np.array([[10, 0, 0]], dtype=float),
+            "line": np.array(
+                [[0, 0, 0], [2.5, 0, 0], [2.5, 4, 0]], dtype=float
+            ),
+        }
+
+        result = _build_segments_samples(
+            coords_dict=coords_dict,
+            spans_dict={"line": 3, "point": 5},
+            step=1.5,
+        )
+
+        assert result.spans == [5, 3]
+        np.testing.assert_array_equal(
+            result.seg_start,
+            [[10, 0, 0], [0, 0, 0], [2.5, 0, 0]],
+        )
+        np.testing.assert_array_equal(
+            result.seg_vec, [[0, 0, 0], [2.5, 0, 0], [0, 4, 0]]
+        )
+        np.testing.assert_array_equal(result.seg_loc, [0, 0, 1])
+        np.testing.assert_array_equal(result.seg_sub, [1, 2, 3])
+        np.testing.assert_array_equal(result.seg_span, [5, 3, 3])
+        np.testing.assert_allclose(result.seg_len, [0, 2.5, 4])
+        np.testing.assert_array_equal(result.sample_seg, [0, 1, 1, 2, 2, 2, 2])
+        np.testing.assert_allclose(
+            result.sample_t, [0, 0, 0.5, 0, 1 / 3, 2 / 3, 1]
+        )
+        np.testing.assert_array_equal(result.sample_obs, [0, 1, 1, 1, 1, 1, 1])
+
+
+class TestMinDistances:
+    def test_empty_and_invalid_sampling(self):
+        curves = np.zeros((1, 3, 3))
+        normals = np.array([[1.0, 0.0, 0.0]])
+        engine = DistanceEngine()
+        assert (
+            engine.min_distances({}, {}, curves, normals, 1.0, True, 1e-3)
+            == {}
+        )
+        with pytest.raises(ValueError):
+            engine.min_distances({}, {}, curves, normals, 0.0, True, 1e-3)
+        with pytest.raises(ValueError):
+            engine.min_distances({}, {}, curves, normals, 1.0, True, -1.0)

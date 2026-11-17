@@ -1297,6 +1297,21 @@ class TestSectionStudyCopy:
         point = np.array([x, 10.0, 20.0])
         return study.position_engine.point_distance(0, point).distance_3d
 
+    def test_obstacle_min_distance_delegates(self, study: SectionStudy):
+        study.position_engine.add_obstacle(
+            name="road",
+            span_index=0,
+            coords=np.array([[100, -30, 0], [400, 30, 0]]),
+        )
+        result = study.obstacle_min_distance("road")
+        all_results = study.get_segment_distances_from_obstacles()
+
+        road_result = all_results["road"]
+        assert result is not None
+        assert road_result is not None
+        assert set(all_results.keys()) == {"road"}
+        np.testing.assert_allclose(road_result.distance_3d, result.distance_3d)
+
     def test_copy_independence(self, study: SectionStudy):
         memento = study.intermediate_memento
         dxdydz = study.balance_engine.balance_model.nodes.dxdydz.copy()

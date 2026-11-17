@@ -133,6 +133,26 @@ def test_intersection_curve_plane_fine_tuning_intersection():
     np.testing.assert_allclose(intersections[0], np.array([0.0, 0.0, 0.0]))
 
 
+def test_intersection_curve_plane_fine_tuning_plane_through_curve_point():
+    spans1 = np.array(
+        [
+            [-2.0, 0.0, 0.0],
+            [-1.0, 0.0, 1.0],
+            [0.0, 0.0, 2.0],
+            [2.0, 0.0, 0.0],
+        ]
+    )
+    plane_normal = np.array([1.0, 0.0, 0.0])
+    point_on_plane = np.array([-1.0, 5.0, 5.0])
+
+    intersections = intersection_curve_plane(
+        plane_normal, point_on_plane, spans1, fine_tuning=True
+    )
+
+    assert intersections.shape == (1, 3)
+    np.testing.assert_allclose(intersections[0], np.array([-1.0, 0.0, 1.0]))
+
+
 def test_intersection_curve_plane_fine_tuning_same_side_raises():
     spans1 = np.array(
         [
