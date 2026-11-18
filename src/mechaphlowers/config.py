@@ -243,7 +243,7 @@ class PapotoMeasureConfig(ParameterMeasureConfig):
 
     draw_number: int = 1000
     angle_error: float = 0.01
-    seed: int | None = None
+    seed: int | None = 42
 
 
 @dataclass

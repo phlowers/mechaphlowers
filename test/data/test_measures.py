@@ -238,7 +238,7 @@ def test_uncertainty_uses_papoto_config_for_monte_carlo(monkeypatch):
     expected = papoto.monte_carlo_uncertainty(
         draw_number=50, angle_error=0.02, seed=7
     )
-    assert result == expected
+    assert result == expected["std_parameter_valid_values"]
 
 
 def test_uncertainty_valid_values_consistent():

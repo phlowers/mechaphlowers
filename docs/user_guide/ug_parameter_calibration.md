@@ -94,9 +94,13 @@ papoto(
 )
 
 # Then estimate the uncertainty with the Monte Carlo method.
+# uncertainty() returns the standard deviation of the valid draws.
 # Draws, angle error and seed come from options.measure_uncertainty.papoto
 # (defaults: 1000 draws, angle error of ±0.01 grad, seed 42)
-result = papoto.uncertainty()
+std = papoto.uncertainty()
+
+# Full statistics are returned by monte_carlo_uncertainty()
+result = papoto.monte_carlo_uncertainty(draw_number=1000, angle_error=0.01, seed=42)
 
 print(result["mean_parameter_valid_values"])   # mean parameter over valid draws
 print(result["std_parameter_valid_values"])    # standard deviation

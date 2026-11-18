@@ -381,7 +381,6 @@ class PapotoParameterMeasure(ParameterMeasure):
 
         # ===== Monte Carlo simulation =====
 
-
         rng = np.random.default_rng(seed)
         angle_keys = self._base_measures.keys()
 
