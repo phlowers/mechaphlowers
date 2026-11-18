@@ -12,12 +12,12 @@ from mechaphlowers.entities.errors import SuspectedChainReversal
 
 class Masks:
     """
-    Current types: "suspension", "anchor_first", "anchor_last"
+    Current types for nodes_type: "suspension", "anchor_first", "anchor_last"
     """
 
     # TODO: write docstring
     def __init__(
-        self, nodes_type: list[str], insulator_length: np.ndarray
+        self, nodes_type: list[str], insulator_length: np.ndarray, v_chain: np.ndarray
     ) -> None:
         self.nodes_type = nodes_type
         self.insulator_length = insulator_length
@@ -28,6 +28,7 @@ class Masks:
         self.is_anchor_first = nodes_type_array == "anchor_first"
         self.is_anchor_last = nodes_type_array == "anchor_last"
         self.is_anchor = self.is_anchor_first | self.is_anchor_last
+        self.v_chain = v_chain
 
     def compute_dx_dy_dz(
         self, dx: np.ndarray, dy: np.ndarray, dz: np.ndarray

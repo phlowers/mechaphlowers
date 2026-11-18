@@ -262,6 +262,7 @@ def test_section_array__data(
             "sagging_parameter": [2_000.0, 2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15.0, 15.0, 15.0, np.nan],
             "insulator_weight": [9810.0, 4905.0, 4905.0, 9810.0],
+            "v_chain": [False, False, False, False],
             "ground_altitude": [-27.8, -25, -30.12, -30],
             "elevation_difference": [2.8, -5.12, 0.12, np.nan],
             "bundle_number": [1] * 4,
@@ -1244,3 +1245,29 @@ def test_data__with_partial_ground_altitude__with_partial_support_height(
 
     assert_allclose(ground_altitude_2_cables, expected_ground_altitude_bundle2)
     assert_allclose(ground_altitude_3_cables, expected_ground_altitude_bundle3)
+
+def test_section_array_v_chain() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["1", "2", "3", "4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [3, 4, 5, -6],
+                "line_angle": [10, 15, -20, 25],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [500, 300, 400, np.nan],
+                "insulator_mass": [100, 50, 50, 100],
+                "load_mass": [0, 0, 0, 0],
+                "load_position": [0, 0, 0, 0],
+                "v_chain": [False, False, True, False],
+            }
+        ),
+        sagging_parameter=2000,
+        sagging_temperature=15,
+    )
+    expected_v_chain = np.array([False, False, True, False])
+    np.testing.assert_allclose(
+        section_array.data.v_chain, expected_v_chain
+    )
+

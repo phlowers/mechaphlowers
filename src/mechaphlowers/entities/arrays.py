@@ -386,6 +386,7 @@ class SectionArray(ElementArray):
         }
         self.create_column_weight(data_output, mass_weight_conversion)
         self._correct_inconsistent_ground_altitude(data_output)
+        self._fill_v_chain(data_output)
         self._fill_missing_ground_altitude(data_output)
         self._fill_support_height_with_default(data_output)
         self.correct_insulator_length(data_output)
@@ -470,6 +471,12 @@ class SectionArray(ElementArray):
         )
         warnings.warn(warning_string, category=DataWarning)
         logger.warning(warning_string)
+
+    def _fill_v_chain(self, data: pd.DataFrame) -> None:
+        if "v_chain" not in data.columns:
+            array_size = len(data)
+            data["v_chain"] = np.full(shape=array_size, fill_value=False)
+        
 
     def _fill_missing_ground_altitude(self, data: pd.DataFrame) -> None:
         if "ground_altitude" in data.columns and not (

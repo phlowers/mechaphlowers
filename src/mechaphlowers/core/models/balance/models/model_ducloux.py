@@ -526,7 +526,10 @@ class BalanceModel(IBalanceModel):
 
     @state_vector.setter
     def state_vector(self, value: np.ndarray) -> None:
+        # dy = value[1::2]
+        # dy[self.nodes.masks.v_chain] = 0
         self.nodes.state_vector = value
+        
 
     @property
     def jacobian_half_bandwidth(self) -> int:
@@ -774,6 +777,7 @@ class Nodes:
         load_weight: np.ndarray,
         load_position: np.ndarray,
         counterweight: np.ndarray,
+        v_chain: np.ndarray,
         bundle_number: int,  # np.ndarray?
     ):
         # TODO: docstring of this whole class
@@ -786,7 +790,7 @@ class Nodes:
             else "suspension"
             for i in range(len(insulator_weight))
         ]
-        self.masks = Masks(nodes_type, insulator_length)
+        self.masks = Masks(nodes_type, insulator_length, v_chain)
         self.init_coordinates(initial_attach_alt, insulator_length)
 
         self.insulator_length = insulator_length
@@ -977,6 +981,8 @@ class Nodes:
 
         # add counterweight here (full length chain)
 
+        # v_chain_effort = np.where(self.masks.v_chain, 1_000_000_000, 0)
+
         # Weight of the chain. Applied on center of gravity of the chain
         force_chain_weight = np.vstack(
             (F_zeros, F_zeros, self.signed_insulator_weight)
@@ -1041,6 +1047,7 @@ def nodes_builder(section_array: SectionArray, span_loads: SpanLoads) -> Nodes:
         else np.zeros(insulator_length.shape)
     )
 
+    v_chain = section_array.data.v_chain.to_numpy()
     bundle_number = section_array.bundle_number
 
     return Nodes(
@@ -1053,6 +1060,7 @@ def nodes_builder(section_array: SectionArray, span_loads: SpanLoads) -> Nodes:
         load_weight,
         load_position,
         counterweight,
+        v_chain,
         bundle_number,
     )
 
