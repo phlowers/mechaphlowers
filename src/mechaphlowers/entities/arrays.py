@@ -150,43 +150,9 @@ class SectionArray(ElementArray):
     ) -> None:
         super().__init__(data)  # type: ignore[arg-type]
 
-        if (
-            sagging_parameter is not None
-            and "sagging_parameter" in data.columns
-        ):
-            raise ValueError(
-                "sagging_parameter provided both as argument and in data columns."
-                " Please provide it only once."
-            )
-        elif (
-            sagging_parameter is None
-            and "sagging_parameter" not in data.columns
-        ):
-            warnings.warn(
-                "sagging_parameter not provided. A default value will be computed.",
-                DefaultValueWarning,
-            )
-            sagging_parameter = self.default_sagging_parameter()
-        if sagging_parameter is not None:
-            self.set_sagging_parameter(sagging_parameter)
+        self._check_and_set_sagging_parameter(data, sagging_parameter)
 
-        if (
-            sagging_temperature is not None
-            and "sagging_temperature" in data.columns
-        ):
-            raise ValueError(
-                "sagging_temperature provided both as argument and in data columns."
-                " Please provide it only once."
-            )
-        elif (
-            sagging_temperature is None
-            and "sagging_temperature" not in data.columns
-        ):
-            self.set_sagging_temperature(
-                options.data.sagging_temperature_default
-            )
-        elif sagging_temperature is not None:
-            self.set_sagging_temperature(sagging_temperature)
+        self._check_and_set_sagging_temperature(data, sagging_temperature)
         if bundle_number < 1:
             raise ValueError(
                 f"bundle_number should be a positive integer. Received: {bundle_number}"
@@ -364,6 +330,46 @@ class SectionArray(ElementArray):
             )  # last value should be nan since it doesn't correspond to a span
         self._data["sagging_temperature"] = value
         SectionArrayInput.validate(self._data)
+
+    def _check_and_set_sagging_parameter(self, data, sagging_parameter):
+        if (
+            sagging_parameter is not None
+            and "sagging_parameter" in data.columns
+        ):
+            raise ValueError(
+                "sagging_parameter provided both as argument and in data columns."
+                " Please provide it only once."
+            )
+        elif (
+            sagging_parameter is None
+            and "sagging_parameter" not in data.columns
+        ):
+            warnings.warn(
+                "sagging_parameter not provided. A default value will be computed.",
+                DefaultValueWarning,
+            )
+            sagging_parameter = self.default_sagging_parameter()
+        if sagging_parameter is not None:
+            self.set_sagging_parameter(sagging_parameter)
+
+    def _check_and_set_sagging_temperature(self, data, sagging_temperature):
+        if (
+            sagging_temperature is not None
+            and "sagging_temperature" in data.columns
+        ):
+            raise ValueError(
+                "sagging_temperature provided both as argument and in data columns."
+                " Please provide it only once."
+            )
+        elif (
+            sagging_temperature is None
+            and "sagging_temperature" not in data.columns
+        ):
+            self.set_sagging_temperature(
+                options.data.sagging_temperature_default
+            )
+        elif sagging_temperature is not None:
+            self.set_sagging_temperature(sagging_temperature)
 
     @staticmethod
     def _fill_support_height_with_default(data) -> None:

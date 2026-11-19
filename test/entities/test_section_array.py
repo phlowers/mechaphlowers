@@ -363,7 +363,7 @@ def test_section_array__wrong_ground_altitude__no_support_height() -> None:
             "sagging_parameter": [2_000.0, 2_000.0, np.nan],
             "sagging_temperature": [15.0, 15.0, np.nan],
             "insulator_weight": [490.5, 490.5, 490.5],
-            "v_chain": [False, False, False, False],
+            "v_chain": [False, False, False],
             "elevation_difference": [5.0, 0.0, np.nan],
             "bundle_number": [1, 1, 1],
             "support_height": [30.0, 30.0, 30.0],
