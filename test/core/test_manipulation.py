@@ -1043,6 +1043,46 @@ def test_reset_virtual_support_restores_data_shape(
     assert len(applied.data) == 4
 
 
+def test_virtual_support_v_chain() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["support 1", "2", "three", "support 4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 10, 20, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [100, 100, 100, np.nan],
+                "insulator_mass": [100.0, 50.0, 50.0, 100.0],
+                "v_chain": [False, True, False, False],
+            }
+        ),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "deg"})
+    manip = Manipulation(section_array)
+    manip.set_virtual_support(
+        {
+            1: {
+                "x": 50.0,
+                "y": 50.0,
+                "z": 0.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 50.0,
+                "hanging_cable_point_from_left_support": 50.0,
+            }
+        }
+    )
+    new_section_array = manip.from_section_array(section_array)
+
+    np.testing.assert_allclose(
+        new_section_array.data["v_chain"].to_numpy(),
+        np.array([False, True, False, False, False]),
+    )
+
+
 # ── apply preserves original ──────────────────────────────────────────────
 
 
