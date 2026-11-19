@@ -981,7 +981,7 @@ class Nodes:
 
         # add counterweight here (full length chain)
 
-        # v_chain_effort = np.where(self.masks.v_chain, 1_000_000_000, 0)
+        v_chain_effort = np.where(self.masks.v_chain, -1_000_000_000, 0)
 
         # Weight of the chain. Applied on center of gravity of the chain
         force_chain_weight = np.vstack(
@@ -992,7 +992,7 @@ class Nodes:
 
         M = M_cable + M_chain_weight
 
-        Mx = M[:, 0]
+        Mx = M[:, 0] + v_chain_effort * self.dy
         My = M[:, 1]
         Mz = M[:, 2]
         self.Mx = Mx

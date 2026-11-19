@@ -1261,37 +1261,32 @@ def test_wind_v_chain(cable_array_AM600: CableArray):
     balance_engine.solve_adjustment()
 
     balance_engine.solve_change_state(wind_pressure=np.array([200] * 4))
-    # expected_dx = np.array(
-    #     [
-    #         2.95577748400265,
-    #         -0.162868268485096,
-    #         0.184747934417769,
-    #         -2.93962231535185,
-    #     ]
-    # )
-    # expected_dy = np.array(
-    #     [
-    #         0.43919754975307,
-    #         2.41449548641855,
-    #         2.67750769405881,
-    #         0.4896647687387,
-    #     ]
-    # )
-    # expected_dz = np.array(
-    #     [
-    #         -0.265490070160588,
-    #         -1.77304412612465,
-    #         -1.34045542595949,
-    #         -0.344744916338915,
-    #     ]
-    # )
+    expected_dx = np.array(
+        [
+            2.95577748400265,
+            -0.162868268485096,
+            0.184747934417769,
+            -2.93962231535185,
+        ]
+    )
+    expected_dy = np.array(
+        [
+            0.43919754975307,
+            2.41449548641855,
+            2.67750769405881,
+            0.4896647687387,
+        ]
+    )
+    expected_dz = np.array(
+        [
+            -0.265490070160588,
+            -1.77304412612465,
+            -1.34045542595949,
+            -0.344744916338915,
+        ]
+    )
 
-    # np.testing.assert_allclose(
-    #     balance_engine.balance_model.nodes.dx, expected_dx, atol=1e-4
-    # )
-    # np.testing.assert_allclose(
-    #     balance_engine.balance_model.nodes.dy, expected_dy, atol=1e-4
-    # )
-    # np.testing.assert_allclose(
-    #     balance_engine.balance_model.nodes.dz, expected_dz, atol=1e-4
-    # )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dy[1:3], [0,0], atol=1e-4
+    )
+
