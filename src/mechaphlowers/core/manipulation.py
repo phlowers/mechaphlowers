@@ -943,32 +943,33 @@ class Manipulation:
             virtual_row: dict[str, object] = {
                 col: np.nan for col in raw_data.columns
             }
-            virtual_row.update(
-                {
-                    "name": f"virtual_{span_idx}",
-                    "suspension": True,
-                    "conductor_attachment_altitude": self._to_input(
-                        float(virtual_support["z"]),
-                        "conductor_attachment_altitude",
-                        input_units,
-                    ),
-                    "crossarm_length": self._to_input(
-                        0.0, "crossarm_length", input_units
-                    ),
-                    "line_angle": new_angle_1,
-                    "insulator_length": self._to_input(
-                        max(float(virtual_support["insulator_length"]), 0.01),
-                        "insulator_length",
-                        input_units,
-                    ),
-                    "span_length": new_span_length_1,
-                    "insulator_mass": self._to_input(
-                        float(virtual_support["insulator_mass"]),
-                        "insulator_mass",
-                        input_units,
-                    ),
-                }
-            )
+            new_row = {
+                "name": f"virtual_{span_idx}",
+                "suspension": True,
+                "conductor_attachment_altitude": self._to_input(
+                    float(virtual_support["z"]),
+                    "conductor_attachment_altitude",
+                    input_units,
+                ),
+                "crossarm_length": self._to_input(
+                    0.0, "crossarm_length", input_units
+                ),
+                "line_angle": new_angle_1,
+                "insulator_length": self._to_input(
+                    max(float(virtual_support["insulator_length"]), 0.01),
+                    "insulator_length",
+                    input_units,
+                ),
+                "span_length": new_span_length_1,
+                "insulator_mass": self._to_input(
+                    float(virtual_support["insulator_mass"]),
+                    "insulator_mass",
+                    input_units,
+                ),
+            }
+            if "v_chain" in raw_data:
+                new_row["v_chain"] = False
+            virtual_row.update(new_row)
             raw_data.loc[effective_idx + 1, "line_angle"] = new_angle_2
 
             for optional_col, fill in (

@@ -13,6 +13,7 @@ from typing import Type
 
 import numpy as np
 import pandas as pd
+from numpy import typing as npt
 
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.interfaces import (
@@ -774,7 +775,7 @@ class Nodes:
         load_weight: np.ndarray,
         load_position: np.ndarray,
         counterweight: np.ndarray,
-        v_chain: np.ndarray,
+        v_chain: npt.NDArray[np.bool],
         bundle_number: int,  # np.ndarray?
     ):
         # TODO: docstring of this whole class
@@ -968,6 +969,7 @@ class Nodes:
         # Force of the cable. Applied at attachement point between cable and chain.
         Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
         force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
+        # add counterweight here (full length chain)
         force_counterweight = np.vstack(
             (F_zeros, F_zeros, self.signed_counterweight)
         ).T
@@ -976,8 +978,7 @@ class Nodes:
         lever_cable = np.array([self.dx, self.dy, self.dz]).T
         M_cable = np.cross(lever_cable, force_cable + force_counterweight)
 
-        # add counterweight here (full length chain)
-
+        # if v chain: add vertical effort only to Mx
         v_chain_effort = np.where(self.masks.v_chain, 1_000_000_000, 0)
 
         # Weight of the chain. Applied on center of gravity of the chain
@@ -1044,7 +1045,7 @@ def nodes_builder(section_array: SectionArray, span_loads: SpanLoads) -> Nodes:
         else np.zeros(insulator_length.shape)
     )
 
-    v_chain = section_array.data.v_chain.to_numpy()
+    v_chain = np.asarray(section_array.data.v_chain.to_numpy(), dtype=bool)
     bundle_number = section_array.bundle_number
 
     return Nodes(

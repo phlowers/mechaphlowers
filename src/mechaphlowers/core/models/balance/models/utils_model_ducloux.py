@@ -6,6 +6,7 @@
 
 
 import numpy as np
+from numpy import typing as npt
 
 from mechaphlowers.entities.errors import SuspectedChainReversal
 
@@ -20,7 +21,7 @@ class Masks:
         self,
         nodes_type: list[str],
         insulator_length: np.ndarray,
-        v_chain: np.ndarray,
+        v_chain: npt.NDArray[np.bool],
     ) -> None:
         self.nodes_type = nodes_type
         self.insulator_length = insulator_length
@@ -31,7 +32,8 @@ class Masks:
         self.is_anchor_first = nodes_type_array == "anchor_first"
         self.is_anchor_last = nodes_type_array == "anchor_last"
         self.is_anchor = self.is_anchor_first | self.is_anchor_last
-        self.v_chain = v_chain
+        # Set v_chain to false if not suspension
+        self.v_chain = v_chain & self.is_suspension
 
     def compute_dx_dy_dz(
         self, dx: np.ndarray, dy: np.ndarray, dz: np.ndarray
