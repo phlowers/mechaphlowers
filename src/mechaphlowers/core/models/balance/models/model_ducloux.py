@@ -526,10 +526,7 @@ class BalanceModel(IBalanceModel):
 
     @state_vector.setter
     def state_vector(self, value: np.ndarray) -> None:
-        # dy = value[1::2]
-        # dy[self.nodes.masks.v_chain] = 0
         self.nodes.state_vector = value
-        
 
     @property
     def jacobian_half_bandwidth(self) -> int:
@@ -981,7 +978,7 @@ class Nodes:
 
         # add counterweight here (full length chain)
 
-        v_chain_effort = np.where(self.masks.v_chain, -1_000_000_000, 0)
+        v_chain_effort = np.where(self.masks.v_chain, 1_000_000_000, 0)
 
         # Weight of the chain. Applied on center of gravity of the chain
         force_chain_weight = np.vstack(

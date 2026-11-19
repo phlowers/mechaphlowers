@@ -1246,6 +1246,7 @@ def test_data__with_partial_ground_altitude__with_partial_support_height(
     assert_allclose(ground_altitude_2_cables, expected_ground_altitude_bundle2)
     assert_allclose(ground_altitude_3_cables, expected_ground_altitude_bundle3)
 
+
 def test_section_array_v_chain() -> None:
     section_array = SectionArray(
         pd.DataFrame(
@@ -1267,7 +1268,4 @@ def test_section_array_v_chain() -> None:
         sagging_temperature=15,
     )
     expected_v_chain = np.array([False, False, True, False])
-    np.testing.assert_allclose(
-        section_array.data.v_chain, expected_v_chain
-    )
-
+    np.testing.assert_allclose(section_array.data.v_chain, expected_v_chain)

@@ -1236,14 +1236,14 @@ def test_wind_v_chain(cable_array_AM600: CableArray):
                 "name": ["1", "2", "3", "4"],
                 "suspension": [False, True, True, False],
                 "conductor_attachment_altitude": [30, 50, 60, 65],
-                "crossarm_length": [0, 50, 50, 0],
-                "line_angle": [0, 20, 30, 0],
-                "insulator_length": [3, 3, 3, 3],
+                "crossarm_length": [0, 10, -10, 0],
+                "line_angle": [0, 10, 0, 0],
+                "insulator_length": [0.01, 3, 3, 0.01],
                 "span_length": [500, 300, 400, np.nan],
                 "insulator_mass": convert_weight_to_mass(
                     [1000, 500, 500, 1000]
                 ),
-                "v_chain": [False, True, True, False],
+                "v_chain": [False, True, False, False],
                 "load_mass": [0, 0, 0, np.nan],
                 "load_position": [0, 0, 0, np.nan],
             }
@@ -1261,32 +1261,39 @@ def test_wind_v_chain(cable_array_AM600: CableArray):
     balance_engine.solve_adjustment()
 
     balance_engine.solve_change_state(wind_pressure=np.array([200] * 4))
+    # Values come from the prototype
+    # The prototype is not exactly the same as mechaphlowers, so tolerance is low
     expected_dx = np.array(
         [
-            2.95577748400265,
-            -0.162868268485096,
-            0.184747934417769,
-            -2.93962231535185,
+            0,
+            -3.38506736472784e-03,
+            2.21561338135801e-02,
+            0,
         ]
     )
     expected_dy = np.array(
         [
-            0.43919754975307,
-            2.41449548641855,
-            2.67750769405881,
-            0.4896647687387,
+            0,
+            1.60823893390939e-05,
+            1.74143721894955,
+            0,
         ]
     )
     expected_dz = np.array(
         [
-            -0.265490070160588,
-            -1.77304412612465,
-            -1.34045542595949,
-            -0.344744916338915,
+            0,
+            -3 + 1.909e-6,
+            -3 + 0.557274981052579,
+            0,
         ]
     )
 
     np.testing.assert_allclose(
-        balance_engine.balance_model.nodes.dy[1:3], [0,0], atol=1e-4
+        balance_engine.balance_model.nodes.dx, expected_dx, atol=1e-2
     )
-
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dy, expected_dy, atol=1e-2
+    )
+    np.testing.assert_allclose(
+        balance_engine.balance_model.nodes.dz, expected_dz, atol=1e-2
+    )

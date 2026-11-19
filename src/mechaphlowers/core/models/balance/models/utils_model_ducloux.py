@@ -17,7 +17,10 @@ class Masks:
 
     # TODO: write docstring
     def __init__(
-        self, nodes_type: list[str], insulator_length: np.ndarray, v_chain: np.ndarray
+        self,
+        nodes_type: list[str],
+        insulator_length: np.ndarray,
+        v_chain: np.ndarray,
     ) -> None:
         self.nodes_type = nodes_type
         self.insulator_length = insulator_length
