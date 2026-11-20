@@ -7,7 +7,7 @@
 
 import numpy as np
 
-from mechaphlowers.core.papoto.papoto_model import (
+from mechaphlowers.core.parameter_measures.papoto import (
     papoto_2_points,
     papoto_3_points,
     papoto_validity,
