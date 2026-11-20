@@ -50,34 +50,25 @@ class ParameterMeasure(ABC):
     The uncertainty calculation can be replaced by a static threshold:
     when `threshold_active` is True, `uncertainty()` returns
     `threshold_value * parameter`. Both properties default to the class settings
-    (e.g. `options.measure_uncertainty.papoto`) and can be overridden per instance
-    (set to None to go back to the default).
+    (e.g. `options.measure_uncertainty.papoto`) and can be overridden per instance.
     """
-
-    _threshold_value_cls: float = cfg.measure_uncertainty.threshold_value
-    _threshold_active_cls: bool = cfg.measure_uncertainty.threshold_active
 
     def __init__(
         self,
         threshold_value: float | None = None,
         threshold_active: bool | None = None,
     ) -> None:
-        self._threshold_value: float | None = (
-            threshold_value
-            if threshold_value is not None
-            else self._threshold_value_cls
+        self._threshold_value: float = (
+            threshold_value if threshold_value is not None else 0
         )
-        self._threshold_active: bool | None = (
-            threshold_active
-            if threshold_active is not None
-            else self._threshold_active_cls
+        self._threshold_active: bool = (
+            threshold_active if threshold_active is not None else False
         )
+        raise NotImplementedError("Subclasses must implement the constructor.")
 
     @property
     def threshold_value(self) -> float:
         """Relative static uncertainty (0.01 means 1% of the parameter)."""
-        if self._threshold_value is None:
-            return self._threshold_value_cls
         return self._threshold_value
 
     @threshold_value.setter
@@ -91,20 +82,18 @@ class ParameterMeasure(ABC):
             raise ValueError(
                 "threshold_value must be a non-negative real number."
             )
-        self._threshold_value = None if value is None else float(value)
+        self._threshold_value = float(value) if value is not None else 0
 
     @property
     def threshold_active(self) -> bool:
         """If True, uncertainty() returns the static threshold instead of computing it."""
-        if self._threshold_active is None:
-            return self._threshold_active_cls
         return self._threshold_active
 
     @threshold_active.setter
-    def threshold_active(self, value: bool | None) -> None:
-        if value is not None and not isinstance(value, (bool, np.bool_)):
+    def threshold_active(self, value: bool) -> None:
+        if not isinstance(value, (bool, np.bool_)):
             raise ValueError("threshold_active must be a boolean.")
-        self._threshold_active = None if value is None else bool(value)
+        self._threshold_active = bool(value)
 
     def _threshold_uncertainty(self) -> np.ndarray | Number:
         """Static uncertainty: threshold_value * parameter (elementwise for arrays)."""
@@ -165,15 +154,19 @@ class PapotoParameterMeasure(ParameterMeasure):
         threshold_value: float | None = None,
         threshold_active: bool | None = None,
     ) -> None:
-        self._threshold_value_cls = (
-            cfg.measure_uncertainty.papoto.threshold_value
-        )
-        self._threshold_active_cls = (
-            cfg.measure_uncertainty.papoto.threshold_active
-        )
-        super().__init__(
-            threshold_value=threshold_value, threshold_active=threshold_active
-        )
+        if threshold_active is None:
+            self._threshold_active = (
+                cfg.measure_uncertainty.papoto.threshold_active
+            )
+        else:
+            self._threshold_active = threshold_active
+
+        if threshold_value is None:
+            self._threshold_value = (
+                cfg.measure_uncertainty.papoto.threshold_value
+            )
+        else:
+            self._threshold_value = threshold_value
 
     def measure_method(
         self,
@@ -339,12 +332,15 @@ class PapotoParameterMeasure(ParameterMeasure):
             return self._threshold_uncertainty()
 
         papoto_config = cfg.measure_uncertainty.papoto
-        uncertainty = self.monte_carlo_uncertainty(
+        monte_carlo_results = self.monte_carlo_uncertainty(
             draw_number=papoto_config.draw_number,
             angle_error=papoto_config.angle_error,
             seed=papoto_config.seed,
         )
-        return uncertainty["std_parameter_valid_values"]
+        uncertainty_output = (
+            2 * monte_carlo_results["std_parameter_valid_values"]
+        )
+        return uncertainty_output
 
     def monte_carlo_uncertainty(
         self,
@@ -479,15 +475,18 @@ class TangentialSightingParameterMeasure(ParameterMeasure):
         threshold_value: float | None = None,
         threshold_active: bool | None = None,
     ) -> None:
-        self._threshold_value_cls = (
-            cfg.measure_uncertainty.tangential_sighting.threshold_value
-        )
-        self._threshold_active_cls = (
-            cfg.measure_uncertainty.tangential_sighting.threshold_active
-        )
-        super().__init__(
-            threshold_value=threshold_value, threshold_active=threshold_active
-        )
+        if threshold_value is None:
+            self._threshold_value = (
+                cfg.measure_uncertainty.tangential_sighting.threshold_value
+            )
+        else:
+            self._threshold_value = threshold_value
+        if threshold_active is None:
+            self._threshold_active = (
+                cfg.measure_uncertainty.tangential_sighting.threshold_active
+            )
+        else:
+            self._threshold_active = threshold_active
 
     @overload
     def measure_method(

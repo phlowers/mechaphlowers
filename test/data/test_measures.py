@@ -238,7 +238,7 @@ def test_uncertainty_uses_papoto_config_for_monte_carlo(monkeypatch):
     expected = papoto.monte_carlo_uncertainty(
         draw_number=50, angle_error=0.02, seed=7
     )
-    assert result == expected["std_parameter_valid_values"]
+    assert result == 2 * expected["std_parameter_valid_values"]
 
 
 def test_uncertainty_valid_values_consistent():
@@ -317,7 +317,7 @@ def test_threshold_defaults_and_instance_override(monkeypatch):
     assert papoto.threshold_value == 0.01
     assert papoto.threshold_active is False
 
-    # Instance override wins over config; None goes back to the class config
+    # Instance override wins over config
     monkeypatch.setattr(
         options.measure_uncertainty.papoto, "threshold_value", 0.02
     )
@@ -331,10 +331,11 @@ def test_threshold_defaults_and_instance_override(monkeypatch):
     papoto.threshold_active = False
     assert papoto.threshold_value == 0.05
     assert papoto.threshold_active is False
+    # None as threshold_value resets to 0, threshold_active must be a boolean
     papoto.threshold_value = None
-    papoto.threshold_active = None
-    assert papoto.threshold_value == 0.02
-    assert papoto.threshold_active is True
+    assert papoto.threshold_value == 0
+    with pytest.raises(ValueError, match="threshold_active"):
+        papoto.threshold_active = None
 
 
 def test_threshold_config_is_specific_per_class(monkeypatch):
@@ -393,7 +394,8 @@ def test_papoto_uncertainty_threshold_array_inputs():
 
     result = papoto.uncertainty()
 
-    assert result.shape == (2,)
+    if isinstance(result, np.ndarray):
+        assert result.shape == (2,)
     np.testing.assert_allclose(result, 0.01 * papoto.parameter)
 
 

@@ -94,7 +94,7 @@ papoto(
 )
 
 # Then estimate the uncertainty with the Monte Carlo method.
-# uncertainty() returns the standard deviation of the valid draws.
+# uncertainty() returns twice the standard deviation of the valid draws.
 # Draws, angle error and seed come from options.measure_uncertainty.papoto
 # (defaults: 1000 draws, angle error of ±0.01 grad, seed 42)
 std = papoto.uncertainty()
@@ -140,7 +140,7 @@ papoto.threshold_value = 0.02
 papoto.uncertainty()  # 0.02 * papoto.parameter (scalar, or array if the inputs are arrays)
 ```
 
-Defaults are defined per class in `options.measure_uncertainty.papoto` and `options.measure_uncertainty.tangential_sighting` (`threshold_value` and `threshold_active`), read when the object is created. Setting a property on an instance overrides the default for that instance; setting it to `None` restores the class default.
+Defaults are defined per class in `options.measure_uncertainty.papoto` and `options.measure_uncertainty.tangential_sighting` (`threshold_value` and `threshold_active`), read when the object is created. Setting a property on an instance overrides the default for that instance.
 
 !!! note
     Only the uncertainty is bypassed. The parameter and the validity are computed as usual. With the threshold active, `uncertainty()` of `PapotoParameterMeasure` returns the value directly instead of a dictionary of statistics.
