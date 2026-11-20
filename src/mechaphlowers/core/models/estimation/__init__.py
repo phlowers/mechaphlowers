@@ -12,7 +12,9 @@ from mechaphlowers.core.models.estimation.engine import EstimationEngine
 from mechaphlowers.core.numeric import (
     BisectionMethod,
     BrentMethod,
+    BrentMinimizationMethod,
     EstimationResult,
+    MinimizationMethod,
     OptimizationMethod,
 )
 
@@ -24,4 +26,6 @@ __all__ = [
     "OptimizationMethod",
     "BisectionMethod",
     "BrentMethod",
+    "MinimizationMethod",
+    "BrentMinimizationMethod",
 ]

@@ -72,6 +72,8 @@ The estimation module uses Brent's method by default because it is robust (it ke
 
 Both take a tolerance `tol` and a maximum number of iterations `maxiter`, and require the objective to change sign over `bounds`. Custom algorithms can be used by implementing the `OptimizationMethod` protocol (a `solve(objective, bounds)` method).
 
+The closest-point mode of `estimate_wind` (`target_distance=None`) minimizes the distance instead of finding a root. Its algorithm is chosen with the `minimizer` argument of `EstimationEngine`. It defaults to `BrentMinimizationMethod`, Brent's bounded minimization (`fminbound`): a derivative-free mix of golden-section search and parabolic interpolation. It takes the same `tol` and `maxiter` arguments. Custom algorithms can be used by implementing the `MinimizationMethod` protocol (a `minimize(objective, bounds)` method).
+
 ## Result
 
 Every estimation returns an `EstimationResult` with:
@@ -164,6 +166,23 @@ result = engine.estimate_wind(
     new_temperature=15.0,
 )
 print(result.value, result.converged)  # ~285 Pa, True
+print(result.extra["distance"])  # distance at the solution, ~42 m
+```
+
+#### Closest point (`target_distance=None`)
+
+Instead of a target distance, pass `target_distance=None` to find the wind pressure within `bounds` that brings the cable closest to the obstacle. The result also contains `extra["distance"]`, the distance at that wind pressure. It minimizes the absolute value of the distance with the engine `minimizer`. This mode assumes the distance has a single local minimum within `bounds`. If the minimum lies outside `bounds`, the closest bound is returned with `converged=False`.
+
+```python
+result = engine.estimate_wind(
+    span_index=1,
+    obstacle_point=obstacle,
+    target_distance=None,
+    bounds=(-1000.0, 1000.0),
+    wind_direction="clockwise",
+    new_temperature=15.0,
+)
+print(result.value, result.extra["distance"])  # wind at minimum distance, and that distance
 ```
 
 ### Load
@@ -193,6 +212,7 @@ result = engine.estimate_load_relative(
     bounds=(0.0, 500.0),
 )
 print(result.value, result.converged)  # ~40 kg, True
+print(result.extra["x_shift"])  # initial x_cable - final x_cable, in meters
 ```
 
 ### Rope
