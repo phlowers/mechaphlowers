@@ -710,6 +710,9 @@ def fminbound(
     tol2 = 2.0 * tol1
 
     while abs(xf - xm) > (tol2 - 0.5 * (b - a)):
+        if num >= maxfun:
+            flag = 1
+            break
         golden = True
         # Check for parabolic fit
         if abs(e) > tol1:
@@ -772,10 +775,6 @@ def fminbound(
         xm = 0.5 * (a + b)
         tol1 = sqrt_eps * abs(xf) + xtol / 3.0
         tol2 = 2.0 * tol1
-
-        if num >= maxfun:
-            flag = 1
-            break
 
     if np.isnan(xf) or np.isnan(fx) or np.isnan(fu):
         flag = 2

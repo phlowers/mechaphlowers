@@ -208,7 +208,12 @@ class BrentMinimizationMethod:
             from mechaphlowers.numeric.scipy import fminbound  # type: ignore
 
         lower, upper = bounds
-        xopt, fopt, ierr, numfunc = fminbound(
+        (
+            interior_minimizer,
+            interior_min_value,
+            error_flag,
+            interior_n_evals,
+        ) = fminbound(
             objective,
             lower,
             upper,
@@ -217,23 +222,25 @@ class BrentMinimizationMethod:
             full_output=True,
             disp=0,
         )
-        f_lower = objective(lower)
-        f_upper = objective(upper)
-        iterations = numfunc + 2
+        value_at_lower = objective(lower)
+        value_at_upper = objective(upper)
+        iterations = interior_n_evals + 2
 
-        bound, f_bound = (
-            (lower, f_lower) if f_lower <= f_upper else (upper, f_upper)
+        best_bound, value_at_best_bound = (
+            (lower, value_at_lower)
+            if value_at_lower <= value_at_upper
+            else (upper, value_at_upper)
         )
-        if f_bound <= fopt:
+        if value_at_best_bound <= interior_min_value:
             return EstimationResult(
-                value=bound,
-                residual=f_bound,
+                value=best_bound,
+                residual=value_at_best_bound,
                 iterations=iterations,
                 converged=False,
             )
         return EstimationResult(
-            value=float(xopt),
-            residual=float(fopt),
+            value=float(interior_minimizer),
+            residual=float(interior_min_value),
             iterations=iterations,
-            converged=ierr == 0,
+            converged=error_flag == 0,
         )

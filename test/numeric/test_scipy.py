@@ -508,6 +508,17 @@ def test_fminbound_maxfun_and_errors():
             lambda x: (x - 1.0) ** 2, -10.0, 10.0, maxfun=3, full_output=True
         )
     assert ierr == 1 and num == 3
+    calls = []
+
+    def counted(x):
+        calls.append(x)
+        return (x - 1.0) ** 2
+
+    with pytest.warns(RuntimeWarning, match="Maximum number"):
+        _, _, ierr, num = zeros.fminbound(
+            counted, -10.0, 10.0, maxfun=1, full_output=True
+        )
+    assert ierr == 1 and num == 1 and len(calls) == 1
     with pytest.raises(ValueError, match="lower bound"):
         zeros.fminbound(lambda x: x, 1.0, 0.0)
     with pytest.raises(ValueError, match="finite"):
