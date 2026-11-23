@@ -1448,7 +1448,7 @@ class TestSectionVirtualSupportsGraph:
         new_group_points_4 = group_points.change_frame(4)
         new_group_points_merged_4 = new_group_points_4.merge_virtual_supports()
         assert new_group_points_merged_4.current_frame == 2
-        
+
         new_group_points_3 = group_points.change_frame(3)
         new_group_points_merged_3 = new_group_points_3.merge_virtual_supports()
         assert new_group_points_merged_3.current_frame == 2
