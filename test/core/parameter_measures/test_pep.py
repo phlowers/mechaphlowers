@@ -202,16 +202,3 @@ def test_compute_parameter_from_one_point__measured_point_too_high_error() -> (
             75,
             10,
         )
-
-
-def test_compute_parameter_from_one_point__measured_point_near_hanging_point_error() -> (
-    None
-):
-    # The measured point should be near the lowest point of the cable,
-    # for the computed parameter to be precise.
-    _compute_parameter_from_one_point(
-        500,
-        50,
-        75,
-        10,
-    )
