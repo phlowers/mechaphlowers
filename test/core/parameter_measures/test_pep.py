@@ -6,7 +6,10 @@
 
 import pytest
 
-from mechaphlowers.core.parameter_measures.pep import compute_parameter
+from mechaphlowers.core.parameter_measures.pep import (
+    _compute_parameter_from_one_point,
+    compute_parameter,
+)
 from mechaphlowers.entities.errors import ConvergenceError
 
 
@@ -123,3 +126,27 @@ def test_compute_parameter__parameter_far_from_initial_guess() -> None:
 
     # then
     assert p == pytest.approx(500, abs=1)
+
+
+def test_compute_parameter_from_one_point__measured_point_too_high_error() -> None:
+    # It's physically impossible for the measured point to be higher than
+    # both hanging points. (This would mean the parameter is negative and
+    # the cable is floating in the air.)
+    with pytest.raises(Exception):
+        _compute_parameter_from_one_point(
+            500,
+            50,
+            75,
+            10,
+        )
+
+
+def test_compute_parameter_from_one_point__measured_point_near_hanging_point_error() -> None:
+    # The measured point should be near the lowest point of the cable,
+    # for the computed parameter to be precise.
+    _compute_parameter_from_one_point(
+        500,
+        50,
+        75,
+        10,
+    )

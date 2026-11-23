@@ -106,6 +106,7 @@ nav:
               - Parameter Measures:
                   - Papoto: docstring/core/parameter_measures/papoto.md
                   - Tangential Sighting Method: docstring/core/parameter_measures/tangential_sighting.md
+                  - PEP: docstring/core/parameter_measures/pep.md
               - Manipulation: docstring/core/manipulation.md
           - Data:
               - Catalog: docstring/data/catalog/catalog.md

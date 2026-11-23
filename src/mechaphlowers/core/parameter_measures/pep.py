@@ -11,6 +11,7 @@ import numpy as np
 from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.core.numeric import BrentMethod
 from mechaphlowers.entities.errors import ConvergenceError
+from mechaphlowers.config import options
 
 
 def compute_parameter(
@@ -32,16 +33,22 @@ def compute_parameter(
     """
     Compute the cable parameter from 3 points of the cable, using the Pep method.
 
-    xi, zi are the coordinates of each measured point. They must be in the span frame.
+    (xi, zi) are the coordinates of each measured point. They must be in the span frame.
     (Typically, xi is positive and zi is negative.)
 
     This method is only valid if there was little to no wind during the measurements.
-    The 3 measured points should be close to the lowest point of the cable.
+
+    The 3 measured point should be near the lowest point of the cable,
+    for the computed parameter to be precise.
+    This function will raise a UserWarning if some xi are too close to the supports
+    See config.PepParameterConfig.forbidden_zone_percentage.
 
     Returns:
         A tuple with the 3 estimated parameters (one for each measured point),
         their mean, and the maximum relative error.
     """
+    _check_x_is_not_too_close_to_the_supports(span_length, x1, x2, x3)
+
     p1 = _compute_parameter_from_one_point(
         span_length,
         elevation_difference,
@@ -65,6 +72,14 @@ def compute_parameter(
     return p1, p2, p3, p, _max_relative_error
 
 
+def _check_x_is_not_too_close_to_the_supports(span_length, *args):
+    forbidden_zone = options.pep_parameter.forbidden_zone_percentage
+    for i, x in enumerate(args):
+        if not span_length * forbidden_zone <= x <= span_length * (1 - forbidden_zone):
+            raise UserWarning("Measured point n°{i} for PEP method is too close to the "
+            f"supports ({x=}). Returned parameter won't be precise.")
+
+
 def _compute_parameter_from_one_point(
     span_length: float,
     elevation_difference: float,
@@ -86,12 +101,12 @@ def _compute_parameter_from_one_point(
             elevation_difference=np.array([elevation_difference]),
             parameter=np.array([parameter]),
         )
-        _x_m = span_model._x_m  # TODO: define public accessor
-        _z_m = span_model.z_one_point(_x_m)
+        x_m_in_cable_frame = span_model._x_m  # TODO: define public accessor
+        z_m_in_cable_frame = span_model.z_one_point(x_m_in_cable_frame)
 
-        _x = x + _x_m
-        _z = span_model.z_one_point(_x)
-        return (_z - _z_m).item()
+        x_in_cable_frame = x + x_m_in_cable_frame
+        z_in_cable_frame = span_model.z_one_point(x_in_cable_frame)
+        return (z_in_cable_frame - z_m_in_cable_frame).item()
 
     def f(parameter):
         return z(measured_x, parameter) - measured_z

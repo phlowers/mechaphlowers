@@ -197,6 +197,11 @@ class MeasureUncertaintyConfig:
 
 
 @dataclass
+class PepParameterConfig:
+    forbidden_zone_percentage: float = 0.1
+
+
+@dataclass
 class Config:
     """Configuration class for mechaphlowers settings.
 
@@ -216,6 +221,7 @@ class Config:
         self._input_units = InputUnitsConfig()
         self._data_config = DataConfig()
         self._measure_uncertainty = MeasureUncertaintyConfig()
+        self._pep_parameter = PepParameterConfig()
 
     @property
     def ground(self) -> GroundConfig:
@@ -265,6 +271,11 @@ class Config:
     def measure_uncertainty(self) -> MeasureUncertaintyConfig:
         """Measure uncertainty configuration property."""
         return self._measure_uncertainty
+
+    @property
+    def pep_parameter(self) -> PepParameterConfig:
+        """Configuration property for parameter measure using the PEP method."""
+        return self._pep_parameter
 
     class OptionError(Exception):
         """Exception raised when an option is not available."""
