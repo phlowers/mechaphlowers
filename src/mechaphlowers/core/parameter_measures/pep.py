@@ -8,10 +8,13 @@ from typing import Tuple
 
 import numpy as np
 
+from mechaphlowers.config import options
 from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.core.numeric import BrentMethod
-from mechaphlowers.entities.errors import ConvergenceError
-from mechaphlowers.config import options
+from mechaphlowers.entities.errors import (
+    ConvergenceError,
+    MechaphlowersValueError,
+)
 
 
 def compute_parameter(
@@ -47,7 +50,9 @@ def compute_parameter(
         A tuple with the 3 estimated parameters (one for each measured point),
         their mean, and the maximum relative error.
     """
-    _check_x_is_not_too_close_to_the_supports(span_length, x1, x2, x3)
+    _check_x_is_inside_span_and_not_too_close_to_supports(
+        span_length, x1, x2, x3
+    )
 
     p1 = _compute_parameter_from_one_point(
         span_length,
@@ -72,12 +77,25 @@ def compute_parameter(
     return p1, p2, p3, p, _max_relative_error
 
 
-def _check_x_is_not_too_close_to_the_supports(span_length, *args):
+def _check_x_is_inside_span_and_not_too_close_to_supports(span_length, *args):
+    for i, x in enumerate(args):
+        if not 0 < x < span_length:
+            raise MechaphlowersValueError(
+                "Measured point must be inside of span."
+                f" Got {x=} for point n°{i}"
+            )
+
     forbidden_zone = options.pep_parameter.forbidden_zone_percentage
     for i, x in enumerate(args):
-        if not span_length * forbidden_zone <= x <= span_length * (1 - forbidden_zone):
-            raise UserWarning("Measured point n°{i} for PEP method is too close to the "
-            f"supports ({x=}). Returned parameter won't be precise.")
+        if (
+            not span_length * forbidden_zone
+            <= x
+            <= span_length * (1 - forbidden_zone)
+        ):
+            raise UserWarning(
+                f"PEP method: measured point n°{i} is too close to the "
+                f"supports ({x=}). Returned parameter won't be precise."
+            )
 
 
 def _compute_parameter_from_one_point(

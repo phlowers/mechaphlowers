@@ -10,7 +10,10 @@ from mechaphlowers.core.parameter_measures.pep import (
     _compute_parameter_from_one_point,
     compute_parameter,
 )
-from mechaphlowers.entities.errors import ConvergenceError
+from mechaphlowers.entities.errors import (
+    ConvergenceError,
+    MechaphlowersValueError,
+)
 
 
 @pytest.mark.parametrize(
@@ -106,6 +109,64 @@ def test_compute_parameter__raises_convergence_error() -> None:
         )
 
 
+def test_compute_parameter__x1_left_of_span__error() -> None:
+    with pytest.raises(MechaphlowersValueError):
+        compute_parameter(
+            500,
+            0,
+            -10,
+            -10,
+            250,
+            -5,
+            300,
+            -10,
+        )
+
+
+def test_compute_parameter__x1_right_of_span__error() -> None:
+    with pytest.raises(MechaphlowersValueError):
+        compute_parameter(
+            500,
+            0,
+            500.1,
+            -10,
+            250,
+            -5,
+            300,
+            -10,
+        )
+
+
+def test_compute_parameter__x1_too_close_to_left_support__warning() -> None:
+    span_length = 500
+    with pytest.raises(UserWarning):
+        compute_parameter(
+            span_length,
+            elevation_difference=0,
+            x1=0.09 * span_length,
+            z1=-10,
+            x2=250,
+            z2=-5,
+            x3=300,
+            z3=-10,
+        )
+
+
+def test_compute_parameter__x1_too_close_to_right_support__warning() -> None:
+    span_length = 500
+    with pytest.raises(UserWarning):
+        compute_parameter(
+            span_length,
+            elevation_difference=0,
+            x1=0.91 * span_length,
+            z1=-10,
+            x2=250,
+            z2=-5,
+            x3=300,
+            z3=-10,
+        )
+
+
 def test_compute_parameter__parameter_far_from_initial_guess() -> None:
     # Non-regression test added after finding out that compute_parameter
     # failed if the expected parameter was too small.
@@ -128,7 +189,9 @@ def test_compute_parameter__parameter_far_from_initial_guess() -> None:
     assert p == pytest.approx(500, abs=1)
 
 
-def test_compute_parameter_from_one_point__measured_point_too_high_error() -> None:
+def test_compute_parameter_from_one_point__measured_point_too_high_error() -> (
+    None
+):
     # It's physically impossible for the measured point to be higher than
     # both hanging points. (This would mean the parameter is negative and
     # the cable is floating in the air.)
@@ -141,7 +204,9 @@ def test_compute_parameter_from_one_point__measured_point_too_high_error() -> No
         )
 
 
-def test_compute_parameter_from_one_point__measured_point_near_hanging_point_error() -> None:
+def test_compute_parameter_from_one_point__measured_point_near_hanging_point_error() -> (
+    None
+):
     # The measured point should be near the lowest point of the cable,
     # for the computed parameter to be precise.
     _compute_parameter_from_one_point(
