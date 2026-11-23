@@ -6,11 +6,10 @@
 
 from typing import Tuple
 
+import numpy as np
+
+from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.core.numeric import BrentMethod
-from mechaphlowers.core.parameter_measures.utils import (
-    _catenary_equation_z,
-    _lowest_point_coordinates,
-)
 from mechaphlowers.entities.errors import ConvergenceError
 
 
@@ -18,7 +17,7 @@ def compute_parameter(
     span_length: float,
     elevation_difference: float,
     x1: float,
-    z1: float,  # TODO: rename? z -> y
+    z1: float,
     x2: float,
     z2: float,
     x3: float,
@@ -31,10 +30,10 @@ def compute_parameter(
     float,
 ]:
     """
-    Compute the cable parameter from the coordinates of 3 measured points, using the Pep method.
+    Compute the cable parameter from 3 points of the cable, using the Pep method.
 
-    All coordinates must be in the span frame.
-    (Typically, x1, x2 and x3 are positive and y1, y2 and y3 are negative.)
+    xi, zi are the coordinates of each measured point. They must be in the span frame.
+    (Typically, xi is positive and zi is negative.)
 
     This method is only valid if there was little to no wind during the measurements.
     The 3 measured points should be close to the lowest point of the cable.
@@ -43,8 +42,6 @@ def compute_parameter(
         A tuple with the 3 estimated parameters (one for each measured point),
         their mean, and the maximum relative error.
     """
-    # We assume there is so little wind that the cable frame
-    # is only span_length translation of the span frame.
     p1 = _compute_parameter_from_one_point(
         span_length,
         elevation_difference,
@@ -75,16 +72,26 @@ def _compute_parameter_from_one_point(
     measured_z: float,
     bounds: tuple[float, float] = (1, 3000.0),
 ) -> float:
+    # We assume there is so little wind that the cable frame
+    # is only a span_length translation away from the span frame.
+
     # Convention: x, z are coordinates in the span frame;
     # _x, _z are coordinates in the cable frame
 
     def z(x, parameter: float) -> float:
-        xm, zm = _lowest_point_coordinates(
-            parameter, span_length, elevation_difference
+        # Compute the coordinates of the left hanging point
+        # in the cable frame, in order to switch between span and cable frames.
+        span_model = CatenarySpan(
+            span_length=np.array([span_length]),
+            elevation_difference=np.array([elevation_difference]),
+            parameter=np.array([parameter]),
         )
-        _x = x - xm
-        _z = _catenary_equation_z(_x, parameter)
-        return _z + zm
+        _x_m = span_model._x_m  # TODO: define public accessor
+        _z_m = span_model.z_one_point(_x_m)
+
+        _x = x + _x_m
+        _z = span_model.z_one_point(_x)
+        return (_z - _z_m).item()
 
     def f(parameter):
         return z(measured_x, parameter) - measured_z
@@ -120,5 +127,5 @@ def max_relative_error(
     )
 
 
-def _relative_error(x: float, y: float) -> float:
-    return abs((x - y) / y)
+def _relative_error(value1: float, value2: float) -> float:
+    return abs((value1 - value2) / value2)

@@ -2,10 +2,6 @@ from typing import Tuple
 
 import numpy as np
 
-from mechaphlowers.core.parameter_measures.utils import (
-    _catenary_equation_z,
-    _lowest_point_coordinates,
-)
 from mechaphlowers.entities.errors import (
     ConvergenceError,
     InputAngleNotInRangeError,
@@ -220,14 +216,14 @@ def compute_parameter__array(
     )
 
     def f(parameter):
-        x_tangent, z_tangent = _tangent_point_coordinates(
+        x_tangent, y_tangent = _tangent_point_coordinates(
             parameter,
             span_length,
             elevation_difference,
             slope,
         )
         sighted_slope = _sighted_slope(
-            x_tangent, z_tangent, corrected_height, distance
+            x_tangent, y_tangent, corrected_height, distance
         )
         return sighted_slope - slope
 
@@ -249,11 +245,11 @@ def compute_parameter__array(
 
 def _sighted_slope(
     x: np.ndarray,
-    z: np.ndarray,
+    y: np.ndarray,
     corrected_height: np.ndarray,
     distance: np.ndarray,
 ) -> np.ndarray:
-    return (z + corrected_height) / (x - distance)
+    return (y + corrected_height) / (x - distance)
 
 
 def _compute_corrected_height(
@@ -299,6 +295,24 @@ def approx_parameter_using_parabola(
     return span_length * span_length / (8 * sag)
 
 
+def _lowest_point_coordinates(
+    parameter: np.ndarray,
+    span_length: np.ndarray,
+    elevation_difference: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Relative to the left hanging point"""
+    x = (
+        span_length / 2
+        - np.asinh(
+            elevation_difference
+            / (2 * parameter * np.sinh(span_length / (2 * parameter)))
+        )
+        * parameter
+    )
+    y = -parameter * (np.cosh(x / parameter) - 1)
+    return x, y
+
+
 def _tangent_point_coordinates(
     parameter: np.ndarray,
     span_length: np.ndarray,
@@ -306,12 +320,12 @@ def _tangent_point_coordinates(
     slope: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Relative to the left hanging point"""
-    x_lowest, z_lowest = _lowest_point_coordinates(
+    x_lowest, y_lowest = _lowest_point_coordinates(
         parameter, span_length, elevation_difference
     )
     x = x_lowest + parameter * np.asinh(slope)
-    z = z_lowest + _catenary_equation_z(x - x_lowest, parameter)
-    return x, z
+    y = y_lowest + parameter * (np.cosh((x - x_lowest) / parameter) - 1)
+    return x, y
 
 
 def _check_result(

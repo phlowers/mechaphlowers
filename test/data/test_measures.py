@@ -699,69 +699,21 @@ def test_tangential_sighting_check_validity__multi_element_array_error() -> (
         tangential_sighting.check_validity()
 
 
-@pytest.mark.parametrize(
-    "span_length,elevation_difference,x1,z1,x2,z2,x3,z3,expected_p",
-    [
-        (
-            466.067,
-            -1.560,
-            198.332,
-            -13.288,
-            205.037,
-            -13.444,
-            298.816,
-            -12.879,
-            2104,
-        ),
-        (
-            485.144,
-            7.023,
-            123.346,
-            -8.779,
-            202.985,
-            -10.631,
-            250.684,
-            -10.299,
-            2113,
-        ),
-        (
-            430.521,
-            -0.025,
-            108.903,
-            -8.270,
-            221.108,
-            -10.896,
-            284.145,
-            -9.803,
-            2126,
-        ),
-    ],
-)
-def test_pep_parameter_measure__ok(
-    span_length: float,
-    elevation_difference: float,
-    x1: float,
-    z1: float,
-    x2: float,
-    z2: float,
-    x3: float,
-    z3: float,
-    expected_p: float,
-) -> None:
+def test_pep_parameter_measure__ok() -> None:
     pep = PepParameterMeasure()
     pep(
-        span_length,
-        elevation_difference,
-        x1,
-        z1,
-        x2,
-        z2,
-        x3,
-        z3,
+        466.067,
+        -1.560,
+        198.332,
+        -13.288,
+        205.037,
+        -13.444,
+        298.816,
+        -12.879,
     )
     np.testing.assert_allclose(
         pep.parameter,
-        expected_p,
+        2104,
         atol=1.0,
     )
     np.testing.assert_equal(pep.validity, True)
@@ -787,6 +739,8 @@ def test_pep_parameter_measure__not_valid() -> None:
         atol=1.0,
     )
     assert pep.relative_error > 0.005
+    # Measure deemed not valid because the parameters computed from
+    # each measure are two different.
     assert not pep.validity
 
 

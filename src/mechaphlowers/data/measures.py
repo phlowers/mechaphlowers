@@ -377,12 +377,18 @@ class PepParameterMeasure(ParameterMeasure):
         x3: float,
         z3: float,
     ) -> None:
-        """Compute the cable parameter from the coordinates of 3 measured points, using the Pep method.
+        """
+        Compute the cable parameter from 3 points of the cable, using the Pep method.
 
-        All coordinates must be in the span frame.
-        (Typically, x1, x2 and x3 are positive and y1, y2 and y3 are negative.)
+        xi, zi are the coordinates of each measured point. They must be in the span frame.
+        (Typically, xi is positive and zi is negative.)
 
         This method is only valid if there was little to no wind during the measurements.
+        The 3 measured points should be close to the lowest point of the cable.
+
+        Returns:
+            A tuple with the 3 estimated parameters (one for each measured point),
+            their mean, and the maximum relative error.
         """
         logger.debug("Start running PepParameterMeasure.measure_method()")
         _, _, _, self._parameter, self.relative_error = pep(

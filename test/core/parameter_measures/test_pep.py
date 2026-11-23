@@ -7,10 +7,6 @@
 import pytest
 
 from mechaphlowers.core.parameter_measures.pep import compute_parameter
-from mechaphlowers.core.parameter_measures.utils import (
-    _catenary_equation_z,
-    _lowest_point_coordinates,
-)
 from mechaphlowers.entities.errors import ConvergenceError
 
 
@@ -62,7 +58,7 @@ from mechaphlowers.entities.errors import ConvergenceError
         ),
     ],
 )
-def test_compute_parameter(
+def test_compute_parameter_ok(
     span_length: float,
     elevation_difference: float,
     x1: float,
@@ -114,44 +110,16 @@ def test_compute_parameter__parameter_far_from_initial_guess() -> None:
     # with an arbitrary, hard-coded initial guess, and it couldn't find the
     # right root if the parameter was too far away from the initial
     # guess.
-
-    # given
-    span_length = 600
-    elevation_difference = 0
-    parameter = 500
-    # Same convention as in pep.py: x, z are coordinates in the span frame;
-    # _x, _z are coordinates in the cable frame
-    xm, ym = _lowest_point_coordinates(
-        parameter,
-        span_length,
-        elevation_difference,
-    )
-    _x1 = -30
-    _x3 = 30
-    x1 = xm + _x1
-    x3 = xm + _x3
-    _y1 = _catenary_equation_z(
-        _x1,
-        parameter,
-    )
-    _y3 = _catenary_equation_z(
-        _x3,
-        parameter,
-    )
-    y1 = _y1 + ym
-    y3 = _y3 + ym
-
-    # when
     _, _, _, p, _ = compute_parameter(
-        span_length,
-        elevation_difference,
-        x1,
-        y1,
-        xm,
-        ym,
-        x3,
-        y3,
+        600,
+        0,
+        x1=270.00,
+        z1=-91.83,
+        x2=300.00,
+        z2=-92.73,
+        x3=330.00,
+        z3=-91.83,
     )
 
     # then
-    assert p == pytest.approx(parameter, abs=1)
+    assert p == pytest.approx(500, abs=1)
