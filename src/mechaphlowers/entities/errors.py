@@ -135,3 +135,7 @@ class ViewChoiceWarning(UserWarning):
 
 class NoIntersectionPlaneWarning(UserWarning):
     """Raised when no intersection plane can be found for distance computation."""
+
+
+class GroupPointsWarning(UserWarning):
+    """Raised when a GroupPoints operation has already occured."""

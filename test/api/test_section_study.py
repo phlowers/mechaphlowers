@@ -1411,35 +1411,9 @@ class TestSectionVirtualSupportsGraph:
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
         group_points = study.position_engine.get_group_points()
-        assert (
-            len(group_points.all_points_virtual_separated()["spans"].coords)
-            == 3
-        )
-        assert (
-            len(
-                group_points.all_points_virtual_separated()[
-                    "insulators"
-                ].coords
-            )
-            == 4
-        )
-        assert (
-            len(group_points.all_points_virtual_separated()["supports"].coords)
-            == 4
-        )
-        assert (
-            len(
-                group_points.all_points_virtual_separated()[
-                    "virtual_insulators"
-                ].coords
-            )
-            == 2
-        )
-        assert (
-            len(
-                group_points.all_points_virtual_separated()[
-                    "virtual_supports"
-                ].coords
-            )
-            == 2
-        )
+        new_group_points = group_points.merge_virtual_supports()
+        assert len(new_group_points.spans.coords) == 3  # type: ignore[union-attr]
+        assert len(new_group_points.insulators.coords) == 4  # type: ignore[union-attr]
+        assert len(new_group_points.supports.coords) == 4  # type: ignore[union-attr]
+        assert len(new_group_points.virtual_insulators.coords) == 2  # type: ignore[union-attr]
+        assert len(new_group_points.virtual_supports.coords) == 2  # type: ignore[union-attr]
