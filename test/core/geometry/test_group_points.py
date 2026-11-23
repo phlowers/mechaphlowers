@@ -427,6 +427,7 @@ class TestVirtualSupports:
         assert len(new_group_points.insulators.coords) == 3  # type: ignore[union-attr]
         assert len(new_group_points.virtual_supports.coords) == 1  # type: ignore[union-attr]
         assert len(new_group_points.virtual_insulators.coords) == 1  # type: ignore[union-attr]
+        assert len(new_group_points.line_angle) == 3  # type: ignore[union-attr]
         first_point = [500.0, 10.0, 100.0]
         middle_point = [1000.0, 10.0, 50.0]
         last_point = [1497.02812657, 10.0, 49.59016064]
@@ -473,3 +474,9 @@ class TestVirtualSupports:
             new_group_points_0.spans.coords,  # type: ignore[union-attr]
             new_group_points.spans.coords,  # type: ignore[union-attr]
         )
+
+    def test_virtual_support_frame_indices(self, group_points: GroupPoints):
+        group_points.virtual_supports_list = [1]
+        new_group_points = group_points.change_frame(frame_index=2)
+        new_group_points = new_group_points.merge_virtual_supports()
+        assert new_group_points.current_frame == 1

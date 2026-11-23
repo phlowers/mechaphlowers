@@ -166,6 +166,12 @@ class GroupPoints:
         """Returns a new GroupPoints object.
 
         Spans with virtual supports are considered as only one span.
+
+        Modifies `spans`, `insulators`, `supports`, `line_angle`
+
+        Adds `virtual_insulators` and `virtual_supports` attributes.
+
+        Automatically changes frame if original current_frame is on a virtual_support frame
         """
 
         new_group_points = deepcopy(self)
@@ -175,7 +181,7 @@ class GroupPoints:
                 category=GroupPointsWarning,
             )
         elif len(self.virtual_supports_list) > 0:
-            spans_coords = self.spans.coords  # type: ignore[union-attr]
+            spans_coords = self.spans.coords.copy()  # type: ignore[union-attr]
             # virtual_supports_array are the indices of the virtual supports BEFORE adding them
             # true indices are the position of the virtual supports AFTER adding them
             true_indices_vs = (
@@ -183,6 +189,11 @@ class GroupPoints:
                 + np.array(range(len(self.virtual_supports_list)))
                 + 1
             )
+            # Changing frame to avoid coordinate miscaculations
+            if self.current_frame in true_indices_vs:
+                new_group_points = new_group_points.change_frame(
+                    frame_index=self.current_frame - 1
+                )
             # Spans
             modified_spans_coords = self._reformat_spans_virtual_supports(
                 spans_coords, true_indices_vs
@@ -209,6 +220,14 @@ class GroupPoints:
             virtual_insulators_coords = insulators_coords[true_indices_vs]
             new_group_points.virtual_insulators = Points(
                 virtual_insulators_coords
+            )
+
+            new_group_points.line_angle = np.delete(
+                self.line_angle, true_indices_vs, axis=0
+            )
+            nb_frame_to_remove = np.sum(true_indices_vs < self.current_frame)
+            new_group_points.current_frame = (
+                new_group_points.current_frame - nb_frame_to_remove
             )
             new_group_points._has_vs_merged = True
         return new_group_points
