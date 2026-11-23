@@ -103,7 +103,7 @@ def _compute_parameter_from_one_point(
     elevation_difference: float,
     measured_x: float,
     measured_z: float,
-    bounds: tuple[float, float] = (0, 4000.0),
+    bounds: tuple[float, float] = (1, 4000.0),
 ) -> float:
     # We assume there is so little wind that the cable frame
     # is only a span_length translation away from the span frame.
