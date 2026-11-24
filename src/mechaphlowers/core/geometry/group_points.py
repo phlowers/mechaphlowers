@@ -181,7 +181,6 @@ class GroupPoints:
                 category=GroupPointsWarning,
             )
         elif len(self.virtual_supports_list) > 0:
-            spans_coords = self.spans.coords.copy()  # type: ignore[union-attr]
             # virtual_supports_array are the indices of the virtual supports BEFORE adding them
             # true indices are the position of the virtual supports AFTER adding them
             true_indices_vs = (
@@ -194,6 +193,7 @@ class GroupPoints:
                 new_group_points = new_group_points.change_frame(
                     frame_index=self.current_frame - 1
                 )
+            spans_coords = new_group_points.spans.coords.copy()  # type: ignore[union-attr]
             # Spans
             modified_spans_coords = self._reformat_spans_virtual_supports(
                 spans_coords, true_indices_vs
@@ -201,14 +201,14 @@ class GroupPoints:
             new_group_points.spans = Points(modified_spans_coords)
 
             # Supports
-            supports_coords = self.supports.coords  # type: ignore[union-attr]
+            supports_coords = new_group_points.supports.coords  # type: ignore[union-attr]
             deleted_supports_coords = np.delete(
                 supports_coords, true_indices_vs, axis=0
             )
             new_group_points.supports = Points(deleted_supports_coords)
 
             # Insulators
-            insulators_coords = self.insulators.coords  # type: ignore[union-attr]
+            insulators_coords = new_group_points.insulators.coords  # type: ignore[union-attr]
             deleted_insulators_coords = np.delete(
                 insulators_coords, true_indices_vs, axis=0
             )
@@ -223,9 +223,11 @@ class GroupPoints:
             )
 
             new_group_points.line_angle = np.delete(
-                self.line_angle, true_indices_vs, axis=0
+                new_group_points.line_angle, true_indices_vs, axis=0
             )
-            nb_frame_to_remove = np.sum(true_indices_vs < self.current_frame)
+            nb_frame_to_remove = np.sum(
+                true_indices_vs < new_group_points.current_frame
+            )
             new_group_points.current_frame = (
                 new_group_points.current_frame - nb_frame_to_remove
             )

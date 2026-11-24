@@ -480,3 +480,22 @@ class TestVirtualSupports:
         new_group_points = group_points.change_frame(frame_index=2)
         new_group_points = new_group_points.merge_virtual_supports()
         assert new_group_points.current_frame == 1
+
+    def test_virtual_support_merge_from_vs_frame_is_consistent(
+        self, group_points: GroupPoints
+    ):
+        group_points.virtual_supports_list = [1]
+        # frame 2 is the virtual support frame: merge changes it to frame 1
+        merged = group_points.change_frame(
+            frame_index=2
+        ).merge_virtual_supports()
+        expected = group_points.change_frame(
+            frame_index=1
+        ).merge_virtual_supports()
+
+        assert merged.current_frame == expected.current_frame
+        for name in ["spans", "supports", "insulators"]:
+            np.testing.assert_allclose(
+                getattr(merged, name).coords,
+                getattr(expected, name).coords,
+            )
