@@ -77,6 +77,7 @@ The method applies a **Monte Carlo** approach:
 2. The full PAPOTO computation is re-run for all draws simultaneously using NumPy vectorization.
 3. Draws where the validity criterion is not satisfied are filtered out.
 4. Statistics are returned for both the valid and non-valid populations.
+5. `uncertainty()` returns the uncertainty of the parameter: **twice the standard deviation of the valid draws** (`2 * std_parameter_valid_values`).
 
 ### Usage
 
@@ -97,7 +98,7 @@ papoto(
 # uncertainty() returns twice the standard deviation of the valid draws.
 # Draws, angle error and seed come from options.measure_uncertainty.papoto
 # (defaults: 1000 draws, angle error of ±0.01 grad, seed 42)
-std = papoto.uncertainty()
+uncertainty = papoto.uncertainty()
 
 # Full statistics are returned by monte_carlo_uncertainty()
 result = papoto.monte_carlo_uncertainty(draw_number=1000, angle_error=0.01, seed=42)
@@ -124,7 +125,7 @@ print(result["number_non_valid_values"])       # draws that failed validity
 | `max_all_values` | Maximum over all draws |
 
 !!! note
-    `measure_method()` (or calling the object directly) must be invoked before `uncertainty()`. A `RuntimeError` is raised otherwise.
+    `measure_method()` (or calling the object directly) must be invoked before `uncertainty()`. A `MeasurementDataNotAvailable` error (a `ValueError`) is raised otherwise.
 
 ### Static uncertainty threshold
 
@@ -143,4 +144,4 @@ papoto.uncertainty()  # 0.02 * papoto.parameter (scalar, or array if the inputs 
 Defaults are defined per class in `options.measure_uncertainty.papoto` and `options.measure_uncertainty.tangential_sighting` (`threshold_value` and `threshold_active`), read when the object is created. Setting a property on an instance overrides the default for that instance.
 
 !!! note
-    Only the uncertainty is bypassed. The parameter and the validity are computed as usual. With the threshold active, `uncertainty()` of `PapotoParameterMeasure` returns the value directly instead of a dictionary of statistics.
+    Only the uncertainty is bypassed. The parameter and the validity are computed as usual. `uncertainty()` of `PapotoParameterMeasure` always returns a number or an array: either `2 * std_parameter_valid_values` (Monte Carlo) or `threshold_value * parameter` (threshold active). Use `monte_carlo_uncertainty()` to get the full dictionary of statistics.
