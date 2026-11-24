@@ -11,6 +11,7 @@ import numpy as np
 _iter = 100
 _xtol = 2e-12
 _rtol = 4 * np.finfo(float).eps
+_GOLDEN_MEAN = 0.5 * (3.0 - np.sqrt(5.0))
 
 __all__ = [
     'newton',
@@ -635,6 +636,96 @@ def brentq(
     )
 
 
+def _prepare_fminbound_args(args, x1, x2, maxfun):
+    if not isinstance(args, tuple):
+        args = (args,)
+    maxfun = int(maxfun)
+    if not (np.isfinite(x1) and np.isfinite(x2)):
+        raise ValueError("Optimization bounds must be finite scalars.")
+    if x1 > x2:
+        raise ValueError("The lower bound exceeds the upper bound.")
+    if maxfun < 1:
+        raise ValueError("maxfun must be >= 1")
+    return args, maxfun
+
+
+def _fminbound_step(
+    a,
+    b,
+    xf,
+    fx,
+    fulc,
+    ffulc,
+    nfc,
+    fnfc,
+    rat,
+    e,
+    xm,
+    tol1,
+    tol2,
+):
+    golden = abs(e) <= tol1
+    if not golden:
+        r = (xf - nfc) * (fx - ffulc)
+        q = (xf - fulc) * (fx - fnfc)
+        p = (xf - fulc) * q - (xf - nfc) * r
+        q = 2.0 * (q - r)
+        if q > 0.0:
+            p = -p
+        q = abs(q)
+        r = e
+        e = rat
+
+        if abs(p) < abs(0.5 * q * r) and p > q * (a - xf) and p < q * (b - xf):
+            rat = p / q
+            x = xf + rat
+            if ((x - a) < tol2) or ((b - x) < tol2):
+                si = np.sign(xm - xf) + ((xm - xf) == 0)
+                rat = tol1 * si
+        else:
+            golden = True
+
+    if golden:
+        e = a - xf if xf >= xm else b - xf
+        rat = _GOLDEN_MEAN * e
+
+    si = np.sign(rat) + (rat == 0)
+    x = xf + si * max(abs(rat), tol1)
+    return x, rat, e
+
+
+def _fminbound_result(xf, fx, fu, flag, num, disp, full_output):
+    if np.isnan(xf) or np.isnan(fx) or np.isnan(fu):
+        flag = 2
+
+    if disp and flag == 1:
+        warnings.warn(
+            "Maximum number of function calls reached in fminbound",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    elif disp and flag == 2:
+        warnings.warn(
+            "NaN result encountered in fminbound",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+    if full_output:
+        return float(xf), fx, flag, num
+    return float(xf)
+
+
+def _update_fminbound_nonbest(a, b, xf, fulc, ffulc, nfc, fnfc, x, fu):
+    a, b = (x, b) if x < xf else (a, x)
+    if (fu <= fnfc) or (nfc == xf):
+        fulc, ffulc = nfc, fnfc
+        nfc, fnfc = x, fu
+    elif (fu <= ffulc) or (fulc == xf) or (fulc == nfc):
+        fulc, ffulc = x, fu
+    return a, b, fulc, ffulc, nfc, fnfc
+
+
 def fminbound(
     func,
     x1,
@@ -682,21 +773,12 @@ def fminbound(
     numfunc : int
         Present if ``full_output`` is True. Number of function calls.
     """
-    if not isinstance(args, tuple):
-        args = (args,)
-    maxfun = int(maxfun)
-    if not (np.isfinite(x1) and np.isfinite(x2)):
-        raise ValueError("Optimization bounds must be finite scalars.")
-    if x1 > x2:
-        raise ValueError("The lower bound exceeds the upper bound.")
-    if maxfun < 1:
-        raise ValueError("maxfun must be >= 1")
+    args, maxfun = _prepare_fminbound_args(args, x1, x2, maxfun)
 
     flag = 0
     sqrt_eps = np.sqrt(2.2e-16)
-    golden_mean = 0.5 * (3.0 - np.sqrt(5.0))
     a, b = float(x1), float(x2)
-    fulc = a + golden_mean * (b - a)
+    fulc = a + _GOLDEN_MEAN * (b - a)
     nfc, xf = fulc, fulc
     rat = e = 0.0
     x = xf
@@ -713,85 +795,36 @@ def fminbound(
         if num >= maxfun:
             flag = 1
             break
-        golden = True
-        # Check for parabolic fit
-        if abs(e) > tol1:
-            golden = False
-            r = (xf - nfc) * (fx - ffulc)
-            q = (xf - fulc) * (fx - fnfc)
-            p = (xf - fulc) * q - (xf - nfc) * r
-            q = 2.0 * (q - r)
-            if q > 0.0:
-                p = -p
-            q = abs(q)
-            r = e
-            e = rat
-
-            # Check for acceptability of parabola
-            if (
-                abs(p) < abs(0.5 * q * r)
-                and p > q * (a - xf)
-                and p < q * (b - xf)
-            ):
-                rat = (p + 0.0) / q
-                x = xf + rat
-                if ((x - a) < tol2) or ((b - x) < tol2):
-                    si = np.sign(xm - xf) + ((xm - xf) == 0)
-                    rat = tol1 * si
-            else:
-                golden = True
-
-        if golden:
-            if xf >= xm:
-                e = a - xf
-            else:
-                e = b - xf
-            rat = golden_mean * e
-
-        si = np.sign(rat) + (rat == 0)
-        x = xf + si * max(abs(rat), tol1)
+        x, rat, e = _fminbound_step(
+            a,
+            b,
+            xf,
+            fx,
+            fulc,
+            ffulc,
+            nfc,
+            fnfc,
+            rat,
+            e,
+            xm,
+            tol1,
+            tol2,
+        )
         fu = float(func(x, *args))
         num += 1
 
         if fu <= fx:
-            if x >= xf:
-                a = xf
-            else:
-                b = xf
+            a, b = (xf, b) if x >= xf else (a, xf)
             fulc, ffulc = nfc, fnfc
             nfc, fnfc = xf, fx
             xf, fx = x, fu
         else:
-            if x < xf:
-                a = x
-            else:
-                b = x
-            if (fu <= fnfc) or (nfc == xf):
-                fulc, ffulc = nfc, fnfc
-                nfc, fnfc = x, fu
-            elif (fu <= ffulc) or (fulc == xf) or (fulc == nfc):
-                fulc, ffulc = x, fu
+            a, b, fulc, ffulc, nfc, fnfc = _update_fminbound_nonbest(
+                a, b, xf, fulc, ffulc, nfc, fnfc, x, fu
+            )
 
         xm = 0.5 * (a + b)
         tol1 = sqrt_eps * abs(xf) + xtol / 3.0
         tol2 = 2.0 * tol1
 
-    if np.isnan(xf) or np.isnan(fx) or np.isnan(fu):
-        flag = 2
-
-    if disp and flag == 1:
-        warnings.warn(
-            "Maximum number of function calls reached in fminbound",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-    elif disp and flag == 2:
-        warnings.warn(
-            "NaN result encountered in fminbound",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-
-    if full_output:
-        return float(xf), fx, flag, num
-    return float(xf)
+    return _fminbound_result(xf, fx, fu, flag, num, disp, full_output)
