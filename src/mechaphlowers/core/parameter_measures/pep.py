@@ -107,9 +107,6 @@ def _compute_parameter_from_one_point(
     # We assume there is so little wind that the cable frame
     # is only a span_length translation away from the span frame.
 
-    # Convention: x, z are coordinates in the span frame;
-    # _x, _z are coordinates in the cable frame
-
     def z(x, parameter: float) -> float:
         # Compute the coordinates of the left hanging point
         # in the cable frame, in order to switch between span and cable frames.
