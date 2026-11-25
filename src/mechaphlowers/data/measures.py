@@ -472,6 +472,23 @@ class PapotoParameterMeasure(ParameterMeasure):
 class PepParameterMeasure(ParameterMeasure):
     validity_criteria = 0.005
 
+    def __init__(
+        self,
+        threshold_value: float | None = None,
+        threshold_active: bool | None = None,
+    ) -> None:
+        if threshold_active is None:
+            self._threshold_active = (
+                cfg.measure_uncertainty.pep.threshold_active
+            )
+        else:
+            self._threshold_active = threshold_active
+
+        if threshold_value is None:
+            self._threshold_value = cfg.measure_uncertainty.pep.threshold_value
+        else:
+            self._threshold_value = threshold_value
+
     def measure_method(
         self,
         span_length: float,

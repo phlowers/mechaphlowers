@@ -249,6 +249,17 @@ class PapotoMeasureConfig(ParameterMeasureConfig):
 
 
 @dataclass
+class PepMeasureConfig:
+    threshold_active: bool = False
+    threshold_value: float = 0.01
+    # Parameter calculus using PEP method can only be precise if the measured point
+    # isn't too close to the supports, that's why we raise a UserWarning if the
+    # horizontal distance to the hanging points is smaller than
+    # span_length * forbidden_zone_percentage.
+    forbidden_zone_percentage: float = 0.1
+
+
+@dataclass
 class TangentialSightingMeasureConfig(ParameterMeasureConfig):
     """Static uncertainty settings of tangential sighting measures."""
 
@@ -266,14 +277,10 @@ class MeasureUncertaintyConfig:
     max_accepted_uncertainty: float = 0.01
     # Class-specific static uncertainty settings.
     papoto: PapotoMeasureConfig = field(default_factory=PapotoMeasureConfig)
+    pep: PepMeasureConfig = field(default_factory=PepMeasureConfig)
     tangential_sighting: TangentialSightingMeasureConfig = field(
         default_factory=TangentialSightingMeasureConfig
     )
-
-
-@dataclass
-class PepParameterConfig:
-    forbidden_zone_percentage: float = 0.1
 
 
 @dataclass
@@ -296,7 +303,6 @@ class Config:
         self._input_units = InputUnitsConfig()
         self._data_config = DataConfig()
         self._measure_uncertainty = MeasureUncertaintyConfig()
-        self._pep_parameter = PepParameterConfig()
 
     @property
     def ground(self) -> GroundConfig:
@@ -346,11 +352,6 @@ class Config:
     def measure_uncertainty(self) -> MeasureUncertaintyConfig:
         """Measure uncertainty configuration property."""
         return self._measure_uncertainty
-
-    @property
-    def pep_parameter(self) -> PepParameterConfig:
-        """Configuration property for parameter measure using the PEP method."""
-        return self._pep_parameter
 
     class OptionError(Exception):
         """Exception raised when an option is not available."""

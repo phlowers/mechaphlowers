@@ -84,8 +84,7 @@ def _check_x_is_inside_span_and_not_too_close_to_supports(span_length, *args):
                 "Measured point must be inside of span."
                 f" Got {x=} for point n°{i}"
             )
-
-    forbidden_zone = options.pep_parameter.forbidden_zone_percentage
+    forbidden_zone = options.measure_uncertainty.pep.forbidden_zone_percentage
     for i, x in enumerate(args):
         if (
             not span_length * forbidden_zone
