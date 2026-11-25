@@ -252,6 +252,7 @@ class PapotoMeasureConfig(ParameterMeasureConfig):
 class PepMeasureConfig:
     threshold_active: bool = False
     threshold_value: float = 0.01
+    validity_criteria: float = 0.005
     # Parameter calculus using PEP method can only be precise if the measured point
     # isn't too close to the supports, that's why we raise a UserWarning if the
     # horizontal distance to the hanging points is smaller than
