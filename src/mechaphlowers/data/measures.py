@@ -248,7 +248,7 @@ class PapotoParameterMeasure(ParameterMeasure):
         """Estimate uncertainty on the PAPOTO parameter using Monte Carlo method.
 
         Args:
-            draw_number (int): float of Monte Carlo random draws. Defaults to 1000.
+            draw_number (int): Number of Monte Carlo random draws. Defaults to 1000.
             angle_error (float): Magnitude of angle measurement error (uniform in
                 [-angle_error, +angle_error]). Defaults to 0.01.
 
