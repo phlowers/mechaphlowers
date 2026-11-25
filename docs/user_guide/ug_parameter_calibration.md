@@ -93,9 +93,14 @@ papoto(
     H3=97.15, V3=87.93,
 )
 
-# Then estimate the uncertainty using 1000 Monte Carlo draws
-# with an angle error of ±0.01 grad
-result = papoto.uncertainty(draw_number=1000, angle_error=0.01)
+# Then estimate the uncertainty with the Monte Carlo method.
+# uncertainty() returns twice the standard deviation of the valid draws.
+# Draws, angle error and seed come from options.measure_uncertainty.papoto
+# (defaults: 1000 draws, angle error of ±0.01 grad, seed 42)
+std = papoto.uncertainty()
+
+# Full statistics are returned by monte_carlo_uncertainty()
+result = papoto.monte_carlo_uncertainty(draw_number=1000, angle_error=0.01, seed=42)
 
 print(result["mean_parameter_valid_values"])   # mean parameter over valid draws
 print(result["std_parameter_valid_values"])    # standard deviation
@@ -120,3 +125,22 @@ print(result["number_non_valid_values"])       # draws that failed validity
 
 !!! note
     `measure_method()` (or calling the object directly) must be invoked before `uncertainty()`. A `RuntimeError` is raised otherwise.
+
+### Static uncertainty threshold
+
+Instead of running the uncertainty calculation, you can use a static uncertainty, expressed as a fraction of the parameter. This is available on both `PapotoParameterMeasure` (replaces the Monte Carlo) and `TangentialSightingParameterMeasure` (replaces the GUM calculation).
+
+- `threshold_active`: if `True`, `uncertainty()` skips the calculation and returns `threshold_value * parameter`. Default: `False`.
+- `threshold_value`: relative uncertainty (`0.01` means 1% of the parameter). Default: `0.01`.
+
+```python
+papoto.threshold_active = True
+papoto.threshold_value = 0.02
+
+papoto.uncertainty()  # 0.02 * papoto.parameter (scalar, or array if the inputs are arrays)
+```
+
+Defaults are defined per class in `options.measure_uncertainty.papoto` and `options.measure_uncertainty.tangential_sighting` (`threshold_value` and `threshold_active`), read when the object is created. Setting a property on an instance overrides the default for that instance.
+
+!!! note
+    Only the uncertainty is bypassed. The parameter and the validity are computed as usual. With the threshold active, `uncertainty()` of `PapotoParameterMeasure` returns the value directly instead of a dictionary of statistics.

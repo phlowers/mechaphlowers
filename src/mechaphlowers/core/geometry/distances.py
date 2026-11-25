@@ -88,6 +88,35 @@ def get_projection_points(
 
 
 class DistanceResult:
+    """Store a 3D point-to-point distance and its plane projections.
+
+    Attributes:
+        point_base: Base point as a 3D NumPy array.
+        point_target: Target point as a 3D NumPy array.
+        distance_3d: Distance between the two points in 3D.
+        signed_distance_projection_u: Signed component along ``u_plane``.
+        signed_distance_projection_v: Signed component along ``v_plane``.
+        u_plane: First basis vector of the plane.
+        v_plane: Second basis vector of the plane.
+        distance_projection_u: Absolute value of
+            ``signed_distance_projection_u``.
+        distance_projection_v: Absolute value of
+            ``signed_distance_projection_v``.
+
+    Methods:
+        __str__(): Format the points, distances, and plane vectors as text.
+        __repr__(): Return a representation containing the formatted result.
+        projection_points(origin_point): Return the points reached from
+            ``origin_point`` by applying the signed ``u`` and ``v`` components.
+        compute_new_frame(translation_vector, angle_to_project): Translate and
+            rotate this result in place, then return it.
+        generate_with_reversed_y_axis(): Return a deep copy with the y
+            components of its points and plane vectors negated.
+
+    The seven constructor arguments are the base and target points, plane basis
+    vectors, 3D distance, and signed projection components.
+    """
+
     def __init__(
         self,
         point_base: np.ndarray,

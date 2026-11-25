@@ -1043,6 +1043,46 @@ def test_reset_virtual_support_restores_data_shape(
     assert len(applied.data) == 4
 
 
+def test_virtual_support_v_chain() -> None:
+    section_array = SectionArray(
+        pd.DataFrame(
+            {
+                "name": ["support 1", "2", "three", "support 4"],
+                "suspension": [False, True, True, False],
+                "conductor_attachment_altitude": [30, 30, 30, 30],
+                "crossarm_length": [0, 0, 0, 0],
+                "line_angle": [0, 10, 20, 0],
+                "insulator_length": [3, 3, 3, 3],
+                "span_length": [100, 100, 100, np.nan],
+                "insulator_mass": [100.0, 50.0, 50.0, 100.0],
+                "v_chain": [False, True, False, False],
+            }
+        ),
+        sagging_parameter=2_000,
+        sagging_temperature=15,
+    )
+    section_array.add_units({"line_angle": "deg"})
+    manip = Manipulation(section_array)
+    manip.set_virtual_support(
+        {
+            1: {
+                "x": 50.0,
+                "y": 50.0,
+                "z": 0.0,
+                "insulator_length": 3.0,
+                "insulator_mass": 50.0,
+                "hanging_cable_point_from_left_support": 50.0,
+            }
+        }
+    )
+    new_section_array = manip.from_section_array(section_array)
+
+    np.testing.assert_allclose(
+        new_section_array.data["v_chain"].to_numpy(),
+        np.array([False, True, False, False, False]),
+    )
+
+
 # ── apply preserves original ──────────────────────────────────────────────
 
 
@@ -1321,3 +1361,23 @@ def test_compute_shifted_L_ref_no_shifting(
     initial_L_ref = np.array([500.0, 300.0, 400.0])
     result = manipulation.compute_shifted_L_ref(initial_L_ref)
     np.testing.assert_array_equal(result, initial_L_ref)
+
+
+@pytest.mark.xfail(
+    reason="Shift is always put on the left sub-span of a split span, even "
+    "when the shifted support is the right end of that span",
+    strict=True,
+)
+def test_compute_shifted_L_ref_virtual_support_on_span_next_to_shifted_support(
+    manipulation: Manipulation,
+) -> None:
+    # Span 1 (supports 1 -> 2) is split into two sub-spans
+    manipulation.set_virtual_support({1: _virtual_support(100.0)})
+    # Expanded spans: 0, 1 (left sub-span), 1 (right sub-span), 2
+    initial_L_ref = np.array([500.0, 100.0, 200.0, 400.0])
+
+    # Support 2 is the right end of span 1: the extra length must go on the
+    # right sub-span, next to support 2. Span 2 loses 1m.
+    manipulation.modify_cable(shift_support={2: 1.0})
+    shifted = manipulation.compute_shifted_L_ref(initial_L_ref)
+    np.testing.assert_allclose(shifted, np.array([500.0, 100.0, 201.0, 399.0]))

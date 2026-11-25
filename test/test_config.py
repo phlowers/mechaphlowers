@@ -7,8 +7,9 @@
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go  # type: ignore[import-untyped]
+import pytest
 
-from mechaphlowers.config import options
+from mechaphlowers.config import BandedJacobianConfig, options
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.plotting.plot import PlotEngine
 from test.conftest import show_figures
@@ -158,3 +159,14 @@ def test_input_unit__arrays() -> None:
     assert section_array.input_units["line_angle"] == "rad"
     options.input_units.cable_array["diameter"] = original_diameter_unit
     options.input_units.section_array["line_angle"] = original_angle_unit
+
+
+@pytest.mark.parametrize(
+    "name, value", [("node_band_size", 2), ("load_band_size", 0)]
+)
+def test_banded_jacobian_band_size_below_minimum(name, value) -> None:
+    banded_config = options.solver.acceleration.banded_jacobian
+    with pytest.raises(ValueError):
+        setattr(banded_config, name, value)
+    with pytest.raises(ValueError):
+        BandedJacobianConfig(**{name: value})
