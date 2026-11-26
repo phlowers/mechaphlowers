@@ -224,6 +224,40 @@ The adjustment of the angle $\alpha_R$ using the bisection method is done as fol
 - Step 2: $\alpha_R = \frac{\alpha_R ± (pi - \alpha)}{2^3}$  
 - And so on...
 
+### PEP method
+
+![parameter_measure_pep](./assets/parameter_measure_pep.svg "Diagram of the input data for PEP method")
+
+Similar to the other two methods, we use a catenary equation for the cable.
+The measurements are only valid if there is little to no wind. We can then assume the cable lies in a vertical plane (or
+almost vertical).
+
+Similar to the PAPOTO method, a measuring device such as a total station is used to measure the elevation difference
+between left and right hanging points and the span length. Then, the coordinates $(x_i, z_i)$ (in the span frame) of 3
+distinct
+points on the cable are measured using a sighting device. For this method to yield a meaningful and precise result, the
+measured points must be near the lowest point of the cable.
+
+Then, a parameter is computed from the coordinates of each point. The 3 parameters are then compared for consistency.
+
+To compute each parameter, following function is solved for zero:
+
+$$
+f (p) = Z (X_i (p), p) - Z_i (p)
+$$
+
+Notations:
+
+- $p$ is the cable parameter.
+- $(X, Z)$ are coordinates in the cable frame and $(x, z)$ are coordinates in the span frame.
+  For PEP inputs, the origin is the left hanging point: $x$ increases toward the right hanging point and $z$ increases
+  upward. The diagram's “X Visée” and “Y Visée” labels correspond to $x_i$ and $z_i$, respectively; points below the
+  left hanging point have negative $z_i$.
+- $Z (X, p)$ is the catenary formula
+- $(X_i, Z_i)$ are coordinates of the measured points. They depend on the parameter $p$ because it is needed to switch
+  between cable and span frames.
+
+See [this page](ug_cable_model.md#catenary-model) for more information on the catenary model.
 
 ### Tangent aiming
 
