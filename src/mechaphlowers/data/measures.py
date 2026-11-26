@@ -316,10 +316,11 @@ class PapotoParameterMeasure(ParameterMeasure):
         If `threshold_active` is True, `threshold_value * parameter` is returned
         (scalar or array like the parameter). Otherwise, the uncertainty is estimated
         with `monte_carlo_uncertainty()` using the `options.measure_uncertainty.papoto`
-        settings.
+        settings, and is twice the standard deviation of the valid draws
+        (`2 * std_parameter_valid_values`).
 
         Returns:
-            dict | np.ndarray | Number: Dictionary with statistics over valid and non-valid draws,
+            np.ndarray | float: Twice the standard deviation of the valid draws,
                 or the static uncertainty if `threshold_active` is True.
 
         Raises:
