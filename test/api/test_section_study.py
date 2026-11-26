@@ -12,6 +12,7 @@ from plotly import graph_objects as go
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.models.balance.engine import BalanceEngine
 from mechaphlowers.core.models.estimation import BrentMethod
+from mechaphlowers.data.units import Q_
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import (
     BalanceEngineWarning,
@@ -1371,7 +1372,7 @@ class TestSectionVirtualSupportsGraph:
                     "suspension": [False, True, True, False],
                     "conductor_attachment_altitude": [30, 50, 60, 65],
                     "crossarm_length": [0, 0, 0, 0],
-                    "line_angle": [0, 0, 0, 0],
+                    "line_angle": [0, 10, 5, 0],
                     "insulator_length": [3, 3, 3, 3],
                     "span_length": [500, 500, 500, np.nan],
                     "insulator_mass": [1000, 500, 500, 1000],
@@ -1380,7 +1381,7 @@ class TestSectionVirtualSupportsGraph:
             sagging_parameter=2000,
             sagging_temperature=15,
         )
-        section_array.add_units({"line_angle": "grad"})
+        section_array.add_units({"line_angle": "deg"})
         return SectionStudy(
             cable_array=cable_array_AM600, section_array=section_array
         )
@@ -1411,35 +1412,69 @@ class TestSectionVirtualSupportsGraph:
         study.solve_adjustment()
         study.solve_change_state(new_temperature=15.0)
         group_points = study.position_engine.get_group_points()
-        assert (
-            len(group_points.all_points_virtual_separated()["spans"].coords)
-            == 3
+        new_group_points = group_points.merge_virtual_supports()
+        assert len(new_group_points.spans.coords) == 3  # type: ignore[union-attr]
+        assert len(new_group_points.insulators.coords) == 4  # type: ignore[union-attr]
+        assert len(new_group_points.supports.coords) == 4  # type: ignore[union-attr]
+        assert len(new_group_points.virtual_insulators.coords) == 2  # type: ignore[union-attr]
+        assert len(new_group_points.virtual_supports.coords) == 2  # type: ignore[union-attr]
+
+    def test_virtual_support_group_points_change_frame(
+        self, study: SectionStudy
+    ):
+        study.solve_adjustment()
+        study.set_virtual_support(
+            {
+                1: {
+                    "x": 100.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                },
+                2: {
+                    "x": 100.0,
+                    "y": 0.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                },
+            }
         )
-        assert (
-            len(
-                group_points.all_points_virtual_separated()[
-                    "insulators"
-                ].coords
-            )
-            == 4
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        group_points = study.position_engine.get_group_points()
+        new_group_points_4 = group_points.change_frame(4)
+        new_group_points_merged_4 = new_group_points_4.merge_virtual_supports()
+        assert new_group_points_merged_4.current_frame == 2
+
+        new_group_points_3 = group_points.change_frame(3)
+        new_group_points_merged_3 = new_group_points_3.merge_virtual_supports()
+        assert new_group_points_merged_3.current_frame == 2
+
+    def test_virtual_support_group_points_line_angle(
+        self, study: SectionStudy
+    ):
+        study.solve_adjustment()
+        study.set_virtual_support(
+            {
+                1: {
+                    "x": 100.0,
+                    "y": 10.0,
+                    "z": 55.0,
+                    "insulator_length": 3.0,
+                    "insulator_mass": 500.0,
+                    "hanging_cable_point_from_left_support": 100.0,
+                }
+            }
         )
-        assert (
-            len(group_points.all_points_virtual_separated()["supports"].coords)
-            == 4
-        )
-        assert (
-            len(
-                group_points.all_points_virtual_separated()[
-                    "virtual_insulators"
-                ].coords
-            )
-            == 2
-        )
-        assert (
-            len(
-                group_points.all_points_virtual_separated()[
-                    "virtual_supports"
-                ].coords
-            )
-            == 2
+        study.solve_adjustment()
+        study.solve_change_state(new_temperature=15.0)
+        group_points = study.position_engine.get_group_points()
+        new_group_points = group_points.merge_virtual_supports()
+        expected_line_angle = Q_(np.array([0, 10, 5, 0]), "deg").to("rad").m
+        np.testing.assert_almost_equal(
+            new_group_points.line_angle, expected_line_angle
         )

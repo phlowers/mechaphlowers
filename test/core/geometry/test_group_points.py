@@ -14,6 +14,7 @@ from mechaphlowers.core.geometry.distances import DistanceResult
 from mechaphlowers.core.geometry.group_points import GroupPoints
 from mechaphlowers.core.geometry.points import Points, SparsePoints
 from mechaphlowers.entities.arrays import ObstacleArray
+from mechaphlowers.entities.errors import GroupPointsWarning
 
 
 @pytest.fixture
@@ -416,3 +417,85 @@ class TestVirtualSupports:
         assert first_point in spans.coords[1].tolist()
         assert middle_point in spans.coords[1].tolist()
         assert last_point in spans.coords[1].tolist()
+
+    def test_virtual_support_copy(self, group_points: GroupPoints):
+        group_points.virtual_supports_list = [1]
+        new_group_points = group_points.merge_virtual_supports()
+        spans = new_group_points.spans
+        assert len(spans.coords) == 2  # type: ignore[union-attr]
+        assert len(new_group_points.supports.coords) == 3  # type: ignore[union-attr]
+        assert len(new_group_points.insulators.coords) == 3  # type: ignore[union-attr]
+        assert len(new_group_points.virtual_supports.coords) == 1  # type: ignore[union-attr]
+        assert len(new_group_points.virtual_insulators.coords) == 1  # type: ignore[union-attr]
+        assert len(new_group_points.line_angle) == 3  # type: ignore[union-attr]
+        first_point = [500.0, 10.0, 100.0]
+        middle_point = [1000.0, 10.0, 50.0]
+        last_point = [1497.02812657, 10.0, 49.59016064]
+
+        assert first_point in spans.coords[1].tolist()  # type: ignore[union-attr]
+        assert middle_point in spans.coords[1].tolist()  # type: ignore[union-attr]
+        assert last_point in spans.coords[1].tolist()  # type: ignore[union-attr]
+
+    def test_virtual_support_change_frame(self, group_points: GroupPoints):
+        group_points.virtual_supports_list = [1]
+        new_group_points = group_points.merge_virtual_supports()
+        new_group_points = new_group_points.change_frame(frame_index=2)
+        expected_third_support = np.array(
+            [[0.0, 0.0, 20.0], [0.0, 0.0, 50.0], [0.0, 10.0, 50.0]]
+        )
+        expected_virtual_support = np.array(
+            [[[-500.0, 0.0, 20.0], [-500.0, 0.0, 53.0], [-500.0, 10.0, 53.0]]]
+        )
+        expected_virtual_insulator = np.array(
+            [[[-500.0, 10.0, 53.0], [-500.0, 10.0, 50.0]]]
+        )
+
+        # test that change frame is done correctly
+        np.testing.assert_array_equal(
+            new_group_points.supports.coords[2],  # type: ignore[union-attr]
+            expected_third_support,
+        )
+        np.testing.assert_array_equal(
+            new_group_points.virtual_insulators.coords,  # type: ignore[union-attr]
+            expected_virtual_insulator,
+        )
+        np.testing.assert_array_equal(
+            new_group_points.virtual_supports.coords,  # type: ignore[union-attr]
+            expected_virtual_support,
+        )
+
+    def test_virtual_support_successive_calls(self, group_points: GroupPoints):
+        group_points.virtual_supports_list = [1]
+        new_group_points = group_points.merge_virtual_supports()
+        with pytest.warns(GroupPointsWarning):
+            new_group_points_0 = new_group_points.merge_virtual_supports()
+
+        np.testing.assert_array_equal(
+            new_group_points_0.spans.coords,  # type: ignore[union-attr]
+            new_group_points.spans.coords,  # type: ignore[union-attr]
+        )
+
+    def test_virtual_support_frame_indices(self, group_points: GroupPoints):
+        group_points.virtual_supports_list = [1]
+        new_group_points = group_points.change_frame(frame_index=2)
+        new_group_points = new_group_points.merge_virtual_supports()
+        assert new_group_points.current_frame == 1
+
+    def test_virtual_support_merge_from_vs_frame_is_consistent(
+        self, group_points: GroupPoints
+    ):
+        group_points.virtual_supports_list = [1]
+        # frame 2 is the virtual support frame: merge changes it to frame 1
+        merged = group_points.change_frame(
+            frame_index=2
+        ).merge_virtual_supports()
+        expected = group_points.change_frame(
+            frame_index=1
+        ).merge_virtual_supports()
+
+        assert merged.current_frame == expected.current_frame
+        for name in ["spans", "supports", "insulators"]:
+            np.testing.assert_allclose(
+                getattr(merged, name).coords,
+                getattr(expected, name).coords,
+            )

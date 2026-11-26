@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -17,6 +18,7 @@ from mechaphlowers.core.geometry.points import (
     SparsePoints,
     compute_new_frame,
 )
+from mechaphlowers.entities.errors import GroupPointsWarning
 
 
 class GroupPoints:
@@ -43,6 +45,10 @@ class GroupPoints:
         self.virtual_supports_list = (
             virtual_supports_list if virtual_supports_list is not None else []
         )
+        # indicates if merge_virtual_supports already has been run before
+        self._has_vs_merged = False
+        self.virtual_supports: Points | None = None
+        self.virtual_insulators: Points | None = None
 
     @property
     def all_points(self) -> dict[str, PointsT]:
@@ -55,6 +61,8 @@ class GroupPoints:
             "insulators": self.insulators,
             "obstacles": self.obstacles,
             "additional_points": self.additional_points,
+            "virtual_supports": self.virtual_supports,
+            "virtual_insulators": self.virtual_insulators,
         }
         """
         result_dict = {}
@@ -64,6 +72,8 @@ class GroupPoints:
             "insulators",
             "obstacles",
             "additional_points",
+            "virtual_supports",
+            "virtual_insulators",
         ]
         for name, points in self.__dict__.items():
             if points is not None and name in attributes_points:
@@ -83,6 +93,10 @@ class GroupPoints:
             "virtual_insulators": virtual_insulators,
         }
         """
+        warnings.warn(
+            "Use merge_virtual_supports() instead. Will be deprecated next release.",
+            category=DeprecationWarning,
+        )
         result_dict = deepcopy(self.all_points)  # type: ignore[arg-type]
         if len(self.virtual_supports_list) > 0:
             # careful to indices
@@ -148,7 +162,106 @@ class GroupPoints:
             z_scale=z_scale,
         )
 
+    def merge_virtual_supports(self) -> GroupPoints:
+        """Returns a new GroupPoints object.
+
+        Spans with virtual supports are considered as only one span.
+
+        Modifies `spans`, `insulators`, `supports`, `line_angle`
+
+        Adds `virtual_insulators` and `virtual_supports` attributes.
+
+        Automatically changes frame if original current_frame is on a virtual_support frame
+        """
+
+        new_group_points = deepcopy(self)
+        if self._has_vs_merged:
+            warnings.warn(
+                "Virtual supports already merged. Did not change Points objects",
+                category=GroupPointsWarning,
+            )
+        elif len(self.virtual_supports_list) > 0:
+            # virtual_supports_array are the indices of the virtual supports BEFORE adding them
+            # true indices are the position of the virtual supports AFTER adding them
+            true_indices_vs = (
+                np.array(sorted(self.virtual_supports_list), dtype=int)
+                + np.array(range(len(self.virtual_supports_list)))
+                + 1
+            )
+            # Changing frame to avoid coordinate miscaculations
+            if self.current_frame in true_indices_vs:
+                new_group_points = new_group_points.change_frame(
+                    frame_index=self.current_frame - 1
+                )
+            spans_coords = new_group_points.spans.coords.copy()  # type: ignore[union-attr]
+            # Spans
+            modified_spans_coords = self._reformat_spans_virtual_supports(
+                spans_coords, true_indices_vs
+            )
+            new_group_points.spans = Points(modified_spans_coords)
+
+            # Supports
+            supports_coords = new_group_points.supports.coords  # type: ignore[union-attr]
+            deleted_supports_coords = np.delete(
+                supports_coords, true_indices_vs, axis=0
+            )
+            new_group_points.supports = Points(deleted_supports_coords)
+
+            # Insulators
+            insulators_coords = new_group_points.insulators.coords  # type: ignore[union-attr]
+            deleted_insulators_coords = np.delete(
+                insulators_coords, true_indices_vs, axis=0
+            )
+            new_group_points.insulators = Points(deleted_insulators_coords)
+
+            # Add virtual supports and insulators
+            virtual_supports_coords = supports_coords[true_indices_vs]
+            new_group_points.virtual_supports = Points(virtual_supports_coords)
+            virtual_insulators_coords = insulators_coords[true_indices_vs]
+            new_group_points.virtual_insulators = Points(
+                virtual_insulators_coords
+            )
+
+            new_group_points.line_angle = np.delete(
+                new_group_points.line_angle, true_indices_vs, axis=0
+            )
+            nb_frame_to_remove = np.sum(
+                true_indices_vs < new_group_points.current_frame
+            )
+            new_group_points.current_frame = (
+                new_group_points.current_frame - nb_frame_to_remove
+            )
+            new_group_points._has_vs_merged = True
+        return new_group_points
+
+    def _reformat_spans_virtual_supports(
+        self, spans_coords: np.ndarray, true_indices_vs: np.ndarray
+    ) -> np.ndarray:
+        """Transform spans coords with virtual supports separating spans, into merged spans coords:
+        spans with virtual supports are considered as 1 span (and not 2)
+        """
+        for span_index in true_indices_vs:
+            extracted_spans = np.take(
+                spans_coords, [span_index - 1, span_index], axis=0
+            )
+            new_span = extracted_spans.reshape(
+                1, extracted_spans.shape[1] * 2, 3
+            )
+            # Take one value every two points, for adjusting array length
+            # The point of the virtual support will always be taken, because this point is duplicated
+            new_span_resized = new_span[0][::2]
+            # But we need the last point because it is the attachement point
+            new_span_resized[-1] = new_span[0][-1]
+            spans_coords[span_index - 1] = new_span_resized
+            # add new span, and remove the useless one
+        modified_spans_coords = np.delete(
+            spans_coords, true_indices_vs, axis=0
+        )
+        return modified_spans_coords
+
     # add inplace argument?
+    # works correctly now, but maybe is overkill to copy each time
+    # is currently a copy because it is technically easier
     def change_frame(self, frame_index=-1) -> GroupPoints:
         """Change frame of all objects: supports, insulators, spans, obstacles and distances.
 
