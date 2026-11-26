@@ -15,7 +15,9 @@ from mechaphlowers.entities.arrays import CableArray, SectionArray
 
 
 class ISpan(ABC):
-    """Abstract base class for cable span models in the cable frame.
+    """Abstract base class for cable span models.
+
+    Unless otherwise specified, the coordinates are expressed in the cable frame.
 
     Because the coordinates are in the cable frame, there is no need to factor in wind or angle,
     so we work under the following simplifying assumptions:
@@ -272,15 +274,15 @@ class ISpan(ABC):
 
     @abstractmethod
     def compute_x_m(self) -> np.ndarray:
-        """Distance between the lowest point of the cable and the left hanging point, projected on the horizontal axis.
+        """Abscissa of the left hanging point in the cable frame.
 
-        In other words: opposite of the abscissa of the left hanging point.
+        This is negative.
         """
 
     def compute_x_n(self) -> np.ndarray:
         """Distance between the lowest point of the cable and the right hanging point, projected on the horizontal axis.
 
-        In other words: abscissa of the right hanging point.
+        In other words: abscissa of the right hanging point in the cable frame.
         """
         a = self.span_length
         return a + self.compute_x_m()

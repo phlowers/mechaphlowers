@@ -5,12 +5,15 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+import logging
+
 import numpy as np
 import pytest
 
 from mechaphlowers.config import options
 from mechaphlowers.data.measures import (
     PapotoParameterMeasure,
+    PepParameterMeasure,
     TangentialSightingParameterMeasure,
     param_calibration,
 )
@@ -870,3 +873,66 @@ def test_tangential_sighting_check_validity__multi_element_array_error() -> (
     )
     with pytest.raises(MechaphlowersValueError, match="scalar"):
         tangential_sighting.check_validity()
+
+
+def test_pep_parameter_measure__ok() -> None:
+    pep = PepParameterMeasure()
+    pep(
+        466.067,
+        -1.560,
+        198.332,
+        -13.288,
+        205.037,
+        -13.444,
+        298.816,
+        -12.879,
+    )
+    np.testing.assert_allclose(
+        pep.parameter,
+        2104,
+        atol=1.0,
+    )
+    np.testing.assert_equal(pep.validity, True)
+    assert pep.relative_error < 0.005
+
+
+def test_pep_parameter_measure__not_valid() -> None:
+    measure_error = 50
+    pep = PepParameterMeasure()
+    pep(
+        span_length=466.067,
+        elevation_difference=-1.560,
+        x1=198.332 + measure_error,
+        z1=-13.288,
+        x2=205.037,
+        z2=-13.444,
+        x3=298.816,
+        z3=-12.879,
+    )
+    np.testing.assert_allclose(
+        pep.parameter,
+        2126,
+        atol=1.0,
+    )
+    assert pep.relative_error > 0.005
+    # Measure deemed not valid because the parameters computed from
+    # each measure are two different.
+    assert not pep.validity
+
+
+def test_pep_parameter_measure__error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    pep = PepParameterMeasure()
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(ConvergenceError):
+            pep(
+                span_length=500,
+                elevation_difference=0,
+                x1=200,
+                z1=-10,
+                x2=250,
+                z2=-5,
+                x3=300,
+                z3=-10,
+            )
