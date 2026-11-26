@@ -29,7 +29,7 @@ Mechaphlowers is part of the [phlowers](https://phlowers.readthedocs.io/en/lates
 
 📏 Field Measurement:
 
-- Span parameter estimation: PAPOTO method implemented
+- Span parameter estimation: PAPOTO and PEP methods implemented
 
 📈 Graphics engine:
 

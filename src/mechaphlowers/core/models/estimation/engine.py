@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import logging
 import warnings
+from contextlib import contextmanager
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Callable, Literal
+from dataclasses import replace
+from typing import TYPE_CHECKING, Any, Callable, Generator, Literal
 
 import numpy as np
 
@@ -21,18 +23,22 @@ from mechaphlowers.core.models.estimation.distance import (
 )
 from mechaphlowers.core.numeric import (
     BrentMethod,
+    BrentMinimizationMethod,
     EstimationResult,
+    MinimizationMethod,
     OptimizationMethod,
 )
 from mechaphlowers.entities.errors import (
     EstimateOnSplitSupportError,
     EstimationWarning,
     InvalidManipulationIndex,
+    SolverError,
 )
 from mechaphlowers.utils import arr
 
 if TYPE_CHECKING:
     from mechaphlowers.api.section_study import SectionStudy
+    from mechaphlowers.core.models.balance.engine import BalanceEngine
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +57,8 @@ class EstimationEngine:
         study: The `SectionStudy` instance (must have been solved via
             `solve_adjustment` beforehand).
         method: The optimization algorithm to use. Defaults to `BrentMethod`.
+        minimizer: The minimization algorithm used by closest-point
+            estimations. Defaults to `BrentMinimizationMethod`.
 
     Examples:
         >>> engine = EstimationEngine(study, method=BrentMethod(tol=0.01))
@@ -71,9 +79,13 @@ class EstimationEngine:
         self,
         study: SectionStudy,
         method: OptimizationMethod | None = None,
+        minimizer: MinimizationMethod | None = None,
     ) -> None:
         self._study = study
         self._method: OptimizationMethod = method or BrentMethod()
+        self._minimizer: MinimizationMethod = (
+            minimizer or BrentMinimizationMethod()
+        )
 
     @property
     def method(self) -> OptimizationMethod:
@@ -83,10 +95,19 @@ class EstimationEngine:
     def method(self, value: OptimizationMethod) -> None:
         self._method = value
 
+    @property
+    def minimizer(self) -> MinimizationMethod:
+        return self._minimizer
+
+    @minimizer.setter
+    def minimizer(self, value: MinimizationMethod) -> None:
+        self._minimizer = value
+
     def estimate(
         self,
         objective: Callable[[float], float],
         bounds: tuple[float, float],
+        tol: float | None = None,
     ) -> EstimationResult:
         """Run the optimization on a generic objective function.
 
@@ -99,10 +120,13 @@ class EstimationEngine:
             objective: Function to zero. Signature: ``(x: float) -> float``.
             bounds: ``(lower, upper)`` search interval.
 
+            tol: Tolerance set on the engine method before the search starts
+                (restored afterwards). If None, the method's own tolerance is used.
         Returns:
             EstimationResult with the solution.
         """
-        return self._method.solve(objective, bounds)
+        with self._set_tolerance(self._method, tol):
+            return self._method.solve(objective, bounds)
 
     def estimate_temperature(
         self,
@@ -113,6 +137,7 @@ class EstimationEngine:
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
         distance_type: DistanceType = "vertical",
+        tol: float | None = None,
     ) -> EstimationResult:
         """Find the cable temperature that yields a target distance to an obstacle.
 
@@ -129,6 +154,8 @@ class EstimationEngine:
                 ``"vertical"`` (signed ``z_cable - z_obstacle``).
                 Defaults to ``"vertical"``.
 
+            tol: Tolerance set on the engine method before the search starts
+                (restored afterwards). If None, the method's own tolerance is used.
         Returns:
             EstimationResult with the temperature value.
         """
@@ -147,13 +174,14 @@ class EstimationEngine:
             target_distance,
             span_index,
         )
-        return self._method.solve(objective, bounds)
+        with self._set_tolerance(self._method, tol):
+            return self._method.solve(objective, bounds)
 
     def estimate_wind(
         self,
         span_index: int,
         obstacle_point: np.ndarray,
-        target_distance: float,
+        target_distance: float | None,
         bounds: tuple[float, float] = (-1000.0, 1000.0),
         new_temperature: float | None = None,
         ice_thickness: float | None = None,
@@ -161,13 +189,22 @@ class EstimationEngine:
             "clockwise", "anticlockwise"
         ] = "anticlockwise",
         distance_type: DistanceType = "distance_3d",
+        tol: float | None = None,
     ) -> EstimationResult:
         """Find the wind pressure that yields a target distance to an obstacle.
+
+        If ``target_distance`` is None, the closest-point mode finds the wind
+        pressure within ``bounds`` that minimizes the distance to the obstacle.
+        It minimizes the distance against wind pressure with the engine
+        ``minimizer``, so it assumes a single local minimum of the distance
+        inside ``bounds``. If the minimum lies on a bound, that bound is
+        returned with ``converged=False``.
 
         Args:
             span_index: Index of the span where the obstacle is located.
             obstacle_point: 3D coordinates of the obstacle point (shape ``(3,)``).
-            target_distance: Desired distance between cable and obstacle (meters).
+            target_distance: Desired distance between cable and obstacle (meters),
+                or None for the closest-point mode described above.
             bounds: Search interval for wind pressure in Pa.
             new_temperature: Fixed temperature in °C (optional).
             ice_thickness: Fixed ice thickness in m (optional).
@@ -179,34 +216,65 @@ class EstimationEngine:
                 ``"distance_3d"`` (unsigned 3D distance),
                 ``"horizontal"`` (signed component along the plane ``u`` axis) or
                 ``"vertical"`` (signed ``z_cable - z_obstacle``).
-                Defaults to ``"distance_3d"``.
+                Defaults to ``"distance_3d"``. In closest-point mode, the
+                absolute value of the selected distance is minimized.
 
+            tol: Tolerance set on the engine method (or minimizer in
+                closest-point mode) before the search starts
+                (restored afterwards). If None, the solver's own tolerance is used.
         Returns:
-            EstimationResult with the wind pressure value.
+            EstimationResult with the wind pressure value. ``extra["distance"]``
+            holds the selected distance at that wind pressure (signed for
+            ``"horizontal"`` and ``"vertical"`` in target mode; absolute value
+            in closest-point mode).
 
         Raises:
             ValueError: If ``wind_direction`` is not "clockwise" or "anticlockwise".
         """
 
-        objective = self._build_distance_objective__climatic_case(
+        fixed_conditions: dict[str, float | None] = {
+            "new_temperature": new_temperature,
+            "ice_thickness": ice_thickness,
+        }
+
+        if target_distance is None:
+            logger.info(
+                "Estimating wind pressure for closest distance to obstacle on span %d",
+                span_index,
+            )
+            return self._estimate_closest_distance__climatic_case(
+                span_index,
+                obstacle_point,
+                "wind_pressure",
+                fixed_conditions,
+                bounds,
+                wind_direction=wind_direction,
+                distance_type=distance_type,
+                tol=tol,
+            )
+
+        distance_at = self._build_climatic_distance_function(
             span_index,
             obstacle_point,
-            target_distance,
             "wind_pressure",
-            {
-                "new_temperature": new_temperature,
-                "ice_thickness": ice_thickness,
-            },
+            fixed_conditions,
             wind_direction=wind_direction,
             distance_type=distance_type,
         )
+
+        def objective(x: float) -> float:
+            return distance_at(x) - target_distance
 
         logger.info(
             "Estimating wind pressure for target distance %.3f m on span %d",
             target_distance,
             span_index,
         )
-        return self._method.solve(objective, bounds)
+        with self._set_tolerance(self._method, tol):
+            result = self._method.solve(objective, bounds)
+        return replace(
+            result, extra={"distance": float(distance_at(result.value))}
+        )
 
     def estimate_load(
         self,
@@ -219,6 +287,7 @@ class EstimationEngine:
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
         distance_type: DistanceType = "distance_3d",
+        tol: float | None = None,
     ) -> EstimationResult:
         """Find the load mass that yields a target distance to an obstacle.
 
@@ -241,6 +310,8 @@ class EstimationEngine:
                 ``"vertical"`` (signed ``z_cable - z_obstacle``).
                 Defaults to ``"distance_3d"``.
 
+            tol: Tolerance set on the engine method before the search starts
+                (restored afterwards). If None, the method's own tolerance is used.
         Returns:
             EstimationResult with the load mass value.
 
@@ -266,7 +337,8 @@ class EstimationEngine:
             target_distance,
             span_index,
         )
-        return self._method.solve(objective, bounds)
+        with self._set_tolerance(self._method, tol):
+            return self._method.solve(objective, bounds)
 
     def estimate_load_relative(
         self,
@@ -277,6 +349,7 @@ class EstimationEngine:
         new_temperature: float | None = None,
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
+        tol: float | None = None,
     ) -> EstimationResult:
         """Find the load mass that yields a target altitude change of the cable.
 
@@ -302,8 +375,11 @@ class EstimationEngine:
             wind_pressure: Fixed wind pressure in Pa (optional).
             ice_thickness: Fixed ice thickness in m (optional).
 
+            tol: Tolerance set on the engine method before the search starts
+                (restored afterwards). If None, the method's own tolerance is used.
         Returns:
-            EstimationResult with the load mass value.
+            EstimationResult with the load mass value. ``extra["x_shift"]``
+            holds ``initial x_cable - final x_cable`` (meters) at the load point.
 
         Raises:
             EstimateOnSplitSupportError: If ``span_index`` is split by a virtual support.
@@ -311,15 +387,17 @@ class EstimationEngine:
 
         # set target state
 
-        objective = self._build_relative_altitude_objective__load_case(
-            span_index,
-            target_distance,
-            load_position_distance,
-            {
-                "new_temperature": new_temperature,
-                "wind_pressure": wind_pressure,
-                "ice_thickness": ice_thickness,
-            },
+        objective, x_shift = (
+            self._build_relative_altitude_objective__load_case(
+                span_index,
+                target_distance,
+                load_position_distance,
+                {
+                    "new_temperature": new_temperature,
+                    "wind_pressure": wind_pressure,
+                    "ice_thickness": ice_thickness,
+                },
+            )
         )
 
         logger.info(
@@ -328,7 +406,11 @@ class EstimationEngine:
             span_index,
         )
 
-        return self._method.solve(objective, bounds)
+        with self._set_tolerance(self._method, tol):
+            result = self._method.solve(objective, bounds)
+        # put the state at the solution before reading the final x
+        objective(result.value)
+        return replace(result, extra={"x_shift": float(x_shift())})
 
     def estimate_rope(
         self,
@@ -342,6 +424,7 @@ class EstimationEngine:
         wind_pressure: float | None = None,
         ice_thickness: float | None = None,
         distance_type: DistanceType = "vertical",
+        tol: float | None = None,
     ) -> EstimationResult:
         """Find the rope length that yields a target distance above an obstacle.
 
@@ -378,6 +461,8 @@ class EstimationEngine:
                 ``"vertical"`` (signed ``z_cable - z_obstacle``).
                 Defaults to ``"vertical"``.
 
+            tol: Tolerance set on the engine method before the search starts
+                (restored afterwards). If None, the method's own tolerance is used.
         Returns:
             EstimationResult with the rope length value.
 
@@ -406,9 +491,28 @@ class EstimationEngine:
             target_vertical_distance,
             span_index,
         )
-        return self._method.solve(objective, bounds)
+        with self._set_tolerance(self._method, tol):
+            return self._method.solve(objective, bounds)
 
     # ── Private helpers ───────────────────────────────────────────────────
+
+    @staticmethod
+    @contextmanager
+    def _set_tolerance(solver: Any, tol: float | None) -> Generator[None]:
+        """Temporarily set ``solver.tol`` before the search starts."""
+        if tol is None:
+            yield
+            return
+        if not hasattr(solver, "tol"):
+            raise ValueError(
+                f"{type(solver).__name__} has no 'tol' attribute: cannot set tolerance"
+            )
+        previous = solver.tol
+        solver.tol = tol
+        try:
+            yield
+        finally:
+            solver.tol = previous
 
     def _build_distance_objective__climatic_case(
         self,
@@ -422,29 +526,103 @@ class EstimationEngine:
         ] = "anticlockwise",
         distance_type: DistanceType = "vertical",
     ) -> Callable[[float], float]:
-        """Build ``f(x) = distance(x) - target`` on a deep copy of the balance engine."""
+        """Build ``f(x) = distance(x) - target`` for the climatic variable."""
+        distance_at = self._build_climatic_distance_function(
+            span_index,
+            obstacle_point,
+            variable_name,
+            fixed_conditions,
+            wind_direction=wind_direction,
+            distance_type=distance_type,
+        )
+
+        def residual(x: float) -> float:
+            return distance_at(x) - target_distance
+
+        return residual
+
+    def _build_distance_objective__load_case(
+        self,
+        span_index: int,
+        obstacle_point: np.ndarray,
+        target_distance: float,
+        load_position_distance: float,
+        fixed_conditions: dict[str, float | None],
+        distance_type: DistanceType = "distance_3d",
+    ) -> Callable[[float], float]:
+        """Build ``f(load_mass) = distance - target`` on a deep copy of the balance engine.
+
+        Manipulations and existing loads are kept; only the load on ``span_index``
+        (index before manipulation) is replaced.
+        """
+        compute_distance = ComputeDistance(distance_type)
+
+        def residual_factory(
+            position_engine: PositionEngine, span_index_after_manip: int
+        ) -> Callable[[], float]:
+            return compute_distance.compute_distance_factory(
+                lambda: position_engine.point_distance(
+                    span_index_after_manip, obstacle_point
+                ),
+                target_distance,
+            )
+
+        return self._build_load_objective(
+            span_index,
+            load_position_distance,
+            fixed_conditions,
+            residual_factory,
+        )
+
+    def _build_climatic_distance_function(
+        self,
+        span_index: int,
+        obstacle_point: np.ndarray,
+        variable_name: str,
+        fixed_conditions: dict[str, float | None],
+        wind_direction: Literal[
+            "clockwise", "anticlockwise"
+        ] = "anticlockwise",
+        distance_type: DistanceType = "vertical",
+    ) -> Callable[[float], float]:
+        """Build ``d(x)``: the selected distance once the climatic case is solved.
+
+        Each call solves the balance engine copy with ``variable_name=x``. The
+        result is signed for ``"horizontal"`` and ``"vertical"``.
+        """
         compute_distance = ComputeDistance(distance_type)
         original_balance_engine = self._study.balance_engine
-        # Drop observers so the study's downstream engines are not copied
-        balance_engine = deepcopy(
-            original_balance_engine,
-            {id(original_balance_engine._observers): []},
-        )
-        position_engine = PositionEngine(balance_engine)
-        residual = compute_distance.compute_distance_factory(
-            lambda: position_engine.point_distance(span_index, obstacle_point),
-            target_distance,
-        )
 
-        def objective(x: float) -> float:
-            balance_engine.solve_change_state(
-                **fixed_conditions,
-                **{variable_name: x},
-                wind_direction=wind_direction,
+        def copy_engines() -> tuple[BalanceEngine, PositionEngine]:
+            # Drop observers so the study's downstream engines are not copied
+            balance_engine = deepcopy(
+                original_balance_engine,
+                {id(original_balance_engine._observers): []},
             )
-            return residual()
+            return balance_engine, PositionEngine(balance_engine)
 
-        return objective
+        balance_engine, position_engine = copy_engines()
+
+        def distance_at(x: float) -> float:
+            # nonlocal allows us to reassign balance_engine and position_engine when executing function several times
+            nonlocal balance_engine, position_engine
+            solve_kwargs: dict[str, Any] = {
+                **fixed_conditions,
+                variable_name: x,
+                "wind_direction": wind_direction,
+            }
+            try:
+                balance_engine.solve_change_state(**solve_kwargs)
+            except SolverError:
+                # A warm start from a distant state can fail: retry on a fresh copy
+                # it can happen in case of high wind variations
+                balance_engine, position_engine = copy_engines()
+                balance_engine.solve_change_state(**solve_kwargs)
+            return compute_distance.select_distance(
+                position_engine.point_distance(span_index, obstacle_point)
+            )
+
+        return distance_at
 
     def _build_vertical_distance_objective__rope_case(
         self,
@@ -512,51 +690,21 @@ class EstimationEngine:
 
         return objective
 
-    def _build_distance_objective__load_case(
-        self,
-        span_index: int,
-        obstacle_point: np.ndarray,
-        target_distance: float,
-        load_position_distance: float,
-        fixed_conditions: dict[str, float | None],
-        distance_type: DistanceType = "distance_3d",
-    ) -> Callable[[float], float]:
-        """Build ``f(load_mass) = distance - target`` on a deep copy of the balance engine.
-
-        Manipulations and existing loads are kept; only the load on ``span_index``
-        (index before manipulation) is replaced.
-        """
-        compute_distance = ComputeDistance(distance_type)
-
-        def residual_factory(
-            position_engine: PositionEngine, span_index_after_manip: int
-        ) -> Callable[[], float]:
-            return compute_distance.compute_distance_factory(
-                lambda: position_engine.point_distance(
-                    span_index_after_manip, obstacle_point
-                ),
-                target_distance,
-            )
-
-        return self._build_load_objective(
-            span_index,
-            load_position_distance,
-            fixed_conditions,
-            residual_factory,
-        )
-
     def _build_relative_altitude_objective__load_case(
         self,
         span_index: int,
         target_distance: float,
         load_position_distance: float,
         fixed_conditions: dict[str, float | None],
-    ) -> Callable[[float], float]:
+    ) -> tuple[Callable[[float], float], Callable[[], float]]:
         """Build ``f(load_mass) = (z(x) - z_initial(x)) - target`` on a deep copy of the balance engine.
 
         ``x`` is ``load_position_distance``. ``z_initial`` is read on the current
         state of the study, before the load and the fixed conditions are applied.
+        Also returns a function giving ``x_initial - x`` of the cable at the load
+        point, for the state of the last objective evaluation.
         """
+        x_shift_getters: list[Callable[[], float]] = []
 
         def residual_factory(
             position_engine: PositionEngine, span_index_after_manip: int
@@ -565,7 +713,7 @@ class EstimationEngine:
                 raise ValueError("No load coordinates available")
             initial_altitude = position_engine.get_loads_coords_group_points()[
                 span_index_after_manip
-            ]
+            ].copy()
 
             def residual() -> float:
                 altitude = position_engine.get_loads_coords_group_points()[
@@ -574,14 +722,22 @@ class EstimationEngine:
                 # take z component
                 return altitude[2] - initial_altitude[2] - target_distance
 
+            def x_shift() -> float:
+                altitude = position_engine.get_loads_coords_group_points()[
+                    span_index_after_manip
+                ]
+                return initial_altitude[0] - altitude[0]
+
+            x_shift_getters.append(x_shift)
             return residual
 
-        return self._build_load_objective(
+        objective = self._build_load_objective(
             span_index,
             load_position_distance,
             fixed_conditions,
             residual_factory,
         )
+        return objective, x_shift_getters[0]
 
     def _build_load_objective(
         self,
@@ -656,3 +812,46 @@ class EstimationEngine:
             return residual()
 
         return objective
+
+    def _estimate_closest_distance__climatic_case(
+        self,
+        span_index: int,
+        obstacle_point: np.ndarray,
+        variable_name: str,
+        fixed_conditions: dict[str, float | None],
+        bounds: tuple[float, float],
+        wind_direction: Literal[
+            "clockwise", "anticlockwise"
+        ] = "anticlockwise",
+        distance_type: DistanceType = "vertical",
+        tol: float | None = None,
+    ) -> EstimationResult:
+        """Find the climatic value giving the closest distance to the obstacle.
+
+        Minimizes ``|d(x)|`` on ``bounds`` with the engine ``minimizer``. If
+        the minimum lies on a bound, that bound is returned, not converged.
+        """
+        distance_at = self._build_climatic_distance_function(
+            span_index,
+            obstacle_point,
+            variable_name,
+            fixed_conditions,
+            wind_direction=wind_direction,
+            distance_type=distance_type,
+        )
+
+        def absolute_distance(x: float) -> float:
+            return abs(distance_at(x))
+
+        with self._set_tolerance(self._minimizer, tol):
+            result = self._minimizer.minimize(absolute_distance, bounds)
+        distance = result.residual
+        if not result.converged and result.value in bounds:
+            logger.warning(
+                "Closest distance to obstacle lies on a bound of %s: returning %s "
+                "with distance %.3f m, not converged.",
+                bounds,
+                result.value,
+                distance,
+            )
+        return replace(result, extra={"distance": distance})

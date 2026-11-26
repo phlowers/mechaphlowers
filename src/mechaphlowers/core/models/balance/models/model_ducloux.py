@@ -13,6 +13,7 @@ from typing import Type
 
 import numpy as np
 import pandas as pd
+from numpy import typing as npt
 
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.interfaces import (
@@ -774,6 +775,7 @@ class Nodes:
         load_weight: np.ndarray,
         load_position: np.ndarray,
         counterweight: np.ndarray,
+        v_chain: npt.NDArray[np.bool],
         bundle_number: int,  # np.ndarray?
     ):
         # TODO: docstring of this whole class
@@ -786,7 +788,7 @@ class Nodes:
             else "suspension"
             for i in range(len(insulator_weight))
         ]
-        self.masks = Masks(nodes_type, insulator_length)
+        self.masks = Masks(nodes_type, insulator_length, v_chain)
         self.init_coordinates(initial_attach_alt, insulator_length)
 
         self.insulator_length = insulator_length
@@ -967,6 +969,7 @@ class Nodes:
         # Force of the cable. Applied at attachement point between cable and chain.
         Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
         force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
+        # add counterweight here (full length chain)
         force_counterweight = np.vstack(
             (F_zeros, F_zeros, self.signed_counterweight)
         ).T
@@ -975,7 +978,8 @@ class Nodes:
         lever_cable = np.array([self.dx, self.dy, self.dz]).T
         M_cable = np.cross(lever_cable, force_cable + force_counterweight)
 
-        # add counterweight here (full length chain)
+        # if v chain: add vertical effort only to Mx
+        v_chain_effort = np.where(self.masks.v_chain, 1_000_000_000, 0)
 
         # Weight of the chain. Applied on center of gravity of the chain
         force_chain_weight = np.vstack(
@@ -986,7 +990,7 @@ class Nodes:
 
         M = M_cable + M_chain_weight
 
-        Mx = M[:, 0]
+        Mx = M[:, 0] + v_chain_effort * self.dy
         My = M[:, 1]
         Mz = M[:, 2]
         self.Mx = Mx
@@ -1041,6 +1045,7 @@ def nodes_builder(section_array: SectionArray, span_loads: SpanLoads) -> Nodes:
         else np.zeros(insulator_length.shape)
     )
 
+    v_chain = np.asarray(section_array.data.v_chain.to_numpy(), dtype=bool)
     bundle_number = section_array.bundle_number
 
     return Nodes(
@@ -1053,6 +1058,7 @@ def nodes_builder(section_array: SectionArray, span_loads: SpanLoads) -> Nodes:
         load_weight,
         load_position,
         counterweight,
+        v_chain,
         bundle_number,
     )
 

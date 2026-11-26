@@ -54,6 +54,7 @@ class SectionArrayInput(pa.DataFrameModel):
     sagging_temperature: pdt.Series[float] | None = pa.Field(
         nullable=True, coerce=True
     )
+    v_chain: pdt.Series[bool] | None
 
     @pa.dataframe_check(
         description="""Each row in the dataframe contains information about a support
