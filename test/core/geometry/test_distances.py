@@ -322,6 +322,41 @@ class TestMinDistances:
         with pytest.raises(ValueError):
             engine.min_distances({}, {}, step=1.0, refine=True, xtol=-1.0)
 
+    @pytest.mark.parametrize(
+        "obstacle",
+        [
+            # zero-length segment first, then the intersecting one
+            [[50, -0.1, 10], [50, -0.1, 10], [50, 2.1, 10]],
+            # zero-length segment after the intersecting one
+            [[50, 2.1, 10], [50, -0.1, 10], [50, -0.1, 10]],
+        ],
+    )
+    def test_duplicate_vertices_are_refined(self, obstacle):
+        x = np.linspace(0, 100, 201)
+        curves = np.stack([x, 0 * x, 0 * x + 10], axis=1)[None]
+        engine = VectorizedDistanceEngine(
+            np.array([[0, 0, 0], [100, 0, 0.0]]), curves
+        )
+        obs = np.array(obstacle, dtype=float)
+
+        result = engine.min_distances({"o": obs}, {"o": 0})["o"]
+
+        assert result.distance_result.distance_3d == pytest.approx(
+            0.0, abs=1e-3
+        )
+        assert result.segment_index == (1 if obs[0, 1] < 0 else 0)
+
+    def test_negative_span_index_raises(self):
+        curves = np.zeros((2, 3, 3))
+        engine = _vectorized_engine(
+            curves, np.array([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
+        )
+        points = np.zeros((1, 3))
+        with pytest.raises(IndexError):
+            engine.plane_distances(points, np.array([-1]))
+        with pytest.raises(IndexError):
+            engine.distances({"o": points}, {"o": -1})
+
 
 class TestDistances:
     # straight cable along x at z=10: the plane of a point crosses it at the

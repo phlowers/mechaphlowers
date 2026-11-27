@@ -983,6 +983,13 @@ def batch_plane_distances(
     normals = np.asarray(normals, dtype=float)
     rows = np.arange(points.shape[0])
 
+    n_spans = len(normals)
+    if span_indices.size and (
+        span_indices.min() < 0 or span_indices.max() >= n_spans
+    ):
+        raise IndexError(
+            f"span_indices must be in [0, {n_spans - 1}], got {span_indices}"
+        )
     point_normals = normals[span_indices]
     # project points and curves onto the plane defined by the normals
     # reminder: smk, sm -> sm means dots along the normal (s,3) for each curve point (s,m,3)
@@ -1193,7 +1200,7 @@ def _build_segments_samples(
                 ts = ts[:-1]
             vertex = np.full(len(ts), -1)
             vertex[0] = local
-            if ts[-1] == 1.0:
+            if not discrete and local == nb_segments - 1:
                 vertex[-1] = local + 1
             sample_segments.append(np.full(len(ts), n_segments + local))
             sample_ts.append(ts)
@@ -1420,6 +1427,26 @@ def _assemble_obstacle_results(
     return results
 
 
+def _previous_nonzero_segment(
+    seg_len: np.ndarray, segment_id: int, first_seg: int
+) -> int | None:
+    """Closest segment before `segment_id` with positive length, within bounds."""
+    for candidate in range(segment_id - 1, first_seg - 1, -1):
+        if seg_len[candidate] > 0.0:
+            return candidate
+    return None
+
+
+def _next_nonzero_segment(
+    seg_len: np.ndarray, segment_id: int, last_seg: int
+) -> int | None:
+    """Closest segment after `segment_id` with positive length, within bounds."""
+    for candidate in range(segment_id + 1, last_seg + 1):
+        if seg_len[candidate] > 0.0:
+            return candidate
+    return None
+
+
 def search_interval_refinement(
     best_samples: _BestSamples,
     seg_nb_vertices: np.ndarray,
@@ -1429,10 +1456,17 @@ def search_interval_refinement(
 ) -> list[_SearchInterval]:
     """Build the golden-section search intervals around each coarse minimum.
 
+    Segments of an obstacle are never crossed outside its own bounds, and
+    zero-length segments (repeated vertices) never get an interval.
+
+    - Best segment with positive length: an interval around the coarse
+      minimum, plus the end of the previous nonzero segment if the minimum
+      sits on the segment start (shared vertex).
+    - Best segment with zero length: the start of the next nonzero segment
+      and the end of the previous nonzero segment.
+
     Returns:
-        One interval per refined obstacle, plus an extra interval on the
-        previous segment when the minimum sits on a shared vertex. Intervals
-        on zero-length segments are dropped.
+        The intervals, ordered per obstacle: current, next, then previous.
     """
     intervals: list[_SearchInterval] = []
     obstacle_id_to_refine = np.flatnonzero(
@@ -1441,30 +1475,42 @@ def search_interval_refinement(
     for obstacle_id in map(int, obstacle_id_to_refine):
         segment_id = int(best_samples.seg[obstacle_id])
         t0 = float(best_samples.t[obstacle_id])
+        first_seg = segment_id - int(seg_loc[segment_id])
+        last_seg = first_seg + int(seg_nb_vertices[obstacle_id]) - 2
 
-        # add/subtract dt to create the search interval around t0
-        dt = 1.0 / seg_sub[segment_id]  # warning dt is in parameter unit
-
-        # Search both sides of a shared vertex.
-        intervals.append(
-            _SearchInterval(
-                obstacle_id=obstacle_id,
-                segment_id=segment_id,
-                lower=max(t0 - dt, 0.0),
-                upper=min(t0 + dt, 1.0),
-            )
-        )
-        # If t0 == 0 and this isn't the obstacle's first segment, the minimum may sit on the shared vertex with the previous segment. So an extra interval is added on segment_id - 1, covering [1 - prev_dt, 1]
-        if t0 == 0.0 and seg_loc[segment_id] > 0:
-            prev_dt = 1.0 / seg_sub[segment_id - 1]
+        on_segment = seg_len[segment_id] > 0.0
+        if on_segment:
+            dt = 1.0 / seg_sub[segment_id]  # in parameter unit
             intervals.append(
                 _SearchInterval(
-                    obstacle_id=obstacle_id,
-                    segment_id=segment_id - 1,
-                    lower=1.0 - prev_dt,
-                    upper=1.0,
+                    obstacle_id,
+                    segment_id,
+                    max(t0 - dt, 0.0),
+                    min(t0 + dt, 1.0),
                 )
             )
+        else:
+            # repeated vertex: search the start of the next nonzero segment
+            next_seg = _next_nonzero_segment(seg_len, segment_id, last_seg)
+            if next_seg is not None:
+                intervals.append(
+                    _SearchInterval(
+                        obstacle_id, next_seg, 0.0, 1.0 / seg_sub[next_seg]
+                    )
+                )
+        # the minimum may sit on the vertex shared with the previous nonzero segment
+        if not on_segment or t0 <= 0.0:
+            prev_seg = _previous_nonzero_segment(
+                seg_len, segment_id, first_seg
+            )
+            if prev_seg is not None:
+                intervals.append(
+                    _SearchInterval(
+                        obstacle_id,
+                        prev_seg,
+                        1.0 - 1.0 / seg_sub[prev_seg],
+                        1.0,
+                    )
+                )
 
-    # compute valid intervals with positive segment length where search is meaningful
-    return [iv for iv in intervals if seg_len[iv.segment_id] > 0.0]
+    return intervals
