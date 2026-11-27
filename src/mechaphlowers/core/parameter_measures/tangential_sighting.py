@@ -2,6 +2,7 @@ from typing import Tuple
 
 import numpy as np
 
+from mechaphlowers.core.models.cable.span import CatenarySpan
 from mechaphlowers.entities.errors import (
     ConvergenceError,
     InputAngleNotInRangeError,
@@ -258,14 +259,17 @@ def compute_parameter__array(
     )
 
     def f(parameter):
-        x_tangent, y_tangent = _tangent_point_coordinates(
+        x_tangent, z_tangent = _tangent_point_coordinates(
             parameter,
             span_length,
             elevation_difference,
             slope,
         )
         sighted_slope = _sighted_slope(
-            x_tangent, y_tangent, corrected_height, distance
+            x_tangent,
+            z_tangent,
+            corrected_height,
+            distance,
         )
         return sighted_slope - slope
 
@@ -287,11 +291,11 @@ def compute_parameter__array(
 
 def _sighted_slope(
     x: np.ndarray,
-    y: np.ndarray,
+    z: np.ndarray,
     corrected_height: np.ndarray,
     distance: np.ndarray,
 ) -> np.ndarray:
-    return (y + corrected_height) / (x - distance)
+    return (z + corrected_height) / (x - distance)
 
 
 def _compute_corrected_height(
@@ -321,7 +325,7 @@ def _compute_elevation_difference(
     ) - corrected_height
 
 
-def approx_parameter_using_parabola(
+def approx_parameter_using_parabola(  # TODO: factor with code in papoto.py
     span_length: np.ndarray,
     corrected_height: np.ndarray,
     distance: np.ndarray,
@@ -337,24 +341,6 @@ def approx_parameter_using_parabola(
     return span_length * span_length / (8 * sag)
 
 
-def _lowest_point_coordinates(
-    parameter: np.ndarray,
-    span_length: np.ndarray,
-    elevation_difference: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Relative to the left hanging point"""
-    x = (
-        span_length / 2
-        - np.asinh(
-            elevation_difference
-            / (2 * parameter * np.sinh(span_length / (2 * parameter)))
-        )
-        * parameter
-    )
-    y = -parameter * (np.cosh(x / parameter) - 1)
-    return x, y
-
-
 def _tangent_point_coordinates(
     parameter: np.ndarray,
     span_length: np.ndarray,
@@ -362,12 +348,18 @@ def _tangent_point_coordinates(
     slope: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Relative to the left hanging point"""
-    x_lowest, y_lowest = _lowest_point_coordinates(
-        parameter, span_length, elevation_difference
+    # Coordinates of the left hanging point
+    # in the cable frame.
+    span_model = CatenarySpan(
+        span_length=span_length,
+        elevation_difference=elevation_difference,
+        parameter=parameter,
     )
-    x = x_lowest + parameter * np.asinh(slope)
-    y = y_lowest + parameter * (np.cosh((x - x_lowest) / parameter) - 1)
-    return x, y
+    x_m = span_model._x_m  # TODO: define public accessor
+    z_m = span_model.z_one_point(x_m)
+    x = -x_m + parameter * np.asinh(slope)
+    z = -z_m + span_model.z_one_point(x + x_m)
+    return x, z
 
 
 def _check_computed_parameter(
@@ -551,24 +543,23 @@ def compute_tangent_angle__array(
         distance,
     )
 
-    # Relative to the left hanging point
-    x_lowest, y_lowest = _lowest_point_coordinates(
-        parameter, span_length, elevation_difference
+    span_model = CatenarySpan(
+        span_length=span_length,
+        elevation_difference=elevation_difference,
+        parameter=parameter,
     )
-
     # Coordinates of the left hanging point
     # in the cable frame.
-    # Same notation as in H. Ducloux's paper
-    x_m = -x_lowest
+    x_m = span_model._x_m  # TODO: define public accessor
+    z_m = span_model.z_one_point(x_m)
 
-    # x and y relative to the left hanging point
-
+    # x and z relative to the left hanging point
     def slope(x: np.ndarray) -> np.ndarray:
         return np.sinh((x + x_m) / parameter)
 
     def f(x: np.ndarray) -> np.ndarray:
-        y = y_lowest + parameter * (np.cosh((x - x_lowest) / parameter) - 1)
-        return slope(x) - _sighted_slope(x, y, corrected_height, distance)
+        z = -z_m + span_model.z_one_point(x + x_m)
+        return slope(x) - _sighted_slope(x, z, corrected_height, distance)
 
     def f_prime_approx(x: np.ndarray) -> np.ndarray:
         return f(x + 1) - f(x)

@@ -366,8 +366,6 @@ class TestComputeParameter:
 
 
 class TestComputeTangentAngle:
-    # Test input validation
-
     def test_array__negative_parameter_raises(self) -> None:
         with pytest.raises(MechaphlowersValueError, match="Parameter"):
             compute_tangent_angle__array(
