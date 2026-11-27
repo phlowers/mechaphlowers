@@ -367,63 +367,73 @@ class TestComputeParameter:
 
 class TestComputeTangentAngle:
     def test_array__negative_parameter_raises(self) -> None:
+        angle_to_left_support = convert_angle_to_rad(np.array([75.776, 0, 50]))
+        angle_to_right_support = convert_angle_to_rad(
+            np.array([94.228, 96.82, 100])
+        )
         with pytest.raises(MechaphlowersValueError, match="Parameter"):
             compute_tangent_angle__array(
                 # First value is wrong: should be positive
                 np.array([-0.00001, 1200, 2500]),
-                convert_angle_to_rad(np.array([75.776, 0, 50])),
-                convert_angle_to_rad(np.array([94.228, 96.82, 100])),
+                angle_to_left_support,
+                angle_to_right_support,
                 np.array([500, 400, 800]),
                 np.array([0, 20, 0]),
                 np.array([-50, 0, 50]),
             )
 
     def test_scalar__negative_left_angle_raises(self) -> None:
+        angle_to_left_support = convert_angle_to_rad(-0.000001)
+        angle_to_right_support = convert_angle_to_rad(91.562)
         with pytest.raises(
             MechaphlowersValueError, match="angle_to_left_support"
         ):
             compute_tangent_angle__scalar(
                 1000.0,
-                convert_angle_to_rad(-0.000001),
-                convert_angle_to_rad(91.562),
+                angle_to_left_support,
+                angle_to_right_support,
                 300.0,
                 0.0,
                 150.0,
             )
 
     def test_scalar__left_angle_greater_than_pi_raises(self) -> None:
+        angle_to_right_support = convert_angle_to_rad(91.562)
         with pytest.raises(
             MechaphlowersValueError, match="angle_to_left_support"
         ):
             compute_tangent_angle__scalar(
                 1000.0,
                 np.pi + 0.00001,
-                convert_angle_to_rad(91.562),
+                angle_to_right_support,
                 300.0,
                 0.0,
                 150.0,
             )
 
     def test_scalar__negative_right_angle_raises(self) -> None:
+        angle_to_left_support = convert_angle_to_rad(91.562)
+        angle_to_right_support = convert_angle_to_rad(-0.000001)
         with pytest.raises(
             MechaphlowersValueError, match="angle_to_right_support"
         ):
             compute_tangent_angle__scalar(
                 1000.0,
-                convert_angle_to_rad(91.562),
-                convert_angle_to_rad(-0.000001),
+                angle_to_left_support,
+                angle_to_right_support,
                 300.0,
                 0.0,
                 150.0,
             )
 
     def test_scalar__right_angle_greater_than_pi_raises(self) -> None:
+        angle_to_left_support = convert_angle_to_rad(91.562)
         with pytest.raises(
             MechaphlowersValueError, match="angle_to_right_support"
         ):
             compute_tangent_angle__scalar(
                 1000.0,
-                convert_angle_to_rad(91.562),
+                angle_to_left_support,
                 np.pi + 0.00001,
                 300.0,
                 0.0,
@@ -431,33 +441,37 @@ class TestComputeTangentAngle:
             )
 
     def test_scalar__span_length_zero_raises(self) -> None:
+        angle = convert_angle_to_rad(91.562)
         with pytest.raises(MechaphlowersValueError, match="span_length"):
             compute_tangent_angle__scalar(
                 1000.0,
-                convert_angle_to_rad(91.562),
-                convert_angle_to_rad(91.562),
+                angle,
+                angle,
                 0.0,
                 0.0,
                 150.0,
             )
 
     def test_scalar__negative_span_length_raises(self) -> None:
+        angle = convert_angle_to_rad(91.562)
         with pytest.raises(MechaphlowersValueError, match="span_length"):
             compute_tangent_angle__scalar(
                 1000.0,
-                convert_angle_to_rad(91.562),
-                convert_angle_to_rad(91.562),
+                angle,
+                angle,
                 -0.00001,
                 0.0,
                 150.0,
             )
 
     def test_scalar__negative_input_height_raises(self) -> None:
+        angle_to_left_support = convert_angle_to_rad(0)
+        angle_to_right_support = convert_angle_to_rad(96.82)
         with pytest.raises(MechaphlowersValueError, match="input_height"):
             compute_tangent_angle__scalar(
                 1200,
-                convert_angle_to_rad(0),
-                convert_angle_to_rad(96.82),
+                angle_to_left_support,
+                angle_to_right_support,
                 400,
                 -0.000001,
                 0,
@@ -470,13 +484,15 @@ class TestComputeTangentAngle:
         Indeed, distance = 0 means the sighting device is directly below
         the left hanging point, in which case input_height is required.
         """
+        angle_to_left_support = convert_angle_to_rad(0)
+        angle_to_right_support = convert_angle_to_rad(96.82)
         with pytest.raises(
             MechaphlowersValueError, match="input_height .* distance"
         ):
             compute_tangent_angle__scalar(
                 1200,
-                convert_angle_to_rad(0),
-                convert_angle_to_rad(96.82),
+                angle_to_left_support,
+                angle_to_right_support,
                 400,
                 0,
                 0,
@@ -485,6 +501,7 @@ class TestComputeTangentAngle:
     def test_scalar__zero_angle_to_left_support_and_positive_distance_raises(
         self,
     ) -> None:
+        angle_to_right_support = convert_angle_to_rad(91.562)
         with pytest.raises(
             MechaphlowersValueError,
             match="angle to the left support .* distance",
@@ -492,7 +509,7 @@ class TestComputeTangentAngle:
             compute_tangent_angle__scalar(
                 1000.0,
                 0,
-                convert_angle_to_rad(91.562),
+                angle_to_right_support,
                 300.0,
                 0.0,
                 150.0,
@@ -501,28 +518,32 @@ class TestComputeTangentAngle:
     def test_scalar__zero_distance_and_positive_left_angle_raises(
         self,
     ) -> None:
+        angle_to_left_support = convert_angle_to_rad(91.562)
+        angle_to_right_support = convert_angle_to_rad(96.82)
         with pytest.raises(
             MechaphlowersValueError,
             match="distance .* angle to the left support",
         ):
             compute_tangent_angle__scalar(
                 1200,
-                convert_angle_to_rad(91.562),
-                convert_angle_to_rad(96.82),
+                angle_to_left_support,
+                angle_to_right_support,
                 400,
                 20,
                 0,
             )
 
     def test_scalar__nan_distance_and_positive_left_angle_raises(self) -> None:
+        angle_to_left_support = convert_angle_to_rad(91.562)
+        angle_to_right_support = convert_angle_to_rad(96.82)
         with pytest.raises(
             MechaphlowersValueError,
             match="distance .* angle to the left support",
         ):
             compute_tangent_angle__scalar(
                 1200,
-                convert_angle_to_rad(91.562),
-                convert_angle_to_rad(96.82),
+                angle_to_left_support,
+                angle_to_right_support,
                 400,
                 20,
                 np.nan,
@@ -596,39 +617,49 @@ class TestComputeTangentAngle:
 
     def test_compute_tangent_angle__array_case_raises(self) -> None:
         # First columns of data are OK, second yield a ConvergenceError
+        angle_to_left_support = convert_angle_to_rad(
+            np.array([75.776, 124.224])
+        )
+        angle_to_right_support = convert_angle_to_rad(
+            np.array([94.228, 106.345])
+        )
         with pytest.raises(ConvergenceError, match="Solver did not converge"):
             compute_tangent_angle__array(
                 np.array([2200, 800]),
-                convert_angle_to_rad(np.array([75.776, 124.224])),
-                convert_angle_to_rad(np.array([94.228, 106.345])),
+                angle_to_left_support,
+                angle_to_right_support,
                 np.array([500, 250]),
                 np.array([0, 0]),
                 np.array([-50, -50]),
             )
 
     def test_compute_tangent_angle__scalar_case_raises(self) -> None:
+        angle_to_left_support = convert_angle_to_rad(81.445)
+        angle_to_right_support = convert_angle_to_rad(90.521)
         with pytest.raises(
             ConvergenceError,
             match="Found aberrant x - no solution",
         ):
             compute_tangent_angle__scalar(
                 2400,
-                convert_angle_to_rad(81.445),
-                convert_angle_to_rad(90.521),
+                angle_to_left_support,
+                angle_to_right_support,
                 600,
                 0,
                 200,
             )
 
     def test_compute_tangent_angle__scalar_case_raises_2(self) -> None:
+        angle_to_left_support = convert_angle_to_rad(81.445)
+        angle_to_right_support = convert_angle_to_rad(90.521)
         with pytest.raises(
             ConvergenceError,
             match="Found aberrant x - no solution",
         ):
             compute_tangent_angle__scalar(
                 2400,
-                convert_angle_to_rad(81.445),
-                convert_angle_to_rad(90.521),
+                angle_to_left_support,
+                angle_to_right_support,
                 600,
                 0,
                 200,
