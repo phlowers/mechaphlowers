@@ -466,8 +466,8 @@ def _validate_compute_tangent_angle__array_inputs(
         input_height,
         distance,
     )
-    if (parameter < 0).any():
-        raise MechaphlowersValueError("Parameter must be positive.")
+    if (parameter <= 0).any():
+        raise MechaphlowersValueError("Parameter must be strictly positive.")
     # Ensure parameter is a float array because if it's an integer array,
     # computation results may be truncated to integers.
     parameter = _convert_to_float_array(parameter)
@@ -501,7 +501,7 @@ def compute_tangent_angle__array(
         InputAngleNotInRangeError:
             if any of the angles is not comprised between 0 and Pi,
         MechaphlowersValueError:
-            if parameter is strictly negative,
+            if parameter is negative or zero,
             if span_length is negative or zero,
             if input_height is strictly negative,
             if both distance and input_height are zero or nan,
@@ -604,7 +604,7 @@ def compute_tangent_angle__scalar(
         InputAngleNotInRangeError:
             if any of the angles is not comprised between 0 and Pi,
         MechaphlowersValueError:
-            if parameter is strictly negative,
+            if parameter is negative or zero,
             if span_length is negative or zero,
             if input_height is strictly negative,
             if both distance and input_height are zero or nan,

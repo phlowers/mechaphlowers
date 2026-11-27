@@ -559,7 +559,7 @@ class TestComputeTangentAngle:
             150,
         )
         np.testing.assert_allclose(
-            result, convert_angle_to_rad(91.631), atol=1e-1
+            result, convert_angle_to_rad(91.631), atol=1e-3,
         )
 
     def test_scalar__distance_nan_ok_if_input_height_provided(self) -> None:
@@ -572,7 +572,7 @@ class TestComputeTangentAngle:
             np.nan,
         )
         np.testing.assert_allclose(
-            result, convert_angle_to_rad(98.999), atol=1e-1
+            result, convert_angle_to_rad(98.999), atol=1e-3,
         )
 
     # Test results
@@ -594,7 +594,7 @@ class TestComputeTangentAngle:
         np.testing.assert_allclose(
             result,
             convert_angle_to_rad(np.array([95.621, 98.999, 101.607])),
-            atol=1e-1,
+            atol=1e-3,
         )
 
     def test_compute_tangent_angle__scalar_ok(self) -> None:
@@ -610,7 +610,7 @@ class TestComputeTangentAngle:
         )
 
         np.testing.assert_allclose(
-            result, convert_angle_to_rad(91.631), atol=1e-1
+            result, convert_angle_to_rad(91.631), atol=1e-3
         )
 
     # Test non-convergent cases
