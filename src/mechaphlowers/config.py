@@ -7,6 +7,7 @@
 """Module for mechaphlowers configuration settings"""
 
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 import numpy as np
 
@@ -73,9 +74,50 @@ class GraphicsConfig:
 
 
 @dataclass
+class BandedJacobianConfig:
+    """Configuration of the banded jacobian computation in BalanceSolver.
+
+    If `active` is False, the classic (dense) jacobian is computed. If True, the
+    banded jacobian is used, with the half-bandwidth given by `node_band_size`
+    for the node model and `load_band_size` for the load model.
+    """
+
+    node_band_size: int = 3
+    load_band_size: int = 1
+    active: bool = True
+
+    # Minimal half-bandwidths ensuring the banded jacobian is exact
+    MIN_NODE_BAND_SIZE: ClassVar[int] = 3
+    MIN_LOAD_BAND_SIZE: ClassVar[int] = 1
+
+    def __setattr__(self, name: str, value) -> None:
+        minimums = {
+            "node_band_size": self.MIN_NODE_BAND_SIZE,
+            "load_band_size": self.MIN_LOAD_BAND_SIZE,
+        }
+        if name in minimums and value < minimums[name]:
+            raise ValueError(
+                f"{name} must be greater than or equal to {minimums[name]}, got {value}"
+            )
+        super().__setattr__(name, value)
+
+
+@dataclass
+class AccelerationConfig:
+    """Configuration of computation accelerations."""
+
+    banded_jacobian: BandedJacobianConfig = field(
+        default_factory=BandedJacobianConfig
+    )
+
+
+@dataclass
 class SolverConfig:
     """Solvers configuration class."""
 
+    acceleration: AccelerationConfig = field(
+        default_factory=AccelerationConfig
+    )
     sagtension_zeta: float = 10.0
     param_calibration_zeta: float = 1.0
     papoto_zeta: float = 1.0
@@ -187,6 +229,46 @@ class InputUnitsConfig:
 
 
 @dataclass
+class ParameterMeasureConfig:
+    """Static uncertainty settings of one parameter measure class."""
+
+    # Relative to the parameter (0.01 means 1% of the parameter).
+    threshold_value: float = 0.01
+    threshold_active: bool = False
+
+
+@dataclass
+class PapotoMeasureConfig(ParameterMeasureConfig):
+    """Static uncertainty and Monte Carlo settings of PAPOTO measures."""
+
+    threshold_active: bool = False
+    threshold_value: float = 0.01
+    draw_number: int = 1000
+    angle_error: float = 0.01
+    seed: int | None = 42
+
+
+@dataclass
+class PepMeasureConfig:
+    threshold_active: bool = False
+    threshold_value: float = 0.01
+    validity_criteria: float = 0.005
+    # Parameter calculus using PEP method can only be precise if the measured point
+    # isn't too close to the supports, that's why we raise a UserWarning if the
+    # horizontal distance to the hanging points is smaller than
+    # span_length * forbidden_zone_percentage.
+    forbidden_zone_percentage: float = 0.1
+
+
+@dataclass
+class TangentialSightingMeasureConfig(ParameterMeasureConfig):
+    """Static uncertainty settings of tangential sighting measures."""
+
+    threshold_value: float = 0.01
+    threshold_active: bool = False
+
+
+@dataclass
 class MeasureUncertaintyConfig:
     step_for_approx_derivative: float = 1e-6
     angle_uncertainty: float = convert_angle_to_rad(0.01)
@@ -194,6 +276,12 @@ class MeasureUncertaintyConfig:
     input_length_uncertainty: float = 0.1
     distance_uncertainty: float = 0.5
     max_accepted_uncertainty: float = 0.01
+    # Class-specific static uncertainty settings.
+    papoto: PapotoMeasureConfig = field(default_factory=PapotoMeasureConfig)
+    pep: PepMeasureConfig = field(default_factory=PepMeasureConfig)
+    tangential_sighting: TangentialSightingMeasureConfig = field(
+        default_factory=TangentialSightingMeasureConfig
+    )
 
 
 @dataclass

@@ -18,8 +18,8 @@ from pandas.testing import assert_frame_equal
 from mechaphlowers.config import options as cfg
 from mechaphlowers.core.geometry import distances as distances_module
 from mechaphlowers.core.geometry.distances import (
-    PointDistanceResult,
     ClosestDistanceResult,
+    PointDistanceResult,
 )
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine

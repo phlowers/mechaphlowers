@@ -15,8 +15,8 @@ import pytest
 
 from mechaphlowers.api.section_study import SectionStudy
 from mechaphlowers.core.geometry.distances import (
-    PointDistanceResult,
     ObstacleDistances,
+    PointDistanceResult,
 )
 from mechaphlowers.entities.arrays import CableArray, SectionArray
 from mechaphlowers.entities.errors import NoIntersectionPlaneWarning

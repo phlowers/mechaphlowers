@@ -53,6 +53,7 @@ class ImporterRte(Importer):
         "long_ch": "insulator_length",
         "portée": "span_length",
         "pds_ch": "insulator_mass",
+        "ch_en_V": "v_chain",
     }
 
     def __init__(self, filename: str | PathLike) -> None:
@@ -87,6 +88,9 @@ class ImporterRte(Importer):
         renamed_df = self.raw_df.rename(columns=self.translation_map_fr)
         # Convert VRAI/FAUX from french .xlsx file into pythonic True/False
         renamed_df["suspension"] = renamed_df["suspension"].map(
+            lambda value: True if value == "VRAI" else False
+        )
+        renamed_df["v_chain"] = renamed_df["v_chain"].map(
             lambda value: True if value == "VRAI" else False
         )
 

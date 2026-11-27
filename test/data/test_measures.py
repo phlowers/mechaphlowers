@@ -5,12 +5,15 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
+import logging
+
 import numpy as np
 import pytest
 
 from mechaphlowers.config import options
 from mechaphlowers.data.measures import (
     PapotoParameterMeasure,
+    PepParameterMeasure,
     TangentialSightingParameterMeasure,
     param_calibration,
 )
@@ -206,7 +209,9 @@ def test_uncertainty_returns_expected_keys():
     """uncertainty() must return a dict with all expected keys."""
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
-    result = papoto.uncertainty(draw_number=100)
+    result = papoto.monte_carlo_uncertainty(
+        draw_number=100, angle_error=0.01, seed=42
+    )
     assert isinstance(result, dict)
     assert set(result.keys()) == EXPECTED_UNCERTAINTY_KEYS
 
@@ -215,8 +220,28 @@ def test_uncertainty_number_non_valid_is_int():
     """number_non_valid_values must be an integer."""
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
-    result = papoto.uncertainty(draw_number=100)
+    result = papoto.monte_carlo_uncertainty(
+        draw_number=100, angle_error=0.01, seed=42
+    )
     assert isinstance(result['number_non_valid_values'], int)
+
+
+def test_uncertainty_uses_papoto_config_for_monte_carlo(monkeypatch):
+    """uncertainty() must run the Monte Carlo with the papoto config values."""
+    monkeypatch.setattr(options.measure_uncertainty.papoto, "draw_number", 50)
+    monkeypatch.setattr(
+        options.measure_uncertainty.papoto, "angle_error", 0.02
+    )
+    monkeypatch.setattr(options.measure_uncertainty.papoto, "seed", 7)
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+
+    result = papoto.uncertainty()
+
+    expected = papoto.monte_carlo_uncertainty(
+        draw_number=50, angle_error=0.02, seed=7
+    )
+    assert result == 2 * expected["std_parameter_valid_values"]
 
 
 def test_uncertainty_valid_values_consistent():
@@ -224,7 +249,9 @@ def test_uncertainty_valid_values_consistent():
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
 
-    result = papoto.uncertainty(draw_number=500, angle_error=0.01, seed=42)
+    result = papoto.monte_carlo_uncertainty(
+        draw_number=500, angle_error=0.01, seed=42
+    )
 
     assert (
         result['min_parameter_valid_values']
@@ -242,7 +269,9 @@ def test_uncertainty_parameter_by_span_length():
     """parameter_by_span_length must equal mean_valid / a."""
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
-    result = papoto.uncertainty(draw_number=200, seed=42)
+    result = papoto.monte_carlo_uncertainty(
+        draw_number=200, angle_error=0.01, seed=42
+    )
     expected = result['mean_parameter_valid_values'] / PAPOTO_INPUTS['a']
     np.testing.assert_allclose(result['parameter_by_span_length'], expected)
 
@@ -253,7 +282,9 @@ def test_uncertainty_non_valid_nan_when_all_valid():
     papoto(**PAPOTO_INPUTS)
 
     # Use angle_error=0 so all draws are identical and valid
-    result = papoto.uncertainty(draw_number=200, angle_error=0)
+    result = papoto.monte_carlo_uncertainty(
+        draw_number=200, angle_error=0, seed=42
+    )
 
     assert result['number_non_valid_values'] == 0
     assert np.isnan(result['mean_non_valid_values'])
@@ -266,7 +297,9 @@ def test_uncertainty_invalid_draw_number(bad_draw_number):
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
     with pytest.raises(ValueError, match="draw_number"):
-        papoto.uncertainty(draw_number=bad_draw_number)
+        papoto.monte_carlo_uncertainty(
+            draw_number=bad_draw_number, angle_error=0.01, seed=42
+        )
 
 
 @pytest.mark.parametrize(
@@ -277,7 +310,103 @@ def test_uncertainty_invalid_angle_error(bad_angle_error):
     papoto = PapotoParameterMeasure()
     papoto(**PAPOTO_INPUTS)
     with pytest.raises(ValueError, match="angle_error"):
-        papoto.uncertainty(angle_error=bad_angle_error)
+        papoto.monte_carlo_uncertainty(
+            draw_number=100, angle_error=bad_angle_error, seed=42
+        )
+
+
+def test_threshold_defaults_and_instance_override(monkeypatch):
+    papoto = PapotoParameterMeasure()
+    assert papoto.threshold_value == 0.01
+    assert papoto.threshold_active is False
+
+    # Instance override wins over config
+    monkeypatch.setattr(
+        options.measure_uncertainty.papoto, "threshold_value", 0.02
+    )
+    monkeypatch.setattr(
+        options.measure_uncertainty.papoto, "threshold_active", True
+    )
+    papoto = PapotoParameterMeasure()
+    assert papoto.threshold_value == 0.02
+    assert papoto.threshold_active is True
+    papoto.threshold_value = 0.05
+    papoto.threshold_active = False
+    assert papoto.threshold_value == 0.05
+    assert papoto.threshold_active is False
+    # None as threshold_value resets to 0, threshold_active must be a boolean
+    papoto.threshold_value = None
+    assert papoto.threshold_value == 0
+    with pytest.raises(ValueError, match="threshold_active"):
+        papoto.threshold_active = None
+
+
+def test_threshold_config_is_specific_per_class(monkeypatch):
+    monkeypatch.setattr(
+        options.measure_uncertainty.papoto, "threshold_value", 0.03
+    )
+    monkeypatch.setattr(
+        options.measure_uncertainty.tangential_sighting,
+        "threshold_active",
+        True,
+    )
+    papoto = PapotoParameterMeasure()
+    tangential_sighting = TangentialSightingParameterMeasure()
+    assert papoto.threshold_value == 0.03
+    assert papoto.threshold_active is False
+    assert tangential_sighting.threshold_value == 0.01
+    assert tangential_sighting.threshold_active is True
+
+
+@pytest.mark.parametrize("bad_value", [-0.1, "0.01", True, [0.01], np.nan])
+def test_threshold_value_invalid(bad_value):
+    with pytest.raises(ValueError, match="threshold_value"):
+        PapotoParameterMeasure().threshold_value = bad_value
+
+
+@pytest.mark.parametrize("bad_value", [1, "True", 0.5])
+def test_threshold_active_invalid(bad_value):
+    with pytest.raises(ValueError, match="threshold_active"):
+        PapotoParameterMeasure().threshold_active = bad_value
+
+
+def test_papoto_uncertainty_threshold_bypasses_monte_carlo():
+    papoto = PapotoParameterMeasure()
+    papoto(**PAPOTO_INPUTS)
+    parameter, validity = papoto.parameter, papoto.validity
+    papoto.threshold_active = True
+    papoto.threshold_value = 0.02
+
+    # Monte Carlo arguments come from the config and are not used when the threshold is active
+    result = papoto.uncertainty()
+
+    np.testing.assert_allclose(result, 0.02 * parameter)
+    assert papoto.parameter is parameter
+    assert papoto.validity is validity
+
+
+def test_papoto_uncertainty_threshold_array_inputs():
+    papoto = PapotoParameterMeasure()
+    papoto(
+        **{
+            key: np.array([value, value * 1.01])
+            for key, value in PAPOTO_INPUTS.items()
+        }
+    )
+    papoto.threshold_active = True
+
+    result = papoto.uncertainty()
+
+    if isinstance(result, np.ndarray):
+        assert result.shape == (2,)
+    np.testing.assert_allclose(result, 0.01 * papoto.parameter)
+
+
+def test_papoto_uncertainty_threshold_raises_before_measure_method():
+    papoto = PapotoParameterMeasure()
+    papoto.threshold_active = True
+    with pytest.raises(MeasurementDataNotAvailable):
+        papoto.uncertainty()
 
 
 def test_tangential_sighting_parameter_measure__array__ok() -> None:
@@ -561,6 +690,56 @@ def test_tangential_sighting_uncertainty_multi_element_array_inputs_error() -> (
         tangential_sighting.uncertainty()
 
 
+def test_tangential_sighting_uncertainty_threshold_array_inputs() -> None:
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=np.array([101.607, 101.607]),
+        angle_to_left_support=np.array([50, 50]),
+        angle_to_right_support=np.array([100, 100]),
+        span_length=np.array([800, 800]),
+        input_height=np.array([0, 0]),
+        distance=np.array([50, 50]),
+        angle_unit="grad",
+    )
+    tangential_sighting.threshold_active = True
+    tangential_sighting.threshold_value = 0.02
+
+    np.testing.assert_allclose(
+        tangential_sighting.uncertainty(),
+        0.02 * tangential_sighting.parameter,
+    )
+
+
+def test_tangential_sighting_threshold_does_not_change_validity() -> None:
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting(
+        angle_to_cable_tangent=95.622,
+        angle_to_left_support=75.776,
+        angle_to_right_support=94.228,
+        span_length=500,
+        input_height=0,
+        distance=-50,
+        angle_unit="grad",
+    )
+    relative_uncertainty = tangential_sighting.relative_uncertainty()
+    validity = tangential_sighting.check_validity()
+
+    tangential_sighting.threshold_active = True
+    tangential_sighting.threshold_value = 0.5
+
+    assert tangential_sighting.relative_uncertainty() == relative_uncertainty
+    assert tangential_sighting.check_validity() == validity
+
+
+def test_tangential_sighting_uncertainty_threshold_before_measure_method_error() -> (
+    None
+):
+    tangential_sighting = TangentialSightingParameterMeasure()
+    tangential_sighting.threshold_active = True
+    with pytest.raises(MeasurementDataNotAvailable):
+        tangential_sighting.uncertainty()
+
+
 def test_tangential_sighting_check_validity__left_of_support() -> None:
     # 1st test case of H. Ducloux (uncertainty 0.0078)
     tangential_sighting = TangentialSightingParameterMeasure()
@@ -694,3 +873,66 @@ def test_tangential_sighting_check_validity__multi_element_array_error() -> (
     )
     with pytest.raises(MechaphlowersValueError, match="scalar"):
         tangential_sighting.check_validity()
+
+
+def test_pep_parameter_measure__ok() -> None:
+    pep = PepParameterMeasure()
+    pep(
+        466.067,
+        -1.560,
+        198.332,
+        -13.288,
+        205.037,
+        -13.444,
+        298.816,
+        -12.879,
+    )
+    np.testing.assert_allclose(
+        pep.parameter,
+        2104,
+        atol=1.0,
+    )
+    np.testing.assert_equal(pep.validity, True)
+    assert pep.relative_error < 0.005
+
+
+def test_pep_parameter_measure__not_valid() -> None:
+    measure_error = 50
+    pep = PepParameterMeasure()
+    pep(
+        span_length=466.067,
+        elevation_difference=-1.560,
+        x1=198.332 + measure_error,
+        z1=-13.288,
+        x2=205.037,
+        z2=-13.444,
+        x3=298.816,
+        z3=-12.879,
+    )
+    np.testing.assert_allclose(
+        pep.parameter,
+        2126,
+        atol=1.0,
+    )
+    assert pep.relative_error > 0.005
+    # Measure deemed not valid because the parameters computed from
+    # each measure are two different.
+    assert not pep.validity
+
+
+def test_pep_parameter_measure__error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    pep = PepParameterMeasure()
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(ConvergenceError):
+            pep(
+                span_length=500,
+                elevation_difference=0,
+                x1=200,
+                z1=-10,
+                x2=250,
+                z2=-5,
+                x3=300,
+                z3=-10,
+            )

@@ -15,8 +15,8 @@ import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
 from mechaphlowers.core.geometry.distances import (
-    PointDistanceResult,
     ClosestDistanceResult,
+    PointDistanceResult,
 )
 from mechaphlowers.core.geometry.points import Points
 from mechaphlowers.core.geometry.position_engine import PositionEngine

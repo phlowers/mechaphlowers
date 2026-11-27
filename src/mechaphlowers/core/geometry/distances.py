@@ -698,19 +698,33 @@ def get_projection_points(
 
 
 class PointDistanceResult:
-    """Result of the distance computation between two points in a plane.
-
-    Stores the two points, the plane basis vectors, the 3D distance and the
-    signed projections of the distance onto the plane basis vectors.
+    """Store a 3D point-to-point distance and its plane projections.
 
     Attributes:
-        point_base: The first point in 3D space (numpy array of shape (3,)).
-        point_target: The second point in 3D space (numpy array of shape (3,)).
-        u_plane: The first basis vector of the plane (numpy array of shape (3,)).
-        v_plane: The second basis vector of the plane (numpy array of shape (3,)).
-        distance_3d: The 3D distance between the two points.
-        signed_distance_projection_u: The signed projection of the distance onto u_plane.
-        signed_distance_projection_v: The signed projection of the distance onto v_plane.
+        point_base: Base point as a 3D NumPy array.
+        point_target: Target point as a 3D NumPy array.
+        distance_3d: Distance between the two points in 3D.
+        signed_distance_projection_u: Signed component along ``u_plane``.
+        signed_distance_projection_v: Signed component along ``v_plane``.
+        u_plane: First basis vector of the plane.
+        v_plane: Second basis vector of the plane.
+        distance_projection_u: Absolute value of
+            ``signed_distance_projection_u``.
+        distance_projection_v: Absolute value of
+            ``signed_distance_projection_v``.
+
+    Methods:
+        __str__(): Format the points, distances, and plane vectors as text.
+        __repr__(): Return a representation containing the formatted result.
+        projection_points(origin_point): Return the points reached from
+            ``origin_point`` by applying the signed ``u`` and ``v`` components.
+        compute_new_frame(translation_vector, angle_to_project): Translate and
+            rotate this result in place, then return it.
+        generate_with_reversed_y_axis(): Return a deep copy with the y
+            components of its points and plane vectors negated.
+
+    The seven constructor arguments are the base and target points, plane basis
+    vectors, 3D distance, and signed projection components.
     """
 
     def __init__(
@@ -790,6 +804,10 @@ class PointDistanceResult:
         new_distance_result.u_plane[1] = -new_distance_result.u_plane[1]
         new_distance_result.v_plane[1] = -new_distance_result.v_plane[1]
         return new_distance_result
+
+
+# Backward-compatible alias of the former class name.
+DistanceResult = PointDistanceResult
 
 
 @dataclass

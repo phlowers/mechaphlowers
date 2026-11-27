@@ -13,6 +13,7 @@ from typing import Type
 
 import numpy as np
 import pandas as pd
+from numpy import typing as npt
 
 from mechaphlowers.config import options
 from mechaphlowers.core.models.balance.interfaces import (
@@ -528,6 +529,15 @@ class BalanceModel(IBalanceModel):
     def state_vector(self, value: np.ndarray) -> None:
         self.nodes.state_vector = value
 
+    @property
+    def jacobian_half_bandwidth(self) -> int:
+        """State and objective have 2 entries per node: `[.., dx_i|dz_i, dy_i, ..]`
+        and `[.., Mx_i, My_i, ..]`. The moments at node i only depend on the two
+        spans adjacent to node i, hence on nodes i-1, i and i+1: row 2i+k depends
+        on columns 2(i-1) to 2(i+1)+1, so |row - col| <= 3.
+        Value read from `options.solver.acceleration.banded_jacobian.node_band_size`."""
+        return options.solver.acceleration.banded_jacobian.node_band_size
+
     def update(self) -> None:
         # for the init only, update_span() needs to be call before update_tensions()
         # for other cases, order does not seem to matter
@@ -765,6 +775,7 @@ class Nodes:
         load_weight: np.ndarray,
         load_position: np.ndarray,
         counterweight: np.ndarray,
+        v_chain: npt.NDArray[np.bool],
         bundle_number: int,  # np.ndarray?
     ):
         # TODO: docstring of this whole class
@@ -777,7 +788,7 @@ class Nodes:
             else "suspension"
             for i in range(len(insulator_weight))
         ]
-        self.masks = Masks(nodes_type, insulator_length)
+        self.masks = Masks(nodes_type, insulator_length, v_chain)
         self.init_coordinates(initial_attach_alt, insulator_length)
 
         self.insulator_length = insulator_length
@@ -958,6 +969,7 @@ class Nodes:
         # Force of the cable. Applied at attachement point between cable and chain.
         Fx_cable, Fy_cable, Fz_cable = self.vector_projection.force_cable()
         force_cable = np.vstack((Fx_cable, Fy_cable, Fz_cable)).T
+        # add counterweight here (full length chain)
         force_counterweight = np.vstack(
             (F_zeros, F_zeros, self.signed_counterweight)
         ).T
@@ -966,7 +978,8 @@ class Nodes:
         lever_cable = np.array([self.dx, self.dy, self.dz]).T
         M_cable = np.cross(lever_cable, force_cable + force_counterweight)
 
-        # add counterweight here (full length chain)
+        # if v chain: add vertical effort only to Mx
+        v_chain_effort = np.where(self.masks.v_chain, 1_000_000_000, 0)
 
         # Weight of the chain. Applied on center of gravity of the chain
         force_chain_weight = np.vstack(
@@ -977,7 +990,7 @@ class Nodes:
 
         M = M_cable + M_chain_weight
 
-        Mx = M[:, 0]
+        Mx = M[:, 0] + v_chain_effort * self.dy
         My = M[:, 1]
         Mz = M[:, 2]
         self.Mx = Mx
@@ -1032,6 +1045,7 @@ def nodes_builder(section_array: SectionArray, span_loads: SpanLoads) -> Nodes:
         else np.zeros(insulator_length.shape)
     )
 
+    v_chain = np.asarray(section_array.data.v_chain.to_numpy(), dtype=bool)
     bundle_number = section_array.bundle_number
 
     return Nodes(
@@ -1044,6 +1058,7 @@ def nodes_builder(section_array: SectionArray, span_loads: SpanLoads) -> Nodes:
         load_weight,
         load_position,
         counterweight,
+        v_chain,
         bundle_number,
     )
 
@@ -1184,6 +1199,15 @@ class LoadModel(IModelForSolver):
         self.x_i = value[::2]
         self.z_i = value[1::2]
         self.update_lengths_span_models()
+
+    @property
+    def jacobian_half_bandwidth(self) -> int:
+        """State and objective have 2 entries per load: `[.., x_i, z_i, ..]` and
+        `[.., Th_diff_i, Tv_diff_i, ..]`. Each load only depends on its own
+        position, so the jacobian is block diagonal (2x2 blocks): |row - col| <= 1.
+        Value read from `options.solver.acceleration.banded_jacobian.load_band_size`.
+        """
+        return options.solver.acceleration.banded_jacobian.load_band_size
 
     def objective_function(self) -> np.ndarray:
         """Objective function to minimize: differences of tensions at the load position.

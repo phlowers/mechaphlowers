@@ -9,11 +9,11 @@ import pytest
 
 from mechaphlowers.core.geometry.planes import (
     change_local_frame,
-    scalar_intersection_curve_plane,
     line_function_from_2_points,
     meshgrid_plane,
     parametric_line_from_2_points,
     plane_from_line,
+    scalar_intersection_curve_plane,
 )
 from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
 

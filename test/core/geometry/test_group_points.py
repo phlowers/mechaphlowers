@@ -11,9 +11,9 @@ import pandas as pd
 import pytest
 
 from mechaphlowers.core.geometry.distances import (
-    PointDistanceResult,
     ClosestDistanceResult,
     ObstacleDistances,
+    PointDistanceResult,
 )
 from mechaphlowers.core.geometry.group_points import GroupPoints
 from mechaphlowers.core.geometry.points import Points, SparsePoints

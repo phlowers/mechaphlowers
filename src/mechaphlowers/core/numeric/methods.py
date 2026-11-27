@@ -190,3 +190,90 @@ def golden_section_search(
         c, d = np.where(left, probe, d), np.where(left, c, probe)
         fc, fd = np.where(left, f_probe, fd), np.where(left, fc, f_probe)
     return (a + b) / 2.0
+
+
+class MinimizationMethod(Protocol):
+    """Protocol for bounded scalar minimization algorithms.
+
+    Implementations minimize ``objective(x)`` within given bounds and return
+    the objective value at the minimum as the result ``residual``.
+    """
+
+    def minimize(
+        self,
+        objective: Callable[[float], float],
+        bounds: tuple[float, float],
+    ) -> EstimationResult: ...
+
+
+class BrentMinimizationMethod:
+    """Brent's bounded minimization (``fminbound``), derivative-free.
+
+    Uses ``scipy.optimize.fminbound`` when scipy is installed, otherwise the
+    pure-Python port in ``mechaphlowers.numeric.scipy``. Assumes a single
+    local minimum inside ``bounds``.
+
+    The interior search never evaluates the bounds, so the objective is also
+    evaluated at both bounds: if a bound is at least as low as the interior
+    minimum, the minimum lies on that bound and it is returned with
+    ``converged=False``.
+
+    The ``residual`` of the result is the objective value at the minimum.
+
+    Args:
+        tol: Absolute tolerance on the minimizer. Defaults to 1e-3.
+        maxiter: Maximum number of objective evaluations of the interior
+            search. Defaults to 50.
+    """
+
+    def __init__(self, tol: float = 1e-3, maxiter: int = 50) -> None:
+        self.tol = tol
+        self.maxiter = maxiter
+
+    def minimize(
+        self,
+        objective: Callable[[float], float],
+        bounds: tuple[float, float],
+    ) -> EstimationResult:
+        try:
+            from scipy.optimize import fminbound  # type: ignore
+        except ImportError:
+            from mechaphlowers.numeric.scipy import fminbound  # type: ignore
+
+        lower, upper = bounds
+        (
+            interior_minimizer,
+            interior_min_value,
+            error_flag,
+            interior_n_evals,
+        ) = fminbound(
+            objective,
+            lower,
+            upper,
+            xtol=self.tol,
+            maxfun=self.maxiter,
+            full_output=True,
+            disp=0,
+        )
+        value_at_lower = objective(lower)
+        value_at_upper = objective(upper)
+        iterations = interior_n_evals + 2
+
+        best_bound, value_at_best_bound = (
+            (lower, value_at_lower)
+            if value_at_lower <= value_at_upper
+            else (upper, value_at_upper)
+        )
+        if value_at_best_bound <= interior_min_value:
+            return EstimationResult(
+                value=best_bound,
+                residual=value_at_best_bound,
+                iterations=iterations,
+                converged=False,
+            )
+        return EstimationResult(
+            value=float(interior_minimizer),
+            residual=float(interior_min_value),
+            iterations=iterations,
+            converged=error_flag == 0,
+        )

@@ -71,6 +71,7 @@ def test_build_importer():
         imported_weather_array.data, expected_weather_array.data
     )
     np.testing.assert_allclose(importer.new_temperature, 15)
+    assert "v_chain" in imported_section_array._data
 
 
 def test_import_data_from_proto():

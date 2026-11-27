@@ -7,6 +7,8 @@
 from mechaphlowers.core.numeric.methods import (
     BisectionMethod,
     BrentMethod,
+    BrentMinimizationMethod,
+    MinimizationMethod,
     OptimizationMethod,
     golden_section_search,
 )
@@ -16,6 +18,8 @@ __all__ = [
     "OptimizationMethod",
     "BisectionMethod",
     "BrentMethod",
+    "MinimizationMethod",
+    "BrentMinimizationMethod",
     "EstimationResult",
     "golden_section_search",
 ]
