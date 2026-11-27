@@ -230,3 +230,36 @@ The adjustment of the angle $\alpha_R$ using the bisection method is done as fol
 #### History
 
 Until 1974, the year Charles Avril published his book "Construction des lignes aériennes à haute tension", which summarized the practices of the time, the only known method for estimating a cable’s parameter was the so-called tangent method. This method required positioning the measuring device (a theodolite in the 1970s) directly beneath one of the suspension strings of the span for which the parameter was to be estimated.
+
+#### Modern method
+
+The current implementation doesn't require the measuring device to be directly beneath a suspension string. In fact, it can be either
+
+- outside the span
+- inside the span
+- at a support ("the left support").
+
+##### Outside or inside the span
+
+Following angles are measured:
+
+- angle to the left hanging point
+- angle to the right hanging point
+- angle to the tangent to the cable
+
+The span length and the horizontal distance between the measuring device and the left hanging point is also measured.
+
+![tangent_sighting_outside_span.svg](assets/tangent_sighting_outside_span.svg)
+
+![tangent_sigthing_inside_span.svg](assets/tangent_sigthing_inside_span.svg)
+
+##### At a support
+
+Following angles are measured:
+
+- angle to the right hanging point
+- angle to the tangent to the cable
+
+The span length and the distance between the measuring device and the left hanging point is also measured.
+
+![tangent_sighting_support.svg](assets/tangent_sighting_support.svg)
