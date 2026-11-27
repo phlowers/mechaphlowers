@@ -9,11 +9,11 @@ import pytest
 
 from mechaphlowers.core.geometry.planes import (
     change_local_frame,
-    intersection_curve_plane,
     line_function_from_2_points,
     meshgrid_plane,
     parametric_line_from_2_points,
     plane_from_line,
+    scalar_intersection_curve_plane,
 )
 from mechaphlowers.entities.errors import NoIntersectionPlaneForDistanceError
 
@@ -104,7 +104,7 @@ def test_intersection_curve_plane_closest_points_when_not_fine_tuning():
     plane_normal = np.array([1.0, 0.0, 0.0])
     point_on_plane = np.array([0.0, 0.0, 0.0])
 
-    intersections = intersection_curve_plane(
+    intersections = scalar_intersection_curve_plane(
         plane_normal, point_on_plane, spans1, fine_tuning=False
     )
 
@@ -125,12 +125,32 @@ def test_intersection_curve_plane_fine_tuning_intersection():
     plane_normal = np.array([1.0, 0.0, 0.0])
     point_on_plane = np.array([0.0, 0.0, 0.0])
 
-    intersections = intersection_curve_plane(
+    intersections = scalar_intersection_curve_plane(
         plane_normal, point_on_plane, spans1, fine_tuning=True
     )
 
     assert intersections.shape == (1, 3)
     np.testing.assert_allclose(intersections[0], np.array([0.0, 0.0, 0.0]))
+
+
+def test_intersection_curve_plane_fine_tuning_plane_through_curve_point():
+    spans1 = np.array(
+        [
+            [-2.0, 0.0, 0.0],
+            [-1.0, 0.0, 1.0],
+            [0.0, 0.0, 2.0],
+            [2.0, 0.0, 0.0],
+        ]
+    )
+    plane_normal = np.array([1.0, 0.0, 0.0])
+    point_on_plane = np.array([-1.0, 5.0, 5.0])
+
+    intersections = scalar_intersection_curve_plane(
+        plane_normal, point_on_plane, spans1, fine_tuning=True
+    )
+
+    assert intersections.shape == (1, 3)
+    np.testing.assert_allclose(intersections[0], np.array([-1.0, 0.0, 1.0]))
 
 
 def test_intersection_curve_plane_fine_tuning_same_side_raises():
@@ -147,7 +167,7 @@ def test_intersection_curve_plane_fine_tuning_same_side_raises():
     with pytest.raises(
         NoIntersectionPlaneForDistanceError,
     ):
-        intersection_curve_plane(
+        scalar_intersection_curve_plane(
             plane_normal, point_on_plane, spans1, fine_tuning=True
         )
 

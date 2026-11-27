@@ -32,6 +32,10 @@ from mechaphlowers.entities.core import VhlResult
 from mechaphlowers.entities.errors import BalanceEngineWarning, SolverError
 
 if TYPE_CHECKING:
+    from mechaphlowers.core.geometry.distances import (
+        ClosestDistanceResult,
+        ObstacleDistances,
+    )
     from mechaphlowers.core.models.cable.thermal import ThermalEngine
     from mechaphlowers.core.models.estimation import (
         EstimationEngine,
@@ -634,6 +638,52 @@ class SectionStudy:
             Tuple of ``(spans, supports, insulators)`` as `Points`.
         """
         return self._position_engine.get_points_for_plot(project, frame_index)
+
+    def obstacle_min_distance(
+        self,
+        obstacle_name: str,
+        step: float = 1.0,
+        refine: bool = True,
+        xtol: float = 1e-3,
+    ) -> ClosestDistanceResult | None:
+        """Delegate to [`PositionEngine.obstacle_min_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.obstacle_min_distance].
+
+        Args:
+            obstacle_name: Obstacle name.
+            step: Sampling step along the obstacle segments, in meters.
+            refine: Refine the minimum between samples.
+            xtol: Absolute tolerance of the refinement, in meters.
+
+        Returns:
+            Minimum distance result, or `None` if the obstacle does not face its span.
+        """
+        self._position_engine.update_distance_spans()
+        return self._position_engine.obstacle_min_distance(
+            obstacle_name, step=step, refine=refine, xtol=xtol
+        )
+
+    def get_distances(
+        self,
+        names: str | list[str] | None = None,
+        step: float = 1.0,
+        refine: bool = True,
+        xtol: float = 1e-3,
+    ) -> dict[str, ObstacleDistances]:
+        """Delegate to [`PositionEngine.get_distances`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_distances].
+
+        Args:
+            names: Obstacle name, list of names, or `None` for all obstacles.
+            step: Sampling step along the polyline segments, in meters.
+            refine: Refine the polyline minimum between samples.
+            xtol: Absolute tolerance of the refinement, in meters.
+
+        Returns:
+            Dict mapping obstacle name to its distances per point and minimum.
+        """
+        self._position_engine.update_distance_spans()
+        return self._position_engine.get_distances(
+            names, step=step, refine=refine, xtol=xtol
+        )
 
     def chain_displacement(self) -> np.ndarray:
         return self._balance_engine.balance_model.chain_displacement()

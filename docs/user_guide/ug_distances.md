@@ -7,20 +7,6 @@ In the context of mechaphlowers, distances between a point and a curve do NOT re
 In order to compute distances, we first define a plane containing the point. This plane is defined by the point and a normal vector.  
 We take the normal vector as the direction of 2 foot points "sea level" to keep a vertical Z-axis.  
 
-### Computation steps
-
-The process of computing distances is then as follows:
-
-1. Define the plane based on the point and the normal vector.
-2. Compute the intersection of the plane with the curve (span or section).
-3. Compute the distance from the point to the intersection point on the curve in the plane.
-4. Compute the projection of the distance vector onto the plane basis vectors to get the distance components in the plane.
-
-### Intersection of plane and curve
-
-The intersection of the plane and the curve is computed using the `intersection_curve_plane` function, which takes the curve points, plane point, and plane normal as inputs and returns the intersection point on the curve.  
-The function calculates the 2 nearest points on the curve. Then it uses a linear interpolation to find the intersection point on the curve.
-
 ## How to use it
 
 ### Distance engine
@@ -63,22 +49,189 @@ The `DistanceResult` class is used to store the results of the distance computat
 - `distance_projection_v`: The distance from the point to the curve projected onto the v-axis
 
 
+### Several obstacles at once
+
+[`VectorizedDistanceEngine`][mechaphlowers.core.geometry.distances.VectorizedDistanceEngine] is the low-level engine computing the distances of several obstacles together, over several spans. It keeps the span geometry in a store: the frames (normals and in-plane axes) are set with `set_frames(ground_supports)`, the curves of all spans with `set_curves(curves)`, and only some spans can be refreshed in place with `update_spans(span_ids, curves)`. The store is not updated automatically when the state of the engine changes.
+
+Sampling defaults are given by a [`SamplingOptions`][mechaphlowers.core.geometry.distances.SamplingOptions] object (`step`, `refine`, `xtol`). Each of them can be overridden per call in `distances` and `min_distances`.
+
+```python
+from mechaphlowers.core.geometry.distances import (
+    SamplingOptions,
+    VectorizedDistanceEngine,
+)
+
+engine = VectorizedDistanceEngine(options=SamplingOptions(step=1.0, refine=True, xtol=1e-3))
+engine.set_frames(ground_supports)  # array (S+1, 3): ground support of each span boundary
+engine.set_curves(curves)  # array (S, M, 3): points of each span
+obstacles = engine.distances(
+    coords_dict={"road": road_coords},  # {name: array (V, 3)}, in point_index order
+    spans_dict={"road": 0},  # {name: span index}
+    geometry_types={"road": "polyline"},  # optional, missing obstacles are polylines
+    step=0.5,  # optional per-call override of the options
+)
+obstacles["road"].minimum.distance_3d
+```
+
+`min_distances` takes the same arguments and returns only the `minimum` of each polyline obstacle.
+
+[`PositionEngine.get_distances`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_distances] and [`PositionEngine.obstacle_min_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.obstacle_min_distance] use the engine stored in `PositionEngine.vectorized_distance_engine`. This store is created once, but it is not refreshed automatically: after a solve or any change of the state, call `pos_engine.update_distance_spans()` (all frames and curves), or `pos_engine.update_distance_spans(span_ids)` to refresh only some spans. Otherwise the distances are computed from the previous geometry. See [Distances to obstacles](#distances-to-obstacles).
+
 ### Plot engine
 
 The `PlotEngine` class contains also method to compute and visualize distances.  
-This more complete object gives access to `point_distance` method to compute distances and visualize the setup upon the plot of a section for example.  
+This more complete object gives access to `point_distance` method to compute the distance of an obstacle point and visualize the setup upon the plot of a section for example.  
 
 ```python
 from mechaphlowers.plotting.plot import PlotEngine
 
 balance_engine = ...  # BalanceEngine object with computed balance (use data.catalog.sample_section_factory for sample data)
 plt_engine = PlotEngine(balance_engine)
-point = np.array([10.0, 5.0, 2.0])  # Absolute coordinates of the point to analyze
+plt_engine.position_engine.add_obstacle(name="obs_0", span_index=0, coords=np.array([[10.0, 5.0, 2.0]]))
 fig = figure_factory()
-distance_result = plt_engine.point_distance(span_index=0, point=point)
+distance_result = plt_engine.point_distance(obstacle_name="obs_0", point_index=0, fig=fig)
 # ...get a distance result object with the distance and closest point coordinates
             
 fig.show()
 ```
 
 --8<-- "docs/user_guide/assets/distance_plotengine_example.html"
+
+### Distances to obstacles
+
+[`get_distances`][mechaphlowers.core.geometry.position_engine.PositionEngine.get_distances] computes the distances between obstacles and the span they belong to. It is available on `PositionEngine` and on `SectionStudy`. It takes the obstacle names to compute (a string, a list of strings, or `None` for all obstacles) and returns a dict mapping each obstacle name to an [`ObstacleDistances`][mechaphlowers.core.geometry.distances.ObstacleDistances]:
+
+- `points`: a dict mapping each obstacle vertex (its position in `point_index` order) to its `DistanceResult`: `point_base` is the obstacle point and `point_target` the target point on the cable. Points whose distance plane does not intersect the span are absent;
+- `minimum`: the [`ObstacleDistanceResult`][mechaphlowers.core.geometry.distances.ObstacleDistanceResult] of the closest obstacle location, or `None` if no point intersects the span;
+- `geometry_type` and `span_index`: the obstacle geometry type and the index of its span.
+
+How `minimum` is searched depends on the obstacle `geometry_type` (see [Discrete points or polyline](ug_obstacles.md#discrete-points-or-polyline)):
+
+- `"points"` (default): the points are discrete, the minimum is the closest point. `step` and `refine` have no effect. `segment_index` is the position of the closest point and `segment_parameter` is `0`;
+- `"polyline"`: the points are joined in `point_index` order, and the minimum is searched along the polyline, so it can lie between two points.
+
+For polylines, the algorithm is:
+
+1. Each segment is sampled every `step` meters (vertices included) and the plane distance is computed at each sample.
+2. If `refine=True` (default), a golden-section search refines the best sample within its neighbouring interval, up to `xtol` meters along the segment. This search is run simultaneously for all obstacles.
+
+All obstacles and spans are computed in batched numpy operations, without Python loops over points.
+
+Points or samples whose distance plane does not intersect the span (for instance beyond the supports) are skipped with a `NoIntersectionPlaneWarning`, which reports the number of skipped samples per obstacle. `step` and `xtol` must be strictly positive (`ValueError`), and an unknown obstacle name raises `KeyError`.
+
+```python
+study = SectionStudy(...)  # with a solved balance
+study.position_engine.add_obstacle(
+    name="road",
+    span_index=0,
+    coords=np.array([[100, -30, 0], [400, 30, 0]]),
+    geometry_type="polyline",
+)
+
+road = study.get_distances("road", step=1.0)["road"]
+road.points[0].distance_3d  # distance of the first point
+road.points[0].point_target  # target point on the cable (absolute frame)
+
+result = road.minimum
+result.distance_3d  # minimum distance
+result.closest_obstacle_point  # closest point on the obstacle (absolute frame)
+result.closest_span_point  # closest point on the cable (absolute frame)
+result.segment_index, result.segment_parameter  # location along the obstacle polyline
+result.distance_result  # DistanceResult at the closest location
+
+# All obstacles, or a selection
+results = study.get_distances()
+results = study.get_distances(["road", "tree"])
+
+# Minimum only, without the points
+result = study.obstacle_min_distance("road", step=1.0)
+
+# With plotting of the closest location
+fig = go.Figure()
+study.plot_engine.obstacle_min_distance("road", fig=fig)
+```
+
+## Algorithms explained
+
+### Vectorized plane distance 
+
+Problem:
+
+- $N$ obstacle points lie on $S$ spans
+- each span has $M$ points
+- 3D means 3 components
+
+We want a vectorized function that computes (implemented as [`batch_plane_distances`](../docstring/core/geometry/distance.md#mechaphlowers.core.geometry.distances.batch_plane_distances) in `mechaphlowers.core.geometry.distances`):
+
+- the targets $T \in \mathbb{R}^{N \times 3}$ (points of the cable that are in the span axis plane containing the obstacles)
+- the distances $d \in \mathbb{R}^{N}$
+
+#### Inputs:
+
+- normal vectors to the $S$ span axis planes: $n \in \mathbb{R}^{S \times 3}$
+- obstacle points: $p \in \mathbb{R}^{N \times 3}$
+- span ids of each obstacle point: $s \in \{0, \dots, S-1\}^{N}$
+- $S$ curves of $M$ points in a 3D matrix: $C \in \mathbb{R}^{S \times M \times 3}$
+
+#### Algorithm
+
+1. Project the points on the normals
+
+    $$
+    \pi^{obs}_k = \vec{p_k} \cdot \vec{n_{s_k}} \qquad \text{shape } (N,)
+    $$
+
+    !!! note
+
+        $\vec{n_{s_k}}$ (`n[span_ids]`) is the repeated $\vec{n}$ to map from $S$ to $N$ size.
+
+    $$
+    \pi^{curve}_{i,j} = \vec{C_{i,j}} \cdot \vec{n_i} \qquad \text{shape } (S, M)
+    $$
+
+2. Get signed distances
+
+    $$
+    D_{k,j} = \pi^{obs}_k - \pi^{curve}_{s_k,\, j} \qquad \text{shape } (N, M)
+    $$
+
+    $D$ is thus the signed distance matrix with $N$ rows of distances between each obstacle plane and the points of the corresponding curve.
+
+3. Sort $\lvert D \rvert$ and find $c_0$, $c_1$ the closest points of the curve at indices $i_0$, $i_1$, with $\vec{c_0}, \vec{c_1} \in \mathbb{R}^{N \times 3}$
+
+4. Exclude degenerate cases
+
+    - verify crossing (catch the sign change of $D$)
+    - compute the vectors $\vec{c_0 c_1}$
+    - $\vec{c_0 c_1} \cdot \vec{n_{s_k}}$ gives the direction
+    - exclude $\lvert \vec{c_0 c_1} \cdot \vec{n_{s_k}} \rvert \approx 0$ to avoid segments parallel to the plane
+
+5. Find the best point $\vec{c(t)}$ that lies in the plane by minimizing the projected distance between the obstacle and the point on the segment $[\vec{c_0}, \vec{c_1}]$
+
+    Linear approximation: let's find $t$ on the segment:
+
+    $$
+    \vec{c(t)} = \vec{c_0} + t \, \vec{c_0 c_1}
+    $$
+
+    We have to solve:
+
+    $$
+    \vec{n_{s_k}} \cdot \vec{c(t)} = \pi^{obs}_k
+    \iff \vec{n_{s_k}} \cdot \vec{c_0} + t \, \left( \vec{n_{s_k}} \cdot \vec{c_0 c_1} \right) = \pi^{obs}_k
+    $$
+
+    hence:
+
+    $$
+    t = \frac{\pi^{obs}_k - \vec{n_{s_k}} \cdot \vec{c_0}}{\vec{n_{s_k}} \cdot \vec{c_0 c_1}}
+    $$
+
+    (the distance to the plane of our guess is the same as the projected obstacle, which means the plane contains the obstacle point)
+
+6. Filter the valid guesses by clipping $t$ to the interval $[0, 1]$
+
+
+
+
+

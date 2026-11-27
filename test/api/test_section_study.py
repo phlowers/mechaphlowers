@@ -1297,6 +1297,23 @@ class TestSectionStudyCopy:
         point = np.array([x, 10.0, 20.0])
         return study.position_engine.point_distance(0, point).distance_3d
 
+    def test_obstacle_min_distance_delegates(self, study: SectionStudy):
+        study.position_engine.add_obstacle(
+            name="road",
+            span_index=0,
+            coords=np.array([[100, -30, 0], [400, 30, 0]]),
+            geometry_type="polyline",
+        )
+        result = study.obstacle_min_distance("road")
+        all_results = study.get_distances()
+
+        road_result = all_results["road"].minimum
+        assert result is not None
+        assert road_result is not None
+        assert set(all_results.keys()) == {"road"}
+        assert set(all_results["road"].points.keys()) == {0, 1}
+        np.testing.assert_allclose(road_result.distance_3d, result.distance_3d)
+
     def test_copy_independence(self, study: SectionStudy):
         memento = study.intermediate_memento
         dxdydz = study.balance_engine.balance_model.nodes.dxdydz.copy()
@@ -1443,3 +1460,73 @@ class TestSectionVirtualSupportsGraph:
             )
             == 2
         )
+
+
+class TestSectionWindAngle:
+    @pytest.fixture
+    def study(self, cable_array_AM600: CableArray) -> SectionStudy:
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2", "3", "4"],
+                    "suspension": [False, True, True, False],
+                    "conductor_attachment_altitude": [30, 50, 60, 65],
+                    "crossarm_length": [0, 0, 0, 0],
+                    "line_angle": [40, 0, 0, 0],
+                    "insulator_length": [3, 3, 3, 3],
+                    "span_length": [500, 300, 400, np.nan],
+                    "insulator_mass": [1000, 500, 500, 1000],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        return SectionStudy(
+            cable_array=cable_array_AM600, section_array=section_array
+        )
+
+    @pytest.fixture
+    def study_inverse(self, cable_array_AM600: CableArray) -> SectionStudy:
+        section_array = SectionArray(
+            pd.DataFrame(
+                {
+                    "name": ["1", "2", "3", "4"],
+                    "suspension": [False, True, True, False],
+                    "conductor_attachment_altitude": [30, 50, 60, 65],
+                    "crossarm_length": [0, 0, 0, 0],
+                    "line_angle": [60, 0, 0, 0],
+                    "insulator_length": [3, 3, 3, 3],
+                    "span_length": [500, 300, 400, np.nan],
+                    "insulator_mass": [1000, 500, 500, 1000],
+                }
+            ),
+            sagging_parameter=2000,
+            sagging_temperature=15,
+        )
+        section_array.add_units({"line_angle": "grad"})
+        return SectionStudy(
+            cable_array=cable_array_AM600, section_array=section_array
+        )
+
+    def test_bug_wind_angle(
+        self, study: SectionStudy, study_inverse: SectionStudy
+    ):
+        study.solve_adjustment()
+        study.solve_change_state(wind_pressure=500)
+
+        study_inverse.solve_adjustment()
+        study_inverse.solve_change_state(wind_pressure=500)
+
+        from plotly.graph_objects import Figure
+
+        plot_engine = PlotEngine(study.balance_engine)
+        plot_engine_inverse = PlotEngine(study_inverse.balance_engine)
+
+        fig = Figure()
+
+        plot_engine.preview_line2d(fig, view="line")
+        plot_engine_inverse.preview_line2d(fig, view="line")
+
+        fig.show()
+        assert 1

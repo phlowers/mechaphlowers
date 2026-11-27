@@ -214,6 +214,9 @@ class ObstacleArrayInput(pa.DataFrameModel):
             y (float): Y coordinate of the obstacle in the support frame, in meters
             z (float): Z coordinate of the obstacle in the support frame, in meters
             object_type (str): Type of obstacle (e.g., "tree", "ground", etc.)
+            geometry_type (str, optional): How the points of a multipoint obstacle
+                are interpreted: ``"points"`` (discrete points, default) or
+                ``"polyline"`` (points joined in `point_index` order).
     """
 
     name: pdt.Series[str]
@@ -223,3 +226,6 @@ class ObstacleArrayInput(pa.DataFrameModel):
     y: pdt.Series[float] = pa.Field(coerce=True)
     z: pdt.Series[float] = pa.Field(coerce=True)
     object_type: pdt.Series[str]
+    geometry_type: Optional[pdt.Series[str]] = pa.Field(
+        isin=["points", "polyline"], nullable=True
+    )

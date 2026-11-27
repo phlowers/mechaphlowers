@@ -894,6 +894,11 @@ class ObstacleArray(ElementArray):
     """Obstacles-related data, such as obstacle altitude and distance from the line.
 
     They are typically used to compute clearance-related checks.
+
+    The optional `geometry_type` column tells how the points of a multipoint
+    obstacle are interpreted: ``"points"`` (discrete points, default) or
+    ``"polyline"`` (points joined in `point_index` order). It must be the
+    same for all points of an obstacle.
     """
 
     array_input_type: Type[pa.DataFrameModel] = ObstacleArrayInput
@@ -917,11 +922,19 @@ class ObstacleArray(ElementArray):
                     "y": pd.Series(dtype="float64"),
                     "z": pd.Series(dtype="float64"),
                     "object_type": pd.Series(dtype=str),
+                    "geometry_type": pd.Series(dtype=str),
                 }
             )
             super().__init__(empty_df)
         else:
             super().__init__(data)
+            geometry_type = (
+                self._data["geometry_type"].fillna("points")
+                if "geometry_type" in self._data.columns
+                else "points"
+            )
+            # assign returns a new frame: the caller's DataFrame is untouched
+            self._data = self._data.assign(geometry_type=geometry_type)
             # Check if points from the same obstacle have the same indices
             points_has_same_indices = data.duplicated(
                 subset=['name', 'point_index']
@@ -938,6 +951,16 @@ class ObstacleArray(ElementArray):
                 raise ValueError(
                     "All points from the same obstacle should have the same span_index"
                 )
+            obstacle_has_same_geometry_type = (
+                self._data.groupby('name')['geometry_type']
+                .nunique()
+                .eq(1)
+                .all()
+            )
+            if not obstacle_has_same_geometry_type:
+                raise ValueError(
+                    "All points from the same obstacle should have the same geometry_type"
+                )
 
     def add_obstacle(
         self,
@@ -948,6 +971,7 @@ class ObstacleArray(ElementArray):
         support_reference: Literal['left', 'right'] = 'left',
         span_length: np.ndarray | None = None,
         overwrite: bool = True,
+        geometry_type: Literal['points', 'polyline'] = 'points',
     ):
         """
         Method used for adding an obstacle to ObstacleArray
@@ -957,10 +981,20 @@ class ObstacleArray(ElementArray):
         If support_reference == "right", span_length is required.
 
         If overwrite == True, will overwrite if name already exists. Else, it will add points to obstacle
+
+        geometry_type sets how the obstacle points are interpreted: "points"
+        (discrete points) or "polyline" (points joined in point_index order).
+        When appending points to an existing obstacle, it must match the
+        existing geometry_type.
         """
         if len(coords.shape) != 2 or coords.shape[1] != 3:
             raise TypeError(
                 "coords have incorrect dimension: it should be (n x 3)"
+            )
+        if geometry_type not in ("points", "polyline"):
+            raise ValueError(
+                "geometry_type should be 'points' or 'polyline', "
+                f"received '{geometry_type}'"
             )
 
         nb_points = coords.shape[0]
@@ -983,6 +1017,15 @@ class ObstacleArray(ElementArray):
                 self._data.drop(indices_existing_obstacle, inplace=True)
                 self._data.reset_index(drop=True, inplace=True)
             else:
+                existing_geometry_type = self._data.loc[
+                    indices_existing_obstacle, "geometry_type"
+                ].iloc[0]
+                if existing_geometry_type != geometry_type:
+                    raise ValueError(
+                        f"Obstacle {name} has geometry_type "
+                        f"'{existing_geometry_type}', cannot add points with "
+                        f"geometry_type '{geometry_type}'"
+                    )
                 point_index = point_index + len(indices_existing_obstacle)
 
         new_obstacle = pd.DataFrame(
@@ -994,6 +1037,7 @@ class ObstacleArray(ElementArray):
                 "y": coords[:, 1],
                 "z": coords[:, 2],
                 "object_type": [object_type] * nb_points,
+                "geometry_type": [geometry_type] * nb_points,
             }
         )
         self._data = pd.concat([self._data, new_obstacle], ignore_index=True)

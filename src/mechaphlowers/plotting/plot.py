@@ -14,7 +14,10 @@ from typing import Literal, Union
 import numpy as np
 import plotly.graph_objects as go  # type: ignore[import-untyped]
 
-from mechaphlowers.core.geometry.distances import DistanceResult
+from mechaphlowers.core.geometry.distances import (
+    ClosestDistanceResult,
+    PointDistanceResult,
+)
 from mechaphlowers.core.geometry.points import Points
 from mechaphlowers.core.geometry.position_engine import PositionEngine
 from mechaphlowers.core.models.balance.engine import BalanceEngine
@@ -799,8 +802,8 @@ class PlotEngine(Observer):
         point_index: int,
         *,
         fig: go.Figure | None = None,
-    ) -> DistanceResult:
-        """Compute the distance from *point* to a span, with optional plotting.
+    ) -> PointDistanceResult:
+        """Compute the distance from an obstacle point to its span, with optional plotting.
 
         Delegates the geometric computation to
         [`PositionEngine.point_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.point_distance] and, when *fig* is provided,
@@ -814,6 +817,10 @@ class PlotEngine(Observer):
 
         Returns:
             [`DistanceResult`][mechaphlowers.core.geometry.distances.DistanceResult].
+
+        Raises:
+            KeyError: If the obstacle does not exist, or if the point does
+                not intersect the span.
 
         Examples:
 
@@ -832,11 +839,17 @@ class PlotEngine(Observer):
             # ...get a distance result object with the distance and closest point coordinates
             >>> fig.show()
         """
-        distance_result = self.position_engine.get_distances_from_obstacles()[
+        self.position_engine.update_distance_spans()
+        obstacle_distances = self.position_engine.get_distances(obstacle_name)[
             obstacle_name
-        ][point_index]
+        ]
+        distance_result = obstacle_distances.points[point_index]
 
         if fig is not None:
+            # Load the distance engine so that plotting uses the same plane.
+            self.position_engine.point_distance(
+                obstacle_distances.span_index, distance_result.point_base
+            )
             plot_distance_engine(
                 self.position_engine.distance_engine,
                 distance_result=distance_result,
@@ -859,6 +872,62 @@ class PlotEngine(Observer):
             )
 
         return distance_result
+
+    def obstacle_min_distance(
+        self,
+        obstacle_name: str,
+        step: float = 1.0,
+        refine: bool = True,
+        xtol: float = 1e-3,
+        *,
+        fig: go.Figure | None = None,
+    ) -> ClosestDistanceResult | None:
+        """Compute the minimum distance between an obstacle and its span, with optional plotting.
+
+        Delegates the computation to
+        [`PositionEngine.obstacle_min_distance`][mechaphlowers.core.geometry.position_engine.PositionEngine.obstacle_min_distance]
+        and, when *fig* is provided, plots the closest location on the figure.
+
+        Args:
+            obstacle_name: Obstacle name.
+            step: Sampling step along the obstacle segments, in meters.
+            refine: Refine the minimum between samples.
+            xtol: Absolute tolerance of the refinement, in meters.
+            fig: Optional Plotly figure. When supplied, the geometry is
+                rendered on it.
+
+        Returns:
+            [`ObstacleDistanceResult`][mechaphlowers.core.geometry.distances.ObstacleDistanceResult],
+            or `None` if the obstacle does not face its span.
+        """
+        self.position_engine.update_distance_spans()
+        result = self.position_engine.obstacle_min_distance(
+            obstacle_name, step=step, refine=refine, xtol=xtol
+        )
+
+        if fig is not None and result is not None:
+            plot_distance_engine(
+                self.position_engine.distance_engine,
+                distance_result=result.distance_result,
+                fig=fig,
+                show_plane=True,
+                show_projections=True,
+                title_addendum=f" - Obstacle: {obstacle_name}",
+                force_layout=True,
+            )
+            fig.update_layout(
+                title=f"Minimum Distance Analysis - Obstacle: {obstacle_name}",
+                scene=dict(
+                    xaxis_title="X (m)",
+                    yaxis_title="Y (m)",
+                    zaxis_title="Z (m)",
+                    aspectmode="data",
+                ),
+                showlegend=True,
+                legend=dict(x=0.02, y=0.98),
+            )
+
+        return result
 
     def __str__(self) -> str:
         return str(self.position_engine)

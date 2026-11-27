@@ -10,6 +10,7 @@ from mechaphlowers.core.numeric.methods import (
     BrentMinimizationMethod,
     MinimizationMethod,
     OptimizationMethod,
+    golden_section_search,
 )
 from mechaphlowers.core.numeric.result import EstimationResult
 
@@ -20,4 +21,5 @@ __all__ = [
     "MinimizationMethod",
     "BrentMinimizationMethod",
     "EstimationResult",
+    "golden_section_search",
 ]

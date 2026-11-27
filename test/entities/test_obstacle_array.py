@@ -52,6 +52,7 @@ def test_empty_obstacle_array() -> None:
         "y",
         "z",
         "object_type",
+        "geometry_type",
     }
     assert expected_keys == set(obstacle_array._data.columns)
 
@@ -106,7 +107,11 @@ def test_create_obstacle_array() -> None:
             ],
         }
     )
-    assert_frame_equal(obstacle_array.data, expected_df, check_like=True)
+    assert_frame_equal(
+        obstacle_array.data,
+        expected_df.assign(geometry_type="points"),
+        check_like=True,
+    )
 
 
 def test_sort_obstacle_array() -> None:
@@ -264,7 +269,11 @@ def test_add_obstacle() -> None:
         }
     )
 
-    assert_frame_equal(obstacle_array.data, expected_df, check_like=True)
+    assert_frame_equal(
+        obstacle_array.data,
+        expected_df.assign(geometry_type="points"),
+        check_like=True,
+    )
 
 
 def test_add_obstacle_existing() -> None:
@@ -318,7 +327,11 @@ def test_add_obstacle_existing() -> None:
         }
     )
 
-    assert_frame_equal(obstacle_array.data, expected_df, check_like=True)
+    assert_frame_equal(
+        obstacle_array.data,
+        expected_df.assign(geometry_type="points"),
+        check_like=True,
+    )
 
 
 def test_add_obstacle_existing_no_overwrite() -> None:
@@ -375,7 +388,11 @@ def test_add_obstacle_existing_no_overwrite() -> None:
         }
     )
 
-    assert_frame_equal(obstacle_array.data, expected_df, check_like=True)
+    assert_frame_equal(
+        obstacle_array.data,
+        expected_df.assign(geometry_type="points"),
+        check_like=True,
+    )
 
 
 def test_add_obstacle_from_empty() -> None:
@@ -420,7 +437,11 @@ def test_add_obstacle_from_empty() -> None:
         }
     )
 
-    assert_frame_equal(obstacle_array.data, expected_df, check_like=True)
+    assert_frame_equal(
+        obstacle_array.data,
+        expected_df.assign(geometry_type="points"),
+        check_like=True,
+    )
 
 
 def test_add_obstacle_bad_arguments() -> None:
@@ -490,7 +511,9 @@ def test_delete_obstacle_single(default_obstacle_array: ObstacleArray) -> None:
         }
     )
     assert_frame_equal(
-        default_obstacle_array.data, expected_df, check_like=True
+        default_obstacle_array.data,
+        expected_df.assign(geometry_type="points"),
+        check_like=True,
     )
 
 
@@ -524,7 +547,9 @@ def test_delete_obstacle_list(default_obstacle_array: ObstacleArray) -> None:
         }
     )
     assert_frame_equal(
-        default_obstacle_array.data, expected_df, check_like=True
+        default_obstacle_array.data,
+        expected_df.assign(geometry_type="points"),
+        check_like=True,
     )
 
 
@@ -562,7 +587,9 @@ def test_delete_point(default_obstacle_array: ObstacleArray) -> None:
         }
     )
     assert_frame_equal(
-        default_obstacle_array.data, expected_df, check_like=True
+        default_obstacle_array.data,
+        expected_df.assign(geometry_type="points"),
+        check_like=True,
     )
 
 
@@ -593,5 +620,72 @@ def test_delete_point_last(default_obstacle_array: ObstacleArray) -> None:
         }
     )
     assert_frame_equal(
-        default_obstacle_array.data, expected_df, check_like=True
+        default_obstacle_array.data,
+        expected_df.assign(geometry_type="points"),
+        check_like=True,
     )
+
+
+def _two_points_obstacle(geometry_type: list) -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "name": ["obs_0", "obs_0"],
+            "point_index": [0, 1],
+            "span_index": [0, 0],
+            "x": [100.0, 200.0],
+            "y": [0.0, 10.0],
+            "z": [0.0, 0.0],
+            "object_type": ["ground", "ground"],
+            "geometry_type": geometry_type,
+        }
+    )
+
+
+def test_geometry_type_from_dataframe() -> None:
+    input_df = _two_points_obstacle(["polyline", "polyline"])
+    obstacle_array = ObstacleArray(input_df)
+    assert obstacle_array.data["geometry_type"].tolist() == [
+        "polyline",
+        "polyline",
+    ]
+
+    missing = ObstacleArray(_two_points_obstacle([None, None]))
+    assert missing.data["geometry_type"].tolist() == ["points", "points"]
+
+
+def test_geometry_type_invalid() -> None:
+    with pytest.raises(ValueError, match="same geometry_type"):
+        ObstacleArray(_two_points_obstacle(["points", "polyline"]))
+    with pytest.raises(Exception):
+        ObstacleArray(_two_points_obstacle(["curve", "curve"]))
+    with pytest.raises(ValueError):
+        ObstacleArray.build_empty_array().add_obstacle(
+            name="obs",
+            span_index=0,
+            coords=np.array([[0, 0, 0]]),
+            geometry_type="curve",  # type: ignore[arg-type]
+        )
+
+
+def test_add_obstacle_geometry_type(
+    default_obstacle_array: ObstacleArray,
+) -> None:
+    default_obstacle_array.add_obstacle(
+        name="road",
+        span_index=0,
+        coords=np.array([[0, 0, 0], [10, 0, 0]]),
+        geometry_type="polyline",
+    )
+    data = default_obstacle_array.data
+    assert set(data.loc[data["name"] == "road", "geometry_type"]) == {
+        "polyline"
+    }
+    assert set(data.loc[data["name"] != "road", "geometry_type"]) == {"points"}
+
+    with pytest.raises(ValueError, match="geometry_type"):
+        default_obstacle_array.add_obstacle(
+            name="road",
+            span_index=0,
+            coords=np.array([[20, 0, 0]]),
+            overwrite=False,
+        )

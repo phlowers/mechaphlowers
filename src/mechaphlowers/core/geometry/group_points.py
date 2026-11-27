@@ -10,7 +10,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from mechaphlowers.core.geometry.distances import DistanceResult
+from mechaphlowers.core.geometry.distances import ObstacleDistances
 from mechaphlowers.core.geometry.points import (
     Points,
     PointsT,
@@ -28,7 +28,7 @@ class GroupPoints:
         insulators: Points | None = None,
         obstacles: SparsePoints | None = None,
         additional_points: SparsePoints | None = None,
-        distances: dict[str, dict[int, DistanceResult]] | None = None,
+        distances: dict[str, ObstacleDistances] | None = None,
         virtual_supports_list: list[int] | None = None,
     ):
         self.line_angle = line_angle
@@ -37,7 +37,7 @@ class GroupPoints:
         self.insulators = insulators
         self.obstacles = obstacles
         self.additional_points = additional_points
-        # dictionary of DistanceResult (result of get_distances_from_obstacles)
+        # result of PositionEngine.get_distances
         self.distances = distances
         self.current_frame = -1
         self.virtual_supports_list = (
@@ -210,7 +210,7 @@ class GroupPoints:
     def _change_frame_distances(
         self, translation_vector: np.ndarray, angle_to_project: np.float64
     ) -> dict:
-        """Projection for dict of DistanceResult
+        """Projection for dict of ObstacleDistances (points and minimum)
 
         Directly modify objects
 
@@ -224,15 +224,13 @@ class GroupPoints:
         Returns:
             dict: dictionnary of distances: same format as self.distances
         """
-        # loop on self.distances (dict) and operate and change frame on each DistanceReuslt
         if self.distances is None:
             raise TypeError("self.distances need to be a dictionary")
 
-        for obstacle_dict in self.distances.values():
-            for point_index, distance_result in obstacle_dict.items():
-                obstacle_dict[point_index] = distance_result.compute_new_frame(
-                    translation_vector, angle_to_project
-                )
+        for obstacle_distances in self.distances.values():
+            obstacle_distances.compute_new_frame(
+                translation_vector, angle_to_project
+            )
         # return unused
         return self.distances
 

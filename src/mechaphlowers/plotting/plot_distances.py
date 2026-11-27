@@ -19,7 +19,7 @@ from mechaphlowers.plotting.plot_config import (
 if TYPE_CHECKING:
     from mechaphlowers.core.geometry.distances import (
         DistanceEngine,
-        DistanceResult,
+        PointDistanceResult,
     )
 
 
@@ -419,7 +419,7 @@ def plot_projected_distances(
 
 def plot_distance_engine(
     distance_engine: DistanceEngine,
-    distance_result: DistanceResult | None = None,
+    distance_result: PointDistanceResult | None = None,
     fig: go.Figure | None = None,
     title_addendum: str | None = None,
     plane_scale: float = 10.0,
